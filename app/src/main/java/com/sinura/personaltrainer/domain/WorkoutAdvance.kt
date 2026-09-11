@@ -35,4 +35,59 @@ object WorkoutAdvance {
         if (index < 0 || index >= exerciseIds.lastIndex) return null
         return exerciseIds[index + 1]
     }
+
+    /**
+     * Everything the log dock needs to decide Log-or-Next, from the session itself.
+     *
+     * The screen used to work this out in its own composition body: count the selected lift's
+     * working sets, call [liftComplete], map every lift to its id, call [nextExerciseId], then
+     * `&&` the two against whether a set was being edited. Four rule decisions in a function
+     * whose job is to draw, re-run on every recomposition — and the header above it redraws once
+     * a second as the elapsed clock ticks.
+     */
+    fun forSelection(
+        session: WorkoutSession?,
+        selectedExerciseId: String?,
+        wantAnother: Boolean,
+        editing: Boolean,
+    ): WorkoutAdvanceState {
+        val selected = session?.exercises?.firstOrNull { it.exercise.id == selectedExerciseId }
+        val workingLogged = selected
+            ?.let { lift -> session.setsFor(lift.exercise.id).count { !it.isWarmup } }
+            ?: 0
+        val complete = liftComplete(
+            workingLogged = workingLogged,
+            targetSets = selected?.targetSets ?: 0,
+            wantAnother = wantAnother,
+        )
+        val next = nextExerciseId(
+            session?.exercises.orEmpty().map { it.exercise.id },
+            selectedExerciseId,
+        )
+        return WorkoutAdvanceState(
+            workingLogged = workingLogged,
+            liftComplete = complete,
+            nextExerciseId = next,
+            showNext = complete && next != null && !editing,
+        )
+    }
+
+    /** Whether a card's Add set row shows: its prescribed sets are in, nothing asked for more. */
+    fun cardOffersAnotherSet(loggedSets: List<SetLog>, targetSets: Int): Boolean = liftComplete(
+        workingLogged = loggedSets.count { !it.isWarmup },
+        targetSets = targetSets,
+        wantAnother = false,
+    )
+
+    /** The most recently completed set, which the card rules and marks as the latest. */
+    fun latestSetId(loggedSets: List<SetLog>): String? =
+        loggedSets.maxByOrNull { it.completedAt }?.id
 }
+
+/** The Log-or-Next decision for the selected lift. See [WorkoutAdvance.forSelection]. */
+data class WorkoutAdvanceState(
+    val workingLogged: Int,
+    val liftComplete: Boolean,
+    val nextExerciseId: String?,
+    val showNext: Boolean,
+)

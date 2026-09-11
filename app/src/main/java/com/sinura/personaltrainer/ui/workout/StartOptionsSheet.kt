@@ -34,8 +34,8 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.StartOptionsCopy
 import com.sinura.personaltrainer.domain.estimatedSessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
-import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
-import com.sinura.personaltrainer.ui.navigation.LiveBarKind
+import com.sinura.personaltrainer.domain.LiveBarCopy
+import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider

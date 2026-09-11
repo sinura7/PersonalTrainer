@@ -39,10 +39,13 @@ class TalkBackPolicyTest {
         assertTrue(gymSurfaces.contains("heading()"))
         assertTrue(gymSurfaces.contains("Role.Button"))
 
-        val common = readOwned("ui/components/Common.kt")
-        assertTrue(common.contains("role = Role.Button"))
-        assertTrue(common.contains("LiveRegionMode.Polite"))
-        assertTrue(common.contains("TalkBackPolicy.announceRestKicker"))
+        val stepper = readOwned("ui/components/StepperButton.kt")
+        assertTrue(stepper.contains("role = Role.Button"))
+
+        val rest = readOwned("ui/components/RestTimerUi.kt")
+        assertTrue(rest.contains("role = Role.Button"))
+        assertTrue(rest.contains("LiveRegionMode.Polite"))
+        assertTrue(rest.contains("TalkBackPolicy.announceRestKicker"))
 
         val gymStatus = readOwned("ui/components/GymStatus.kt")
         assertTrue(gymStatus.contains("LiveRegionMode.Polite"))

@@ -28,7 +28,7 @@ class MotionPolicyTest {
         assertTrue(status.contains("instrumentTween(Motion.FAST)"))
         assertTrue(status.contains("recordEnter()"))
         assertTrue(status.contains("Motion.STATUS_DWELL_MS"))
-        val rest = readOwned("ui/components/Common.kt")
+        val rest = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(rest.contains("instrumentLinear(Motion.TICK_MS)"))
         assertTrue(rest.contains("Motion.PULSE_MS"))
         val lists = listOf(

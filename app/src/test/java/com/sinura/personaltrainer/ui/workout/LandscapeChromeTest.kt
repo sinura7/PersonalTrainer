@@ -29,19 +29,20 @@ class LandscapeChromeTest {
         assertTrue(workout.contains("LandscapeChrome.compactHeader"))
         assertTrue(workout.contains("LandscapeChrome.hideIdleRest"))
         assertTrue(workout.contains("LandscapeChrome.foldMicroRecIntoCard"))
-        assertTrue(workout.contains("WorkoutLiftCardState"))
-        assertTrue(workout.contains("WorkoutLiftCardEvents"))
-        assertTrue(workout.contains("CountBadge("))
-        assertFalse(workout.contains("CartBadge("))
+        val card = readOwned("ui/workout/WorkoutLiftCard.kt")
+        assertTrue(card.contains("WorkoutLiftCardState"))
+        assertTrue(card.contains("WorkoutLiftCardEvents"))
+        assertTrue(card.contains("CountBadge("))
+        assertFalse(card.contains("CartBadge("))
 
         val rest = readOwned("ui/workout/RestTimerScreen.kt")
         assertTrue(rest.contains("LandscapeChrome.ringSizeDp"))
         assertTrue(rest.contains("ringSize = LandscapeChrome.ringSizeDp"))
 
-        val dock = readOwned("ui/components/Common.kt")
+        val dock = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(dock.contains("hideWhenIdle"))
-        assertTrue(dock.contains("fun DangerGymButton"))
         assertTrue(dock.contains("ringSize: Dp = REST_RING_SIZE"))
+        assertTrue(readOwned("ui/components/GymButtons.kt").contains("fun DangerGymButton"))
     }
 
     private fun readOwned(relative: String): String {
