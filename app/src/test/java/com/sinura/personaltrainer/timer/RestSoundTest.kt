@@ -156,6 +156,21 @@ class RestTickAlertTest {
         assertEquals(1, clicks)
         RestTimerAlerts.tick(context, RestTimerPreferences()) { throw IllegalStateException("no pool") }
     }
+
+    @Test
+    fun lastThreeSecondsStillTickWhenSoundIsOn() {
+        var clicks = 0
+        val ticked = RestTimerAlerts.tick(
+            context = ApplicationProvider.getApplicationContext<Context>(),
+            preferences = RestTimerPreferences(
+                soundEnabled = true,
+                vibrationEnabled = false,
+            ),
+            second = 3,
+        ) { clicks += 1 }
+        assertEquals(true, ticked)
+        assertEquals(1, clicks)
+    }
 }
 
 @RunWith(RobolectricTestRunner::class)

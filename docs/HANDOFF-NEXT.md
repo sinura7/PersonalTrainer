@@ -95,7 +95,9 @@ Biggest first, and the first two are the owner's, not a session's:
   walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
-- **Six DESIGN_AUDIT P1 rows** still genuinely open. L-05 is closed:
+- **Five DESIGN_AUDIT P1 rows** still genuinely open. D-06 is closed:
+  last three seconds of rest hit harder in the hand, and a refused tap
+  buzzes twice. L-05 is closed:
   add-to-routine shows the lift still and Work/Rest it will land as, and
   destination routines as pictured cards. W-11 is closed:
   the log button says **Log warm-up** vs **Log set**. W-06 is closed:

@@ -192,7 +192,7 @@ No rest-ring animation, no tick pulse on last 5s, no settle on log-set, no chip 
 
 ### D-06 — Haptics are one waveform  [P1]
 
-`RestTimerAlerts` uses a single complete pattern. Need a small palette: tick (light), last-3s (medium), complete (strong), log-set (click), error (double). Respect system haptic intensity.
+`RestTimerAlerts` uses a single complete pattern. Need a small palette: tick (light), last-3s (medium), complete (strong), log-set (click), error (double). Respect system haptic intensity. **— Closed 11 Sep 2026: `Haptics` is tick (`CLOCK_TICK`) / warn last-3s (`CONTEXT_CLICK`) / commit log-set / reject double (`postDelayed`) / celebrate PR. Rest 5–4 is `RestTick.LIGHT_PULSE_MS`; 3–1 is `WARN_PULSE_MS` (`RestTimerAlerts.tick`, `RestTick.isWarn`). Complete stays `COMPLETE_PATTERN`. The system haptic setting is the off switch.**
 
 ### D-07 — Iconography is stock outlined Material  [P2]
 

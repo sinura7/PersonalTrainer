@@ -5,6 +5,9 @@ package com.sinura.personaltrainer.domain
  * the lifter is standing when the cue goes. The owner's R-04; the audit's
  * G-10 in one line — tick means hurry up, tone means stand up.
  *
+ * 5 and 4 are light. 3, 2, 1 are heavier (D-06), so the last stretch
+ * feels like a different instrument, not the same click five times.
+ *
  * Pure: where the ticks fall, given the deadline. The service posts one
  * runnable per boundary from [nextTick]; nothing polls, and a ±15 s simply
  * re-asks.
@@ -15,8 +18,20 @@ package com.sinura.personaltrainer.domain
  */
 object RestTick {
     const val FIRST = 5
+    const val WARN_FROM = 3
     const val TITLE = "Last five seconds"
-    const val CAPTION = "A tick and a pulse on 5, 4, 3, 2, 1."
+    const val CAPTION = "Light on 5 and 4. Heavier on 3, 2, 1."
+
+    /** Felt pulse for 5 and 4 — a detent, not a cue. */
+    const val LIGHT_PULSE_MS = 40L
+
+    /** Felt pulse for 3, 2, 1 — twice as long, still not the complete waveform. */
+    const val WARN_PULSE_MS = 80L
+
+    fun isWarn(second: Int): Boolean = second in 1..WARN_FROM
+
+    fun pulseMs(second: Int): Long =
+        if (isWarn(second)) WARN_PULSE_MS else LIGHT_PULSE_MS
 
     /** The instant the countdown crosses to [second]: the tick for that second. */
     fun tickAt(endsAtElapsedRealtime: Long, second: Int): Long =
