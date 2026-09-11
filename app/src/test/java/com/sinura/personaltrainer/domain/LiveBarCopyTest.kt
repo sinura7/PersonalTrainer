@@ -1,4 +1,4 @@
-package com.sinura.personaltrainer.ui.navigation
+package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

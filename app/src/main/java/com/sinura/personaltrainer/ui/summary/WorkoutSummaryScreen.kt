@@ -41,7 +41,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.SetCopy
-import com.sinura.personaltrainer.domain.PersonalRecordKind
+import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.SummaryCopy
@@ -428,7 +428,7 @@ private fun PersonalRecordPanel(summary: WorkoutSummary, modifier: Modifier = Mo
     val lines = remember(summary) {
         summary.highlights
             .filter { it.records.isNotEmpty() }
-            .map { it.exerciseName to it.records.joinToString(" · ") { kind -> kind.celebrationLabel } }
+            .map { it.exerciseName to it.records.joinToString(" · ", transform = PersonalRecordCopy::celebration) }
     }
     var revealed by rememberSaveable { mutableIntStateOf(0) }
     val reduced = LocalReducedMotion.current
@@ -561,20 +561,5 @@ object SummaryTags {
     const val RETRY = "summary-retry"
 }
 
-/**
- * The longer wording, for the one screen that is a celebration rather than a readout.
- *
- * Named `celebrationLabel` and not `label`, which is what it used to be called: the enum has a
- * member `label` of its own ("Heaviest", "Most reps", "Est. 1RM"), members always beat
- * extensions, and so the call site below silently bound to the member and this whole block was
- * dead code. A warning, never an error — which is exactly why it survived.
- */
-private val PersonalRecordKind.celebrationLabel: String
-    get() = when (this) {
-        PersonalRecordKind.WEIGHT -> "Heaviest ever"
-        PersonalRecordKind.REPS_AT_WEIGHT -> "Most reps at that weight"
-        PersonalRecordKind.ESTIMATED_ONE_REP_MAX -> "Best estimated 1RM"
-        PersonalRecordKind.REPS -> "Most reps ever"
-    }
 
 private const val RECORD_BORDER_ALPHA = 0.35f

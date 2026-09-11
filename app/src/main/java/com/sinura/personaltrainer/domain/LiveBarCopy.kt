@@ -1,4 +1,7 @@
-package com.sinura.personaltrainer.ui.navigation
+package com.sinura.personaltrainer.domain
+
+/** Which kind of session the live bar is describing. */
+enum class LiveBarKind { WORKOUT, ACTIVITY }
 
 /**
  * Gym-floor words for the live session bar.

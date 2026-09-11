@@ -46,7 +46,7 @@ class ForeignControlsTest {
         }
         val menuSites = listOf(
             "ui/history/SessionDetailScreen.kt",
-            "ui/workout/ActiveWorkoutScreen.kt",
+            "ui/workout/WorkoutLiftCard.kt",
             "ui/settings/BackupRestoreSection.kt",
             "ui/components/GymSurfaces.kt",
             "ui/navigation/LiveSessionBar.kt",

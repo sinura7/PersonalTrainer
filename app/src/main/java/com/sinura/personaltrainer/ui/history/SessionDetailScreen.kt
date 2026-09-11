@@ -62,8 +62,8 @@ import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
-import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
-import com.sinura.personaltrainer.ui.navigation.LiveBarKind
+import com.sinura.personaltrainer.domain.LiveBarCopy
+import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit

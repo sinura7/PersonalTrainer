@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.logging.AppLog
@@ -29,8 +30,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/LiveSessionBar"
-
-enum class LiveBarKind { WORKOUT, ACTIVITY }
 
 data class LiveSessionBarUiState(
     val sessionId: String,

@@ -59,6 +59,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.CustomWeekLaunch
 import com.sinura.personaltrainer.domain.DataHealthCopy

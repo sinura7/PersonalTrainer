@@ -67,8 +67,8 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
-import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
-import com.sinura.personaltrainer.ui.navigation.LiveBarKind
+import com.sinura.personaltrainer.domain.LiveBarCopy
+import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem

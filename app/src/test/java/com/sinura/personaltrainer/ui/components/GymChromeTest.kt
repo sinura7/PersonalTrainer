@@ -17,7 +17,7 @@ class GymChromeTest {
             "routines/RoutineEditorScreen.kt",
             "exercise/ExerciseDetailScreen.kt",
             "onboarding/OnboardingScreen.kt",
-            "workout/ActiveWorkoutScreen.kt",
+            "workout/WorkoutHeader.kt",
             "workout/RestTimerScreen.kt",
         )
         val dockSites = listOf(
@@ -26,7 +26,7 @@ class GymChromeTest {
             "summary/WorkoutSummaryScreen.kt",
             "activity/LiveCardioScreen.kt",
             "activity/ActivityDetailScreen.kt",
-            "workout/ActiveWorkoutScreen.kt",
+            "workout/WorkoutLogBar.kt",
         )
         headerSites.forEach { path ->
             assertTrue(path, readUi(path).contains("ScreenHeader("))

@@ -149,16 +149,26 @@ def exempt(path: str, family: str) -> bool:
     return basename(path) in TOKEN_FILE.get(family, set())
 
 
+def line_at(src: str, index: int) -> str:
+    start = src.rfind("\n", 0, index) + 1
+    end = src.find("\n", index)
+    return src[start:] if end < 0 else src[start:end]
+
+
 def scan_kotlin(path: str, src: str, rules, bucket: dict) -> list:
     findings = []
     for family, pattern, message in rules:
         if exempt(path, family):
             continue
         for match in pattern.finditer(src):
+            # An import is bookkeeping, not a styling decision. These counters claim to
+            # measure how often a stock shape, icon or component is *used*, and counting the
+            # import line as well made the number a function of file layout: splitting one
+            # file into nine raised `circle` from 11 to 12 without changing a single call.
+            if line_at(src, match.start()).lstrip().startswith("import "):
+                continue
             if family == "raw_dp":
-                line_start = src.rfind("\n", 0, match.start()) + 1
-                line = src[line_start:src.find("\n", match.start())]
-                if re.match(r"\s*(?:private\s+)?va[lr]\s+", line):
+                if re.match(r"\s*(?:private\s+)?va[lr]\s+", line_at(src, match.start())):
                     continue
             line_no = src.count("\n", 0, match.start()) + 1
             bucket[family] = bucket.get(family, 0) + 1
