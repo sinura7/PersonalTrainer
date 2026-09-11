@@ -36,7 +36,7 @@ class ForeignControlsTest {
     @Test
     fun threeSwitchesFiveMenusZeroSnackbarHosts() {
         val switchSites = listOf(
-            "ui/settings/SettingsScreen.kt",
+            "ui/settings/RestTimerPrefsSection.kt",
             "ui/reminders/ReminderPrefsSection.kt",
         )
         switchSites.forEach { path ->
@@ -47,7 +47,7 @@ class ForeignControlsTest {
         val menuSites = listOf(
             "ui/history/SessionDetailScreen.kt",
             "ui/workout/ActiveWorkoutScreen.kt",
-            "ui/settings/SettingsScreen.kt",
+            "ui/settings/BackupRestoreSection.kt",
             "ui/components/GymSurfaces.kt",
             "ui/navigation/LiveSessionBar.kt",
         )

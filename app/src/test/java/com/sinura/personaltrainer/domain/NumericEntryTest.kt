@@ -146,7 +146,7 @@ class NumericEntryTest {
         assertTrue(readUi("activity/ActivityComposerScreen.kt").contains("COMPOSER_CARDIO_CHAIN"))
         assertTrue(readUi("activity/LiveCardioScreen.kt").contains("LIVE_CARDIO_DISTANCE"))
         assertTrue(readUi("components/Common.kt").contains("CUSTOM_REST"))
-        assertTrue(readUi("settings/SettingsScreen.kt").contains("PASSWORD_CHAIN"))
+        assertTrue(readUi("settings/BackupDialogs.kt").contains("PASSWORD_CHAIN"))
         assertTrue(readUi("components/Common.kt").contains("KeyboardType.Number"))
     }
 

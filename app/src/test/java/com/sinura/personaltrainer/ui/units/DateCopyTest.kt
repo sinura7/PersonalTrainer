@@ -45,12 +45,18 @@ class DateCopyTest {
         val session = readMain("ui/history/SessionDetailScreen.kt")
         assertTrue(session.contains("DateCopy.dateTime"))
 
+        val backupSection = readMain("ui/settings/BackupRestoreSection.kt")
+        assertTrue(backupSection.contains("DateCopy.dateTime"))
+        assertFalse(backupSection.contains("DataStore"))
+
+        val aboutSections = readMain("ui/settings/AboutSections.kt")
+        assertTrue(aboutSections.contains("AppLog.redactMessages"))
+        assertTrue(aboutSections.contains("SettingsTags.REDACT_LOGS"))
+        assertFalse(aboutSections.contains("setRedact"))
+
         val settings = readMain("ui/settings/SettingsScreen.kt")
         assertTrue(settings.contains("DateCopy.dateTime"))
-        assertTrue(settings.contains("AppLog.redactMessages"))
-        assertTrue(settings.contains("SettingsTags.REDACT_LOGS"))
         assertFalse(settings.contains("DataStore"))
-        assertFalse(settings.contains("setRedact"))
     }
 
     private fun readMain(relative: String): String {

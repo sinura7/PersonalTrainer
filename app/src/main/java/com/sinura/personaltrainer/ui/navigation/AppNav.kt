@@ -260,8 +260,9 @@ fun PersonalTrainerNav(
     settingsViewModel: SettingsViewModel = viewModel(),
     gateViewModel: OnboardingGateViewModel = viewModel(),
 ) {
-    val weightUnit by settingsViewModel.weightUnit.collectAsStateWithLifecycle()
-    val clockFormat by settingsViewModel.clockFormat.collectAsStateWithLifecycle()
+    val settings by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val weightUnit = settings.weightUnit
+    val clockFormat = settings.clockFormat
     val gate by gateViewModel.gate.collectAsStateWithLifecycle()
     val application = LocalContext.current.applicationContext as Application
     val container = remember(application) { application.appContainer() }

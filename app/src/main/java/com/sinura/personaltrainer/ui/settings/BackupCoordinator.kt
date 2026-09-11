@@ -1,0 +1,987 @@
+package com.sinura.personaltrainer.ui.settings
+
+
+import android.app.Activity
+import android.app.Application
+import android.app.KeyguardManager
+import android.content.Intent
+import android.content.IntentSender
+import android.net.Uri
+import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.data.backup.AuthoredInventory
+import com.sinura.personaltrainer.data.backup.BackupEnvelope
+import com.sinura.personaltrainer.data.backup.BackupException
+import com.sinura.personaltrainer.data.backup.BackupJson
+import com.sinura.personaltrainer.data.backup.BackupScaleBudget
+import com.sinura.personaltrainer.data.backup.DriveBackupFile
+import com.sinura.personaltrainer.data.backup.DriveBackupListing
+import com.sinura.personaltrainer.data.backup.RestoreJournal
+import com.sinura.personaltrainer.data.backup.RestoreRecovery
+import com.sinura.personaltrainer.data.backup.SafetySnapshotMeta
+import com.sinura.personaltrainer.data.backup.readAtMost
+import com.sinura.personaltrainer.data.repository.RestorePlan
+import com.sinura.personaltrainer.data.repository.RestoreResult
+import com.sinura.personaltrainer.domain.BackupPrompt
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.ErrorSlot
+import com.sinura.personaltrainer.util.runCatchingCancellable
+import kotlin.time.Duration.Companion.minutes
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+
+data class BackupUiState(
+    val accountEmail: String? = null,
+    val lastBackupAt: Long? = null,
+    val lastBackupName: String? = null,
+    val lastRestoreAt: Long? = null,
+    val lastRestoreName: String? = null,
+    val backups: List<DriveBackupFile> = emptyList(),
+    val isBusy: Boolean = false,
+    val busyLabel: String? = null,
+    val status: String? = null,
+    val error: String? = null,
+    val pendingPreview: RestorePreviewUi? = null,
+    /** Restore would wipe the live session. Say so before the tap, not after the refuse. */
+    val sessionLive: Boolean = false,
+    /** No VERIFIED stamp, or older than 14 days. Caption nags; Export stays the tap. */
+    val backupStale: Boolean = true,
+    /** The one backup line Settings shows. Computed with the clock, so the screen stays pure. */
+    val backupCaption: String = BackupPrompt.caption(true),
+    /** When a backup was last read back out of Drive and found intact. */
+    val lastVerifiedBackupAt: Long? = null,
+    val safetySnapshots: List<SafetySnapshotMeta> = emptyList(),
+    val pendingProtect: BackupProtectKind? = null,
+    /** The toggle is asking for a passphrase to seal before arming automatic backup. */
+    val pendingAutoBackupArm: Boolean = false,
+    /** Automatic backup after a finished workout is armed. */
+    val autoBackupEnabled: Boolean = false,
+    /** An unattended copy found the Drive grant lapsed and stopped rather than prompting. */
+    val autoBackupNeedsSignIn: Boolean = false,
+    val pendingUnlock: Boolean = false,
+    val pendingPlaintextWarning: Boolean = false,
+    val launchExportPicker: Boolean = false,
+    val launchSafetyExportPicker: Boolean = false,
+    /**
+     * A restore whose Room half committed but whose settings are still owed: the journal is
+     * open at `room`/`prefs` and Finish restore retries it. Null when nothing is pending.
+     */
+    val restorePending: String? = null,
+    /** A durable note from restore recovery, shown until the owner dismisses it. */
+    val restoreNote: String? = null,
+)
+
+enum class BackupProtectKind { FILE_EXPORT, DRIVE_BACKUP, SAFETY_EXPORT }
+
+private const val TAG = "PT/SettingsVM"
+
+/** [ErrorSlot] families: a success may clear only its own family's refusal. */
+private const val ERR_BACKUP = "backup"
+private const val ERR_PROTECT = "protect"
+
+/** Showing the stored backup password back. Its refusals are nobody else's to clear. */
+private const val ERR_REVEAL = "reveal"
+
+/**
+ * Everything Settings does about backup, restore, Drive and safety copies.
+ *
+ * [SettingsViewModel] used to hold all of it: sixty-two public functions covering the
+ * weight unit, the rest-timer defaults, Google consent intents, PBKDF2 passphrase sealing,
+ * the restore journal and the plaintext-export warning. Two subjects with nothing in common
+ * beyond the tab they appear on, so a change to either had to be read against the other.
+ *
+ * Not a ViewModel. It takes the [scope] its owner already has, so its work is cancelled when
+ * that owner clears, and [dispose] does what the owner's `onCleared` used to do — complete a
+ * parked consent waiter and wipe the held passphrase out of memory.
+ */
+class BackupCoordinator(
+    private val container: AppDependencies,
+    private val scope: CoroutineScope,
+    private val application: Application,
+    private val envelopeIterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
+) {
+    private val isBusy = MutableStateFlow(false)
+    private val busyLabel = MutableStateFlow<String?>(null)
+    private val status = MutableStateFlow<String?>(null)
+    private val error = ErrorSlot()
+    private val backups = MutableStateFlow<List<DriveBackupFile>>(emptyList())
+    private val safetySnapshots = MutableStateFlow<List<SafetySnapshotMeta>>(emptyList())
+    private val restorePending = MutableStateFlow<String?>(null)
+    private val pendingPlan = MutableStateFlow<RestorePlan?>(null)
+    private val dialogs = MutableStateFlow(DialogGates())
+    private var heldPassword: CharArray? = null
+    private var pendingCiphertext: String? = null
+    private var pendingCipherName: String? = null
+    private var plaintextKind: BackupProtectKind? = null
+
+    /**
+     * One-shot approvals from the plaintext warning dialog. exportToFile /
+     * exportSafetySnapshot write plaintext ONLY while one is armed: after
+     * process death in the system file picker both this and [heldPassword]
+     * are gone, and the export refuses instead of silently writing the
+     * unprotected file the user never chose.
+     */
+    private var plaintextExportApproved = false
+    private var plaintextSafetyApproved = false
+    private var resolutionWaiter: CompletableDeferred<Boolean>? = null
+
+    /**
+     * The pending Google consent intent, as state rather than an event.
+     *
+     * It was a replay-0 SharedFlow collected from a LaunchedEffect, so an emission arriving
+     * while the screen was not composed — a rotation, or the screen briefly leaving
+     * composition — was dropped on the floor. awaitResolution then waited forever on a
+     * CompletableDeferred that nothing would ever complete, isBusy stayed true, and every
+     * backup button was disabled until the process died. A StateFlow survives recreation and
+     * is re-read by the new composition.
+     */
+    private val _pendingResolution = MutableStateFlow<IntentSender?>(null)
+    val pendingResolution: StateFlow<IntentSender?> = _pendingResolution.asStateFlow()
+
+    /** The lock-screen challenge to launch before the backup password is shown. */
+    private val _pendingPasswordReveal = MutableStateFlow<Intent?>(null)
+    val pendingPasswordReveal: StateFlow<Intent?> = _pendingPasswordReveal.asStateFlow()
+
+    /**
+     * The backup password, in the clear, while the reveal dialog is up.
+     *
+     * Held as a String because Compose can only draw one, which means it cannot be wiped the
+     * way [heldPassword] is — so it exists for as long as the dialog and no longer, and is
+     * never put in saved state. That is the same reason [ProtectBackupDialog] uses `remember`
+     * rather than `rememberSaveable` for what is typed into it.
+     */
+    private val _revealedPassword = MutableStateFlow<String?>(null)
+    val revealedPassword: StateFlow<String?> = _revealedPassword.asStateFlow()
+
+    /**
+     * Asks for the lock screen, then shows the stored backup password.
+     *
+     * Exists because arming automatic backup stopped the app ever asking for the password
+     * again, which quietly removed the rehearsal that used to keep it in memory. The Drive
+     * files are useless without it, so there has to be a way back to it.
+     *
+     * Refuses outright with no screen lock: the password opens every backup this phone ever
+     * wrote, and showing it on a device anyone can pick up and swipe into is not a trade worth
+     * making silently.
+     */
+    fun beginRevealBackupPassword() {
+        val keyguard = application.getSystemService(KeyguardManager::class.java)
+        if (keyguard == null || !keyguard.isDeviceSecure) {
+            error.fail(
+                source = ERR_REVEAL,
+                message = "Set a screen lock on this phone first. " +
+                    "The backup password opens every backup Temper has written.",
+            )
+            return
+        }
+        @Suppress("DEPRECATION")
+        val challenge = keyguard.createConfirmDeviceCredentialIntent(
+            "Show backup password",
+            "Confirm it is you before Temper shows the password.",
+        )
+        if (challenge == null) {
+            error.fail(
+                source = ERR_REVEAL,
+                message = "This phone would not ask for your screen lock. Password not shown.",
+            )
+            return
+        }
+        _pendingPasswordReveal.value = challenge
+    }
+
+    fun onPasswordRevealLaunched() {
+        _pendingPasswordReveal.value = null
+    }
+
+    /** Opens the sealed blob only after the lock screen said yes. */
+    fun onPasswordRevealAuthenticated(authenticated: Boolean) {
+        _pendingPasswordReveal.value = null
+        if (!authenticated) return
+        scope.launch {
+            val sealed = container.preferencesRepository.autoBackupSettings().sealedPassphrase
+            if (sealed == null) {
+                error.fail(
+                    source = ERR_REVEAL,
+                    message = "No backup password is stored on this phone.",
+                )
+                return@launch
+            }
+            val chars = container.backupPassphraseSealer.open(sealed)
+            if (chars == null) {
+                AppLog.e(TAG, "Sealed backup passphrase would not open for display")
+                error.fail(
+                    source = ERR_REVEAL,
+                    message = "This phone can no longer open the stored password. " +
+                        "Turn automatic backup off and on again to set a new one — and keep " +
+                        "any existing Drive backups, which still need the old password.",
+                )
+                return@launch
+            }
+            try {
+                _revealedPassword.value = String(chars)
+            } finally {
+                chars.fill('\u0000')
+            }
+        }
+    }
+
+    fun dismissRevealedPassword() {
+        _revealedPassword.value = null
+    }
+
+    fun onResolutionLaunched() {
+        _pendingResolution.value = null
+    }
+
+    val uiState: StateFlow<BackupUiState> = combine(
+        combine(
+            container.preferencesRepository.driveAccountEmail,
+            // Nested because the typed combine overloads stop at five flows and the written
+            // and verified stamps are seven between them.
+            combine(
+                container.preferencesRepository.lastBackupAt,
+                container.preferencesRepository.lastBackupName,
+                container.preferencesRepository.lastVerifiedBackupAt,
+                container.preferencesRepository.lastVerifiedBackupName,
+            ) { at, name, verifiedAt, verifiedName ->
+                BackupStamps(at, name, verifiedAt, verifiedName)
+            },
+            container.preferencesRepository.lastRestoreAt,
+            container.preferencesRepository.lastRestoreName,
+        ) { email, stamps, restoreAt, restoreName ->
+            BackupMeta(
+                email,
+                stamps.writtenAt,
+                stamps.writtenName,
+                restoreAt,
+                restoreName,
+                stamps.verifiedAt,
+                stamps.verifiedName,
+            )
+        },
+        combine(
+            combine(isBusy, busyLabel, status, error.messages, pendingPlan) { busy, label, note, err, plan ->
+                BackupFlags(busy, label, note, err, plan?.toPreview())
+            },
+            dialogs,
+            combine(restorePending, container.preferencesRepository.restoreRecoveryNote) { pending, note ->
+                RecoveryUi(pendingSource = pending, note = note)
+            },
+            container.preferencesRepository.autoBackupEnabled,
+            container.preferencesRepository.autoBackupNeedsSignIn,
+            // Folded in here rather than into the outer combine, which is already at the
+            // five-flow ceiling of the typed combine overloads.
+        ) { flags, gate, recovery, autoOn, needsSignIn ->
+            flags.copy(
+                dialogs = gate,
+                recovery = recovery,
+                autoBackupEnabled = autoOn,
+                autoBackupNeedsSignIn = needsSignIn,
+            )
+        },
+        backups,
+        combine(
+            container.workoutRepository.observeInProgress(),
+            container.activityRepository.observeLive(),
+        ) { workout, activity -> workout != null || activity != null },
+        safetySnapshots,
+    ) { meta, flags, files, live, snaps ->
+        BackupUiState(
+            accountEmail = meta.email,
+            lastBackupAt = meta.lastAt,
+            lastBackupName = meta.lastName,
+            lastRestoreAt = meta.restoreAt,
+            lastRestoreName = meta.restoreName,
+            backups = files,
+            isBusy = flags.busy,
+            busyLabel = flags.label,
+            status = flags.status,
+            error = flags.error,
+            pendingPreview = flags.pendingPreview,
+            sessionLive = live,
+            backupStale = BackupPrompt.isStale(meta.verifiedAt, System.currentTimeMillis()),
+            backupCaption = BackupPrompt.caption(
+                lastVerifiedAt = meta.verifiedAt,
+                lastBackupAt = meta.lastAt,
+                nowMs = System.currentTimeMillis(),
+            ),
+            lastVerifiedBackupAt = meta.verifiedAt,
+            safetySnapshots = snaps,
+            pendingProtect = flags.dialogs.protect,
+            pendingAutoBackupArm = flags.dialogs.armAutoBackup,
+            autoBackupEnabled = flags.autoBackupEnabled,
+            autoBackupNeedsSignIn = flags.autoBackupNeedsSignIn,
+            pendingUnlock = flags.dialogs.unlock,
+            pendingPlaintextWarning = flags.dialogs.plaintextWarning,
+            launchExportPicker = flags.dialogs.launchExportPicker,
+            launchSafetyExportPicker = flags.dialogs.launchSafetyExportPicker,
+            restorePending = flags.recovery.pendingSource,
+            restoreNote = flags.recovery.note,
+        )
+    }.stateIn(
+        scope = scope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = BackupUiState(),
+    )
+
+    fun signIn(activity: Activity) {
+        runBackupAction("Signing in…") {
+            container.backupService.signIn(activity, ::awaitResolution)
+            status.value = "Signed in. Backups stay in your PersonalTrainer Backups Drive folder."
+        }
+    }
+
+    fun signOut(activity: Activity) {
+        runBackupAction("Signing out…") {
+            container.backupService.signOut(activity)
+            backups.value = emptyList()
+            status.value = "Signed out. Training data on this phone is unchanged."
+        }
+    }
+
+    fun beginFileExport() {
+        dialogs.value = DialogGates(protect = BackupProtectKind.FILE_EXPORT)
+    }
+
+    /**
+     * A safety copy is the same full history as any export, so it gets the
+     * same protect-or-warn gate — it used to write plaintext straight to the
+     * picked file with neither.
+     */
+    fun beginSafetyExport() {
+        dialogs.value = DialogGates(protect = BackupProtectKind.SAFETY_EXPORT)
+    }
+
+    fun beginDriveBackup() {
+        dialogs.value = DialogGates(protect = BackupProtectKind.DRIVE_BACKUP)
+    }
+
+    /**
+     * Turning automatic backup on. Asks for the passphrase once; turning it off forgets it.
+     *
+     * The toggle is the only place the passphrase is ever sealed. There is deliberately no
+     * plaintext escape here: an unattended copy that quietly wrote a readable file would
+     * reverse the signed default in ADR-009 §9 without anyone being asked.
+     */
+    fun setAutoBackupEnabled(enabled: Boolean) {
+        if (enabled) {
+            dialogs.value = DialogGates(armAutoBackup = true)
+        } else {
+            runBackupAction("Turning off automatic backup…") {
+                container.preferencesRepository.disarmAutoBackup()
+                status.value = "Automatic backup is off. Create backup now still works."
+            }
+        }
+    }
+
+    fun cancelAutoBackupArm() {
+        dialogs.value = DialogGates()
+    }
+
+    /**
+     * Seals the typed passphrase and arms automatic backup. Returns false, leaving the dialog
+     * up, when the passphrase is refused or the phone would not seal it.
+     */
+    fun submitAutoBackupPassphrase(password: String, confirm: String): Boolean {
+        val reason = BackupEnvelope.validateNewPassword(password, confirm)
+        if (reason != null) {
+            error.fail(source = ERR_PROTECT, message = reason)
+            return false
+        }
+        val chars = password.toCharArray()
+        val sealed = try {
+            container.backupPassphraseSealer.seal(chars)
+        } finally {
+            chars.fill('\u0000')
+        }
+        if (sealed == null) {
+            error.fail(
+                source = ERR_PROTECT,
+                message = "This phone would not store the backup password. " +
+                    "Automatic backup stays off; Create backup now still works.",
+            )
+            return false
+        }
+        dialogs.value = DialogGates()
+        runBackupAction("Turning on automatic backup…") {
+            container.preferencesRepository.armAutoBackup(sealed)
+            status.value = "Automatic backup is on. Each finished workout goes to Drive."
+        }
+        return true
+    }
+
+    fun beginPlaintextExport() {
+        plaintextKind = dialogs.value.protect ?: BackupProtectKind.FILE_EXPORT
+        wipeHeldPassword()
+        dialogs.value = DialogGates(plaintextWarning = true)
+    }
+
+    fun cancelProtect() {
+        wipeHeldPassword()
+        plaintextKind = null
+        plaintextExportApproved = false
+        plaintextSafetyApproved = false
+        dialogs.value = DialogGates()
+    }
+
+    fun cancelPlaintextWarning() {
+        plaintextKind = null
+        dialogs.value = DialogGates()
+    }
+
+    fun confirmPlaintextWarning(activity: Activity? = null) {
+        val kind = plaintextKind ?: BackupProtectKind.FILE_EXPORT
+        plaintextKind = null
+        wipeHeldPassword()
+        when (kind) {
+            BackupProtectKind.FILE_EXPORT -> {
+                plaintextExportApproved = true
+                dialogs.value = DialogGates(launchExportPicker = true)
+            }
+            BackupProtectKind.SAFETY_EXPORT -> {
+                plaintextSafetyApproved = true
+                dialogs.value = DialogGates(launchSafetyExportPicker = true)
+            }
+            BackupProtectKind.DRIVE_BACKUP -> {
+                dialogs.value = DialogGates()
+                if (activity != null) createBackup(activity)
+            }
+        }
+    }
+
+    /**
+     * Accepts a new backup password. File export then opens the picker.
+     * Drive upload starts here when [activity] is present.
+     */
+    fun submitProtect(password: String, confirm: String, activity: Activity? = null): Boolean {
+        val reason = BackupEnvelope.validateNewPassword(password, confirm)
+        if (reason != null) {
+            error.fail(source = ERR_PROTECT, message = reason)
+            return false
+        }
+        wipeHeldPassword()
+        heldPassword = password.toCharArray()
+        val kind = dialogs.value.protect
+        plaintextKind = null
+        dialogs.value = when (kind) {
+            BackupProtectKind.FILE_EXPORT -> DialogGates(launchExportPicker = true)
+            BackupProtectKind.SAFETY_EXPORT -> DialogGates(launchSafetyExportPicker = true)
+            BackupProtectKind.DRIVE_BACKUP, null -> DialogGates()
+        }
+        if (kind == BackupProtectKind.DRIVE_BACKUP && activity != null) {
+            createBackup(activity)
+        }
+        return true
+    }
+
+    fun onSafetyExportPickerLaunched() {
+        dialogs.value = dialogs.value.copy(launchSafetyExportPicker = false)
+    }
+
+    fun onExportPickerLaunched() {
+        dialogs.value = dialogs.value.copy(launchExportPicker = false)
+    }
+
+    fun dismissError() {
+        error.dismiss()
+    }
+
+    fun createBackup(activity: Activity) {
+        val password = heldPassword
+        heldPassword = null
+        runBackupAction("Uploading backup…") {
+            try {
+                val file = container.backupService.createBackup(
+                    activity,
+                    ::awaitResolution,
+                    password = password,
+                    iterations = envelopeIterations,
+                )
+                backups.value = listOf(file) + backups.value.filterNot { it.id == file.id }
+                status.value = if (password != null) {
+                    "Protected backup saved as ${file.name}." + unfinishedWorkoutNote()
+                } else {
+                    "Backup saved as ${file.name}." + unfinishedWorkoutNote()
+                }
+            } finally {
+                password?.fill('\u0000')
+            }
+        }
+    }
+
+    fun refreshBackups(activity: Activity) {
+        runBackupAction("Loading backups…") {
+            val listing = container.backupService.listBackups(activity, ::awaitResolution)
+            backups.value = listing.files
+            status.value = describeListing(listing)
+        }
+    }
+
+    /**
+     * "Found N" is a claim about the whole folder. A listing that hit its ceiling while
+     * Drive still had a page to give is only the newest N, and says so (R13).
+     */
+    private fun describeListing(listing: DriveBackupListing): String {
+        val count = listing.files.size
+        val noun = if (count == 1) "backup" else "backups"
+        return when {
+            listing.truncated -> "Showing the newest $count $noun. Older ones exist in Drive."
+            count == 0 -> "No backups in Drive yet."
+            else -> "Found $count $noun."
+        }
+    }
+
+    fun requestRestore(activity: Activity, file: DriveBackupFile) {
+        runBackupAction("Checking backup…") {
+            val raw = container.backupService.downloadDriveBackup(
+                activity,
+                file,
+                ::awaitResolution,
+            )
+            ingestRaw(raw, file.name)
+        }
+    }
+
+    fun cancelRestore() {
+        pendingPlan.value = null
+    }
+
+    fun confirmRestore() {
+        val plan = pendingPlan.value ?: return
+        pendingPlan.value = null
+        runBackupAction("Restoring backup…") {
+            val result = container.backupService.commitRestore(plan)
+            container.preferencesRepository.setLastRestore(
+                plan.sourceName,
+                System.currentTimeMillis(),
+            )
+            restorePending.value = container.backupService.pendingRecovery()
+            reloadSafetySnapshots()
+            status.value = describeRestore(result)
+        }
+    }
+
+    init {
+        scope.launch {
+            runCatchingCancellable { container.backupService.recoverInterruptedRestore() }
+                .onFailure { AppLog.w(TAG, "Finishing an interrupted restore failed", it) }
+            runCatchingCancellable {
+                restorePending.value = container.backupService.pendingRecovery()
+            }.onFailure { AppLog.w(TAG, "Reading the restore journal failed", it) }
+            refreshSafetySnapshots()
+        }
+    }
+
+    /**
+     * Retries the post-commit half of a restore whose preferences write failed. The Room
+     * half is already in; the journal at `room` keeps the incoming copy for exactly this.
+     */
+    fun finishRestore() {
+        runBackupAction("Finishing restore…") {
+            val recovery = container.backupService.recoverInterruptedRestore()
+            restorePending.value = container.backupService.pendingRecovery()
+            reloadSafetySnapshots()
+            status.value = describeRecovery(recovery)
+        }
+    }
+
+    fun dismissRestoreNote() {
+        scope.launch {
+            runCatchingCancellable { container.preferencesRepository.setRestoreRecoveryNote(null) }
+                .onFailure { AppLog.w(TAG, "Clearing the restore note failed", it) }
+        }
+    }
+
+    private fun refreshSafetySnapshots() {
+        scope.launch {
+            runCatchingCancellable { reloadSafetySnapshots() }
+                .onFailure { AppLog.w(TAG, "Listing safety copies failed", it) }
+        }
+    }
+
+    private suspend fun reloadSafetySnapshots() {
+        safetySnapshots.value = container.backupService.listSafetySnapshots()
+    }
+
+    fun requestSafetyRestore(id: String) {
+        runBackupAction("Checking safety copy…") {
+            val json = container.backupService.readSafetySnapshot(id)
+            pendingPlan.value = container.backupService.prepareRestore(
+                json,
+                sourceName = SafetySnapshotMeta.TITLE,
+            )
+        }
+    }
+
+    fun exportSafetyFileName(): String = BackupJson.fileName()
+
+    fun exportSafetySnapshot(id: String, uri: Uri) {
+        if (isBusy.value) {
+            // runBackupAction drops its lambda while busy. Consuming the held
+            // protection first and then doing nothing ate the export silently —
+            // no file, no error, and the password wiped without explanation.
+            wipeHeldPassword()
+            plaintextSafetyApproved = false
+            error.fail(
+                source = ERR_BACKUP,
+                message = "Another backup task is still running. Start the export again when it finishes.",
+            )
+            return
+        }
+        val password = heldPassword
+        heldPassword = null
+        val plaintextApproved = plaintextSafetyApproved
+        plaintextSafetyApproved = false
+        runBackupAction("Saving safety copy…") {
+            try {
+                if (password == null && !plaintextApproved) {
+                    // Process death in the file picker dropped the chosen protection.
+                    // Never downgrade to plaintext on the user's behalf.
+                    throw BackupException(
+                        "That export lost its protection choice. Start it again.",
+                    )
+                }
+                val json = container.backupService.readSafetySnapshot(id)
+                val payload = withContext(container.computeDispatcher) {
+                    // A safety copy is written by restore without a size check. Refuse a
+                    // copy the document budget would not let back in before spending the
+                    // key derivation on it: the protected file would be refused at import.
+                    BackupScaleBudget.requireExportable(payload = json, protected = false)
+                    // 600,000 PBKDF2 iterations plus AES-GCM over the whole history. This
+                    // ran on Main — the regular protected export already went through
+                    // the repository's IO dispatcher, this path called wrap() directly.
+                    val built = if (password != null) {
+                        BackupEnvelope.wrap(json, password, envelopeIterations)
+                    } else {
+                        json
+                    }
+                    // A safety copy is written by restore without a size check; the export
+                    // of it is held to the same contract as every other export. The check
+                    // is a byte count over the whole payload, so it stays off Main too.
+                    BackupScaleBudget.requireExportable(payload = built, protected = password != null)
+                    built
+                }
+                withContext(container.ioDispatcher) {
+                    val resolver = application.contentResolver
+                    resolver.openOutputStream(uri, "wt")?.use { stream ->
+                        stream.write(payload.toByteArray(Charsets.UTF_8))
+                        stream.flush()
+                    } ?: throw BackupException("Couldn't write to that location. Pick another folder.")
+                }
+                status.value = if (password != null) {
+                    "Protected safety copy saved. It opens with the password you chose."
+                } else {
+                    "Safety copy saved to your chosen file. Anyone who can read it can read your history."
+                }
+            } finally {
+                password?.fill('\u0000')
+            }
+        }
+    }
+
+    fun deleteSafetySnapshot(id: String) {
+        runBackupAction("Deleting safety copy…") {
+            container.backupService.deleteSafetySnapshot(id)
+            reloadSafetySnapshots()
+            status.value = "Safety copy deleted. Training data on this phone is unchanged."
+        }
+    }
+
+    // ---- Local file export / import (no Google account required) ----
+
+    /** Suggested filename for the system file picker. */
+    fun exportFileName(): String = BackupJson.fileName()
+
+    fun exportToFile(uri: Uri) {
+        if (isBusy.value) {
+            // Same guard as exportSafetySnapshot: never consume the protection
+            // choice for a lambda runBackupAction is about to drop.
+            wipeHeldPassword()
+            plaintextExportApproved = false
+            error.fail(
+                source = ERR_BACKUP,
+                message = "Another backup task is still running. Start the export again when it finishes.",
+            )
+            return
+        }
+        val password = heldPassword
+        heldPassword = null
+        val plaintextApproved = plaintextExportApproved
+        plaintextExportApproved = false
+        runBackupAction("Saving backup file…") {
+            try {
+                if (password == null && !plaintextApproved) {
+                    // Process death in the file picker dropped the chosen protection.
+                    // Never downgrade to plaintext on the user's behalf.
+                    throw BackupException(
+                        "That export lost its protection choice. Start it again.",
+                    )
+                }
+                val payload = if (password != null) {
+                    container.backupService.exportProtected(password, envelopeIterations)
+                } else {
+                    container.backupService.exportJson()
+                }
+                withContext(container.ioDispatcher) {
+                    val resolver = application.contentResolver
+                    resolver.openOutputStream(uri, "wt")?.use { stream ->
+                        stream.write(payload.toByteArray(Charsets.UTF_8))
+                        stream.flush()
+                    } ?: throw BackupException("Couldn't write to that location. Pick another folder.")
+                }
+                container.preferencesRepository.setLastBackup(
+                    displayName(uri),
+                    System.currentTimeMillis(),
+                )
+                status.value = if (password != null) {
+                    "Protected backup saved to your chosen file. It opens with the password you chose." +
+                        unfinishedWorkoutNote()
+                } else {
+                    "Backup saved to your chosen file. Anyone who can read it can read your history." +
+                        unfinishedWorkoutNote()
+                }
+            } finally {
+                password?.fill('\u0000')
+            }
+        }
+    }
+
+    /** Importing replaces everything, so it gets the same explicit confirm as a Drive restore. */
+    fun requestFileRestore(uri: Uri) {
+        runBackupAction("Checking backup…") {
+            val json = withContext(container.ioDispatcher) {
+                val resolver = application.contentResolver
+                resolver.openInputStream(uri)?.use { stream ->
+                    // Bounded read: a multi-hundred-MB pick must fail with copy,
+                    // not OOM-kill the app. The +1 detects over-budget cleanly.
+                    val bytes = stream.readAtMost(BackupScaleBudget.IMPORT_BYTES_MAX + 1)
+                    if (bytes.size > BackupScaleBudget.IMPORT_BYTES_MAX) {
+                        throw BackupException(BackupScaleBudget.TOO_BIG_TO_IMPORT)
+                    }
+                    bytes.toString(Charsets.UTF_8)
+                } ?: throw BackupException("Couldn't read that file. Pick another one.")
+            }
+            ingestRaw(json, displayName(uri))
+        }
+    }
+
+    fun unlockPending(password: String) {
+        val raw = pendingCiphertext ?: return
+        val name = pendingCipherName ?: return
+        runBackupAction("Checking backup…") {
+            // The one passphrase in this file that was never wiped. Every other CharArray here
+            // is cleared in a finally; this one was handed to prepareRestore and dropped, so a
+            // wrong password left the owner's real passphrase readable on the heap for as long
+            // as the array survived — and a wrong password is the case that repeats.
+            val secret = password.toCharArray()
+            try {
+                pendingPlan.value = container.backupService.prepareRestore(
+                    raw,
+                    sourceName = name,
+                    password = secret,
+                )
+                pendingCiphertext = null
+                pendingCipherName = null
+                dialogs.value = DialogGates()
+            } finally {
+                secret.fill('\u0000')
+            }
+        }
+    }
+
+    fun cancelUnlock() {
+        pendingCiphertext = null
+        pendingCipherName = null
+        dialogs.value = DialogGates()
+    }
+
+    private suspend fun ingestRaw(raw: String, sourceName: String, password: CharArray? = null) {
+        if (BackupEnvelope.looksLike(raw) && password == null) {
+            pendingCiphertext = raw
+            pendingCipherName = sourceName
+            dialogs.value = DialogGates(unlock = true)
+            return
+        }
+        pendingPlan.value = container.backupService.prepareRestore(
+            raw,
+            sourceName = sourceName,
+            password = password,
+        )
+    }
+
+    /** Backups exclude the live session on purpose; say so instead of letting the user assume. */
+    private suspend fun unfinishedWorkoutNote(): String =
+        if (container.backupService.hasUnfinishedWorkout()) {
+            " Your in-progress workout was left out — back up again once you finish it."
+        } else {
+            ""
+        }
+
+    private fun describeRestore(result: RestoreResult): String {
+        val base = "Restored ${result.sourceName} — ${result.summary.describe()}. " +
+            "A verified copy of the previous data is under Safety copies on this phone."
+        return when {
+            result.preferencesRestored -> base
+            result.settingsPending -> "$base ${RestoreJournal.SETTINGS_PENDING}"
+            else -> "$base Your training data is in; settings couldn't be applied, so check units and rest defaults."
+        }
+    }
+
+    private fun describeRecovery(recovery: RestoreRecovery): String = when (recovery) {
+        RestoreRecovery.None -> "Nothing was left to finish."
+        RestoreRecovery.NothingChanged -> RestoreJournal.NOTHING_CHANGED
+        is RestoreRecovery.Finished ->
+            "Finished restoring ${recovery.sourceName}. Settings are applied."
+        is RestoreRecovery.SettingsPending -> RestoreJournal.SETTINGS_PENDING
+        is RestoreRecovery.SettingsLost -> RestoreJournal.SETTINGS_LOST
+        is RestoreRecovery.Unresolved -> RestoreJournal.UNRESOLVED
+    }
+
+    private fun displayName(uri: Uri): String =
+        uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() } ?: "backup file"
+
+    fun onResolutionFinished(ok: Boolean) {
+        resolutionWaiter?.complete(ok)
+        resolutionWaiter = null
+        _pendingResolution.value = null
+    }
+
+    private suspend fun awaitResolution(sender: IntentSender): Boolean {
+        val waiter = CompletableDeferred<Boolean>()
+        resolutionWaiter = waiter
+        _pendingResolution.value = sender
+        // Bounded: if the consent screen never returns a result — the user wandered off, or
+        // the sender was never launched — this resolves to "declined" instead of pinning the
+        // backup UI in a busy state forever. DriveAuthClient turns false into a normal
+        // "sign-in was cancelled" error, which runBackupAction surfaces and then clears.
+        return try {
+            withTimeoutOrNull(RESOLUTION_TIMEOUT) { waiter.await() } ?: false
+        } finally {
+            _pendingResolution.value = null
+            resolutionWaiter = null
+        }
+    }
+
+    private fun wipeHeldPassword() {
+        heldPassword?.fill('\u0000')
+        heldPassword = null
+    }
+
+    private fun runBackupAction(label: String, block: suspend () -> Unit) {
+        if (isBusy.value) return
+        scope.launch {
+            isBusy.value = true
+            busyLabel.value = label
+            error.clearFrom(source = ERR_BACKUP)
+            status.value = label
+            try {
+                block()
+            } catch (thrown: CancellationException) {
+                throw thrown
+            } catch (thrown: Exception) {
+                // Mapping the throwable to a sentence and dropping it is why a failed Drive
+                // sign-in left no trace anywhere. AppLog.e is the level that also feeds the
+                // diagnostics hook; the message is redacted, the tag and stack are not.
+                AppLog.e(TAG, "Backup action failed: $label", thrown)
+                error.fail(
+                    source = ERR_BACKUP,
+                    message = (thrown as? BackupException)?.message
+                        ?: thrown.message
+                        ?: "Something went wrong. Try again.",
+                )
+                status.value = null
+            } finally {
+                isBusy.value = false
+                busyLabel.value = null
+            }
+        }
+    }
+
+    private companion object {
+        /** Long enough for a real consent flow, short enough that a lost one still recovers. */
+        val RESOLUTION_TIMEOUT = 5.minutes
+    }
+
+    private data class BackupMeta(
+        val email: String?,
+        val lastAt: Long?,
+        val lastName: String?,
+        val restoreAt: Long?,
+        val restoreName: String?,
+        val verifiedAt: Long?,
+        val verifiedName: String?,
+    )
+
+    private data class BackupStamps(
+        val writtenAt: Long?,
+        val writtenName: String?,
+        val verifiedAt: Long?,
+        val verifiedName: String?,
+    )
+
+    private data class BackupFlags(
+        val busy: Boolean,
+        val label: String?,
+        val status: String?,
+        val error: String?,
+        val pendingPreview: RestorePreviewUi?,
+        val dialogs: DialogGates = DialogGates(),
+        val recovery: RecoveryUi = RecoveryUi(),
+        val autoBackupEnabled: Boolean = false,
+        val autoBackupNeedsSignIn: Boolean = false,
+    )
+
+    private data class RecoveryUi(
+        val pendingSource: String? = null,
+        val note: String? = null,
+    )
+
+    /**
+     * Which of the backup dialogs is up.
+     *
+     * Named for the gates rather than for the dialogs since `BackupDialogs.kt` is now the file
+     * holding the composables themselves, and two things called the same thing in one package
+     * is a reading tax for no gain.
+     */
+    private data class DialogGates(
+        val protect: BackupProtectKind? = null,
+        /** Arming automatic backup. A separate flag, not a fourth [BackupProtectKind]: this
+         *  one seals a passphrase instead of writing a file, and must never offer plaintext. */
+        val armAutoBackup: Boolean = false,
+        val unlock: Boolean = false,
+        val plaintextWarning: Boolean = false,
+        val launchExportPicker: Boolean = false,
+        val launchSafetyExportPicker: Boolean = false,
+    )
+
+    /** What the owning ViewModel's `onCleared` used to do. */
+    fun dispose() {
+        // A waiter still parked when the owner dies would keep its coroutine suspended.
+        resolutionWaiter?.complete(false)
+        resolutionWaiter = null
+        wipeHeldPassword()
+        pendingCiphertext = null
+        pendingCipherName = null
+    }
+}
+
+data class RestorePreviewUi(
+    val sourceName: String,
+    val incoming: AuthoredInventory,
+    val local: AuthoredInventory,
+) {
+    val body: String
+        get() = AuthoredInventory.confirmBody(sourceName, incoming, local)
+}
+
+private fun RestorePlan.toPreview(): RestorePreviewUi =
+    RestorePreviewUi(sourceName = sourceName, incoming = incoming, local = local)

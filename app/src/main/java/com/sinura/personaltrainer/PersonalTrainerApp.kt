@@ -105,7 +105,7 @@ class PersonalTrainerApp : Application() {
         container.restTimerController.rehydrate()
         applicationScope.launch {
             try {
-                container.backupRepository.recoverInterruptedRestore()
+                container.backupService.recoverInterruptedRestore()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {

@@ -208,7 +208,7 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
 
             _uiState.value = _uiState.value.copy(autoBackup = AutoBackupPolicy.RUNNING)
             try {
-                container.backupRepository.createBackup(
+                container.backupService.createBackup(
                     activity = activity,
                     launchResolution = declineConsent,
                     password = passphrase,

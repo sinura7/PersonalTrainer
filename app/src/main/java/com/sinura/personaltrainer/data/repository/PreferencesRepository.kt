@@ -3,45 +3,80 @@ package com.sinura.personaltrainer.data.repository
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sinura.personaltrainer.data.local.FoundationGeneration
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.data.local.dao.TrainingBlockDao
 import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
 import com.sinura.personaltrainer.data.local.entity.TrainingBlockEntity
-import com.sinura.personaltrainer.domain.DataHealth
+import com.sinura.personaltrainer.data.repository.prefs.AVAILABLE_EQUIPMENT
+import com.sinura.personaltrainer.data.repository.prefs.BLOCK_START
+import com.sinura.personaltrainer.data.repository.prefs.BLOCK_WEEKS
+import com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_CHECK_IN_WEEKDAY
+import com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_KG
+import com.sinura.personaltrainer.data.repository.prefs.BODYWEIGHT_LOG
+import com.sinura.personaltrainer.data.repository.prefs.BackupPrefs
+import com.sinura.personaltrainer.data.repository.prefs.BackupPrefsStore
+import com.sinura.personaltrainer.data.repository.prefs.CLOCK_FORMAT
+import com.sinura.personaltrainer.data.repository.prefs.CoachingPrefs
+import com.sinura.personaltrainer.data.repository.prefs.CoachingPrefsStore
+import com.sinura.personaltrainer.data.repository.prefs.DISMISSED_COLLISIONS
+import com.sinura.personaltrainer.data.repository.prefs.DisplayPrefs
+import com.sinura.personaltrainer.data.repository.prefs.DisplayPrefsStore
+import com.sinura.personaltrainer.data.repository.prefs.FOUNDATION_GENERATION
+import com.sinura.personaltrainer.data.repository.prefs.HEAT_WINDOW
+import com.sinura.personaltrainer.data.repository.prefs.LIGHTER_WEEK_START
+import com.sinura.personaltrainer.data.repository.prefs.ONBOARDING_COMPLETE
+import com.sinura.personaltrainer.data.repository.prefs.PAST_BLOCKS
+import com.sinura.personaltrainer.data.repository.prefs.PREFERRED_DAYS
+import com.sinura.personaltrainer.data.repository.prefs.PlanningPrefs
+import com.sinura.personaltrainer.data.repository.prefs.PlanningPrefsStore
+import com.sinura.personaltrainer.data.repository.prefs.REMINDER_OPT_OUT
+import com.sinura.personaltrainer.data.repository.prefs.REMINDER_QUIET_END
+import com.sinura.personaltrainer.data.repository.prefs.REMINDER_QUIET_START
+import com.sinura.personaltrainer.data.repository.prefs.REST_DEFAULT
+import com.sinura.personaltrainer.data.repository.prefs.REST_LAST_PRESET
+import com.sinura.personaltrainer.data.repository.prefs.REST_SOUND
+import com.sinura.personaltrainer.data.repository.prefs.REST_VIBRATE
+import com.sinura.personaltrainer.data.repository.prefs.ReminderPrefs
+import com.sinura.personaltrainer.data.repository.prefs.ReminderPrefsStore
+import com.sinura.personaltrainer.data.repository.prefs.RestPrefs
+import com.sinura.personaltrainer.data.repository.prefs.RestPrefsStore
+import com.sinura.personaltrainer.data.repository.prefs.preferredDaysFrom
+import com.sinura.personaltrainer.data.repository.prefs.SPLIT_STYLE
+import com.sinura.personaltrainer.data.repository.prefs.SettingsStore
+import com.sinura.personaltrainer.data.repository.prefs.TRAINING_AGE
+import com.sinura.personaltrainer.data.repository.prefs.TRAINING_DAYS
+import com.sinura.personaltrainer.data.repository.prefs.TRAINING_EMPHASIS
+import com.sinura.personaltrainer.data.repository.prefs.TRAINING_FOCUS
+import com.sinura.personaltrainer.data.repository.prefs.TRAINING_GOAL
+import com.sinura.personaltrainer.data.repository.prefs.TRAINING_PLACE
+import com.sinura.personaltrainer.data.repository.prefs.WEEK_START
+import com.sinura.personaltrainer.data.repository.prefs.WEIGHT_UNIT
 import com.sinura.personaltrainer.domain.BlockArchive
 import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.BodyweightLog
-import com.sinura.personaltrainer.domain.TrainingFocus
+import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
-import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingEmphasis
+import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
-import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import java.io.IOException
 
 private val Context.userSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "user_settings",
@@ -61,6 +96,30 @@ data class AutoBackupSettings(
     val lastBackedUpSessionId: String?,
 )
 
+/**
+ * The `user_settings` facade.
+ *
+ * This class was 1,070 lines over forty-six keys spanning ten unrelated feature areas: the
+ * weight unit, the coach's goal, the training split, rest sound, reminder quiet hours,
+ * bodyweight, training blocks, Drive and automatic backup, library collisions, onboarding, and
+ * the restore cutover. It is where every preference went because it was the only place a
+ * preference could go — the keys were a private companion, so nothing else could read one.
+ *
+ * The five self-contained areas now live in `data/repository/prefs/` behind interfaces, and are
+ * mixed back in here by delegation. Delegation rather than hand-written forwarding: every
+ * signature is declared once, in the interface, and the compiler proves the facade is complete.
+ * Call sites are unchanged — `preferencesRepository.weightUnit` still resolves — and callers
+ * that only want one area can now depend on [DisplayPrefs] or [BackupPrefs] instead of all
+ * forty-six keys, which is what `BackupService` has been reaching through this class for.
+ *
+ * What stays here is what does not belong to one area: the Room-backed bodyweight and
+ * training-block mirrors, which need DAOs, and the restore cutover, which writes across
+ * every group at once.
+ *
+ * It is still one DataStore and one file on disk. That part is not incidental — the keys share
+ * `user_settings`, so splitting them across stores would be a data migration, and the one
+ * signed migration this app is allowed already happened (ADR-010).
+ */
 class PreferencesRepository(
     context: Context,
     /**
@@ -72,144 +131,25 @@ class PreferencesRepository(
     private val bodyweightDao: BodyweightDao? = null,
     private val trainingBlockDao: TrainingBlockDao? = null,
     private val nowMs: () -> Long = { System.currentTimeMillis() },
-) {
+    private val store: SettingsStore = SettingsStore(dataStore),
+) : DisplayPrefs by DisplayPrefsStore(store = store),
+    CoachingPrefs by CoachingPrefsStore(store = store),
+    PlanningPrefs by PlanningPrefsStore(store = store),
+    RestPrefs by RestPrefsStore(store = store),
+    BackupPrefs by BackupPrefsStore(store = store) {
     private val dataStore = dataStore
+    private val reminders: ReminderPrefs = ReminderPrefsStore(store = store)
 
-    /**
-     * The preferences stream with the one guard every reader needs: a corrupted or unreadable
-     * settings file degrades to defaults instead of throwing into a collector. Read through
-     * this rather than [dataStore].data directly.
-     */
-    private val safePreferences: Flow<Preferences> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(androidx.datastore.preferences.core.emptyPreferences())
-            } else {
-                throw error
-            }
-        }
+    val reminderPreferences: Flow<ReminderPreferences> get() = reminders.reminderPreferences
+    val pendingOccurrenceId: Flow<String?> get() = reminders.pendingOccurrenceId
+    suspend fun setReminderOptOut(optOut: Boolean) = reminders.setReminderOptOut(optOut)
+    suspend fun setReminderQuietHours(startHour: Int, endHour: Int) =
+        reminders.setReminderQuietHours(startHour, endHour)
+    suspend fun setPendingOccurrenceId(id: String?) = reminders.setPendingOccurrenceId(id)
 
-    /**
-     * A mapped preference that stays quiet when the stored value did not
-     * change. DataStore re-emits the whole [Preferences] object on any write;
-     * without this, every reader of an unrelated key reruns.
-     */
-    private fun <T> pref(read: (Preferences) -> T): Flow<T> =
-        safePreferences.map(read).distinctUntilChanged()
+    private val safePreferences: Flow<Preferences> = store.safePreferences
 
-    val weightUnit: Flow<WeightUnit> = pref { prefs -> WeightUnit.fromStorage(prefs[WEIGHT_UNIT]) }
-
-    suspend fun setWeightUnit(unit: WeightUnit) {
-        dataStore.edit { prefs ->
-            prefs[WEIGHT_UNIT] = unit.storageKey
-        }
-    }
-
-    val clockFormat: Flow<ClockFormat> = pref { prefs -> ClockFormat.fromStorage(prefs[CLOCK_FORMAT]) }
-
-    suspend fun setClockFormat(format: ClockFormat) {
-        dataStore.edit { prefs -> prefs[CLOCK_FORMAT] = format.storageKey }
-    }
-
-    /**
-     * Null is Auto: first training day of the week.
-     */
-    val bodyweightCheckInWeekday: Flow<Weekday?> =
-        pref { prefs -> Weekday.fromStorage(prefs[BODYWEIGHT_CHECK_IN_WEEKDAY]) }
-
-    suspend fun setBodyweightCheckInWeekday(day: Weekday?) {
-        dataStore.edit { prefs ->
-            if (day == null) {
-                prefs.remove(BODYWEIGHT_CHECK_IN_WEEKDAY)
-            } else {
-                prefs[BODYWEIGHT_CHECK_IN_WEEKDAY] = day.name
-            }
-        }
-    }
-
-    /**
-     * What the coach emphasises, and what the user actually has to lift with.
-     *
-     * These used to be deliberately outside the backup document, on the reasoning that they
-     * describe the gym you walk into rather than your training history. The guided setup
-     * settled the argument the other way: it is the setup questionnaire that writes both of
-     * them, so leaving them behind meant a restore either re-asked six questions the owner had
-     * already answered, or — once the "already answered" flag travelled — silently kept the
-     * app's defaults with no path back to the questions. They travel.
-     */
-    val coachPreferences: Flow<CoachPreferences> = pref { prefs ->
-        CoachPreferences(
-            goal = TrainingGoal.fromStorage(prefs[TRAINING_GOAL]),
-            // Empty means gym-floor (no Hyper Pro), never "owns nothing" — see CoachPreferences.
-            availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
-            emphasis = TrainingEmphasis.fromStorage(prefs[TRAINING_EMPHASIS]),
-        )
-    }
-
-    suspend fun setTrainingGoal(goal: TrainingGoal) {
-        dataStore.edit { prefs -> prefs[TRAINING_GOAL] = goal.name }
-    }
-
-    suspend fun setTrainingEmphasis(emphasis: TrainingEmphasis) {
-        dataStore.edit { prefs -> prefs[TRAINING_EMPHASIS] = emphasis.name }
-    }
-
-    suspend fun setAvailableEquipment(equipment: Set<String>) {
-        dataStore.edit { prefs -> prefs[AVAILABLE_EQUIPMENT] = equipment }
-    }
-
-    val trainingAge: Flow<TrainingAge> = pref { prefs -> TrainingAge.fromStorage(prefs[TRAINING_AGE]) }
-
-    suspend fun setTrainingAge(age: TrainingAge) {
-        dataStore.edit { prefs -> prefs[TRAINING_AGE] = age.name }
-    }
-
-    val preferredDays: Flow<Set<Weekday>> = pref { prefs -> preferredDaysFrom(prefs[PREFERRED_DAYS]) }
-
-    suspend fun setPreferredDays(days: Set<Weekday>) {
-        dataStore.edit { prefs -> prefs[PREFERRED_DAYS] = days.map { it.name }.toSet() }
-    }
-
-    /**
-     * Null means the key was never written — an install from before Job 3, or a restore of
-     * a file that predates the field. Readers call [OnboardingAnswers.inferPlace] in that
-     * case rather than pretending everyone trains in a full gym.
-     */
-    val trainingPlace: Flow<TrainingPlace?> =
-        pref { prefs -> prefs[TRAINING_PLACE]?.let { TrainingPlace.fromStorage(it) } }
-
-    suspend fun setTrainingPlace(place: TrainingPlace) {
-        setTrainingPlaces(setOf(place))
-    }
-
-    /**
-     * One or many places, stored in the same key as the old single value.
-     *
-     * A single name is what every backup written before mixed places holds. Comma-separated
-     * names are a mixed kit. Readers that only want one place take [TrainingPlace.widest].
-     */
-    suspend fun setTrainingPlaces(places: Set<TrainingPlace>) {
-        val resolved = places.ifEmpty { setOf(TrainingPlace.FULL_GYM) }
-        dataStore.edit { prefs -> prefs[TRAINING_PLACE] = TrainingPlace.formatPlaces(resolved) }
-    }
-
-    /**
-     * The week-start epoch day marked lighter, or null when none is.
-     *
-     * A past value is inert: readers compare it to this week's start. Clearing is writing
-     * null, not deleting a row that no longer matches.
-     */
-    val lighterWeekStartEpochDay: Flow<Long?> = pref { prefs -> prefs[LIGHTER_WEEK_START] }
-
-    suspend fun setLighterWeekStartEpochDay(epochDay: Long?) {
-        dataStore.edit { prefs ->
-            if (epochDay == null) {
-                prefs.remove(LIGHTER_WEEK_START)
-            } else {
-                prefs[LIGHTER_WEEK_START] = epochDay
-            }
-        }
-    }
+    private fun <T> pref(read: (Preferences) -> T): Flow<T> = store.pref(read)
 
     /**
      * The questionnaire, reconstructed from what is already stored.
@@ -250,281 +190,10 @@ class PreferencesRepository(
         )
     }
 
-    val trainingFocus: Flow<TrainingFocus> = pref { prefs -> TrainingFocus.fromStorage(prefs[TRAINING_FOCUS]) }
 
-    suspend fun setTrainingFocus(focus: TrainingFocus) {
-        dataStore.edit { prefs -> prefs[TRAINING_FOCUS] = focus.name }
-    }
 
-    /**
-     * The window the body map opens on.
-     *
-     * Nothing persisted this before, so the map reset to a default every time the process
-     * died — a preference the user re-expressed on every cold start and the app never learned.
-     */
-    val heatWindow: Flow<HeatWindow> = pref { prefs -> HeatWindow.fromStorage(prefs[HEAT_WINDOW]) }
 
-    suspend fun setHeatWindow(window: HeatWindow) {
-        dataStore.edit { prefs -> prefs[HEAT_WINDOW] = window.name }
-    }
 
-    val schedulePreferences: Flow<SchedulePreferences> = pref { prefs ->
-        SchedulePreferences(
-            trainingDaysPerWeek = prefs[TRAINING_DAYS] ?: SchedulePreferences.DEFAULT_DAYS,
-            splitStyle = SplitStyle.fromStorage(prefs[SPLIT_STYLE]),
-            weekStart = SchedulePreferences.weekStartFromStorage(prefs[WEEK_START]),
-        ).sanitized()
-    }
-
-    suspend fun setTrainingDaysPerWeek(days: Int) {
-        dataStore.edit { prefs ->
-            val clean = days.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)
-            prefs[TRAINING_DAYS] = clean
-            val preferred = preferredDaysFrom(prefs[PREFERRED_DAYS])
-            if (preferred.size > clean) {
-                val weekStart = SchedulePreferences.weekStartFromStorage(prefs[WEEK_START])
-                val ordered = (0 until 7).map { weekStart.plus(it.toLong()) }
-                prefs[PREFERRED_DAYS] = ordered.filter { it in preferred }.take(clean).map { it.name }.toSet()
-            }
-        }
-    }
-
-    suspend fun setSplitStyle(style: SplitStyle) {
-        dataStore.edit { prefs ->
-            prefs[SPLIT_STYLE] = style.storageKey
-        }
-    }
-
-    suspend fun setWeekStart(day: Weekday) {
-        dataStore.edit { prefs ->
-            prefs[WEEK_START] = day.name
-        }
-    }
-
-    val restTimerPreferences: Flow<RestTimerPreferences> = pref { prefs ->
-        RestTimerPreferences(
-            soundEnabled = prefs[REST_SOUND] ?: true,
-            vibrationEnabled = prefs[REST_VIBRATE] ?: true,
-            tickEnabled = prefs[REST_TICK] ?: true,
-            defaultRestSeconds = prefs[REST_DEFAULT] ?: RestTimerPreferences.DEFAULT_SECONDS,
-            lastPresetSeconds = prefs[REST_LAST_PRESET],
-        ).sanitized()
-    }
-
-    /**
-     * Exact-alarm special-access is requested only after rest is used or
-     * configured. Onboarding must never write this. Restore leaves it alone.
-     */
-    val restAlarmEligible: Flow<Boolean> = pref { prefs -> prefs[REST_ALARM_ELIGIBLE] ?: false }
-
-    suspend fun markRestAlarmEligible() {
-        dataStore.edit { prefs -> prefs[REST_ALARM_ELIGIBLE] = true }
-    }
-
-    val reminderPreferences: Flow<ReminderPreferences> = pref { prefs ->
-        ReminderPreferences(
-            optOut = prefs[REMINDER_OPT_OUT] ?: false,
-            quietStartHour = prefs[REMINDER_QUIET_START]
-                ?: ReminderPreferences.DEFAULT_QUIET_START_HOUR,
-            quietEndHour = prefs[REMINDER_QUIET_END]
-                ?: ReminderPreferences.DEFAULT_QUIET_END_HOUR,
-        ).sanitized()
-    }
-
-    suspend fun setReminderOptOut(optOut: Boolean) {
-        dataStore.edit { prefs -> prefs[REMINDER_OPT_OUT] = optOut }
-    }
-
-    suspend fun setReminderQuietHours(startHour: Int, endHour: Int) {
-        dataStore.edit { prefs ->
-            prefs[REMINDER_QUIET_START] = startHour.coerceIn(0, 23)
-            prefs[REMINDER_QUIET_END] = endHour.coerceIn(0, 23)
-        }
-    }
-
-    /**
-     * Strength (and mixed) occurrence started through the live logger.
-     * Device-local: not part of backup. Cleared on finish or discard.
-     */
-    val pendingOccurrenceId: Flow<String?> =
-        pref { prefs -> prefs[PENDING_OCCURRENCE_ID]?.takeIf { it.isNotBlank() } }
-
-    suspend fun setPendingOccurrenceId(id: String?) {
-        dataStore.edit { prefs ->
-            if (id.isNullOrBlank()) {
-                prefs.remove(PENDING_OCCURRENCE_ID)
-            } else {
-                prefs[PENDING_OCCURRENCE_ID] = id
-            }
-        }
-    }
-
-    suspend fun setRestSoundEnabled(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[REST_SOUND] = enabled
-            prefs[REST_ALARM_ELIGIBLE] = true
-        }
-    }
-
-    suspend fun setRestVibrationEnabled(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[REST_VIBRATE] = enabled
-            prefs[REST_ALARM_ELIGIBLE] = true
-        }
-    }
-
-    /**
-     * Device-local on purpose: [setRestTimerPreferences] and the restore
-     * path leave this key alone, so a backup from another phone cannot
-     * switch the ticks on or off here.
-     */
-    suspend fun setRestTickEnabled(enabled: Boolean) {
-        dataStore.edit { prefs ->
-            prefs[REST_TICK] = enabled
-            prefs[REST_ALARM_ELIGIBLE] = true
-        }
-    }
-
-    suspend fun setDefaultRestSeconds(seconds: Int) {
-        dataStore.edit { prefs ->
-            prefs[REST_DEFAULT] = seconds.coerceIn(RestTimerPreferences.MIN_SECONDS, RestTimerPreferences.MAX_SECONDS)
-            prefs[REST_ALARM_ELIGIBLE] = true
-        }
-    }
-
-    suspend fun setLastRestPresetSeconds(seconds: Int) {
-        dataStore.edit { prefs ->
-            prefs[REST_LAST_PRESET] = seconds.coerceIn(RestTimerPreferences.MIN_SECONDS, RestTimerPreferences.MAX_SECONDS)
-        }
-    }
-
-    suspend fun setRestTimerPreferences(value: RestTimerPreferences) {
-        val clean = value.sanitized()
-        dataStore.edit { prefs ->
-            prefs[REST_SOUND] = clean.soundEnabled
-            prefs[REST_VIBRATE] = clean.vibrationEnabled
-            prefs[REST_DEFAULT] = clean.defaultRestSeconds
-            if (clean.lastPresetSeconds == null) {
-                prefs.remove(REST_LAST_PRESET)
-            } else {
-                prefs[REST_LAST_PRESET] = clean.lastPresetSeconds
-            }
-        }
-    }
-
-    suspend fun setSchedulePreferences(value: SchedulePreferences) {
-        val clean = value.sanitized()
-        dataStore.edit { prefs ->
-            prefs[TRAINING_DAYS] = clean.trainingDaysPerWeek
-            prefs[SPLIT_STYLE] = clean.splitStyle.storageKey
-            prefs[WEEK_START] = clean.weekStart.name
-        }
-    }
-
-    val driveAccountEmail: Flow<String?> = pref { prefs -> prefs[DRIVE_ACCOUNT] }
-
-    val lastBackupAt: Flow<Long?> = pref { prefs -> prefs[LAST_BACKUP_AT] }
-
-    val lastBackupName: Flow<String?> = pref { prefs -> prefs[LAST_BACKUP_NAME] }
-
-    /**
-     * The last backup that was read back out of Drive, decrypted and found to carry the history
-     * that was written. Device-local and deliberately absent from the backup document: a
-     * verification is a statement about THIS phone's copy, and restoring one onto a new phone
-     * would import a reassurance that had never been earned there.
-     */
-    val lastVerifiedBackupAt: Flow<Long?> = pref { prefs -> prefs[LAST_VERIFIED_BACKUP_AT] }
-
-    val lastVerifiedBackupName: Flow<String?> =
-        pref { prefs -> prefs[LAST_VERIFIED_BACKUP_NAME] }
-
-    suspend fun setDriveAccountEmail(email: String?) {
-        dataStore.edit { prefs ->
-            if (email.isNullOrBlank()) {
-                prefs.remove(DRIVE_ACCOUNT)
-            } else {
-                prefs[DRIVE_ACCOUNT] = email
-            }
-        }
-    }
-
-    /**
-     * Automatic backup after a finished workout. Device-local, all four keys: none of them
-     * appears in [com.sinura.personaltrainer.data.backup.BackupPreferences], which is a
-     * hand-listed set rather than a sweep, so they are excluded by construction. That is
-     * deliberate — AUTO_BACKUP_SECRET is ciphertext under a non-exportable Keystore key, so
-     * restoring it onto another phone, or onto this one after a reinstall, would write a
-     * blob nothing can open over a passphrase the owner had just entered.
-     */
-    val autoBackupEnabled: Flow<Boolean> = pref { prefs -> prefs[AUTO_BACKUP_ENABLED] ?: false }
-
-    /** Set when an unattended copy found the Drive grant lapsed. Settings surfaces it. */
-    val autoBackupNeedsSignIn: Flow<Boolean> =
-        pref { prefs -> prefs[AUTO_BACKUP_NEEDS_SIGN_IN] ?: false }
-
-    /**
-     * One snapshot, read once. Separate `.first()` calls each re-collect and can observe
-     * different write generations, so a toggle flipped as a workout ends could be seen as
-     * enabled with no secret — the same reason [storedOnboardingAnswers] takes one snapshot.
-     */
-    suspend fun autoBackupSettings(): AutoBackupSettings {
-        val prefs = safePreferences.first()
-        return AutoBackupSettings(
-            enabled = prefs[AUTO_BACKUP_ENABLED] ?: false,
-            sealedPassphrase = prefs[AUTO_BACKUP_SECRET]?.takeIf { it.isNotBlank() },
-            lastBackedUpSessionId = prefs[AUTO_BACKUP_LAST_SESSION]?.takeIf { it.isNotBlank() },
-        )
-    }
-
-    /** Arming is one write so a crash cannot leave the toggle on with no secret behind it. */
-    suspend fun armAutoBackup(sealedPassphrase: String) {
-        dataStore.edit { prefs ->
-            prefs[AUTO_BACKUP_ENABLED] = true
-            prefs[AUTO_BACKUP_SECRET] = sealedPassphrase
-            prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)
-        }
-    }
-
-    /** Turning it off forgets the passphrase too: an unopenable secret helps nobody. */
-    suspend fun disarmAutoBackup() {
-        dataStore.edit { prefs ->
-            prefs.remove(AUTO_BACKUP_ENABLED)
-            prefs.remove(AUTO_BACKUP_SECRET)
-            prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)
-            prefs.remove(AUTO_BACKUP_LAST_SESSION)
-        }
-    }
-
-    suspend fun setAutoBackupNeedsSignIn(needsSignIn: Boolean) {
-        dataStore.edit { prefs ->
-            if (needsSignIn) {
-                prefs[AUTO_BACKUP_NEEDS_SIGN_IN] = true
-            } else {
-                prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)
-            }
-        }
-    }
-
-    /** Written only after an upload returns, so a failed copy is retried rather than skipped. */
-    suspend fun setAutoBackupLastSession(sessionId: String) {
-        dataStore.edit { prefs -> prefs[AUTO_BACKUP_LAST_SESSION] = sessionId }
-    }
-
-    /** One-shot, for the account-change guard, which must read before it writes. */
-    suspend fun driveAccountEmailOnce(): String? =
-        safePreferences.first()[DRIVE_ACCOUNT]?.takeIf { it.isNotBlank() }
-
-    suspend fun driveFolderId(): String? = safePreferences.first()[DRIVE_FOLDER_ID]
-
-    suspend fun setDriveFolderId(folderId: String?) {
-        dataStore.edit { prefs ->
-            if (folderId.isNullOrBlank()) {
-                prefs.remove(DRIVE_FOLDER_ID)
-            } else {
-                prefs[DRIVE_FOLDER_ID] = folderId
-            }
-        }
-    }
 
     /**
      * One atomic write for everything a restore carries, so a crash mid-way cannot leave the
@@ -902,67 +571,6 @@ class PreferencesRepository(
         }
     }
 
-    val lastRestoreAt: Flow<Long?> = pref { prefs -> prefs[LAST_RESTORE_AT] }
-
-    val lastRestoreName: Flow<String?> = pref { prefs -> prefs[LAST_RESTORE_NAME] }
-
-    /**
-     * A durable note from restore recovery that Settings shows until it is dismissed: an
-     * interrupted restore that finished without its settings, or one whose outcome could
-     * not be verified. Written by BackupRepository only; a screen may clear it.
-     */
-    val restoreRecoveryNote: Flow<String?> = pref { prefs -> prefs[RESTORE_RECOVERY_NOTE] }
-
-    suspend fun setRestoreRecoveryNote(note: String?) {
-        dataStore.edit { prefs ->
-            if (note == null) prefs.remove(RESTORE_RECOVERY_NOTE) else prefs[RESTORE_RECOVERY_NOTE] = note
-        }
-    }
-
-    /**
-     * Tracked separately from [setLastBackup]. Restoring used to overwrite the last-backup
-     * stamp, so Settings claimed a backup existed as of the restored file's date — the one
-     * signal whose whole job is to nag the user into backing up.
-     */
-    suspend fun setLastRestore(fileName: String, atMillis: Long) {
-        dataStore.edit { prefs ->
-            prefs[LAST_RESTORE_NAME] = fileName
-            prefs[LAST_RESTORE_AT] = atMillis
-        }
-    }
-
-    suspend fun setLastBackup(fileName: String, atMillis: Long) {
-        dataStore.edit { prefs ->
-            prefs[LAST_BACKUP_NAME] = fileName
-            prefs[LAST_BACKUP_AT] = atMillis
-        }
-    }
-
-    /** Written only after the file has come back out of Drive intact. */
-    suspend fun setLastVerifiedBackup(fileName: String, atMillis: Long) {
-        dataStore.edit { prefs ->
-            prefs[LAST_VERIFIED_BACKUP_NAME] = fileName
-            prefs[LAST_VERIFIED_BACKUP_AT] = atMillis
-        }
-    }
-
-    /**
-     * Signing out of Drive also disarms automatic backup — without a grant it cannot run, and
-     * leaving the toggle on would promise a copy that never happens. The sealed passphrase
-     * goes with it: keeping a secret for a feature that is off is a liability, not a
-     * convenience, and re-arming re-asks for it.
-     */
-    suspend fun clearDriveSession() {
-        dataStore.edit { prefs ->
-            prefs.remove(DRIVE_ACCOUNT)
-            prefs.remove(DRIVE_FOLDER_ID)
-            prefs.remove(AUTO_BACKUP_ENABLED)
-            prefs.remove(AUTO_BACKUP_SECRET)
-            prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)
-            prefs.remove(AUTO_BACKUP_LAST_SESSION)
-        }
-    }
-
     val foundationGeneration: Flow<String?> = pref { prefs -> prefs[FOUNDATION_GENERATION] }
 
     /**
@@ -983,60 +591,6 @@ class PreferencesRepository(
         }
         bodyweightDao?.deleteAll()
         trainingBlockDao?.deleteAll()
-    }
-
-    private companion object {
-        val WEIGHT_UNIT = stringPreferencesKey("weight_unit")
-        val TRAINING_GOAL = stringPreferencesKey("training_goal")
-        val TRAINING_EMPHASIS = stringPreferencesKey("training_emphasis")
-        val AVAILABLE_EQUIPMENT = stringSetPreferencesKey("available_equipment")
-        val DISMISSED_COLLISIONS = stringSetPreferencesKey("library_collision_dismissed_ids")
-        val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
-        val BODYWEIGHT_KG = doublePreferencesKey("bodyweight_kg")
-        val BODYWEIGHT_LOG = stringPreferencesKey("bodyweight_log")
-        val TRAINING_FOCUS = stringPreferencesKey("training_focus")
-        val BLOCK_START = longPreferencesKey("block_start_epoch_day")
-        val BLOCK_WEEKS = intPreferencesKey("block_weeks")
-        val PAST_BLOCKS = stringPreferencesKey("past_blocks")
-        val HEAT_WINDOW = stringPreferencesKey("heat_window")
-        val TRAINING_DAYS = intPreferencesKey("training_days_per_week")
-        val SPLIT_STYLE = stringPreferencesKey("split_style")
-        val WEEK_START = stringPreferencesKey("week_start")
-        val REST_SOUND = booleanPreferencesKey("rest_sound")
-        val REST_VIBRATE = booleanPreferencesKey("rest_vibrate")
-        val REST_TICK = booleanPreferencesKey("rest_tick")
-        val REST_DEFAULT = intPreferencesKey("rest_default_seconds")
-        val REST_LAST_PRESET = intPreferencesKey("rest_last_preset_seconds")
-        val REST_ALARM_ELIGIBLE = booleanPreferencesKey("rest_alarm_eligible")
-        val DRIVE_ACCOUNT = stringPreferencesKey("drive_account_email")
-        val DRIVE_FOLDER_ID = stringPreferencesKey("drive_folder_id")
-        val AUTO_BACKUP_ENABLED = booleanPreferencesKey("auto_backup_enabled")
-        val AUTO_BACKUP_SECRET = stringPreferencesKey("auto_backup_secret")
-        val AUTO_BACKUP_LAST_SESSION = stringPreferencesKey("auto_backup_last_session_id")
-        val AUTO_BACKUP_NEEDS_SIGN_IN = booleanPreferencesKey("auto_backup_needs_sign_in")
-        val LAST_BACKUP_AT = longPreferencesKey("last_backup_at")
-        val LAST_BACKUP_NAME = stringPreferencesKey("last_backup_name")
-        val LAST_VERIFIED_BACKUP_AT = longPreferencesKey("last_verified_backup_at")
-        val LAST_VERIFIED_BACKUP_NAME = stringPreferencesKey("last_verified_backup_name")
-        val LAST_RESTORE_AT = longPreferencesKey("last_restore_at")
-        val LAST_RESTORE_NAME = stringPreferencesKey("last_restore_name")
-        val RESTORE_RECOVERY_NOTE = stringPreferencesKey("restore_recovery_note")
-        val TRAINING_AGE = stringPreferencesKey("training_age")
-        val PREFERRED_DAYS = stringSetPreferencesKey("preferred_days")
-        val TRAINING_PLACE = stringPreferencesKey("training_place")
-        val LIGHTER_WEEK_START = longPreferencesKey("lighter_week_start_epoch_day")
-        val FOUNDATION_GENERATION = stringPreferencesKey("foundation_generation")
-        val REMINDER_OPT_OUT = booleanPreferencesKey("reminder_opt_out")
-        val REMINDER_QUIET_START = intPreferencesKey("reminder_quiet_start_hour")
-        val REMINDER_QUIET_END = intPreferencesKey("reminder_quiet_end_hour")
-        val CLOCK_FORMAT = stringPreferencesKey("clock_format")
-        val BODYWEIGHT_CHECK_IN_WEEKDAY = stringPreferencesKey("bodyweight_check_in_weekday")
-        val PENDING_OCCURRENCE_ID = stringPreferencesKey("pending_occurrence_id")
-
-        fun preferredDaysFrom(raw: Set<String>?): Set<Weekday> =
-            raw.orEmpty().mapNotNull { name ->
-                Weekday.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
-            }.toSet()
     }
 }
 
