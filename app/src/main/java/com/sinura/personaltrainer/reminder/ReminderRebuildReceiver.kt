@@ -7,7 +7,7 @@ import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
@@ -21,6 +21,8 @@ class ReminderRebuildReceiver : BroadcastReceiver() {
         if (!ReminderRebuild.shouldHandle(action)) return
         val app = context.applicationContext as? PersonalTrainerApp ?: return
         val pending = goAsync()
+        // Scoped to this broadcast, not to the process — see ReminderActionReceiver.
+        val scope = CoroutineScope(SupervisorJob() + app.container.ioDispatcher)
         scope.launch {
             try {
                 app.container.plannerRepository.rebuildReminders()
@@ -30,12 +32,12 @@ class ReminderRebuildReceiver : BroadcastReceiver() {
                 AppLog.w(TAG, "Reminder rebuild failed", error)
             } finally {
                 pending.finish()
+                scope.cancel()
             }
         }
     }
 
     private companion object {
         const val TAG = "PT/ReminderRebuild"
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 }

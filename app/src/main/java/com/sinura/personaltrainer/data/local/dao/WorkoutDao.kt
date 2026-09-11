@@ -151,6 +151,36 @@ interface WorkoutDao {
     @Query("UPDATE workout_sessions SET notes = :notes WHERE id = :id")
     suspend fun updateSessionNotes(id: String, notes: String)
 
+    /**
+     * Finishes the session in one statement, for the same reason [updateSessionNotes] exists.
+     *
+     * The other half of that race was still open: `finishSession` read the whole row, computed
+     * a duration, and wrote every column back from what it had read — so anything that changed
+     * in between was reverted by a finish that had never seen it. The note above explains why
+     * that shape cannot be made safe by care at the call site.
+     *
+     * `finishedAt IS NULL` carries the already-finished guard in SQL rather than in a read the
+     * caller does first, so two Finishes cannot both decide they are the one that landed.
+     * Returns the rows written: 0 means the session was gone or already finished.
+     */
+    @Query(
+        """
+        UPDATE workout_sessions
+        SET notes = :notes, durationMinutes = :durationMinutes, finishedAt = :finishedAt
+        WHERE id = :id AND finishedAt IS NULL
+        """,
+    )
+    suspend fun finishSession(
+        id: String,
+        notes: String,
+        durationMinutes: Int,
+        finishedAt: Long,
+    ): Int
+
+    /** The moment a session began. Immutable once written, so reading it races with nothing. */
+    @Query("SELECT startedAt FROM workout_sessions WHERE id = :id")
+    suspend fun sessionStartedAt(id: String): Long?
+
     @Query("DELETE FROM workout_sessions WHERE id = :id")
     suspend fun deleteSession(id: String)
 
@@ -194,62 +224,6 @@ interface WorkoutDao {
     suspend fun setsForExercise(sessionId: String, exerciseId: String): List<SetLogEntity>
 
     /**
-     * The id of the most recently finished session that contains a working set of this
-     * exercise, or null if there is none.
-     *
-     * Deliberately returns the SESSION, not a set: which set within it counts is a coaching
-     * decision that lives in [com.sinura.personaltrainer.domain.ProgressionBasis], where it is
-     * unit-testable. Pass an empty string for [excludeSessionId] to exclude nothing.
-     *
-     * Replaces the old lastWorkingSetExcluding / lastFinishedWorkingSet pair, which ordered by
-     * completedAt and so returned whatever set happened to be logged last — a back-off set
-     * after a top set. Those queries are gone rather than deprecated so the bug cannot be
-     * reintroduced by calling them.
-     */
-    @Query(
-        """
-        SELECT ws.id FROM workout_sessions ws
-        INNER JOIN set_logs sl ON sl.sessionId = ws.id
-        WHERE sl.exerciseId = :exerciseId
-          AND sl.isWarmup = 0
-          AND ws.finishedAt IS NOT NULL
-          AND ws.id != :excludeSessionId
-        ORDER BY ws.finishedAt DESC
-        LIMIT 1
-        """,
-    )
-    suspend fun lastFinishedSessionIdWithExercise(
-        exerciseId: String,
-        excludeSessionId: String,
-    ): String?
-
-    /**
-     * The last [limit] finished sessions containing this exercise, newest first.
-     *
-     * Same WHERE and ordering as the single-id query above — the RPE rule needs a *run* of
-     * sessions rather than one, and two different definitions of "the last session with this
-     * lift" would eventually disagree about which set the suggestion was made on.
-     */
-    @Query(
-        """
-        SELECT ws.id FROM workout_sessions ws
-        INNER JOIN set_logs sl ON sl.sessionId = ws.id
-        WHERE sl.exerciseId = :exerciseId
-          AND sl.isWarmup = 0
-          AND ws.finishedAt IS NOT NULL
-          AND ws.id != :excludeSessionId
-        GROUP BY ws.id
-        ORDER BY ws.finishedAt DESC
-        LIMIT :limit
-        """,
-    )
-    suspend fun lastFinishedSessionIdsWithExercise(
-        exerciseId: String,
-        excludeSessionId: String,
-        limit: Int,
-    ): List<String>
-
-    /**
      * Every finished working set of one exercise, oldest first, with just enough of its
      * session attached to summarise it.
      *
@@ -275,40 +249,6 @@ interface WorkoutDao {
         """,
     )
     fun observeFinishedWorkingSets(exerciseId: String): Flow<List<ExerciseSetRow>>
-
-    /** The same rows, read once — for the personal-record check at the moment a set is logged. */
-    @Query(
-        """
-        SELECT sl.id AS setId,
-               sl.sessionId AS sessionId,
-               ws.routineName AS sessionName,
-               ws.date AS sessionDate,
-               sl.weightKg AS weightKg,
-               sl.reps AS reps,
-               sl.completedAt AS completedAt
-        FROM set_logs sl
-        JOIN workout_sessions ws ON ws.id = sl.sessionId
-        WHERE sl.exerciseId = :exerciseId
-          AND sl.isWarmup = 0
-          AND ws.finishedAt IS NOT NULL
-        ORDER BY sl.completedAt ASC
-        """,
-    )
-    suspend fun finishedWorkingSets(exerciseId: String): List<ExerciseSetRow>
-
-    /** Every non-warmup set of one exercise in one session, for top-set selection. */
-    @Query(
-        """
-        SELECT * FROM set_logs
-        WHERE sessionId = :sessionId
-          AND exerciseId = :exerciseId
-          AND isWarmup = 0
-        """,
-    )
-    suspend fun workingSetsForExerciseInSession(
-        sessionId: String,
-        exerciseId: String,
-    ): List<SetLogEntity>
 
     /**
      * Every finished working set of the requested lifts, for a batched
@@ -372,15 +312,30 @@ interface WorkoutDao {
         WHERE sl.exerciseId = :exerciseId
           AND sl.isWarmup = 0
           AND sl.reps > 0
-          AND sl.completedAt < :completedAt
+          AND (
+            sl.completedAt < :completedAt
+            OR (sl.completedAt = :completedAt AND sl.setNumber < :setNumber)
+          )
           AND (ws.finishedAt IS NOT NULL OR sl.sessionId = :sessionId)
         """,
     )
+    /**
+     * Everything logged for this lift before this set, for the record check.
+     *
+     * "Before" is `(completedAt, setNumber)`, not `completedAt` alone. A millisecond stamp is
+     * not a total order over sets: two taps inside the same millisecond — which the JVM test
+     * lane hits routinely and a fast phone can hit for real — left the second set with no
+     * priors at all, so a genuine heaviest-ever was judged the first set of the lift and broke
+     * nothing. [setNumber] is assigned inside [WorkoutRepository.logSet]'s transaction and is
+     * strictly increasing per lift per session, which is the only place a tie can occur:
+     * every other row in range belongs to a finished session with an older stamp.
+     */
     suspend fun recordPriorsBefore(
         exerciseId: String,
         sessionId: String,
         weightKg: Double,
         completedAt: Long,
+        setNumber: Int,
     ): ExerciseRecordPriorsRow
 
     @Query(

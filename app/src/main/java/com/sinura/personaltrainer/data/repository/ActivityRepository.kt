@@ -29,8 +29,14 @@ import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 
 class ActivityRepository(
     private val database: TemperDatabase,
@@ -55,6 +61,17 @@ class ActivityRepository(
      * the same belt-and-braces refusal strength starts already had.
      */
     private val restoreBlocksStart: () -> Boolean = { false },
+    /**
+     * Where [observeLiveHealth] is shared from, so its graph query runs once per emission
+     * rather than once per collector.
+     *
+     * Six places watch the live activity: Home, the live bar, its ViewModel again, the start
+     * sheet, Plan, and the backup coordinator. Each collection ran `observeLive` *and* a
+     * second `getSessionGraph` on every emission, so one row changing cost six graph reads.
+     * Same shape [com.sinura.personaltrainer.insights.TrainingInsightsSource] uses for the
+     * same reason.
+     */
+    sharedScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
     private suspend fun <T> serialized(block: suspend () -> T): T =
         dbMaintenance?.withMaintenanceLock(block) ?: block()
@@ -65,10 +82,21 @@ class ActivityRepository(
      * values-only view of the same flow, so a failure stops it rather than crashing whoever
      * combined it.
      */
-    fun observeLiveHealth(): Flow<DataHealth<ActivitySession?>> =
+    private val liveHealth: Flow<DataHealth<ActivitySession?>> =
         dao.observeLive()
+            // The row before the graph. Room re-emits on any write to activity_sessions, so
+            // without this a set logged into a live session re-read its whole graph for every
+            // collector even when the row itself had not moved.
+            .distinctUntilChanged()
             .map { row -> row?.let { dao.getSessionGraph(it.id)?.toDomain() } }
             .observeHealth("the live activity")
+            .shareIn(
+                scope = sharedScope,
+                started = SharingStarted.WhileSubscribed(SHARE_GRACE_MS),
+                replay = 1,
+            )
+
+    fun observeLiveHealth(): Flow<DataHealth<ActivitySession?>> = liveHealth
 
     fun observeLive(): Flow<ActivitySession?> = observeLiveHealth().presentValues()
 
@@ -106,6 +134,8 @@ class ActivityRepository(
 
     fun observeCompletedGraphsSince(minPerformedAtMs: Long): Flow<List<ActivitySession>> =
         dao.observeCompletedGraphsSince(minPerformedAtMs).map { rows -> rows.map { it.toDomain() } }
+            .observeHealth("the activity history")
+            .presentValues()
 
     suspend fun onLocalDate(localEpochDay: Long): List<ActivitySession> =
         dao.graphsOnLocalDate(localEpochDay).map { it.toDomain() }
@@ -268,5 +298,8 @@ class ActivityRepository(
 
     private companion object {
         const val TAG = "PT/ActivityRepository"
+
+        /** Long enough to survive a rotation or a tab switch, short enough not to hold work. */
+        const val SHARE_GRACE_MS = 5_000L
     }
 }

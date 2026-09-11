@@ -75,7 +75,7 @@ fun CustomWeekScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val finished by viewModel.finished.collectAsStateWithLifecycle()
-    var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedRequest by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingFullWeek by rememberSaveable { mutableStateOf(false) }
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     val restDays = CustomWeekPolicy.restDayCount(state.days)
@@ -142,7 +142,7 @@ fun CustomWeekScreen(
                 filled = state.days.filter { it.value.isNotEmpty() }.keys,
                 preferred = state.preferredDays,
                 onSelect = { day ->
-                    expandedId = null
+                    expandedRequest = null
                     viewModel.selectDay(day)
                 },
             )
@@ -151,11 +151,8 @@ fun CustomWeekScreen(
             }
 
             val lifts = state.selectedLifts
-            LaunchedEffect(state.selectedDay, lifts.map { it.id }) {
-                if (expandedId != null && lifts.none { it.id == expandedId }) {
-                    expandedId = null
-                }
-            }
+            // Derived rather than corrected — see RoutineEditorScreen.
+            val expandedId = expandedRequest?.takeIf { id -> lifts.any { it.id == id } }
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = Metrics.space4),
@@ -190,12 +187,12 @@ fun CustomWeekScreen(
                             },
                             selectedId = expandedId,
                             onSelect = { id ->
-                                expandedId = if (expandedId == id) null else id
+                                expandedRequest = if (expandedId == id) null else id
                             },
                             onMoveEarlier = { id -> viewModel.moveLift(id, -1) },
                             onMoveLater = { id -> viewModel.moveLift(id, 1) },
                             onRemove = { id ->
-                                if (expandedId == id) expandedId = null
+                                if (expandedId == id) expandedRequest = null
                                 viewModel.removeLift(id)
                             },
                             onStageTargets = { id, sets, reps, rest, kg, invalid ->
