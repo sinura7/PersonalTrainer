@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 11 Sep 2026 — Live 44: L-05 and D-06 on
+> `trunk`. `debugLiveCode` 44; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 11 Sep 2026 — Live 43: W-06 and W-11 on
 > `trunk`. `debugLiveCode` 43; suffix from
 > `python3 tools/debug-drop-plan.py`.
