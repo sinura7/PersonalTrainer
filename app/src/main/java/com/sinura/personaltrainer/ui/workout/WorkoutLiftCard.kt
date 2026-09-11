@@ -187,6 +187,12 @@ internal fun WorkoutLiftCard(
             entryRequester.bringIntoView()
         }
     }
+    val headerTrailing = @Composable {
+        LiftChipBadges(
+            marks = chipMarks,
+            exerciseId = lift.exercise.id,
+        )
+    }
     LiftCard(
         exercise = lift.exercise,
         selected = selected,
@@ -194,27 +200,20 @@ internal fun WorkoutLiftCard(
         spoken = chipSpoken,
         onClick = onSelect,
         cardTag = WorkoutTestTags.liftCard(lift.exercise.id),
-        trailing = {
-            LiftChipBadges(
-                marks = chipMarks,
-                exerciseId = lift.exercise.id,
-            )
-        },
-        content = if (!selected) {
-            null
-        } else {
-            {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            start = Metrics.space3,
-                            end = Metrics.space3,
-                            bottom = Metrics.space3,
-                        ),
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space4),
-                ) {
-                CurrentLiftHeader(
+        trailing = headerTrailing,
+    ) {
+        if (!selected) return@LiftCard
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = Metrics.space3,
+                    end = Metrics.space3,
+                    bottom = Metrics.space3,
+                ),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+        ) {
+            CurrentLiftHeader(
                     lift = lift,
                     workingLogged = workingLogged,
                     unit = unit,
@@ -277,9 +276,8 @@ internal fun WorkoutLiftCard(
                     }
                 }
             }
-            }
-        },
-    )
+        }
+    }
 }
 
 /**

@@ -5,9 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -50,8 +48,8 @@ fun LiftCard(
     spoken: String? = null,
     onClick: (() -> Unit)? = null,
     cardTag: String? = null,
-    trailing: @Composable RowScope.() -> Unit = {},
-    content: (@Composable ColumnScope.() -> Unit)? = null,
+    trailing: @Composable () -> Unit = {},
+    content: @Composable () -> Unit = {},
 ) {
     val shape = RoundedCornerShape(Radius.sm)
     Column(
@@ -114,8 +112,6 @@ fun LiftCard(
             }
             trailing()
         }
-        if (content != null) {
-            content()
-        }
+        content()
     }
 }

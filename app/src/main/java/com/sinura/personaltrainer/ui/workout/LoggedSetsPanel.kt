@@ -74,29 +74,28 @@ internal fun LoggedSetsPanel(
             onSelect = { id ->
                 selectedSetId = if (selected == id) null else id
             },
-            trailing = { row ->
-                if (selected == row.id) {
-                    SetRowAction(
-                        icon = TemperIcons.Edit,
-                        label = "Revise set ${row.number}",
-                        tint = TextSecondary,
-                        onClick = {
-                            selectedSetId = null
-                            onEdit(row.id)
-                        },
-                    )
-                    SetRowAction(
-                        icon = TemperIcons.Delete,
-                        label = "Remove set ${row.number}",
-                        tint = Danger,
-                        onClick = {
-                            selectedSetId = null
-                            onDelete(row.id)
-                        },
-                    )
-                }
-            },
-        )
+        ) { row ->
+            if (selected == row.id) {
+                SetRowAction(
+                    icon = TemperIcons.Edit,
+                    label = "Revise set ${row.number}",
+                    tint = TextSecondary,
+                    onClick = {
+                        selectedSetId = null
+                        onEdit(row.id)
+                    },
+                )
+                SetRowAction(
+                    icon = TemperIcons.Delete,
+                    label = "Remove set ${row.number}",
+                    tint = Danger,
+                    onClick = {
+                        selectedSetId = null
+                        onDelete(row.id)
+                    },
+                )
+            }
+        }
         if (showAddSet) {
             TextButton(
                 onClick = onAddSet,

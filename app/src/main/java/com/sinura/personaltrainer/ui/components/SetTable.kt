@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -77,7 +76,7 @@ fun SetTable(
     selectedId: String? = null,
     editingId: String? = null,
     onSelect: ((String) -> Unit)? = null,
-    trailing: @Composable RowScope.(SetTableLine) -> Unit = {},
+    trailing: @Composable (SetTableLine) -> Unit = {},
 ) {
     if (rows.isEmpty()) return
     GroupedList(modifier = modifier) {
@@ -88,8 +87,9 @@ fun SetTable(
                 isEditing = editingId == row.id,
                 isSelected = selectedId == row.id,
                 onSelect = onSelect?.let { select -> { select(row.id) } },
-                trailing = { trailing(row) },
-            )
+            ) {
+                trailing(row)
+            }
         }
     }
 }
@@ -100,9 +100,8 @@ private fun SetTableRow(
     isEditing: Boolean,
     isSelected: Boolean,
     onSelect: (() -> Unit)?,
-    trailing: @Composable RowScope.() -> Unit,
+    trailing: @Composable () -> Unit,
 ) {
-    val selectable = onSelect != null && !isEditing
     Row(
         modifier = Modifier
             .fillMaxWidth()

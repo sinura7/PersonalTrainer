@@ -60,20 +60,21 @@ internal fun FilledLiftCard(
         load = loadDisplay,
     )
     val setsById = lift.sets.associateBy { it.id }
+    val headerTrailing = @Composable {
+        Text(
+            SessionOrderCopy.filledCount(lift.workingLogged, lift.targetSets),
+            style = InstrumentType.numeralSm,
+            color = TextPrimary,
+            maxLines = 1,
+        )
+    }
     LiftCard(
         exercise = lift.exercise,
         number = lift.number,
         spoken = spoken,
         onClick = onOpen,
         cardTag = SessionDetailTestTags.liftCard(lift.exercise.id),
-        trailing = {
-            Text(
-                SessionOrderCopy.filledCount(lift.workingLogged, lift.targetSets),
-                style = InstrumentType.numeralSm,
-                color = TextPrimary,
-                maxLines = 1,
-            )
-        },
+        trailing = headerTrailing,
     ) {
         if (lift.hasPrescription) {
             Row(
@@ -128,18 +129,17 @@ internal fun FilledLiftCard(
                     rows = lift.sets.map { set ->
                         SetTableLine.fromLog(set, loadClass, unit)
                     },
-                    trailing = { row ->
-                        val set = setsById[row.id]
-                        if (set != null) {
-                            TextButton(
-                                onClick = { onEditSet(set) },
-                                modifier = Modifier.testTag(SessionDetailTestTags.EDIT_SET),
-                            ) {
-                                Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
-                            }
+                ) { row ->
+                    val set = setsById[row.id]
+                    if (set != null) {
+                        TextButton(
+                            onClick = { onEditSet(set) },
+                            modifier = Modifier.testTag(SessionDetailTestTags.EDIT_SET),
+                        ) {
+                            Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
                         }
-                    },
-                )
+                    }
+                }
             }
             TextButton(
                 onClick = onAddSet,
