@@ -1,18 +1,10 @@
 package com.sinura.personaltrainer.ui.workout
 
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Icon
@@ -25,30 +17,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.ui.components.TemperIcons
-import com.sinura.personaltrainer.domain.SetCopy
-import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.LoadClass
-import com.sinura.personaltrainer.ui.components.GroupedList
-import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.ui.components.SetTable
+import com.sinura.personaltrainer.ui.components.SetTableLine
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
-import com.sinura.personaltrainer.ui.theme.RestCyan
-import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 @Composable
@@ -76,26 +57,41 @@ internal fun LoggedSetsPanel(
         // offer Delete on the very set being saved.
         if (editingSetId != null) selectedSetId = null
     }
+    val unit = LocalWeightUnit.current
+    val rows = sets.map { set ->
+        SetTableLine.fromLog(
+            set = set,
+            loadClass = loadClassOf(set),
+            unit = unit,
+            isLatest = set.id == latestSetId,
+        )
+    }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-        GroupedList {
-            sets.forEachIndexed { index, set ->
-                if (index > 0) HairlineDivider()
-                SetRow(
-                    set = set,
-                    isLatest = set.id == latestSetId,
-                    isEditing = editingSetId == set.id,
-                    isSelected = selected == set.id,
-                    loadClass = loadClassOf(set),
-                    onSelect = {
-                        selectedSetId = if (selected == set.id) null else set.id
-                    },
-                    onEdit = {
+        SetTable(
+            rows = rows,
+            selectedId = selected,
+            editingId = editingSetId,
+            onSelect = { id ->
+                selectedSetId = if (selected == id) null else id
+            },
+        ) { row ->
+            if (selected == row.id) {
+                SetRowAction(
+                    icon = TemperIcons.Edit,
+                    label = "Revise set ${row.number}",
+                    tint = TextSecondary,
+                    onClick = {
                         selectedSetId = null
-                        onEdit(set.id)
+                        onEdit(row.id)
                     },
-                    onDelete = {
+                )
+                SetRowAction(
+                    icon = TemperIcons.Delete,
+                    label = "Remove set ${row.number}",
+                    tint = Danger,
+                    onClick = {
                         selectedSetId = null
-                        onDelete(set.id)
+                        onDelete(row.id)
                     },
                 )
             }
@@ -124,105 +120,6 @@ internal fun LoggedSetsPanel(
 }
 
 /**
- * A logged set.
- *
- * State is carried by the design rather than narrated in the text. Latest wears a Volt rail.
- * Warm-up wears a cyan tick. Editing is outlined in Volt, matching the log button.
- */
-@Composable
-internal fun SetRow(
-    set: SetLog,
-    isLatest: Boolean,
-    isEditing: Boolean,
-    isSelected: Boolean,
-    loadClass: LoadClass,
-    onSelect: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val unit = LocalWeightUnit.current
-    val rowLabel = SetCopy.setLine(set.weightKg, set.reps, loadClass, unit)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = !isEditing, onClick = onSelect)
-            .semantics {
-                selected = isSelected
-                contentDescription = if (isSelected) {
-                    "Set ${set.setNumber}, $rowLabel, selected. Revise or Remove."
-                } else {
-                    "Set ${set.setNumber}, $rowLabel. Tap to revise or remove."
-                }
-            }
-            .then(
-                if (isEditing) {
-                    Modifier.border(Metrics.emphasisBorder, Volt)
-                } else {
-                    Modifier
-                },
-            )
-            .padding(end = Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(width = LATEST_RULE_WIDTH, height = LATEST_RULE_HEIGHT)
-                .background(if (isLatest) Volt else Color.Transparent),
-        )
-        if (set.isWarmup) {
-            Box(
-                modifier = Modifier
-                    .padding(start = Metrics.space2)
-                    .size(WARMUP_TICK)
-                    .clip(CircleShape)
-                    .background(RestCyan)
-                    .semantics { contentDescription = "Warm-up" },
-            )
-        }
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = Metrics.space3, top = Metrics.space3, bottom = Metrics.space3),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-        ) {
-            Text(
-                SetCopy.setLine(set.weightKg, set.reps, loadClass, unit),
-                style = InstrumentType.numeralSm,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val extras = buildList {
-                add("Set ${set.setNumber}")
-                set.rpe?.let { add("RPE $it") }
-            }.joinToString(" · ")
-            Text(
-                extras,
-                style = InstrumentType.caption,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (isSelected) {
-            SetRowAction(
-                icon = TemperIcons.Edit,
-                label = "Revise set ${set.setNumber}",
-                tint = TextSecondary,
-                onClick = onEdit,
-            )
-            SetRowAction(
-                icon = TemperIcons.Delete,
-                label = "Remove set ${set.setNumber}",
-                tint = Danger,
-                onClick = onDelete,
-            )
-        }
-    }
-}
-
-/**
  * One action on a selected set row.
  *
  * Symbols, not words: two labelled buttons on every row is most of the row's width at the
@@ -241,7 +138,3 @@ internal fun SetRowAction(
         Icon(icon, contentDescription = label, tint = tint)
     }
 }
-
-private val LATEST_RULE_WIDTH = 3.dp
-private val LATEST_RULE_HEIGHT = 44.dp
-private val WARMUP_TICK = 6.dp

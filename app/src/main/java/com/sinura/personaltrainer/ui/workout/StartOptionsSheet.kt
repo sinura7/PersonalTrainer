@@ -132,7 +132,7 @@ fun StartOptionsSheet(
                 color = TextPrimary,
             )
             if (state.isLoading) {
-                ScreenLoading(Modifier.fillMaxWidth().height(96.dp))
+                ScreenLoading(modifier = Modifier.fillMaxWidth().height(96.dp), cards = 1)
                 return@Column
             }
             state.error?.let { message -> GymErrorBanner(message, onDismiss = viewModel::dismissError) }

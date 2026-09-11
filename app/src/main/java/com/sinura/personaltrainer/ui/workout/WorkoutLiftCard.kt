@@ -42,7 +42,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import java.text.DateFormat
@@ -63,12 +62,10 @@ import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutCopy
 import com.sinura.personaltrainer.domain.toWeightLabel
-import com.sinura.personaltrainer.ui.components.CountBadge
-import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.LiftCard
 import com.sinura.personaltrainer.ui.components.SetEntryPanel
-import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
@@ -81,7 +78,6 @@ import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
-import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.util.JvmTime
 
 internal data class WorkoutLiftCardState(
@@ -191,73 +187,33 @@ internal fun WorkoutLiftCard(
             entryRequester.bringIntoView()
         }
     }
-    val shape = RoundedCornerShape(Radius.sm)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = Metrics.rowMin)
-            .clip(shape)
-            .background(if (selected) VoltDim else Surface2)
-            .border(
-                if (selected) Metrics.emphasisBorder else Metrics.hairline,
-                if (selected) Volt else Hairline,
-                shape,
-            ),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    val headerTrailing = @Composable {
+        LiftChipBadges(
+            marks = chipMarks,
+            exerciseId = lift.exercise.id,
+        )
+    }
+    LiftCard(
+        exercise = lift.exercise,
+        selected = selected,
+        number = number,
+        spoken = chipSpoken,
+        onClick = onSelect,
+        cardTag = WorkoutTestTags.liftCard(lift.exercise.id),
+        trailing = headerTrailing,
     ) {
-        Row(
+        if (!selected) return@LiftCard
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onSelect)
-                .testTag(WorkoutTestTags.liftCard(lift.exercise.id))
-                .semantics(mergeDescendants = true) {
-                    this.selected = selected
-                    contentDescription = chipSpoken
-                }
-                .padding(Metrics.space3),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                .padding(
+                    start = Metrics.space3,
+                    end = Metrics.space3,
+                    bottom = Metrics.space3,
+                ),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
-            CountBadge(number = number, selected = selected)
-            ExerciseThumb(
-                exercise = lift.exercise,
-                size = ThumbSize.header,
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    lift.exercise.name,
-                    style = InstrumentType.title,
-                    color = TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (lift.exercise.muscleGroup.isNotBlank()) {
-                    Text(
-                        lift.exercise.muscleGroup,
-                        style = InstrumentType.caption,
-                        color = TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            LiftChipBadges(
-                marks = chipMarks,
-                exerciseId = lift.exercise.id,
-            )
-        }
-        if (selected) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = Metrics.space3,
-                        end = Metrics.space3,
-                        bottom = Metrics.space3,
-                    ),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space4),
-            ) {
-                CurrentLiftHeader(
+            CurrentLiftHeader(
                     lift = lift,
                     workingLogged = workingLogged,
                     unit = unit,
@@ -321,7 +277,6 @@ internal fun WorkoutLiftCard(
                 }
             }
         }
-    }
 }
 
 /**

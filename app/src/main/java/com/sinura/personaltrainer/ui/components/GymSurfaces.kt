@@ -102,6 +102,21 @@ fun Kicker(
  * way of the numbers.
  */
 @Composable
+fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    compact: Boolean = false,
+) = GymSectionHeader(
+    title = title,
+    modifier = modifier,
+    actionLabel = actionLabel,
+    onAction = onAction,
+    compact = compact,
+)
+
+@Composable
 fun GymSectionHeader(
     title: String,
     modifier: Modifier = Modifier,

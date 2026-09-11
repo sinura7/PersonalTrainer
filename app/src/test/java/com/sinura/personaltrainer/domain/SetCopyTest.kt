@@ -101,4 +101,10 @@ class SetCopyTest {
     fun nothingLoggedSaysNothing() {
         assertNull(SetCopy.bodyweightLine(null, WeightUnit.KG))
     }
+
+    @Test
+    fun tableExtrasNameTheSetThenRpe() {
+        assertEquals("Set 3", SetCopy.tableExtras(3, null))
+        assertEquals("Set 3 · RPE 8", SetCopy.tableExtras(3, 8))
+    }
 }

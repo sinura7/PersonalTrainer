@@ -39,7 +39,8 @@ import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.util.runCatchingCancellable
 
 /**
- * One typed number, confirmed explicitly.
+ * One typed number, confirmed explicitly. D-08's tap-to-type on the
+ * big numerals — the steppers stay for ±, this is how 87.5 lands.
  *
  * Confirm stays disabled until the text parses, so there is no path where a fumbled entry
  * silently commits the old value or a wrong one — the button simply will not fire. The field

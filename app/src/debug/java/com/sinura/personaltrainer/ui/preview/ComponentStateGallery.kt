@@ -13,9 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.EmptyScene
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.ui.components.CountBadge
 import com.sinura.personaltrainer.ui.components.DangerGymButton
 import com.sinura.personaltrainer.ui.components.EmptyIllustration
+import com.sinura.personaltrainer.ui.components.EquipmentChip
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
@@ -23,7 +25,9 @@ import com.sinura.personaltrainer.ui.components.InstrumentSwitch
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.Numeral
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ScreenSkeleton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.components.SectionHeader
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
@@ -117,6 +121,17 @@ fun ComponentStateGallery(modifier: Modifier = Modifier) {
                     )
                     InstrumentSwitch(checked = false, onCheckedChange = {})
                     InstrumentSwitch(checked = true, onCheckedChange = {})
+                }
+            }
+        }
+        item {
+            GymCard {
+                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                    Kicker("Inventory")
+                    SectionHeader("Sets")
+                    EquipmentChip(EquipmentType.MACHINE)
+                    EquipmentChip(label = "Barbell")
+                    ScreenSkeleton(cards = 1)
                 }
             }
         }

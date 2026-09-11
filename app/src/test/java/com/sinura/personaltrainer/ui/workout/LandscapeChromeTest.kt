@@ -32,8 +32,9 @@ class LandscapeChromeTest {
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
         assertTrue(card.contains("WorkoutLiftCardState"))
         assertTrue(card.contains("WorkoutLiftCardEvents"))
-        assertTrue(card.contains("CountBadge("))
         assertFalse(card.contains("CartBadge("))
+        val liftCard = readOwned("ui/components/LiftCard.kt")
+        assertTrue(liftCard.contains("CountBadge("))
 
         val rest = readOwned("ui/workout/RestTimerScreen.kt")
         assertTrue(rest.contains("LandscapeChrome.ringSizeDp"))

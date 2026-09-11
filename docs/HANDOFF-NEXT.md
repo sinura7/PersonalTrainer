@@ -95,11 +95,13 @@ Biggest first, and the first two are the owner's, not a session's:
   walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
-- **Four DESIGN_AUDIT P1 rows** still genuinely open. D-04 is closed:
+- **DESIGN_AUDIT P1 rows from that four-row list are closed.** D-08 is closed:
+  lift cards, the set table, the equipment chip, confirm dialog, section
+  header, and card-shaped loading are shared components; overlay rest stays
+  superseded. D-01/D-02/D-03 are already Instrument in `Type`/`Color`/`Shape`/`Metrics`
+  — confirmed in the audit table, not redrawn. D-04 is closed:
   empty screens draw a rack / plan / catalog / log / gone / retry picture
   that teaches the next tap; the Temper mark stays identity, not a shrug.
-  Remaining: D-08 inventory, and D-01/D-02/D-03 which are already Instrument
-  in `Type`/`Color`/`Shape`/`Metrics` (confirm in the table, do not redraw).
   D-06 is closed:
   last three seconds of rest hit harder in the hand, and a refused tap
   buzzes twice. L-05 is closed:
