@@ -200,11 +200,11 @@ class LiveCardioViewModel @JvmOverloads constructor(
             finishing.value = false
             result.onSuccess { outcome ->
                 when (outcome) {
-                    is CompleteTrainingOutcome.Accepted -> {
+                    is CompleteTrainingOutcome.Written -> {
                         forgetInputs()
                         _finishedId.value = outcome.id
                     }
-                    is CompleteTrainingOutcome.Rejected ->
+                    is CompleteTrainingOutcome.RuledOut ->
                         error.fail(source = ERR_FINISH, message = outcome.reason)
                     is CompleteTrainingOutcome.Failed ->
                         error.fail(source = ERR_FINISH, message = outcome.message)

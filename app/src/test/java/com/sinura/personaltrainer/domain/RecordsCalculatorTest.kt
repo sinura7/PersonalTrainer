@@ -56,6 +56,18 @@ class RecordsCalculatorTest {
         assertEquals(0, RecordsCalculator.countBroken(inRange = first, before = emptyList()))
     }
 
+    @Test
+    fun countingOverBlocksMatchesTheSameSets() {
+        val prior = listOf(loaded("a", "s1", "ex-squat", "Squat", 100.0, 5, now - DAY))
+        val later = listOf(loaded("b", "s2", "ex-squat", "Squat", 110.0, 5, now))
+        val before = listOf(training("before", now - DAY, prior))
+        val inBlock = listOf(training("block", now, later))
+        assertEquals(
+            RecordsCalculator.countBroken(inRange = later, before = prior),
+            RecordsCalculator.countBrokenTraining(inBlock = inBlock, beforeBlock = before),
+        )
+    }
+
     private fun loaded(
         setId: String,
         sessionId: String,
@@ -75,6 +87,33 @@ class RecordsCalculatorTest {
             reps = reps,
             completedAt = at,
         ),
+    )
+
+    private fun training(
+        id: String,
+        at: Long,
+        sets: List<RecordSet>,
+    ): CompletedTraining = CompletedTraining(
+        id = id,
+        kind = CompletedTraining.Kind.STRENGTH_SESSION,
+        title = id,
+        performedAtMs = at,
+        localEpochDay = at / DAY,
+        finishedAtMs = at,
+        summary = SessionSummary(
+            id = id,
+            routineId = null,
+            routineName = id,
+            date = at,
+            finishedAt = at,
+            durationMinutes = 40,
+            workingSets = sets.size,
+            volumeKg = sets.sumOf { it.set.weightKg * it.set.reps },
+            localEpochDay = at / DAY,
+        ),
+        strength = sets,
+        cardioSeconds = 0L,
+        cardioDistanceMeters = null,
     )
 
     private companion object {

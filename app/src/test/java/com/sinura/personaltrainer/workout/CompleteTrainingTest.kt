@@ -48,18 +48,18 @@ class CompleteTrainingTest {
     fun finishWorkoutMapsTheThreeAnswers() = runBlocking {
         val empty = seedTestWorkout(deps)
         val nothing = deps.completeTraining.finishWorkout(empty.session.id)
-        assertTrue(nothing is CompleteTrainingOutcome.Rejected)
-        assertEquals(CompleteTraining.NOTHING_LOGGED, (nothing as CompleteTrainingOutcome.Rejected).reason)
+        assertTrue(nothing is CompleteTrainingOutcome.RuledOut)
+        assertEquals(CompleteTraining.NOTHING_LOGGED, (nothing as CompleteTrainingOutcome.RuledOut).reason)
 
         val logged = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)))
         val accepted = deps.completeTraining.finishWorkout(logged.session.id)
-        assertEquals(CompleteTrainingOutcome.Accepted(logged.session.id), accepted)
+        assertEquals(CompleteTrainingOutcome.Written(logged.session.id), accepted)
 
         val missing = deps.completeTraining.finishWorkout("missing")
-        assertTrue(missing is CompleteTrainingOutcome.Rejected)
+        assertTrue(missing is CompleteTrainingOutcome.RuledOut)
         assertEquals(
             DataHealthCopy.FINISH_NOT_FOUND,
-            (missing as CompleteTrainingOutcome.Rejected).reason,
+            (missing as CompleteTrainingOutcome.RuledOut).reason,
         )
     }
 
@@ -76,8 +76,8 @@ class CompleteTrainingTest {
             ),
             now,
         )
-        assertTrue(empty is CompleteTrainingOutcome.Rejected)
-        assertEquals("Nothing to save.", (empty as CompleteTrainingOutcome.Rejected).reason)
+        assertTrue(empty is CompleteTrainingOutcome.RuledOut)
+        assertEquals("Nothing to save.", (empty as CompleteTrainingOutcome.RuledOut).reason)
 
         val accepted = deps.completeTraining.confirm(
             ActivityDraft(
@@ -89,9 +89,9 @@ class CompleteTrainingTest {
             ),
             now,
         )
-        assertTrue(accepted is CompleteTrainingOutcome.Accepted)
+        assertTrue(accepted is CompleteTrainingOutcome.Written)
         assertEquals(
-            (accepted as CompleteTrainingOutcome.Accepted).id,
+            (accepted as CompleteTrainingOutcome.Written).id,
             deps.activityRepository.all().single().id,
         )
     }
@@ -111,7 +111,7 @@ class CompleteTrainingTest {
         )
 
         val outcome = deps.completeTraining.finishLiveActivity(live.id, now)
-        assertEquals(CompleteTrainingOutcome.Accepted(live.id), outcome)
+        assertEquals(CompleteTrainingOutcome.Written(live.id), outcome)
         assertNull(deps.cardioTimerPersistence.load())
         assertTrue(deps.activityRepository.get(live.id)!!.isCompleted)
     }

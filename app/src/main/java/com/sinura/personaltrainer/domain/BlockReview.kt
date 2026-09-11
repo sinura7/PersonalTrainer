@@ -152,35 +152,10 @@ object BlockReviewBuilder {
     private fun countRecords(
         inBlock: List<CompletedTraining>,
         beforeBlock: List<CompletedTraining>,
-    ): Int {
-        var total = 0
-        // The prior history each lift is judged against, keyed by lift so a block that touches
-        // one exercise does not pay for the whole career graph twice.
-        val priorByExercise = beforeBlock.attempts().groupBy { it.exerciseId }
-        val byExercise = inBlock.attempts().groupBy { it.exerciseId }
-        byExercise.forEach { (exerciseId, pairs) ->
-            val loadClass = pairs.first().loadClass
-            val ordered = pairs.sortedBy { it.set.completedAt }
-            // Seeded from before the block, which is what the paragraph above has always
-            // claimed and what the code did not do: starting from an empty list handed a
-            // returning lifter a record for the first set of every lift they touched, so
-            // 110 kg in week one was celebrated twice against a standing best of 150 kg.
-            val seen = priorByExercise[exerciseId]
-                .orEmpty()
-                .map { it.set }
-                .sortedBy { it.completedAt }
-                .toMutableList()
-            ordered.forEach { attempt ->
-                total += RecordsCalculator.detect(
-                    candidate = attempt.set,
-                    priorHistory = seen,
-                    loadClass = loadClass,
-                ).size
-                seen += attempt.set
-            }
-        }
-        return total
-    }
+    ): Int = RecordsCalculator.countBrokenTraining(
+        inBlock = inBlock,
+        beforeBlock = beforeBlock,
+    )
 
     /**
      * Records and movers over an inclusive-start, exclusive-end civil range.

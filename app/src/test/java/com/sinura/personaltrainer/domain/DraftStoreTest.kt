@@ -72,7 +72,7 @@ class DraftStoreTest {
         val emptyDraft = WorkoutDraft(empty.session.id, empty.exercise.id, 100.0, 5, null, false, "")
         deps.workoutDraftCache.put(emptyDraft)
         val refused = deps.completeTraining.finishWorkout(empty.session.id)
-        assertTrue(refused is CompleteTrainingOutcome.Rejected)
+        assertTrue(refused is CompleteTrainingOutcome.RuledOut)
         assertEquals(emptyDraft, deps.workoutDraftCache.storeFor(empty.session.id).read())
 
         val logged = seedTestWorkout(
@@ -86,7 +86,7 @@ class DraftStoreTest {
             WorkoutDraft(logged.session.id, logged.exercise.id, 100.0, 5, null, false, ""),
         )
         val accepted = deps.completeTraining.finishWorkout(logged.session.id)
-        assertTrue(accepted is CompleteTrainingOutcome.Accepted)
+        assertTrue(accepted is CompleteTrainingOutcome.Written)
         assertNull(deps.workoutDraftCache.storeFor(logged.session.id).read())
     }
 

@@ -10,7 +10,6 @@ import android.net.Uri
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.data.backup.AuthoredInventory
 import com.sinura.personaltrainer.data.backup.BackupEnvelope
-import com.sinura.personaltrainer.data.backup.OpenBackup
 import com.sinura.personaltrainer.data.backup.ProtectBackup
 import com.sinura.personaltrainer.data.backup.BackupException
 import com.sinura.personaltrainer.data.backup.BackupJson

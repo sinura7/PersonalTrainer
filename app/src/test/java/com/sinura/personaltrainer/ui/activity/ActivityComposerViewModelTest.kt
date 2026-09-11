@@ -116,8 +116,8 @@ class ActivityComposerViewModelTest {
         viewModel!!.addStrength(exercise, 100.0, 5)
         viewModel!!.removeStrength(0)
         val write = viewModel!!.confirmDraft()
-        assertTrue(write is CompleteTrainingOutcome.Rejected)
-        assertEquals("Nothing to save.", (write as CompleteTrainingOutcome.Rejected).reason)
+        assertTrue(write is CompleteTrainingOutcome.RuledOut)
+        assertEquals("Nothing to save.", (write as CompleteTrainingOutcome.RuledOut).reason)
         assertEquals(null, viewModel!!.savedId.value)
     }
 

@@ -35,11 +35,11 @@ class CompleteTraining(
         sessionId: String,
         notes: String? = null,
     ): CompleteTrainingOutcome = when (val outcome = strengthFinish(sessionId, notes)) {
-        is FinishOutcome.Finished -> CompleteTrainingOutcome.Accepted(id = outcome.sessionId)
+        is FinishOutcome.Finished -> CompleteTrainingOutcome.Written(id = outcome.sessionId)
         FinishOutcome.NothingLogged ->
-            CompleteTrainingOutcome.Rejected(reason = NOTHING_LOGGED)
+            CompleteTrainingOutcome.RuledOut(reason = NOTHING_LOGGED)
         FinishOutcome.SessionMissing ->
-            CompleteTrainingOutcome.Rejected(reason = DataHealthCopy.FINISH_NOT_FOUND)
+            CompleteTrainingOutcome.RuledOut(reason = DataHealthCopy.FINISH_NOT_FOUND)
         is FinishOutcome.Failed ->
             CompleteTrainingOutcome.Failed(message = DataHealthCopy.FINISH_FAILED)
     }
@@ -62,10 +62,10 @@ class CompleteTraining(
         when (val write = activityFinish(sessionId, now, blocks)) {
             is ActivityWrite.Accepted -> {
                 cardioTimerPersistence.clear()
-                CompleteTrainingOutcome.Accepted(id = write.session.id)
+                CompleteTrainingOutcome.Written(id = write.session.id)
             }
             is ActivityWrite.Rejected ->
-                CompleteTrainingOutcome.Rejected(reason = write.reason)
+                CompleteTrainingOutcome.RuledOut(reason = write.reason)
         }
     }.getOrElse { thrown ->
         AppLog.w(TAG, "Finishing live cardio threw", thrown)

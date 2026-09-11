@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -240,40 +241,50 @@ private fun ActivityDetailHeader(
         backTag = ActivityDetailTags.BACK,
         backDescription = ActivityDetailCopy.BACK,
         paintBackground = false,
-        trailing = {
-            Box {
-                IconButton(
-                    onClick = { onMenuOpenChange(true) },
-                    modifier = Modifier.testTag(ActivityDetailTags.OPTIONS),
-                ) {
-                    Icon(
-                        OutlinedMarks.MoreVert,
-                        contentDescription = ActivityEditCopy.OPTIONS,
-                        tint = TextSecondary,
-                    )
-                }
-                InstrumentMenu(
-                    expanded = menuOpen,
-                    onDismissRequest = { onMenuOpenChange(false) },
-                ) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                ActivityEditCopy.DELETE,
-                                style = InstrumentType.bodyStrong,
-                                color = TextSecondary,
-                            )
-                        },
-                        onClick = {
-                            onMenuOpenChange(false)
-                            onDelete()
-                        },
-                        modifier = Modifier.testTag(ActivityDetailTags.DELETE),
-                    )
-                }
-            }
-        },
+        trailing = activityDeleteOverflow(
+            onDelete = onDelete,
+            menuOpen = menuOpen,
+            onMenuOpenChange = onMenuOpenChange,
+        ),
     )
+}
+
+private fun activityDeleteOverflow(
+    onDelete: () -> Unit,
+    menuOpen: Boolean,
+    onMenuOpenChange: (Boolean) -> Unit,
+): @Composable RowScope.() -> Unit = {
+    Box {
+        IconButton(
+            onClick = { onMenuOpenChange(true) },
+            modifier = Modifier.testTag(ActivityDetailTags.OPTIONS),
+        ) {
+            Icon(
+                OutlinedMarks.MoreVert,
+                contentDescription = ActivityEditCopy.OPTIONS,
+                tint = TextSecondary,
+            )
+        }
+        InstrumentMenu(
+            expanded = menuOpen,
+            onDismissRequest = { onMenuOpenChange(false) },
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        ActivityEditCopy.DELETE,
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                    )
+                },
+                onClick = {
+                    onMenuOpenChange(false)
+                    onDelete()
+                },
+                modifier = Modifier.testTag(ActivityDetailTags.DELETE),
+            )
+        }
+    }
 }
 
 @Composable

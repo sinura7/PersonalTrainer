@@ -285,14 +285,14 @@ class ActivityComposerViewModel @JvmOverloads constructor(
             saving.value = false
             write.onSuccess { result ->
                 when (result) {
-                    is CompleteTrainingOutcome.Accepted -> {
+                    is CompleteTrainingOutcome.Written -> {
                         // Only an accepted write spends the draft, like the plan link: a
                         // rejected or thrown save keeps everything typed for the retry.
                         draft.clear()
                         error.clearFrom(source = ERR_SAVE, before = started)
                         _savedId.value = result.id
                     }
-                    is CompleteTrainingOutcome.Rejected ->
+                    is CompleteTrainingOutcome.RuledOut ->
                         error.fail(source = ERR_SAVE, message = result.reason)
                     is CompleteTrainingOutcome.Failed ->
                         error.fail(source = ERR_SAVE, message = result.message)
@@ -376,7 +376,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         // The link is spent only by an accepted write: "Nothing to save." must
         // leave it in place so the retry still marks the Plan row DONE.
         val outcome = container.completeTraining.confirm(draft, now)
-        if (outcome is CompleteTrainingOutcome.Accepted) heldOccurrenceId = null
+        if (outcome is CompleteTrainingOutcome.Written) heldOccurrenceId = null
         return outcome
     }
 

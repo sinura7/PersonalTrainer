@@ -226,7 +226,7 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
 
     private suspend fun applyFinishOutcome(outcome: CompleteTrainingOutcome, activity: Boolean) {
         when (outcome) {
-            is CompleteTrainingOutcome.Accepted -> {
+            is CompleteTrainingOutcome.Written -> {
                 if (!activity) {
                     PendingOccurrence.complete(container, outcome.id)
                     _finishedNavigation.value = outcome.id
@@ -235,7 +235,7 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                 }
                 _actionError.value = null
             }
-            is CompleteTrainingOutcome.Rejected -> {
+            is CompleteTrainingOutcome.RuledOut -> {
                 AppLog.w(TAG, "Finishing from the bar did not complete: ${outcome.reason}")
                 _actionError.value = outcome.reason
             }

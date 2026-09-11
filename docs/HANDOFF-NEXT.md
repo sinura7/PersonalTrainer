@@ -21,8 +21,9 @@ R18 steps 1–4 are on `trunk` (or in this packet, landing next):
 4. **This packet.** Edits are per capability, not by store: notes and
    delete on completed activities; set repair and repeat stay refused
    (activity blocks are snapshots; repeat-as-live stays strength only).
-   Five extractions: `CompleteTraining` façade (`Accepted` / `Rejected` /
-   `Failed`), `RecordsCalculator` over `RecordSet`, `ProtectBackup` /
+   Five extractions: `CompleteTraining` façade (`Written` / `RuledOut` /
+   `Failed` — the plan's Accepted / Rejected / Failed),
+   `RecordsCalculator` over `RecordSet`, `ProtectBackup` /
    `OpenBackup`, `DraftStore<T>` with clear-on-accepted-save, live-session
    bar finish through the façade. Seven-row parity table:
    `CompletedTrainingParityTest`. Does **not** bump 38. Do not start a

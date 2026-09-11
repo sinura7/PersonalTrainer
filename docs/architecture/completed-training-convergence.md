@@ -115,7 +115,7 @@ responsibility, each with the tests it already has:
 
 | Use case | Today | Target |
 |---|---|---|
-| Save / finish completed training | `FinishWorkout`, `ConfirmActivity`, `FinishActivity`, `afterCommit` | one `CompleteTraining` façade with the same outcome type (`Accepted` / `Rejected` / `Failed`), so the composer, live cardio and the workout bar report saves the same way |
+| Save / finish completed training | `FinishWorkout`, `ConfirmActivity`, `FinishActivity`, `afterCommit` | one `CompleteTraining` façade with the same outcome type (`Written` / `RuledOut` / `Failed` — the plan's Accepted / Rejected / Failed), so the composer, live cardio and the workout bar report saves the same way |
 | Record calculation | `standingRecords`, `PersonalRecords.detect`, `recordsBrokenBy`, `BlockReviewBuilder.countRecords` | one `RecordsCalculator` over `RecordSet`; priors still read by SQL aggregate |
 | Backup protection | `BackupEnvelope`, `BackupScaleBudget`, the export paths in `BackupRepository` and `SettingsViewModel` | `ProtectBackup` / `OpenBackup` use cases; the safety-copy export stops calling `wrap` from the view model |
 | Draft recovery | `WorkoutDraftCache` + `SavedStateWorkoutDraft`, `SavedStateComposerDraft`, live-cardio saved inputs | one `DraftStore<T>` contract with clear-on-accepted-save; no shared storage (per-entry saved state stays) |
