@@ -382,7 +382,7 @@ This is the second most important design surface after Active Workout. Today it 
 | E-01 | Auto-create untitled + delete on leave (A-02) | P0 |
 | E-02 | Title is always “Edit routine,” including on create | P2 |
 | E-03 | Save is a separate button from adding lifts. Users expect autosave **— Closed 9 Sep 2026: targets are staged and flushed (`stageTargets` / `commitTargets` / `flushStagedTargets`) and details persist on exit (`persistDetailsOnExit`); there is no Save gate on adding lifts** | P1 |
-| E-04 | Targets are tiny `OutlinedTextField`s. Use the same large steppers as the workout, or a compact stepper row | P1 |
+| E-04 | Targets are tiny `OutlinedTextField`s. Use the same large steppers as the workout, or a compact stepper row **— Closed 11 Sep 2026: expanded editor cards use a 2×2 of `NumeralWell` plates (`CompactTargetFields`), same tap-to-type `NumberEntryDialog` as the workout; no `OutlinedTextField` on the card** | P1 |
 | E-05 | No lift image on the row **— Closed 9 Sep 2026: `SessionLiftStrip` still on every editor row** | P1 |
 | E-06 | No equipment / machine field (R-08) **— Closed 9 Sep 2026: `Exercise.equipment` shown as the row tag (`RoutineEditorScreen`)** | P1 |
 | E-07 | Reorder by two arrow buttons. Need drag handle | P2 |

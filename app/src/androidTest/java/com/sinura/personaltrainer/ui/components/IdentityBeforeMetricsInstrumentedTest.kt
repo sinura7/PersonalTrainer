@@ -139,7 +139,7 @@ class IdentityBeforeMetricsInstrumentedTest {
         compose.onNodeWithTag(SessionLiftTags.card(LONG_LIFT.id)).performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(SessionLiftTags.EDITOR).assertIsDisplayed()
-        compose.onNodeWithText(CompactLiftCopy.TARGET_WEIGHT).assertIsDisplayed()
+        compose.onNodeWithText(CompactLiftCopy.TARGET_WEIGHT.uppercase()).assertIsDisplayed()
         org.junit.Assert.assertTrue(
             compose.onAllNodesWithText("lbs").fetchSemanticsNodes().isNotEmpty(),
         )
