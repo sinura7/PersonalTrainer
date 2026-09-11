@@ -437,7 +437,7 @@ This is the second most important design surface after Active Workout. Today it 
 | I-01 | List of text cards. No lift thumbs, no weekly chart, no PRs **— PRs closed 21 Aug 2026 (Phase 6a): a Records section at the foot of History shows the standing bests, one per lift, newest first, each tapping through to that lift. Thumbnails remain open (Phase 8); the weekly chart is not planned.** **— Partly closed 9 Sep 2026: calendar and horizon readout closed (H1, 3 Sep 2026); lift thumbs on the list still open** | P1 |
 | I-02 | Volume as a single number is opaque without a sparkline | P2 |
 | I-03 | No calendar heat, no compare-to-last **— Calendar half closed 21 Aug 2026 (Phase 6a): the training calendar sits above the log, days are grouped by month with a pinned month header, and a day holding more than one session opens a sheet instead of silently picking the first. Compare-to-last remains open.** | P2 |
-| I-04 | Session detail is grouped text. Should look like a filled program sheet | P1 |
+| I-04 | Session detail is grouped text. Should look like a filled program sheet **— Closed 11 Sep 2026: `FilledLiftCard` is the program/floor card filled in (CountBadge, still, Work/Rest/Load, `SetCopy.setLine` table); Edit still opens the repair sheet** | P1 |
 | I-05 | Cannot favorite a session into a routine | P2 |
 | I-06 | No photos / gym notes media | P3 |
 | I-07 | Duration is minutes stored on finish — confirm it is real elapsed time, not a stub | P2 |

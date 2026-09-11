@@ -2,7 +2,6 @@ package com.sinura.personaltrainer.ui.history
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,19 +9,15 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,33 +26,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EquipmentType
-import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SetCopy
-import com.sinura.personaltrainer.domain.LoadClass
-import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.toWeightLabel
-import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
-import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
@@ -68,10 +55,8 @@ import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
-import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
@@ -82,22 +67,24 @@ object SessionDetailTestTags {
     const val OPTIONS = "session-detail-options"
     const val DELETE = "session-detail-delete"
     const val RETRY = "session-detail-retry"
+    fun liftCard(exerciseId: String) = "session-detail-lift-$exerciseId"
 }
 
 internal fun sessionDeleteTitle(routineName: String?): String =
     routineName?.takeIf { it.isNotBlank() }?.let { "Delete $it?" } ?: "Delete this session?"
 
 /**
- * A finished session, and — as of this phase — a correctable one.
+ * A finished session as a filled program sheet.
  *
- * The screen was a receipt: everything it showed was true and none of it could be fixed. A
- * mistyped weight from three weeks ago stayed wrong forever, silently skewing the heat map,
- * the volume trend and the records built on top of it, and the only remedy the app offered
- * was to delete the whole session.
+ * The header is the same readout as the summary shown the moment it ended. Each
+ * lift is the same card as the floor / program: still, number, name, the
+ * prescribed Work / Rest / Load, and the sets written in. Repair still lives
+ * here — Edit opens the set sheet — but the page is no longer a grouped text
+ * receipt.
  *
- * What edits here do NOT touch is the point of the design. Set edits keep `completedAt` and
- * `setNumber`; added sets are stamped inside the session's own window; the duration is never
- * recomputed. A repair fixes what was recorded, never when it happened.
+ * Set edits keep `completedAt` and `setNumber`; added sets are stamped inside
+ * the session's own window; the duration is never recomputed. A repair fixes
+ * what was recorded, never when it happened.
  */
 @Composable
 fun SessionDetailScreen(
@@ -224,12 +211,8 @@ fun SessionDetailScreen(
                     )
                 }
                 else -> {
-                    val exerciseCards = if (session.exercises.isNotEmpty()) {
-                        session.exercises.map { it.exercise.id to it.exercise.name }
-                    } else {
-                        session.sets.map { it.exerciseId to it.exerciseName }.distinctBy { it.first }
-                    }
-                    val workingSets = session.sets.count { !it.isWarmup }
+                    val lifts = session.filledLifts()
+                    val workingSets = session.workingSetCount()
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -240,7 +223,7 @@ fun SessionDetailScreen(
                             top = Metrics.space2,
                             bottom = Metrics.space7,
                         ),
-                        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
                     ) {
                         item {
                             SessionReceipt(
@@ -255,7 +238,7 @@ fun SessionDetailScreen(
                                 unit = unit,
                             )
                         }
-                        if (exerciseCards.isEmpty() && session.sets.isEmpty()) {
+                        if (lifts.isEmpty()) {
                             item {
                                 EmptyState(
                                     title = "No sets logged",
@@ -264,22 +247,14 @@ fun SessionDetailScreen(
                                 )
                             }
                         }
-                        items(exerciseCards, key = { it.first }) { (exerciseId, exerciseName) ->
-                            val sets = session.setsFor(exerciseId)
-                            val loadClass = session.loadClassOf(exerciseId)
-                            val work = SetWork.sum(
-                                sets.filterNot { it.isWarmup }
-                                    .map { SetWork.of(it.weightKg, it.reps, loadClass) },
-                            )
-                            ExerciseBlock(
-                                name = exerciseName,
-                                sets = sets,
-                                work = work,
-                                loadClass = loadClass,
+                        items(lifts, key = { it.exercise.id }) { lift ->
+                            FilledLiftCard(
+                                lift = lift,
+                                loadClass = session.loadClassOf(lift.exercise.id),
                                 unit = unit,
-                                onOpen = { onOpenExercise(exerciseId) },
+                                onOpen = { onOpenExercise(lift.exercise.id) },
                                 onEditSet = { editingSetId = it.id },
-                                onAddSet = { addingToExerciseId = exerciseId },
+                                onAddSet = { addingToExerciseId = lift.exercise.id },
                             )
                         }
                     }
@@ -462,116 +437,7 @@ private fun SessionReceipt(
     }
 }
 
-/**
- * One lift, and every set of it.
- *
- * The lift's name and its tonnage head the block; the sets sit in a grouped panel beneath,
- * which is what puts the weights in a column instead of at whatever indent the previous
- * row's sentence happened to end on.
- */
-@Composable
-private fun ExerciseBlock(
-    name: String,
-    sets: List<SetLog>,
-    work: SetWork,
-    loadClass: LoadClass,
-    unit: WeightUnit,
-    onOpen: () -> Unit,
-    onEditSet: (SetLog) -> Unit,
-    onAddSet: () -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = Metrics.touchMin)
-                .clip(RoundedCornerShape(Radius.sm))
-                .clickable(onClick = onOpen)
-                .padding(horizontal = Metrics.space2, vertical = Metrics.space1),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-        ) {
-            Text(
-                name,
-                modifier = Modifier.weight(1f),
-                style = InstrumentType.title,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val column = SetCopy.workColumn(work, unit)
-            MetricCluster(value = column.value, label = column.label)
-        }
-        if (sets.isEmpty()) {
-            Text(
-                "No sets",
-                modifier = Modifier.padding(horizontal = Metrics.space2),
-                style = InstrumentType.caption,
-                color = TextTertiary,
-            )
-        } else {
-            GroupedList {
-                sets.forEachIndexed { index, set ->
-                    if (index > 0) HairlineDivider()
-                    SetRow(set = set, unit = unit, loadClass = loadClass, onEdit = { onEditSet(set) })
-                }
-            }
-        }
-        // Tertiary by weight, not by placement: it belongs under the sets it appends to, but a
-        // lift you forgot to log is rarer than a lift you want to read.
-        TextButton(
-            onClick = onAddSet,
-            modifier = Modifier.padding(start = Metrics.space2),
-        ) {
-            Text("Add set", style = InstrumentType.bodyStrong, color = TextSecondary)
-        }
-    }
-}
-
-@Composable
-private fun SetRow(set: SetLog, unit: WeightUnit, loadClass: LoadClass, onEdit: () -> Unit) {
-    val tags = buildList {
-        if (set.isWarmup) add("Warm-up")
-        set.rpe?.let { add("RPE $it") }
-    }
-    InstrumentRow(
-        title = "Set ${set.setNumber}",
-        subtitle = tags.joinToString(" · ").ifEmpty { null },
-    ) {
-        // Fixed columns, not wrapped content: a 97.5 and a 100 have to land on the same
-        // right edge or there is nothing to compare down the list. The weight column keeps its
-        // width even for a lift that has no weight — the reps beside it still have to line up
-        // with the reps of the loaded lift in the block above.
-        MetricCluster(
-            value = if (loadClass.weightMeaning == WeightMeaning.NONE) {
-                SetCopy.NOTHING_YET
-            } else {
-                WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(set.weightKg, unit))
-            },
-            label = if (loadClass.weightMeaning == WeightMeaning.NONE) {
-                unit.suffix
-            } else {
-                "${loadClass.weightMeaning.fieldLabel.lowercase()} ${unit.suffix}"
-            },
-            modifier = Modifier.width(WEIGHT_COLUMN),
-        )
-        MetricCluster(
-            value = set.reps.toString(),
-            label = "reps",
-            modifier = Modifier.width(REPS_COLUMN),
-        )
-        TextButton(
-            onClick = onEdit,
-            modifier = Modifier.testTag(SessionDetailTestTags.EDIT_SET),
-        ) {
-            Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
-        }
-    }
-}
-
 private fun WorkoutSession.isBarbell(exerciseId: String): Boolean =
     exercises.any { it.exercise.id == exerciseId && it.exercise.equipment == EquipmentType.BARBELL }
 
 private const val DEFAULT_ADD_REPS = 5
-private val WEIGHT_COLUMN = 88.dp
-private val REPS_COLUMN = 48.dp

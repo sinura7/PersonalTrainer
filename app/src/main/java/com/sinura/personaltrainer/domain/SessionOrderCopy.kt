@@ -120,4 +120,39 @@ object SessionOrderCopy {
         append(". $sets by $reps. Rest $restClock")
         if (!load.isNullOrBlank()) append(". $load")
     }
+
+    /**
+     * How far a finished lift got, in the same `3/3` language the floor card
+     * uses while logging. No target means the count stands alone.
+     */
+    fun filledCount(workingLogged: Int, targetSets: Int): String =
+        if (targetSets > 0) "$workingLogged/$targetSets" else workingLogged.toString()
+
+    fun workValue(sets: Int, reps: Int): String = "$sets × $reps"
+
+    /**
+     * TalkBack for a filled history card. Prescription language only when the
+     * lift had one; otherwise the logged count, never "0 by 0. Rest 0:00".
+     */
+    fun filledSpoken(
+        number: Int,
+        name: String,
+        muscleGroup: String,
+        workingLogged: Int,
+        targetSets: Int,
+        targetReps: Int,
+        restClock: String?,
+        load: String?,
+    ): String = buildString {
+        append("$number. $name")
+        if (muscleGroup.isNotBlank()) append(". $muscleGroup")
+        append(". ${filledCount(workingLogged, targetSets)}")
+        if (targetSets > 0) {
+            append(". ${workValue(targetSets, targetReps.coerceAtLeast(1))}")
+        } else {
+            append(if (workingLogged == 1) " set" else " sets")
+        }
+        if (!restClock.isNullOrBlank()) append(". Rest $restClock")
+        if (!load.isNullOrBlank()) append(". $load")
+    }
 }
