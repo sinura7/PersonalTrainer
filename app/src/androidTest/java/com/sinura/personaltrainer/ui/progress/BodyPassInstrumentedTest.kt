@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -17,8 +19,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.sinura.personaltrainer.domain.BodyHeatCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -90,6 +95,42 @@ class BodyPassInstrumentedTest {
         compose.onNodeWithTag(BodyTags.MAP).assertIsDisplayed()
         compose.onNodeWithText("Start a workout").assertDoesNotExist()
         compose.onNodeWithText("See what you trained").assertDoesNotExist()
+    }
+
+    @Test
+    fun emptyReadoutNamesCatalogLiftsWithoutAStartVolt() {
+        val squat = Exercise(
+            id = "ex-barbell-back-squat",
+            name = "Barbell Back Squat",
+            muscleGroup = "Quads",
+            notes = "",
+            isCustom = false,
+            equipment = EquipmentType.BARBELL,
+        )
+        setConstrainedContent(1f) {
+            BodyWindowPicker(
+                window = HeatWindow.DAY,
+                onSelectWindow = {},
+            )
+            BodyMapCard(
+                snapshot = EMPTY,
+                view = BodyView.FRONT,
+                onViewChange = {},
+                selected = null,
+                onSelect = {},
+            )
+            Text(BodyHeatCopy.EMPTY_LOG)
+            BodyExplorerLifts(
+                lifts = listOf(squat),
+                onOpenExercise = {},
+                modifier = Modifier.testTag(BodyTags.FIRST_LIFTS),
+            )
+        }
+        compose.onNodeWithText(BodyHeatCopy.EMPTY_LOG).assertIsDisplayed()
+        compose.onNodeWithTag(BodyTags.FIRST_LIFTS).assertIsDisplayed()
+        compose.onNodeWithText("Barbell Back Squat").assertIsDisplayed()
+        compose.onNodeWithText("Start a workout").assertDoesNotExist()
+        compose.onNodeWithTag(BodyTags.explorerLift("ex-barbell-back-squat")).assertIsDisplayed()
     }
 
     private fun setConstrainedContent(fontScale: Float, content: @Composable () -> Unit) {

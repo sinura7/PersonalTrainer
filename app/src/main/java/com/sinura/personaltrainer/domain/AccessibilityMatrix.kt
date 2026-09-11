@@ -42,7 +42,7 @@ object AccessibilityMatrix {
             title = "Body",
             states = requiredStates,
             voltAction = "None. Body is a readout; Start lives on Home.",
-            talkBackNotes = "Map is an illustration. Muscle rows are the 48 dp target. Log or start cardio opens the start sheet.",
+            talkBackNotes = "Map is an illustration. Muscle rows are the 48 dp target. Before any sets, Body names catalog lifts and a muscle opens the lifts that train it. Log or start cardio opens the start sheet.",
             automatedEvidence = true,
         ),
         PagePass(

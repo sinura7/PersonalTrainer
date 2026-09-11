@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BodyHeatCopyTest {
@@ -25,5 +26,18 @@ class BodyHeatCopyTest {
     fun nothingFinishedYetHasNoFactsLine() {
         // EMPTY_LOG already says it; a line of zeros under it would say it twice.
         assertNull(BodyHeatCopy.facts(HeatWindow.CURRENT_WEEK, windowSessions = 0, daysSinceLastFinished = null))
+    }
+
+    @Test
+    fun emptyLogTeachesTheNextTap() {
+        assertTrue(BodyHeatCopy.EMPTY_LOG.startsWith("Tap a muscle"))
+        assertTrue(BodyHeatCopy.EMPTY_LOG.contains("lifts that train it"))
+        assertEquals("Lifts that train the figure", BodyHeatCopy.FIRST_LIFTS)
+        assertEquals("See lifts", BodyHeatCopy.SEE_LIFTS)
+        assertEquals("Lifts that train chest", BodyHeatCopy.liftsThatTrain(CanonicalMuscle.CHEST))
+        assertEquals(
+            "Find the lifts that train chest.",
+            BodyHeatCopy.findLiftsInLibrary(CanonicalMuscle.CHEST),
+        )
     }
 }

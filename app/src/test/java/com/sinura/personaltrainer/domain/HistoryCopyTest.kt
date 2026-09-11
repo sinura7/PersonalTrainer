@@ -29,7 +29,8 @@ class HistoryCopyTest {
         assertEquals("Today", BodyHeatCopy.windowTitle(HeatWindow.DAY))
         assertEquals("This week", BodyHeatCopy.windowTitle(HeatWindow.CURRENT_WEEK))
         assertEquals("This month", BodyHeatCopy.windowTitle(HeatWindow.CURRENT_MONTH))
-        assertEquals(BodyHeatCopy.EMPTY_LOG, "Finished sets light the figure.")
+        assertTrue(BodyHeatCopy.EMPTY_LOG.startsWith("Tap a muscle"))
+        assertTrue(BodyHeatCopy.EMPTY_LOG.contains("Finished sets light the figure"))
         assertFalse(BodyHeatCopy.WINDOW_CAPTION.contains("Start", ignoreCase = true))
     }
 }

@@ -12,10 +12,25 @@ object BodyHeatCopy {
     const val WINDOW_CAPTION =
         "The figure is this window. Rest is untrained here."
 
-    const val EMPTY_LOG = "Finished sets light the figure."
+    /**
+     * First launch, before any working set. Names the next tap. The figure
+     * stays; this line is what stops the tab being a dead end (DESIGN_AUDIT B-02).
+     */
+    const val EMPTY_LOG =
+        "Tap a muscle to see the lifts that train it. Finished sets light the figure."
 
     const val EMPTY_WINDOW =
         "Nothing in this window yet. Older work still shows recency."
+
+    const val FIRST_LIFTS = "Lifts that train the figure"
+
+    const val SEE_LIFTS = "See lifts"
+
+    fun liftsThatTrain(muscle: CanonicalMuscle): String =
+        "Lifts that train ${muscle.displayName.lowercase()}"
+
+    fun findLiftsInLibrary(muscle: CanonicalMuscle): String =
+        "Find the lifts that train ${muscle.displayName.lowercase()}."
 
     fun windowTitle(window: HeatWindow): String = window.label
 
