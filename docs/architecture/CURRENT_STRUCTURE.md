@@ -17,8 +17,8 @@ yet.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 416 | 70,514 | — |
-| `app/src/test` | 282 | — | 1,990 |
+| `app/src/main` | 416 | 70,506 | — |
+| `app/src/test` | 282 | — | 2,027 |
 | `app/src/androidTest` | 23 | — | 88 |
 | `app/src/debug` | 12 | — | Compose previews and the golden-capture substrate |
 | `app/src/sharedTest` | 4 | — | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
