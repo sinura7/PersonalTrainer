@@ -132,14 +132,18 @@ enum class LoadType {
      */
     fun kitFor(current: EquipmentType): EquipmentType = when (this) {
         BODYWEIGHT, BODYWEIGHT_PLUS -> EquipmentType.BODYWEIGHT
-        ASSISTED -> when (current) {
-            EquipmentType.MACHINE, EquipmentType.OTHER -> EquipmentType.MACHINE
-            else -> current
-        }
-        STACK -> when (current) {
-            EquipmentType.CABLE, EquipmentType.MACHINE -> current
-            else -> EquipmentType.MACHINE
-        }
+        ASSISTED ->
+            if (current == EquipmentType.MACHINE || current == EquipmentType.OTHER) {
+                EquipmentType.MACHINE
+            } else {
+                current
+            }
+        STACK ->
+            if (current == EquipmentType.CABLE || current == EquipmentType.MACHINE) {
+                current
+            } else {
+                EquipmentType.MACHINE
+            }
         EXTERNAL -> if (current == EquipmentType.BODYWEIGHT) EquipmentType.OTHER else current
     }
 
