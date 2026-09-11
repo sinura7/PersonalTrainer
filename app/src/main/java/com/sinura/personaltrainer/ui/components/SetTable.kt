@@ -107,7 +107,7 @@ private fun SetTableRow(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (selectable && onSelect != null) {
+                if (onSelect != null && !isEditing) {
                     Modifier.clickable(onClick = onSelect)
                 } else {
                     Modifier
