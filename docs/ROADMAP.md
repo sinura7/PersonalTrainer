@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 11 Sep 2026 — Live 39: architecture stack, R18 steps 3–4, and N-01
+> (Play complete cue) on `trunk`. `debugLiveCode` 39; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 11 Sep 2026 — N-01: Settings Rest timer has **Play complete cue**.
 > The row calls `RestTimerAlerts.preview`, the same bundled
 > `rest_done.ogg` on the alarm stream as 0:00. Sound is forced on for
