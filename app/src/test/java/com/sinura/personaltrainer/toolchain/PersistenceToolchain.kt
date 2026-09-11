@@ -6,8 +6,9 @@ package com.sinura.personaltrainer.toolchain
  * kotlinx.serialization than the P4.2 ceiling (1.8.1). Schema v2 and the
  * v1→v2 migration are unchanged.
  *
- * Lives outside `domain/` so the plain-JVM domain lane stays free of
- * Android libraries. Gson encodes the pin.
+ * Gson encodes the pin. Nothing the app runs reads this file: it is the
+ * signed matrix the supply-chain tests assert the catalog against, so it
+ * lives in the test source set rather than shipping in the APK.
  */
 data class PersistenceToolchain(
     val room: String,

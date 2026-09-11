@@ -8,8 +8,9 @@ package com.sinura.personaltrainer.toolchain
  * a Kotlin 2.2 companion.
  *
  * [serialization] is the Room 2.8 ceiling, not a shipped artifact.
- * Gson encodes this pin file and BackupJson. Lives outside `domain/`
- * so the plain-JVM domain lane stays free of Android libraries.
+ * Gson encodes this pin. Nothing the app runs reads this file: it is the
+ * signed matrix the supply-chain tests assert the catalog against, so it
+ * lives in the test source set rather than shipping in the APK.
  */
 data class CoreToolchain(
     val coreKtx: String,

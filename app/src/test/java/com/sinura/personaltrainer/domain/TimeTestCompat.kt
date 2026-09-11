@@ -75,9 +75,6 @@ fun TrainingCalendarBuilder.build(
     zone.id,
 )
 
-fun groupSessionsByMonth(sessions: List<WorkoutSession>, zone: ZoneId): List<SessionMonthGroup> =
-    groupSessionsByMonth(sessions, JvmTime, zone.id)
-
 fun ExerciseHistoryBuilder.build(
     exerciseId: String,
     sessions: List<WorkoutSession>,

@@ -7,9 +7,10 @@ package com.sinura.personaltrainer.toolchain
  * AGP 9.1. The compiler is the Kotlin Compose plugin and stays on
  * Kotlin 2.0.21.
  *
- * Lives outside `domain/` so the plain-JVM domain lane stays free of
- * Android libraries. Gson encodes the pin; kotlinx.serialization is
- * not a compile plugin on this module.
+ * Gson encodes the pin; kotlinx.serialization is not a compile plugin on
+ * this module. Nothing the app runs reads this file: it is the signed
+ * matrix the supply-chain tests assert the catalog against, so it lives
+ * in the test source set rather than shipping in the APK.
  */
 data class ComposeToolchain(
     val composeBom: String,

@@ -81,9 +81,6 @@ class ActivityRepository(
     suspend fun all(): List<ActivitySession> =
         dao.getAllGraphs().map { it.toDomain() }
 
-    fun observeCompleted(): Flow<List<ActivitySession>> =
-        dao.observeCompletedGraphs().map { rows -> rows.map { it.toDomain() } }
-
     fun observeCompletedSummaries(): Flow<List<SessionSummary>> =
         dao.observeCompletedSummaries().map { rows -> rows.map { it.toSummary() } }
 
@@ -268,13 +265,6 @@ class ActivityRepository(
 
     suspend fun templates(): List<ActivityTemplate> =
         dao.getAllTemplateGraphs().map { it.toDomain() }
-
-    suspend fun saveTemplate(template: ActivityTemplate, clock: TimePort) {
-        database.withTransaction {
-            dao.deleteTemplate(template.id)
-            ActivityBackupIo.insertTemplate(dao, template, clock.nowMillis())
-        }
-    }
 
     private companion object {
         const val TAG = "PT/ActivityRepository"

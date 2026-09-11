@@ -155,20 +155,6 @@ class BackupRepository(
         driveRestClient.listBackups(session.accessToken, folderId)
     }
 
-    suspend fun restoreBackup(
-        activity: Activity,
-        file: DriveBackupFile,
-        launchResolution: suspend (IntentSender) -> Boolean,
-    ): RestoreResult = withContext(ioDispatcher) {
-        val plan = prepareDriveRestore(activity, file, launchResolution)
-        val result = commitRestore(plan)
-        preferencesRepository.setLastRestore(
-            file.name,
-            file.modifiedAtMillis.takeIf { it > 0 } ?: System.currentTimeMillis(),
-        )
-        result
-    }
-
     suspend fun downloadDriveBackup(
         activity: Activity,
         file: DriveBackupFile,
@@ -177,16 +163,6 @@ class BackupRepository(
         networkChecker.requireOnline()
         val session = rememberAuthorizedSession(activity, launchResolution)
         driveRestClient.downloadBackup(session.accessToken, file.id)
-    }
-
-    suspend fun prepareDriveRestore(
-        activity: Activity,
-        file: DriveBackupFile,
-        launchResolution: suspend (IntentSender) -> Boolean,
-        password: CharArray? = null,
-    ): RestorePlan = withContext(ioDispatcher) {
-        val raw = downloadDriveBackup(activity, file, launchResolution)
-        prepareRestore(raw, sourceName = file.name, password = password)
     }
 
     /**

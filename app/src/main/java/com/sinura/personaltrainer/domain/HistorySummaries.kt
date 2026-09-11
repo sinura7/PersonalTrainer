@@ -1,41 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
-
-/**
- * A month of training, as History shows it.
- *
- * The log was a flat list of every session ever, newest first, with nothing between June and
- * May but another row. Once there are more than a few dozen sessions that list has no
- * landmarks at all: you cannot tell where a month ended, and "how much did I train in March"
- * takes a scroll and a squint at date captions.
- */
-data class SessionMonthGroup(
-    val month: CivilYearMonth,
-    val sessions: List<WorkoutSession>,
-)
-
-/**
- * Groups finished sessions by the month they happened in, newest month first.
- *
- * Presentation-side on purpose: the query is unchanged and this is a pure function of its
- * result, so it is testable without a database and cannot get out of step with what the list
- * actually renders. Within a month the repository's own order is preserved — it is already
- * newest-first, and re-sorting here would be a second opinion about ordering that could
- * silently disagree with the flat list it replaces.
- */
-fun groupSessionsByMonth(
-    sessions: List<WorkoutSession>,
-    time: TimePort = JvmTime,
-    zoneId: String = time.defaultZoneId(),
-): List<SessionMonthGroup> = sessions
-    .groupBy { session ->
-        CivilYearMonth.from(time.civilDate(session.date, zoneId))
-    }
-    .entries
-    .sortedByDescending { it.key }
-    .map { (month, rows) -> SessionMonthGroup(month = month, sessions = rows) }
-
 /**
  * One standing record, ready to render.
  *

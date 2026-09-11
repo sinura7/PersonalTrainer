@@ -82,9 +82,6 @@ interface PlannerDao {
     suspend fun deleteAllDecisions()
 
     @Query("SELECT * FROM reminder_deliveries ORDER BY scheduledAtMs ASC, id ASC")
-    fun observeDeliveries(): Flow<List<ReminderDeliveryEntity>>
-
-    @Query("SELECT * FROM reminder_deliveries ORDER BY scheduledAtMs ASC, id ASC")
     suspend fun getDeliveries(): List<ReminderDeliveryEntity>
 
     @Query("SELECT * FROM reminder_deliveries WHERE id = :id")
@@ -98,12 +95,6 @@ interface PlannerDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertDeliveries(rows: List<ReminderDeliveryEntity>)
-
-    @Query("DELETE FROM reminder_deliveries WHERE id = :id")
-    suspend fun deleteDelivery(id: String)
-
-    @Query("DELETE FROM reminder_deliveries WHERE occurrenceId = :occurrenceId")
-    suspend fun deleteDeliveriesForOccurrence(occurrenceId: String)
 
     @Query("DELETE FROM reminder_deliveries")
     suspend fun deleteAllDeliveries()

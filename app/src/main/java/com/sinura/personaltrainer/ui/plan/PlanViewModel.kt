@@ -27,7 +27,6 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SessionFocusKind
-import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.BlockReview
 import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.BlockReviewBuilder
@@ -593,10 +592,6 @@ class PlanViewModel @JvmOverloads constructor(
 
     fun setTrainingDays(days: Int) {
         viewModelScope.launch { container.preferencesRepository.setTrainingDaysPerWeek(days) }
-    }
-
-    fun setSplit(style: SplitStyle) {
-        viewModelScope.launch { container.preferencesRepository.setSplitStyle(style) }
     }
 
     fun setWeekStart(day: Weekday) {

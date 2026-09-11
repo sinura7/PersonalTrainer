@@ -1,61 +1,8 @@
 package com.sinura.personaltrainer.domain
 
-import java.time.LocalDate
-import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-
-/**
- * Grouping the log by month, so a long history has landmarks in it.
- */
-class SessionMonthGroupingTest {
-    private val zone = ZoneOffset.UTC
-
-    @Test
-    fun monthsComeNewestFirstAndKeepTheirOrderInside() {
-        val sessions = listOf(
-            sessionOn("a", LocalDate.of(2026, 8, 20)),
-            sessionOn("b", LocalDate.of(2026, 8, 3)),
-            sessionOn("c", LocalDate.of(2026, 7, 30)),
-        )
-        val groups = groupSessionsByMonth(sessions, zone)
-
-        assertEquals(
-            listOf(CivilYearMonth(2026, 8), CivilYearMonth(2026, 7)),
-            groups.map { it.month },
-        )
-        // The repository already hands them over newest-first; re-sorting here would be a
-        // second opinion about ordering that could disagree with the flat list this replaces.
-        assertEquals(listOf("a", "b"), groups.first().sessions.map { it.id })
-        assertEquals(listOf("c"), groups.last().sessions.map { it.id })
-    }
-
-    @Test
-    fun aYearRolloverIsTwoMonthsNotOne() {
-        val groups = groupSessionsByMonth(
-            listOf(
-                sessionOn("jan", LocalDate.of(2027, 1, 2)),
-                sessionOn("dec", LocalDate.of(2026, 12, 31)),
-            ),
-            zone,
-        )
-        assertEquals(
-            listOf(CivilYearMonth(2027, 1), CivilYearMonth(2026, 12)),
-            groups.map { it.month },
-        )
-    }
-
-    @Test
-    fun emptyHistoryHasNoGroups() {
-        assertTrue(groupSessionsByMonth(emptyList(), zone).isEmpty())
-    }
-
-    private fun sessionOn(id: String, date: LocalDate): WorkoutSession {
-        val at = date.atStartOfDay(zone).toInstant().toEpochMilli() + 12L * 60 * 60 * 1000
-        return session(id = id, finishedAt = at, sets = emptyList(), exercises = emptyList(), date = at)
-    }
-}
 
 /**
  * The records row: what you have actually hit, and when.
