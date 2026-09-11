@@ -297,13 +297,13 @@ class ExerciseLibraryViewModelTest {
         assertEquals(LoadType.EXTERNAL, draft.loadType)
         vm.updateEditor(draft.copy(loadType = LoadType.ASSISTED))
         vm.saveEditor()
-        val saved = checkNotNull(deps.exerciseRepository.getById(custom.id))
-        assertEquals(LoadType.ASSISTED, saved.loadType)
-        assertEquals(EquipmentType.MACHINE, saved.equipment)
         assertEquals(
             "Updated My dip.",
             vm.uiState.awaitFirst { it.message == "Updated My dip." }.message,
         )
+        val saved = checkNotNull(deps.exerciseRepository.getById(custom.id))
+        assertEquals(LoadType.ASSISTED, saved.loadType)
+        assertEquals(EquipmentType.MACHINE, saved.equipment)
     }
 
     @Test
