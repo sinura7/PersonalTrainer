@@ -82,11 +82,10 @@ class RestSoundAssetTest {
         RestTimerAlerts.announce(
             context,
             RestTimerPreferences(soundEnabled = false, vibrationEnabled = false),
-            createPlayer = { _, resId, _ ->
-                seen += resId
-                null
-            },
-        )
+        ) { _, resId, _ ->
+            seen += resId
+            null
+        }
         assertTrue(seen.isEmpty())
     }
 
@@ -185,18 +184,17 @@ class RestTimerAlertsCreateTest {
         var started = false
         val context = ApplicationProvider.getApplicationContext<Context>()
         RestTimerAlerts.preview(
-            context = context,
-            preferences = RestTimerPreferences(soundEnabled = false, vibrationEnabled = false),
-            createPlayer = { _, id, attributes ->
-                resId = id
-                usage = attributes.usage
-                object : MediaPlayer() {
-                    override fun start() {
-                        started = true
-                    }
+            context,
+            RestTimerPreferences(soundEnabled = false, vibrationEnabled = false),
+        ) { _, id, attributes ->
+            resId = id
+            usage = attributes.usage
+            object : MediaPlayer() {
+                override fun start() {
+                    started = true
                 }
-            },
-        )
+            }
+        }
         assertEquals(R.raw.rest_done, resId)
         assertEquals(AudioAttributes.USAGE_ALARM, usage)
         assertTrue(started)
