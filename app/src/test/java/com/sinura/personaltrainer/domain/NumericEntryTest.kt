@@ -119,15 +119,6 @@ class NumericEntryTest {
     @Test
     fun nextThenDoneIsTheNumericChain() {
         assertEquals(
-            listOf(
-                NumericEntry.Ime.NEXT,
-                NumericEntry.Ime.NEXT,
-                NumericEntry.Ime.NEXT,
-                NumericEntry.Ime.DONE,
-            ),
-            NumericEntry.ROUTINE_EDITOR_CHAIN,
-        )
-        assertEquals(
             listOf(NumericEntry.Ime.NEXT, NumericEntry.Ime.DONE),
             NumericEntry.COMPOSER_STRENGTH_CHAIN,
         )
@@ -141,7 +132,6 @@ class NumericEntryTest {
         )
         assertEquals(NumericEntry.Ime.DONE, NumericEntry.CUSTOM_REST)
         assertEquals(NumericEntry.Ime.DONE, NumericEntry.LIVE_CARDIO_DISTANCE)
-        assertTrue(readUi("routines/SessionLiftStrip.kt").contains("ROUTINE_EDITOR_CHAIN"))
         assertTrue(readUi("activity/ActivityComposerScreen.kt").contains("COMPOSER_STRENGTH_CHAIN"))
         assertTrue(readUi("activity/ActivityComposerScreen.kt").contains("COMPOSER_CARDIO_CHAIN"))
         assertTrue(readUi("activity/LiveCardioScreen.kt").contains("LIVE_CARDIO_DISTANCE"))

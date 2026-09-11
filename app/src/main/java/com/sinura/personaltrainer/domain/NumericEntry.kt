@@ -35,9 +35,6 @@ object NumericEntry {
 
     enum class Ime { NEXT, DONE }
 
-    /** Sets → Reps → Rest → Weight. */
-    val ROUTINE_EDITOR_CHAIN = listOf(Ime.NEXT, Ime.NEXT, Ime.NEXT, Ime.DONE)
-
     /** Weight → Reps. */
     val COMPOSER_STRENGTH_CHAIN = listOf(Ime.NEXT, Ime.DONE)
 
