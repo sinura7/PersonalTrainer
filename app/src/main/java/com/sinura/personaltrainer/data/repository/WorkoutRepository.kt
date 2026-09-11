@@ -46,9 +46,11 @@ import com.sinura.personaltrainer.domain.SessionActivity
 import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.util.JvmTime
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -84,6 +86,13 @@ class WorkoutRepository(
      * [RestoreJournal.blocksStart].
      */
     private val restoreBlocksStart: () -> Boolean = { false },
+    /**
+     * The clock the history builders read civil dates from. Defaulted here, in the data
+     * layer, because naming [JvmTime] is this layer's job: `domain/` used to carry the
+     * same default and so could not be compiled without the Android-backed adapter
+     * behind it.
+     */
+    private val time: TimePort = JvmTime,
 ) {
     private suspend fun <T> serialized(block: suspend () -> T): T =
         dbMaintenance?.withMaintenanceLock(block) ?: block()
@@ -890,7 +899,7 @@ class WorkoutRepository(
         }
         if (entries.isEmpty()) return null
         return ExerciseHistoryBuilder
-            .fromEntries(exerciseId, entries, loadClassOf(exerciseId))
+            .fromEntries(exerciseId, entries, loadClassOf(exerciseId), time)
             .sessions
             .firstOrNull()
     }

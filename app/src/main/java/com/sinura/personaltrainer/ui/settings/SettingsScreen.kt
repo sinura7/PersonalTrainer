@@ -117,6 +117,7 @@ import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.JvmTime
 
 @Composable
 fun SettingsScreen(
@@ -1163,7 +1164,7 @@ private fun BackupStampRow(
 ) {
     val stamp = remember(atMillis, clock) {
         atMillis?.let { at ->
-            DayLabel.relative(at, System.currentTimeMillis()) ?: DateCopy.dateTime(at, clock)
+            DayLabel.relative(at, JvmTime.nowMillis(), JvmTime) ?: DateCopy.dateTime(at, clock)
         }
     }
     InstrumentRow(

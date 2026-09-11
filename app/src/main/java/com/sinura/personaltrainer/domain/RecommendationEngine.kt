@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 enum class RecommendationPriority {
     HIGH,
@@ -81,7 +80,7 @@ data class CoachInputs(
     val preferences: CoachPreferences = CoachPreferences.DEFAULT,
     val unit: WeightUnit = WeightUnit.KG,
     val nowMs: Long,
-    val time: TimePort = JvmTime,
+    val time: TimePort,
     val zoneId: String = time.defaultZoneId(),
     /**
      * The first day of the user's week. The deload signal buckets volume into calendar weeks,

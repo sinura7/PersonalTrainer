@@ -145,6 +145,7 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.delay
 
 private const val TAG = "PT/ActiveWorkoutScreen"
@@ -1173,7 +1174,7 @@ private fun LastTimeStrip(
 ) {
     val view = LocalView.current
     val relative = remember(summary.performedAtMs) {
-        DayLabel.relative(summary.performedAtMs, System.currentTimeMillis())
+        DayLabel.relative(summary.performedAtMs, JvmTime.nowMillis(), JvmTime)
     }
     val absolute = remember(summary.performedAtMs) {
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))

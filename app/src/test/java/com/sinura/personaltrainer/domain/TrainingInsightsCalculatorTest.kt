@@ -8,6 +8,7 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.util.JvmTime
 import java.time.Instant
 import java.time.ZoneOffset
 
@@ -235,6 +236,7 @@ class TrainingInsightsCalculatorTest {
             weekStart = SchedulePreferences.DEFAULT.weekStart,
             exerciseCatalog = emptyMap(),
             lastLoggedAtByExerciseId = emptyMap(),
+            time = JvmTime,
         )
         assertEquals(HeatWindow.CURRENT_WEEK, week.snapshot!!.window)
         assertEquals(HeatWindow.CURRENT_MONTH, month.snapshot!!.window)
@@ -249,6 +251,7 @@ class TrainingInsightsCalculatorTest {
             weekStart = SchedulePreferences.DEFAULT.weekStart,
             exerciseCatalog = emptyMap(),
             lastLoggedAtByExerciseId = emptyMap(),
+            time = JvmTime,
         ))
     }
 

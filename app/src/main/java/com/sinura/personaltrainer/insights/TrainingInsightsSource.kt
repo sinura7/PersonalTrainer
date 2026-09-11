@@ -16,12 +16,14 @@ import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleSlot
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingInsightsCalculator
 import com.sinura.personaltrainer.domain.TrainingInsightsInput
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.time.Instant
 import java.time.ZoneId
@@ -45,6 +47,19 @@ import kotlinx.coroutines.flow.shareIn
 private const val TAG = "PT/InsightsSource"
 
 /**
+ * Where a failed analytics stage gets written down.
+ *
+ * [TrainingInsightsCalculator] degrades each stage independently and records which one gave
+ * way in [TrainingInsights.failures], but it no longer logs: it used to call
+ * `util.recoverWith`, which reaches `android.util.Log` through `AppLog`, and that put an
+ * Android hop behind a `domain/` file. The catch stayed in the domain; the log moved here,
+ * to the layer that already owns one.
+ */
+private fun logStageFailure(what: String, error: Throwable) {
+    AppLog.w(TAG, "$what failed; using fallback", error)
+}
+
+/**
  * The single producer of [TrainingInsights].
  *
  * Home, Schedule and Progress each carried a near-identical copy of this chain. Beyond the
@@ -64,8 +79,10 @@ class TrainingInsightsSource(
     private val computeDispatcher: CoroutineDispatcher = Dispatchers.Default,
     private val nowMs: () -> Long = System::currentTimeMillis,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
-    private val compute: (TrainingInsightsInput) -> TrainingInsights =
-        TrainingInsightsCalculator::compute,
+    private val time: TimePort = JvmTime,
+    private val compute: (TrainingInsightsInput) -> TrainingInsights = { input ->
+        TrainingInsightsCalculator.compute(input, ::logStageFailure)
+    },
     private val loadHints: suspend (
         routines: List<Routine>,
         unit: WeightUnit,
@@ -218,6 +235,7 @@ class TrainingInsightsSource(
                         coachPrefs = sources.coachPrefs,
                         window = HeatWindow.CURRENT_WEEK,
                         nowMs = nowMs(),
+                        time = time,
                         zoneId = zone().id,
                         includeWeekPlan = includeWeekPlan,
                     ),
@@ -259,6 +277,8 @@ class TrainingInsightsSource(
             weekStart = assembled.sources.preferences.weekStart,
             exerciseCatalog = assembled.sources.exercises,
             lastLoggedAtByExerciseId = assembled.sources.lastLoggedAtByExerciseId,
+            time = time,
+            onStageFailure = ::logStageFailure,
         )
 
     internal companion object {

@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 data class CalendarDay(
     val date: CivilDate,
@@ -52,7 +51,7 @@ object TrainingCalendarBuilder {
         month: CivilYearMonth,
         sessions: List<WorkoutSession>,
         activities: List<ActivitySession> = emptyList(),
-        time: TimePort = JvmTime,
+        time: TimePort,
         weekStart: Weekday = Weekday.MONDAY,
         zoneId: String = time.defaultZoneId(),
     ): TrainingMonth {

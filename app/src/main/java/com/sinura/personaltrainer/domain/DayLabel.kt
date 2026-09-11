@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * How long ago something happened, in the words a lifter would use.
@@ -17,7 +16,7 @@ object DayLabel {
     fun relative(
         thenMs: Long,
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
     ): String? {
         if (thenMs <= 0L) return null
@@ -43,7 +42,7 @@ object DayLabel {
  * calendar and the derivation all ask the same question the same way.
  */
 fun todayEpochDay(
-    nowMs: Long = JvmTime.nowMillis(),
-    time: TimePort = JvmTime,
+    nowMs: Long,
+    time: TimePort,
     zoneId: String = time.defaultZoneId(),
 ): Long = time.civilDate(nowMs, zoneId).epochDay
