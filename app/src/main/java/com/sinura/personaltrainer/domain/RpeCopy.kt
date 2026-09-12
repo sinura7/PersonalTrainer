@@ -3,11 +3,17 @@ package com.sinura.personaltrainer.domain
 /**
  * What the RPE chips mean, in gym English.
  *
- * The scale is optional and the chips used to sit unlabeled except for the letters
- * "RPE". That is a coach acronym, not a sentence. The caption lives here so the
- * workout screen and a test cannot drift.
+ * The scale is optional. The chips used to sit unlabeled except for the
+ * letters "RPE", then a generic 6–9 explainer with no memory of this lift.
+ * The row now names the last logged effort when history has one.
  */
 object RpeCopy {
-    const val BLURB =
-        "How hard that set felt. 10 is nothing left; 6 is several reps in the tank. Optional. Two top sets at 9+ hold the load."
+    const val OPTIONAL = "Optional."
+
+    fun blurb(lastRpe: Int?): String {
+        val history = lastRpe?.let { "Last time RPE $it. " }.orEmpty()
+        return history + OPTIONAL
+    }
+
+    fun recommended(lastRpe: Int?): Int? = lastRpe?.takeIf { it in 6..10 }
 }

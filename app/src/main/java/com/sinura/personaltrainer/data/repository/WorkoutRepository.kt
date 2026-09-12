@@ -922,6 +922,7 @@ class WorkoutRepository(
                     weightKg = set.weightKg,
                     reps = set.reps,
                     completedAt = set.completedAt,
+                    rpe = set.rpe,
                 ),
                 sessionName = set.sessionName,
                 sessionPerformedAtMs = set.sessionDate,
@@ -993,6 +994,7 @@ class WorkoutRepository(
                         weightKg = row.weightKg,
                         reps = row.reps,
                         completedAt = row.completedAt,
+                        rpe = row.rpe,
                     )
                 }
                 .toList()

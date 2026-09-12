@@ -351,6 +351,7 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         vm.setWeight(100.0)
+        vm.setRpe(8)
         vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
@@ -360,7 +361,7 @@ class ActiveWorkoutViewModelTest {
         val rec = checkNotNull(
             withTimeout(TestWaits.FLOW_MS) {
                 vm.microRec.first {
-                    it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD &&
+                    it?.reasonCode == SetMicroRecCalculator.QUALITY &&
                         it.showApply &&
                         !it.previewOnly
                 }
@@ -573,6 +574,21 @@ class ActiveWorkoutViewModelTest {
         val state = vm.awaitState { it.selectedExerciseId == ROW }
         assertEquals(ROW, state.selectedExerciseId)
         assertFalse(vm.extraSetRequested.value)
+    }
+
+    @Test
+    fun startNextLiftAdvancesWhenTheCurrentLiftIsDone() = runBlocking {
+        val fixture = seedTwoLifts(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
+        vm.setWeight(100.0)
+        vm.awaitState { it.draft.weightKg == 100.0 }
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.startNextLift()
+        vm.awaitState { it.selectedExerciseId == ROW }
+        assertFalse(deps.restTimerStore.current().running)
     }
 
     @Test

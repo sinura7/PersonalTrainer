@@ -72,7 +72,38 @@ class SetMicroRecCalculatorTest {
         assertFalse(rec.previewOnly)
         assertEquals(102.5, rec.nextWeightKg, 0.0001)
         assertEquals(5, rec.nextReps)
+        assertEquals(6, rec.nextRpe)
         assertNull(SetMicroRecCopy.caption(rec))
+    }
+
+    @Test
+    fun firstSetUsesThisLiftHistoryRpe() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    hint = hint(suggested = 102.5),
+                    workingLogged = 0,
+                    historyWorking = listOf(set(90.0, 12, rpe = 7)),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.FIRST_SET, rec.reasonCode)
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
+        assertEquals(7, rec.nextRpe)
+    }
+
+    @Test
+    fun firstSetWithoutHistoryDoesNotInventAnRpe() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    hint = hint(suggested = 102.5),
+                    workingLogged = 0,
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.FIRST_SET, rec.reasonCode)
+        assertEquals(null, rec.nextRpe)
     }
 
     @Test
@@ -302,6 +333,7 @@ class SetMicroRecCalculatorTest {
             draftRpe: Int? = null,
             allowExtra: Boolean = false,
             rpeIntent: Boolean = false,
+            historyWorking: List<LoggedSetView> = emptyList(),
         ) = SetMicroRecInputs(
             editing = editing,
             loadType = loadType,
@@ -321,6 +353,7 @@ class SetMicroRecCalculatorTest {
             todayEpochDay = 10L,
             allowExtra = allowExtra,
             rpeIntent = rpeIntent,
+            historyWorking = historyWorking,
         )
 
         private fun set(weightKg: Double, reps: Int, rpe: Int?) =

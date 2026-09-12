@@ -7,6 +7,7 @@ data class ExerciseSetRecord(
     val weightKg: Double,
     val reps: Int,
     val completedAt: Long,
+    val rpe: Int? = null,
 )
 
 enum class PersonalRecordKind {

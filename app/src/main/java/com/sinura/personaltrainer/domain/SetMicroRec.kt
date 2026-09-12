@@ -41,6 +41,11 @@ data class SetMicroRecInputs(
      * Default false keeps the locked v1 "If you log this" rows.
      */
     val rpeIntent: Boolean = false,
+    /**
+     * Prior finished working sets of this lift, newest session last.
+     * First-set Next / RPE chips read this instead of inventing 6–9.
+     */
+    val historyWorking: List<LoggedSetView> = emptyList(),
 )
 
 data class SetMicroRec(
@@ -161,12 +166,16 @@ object SetMicroRecCalculator {
             inputs = inputs,
             weight = weight.coerceAtLeast(0.0),
             reps = reps,
-            rpe = null,
+            rpe = historyRpe(inputs),
             previewOnly = false,
             showApply = true,
             reason = reason,
         )
     }
+
+    private fun historyRpe(inputs: SetMicroRecInputs): Int? =
+        inputs.historyWorking.lastOrNull { it.rpe != null }?.rpe
+            ?: inputs.historyWorking.lastOrNull()?.rpe
 
     private fun hiddenDone(inputs: SetMicroRecInputs): SetMicroRec =
         rec(
@@ -222,10 +231,10 @@ object SetMicroRecCalculator {
         val recent = rpes.takeLast(RpeModifier.RPE_HOLD_SESSIONS).asReversed()
         val afterRpe = RpeModifier.apply(probe, recent)
         val afterLight = LighterWeekModifier.apply(afterRpe, inputs.lighterWeek)
-        val rpe = basis.rpe
+        val effortRpe = basis.rpe
         val reason = reasonCode(
             action = action,
-            rpe = rpe,
+            rpe = effortRpe,
             rpeHold = afterRpe.rpeHold,
             lighterHold = afterLight.lighterHold,
             bodyweight = bodyweight,
@@ -245,7 +254,7 @@ object SetMicroRecCalculator {
             inputs = inputs,
             weight = weight,
             reps = reps,
-            rpe = suggestedRpe(reason, rpe),
+            rpe = effortRpe ?: historyRpe(inputs),
             previewOnly = previewOnly,
             showApply = showApply,
             reason = reason,
@@ -313,13 +322,6 @@ object SetMicroRecCalculator {
         return lastWeightKg to lastReps
     }
 
-    private fun suggestedRpe(reason: String, lastRpe: Int?): Int? = when (reason) {
-        IN_TANK, QUALITY, SKIP_RPE_HOLD, FIRST_SET, WARMUP_DONE -> 8
-        TOP_SET, RPE_HOLD, CLOSE_HOLD, LIGHTER_HOLD, BW_HOLD, BW_ADD_REP -> 8
-        FAILED_DROP, SKIP_RPE_DROP, BW_DROP_REP, LIFT_DONE -> lastRpe
-        else -> lastRpe
-    }
-
     private fun rec(
         inputs: SetMicroRecInputs,
         weight: Double,
@@ -369,6 +371,7 @@ fun setMicroRecInputs(
     todayEpochDay: Long,
     allowExtra: Boolean = false,
     rpeIntent: Boolean = false,
+    historyWorking: List<LoggedSetView> = emptyList(),
 ): SetMicroRecInputs = SetMicroRecInputs(
     editing = editing,
     loadType = loadType,
@@ -388,6 +391,7 @@ fun setMicroRecInputs(
     todayEpochDay = todayEpochDay,
     allowExtra = allowExtra,
     rpeIntent = rpeIntent,
+    historyWorking = historyWorking,
 )
 
 object SetMicroRecCopy {

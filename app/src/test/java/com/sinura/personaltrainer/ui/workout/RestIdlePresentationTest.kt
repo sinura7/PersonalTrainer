@@ -17,6 +17,10 @@ class RestIdlePresentationTest {
         assertFalse("idle rest must not use numeralMd", idle.contains("numeralMd"))
         assertTrue(idle.contains("RestIdleCopy"))
         assertTrue(idle.contains("bodyStrong"))
+        assertTrue(idle.contains("RestIdleCopy.START_NEXT"))
+        assertTrue(idle.contains("RestIdleCopy.START"))
+        assertTrue(idle.contains("PrimaryGymButton"))
+        assertFalse(idle.contains("numeralMd"))
     }
 
     @Test

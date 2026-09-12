@@ -94,9 +94,11 @@ internal data class WorkoutLiftCardState(
     val draftWarmup: Boolean,
     val draftRpe: Int?,
     val microRec: SetMicroRec?,
+    val recommendedRpe: Int? = null,
     val unit: WeightUnit,
     val canEdit: Boolean,
     val showAddSet: Boolean,
+    val restSeconds: Int,
     val restRunning: Boolean = false,
     val restRemainingSeconds: Int = 0,
 )
@@ -130,7 +132,6 @@ internal fun WorkoutLiftCard(
     val latestSetId = card.latestSetId
     val editingSetId = card.editingSetId
     val lastPerformance = card.lastPerformance
-    val hint = card.hint
     val draftWeightKg = card.draftWeightKg
     val draftReps = card.draftReps
     val draftWarmup = card.draftWarmup
@@ -139,6 +140,7 @@ internal fun WorkoutLiftCard(
     val unit = card.unit
     val canEdit = card.canEdit
     val showAddSet = card.showAddSet
+    val restSeconds = card.restSeconds
     val restRunning = card.restRunning
     val restRemainingSeconds = card.restRemainingSeconds
     val onSelect = events.onSelect
@@ -150,7 +152,6 @@ internal fun WorkoutLiftCard(
     val onApplyLastTime = events.onApplyLastTime
     val onWarmup = events.onWarmup
     val onRpe = events.onRpe
-    val onApplySuggested = events.onApplySuggested
     val onEditSet = events.onEditSet
     val onDeleteSet = events.onDeleteSet
     val onAddSet = events.onAddSet
@@ -159,7 +160,7 @@ internal fun WorkoutLiftCard(
     val chipMarks = LiftChipCopy.marks(
         workingLogged = workingLogged,
         targetSets = targetSets,
-        restSeconds = lift.restSeconds,
+        restSeconds = restSeconds,
         restRunningOnThisLift = restRunning,
         remainingSeconds = restRemainingSeconds,
     )
@@ -171,19 +172,14 @@ internal fun WorkoutLiftCard(
     )
     val entryRequester = remember { BringIntoViewRequester() }
     var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
-    // A card that has just become the selected one carries the entry wells with it, so the
-    // same requester that keeps a logged set on screen is what moves the loop to the next
-    // lift. bringIntoView animates, which is the difference between arriving at the next
-    // exercise and being teleported to it; the guard on `wasSelected` keeps first composition
-    // and resume from scrolling a session the lifter has not touched yet.
-    var wasSelected by remember(lift.id) { mutableStateOf(selected) }
-    LaunchedEffect(lift.id, loggedSets.size, selected) {
+    // After a log, keep the wells on screen. Do not scroll the selected
+    // card under the dock — that hid identity, rest time, and the
+    // session list (phone check 04).
+    LaunchedEffect(lift.id, loggedSets.size) {
         val count = loggedSets.size
         val grew = LogLoopBringIntoView.shouldBringIntoView(previousSetCount, count)
         previousSetCount = count
-        val becameSelected = selected && !wasSelected
-        wasSelected = selected
-        if (grew || becameSelected) {
+        if (grew) {
             entryRequester.bringIntoView()
         }
     }
@@ -211,72 +207,66 @@ internal fun WorkoutLiftCard(
                     end = Metrics.space3,
                     bottom = Metrics.space3,
                 ),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
             CurrentLiftHeader(
-                    lift = lift,
-                    workingLogged = workingLogged,
-                    unit = unit,
-                    canEdit = canEdit,
-                    rec = microRec,
-                    onSwap = onSwap,
-                    onRemove = onRemove,
-                    showName = false,
-                    modifier = Modifier.testTag(WorkoutTestTags.CURRENT_LIFT),
-                )
-                lastPerformance?.let { last ->
-                    LastTimeStrip(
-                        summary = last,
-                        unit = unit,
-                        loadClass = LoadClass.of(lift.exercise.loadType),
-                        onApplySet = onApplyLastTime,
-                    )
-                }
-                hint?.let { next ->
-                    ProgressionStrip(
-                        hint = next,
-                        unit = unit,
-                        onApply = onApplySuggested,
-                    )
-                }
-                SetEntryPanel(
-                    weightKg = draftWeightKg,
-                    reps = draftReps,
-                    onWeightKgChange = onWeightKgChange,
-                    onRepsAdjust = onRepsAdjust,
-                    onRepsChange = onRepsChange,
+                lift = lift,
+                workingLogged = workingLogged,
+                unit = unit,
+                canEdit = canEdit,
+                rec = microRec,
+                onSwap = onSwap,
+                onRemove = onRemove,
+                showName = false,
+                modifier = Modifier.testTag(WorkoutTestTags.CURRENT_LIFT),
+            )
+            lastPerformance?.let { last ->
+                LastTimeStrip(
+                    summary = last,
                     unit = unit,
                     loadClass = LoadClass.of(lift.exercise.loadType),
-                    plated = lift.exercise.equipment == EquipmentType.BARBELL,
-                    modifier = Modifier
-                        .testTag(LogLoopBringIntoView.ANCHOR_TAG)
-                        .bringIntoViewRequester(entryRequester),
+                    onApplySet = onApplyLastTime,
                 )
-                SecondaryLogOptions(
-                    warmup = draftWarmup,
-                    rpe = draftRpe,
-                    onWarmup = onWarmup,
-                    onRpe = onRpe,
-                )
-                if (loggedSets.isNotEmpty()) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    ) {
-                        Kicker("Sets")
-                        LoggedSetsPanel(
-                            sets = loggedSets,
-                            latestSetId = latestSetId,
-                            editingSetId = editingSetId,
-                            loadClassOf = { LoadClass.of(lift.exercise.loadType) },
-                            showAddSet = showAddSet,
-                            onEdit = onEditSet,
-                            onDelete = onDeleteSet,
-                            onAddSet = onAddSet,
-                        )
-                    }
+            }
+            SetEntryPanel(
+                weightKg = draftWeightKg,
+                reps = draftReps,
+                onWeightKgChange = onWeightKgChange,
+                onRepsAdjust = onRepsAdjust,
+                onRepsChange = onRepsChange,
+                unit = unit,
+                loadClass = LoadClass.of(lift.exercise.loadType),
+                plated = lift.exercise.equipment == EquipmentType.BARBELL,
+                modifier = Modifier
+                    .testTag(LogLoopBringIntoView.ANCHOR_TAG)
+                    .bringIntoViewRequester(entryRequester),
+            )
+            SecondaryLogOptions(
+                warmup = draftWarmup,
+                rpe = draftRpe,
+                recommendedRpe = card.recommendedRpe,
+                onWarmup = onWarmup,
+                onRpe = onRpe,
+            )
+            if (loggedSets.isNotEmpty()) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    Kicker("Sets")
+                    LoggedSetsPanel(
+                        sets = loggedSets,
+                        latestSetId = latestSetId,
+                        editingSetId = editingSetId,
+                        loadClassOf = { LoadClass.of(lift.exercise.loadType) },
+                        showAddSet = showAddSet,
+                        onEdit = onEditSet,
+                        onDelete = onDeleteSet,
+                        onAddSet = onAddSet,
+                    )
                 }
             }
         }
+    }
 }
 
 /**

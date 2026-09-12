@@ -216,7 +216,6 @@ class ActiveWorkoutJourneyInstrumentedTest {
         }
 
         compose.onNodeWithContentDescription("Exit workout").performClick()
-        compose.onNodeWithText("Keep and exit").performClick()
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasTestTag(LiveSessionBarTestTags.ROOT))
                 .fetchSemanticsNodes().isNotEmpty()
@@ -235,7 +234,6 @@ class ActiveWorkoutJourneyInstrumentedTest {
                 .fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithContentDescription("Exit workout").performClick()
-        compose.onNodeWithText("Keep and exit").performClick()
         compose.onNodeWithContentDescription("Workout actions").performClick()
         compose.onNodeWithText("Finish workout").performClick()
 

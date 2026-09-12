@@ -116,6 +116,7 @@ fun RestDock(
     afterWarmup: Boolean = false,
     batteryHint: Boolean = false,
     onDismissBatteryHint: () -> Unit = {},
+    onStartNext: () -> Unit = {},
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
@@ -173,6 +174,7 @@ fun RestDock(
             totalSeconds = totalSeconds,
             afterWarmup = afterWarmup,
             onStart = onStart,
+            onStartNext = onStartNext,
             onOpenRest = onOpenRest,
             modifier = modifier
                 .fillMaxWidth()
@@ -294,9 +296,8 @@ fun RestBatteryHintRow(
 }
 
 /**
- * Idle rest on the log: not a countdown. Planned duration is a label, Start
- * is the only start. Chips live on the floor so a countdown is never shown
- * with a second row of duration controls underneath it.
+ * Idle rest on the log: not a countdown. Planned duration is a label.
+ * Start next is the majority act (keep going, no rest). Start is rest only.
  */
 @Composable
 fun RestIdleRow(
@@ -305,19 +306,17 @@ fun RestIdleRow(
     onOpenRest: () -> Unit,
     modifier: Modifier = Modifier,
     afterWarmup: Boolean = false,
+    onStartNext: () -> Unit = {},
 ) {
     val clock = RestTimer.formatClock(totalSeconds.coerceAtLeast(0))
     val duration = RestIdleCopy.dockDuration(clock, afterWarmup)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = Metrics.rowMin),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Row(
             modifier = Modifier
-                .weight(1f)
+                .fillMaxWidth()
                 .testTag("workout-rest-idle")
                 .clickable(role = Role.Button, onClick = onOpenRest)
                 .semantics {
@@ -335,11 +334,27 @@ fun RestIdleRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        RestControl(
-            label = "Start",
-            onClick = onStart,
-            modifier = Modifier.widthIn(min = 72.dp),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            PrimaryGymButton(
+                text = RestIdleCopy.START_NEXT,
+                onClick = onStartNext,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("workout-start-next"),
+                height = Metrics.control,
+            )
+            RestControl(
+                label = RestIdleCopy.START,
+                onClick = onStart,
+                modifier = Modifier
+                    .widthIn(min = Metrics.touchMin)
+                    .testTag("workout-start-rest"),
+            )
+        }
     }
 }
 

@@ -1,37 +1,30 @@
 # Start here
 
 The first thing a new session on this repository should read. Rewritten
-2026-09-11, after R18 step 4 (activity-edit split, five use-case
-extractions, seven-row parity table).
+2026-09-12, after the floor phone-check packet (RPE from history, next-lift
+box, Start next, rest time before first log, X goes Home, Finish owns
+save/discard).
 
 ## Where the code stands
 
-`debugLiveCode` is **38**; `appVersionCode` is **1** and stays there until
+`debugLiveCode` is **45**; `appVersionCode` is **1** and stays there until
 a real public artifact is cut (FOUNDATION_PROGRAM P12.3). Room is frozen at
 v4, the backup document and envelope formats are untouched, and no
 identifier is ever rewritten. Those three hold for every future packet.
 
-R18 steps 1–4 are on `trunk` (or in this packet, landing next):
+**This packet (floor phone-check UX) is on `trunk`.** It does not bump 45.
+The phone still offers live 45 until the next drop. Do not start Home
+packets G or H — they have no written scope. Do not invent a sixth tab.
 
-1. History horizon and block reviews read both stores.
-2. The lift page reads both stores.
-3. Both completed-training detail screens share `CompletedTrainingDetailLoad`
-   (load / missing / failed; `retry()`). A thrown session read is
-   unavailable, not "no longer on this phone".
-4. **This packet.** Edits are per capability, not by store: notes and
-   delete on completed activities; set repair and repeat stay refused
-   (activity blocks are snapshots; repeat-as-live stays strength only).
-   Five extractions: `CompleteTraining` façade (`Written` / `RuledOut` /
-   `Failed` — the plan's Accepted / Rejected / Failed),
-   `RecordsCalculator` over `RecordSet`, `ProtectBackup` /
-   `OpenBackup`, `DraftStore<T>` with clear-on-accepted-save, live-session
-   bar finish through the façade. Seven-row parity table:
-   `CompletedTrainingParityTest`. Does **not** bump 38. Do not start a
-   numbered R18 step 5 — there isn't one.
+What landed:
 
-Live **38** shipped as `debug-live-2026-09-11` from the architecture stack
-`#232`–`#238`. Obtainium still offers 38 until the number rises. This
-packet rides the next drop; it is not on the phone yet.
+1. RPE / Next use that lift's logged history, not a generic 6–9. RPE stays optional.
+2. Selected lift is a pinned box (picture + name + planned work + rest) above the rest dock.
+3. Idle rest dock: **Start next** (primary, does not start rest) and **Start** (rest only).
+4. Planned rest is visible before the first logged set of a lift. Idle still says **Not running**.
+5. Duplicate rest/next chrome is collapsed so a normal phone can see the session lift list.
+6. X / back goes Home. Session stays live (in-progress bar + rest notification).
+7. Finish is the explicit end: **Save as is** / **Leave without saving**.
 
 Do not open Gradle modules, localisation, a sixth tab, LLM-as-author, a
 Room v3 bump, or GitHub-hosted runners as a test lane. Do not bump
@@ -51,27 +44,27 @@ then a squash merge into `trunk`. Do **not** use GitHub-hosted runners as
 the test lane. The yaml may stay. Ignore it. Cursor JVM + Obtainium are
 how we test.
 
-Not verified, and it matters: **R18 step 4 has not been on a phone.**
+Not verified, and it matters: **this floor packet has not been on a phone.**
 
-**Install the newest `debug-live-2026-09-11*` pre-release, version 38.**
+**Install the newest `debug-live-2026-09-11-8` pre-release, version 45.**
 That is Temper Debug (`com.sinura.personaltrainer.debug`) from Obtainium,
 pre-releases on, `PersonalTrainer-*-debug.apk`. Gym-floor Temper stays on
-the signed `PersonalTrainer-<version>.apk`. 38 does not yet include
-activity notes and delete; those land on the next drop after this packet
-merges.
+the signed `PersonalTrainer-<version>.apk`. 45 does not yet include this
+floor packet; those land on the next drop after this packet merges.
 
 ## What the phone check is
 
-One install, the live-38 checks plus, after the next drop that carries
-this packet:
+One install, after the next drop that carries this packet:
 
-1. Open a finished cardio or mixed activity from History. Add a note;
-   leave; come back — the note is still there. Overflow offers **Delete
-   session…** only, never Repeat, never a set editor.
-2. A finished strength session still offers Repeat, set edit, and undo
-   as before.
-3. Finish from the live-session bar still writes one completed row.
-   A thrown finish is a retry, not a crash.
+1. Start a session. The selected lift's picture, name, planned work, and
+   rest time stay visible before the first logged set. Idle rest says
+   **Not running**.
+2. RPE chips name last time's effort for that lift when history exists.
+   Next includes that RPE. RPE stays optional.
+3. Idle dock: **Start next** is the large control; **Start** only starts rest.
+4. The session lift list is visible in one view with the log plates.
+5. X goes Home with no popup. The in-progress bar is there. Finish offers
+   **Save as is** and **Leave without saving**.
 
 ## One thing waiting on the owner
 
@@ -95,41 +88,15 @@ Biggest first, and the first two are the owner's, not a session's:
   walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
-- **DESIGN_AUDIT P1 rows from that four-row list are closed.** A-03 is closed:
-  the shade rest clock freezes at 0:00; it never paints a minus. D-08 is closed:
-  lift cards, the set table, the equipment chip, confirm dialog, section
-  header, and card-shaped loading are shared components; overlay rest stays
-  superseded. D-01/D-02/D-03 are already Instrument in `Type`/`Color`/`Shape`/`Metrics`
-  — confirmed in the audit table, not redrawn. D-04 is closed:
-  empty screens draw a rack / plan / catalog / log / gone / retry picture
-  that teaches the next tap; the Temper mark stays identity, not a shrug.
-  D-06 is closed:
-  last three seconds of rest hit harder in the hand, and a refused tap
-  buzzes twice. L-05 is closed:
-  add-to-routine shows the lift still and Work/Rest it will land as, and
-  destination routines as pictured cards. W-11 is closed:
-  the log button says **Log warm-up** vs **Log set**. W-06 is closed:
-  live lift chips show set progress (`2/5`) and a rest badge. I-01 is closed:
-  History list cards picture the first three lifts. E-12 is closed:
-  a lift can be marked plates / stack / bodyweight / added / assisted. E-04 is closed:
-  editor targets are the workout's large steppers, not tiny text boxes. S-02 is closed:
-  Start Options routine cards show the first three lift stills and the kit mix.
-  I-04 is closed: session detail is a filled program sheet (same cards as the
-  floor / program).
-  T-16 is closed: first rest names unrestricted battery. G-05 / W-02 / T-12
-  are closed: idle rest says **Not running**, and a warm-up names that rest
-  did not start. G-02 is closed: rest Start/Skip and Log set share the lower
-  dock. B-02 is closed: first-launch Body names catalog lifts and a muscle opens
-  the lifts that train it. N-01 is closed: Settings Rest timer **Play complete
-  cue** samples the same rest-done tone that fires at 0:00.
+- **Floor phone-check UX is closed in code.** Phone gate stays the owner's,
+  on the next Obtainium drop.
 - **R18 numbered steps 1–4 are done.** There is no step 5. Set repair on
-  activity blocks needs an ADR, not another convergence step. The log-time
-  PR badge stays strength-only: activities are never logged live.
+  activity blocks needs an ADR, not another convergence step.
 - **R17 measurement** is blocked on a fixture generator and a benchmark
   module nobody has built, not on the owner's history growing.
-- **The 600 dp screen passes** are on `trunk` (`#231`). Instrumented only.
-- **`required_args_mixed = 180`** is the largest debt family in
-  `tools/checker-baselines.toml`. Take `required_args_lambda = 46` first as
+- **The 600 dp screen passes** are on `trunk`. Instrumented only.
+- **`required_args_mixed`** is the largest debt family in
+  `tools/checker-baselines.toml`. Take `required_args_lambda` first as
   the proof that the ratchet-down loop works.
 - **A cold container silently downgrades the static gate** and still exits
   OK when no compiler jar is present. Make the skip non-zero unless

@@ -14,8 +14,11 @@ class RestIdleCopyTest {
         val spoken = RestIdleCopy.spoken("1:30", afterWarmup = false)
         assertTrue(spoken, spoken.startsWith("Rest is not running."))
         assertTrue(spoken, spoken.contains("1:30 planned"))
-        assertTrue(spoken, spoken.contains("Start rest when you are ready"))
+        assertTrue(spoken, spoken.contains("Start next to keep going"))
+        assertTrue(spoken, spoken.contains("Start starts rest only"))
         assertFalse(spoken, spoken.contains("remaining"))
+        assertEquals("Start next", RestIdleCopy.START_NEXT)
+        assertEquals("Start", RestIdleCopy.START)
     }
 
     @Test
@@ -24,6 +27,7 @@ class RestIdleCopyTest {
         assertEquals("Warm-ups do not start rest", RestIdleCopy.afterWarmupHint())
         val spoken = RestIdleCopy.spoken("1:00", afterWarmup = true)
         assertTrue(spoken, spoken.contains("Warm-ups do not start rest"))
-        assertTrue(spoken, spoken.contains("Start rest when you are ready"))
+        assertTrue(spoken, spoken.contains("Start next to keep going"))
+        assertTrue(spoken, spoken.contains("Start starts rest only"))
     }
 }

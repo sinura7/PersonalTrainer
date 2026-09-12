@@ -21,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetCopy
@@ -45,10 +44,8 @@ import kotlinx.coroutines.delay
  * after it had ended.
  *
  * Finish moved up here too. It was the last item of the scrolling content, so ending a
- * session meant scrolling to the bottom of a layout designed for mid-set logging — and then
- * confirming a dialog whose own body text admitted nothing was at stake. Finishing is safe,
- * non-destructive, and followed immediately by a summary that *is* the confirmation, so it
- * now happens on one tap.
+ * session meant scrolling to the bottom of a layout designed for mid-set logging. Finish
+ * opens the explicit end (save as is / leave without saving). X is go-Home.
  */
 @Composable
 internal fun WorkoutHeader(
@@ -93,25 +90,14 @@ internal fun WorkoutHeader(
                     enabled = canFinish,
                     modifier = Modifier.testTag(WorkoutTestTags.FINISH),
                 ) {
-                    Text(
-                        "Finish",
-                        style = InstrumentType.bodyStrong,
-                        color = if (canFinish) TextPrimary else TextTertiary,
-                    )
-                }
-            },
+                Text(
+                    "Finish",
+                    style = InstrumentType.bodyStrong,
+                    color = if (canFinish) TextPrimary else TextTertiary,
+                )
+            }
+        },
         )
-        if (!compact && !canFinish) {
-            Text(
-                "Log a set to finish.",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = Metrics.space4),
-                style = InstrumentType.caption,
-                color = TextTertiary,
-                textAlign = TextAlign.End,
-            )
-        }
         if (!compact) {
         Row(
             modifier = Modifier
