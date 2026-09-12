@@ -73,8 +73,6 @@ private fun HomeEmptyPreview() {
                 reason = null,
                 sessionLive = false,
                 hasRoutines = true,
-                onSuggestWeek = {},
-                onReplayAnswers = {},
                 onPrimary = {},
                 onStartFree = {},
             )

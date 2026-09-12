@@ -77,8 +77,6 @@ class HomePassInstrumentedTest {
                 reason = "Chest is due.",
                 sessionLive = false,
                 hasRoutines = true,
-                onSuggestWeek = {},
-                onReplayAnswers = {},
                 onPrimary = {},
                 onStartFree = {},
             )
@@ -103,8 +101,6 @@ class HomePassInstrumentedTest {
                 sessionLive = false,
                 hasRoutines = true,
                 routines = listOf(PUSH_ROUTINE),
-                onSuggestWeek = {},
-                onReplayAnswers = {},
                 onPrimary = { started = true },
                 onStartFree = {},
             )
@@ -133,8 +129,6 @@ class HomePassInstrumentedTest {
                 sessionLive = false,
                 hasRoutines = true,
                 routines = listOf(PUSH_ROUTINE),
-                onSuggestWeek = {},
-                onReplayAnswers = {},
                 onPrimary = { started = true },
                 onStartFree = {},
             )
@@ -367,14 +361,10 @@ class HomePassInstrumentedTest {
                 reason = null,
                 sessionLive = false,
                 hasRoutines = true,
-                onSuggestWeek = {},
-                onReplayAnswers = {},
                 onPrimary = {},
                 onStartFree = {},
             )
         }
-        compose.onNodeWithTag(HomeTags.REPLAY).assertIsDisplayed()
-        compose.onNodeWithContentDescription(WeekTwoCopy.VOLT).assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
     }

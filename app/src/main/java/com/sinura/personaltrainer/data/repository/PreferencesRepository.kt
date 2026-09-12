@@ -142,10 +142,16 @@ class PreferencesRepository(
 
     val reminderPreferences: Flow<ReminderPreferences> get() = reminders.reminderPreferences
     val pendingOccurrenceId: Flow<String?> get() = reminders.pendingOccurrenceId
+    val launchPermissionsAsked: Flow<Boolean> get() = reminders.launchPermissionsAsked
     suspend fun setReminderOptOut(optOut: Boolean) = reminders.setReminderOptOut(optOut)
     suspend fun setReminderQuietHours(startHour: Int, endHour: Int) =
         reminders.setReminderQuietHours(startHour, endHour)
+    suspend fun setDayAlarm(weekday: Weekday, hour: Int, minute: Int) =
+        reminders.setDayAlarm(weekday, hour, minute)
+    suspend fun clearDayAlarm(weekday: Weekday) = reminders.clearDayAlarm(weekday)
     suspend fun setPendingOccurrenceId(id: String?) = reminders.setPendingOccurrenceId(id)
+    suspend fun setLaunchPermissionsAsked(asked: Boolean) =
+        reminders.setLaunchPermissionsAsked(asked)
 
     private val safePreferences: Flow<Preferences> = store.safePreferences
 

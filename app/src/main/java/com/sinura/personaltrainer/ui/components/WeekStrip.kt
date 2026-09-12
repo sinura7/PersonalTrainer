@@ -38,6 +38,7 @@ import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -103,6 +104,7 @@ private fun WeekCell(
         else -> WeekBoard.REST
     }
     val labelColor = when {
+        selected -> TextPrimary
         preview -> TextTertiary
         cell.fill == DayFill.NONE -> Danger
         cell.fill == DayFill.PARTIAL -> Warn
@@ -112,7 +114,7 @@ private fun WeekCell(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(Radius.sm))
-            .background(if (selected && !isToday) SurfacePressed else Color.Transparent)
+            .background(if (selected) SurfacePressed else Surface2)
             .selectable(
                 selected = selected,
                 role = Role.Tab,
@@ -138,7 +140,11 @@ private fun WeekCell(
         )
         Kicker(
             cell.weekday.shortLabel().take(1),
-            color = if (isToday) Volt else TextSecondary,
+            color = when {
+                isToday -> Volt
+                selected -> TextPrimary
+                else -> TextSecondary
+            },
             asHeading = false,
         )
         Text(

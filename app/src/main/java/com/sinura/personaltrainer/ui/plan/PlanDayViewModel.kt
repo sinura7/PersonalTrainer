@@ -86,13 +86,19 @@ class PlanDayViewModel @JvmOverloads constructor(
 
     fun pinRoutine(epochDay: Long, routineId: String, hour: Int = SlotRuleImport.DEFAULT_STRENGTH_HOUR) {
         write("Could not pin that routine. Try again.") {
+            val clamped = SlotRuleImport.hourOnDay(
+                preferredHour = hour,
+                epochDay = epochDay,
+                todayEpochDay = todayEpochDay(),
+                nowMinutes = currentMinutesOfDay(),
+            )
             container.scheduleRepository.pin(
                 routineId = routineId,
                 focusKind = null,
                 anchorDay = dayOfWeekFor(epochDay),
             )
             refreshPlanner()
-            applyHourToRoutine(epochDay, routineId, hour)
+            applyHourToRoutine(epochDay, routineId, clamped)
         }
     }
 
@@ -105,13 +111,19 @@ class PlanDayViewModel @JvmOverloads constructor(
                 routine.name.equals(name, ignoreCase = true) && routine.id !in pinnedIds
             }
             val routineId = reusable?.id ?: container.routineRepository.create(name).id
+            val clamped = SlotRuleImport.hourOnDay(
+                preferredHour = hour,
+                epochDay = epochDay,
+                todayEpochDay = todayEpochDay(),
+                nowMinutes = currentMinutesOfDay(),
+            )
             container.scheduleRepository.pin(
                 routineId = routineId,
                 focusKind = null,
                 anchorDay = weekday,
             )
             refreshPlanner()
-            applyHourToRoutine(epochDay, routineId, hour)
+            applyHourToRoutine(epochDay, routineId, clamped)
             _navigateToEditor.value = routineId
         }
     }

@@ -366,10 +366,7 @@ class ProductionScreensPassInstrumentedTest {
         val starts = listOf(
             HomeTags.START,
             HomeTags.FREE,
-            HomeTags.GET_STARTED,
-            HomeTags.GENERATE,
-            HomeTags.BUILD_WEEK,
-            HomeTags.STARTER_WORKOUT,
+            HomeTags.SESSION,
         )
         compose.waitUntil(15_000) {
             starts.any { compose.onAllNodesWithTag(it).fetchSemanticsNodes().isNotEmpty() }

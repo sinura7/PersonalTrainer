@@ -105,10 +105,12 @@ data class ReminderPreferences(
     val optOut: Boolean = false,
     val quietStartHour: Int = DEFAULT_QUIET_START_HOUR,
     val quietEndHour: Int = DEFAULT_QUIET_END_HOUR,
+    val dayAlarms: Map<Weekday, DayReminder> = emptyMap(),
 ) {
     fun sanitized(): ReminderPreferences = copy(
         quietStartHour = quietStartHour.coerceIn(0, 23),
         quietEndHour = quietEndHour.coerceIn(0, 23),
+        dayAlarms = dayAlarms.mapValues { it.value.sanitized() },
     )
 
     companion object {

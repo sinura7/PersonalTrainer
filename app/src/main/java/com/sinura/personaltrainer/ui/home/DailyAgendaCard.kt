@@ -254,12 +254,14 @@ fun DailyAgendaCard(
                     text = SessionOrderCopy.FREE_WORKOUT,
                     onClick = onStartFree,
                     modifier = startModifier,
+                    height = Metrics.touchMin,
                 )
             } else {
                 PrimaryGymButton(
                     text = SessionOrderCopy.FREE_WORKOUT,
                     onClick = onStartFree,
                     modifier = startModifier,
+                    height = Metrics.touchMin,
                 )
             }
         }

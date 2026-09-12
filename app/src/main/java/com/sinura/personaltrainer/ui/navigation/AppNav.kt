@@ -79,6 +79,7 @@ import com.sinura.personaltrainer.ui.routines.CustomWeekScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGate
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModel
+import com.sinura.personaltrainer.ui.permissions.LaunchPermissionsHost
 import com.sinura.personaltrainer.ui.onboarding.OnboardingScreen
 import com.sinura.personaltrainer.ui.plan.PlanDayScreen
 import com.sinura.personaltrainer.ui.plan.PlanScreen
@@ -289,6 +290,14 @@ fun PersonalTrainerNav(
         OnboardingGate.APP -> Unit
     }
 
+    val launchAsked by settingsViewModel.launchPermissionsAsked.collectAsStateWithLifecycle()
+    if (gate == OnboardingGate.APP) {
+        LaunchPermissionsHost(
+            alreadyAsked = launchAsked,
+            onAsked = settingsViewModel::markLaunchPermissionsAsked,
+        )
+    }
+
     val reduceMotion = LocalReducedMotion.current
     val screenEnter = if (reduceMotion) EnterTransition.None else ScreenEnter
     val screenExit = if (reduceMotion) ExitTransition.None else ScreenExit
@@ -457,11 +466,6 @@ fun PersonalTrainerNav(
                         },
                         onOpenPlan = { goToTab(Route.Routines.path) },
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
-                        onGenerateSchedule = { navController.navigate(Route.Onboarding.path) },
-                        onBuildWeek = {
-                            container.pendingCustomWeek.value = CustomWeekLaunch()
-                            navController.navigate(Route.CustomWeek.path)
-                        },
                     )
                 }
                 composable(Route.Progress.path) {
@@ -537,7 +541,6 @@ fun PersonalTrainerNav(
                 }
                 composable(Route.Routines.path) {
                     PlanScreen(
-                        onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
                         onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
                         onOpenDay = { epochDay, add ->

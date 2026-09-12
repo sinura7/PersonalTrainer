@@ -546,4 +546,104 @@ class SettingsViewModelTest {
             days,
         )
     }
+
+    @Test
+    fun dayAlarmPersistsPerWeekday() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.awaitFirst { true }
+        viewModel!!.setDayAlarm(com.sinura.personaltrainer.domain.Weekday.SATURDAY, 19, 30)
+        val stored = withTimeout(TestWaits.FLOW_MS) {
+            viewModel!!.uiState.first {
+                it.reminders.dayAlarms[com.sinura.personaltrainer.domain.Weekday.SATURDAY] != null
+            }
+        }
+        val alarm = stored.reminders.dayAlarms.getValue(com.sinura.personaltrainer.domain.Weekday.SATURDAY)
+        assertEquals(19, alarm.hour)
+        assertEquals(30, alarm.minute)
+    }
+
+    @Test
+    fun launchPermissionsStayAskedAfterASecondSession() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        assertFalse(viewModel!!.launchPermissionsAsked.value)
+        viewModel!!.markLaunchPermissionsAsked()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.launchPermissionsAsked.first { it } }
+        viewModel!!.clearAndJoinForTest()
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.launchPermissionsAsked.first { it } }
+        assertTrue(viewModel!!.launchPermissionsAsked.value)
+    }
+
+    @Test
+    fun generateWeekReadsEquipmentFromSettings() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        deps.dbMaintenance.seedCatalog()
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.setTrainingPlace(com.sinura.personaltrainer.domain.TrainingPlace.BODYWEIGHT_ONLY)
+        viewModel!!.setTrainingGoal(com.sinura.personaltrainer.domain.TrainingGoal.STRENGTH)
+        withTimeout(TestWaits.FLOW_MS) {
+            deps.preferencesRepository.trainingPlace.first {
+                it == com.sinura.personaltrainer.domain.TrainingPlace.BODYWEIGHT_ONLY
+            }
+        }
+        viewModel!!.generateWeek()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.generateNotice.first { it != null } }
+        val routines = withTimeout(TestWaits.FLOW_MS) {
+            deps.routineRepository.observeAll().first { it.isNotEmpty() }
+        }
+        val lifts = routines.flatMap { routine -> routine.exercises.map { it.exercise.equipment } }
+        assertTrue(lifts.isNotEmpty())
+        lifts.forEach { equipment ->
+            assertTrue(
+                equipment in com.sinura.personaltrainer.domain.TrainingPlace.BODYWEIGHT_ONLY.equipment,
+            )
+        }
+    }
+
+    @Test
+    fun generateWeekReadsCoachingGoalFromSettings() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        deps.dbMaintenance.seedCatalog()
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.setTrainingPlace(com.sinura.personaltrainer.domain.TrainingPlace.FULL_GYM)
+        viewModel!!.setTrainingGoal(com.sinura.personaltrainer.domain.TrainingGoal.STRENGTH)
+        withTimeout(TestWaits.FLOW_MS) {
+            deps.preferencesRepository.coachPreferences.first {
+                it.goal == com.sinura.personaltrainer.domain.TrainingGoal.STRENGTH
+            }
+        }
+        viewModel!!.generateWeek()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.generateNotice.first { it != null } }
+        val answers = deps.preferencesRepository.storedOnboardingAnswers()
+        assertEquals(com.sinura.personaltrainer.domain.TrainingGoal.STRENGTH, answers.goal)
+        val catalog = deps.exerciseRepository.observeAll().first()
+        val weekStart = deps.preferencesRepository.schedulePreferences.first().weekStart
+        val split = deps.preferencesRepository.schedulePreferences.first().splitStyle
+        val plan = com.sinura.personaltrainer.domain.RoutineGenerator.generate(
+            answers,
+            catalog,
+            weekStart,
+            split,
+        )
+        assertTrue(plan.routines.isNotEmpty())
+        val names = plan.routines.flatMap { it.lifts }.map { it.name }
+        assertTrue(
+            "strength gym week should name a barbell or squat: $names",
+            names.any { it.contains("Squat") || it.contains("Deadlift") || it.contains("Bench") },
+        )
+    }
 }

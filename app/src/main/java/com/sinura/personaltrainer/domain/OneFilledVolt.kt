@@ -18,11 +18,13 @@ object OneFilledVolt {
     /** Settings Export is the page Volt (ADR-014 §4, decision 4). */
     const val SETTINGS_EXPORT_IS_PRIMARY = true
 
+    @Suppress("UNUSED_PARAMETER")
     fun leftoverHasRecoveryVolt(
         setupComplete: Boolean,
         offerSetupActions: Boolean,
-    ): Boolean = if (!setupComplete) offerSetupActions else true
+    ): Boolean = false
 
+    @Suppress("UNUSED_PARAMETER")
     fun leftoverFreeStart(
         sessionLive: Boolean,
         setupComplete: Boolean,
@@ -30,9 +32,7 @@ object OneFilledVolt {
         quietStart: Boolean,
     ): FreeStartRank = when {
         sessionLive -> FreeStartRank.HIDDEN
-        !setupComplete -> FreeStartRank.TEXT
         quietStart -> FreeStartRank.TEXT
-        hasRecoveryVolt -> FreeStartRank.SECONDARY
         else -> FreeStartRank.PRIMARY
     }
 
@@ -46,12 +46,6 @@ object OneFilledVolt {
         quietStart: Boolean,
         offerSetupActions: Boolean,
     ): Int {
-        var filled = 0
-        if (!setupComplete) {
-            if (offerSetupActions) filled += 1
-        } else {
-            filled += 1
-        }
         val rank = leftoverFreeStart(
             sessionLive = sessionLive,
             setupComplete = setupComplete,
@@ -61,7 +55,6 @@ object OneFilledVolt {
             ),
             quietStart = quietStart,
         )
-        if (rank == FreeStartRank.PRIMARY) filled += 1
-        return filled
+        return if (rank == FreeStartRank.PRIMARY) 1 else 0
     }
 }
