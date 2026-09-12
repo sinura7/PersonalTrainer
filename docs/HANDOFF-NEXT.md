@@ -1,30 +1,52 @@
 # Start here
 
 The first thing a new session on this repository should read. Rewritten
-2026-09-12, after the floor phone-check packet (RPE from history, next-lift
-box, Start next, rest time before first log, X goes Home, Finish owns
-save/discard).
+2026-09-12, after the History-on-update packet (Temper Debug Obtainium
+updates must keep finished workouts).
 
 ## Where the code stands
 
-`debugLiveCode` is **45**; `appVersionCode` is **1** and stays there until
+`debugLiveCode` is **46**; `appVersionCode` is **1** and stays there until
 a real public artifact is cut (FOUNDATION_PROGRAM P12.3). Room is frozen at
 v4, the backup document and envelope formats are untouched, and no
 identifier is ever rewritten. Those three hold for every future packet.
 
-**This packet (floor phone-check UX) is on `trunk`.** It does not bump 45.
-The phone still offers live 45 until the next drop. Do not start Home
-packets G or H — they have no written scope. Do not invent a sixth tab.
+**This packet (History survives an Obtainium update of Temper Debug) is on
+`trunk`.** It does not bump 46. Do not start Home packets G or H — they have
+no written scope. Do not invent a sixth tab. Do not cut a drop in this
+packet.
 
-What landed:
+### What wiped
 
-1. RPE / Next use that lift's logged history, not a generic 6–9. RPE stays optional.
-2. Selected lift is a pinned box (picture + name + planned work + rest) above the rest dock.
-3. Idle rest dock: **Start next** (primary, does not start rest) and **Start** (rest only).
-4. Planned rest is visible before the first logged set of a lift. Idle still says **Not running**.
-5. Duplicate rest/next chrome is collapsed so a normal phone can see the session lift list.
-6. X / back goes Home. Session stays live (in-progress bar + rest notification).
-7. Finish is the explicit end: **Save as is** / **Leave without saving**.
+Allen’s History reset was on **Temper Debug**
+(`com.sinura.personaltrainer.debug`) — the Obtainium icon — not gym-floor
+Temper. Those are different apps and different databases. Do not mix them.
+
+What it was **not:** a Room schema bump (v4 identity hash is unchanged), not
+`fallbackToDestructiveMigration` (still absent), not a gym-floor
+`appVersionCode` change, not a debugLiveCode path that deletes `temper.db`.
+
+What *would* have let a wipe ship unnoticed: the upgrade-in-place proof opened
+the dead `TrainerDatabase` (`personal_trainer.db`). History lives on
+`TemperDatabase` (`temper.db`). Backup round-trip of History cards
+(`session_exercises`) was also missing from the fingerprint, so a restore
+that dropped the join table could still look green.
+
+Uninstall still wipes (`allowBackup=false`, ADR-009). Backup is the
+off-device recovery path and now round-trips finished strength sessions and
+completed activities through the queries History actually uses.
+
+### What landed
+
+1. Upgrade-in-place proof uses production `TemperDatabase.create` on
+   `temper.db`. Finished History rows and a live session survive close/reopen.
+   Catalog seed after reopen must not delete them.
+2. A version-code-only drop must not rename the package: suffix stays `.debug`,
+   never `.debug.<live number>`. Room stays v4 / `temper.db`.
+3. Backup export → restore keeps a finished strength day (session, lifts,
+   sets) and a completed activity on History’s queries. An in-progress
+   session is still excluded from the file (so Home cannot resume a phantom).
+4. The older v2 round-trip now fingerprints `session_exercises`.
 
 Do not open Gradle modules, localisation, a sixth tab, LLM-as-author, a
 Room v3 bump, or GitHub-hosted runners as a test lane. Do not bump
@@ -44,27 +66,17 @@ then a squash merge into `trunk`. Do **not** use GitHub-hosted runners as
 the test lane. The yaml may stay. Ignore it. Cursor JVM + Obtainium are
 how we test.
 
-Not verified, and it matters: **this floor packet has not been on a phone.**
+**Phone check (owner), after the next drop that carries this packet:**
 
-**Install the newest `debug-live-2026-09-11-8` pre-release, version 45.**
-That is Temper Debug (`com.sinura.personaltrainer.debug`) from Obtainium,
-pre-releases on, `PersonalTrainer-*-debug.apk`. Gym-floor Temper stays on
-the signed `PersonalTrainer-<version>.apk`. 45 does not yet include this
-floor packet; those land on the next drop after this packet merges.
+1. Open **Temper Debug** (second icon, `com.sinura.personaltrainer.debug`).
+   Gym-floor Temper is the other icon — leave it alone.
+2. Finish a workout so it shows on History.
+3. Pull Obtainium and install the next Temper Debug update
+   (`PersonalTrainer-*-debug.apk`, same applicationId, higher live number).
+4. Open History. The workout is still there.
 
-## What the phone check is
-
-One install, after the next drop that carries this packet:
-
-1. Start a session. The selected lift's picture, name, planned work, and
-   rest time stay visible before the first logged set. Idle rest says
-   **Not running**.
-2. RPE chips name last time's effort for that lift when history exists.
-   Next includes that RPE. RPE stays optional.
-3. Idle dock: **Start next** is the large control; **Start** only starts rest.
-4. The session lift list is visible in one view with the log plates.
-5. X goes Home with no popup. The in-progress bar is there. Finish offers
-   **Save as is** and **Leave without saving**.
+Uninstall still empties History. If that happens, restore the backup file
+from Settings; it must bring the sessions back.
 
 ## One thing waiting on the owner
 

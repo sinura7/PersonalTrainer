@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleSlotEntity
+import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.repository.DbMaintenance
@@ -371,6 +372,13 @@ class BackupV2RoundTripTest {
                 finishedAt = STAMP + 2_700_000,
             ),
         )
+        database.workoutDao().upsertSessionExercise(
+            SessionExerciseEntity(
+                id = "se1", sessionId = "s1", exerciseId = "ex-barbell-back-squat",
+                sortOrder = 0, targetSets = 3, targetReps = 5, targetWeightKg = 100.0,
+                restSeconds = 90,
+            ),
+        )
         database.workoutDao().insertSet(
             SetLogEntity(
                 id = "set1", sessionId = "s1", exerciseId = "ex-barbell-back-squat",
@@ -399,6 +407,8 @@ class BackupV2RoundTripTest {
         "exercises" to database.exerciseDao().getAll().map { it.toString() }.sorted(),
         "routines" to database.routineDao().getAllRoutines().map { it.toString() }.sorted(),
         "sessions" to database.workoutDao().getAllSessions().map { it.toString() }.sorted(),
+        "sessionExercises" to database.workoutDao().getAllSessionExercises()
+            .map { it.toString() }.sorted(),
         "sets" to database.workoutDao().getAllSets().map { it.toString() }.sorted(),
         "credits" to database.catalogDao().getAllCredits().map { it.toString() }.sorted(),
         "slots" to database.scheduleDao().getAll().map { it.toString() }.sorted(),
