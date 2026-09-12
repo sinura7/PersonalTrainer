@@ -39,7 +39,7 @@ rounded_percent = 4
 # file into nine raised it without changing a call. Imports are skipped now, so this is six
 # actual uses.
 circle = 6
-raw_dp = 23
+raw_dp = 22
 sp_style = 0
 motion = 13
 haptic = 0
