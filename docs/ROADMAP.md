@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 12 Sep 2026 — Live 48: Home, Plan, and Settings from the 12 Sep phone shots
+> on `trunk`. `debugLiveCode` 48; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 12 Sep 2026 — Home / Plan / Settings: Saturday pin shows on Home and Plan
 > today; Get started sheet is gone; reminder alarms and the week generator
 > live in Settings. Does not bump live 47.
