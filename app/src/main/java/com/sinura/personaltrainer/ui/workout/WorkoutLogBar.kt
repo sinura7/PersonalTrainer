@@ -190,6 +190,7 @@ internal fun SecondaryLogOptions(
     rpe: Int?,
     onWarmup: (Boolean) -> Unit,
     onRpe: (Int?) -> Unit,
+    recommendedRpe: Int? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         LazyRow(
@@ -210,12 +211,13 @@ internal fun SecondaryLogOptions(
                 InstrumentChip(
                     label = value.toString(),
                     selected = rpe == value,
+                    recommended = recommendedRpe == value && rpe != value,
                     onClick = { onRpe(if (rpe == value) null else value) },
                 )
             }
         }
         Text(
-            RpeCopy.BLURB,
+            RpeCopy.blurb(recommendedRpe),
             style = InstrumentType.caption,
             color = TextTertiary,
         )

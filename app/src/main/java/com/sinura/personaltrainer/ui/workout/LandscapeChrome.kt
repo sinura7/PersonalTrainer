@@ -28,6 +28,8 @@ object LandscapeChrome {
 
     fun hideIdleRest(landscape: Boolean): Boolean = landscape
 
+    fun hideSelectedLiftDock(landscape: Boolean): Boolean = landscape
+
     fun foldMicroRecIntoCard(landscape: Boolean): Boolean = landscape
 
     fun logBudgetDp(

@@ -31,6 +31,7 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.DiscardOutcome
@@ -410,6 +411,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         combine(session, selectedExerciseId, draft, hint, wantAnotherSet) {
                 current, selected, currentDraft, currentHint, extra ->
             MicroRecCore(current, selected, currentDraft, currentHint, extra)
+        }.combine(lastPerformance) { core, last ->
+            core.copy(lastPerformance = last)
         },
         combine(editingSetId, lighterWeek, container.preferencesRepository.weightUnit) { editing, lighter, unit ->
             Triple(editing, lighter, unit)
@@ -427,6 +430,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             wantAnotherSet = core.wantAnother,
             nowMs = time.nowMillis(),
             todayEpochDay = todayEpochDay(),
+            historySets = core.lastPerformance?.sets.orEmpty(),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -1162,6 +1166,24 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Dock primary while idle: go on to the next lift. Does not start rest
+     * (G-05). Start (the small control) is rest only.
+     */
+    fun startNextLift() {
+        val current = session.value ?: return
+        val advance = WorkoutAdvance.forSelection(
+            session = current,
+            selectedExerciseId = selectedExerciseId.value,
+            wantAnother = wantAnotherSet.value,
+            editing = editingSetId.value != null,
+        )
+        val next = advance.nextExerciseId ?: return
+        if (advance.showNext) {
+            advanceToNextLift(next)
+        }
+    }
+
     fun acknowledgeRestBatteryHint() {
         viewModelScope.launch {
             container.preferencesRepository.markRestBatteryHintShown()
@@ -1345,6 +1367,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val draft: ActiveExerciseDraft,
         val hint: ProgressionHint?,
         val wantAnother: Boolean,
+        val lastPerformance: ExerciseSessionSummary? = null,
     )
 
     private data class WorkoutExtras(

@@ -51,6 +51,11 @@ fun InstrumentChip(
      * is untouched — the in-workout lift switcher is the only caller that fills it.
      */
     leading: (@Composable () -> Unit)? = null,
+    /**
+     * History suggestion that is not the selected value. Volt border, no fill,
+     * so a recommended RPE is visible without committing the tap.
+     */
+    recommended: Boolean = false,
 ) {
     val view = LocalView.current
     // VoltDim, not solid Volt: the palette declares this token as "selected chips, active
@@ -69,7 +74,7 @@ fun InstrumentChip(
             .background(background)
             .border(
                 Metrics.hairline,
-                if (selected) Volt else Hairline,
+                if (selected || recommended) Volt else Hairline,
                 RoundedCornerShape(Radius.xs),
             )
             // selectable, not clickable: this replaced FilterChip everywhere in the app, and

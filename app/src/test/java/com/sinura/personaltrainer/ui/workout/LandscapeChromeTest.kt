@@ -13,6 +13,8 @@ class LandscapeChromeTest {
         assertFalse(LandscapeChrome.isLandscape(360, 640))
         assertTrue(LandscapeChrome.compactHeader(landscape = true))
         assertTrue(LandscapeChrome.hideIdleRest(landscape = true))
+        assertTrue(LandscapeChrome.hideSelectedLiftDock(landscape = true))
+        assertFalse(LandscapeChrome.hideSelectedLiftDock(landscape = false))
         assertTrue(LandscapeChrome.foldMicroRecIntoCard(landscape = true))
         assertFalse(LandscapeChrome.compactHeader(landscape = false))
         assertTrue(LandscapeChrome.logVisibleInLandscape(restRunning = false))
@@ -28,6 +30,7 @@ class LandscapeChromeTest {
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertTrue(workout.contains("LandscapeChrome.compactHeader"))
         assertTrue(workout.contains("LandscapeChrome.hideIdleRest"))
+        assertTrue(workout.contains("LandscapeChrome.hideSelectedLiftDock"))
         assertTrue(workout.contains("LandscapeChrome.foldMicroRecIntoCard"))
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
         assertTrue(card.contains("WorkoutLiftCardState"))
@@ -54,18 +57,26 @@ class LandscapeChromeTest {
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         val bottomBar = workout.indexOf("bottomBar")
         val restDock = workout.indexOf("RestDock(")
+        val selectedDock = workout.indexOf("SelectedLiftDock(")
         val logBar = workout.indexOf("LogBar(")
         val lazy = workout.indexOf("LazyColumn(")
         assertTrue("bottomBar missing", bottomBar >= 0)
         assertTrue("RestDock missing", restDock >= 0)
+        assertTrue("SelectedLiftDock missing", selectedDock >= 0)
         assertTrue("LogBar missing", logBar >= 0)
         assertTrue("LazyColumn missing", lazy >= 0)
         assertTrue("RestDock must live in bottomBar, not above the list", restDock > bottomBar)
+        assertTrue("SelectedLiftDock must sit in the lower dock", selectedDock > bottomBar)
+        assertTrue("SelectedLiftDock must sit above RestDock", selectedDock < restDock)
         assertTrue("LogBar must sit under RestDock in the lower dock", logBar > restDock)
         assertTrue("the lift list must not contain RestDock or LogBar", lazy > logBar)
         assertFalse(
             "RestDock must not be composed in the scrolling column",
             workout.substring(lazy).contains("RestDock("),
+        )
+        assertFalse(
+            "SelectedLiftDock must not be composed in the scrolling column",
+            workout.substring(lazy).contains("SelectedLiftDock("),
         )
     }
 

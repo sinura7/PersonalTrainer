@@ -4,6 +4,7 @@ import com.sinura.personaltrainer.domain.LoggedSetView
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
+import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
@@ -20,6 +21,7 @@ internal fun workoutMicroRec(
     nowMs: Long,
     todayEpochDay: Long,
     wantAnotherSet: Boolean = false,
+    historySets: List<ExerciseSetRecord> = emptyList(),
 ): SetMicroRec? {
     if (session == null) return null
     val exerciseId = session.resolveSelectedExerciseId(selectedExerciseId) ?: return null
@@ -55,6 +57,14 @@ internal fun workoutMicroRec(
             todayEpochDay = todayEpochDay,
             allowExtra = wantAnotherSet,
             rpeIntent = true,
+            historyWorking = historySets.map { set ->
+                LoggedSetView(
+                    weightKg = set.weightKg,
+                    reps = set.reps,
+                    rpe = set.rpe,
+                    isWarmup = false,
+                )
+            },
         ),
     )
 }

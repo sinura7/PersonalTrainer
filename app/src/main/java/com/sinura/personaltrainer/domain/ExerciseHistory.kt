@@ -223,6 +223,7 @@ object ExerciseHistoryBuilder {
                     weightKg = set.weightKg,
                     reps = set.reps,
                     completedAt = set.completedAt,
+                    rpe = set.rpe,
                 )
             }
 }

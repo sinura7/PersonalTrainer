@@ -43,10 +43,10 @@ import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
-import com.sinura.personaltrainer.ui.components.LeaveWorkoutDialog
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.RestDock
@@ -74,6 +74,9 @@ object WorkoutTestTags {
     const val NEXT = "workout-next"
     const val ADD_SET = "workout-add-set"
     const val LAST_TIME = "workout-last-time"
+    const val SELECTED_LIFT = "workout-selected-lift"
+    const val START_NEXT = "workout-start-next"
+    const val START_REST = "workout-start-rest"
     fun liftCard(exerciseId: String) = "workout-lift-card-$exerciseId"
     fun liftSets(exerciseId: String) = "workout-lift-sets-$exerciseId"
     fun liftRest(exerciseId: String) = "workout-lift-rest-$exerciseId"
@@ -101,7 +104,7 @@ fun ActiveWorkoutScreen(
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
     val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
-    var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var confirmRemoveLift by rememberSaveable { mutableStateOf(false) }
@@ -121,7 +124,6 @@ fun ActiveWorkoutScreen(
         )
     }
     val workingLogged = advance.workingLogged
-    val liftComplete = advance.liftComplete
     val nextExerciseId = advance.nextExerciseId
     val showNext = advance.showNext
     // Keyed on the session, not recomputed per frame: the header below it redraws every second
@@ -150,11 +152,13 @@ fun ActiveWorkoutScreen(
         }
     }
 
-    // One leave path: system back behaves exactly like the top-bar X. Previously back popped
-    // silently, skipping the notes flush in persistDraftForExit, so the two exits from the
-    // same screen did different things. Only armed while a session is actually loaded, so
-    // back still works normally on the loading and missing states.
-    BackHandler(enabled = state.session != null) { confirmLeave = true }
+    // X and system back go Home with the session still live. Finish is the
+    // explicit end (save as is / leave without saving). Both flush the draft.
+    fun keepAndExit() {
+        viewModel.persistDraftForExit()
+        onExit()
+    }
+    BackHandler(enabled = state.session != null) { keepAndExit() }
 
     // Always composed, unlike the bottom bar. An error raised while no lift is selected —
     // a failed create from the picker in an empty free workout — previously had no reader at
@@ -220,13 +224,10 @@ fun ActiveWorkoutScreen(
                 workingSets = session?.sets?.count { !it.isWarmup } ?: 0,
                 work = sessionWork,
                 unit = unit,
-                canFinish = session != null && session.sets.isNotEmpty(),
+                canFinish = session != null,
                 compact = LandscapeChrome.compactHeader(landscape),
-                onExit = { confirmLeave = true },
-                onFinish = {
-                    Haptics.commit(view)
-                    viewModel.finishWorkout()
-                },
+                onExit = { keepAndExit() },
+                onFinish = { confirmEnd = true },
             )
         },
         bottomBar = {
@@ -244,6 +245,16 @@ fun ActiveWorkoutScreen(
                         ),
                 ) {
                     if (showRest) {
+                        if (selected != null && !LandscapeChrome.hideSelectedLiftDock(landscape)) {
+                            SelectedLiftDock(
+                                lift = selected,
+                                workingLogged = workingLogged,
+                                unit = unit,
+                                restSeconds = selected.restSeconds.takeIf { it > 0 } ?: rest.totalSeconds,
+                                restRunning = rest.running,
+                                restRemainingSeconds = rest.remainingSeconds,
+                            )
+                        }
                         RestDock(
                             remainingSeconds = rest.remainingSeconds,
                             totalSeconds = rest.totalSeconds,
@@ -255,6 +266,7 @@ fun ActiveWorkoutScreen(
                             onDismissBatteryHint = viewModel::acknowledgeRestBatteryHint,
                             onSkip = viewModel::skipRest,
                             onStart = viewModel::startSelectedRest,
+                            onStartNext = viewModel::startNextLift,
                             onOpenRest = { session.id.let(onOpenRest) },
                         )
                     }
@@ -331,7 +343,7 @@ fun ActiveWorkoutScreen(
                             top = Metrics.space3,
                             bottom = Metrics.space7,
                         ),
-                        verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
                         personalRecord?.let { moment ->
                             item(key = "pr-moment") {
@@ -376,12 +388,18 @@ fun ActiveWorkoutScreen(
                                         draftWarmup = state.draft.isWarmup,
                                         draftRpe = state.draft.rpe,
                                         microRec = microRec.takeIf { isSelected },
+                                        recommendedRpe = microRec?.nextRpe.takeIf { isSelected },
                                         unit = unit,
                                         canEdit = logged.isEmpty(),
                                         showAddSet = isSelected &&
                                             WorkoutAdvance.cardOffersAnotherSet(logged, lift.targetSets),
                                         restRunning = isSelected && rest.running,
                                         restRemainingSeconds = rest.remainingSeconds,
+                                        restSeconds = if (isSelected) {
+                                            lift.restSeconds.takeIf { it > 0 } ?: rest.totalSeconds
+                                        } else {
+                                            lift.restSeconds
+                                        },
                                     ),
                                     events = WorkoutLiftCardEvents(
                                         onSelect = { viewModel.selectExercise(lift.exercise.id) },
@@ -448,21 +466,19 @@ fun ActiveWorkoutScreen(
         )
     }
 
-    if (confirmLeave) {
-        // X, system back, and Finish-disabled empty sessions all land here. Keep is the
-        // gym-floor leave; Discard still opens the named confirm below.
-        LeaveWorkoutDialog(
-            onKeepAndExit = {
-                confirmLeave = false
-                viewModel.persistDraftForExit()
-                onExit()
+    if (confirmEnd) {
+        EndWorkoutDialog(
+            loggedSets = session?.sets?.size ?: 0,
+            onSave = {
+                confirmEnd = false
+                Haptics.commit(view)
+                viewModel.finishWorkout()
             },
-            onStay = { confirmLeave = false },
             onDiscardInstead = {
-                confirmLeave = false
+                confirmEnd = false
                 confirmDiscard = true
             },
-            onDismiss = { confirmLeave = false },
+            onDismiss = { confirmEnd = false },
         )
     }
 
