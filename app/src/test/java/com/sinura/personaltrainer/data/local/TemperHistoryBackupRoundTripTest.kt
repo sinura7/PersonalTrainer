@@ -90,8 +90,8 @@ class TemperHistoryBackupRoundTripTest {
         val decoded = BackupJson.decode(json)
         assertTrue(
             BackupValidator.validate(
-                decoded,
-                local.authoredInventory(),
+                document = decoded,
+                localAuthored = local.authoredInventory(),
                 allowEmptyDestructiveRestore = true,
             ) is com.sinura.personaltrainer.data.backup.BackupValidation.Valid,
         )
@@ -171,11 +171,11 @@ class TemperHistoryBackupRoundTripTest {
 
     private suspend fun confirmEasyRun() {
         val now = JvmTime.resolveLocal(
-            CivilDateTime(CivilDate(2026, 8, 21), hour = 9, minute = 0),
+            CivilDateTime(date = CivilDate(2026, 8, 21), hour = 9, minute = 0),
             "Asia/Tokyo",
         )
         val morning = JvmTime.resolveLocal(
-            CivilDateTime(CivilDate(2026, 8, 20), hour = 7, minute = 0),
+            CivilDateTime(date = CivilDate(2026, 8, 20), hour = 7, minute = 0),
             "Asia/Tokyo",
         )
         val write = activities.confirm(
