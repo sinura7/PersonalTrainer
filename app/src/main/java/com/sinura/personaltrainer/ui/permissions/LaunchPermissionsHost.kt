@@ -87,6 +87,32 @@ fun LaunchPermissionsHost(
 
     if (step == LaunchPermissionStep.DONE) return
 
+    fun continueNotifications() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            skippedNotifications = true
+        }
+    }
+
+    fun continueExactAlarm() {
+        val intent = exactAlarmSettingsIntent(context.packageName)
+        if (intent != null) {
+            runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        }
+        skippedExact = true
+    }
+
+    fun continueBattery() {
+        runCatching {
+            context.startActivity(
+                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }
+        skippedBattery = true
+    }
+
     val title: String
     val body: String
     val onContinue: () -> Unit
@@ -94,36 +120,17 @@ fun LaunchPermissionsHost(
         LaunchPermissionStep.NOTIFICATIONS -> {
             title = LaunchPermissionCopy.NOTIFICATIONS_TITLE
             body = LaunchPermissionCopy.NOTIFICATIONS_BODY
-            onContinue = {
-                if (Build.VERSION.SDK_INT >= 33) {
-                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                } else {
-                    skippedNotifications = true
-                }
-            }
+            onContinue = ::continueNotifications
         }
         LaunchPermissionStep.EXACT_ALARM -> {
             title = LaunchPermissionCopy.EXACT_TITLE
             body = LaunchPermissionCopy.EXACT_BODY
-            onContinue = {
-                exactAlarmSettingsIntent(context.packageName)?.let { intent ->
-                    runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                }
-                skippedExact = true
-            }
+            onContinue = ::continueExactAlarm
         }
         LaunchPermissionStep.BATTERY -> {
             title = LaunchPermissionCopy.BATTERY_TITLE
             body = LaunchPermissionCopy.BATTERY_BODY
-            onContinue = {
-                runCatching {
-                    context.startActivity(
-                        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                    )
-                }
-                skippedBattery = true
-            }
+            onContinue = ::continueBattery
         }
         LaunchPermissionStep.DONE -> return
     }
