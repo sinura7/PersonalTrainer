@@ -15,19 +15,26 @@ import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
+import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
+import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.data.repository.ApplyPlanResult
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.reminder.WorkoutAlarmScheduler
 import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAlarmSettingsIntent
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import com.sinura.personaltrainer.util.toLocalDate
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
@@ -53,6 +60,8 @@ data class SettingsUiState(
     val bodyweightKg: Double? = null,
     val preferredDays: Set<Weekday> = emptySet(),
     val bodyweightCheckInWeekday: Weekday? = null,
+    val trainingAge: TrainingAge = TrainingAge.NEW,
+    val trainingPlace: TrainingPlace? = null,
     /**
      * Honest inexact copy + Settings tap. True only after rest is used or configured, and only
      * while the policy would take the best-effort path. Never says the fallback is reliable.
@@ -105,16 +114,20 @@ class SettingsViewModel @JvmOverloads constructor(
             combine(
                 container.preferencesRepository.restAlarmEligible,
                 container.restTimerController.exactAlarmAttempt,
-            ) { eligible, attempt ->
-                eligible && attempt == ExactAlarmAttempt.BEST_EFFORT
+                container.preferencesRepository.trainingAge,
+                container.preferencesRepository.trainingPlace,
+            ) { eligible, attempt, age, place ->
+                Triple(eligible && attempt == ExactAlarmAttempt.BEST_EFFORT, age, place)
             },
-        ) { coach, bodyweight, days, checkIn, offerAlarm ->
+        ) { coach, bodyweight, days, checkIn, extra ->
             SettingsUiState(
                 coach = coach,
                 bodyweightKg = bodyweight,
                 preferredDays = days,
                 bodyweightCheckInWeekday = checkIn,
-                offerExactAlarmAccess = offerAlarm,
+                offerExactAlarmAccess = extra.first,
+                trainingAge = extra.second,
+                trainingPlace = extra.third,
             )
         },
     ) { first, second ->
@@ -124,12 +137,34 @@ class SettingsViewModel @JvmOverloads constructor(
             preferredDays = second.preferredDays,
             bodyweightCheckInWeekday = second.bodyweightCheckInWeekday,
             offerExactAlarmAccess = second.offerExactAlarmAccess,
+            trainingAge = second.trainingAge,
+            trainingPlace = second.trainingPlace,
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = SettingsUiState(),
     )
+
+    val launchPermissionsAsked: StateFlow<Boolean> =
+        container.preferencesRepository.launchPermissionsAsked.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = false,
+        )
+
+    private val _generateNotice = MutableStateFlow<String?>(null)
+    val generateNotice: StateFlow<String?> = _generateNotice.asStateFlow()
+
+    fun markLaunchPermissionsAsked() {
+        viewModelScope.launch {
+            container.preferencesRepository.setLaunchPermissionsAsked(true)
+        }
+    }
+
+    fun dismissGenerateNotice() {
+        _generateNotice.value = null
+    }
 
     fun refreshAlarmCapability() {
         container.restTimerController.refreshAlarmCapability()
@@ -171,6 +206,7 @@ class SettingsViewModel @JvmOverloads constructor(
     fun setReminderOptOut(optOut: Boolean) {
         viewModelScope.launch {
             container.preferencesRepository.setReminderOptOut(optOut)
+            rebuildWorkoutAlarms()
         }
     }
 
@@ -180,6 +216,106 @@ class SettingsViewModel @JvmOverloads constructor(
                 container.preferencesRepository.setReminderQuietHours(startHour, endHour)
             }.onFailure { AppLog.w(TAG, "Saving reminder quiet hours failed", it) }
         }
+    }
+
+    fun setDayAlarm(weekday: Weekday, hour: Int, minute: Int) {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                container.preferencesRepository.setDayAlarm(weekday, hour, minute)
+                rebuildWorkoutAlarms()
+            }.onFailure { AppLog.w(TAG, "Saving the workout alarm failed", it) }
+        }
+    }
+
+    fun clearDayAlarm(weekday: Weekday) {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                container.preferencesRepository.clearDayAlarm(weekday)
+                rebuildWorkoutAlarms()
+            }.onFailure { AppLog.w(TAG, "Clearing the workout alarm failed", it) }
+        }
+    }
+
+    fun setPreferredDays(days: Set<Weekday>) {
+        viewModelScope.launch {
+            container.preferencesRepository.setPreferredDays(days)
+            if (days.isNotEmpty()) {
+                container.preferencesRepository.setTrainingDaysPerWeek(days.size)
+            }
+        }
+    }
+
+    fun togglePreferredDay(day: Weekday) {
+        viewModelScope.launch {
+            val current = container.preferencesRepository.preferredDays.first()
+            val next = if (day in current) current - day else current + day
+            container.preferencesRepository.setPreferredDays(next)
+            if (next.isNotEmpty()) {
+                container.preferencesRepository.setTrainingDaysPerWeek(next.size)
+            }
+        }
+    }
+
+    fun setTrainingAge(age: TrainingAge) {
+        viewModelScope.launch { container.preferencesRepository.setTrainingAge(age) }
+    }
+
+    fun setTrainingPlace(place: TrainingPlace) {
+        viewModelScope.launch {
+            container.preferencesRepository.setTrainingPlace(place)
+            container.preferencesRepository.setAvailableEquipment(
+                place.equipment.map { it.name }.toSet().let { names ->
+                    val gymFloor = TrainingPlace.GYM_FLOOR.map { it.name }.toSet()
+                    if (names == gymFloor) emptySet() else names
+                },
+            )
+        }
+    }
+
+    fun generateWeek() {
+        viewModelScope.launch {
+            runCatchingCancellable {
+                var catalog = container.exerciseRepository.observeAll().first()
+                if (catalog.isEmpty()) {
+                    container.dbMaintenance.seedCatalog()
+                    catalog = container.exerciseRepository.observeAll().first()
+                }
+                val answers = container.preferencesRepository.storedOnboardingAnswers()
+                val schedule = container.preferencesRepository.schedulePreferences.first()
+                val blueprint = RoutineGenerator.generate(
+                    answers,
+                    catalog,
+                    schedule.weekStart,
+                    schedule.splitStyle,
+                )
+                when (
+                    val result = container.onboardingApplier.apply(
+                        answers = answers,
+                        blueprint = blueprint,
+                        catalog = catalog,
+                        weekStart = schedule.weekStart,
+                        today = civilToday().toLocalDate(),
+                    )
+                ) {
+                    is ApplyPlanResult.Applied -> {
+                        container.plannerRepository.publishPinnedWeek(
+                            schedule.weekStart,
+                            todayEpochDay(),
+                        )
+                        _generateNotice.value = "Week generated"
+                    }
+                    is ApplyPlanResult.Failed -> _generateNotice.value = result.message
+                }
+            }.onFailure { thrown ->
+                AppLog.w(TAG, "Generating a week failed", thrown)
+                _generateNotice.value = "Could not generate a week. Try again."
+            }
+        }
+    }
+
+    private suspend fun rebuildWorkoutAlarms() {
+        val prefs = container.preferencesRepository.reminderPreferences.first()
+        WorkoutAlarmScheduler.rebuild(getApplication(), prefs, time)
     }
 
     fun setTrainingGoal(goal: TrainingGoal) {

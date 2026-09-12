@@ -43,7 +43,7 @@ class AccessibilityMatrixTest {
             AccessibilityMatrix.page("body").voltAction,
         )
         assertEquals(
-            "Settings is a tab. Back is gone. Weight and hours sit at the top. Reminders (opt-out and quiet hours) live here. Export is the page's Volt. Restore is never the gym act. Share diagnostics is quiet.",
+            "Settings is a tab. Back is gone. Weight and hours sit at the top. Reminders are per-day workout alarms. The week generator lives here. Export is the page's Volt. Restore is never the gym act. Share diagnostics is quiet.",
             AccessibilityMatrix.page("settings").talkBackNotes,
         )
         assertEquals(
@@ -52,11 +52,11 @@ class AccessibilityMatrixTest {
         )
         assertEquals("Add session", AccessibilityMatrix.page("plan-day").voltAction)
         assertEquals(
-            "Library, Add session, and Log or start cardio are named. Planned Start is Home. The sheet is not a second Volt. Routines start collapsed. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
+            "Library, Add session, and Log or start cardio are named. Planned Start is Home. The sheet is not a second Volt. Routines start collapsed behind Show routines. Generator lives on Settings. Settings is a tab, not a header gear. Reminders live on Settings.",
             AccessibilityMatrix.page("plan").talkBackNotes,
         )
         assertEquals(
-            "Settings is a tab. Home week strip picks the day. Planned rows open a start confirm, and a row skipped today still opens one. A day block is one button: title, order and count, then its state or Start on the foot; Skip and Up / Down sit inside it. The filled Volt is Start a workout. Leftovers confirm as Do it today and can Skip. Day blocks have no clocks; Up / Down rearranges them. Add sits under Today and asks just-today vs every this weekday. This week, Library, Goals and the ready-to-progress list stay off this screen.",
+            "Settings is a tab. Home week strip picks the day. Selected day is filled, not faint type. Planned rows open a start confirm, and a row skipped today still opens one. A day block is one button: title, order and count, then its state or Start on the foot; Skip and Up / Down sit inside it. The filled Volt is Start a workout. There is no Get started sheet. Day blocks have no clocks; Up / Down rearranges them. Add sits under Today and asks just-today vs every this weekday. This week, Library, Goals and the ready-to-progress list stay off this screen.",
             AccessibilityMatrix.page("home").talkBackNotes,
         )
     }

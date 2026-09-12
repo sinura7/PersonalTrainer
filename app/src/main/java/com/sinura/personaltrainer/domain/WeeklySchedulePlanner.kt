@@ -28,6 +28,7 @@ object WeeklySchedulePlanner {
         zoneId: String = time.defaultZoneId(),
         pinnedSlots: List<ScheduleSlot> = emptyList(),
         emphasis: TrainingEmphasis = TrainingEmphasis.BALANCED,
+        preferredDays: Set<Weekday> = emptySet(),
     ): WeeklySchedulePlan {
         val prefs = preferences.sanitized()
         val today = time.civilDate(nowMs, zoneId)
@@ -50,7 +51,11 @@ object WeeklySchedulePlanner {
         val finished = recentSessions.filter { it.isFinished }
         val thinHistory = !snapshot.hasAnyWorkingSets || finished.size < THIN_HISTORY_SESSIONS
         val resolved = resolveSplit(prefs, usableRoutines)
-        val trainIndices = trainingDayIndices(prefs.trainingDaysPerWeek)
+        val trainIndices = trainingOffsets(
+            count = prefs.trainingDaysPerWeek,
+            weekStart = prefs.weekStart,
+            preferredDays = preferredDays,
+        )
         val kinds = arrangeKinds(
             kinds = slotKinds(resolved, prefs.trainingDaysPerWeek, usableRoutines, emphasis),
             lastFocus = recentFocus(finished, nowMs),
@@ -90,6 +95,25 @@ object WeeklySchedulePlanner {
             thinHistory = thinHistory,
             summary = summary(thinHistory, resolved, prefs, snapshot),
         )
+    }
+
+    /**
+     * Days the lifter picked always win. Empty preferred days keep the
+     * default spacing so Suggest and generate still look alike.
+     */
+    internal fun trainingOffsets(
+        count: Int,
+        weekStart: Weekday,
+        preferredDays: Set<Weekday>,
+    ): List<Int> {
+        val spaced = trainingDayIndices(count)
+        if (preferredDays.isEmpty()) return spaced
+        val week = (0 until Weekday.DAYS_IN_WEEK).map { offset -> weekStart.plus(offset.toLong()) }
+        val picked = week.mapIndexedNotNull { index, day ->
+            if (day in preferredDays) index else null
+        }
+        return (picked + spaced.filterNot { it in picked })
+            .take(count.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS))
     }
 
     internal fun trainingDayIndices(count: Int): List<Int> = when (count.coerceIn(SchedulePreferences.MIN_DAYS, SchedulePreferences.MAX_DAYS)) {

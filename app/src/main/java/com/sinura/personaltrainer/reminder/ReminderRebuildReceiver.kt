@@ -10,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 /**
  * Rebuilds future WorkManager reminders after reboot or a zone change.
@@ -26,6 +27,8 @@ class ReminderRebuildReceiver : BroadcastReceiver() {
         scope.launch {
             try {
                 app.container.plannerRepository.rebuildReminders()
+                val reminderPrefs = app.container.preferencesRepository.reminderPreferences.first()
+                WorkoutAlarmScheduler.rebuild(app, reminderPrefs, app.container.time)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {

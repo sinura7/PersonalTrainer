@@ -51,12 +51,7 @@ internal fun CoachingSection(
     onEmphasis: (TrainingEmphasis) -> Unit,
     onToggleEquipment: (EquipmentType) -> Unit,
 ) {
-    SettingsGroup(
-        title = "Coaching",
-        caption = "Emphasis changes which days Suggest fills. Athletic and Resilience change the lifts in " +
-            "the next week you generate. Neither rewrites days you already pinned. Turning " +
-            "equipment off stops generated weeks and recs from naming lifts you cannot do.",
-    ) {
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
         GroupedList(modifier = Modifier.selectableGroup()) {
             TrainingGoal.entries.forEachIndexed { index, goal ->
                 if (index > 0) HairlineDivider()

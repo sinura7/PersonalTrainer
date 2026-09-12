@@ -34,7 +34,7 @@ object AccessibilityMatrix {
             title = "Home",
             states = requiredStates,
             voltAction = "Start a workout (freestyle). Planned rows confirm, then start.",
-            talkBackNotes = "Settings is a tab. Home week strip picks the day. Planned rows open a start confirm, and a row skipped today still opens one. A day block is one button: title, order and count, then its state or Start on the foot; Skip and Up / Down sit inside it. The filled Volt is Start a workout. Leftovers confirm as Do it today and can Skip. Day blocks have no clocks; Up / Down rearranges them. Add sits under Today and asks just-today vs every this weekday. This week, Library, Goals and the ready-to-progress list stay off this screen.",
+            talkBackNotes = "Settings is a tab. Home week strip picks the day. Selected day is filled, not faint type. Planned rows open a start confirm, and a row skipped today still opens one. A day block is one button: title, order and count, then its state or Start on the foot; Skip and Up / Down sit inside it. The filled Volt is Start a workout. There is no Get started sheet. Day blocks have no clocks; Up / Down rearranges them. Add sits under Today and asks just-today vs every this weekday. This week, Library, Goals and the ready-to-progress list stay off this screen.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -49,8 +49,8 @@ object AccessibilityMatrix {
             id = "plan",
             title = "Plan",
             states = requiredStates,
-            voltAction = "Add session — recovery stays quiet unless confirming a proposed week",
-            talkBackNotes = "Library, Add session, and Log or start cardio are named. Planned Start is Home. The sheet is not a second Volt. Routines start collapsed. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
+            voltAction = "Add session",
+            talkBackNotes = "Library, Add session, and Log or start cardio are named. Planned Start is Home. The sheet is not a second Volt. Routines start collapsed behind Show routines. Generator lives on Settings. Settings is a tab, not a header gear. Reminders live on Settings.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -82,7 +82,7 @@ object AccessibilityMatrix {
             title = "Settings",
             states = requiredStates,
             voltAction = "Export to file",
-            talkBackNotes = "Settings is a tab. Back is gone. Weight and hours sit at the top. Reminders (opt-out and quiet hours) live here. Export is the page's Volt. Restore is never the gym act. Share diagnostics is quiet.",
+            talkBackNotes = "Settings is a tab. Back is gone. Weight and hours sit at the top. Reminders are per-day workout alarms. The week generator lives here. Export is the page's Volt. Restore is never the gym act. Share diagnostics is quiet.",
             automatedEvidence = true,
         ),
         PagePass(

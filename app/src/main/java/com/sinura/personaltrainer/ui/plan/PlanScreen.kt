@@ -42,7 +42,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.LighterWeek
-import com.sinura.personaltrainer.domain.MissedWorkCopy
 import com.sinura.personaltrainer.domain.OneFilledVolt
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
@@ -51,7 +50,6 @@ import com.sinura.personaltrainer.domain.StartOptionsCopy
 import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
-import com.sinura.personaltrainer.domain.WeeklySchedulePlanner
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -263,7 +261,6 @@ private fun BlockReviewPanel(review: BlockReview) {
  */
 @Composable
 fun PlanScreen(
-    onCreateRoutine: () -> Unit,
     onOpenRoutine: (String) -> Unit,
     onOpenLibrary: () -> Unit,
     onOpenDay: (Long, Boolean) -> Unit,
@@ -390,21 +387,10 @@ fun PlanScreen(
             }
             item(key = "summary") {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    if (state.lighterWeek) {
-                        Text(
-                            LighterWeek.CAPTION,
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
-                        )
-                    }
                     Text(
                         WeekBoard.summary(cells),
                         style = InstrumentType.caption,
                         color = TextTertiary,
-                    )
-                    PlanLighterChip(
-                        enabled = state.lighterWeek,
-                        onToggle = viewModel::setLighterWeek,
                     )
                 }
             }
@@ -421,6 +407,7 @@ fun PlanScreen(
                     PrimaryGymButton(
                         text = PlanDayCopy.ADD_SESSION,
                         onClick = { onOpenDay(selectedEpochDay, true) },
+                        height = Metrics.touchMin,
                         modifier = Modifier
                             .testTag(PlanTags.ADD_SESSION)
                             .semantics { contentDescription = PlanDayCopy.ADD_SESSION },
@@ -447,28 +434,6 @@ fun PlanScreen(
                 )
             }
 
-            item(key = "commands") {
-                val hasOpenDay = week?.hasOpenTrainingSlot(
-                    todayEpochDay = today,
-                    trainingDayIndices = WeeklySchedulePlanner.trainingDayIndices(
-                        state.preferences.trainingDaysPerWeek,
-                    ),
-                ) == true
-                val hasPins = week?.days?.any { !it.isRest } == true
-                PlanRecoveryCommands(
-                    hasPins = hasPins,
-                    hasRoutines = state.routines.isNotEmpty(),
-                    hasOpenDay = hasOpenDay,
-                    hasProposals = hasProposals,
-                    quiet = MissedWorkCopy.suppressRecoveryVolt(state.missedWorkPrompt) ||
-                        addSessionVolt,
-                    onReplay = viewModel::replayStoredAnswers,
-                    onSuggest = viewModel::suggestFills,
-                    onAccept = viewModel::acceptFills,
-                    onDismiss = viewModel::dismissFills,
-                )
-            }
-
             if (state.routines.isEmpty()) {
                 item(key = "routines-empty") {
                     EmptyState(
@@ -476,7 +441,7 @@ fun PlanScreen(
                         title = "Build your first plan",
                         body = StartOptionsCopy.PLAN_EMPTY_BODY,
                         actionLabel = "Create a routine",
-                        onAction = onCreateRoutine,
+                        onAction = { viewModel.buildDay(selectedEpochDay) },
                         compact = OneFilledVolt.PLAN_EMPTY_COMPACT,
                     )
                 }
@@ -484,7 +449,7 @@ fun PlanScreen(
                 item(key = "routines-header") {
                     val count = state.routines.size
                     InstrumentRow(
-                        title = "Routines",
+                        title = if (routinesOpen) "Hide routines" else "Show routines",
                         subtitle = if (routinesOpen) {
                             "Long-press a routine to delete it."
                         } else if (count == 1) {

@@ -276,13 +276,19 @@ class PlanViewModel @JvmOverloads constructor(
 
     fun pinRoutine(epochDay: Long, routineId: String, hour: Int = SlotRuleImport.DEFAULT_STRENGTH_HOUR) {
         write("Could not pin that routine. Try again.") {
+            val clamped = SlotRuleImport.hourOnDay(
+                preferredHour = hour,
+                epochDay = epochDay,
+                todayEpochDay = todayEpochDay(),
+                nowMinutes = currentMinutesOfDay(),
+            )
             container.scheduleRepository.pin(
                 routineId = routineId,
                 focusKind = null,
                 anchorDay = dayOfWeekFor(epochDay),
             )
             refreshPlanner()
-            applyHourToRoutine(epochDay, routineId, hour)
+            applyHourToRoutine(epochDay, routineId, clamped)
         }
     }
 
@@ -326,13 +332,19 @@ class PlanViewModel @JvmOverloads constructor(
                 routine.name.equals(name, ignoreCase = true) && routine.id !in pinnedIds
             }
             val routineId = reusable?.id ?: container.routineRepository.create(name).id
+            val clamped = SlotRuleImport.hourOnDay(
+                preferredHour = hour,
+                epochDay = epochDay,
+                todayEpochDay = todayEpochDay(),
+                nowMinutes = currentMinutesOfDay(),
+            )
             container.scheduleRepository.pin(
                 routineId = routineId,
                 focusKind = null,
                 anchorDay = weekday,
             )
             refreshPlanner()
-            applyHourToRoutine(epochDay, routineId, hour)
+            applyHourToRoutine(epochDay, routineId, clamped)
             _navigateToEditor.value = routineId
         }
     }
@@ -355,6 +367,7 @@ class PlanViewModel @JvmOverloads constructor(
             }
             val preferences = container.preferencesRepository.schedulePreferences.first()
             val emphasis = container.preferencesRepository.coachPreferences.first().emphasis
+            val preferredDays = container.preferencesRepository.preferredDays.first()
             val slots = runCatchingCancellable { container.scheduleRepository.slots() }
                 .getOrElse { thrown ->
                     AppLog.w(TAG, "Reading the pinned slots failed", thrown)
@@ -371,6 +384,7 @@ class PlanViewModel @JvmOverloads constructor(
                     time = time,
                     pinnedSlots = slots,
                     emphasis = emphasis,
+                    preferredDays = preferredDays,
                 )
             }
             // Only the days the planner invented. Echoed pins carry a slotId and are already

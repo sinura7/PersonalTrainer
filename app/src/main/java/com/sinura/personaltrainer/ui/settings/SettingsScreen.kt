@@ -28,6 +28,8 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.components.GymNoticeBanner
+import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.reminders.ReminderPrefsSection
 import com.sinura.personaltrainer.ui.reminders.openAppNotificationSettings
 import com.sinura.personaltrainer.ui.reminders.rememberNotificationsEnabled
@@ -50,6 +52,9 @@ fun SettingsScreen(
     val bodyweightKg = prefs.bodyweightKg
     val preferredDays = prefs.preferredDays
     val checkInWeekday = prefs.bodyweightCheckInWeekday
+    val trainingAge = prefs.trainingAge
+    val trainingPlace = prefs.trainingPlace
+    val generateNotice by viewModel.generateNotice.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context.findActivity()
 
@@ -156,13 +161,44 @@ fun SettingsScreen(
                     onSelectClock = viewModel::setClockFormat,
                 )
             }
-            item(key = "schedule") {
-                SchedulePrefsSection(
-                    preferences = schedulePrefs,
-                    onDays = viewModel::setTrainingDays,
-                    onSplit = viewModel::setSplitStyle,
-                    onWeekStart = viewModel::setWeekStart,
-                )
+            item(key = "generator") {
+                SettingsGroup(
+                    title = "Week generator",
+                    caption = "Days, split, coaching and equipment. Generate writes a new week. " +
+                        "Days you already pinned stay.",
+                ) {
+                    SchedulePrefsSection(
+                        preferences = schedulePrefs,
+                        preferredDays = preferredDays,
+                        trainingAge = trainingAge,
+                        trainingPlace = trainingPlace,
+                        onDays = viewModel::setTrainingDays,
+                        onSplit = viewModel::setSplitStyle,
+                        onWeekStart = viewModel::setWeekStart,
+                        onTogglePreferredDay = viewModel::togglePreferredDay,
+                        onTrainingAge = viewModel::setTrainingAge,
+                        onTrainingPlace = viewModel::setTrainingPlace,
+                    )
+                    CoachingSection(
+                        preferences = coachPrefs,
+                        onGoal = viewModel::setTrainingGoal,
+                        onEmphasis = viewModel::setTrainingEmphasis,
+                        onToggleEquipment = viewModel::toggleEquipment,
+                    )
+                    generateNotice?.let { notice ->
+                        GymNoticeBanner(
+                            title = notice,
+                            body = "Home and Plan show the new week.",
+                            actionLabel = "OK",
+                            onAction = viewModel::dismissGenerateNotice,
+                        )
+                    }
+                    PrimaryGymButton(
+                        text = "Generate a week",
+                        onClick = viewModel::generateWeek,
+                        height = Metrics.touchMin,
+                    )
+                }
             }
             item(key = "reminders") {
                 ReminderPrefsSection(
@@ -171,17 +207,11 @@ fun SettingsScreen(
                     notificationsEnabled = rememberNotificationsEnabled(),
                     onOptOut = viewModel::setReminderOptOut,
                     onQuietHours = viewModel::setReminderQuietHours,
+                    onSetDayAlarm = viewModel::setDayAlarm,
+                    onClearDayAlarm = viewModel::clearDayAlarm,
                     onOpenNotificationSettings = {
                         openAppNotificationSettings(context)
                     },
-                )
-            }
-            item(key = "coaching") {
-                CoachingSection(
-                    preferences = coachPrefs,
-                    onGoal = viewModel::setTrainingGoal,
-                    onEmphasis = viewModel::setTrainingEmphasis,
-                    onToggleEquipment = viewModel::toggleEquipment,
                 )
             }
             item(key = "bodyweight") {

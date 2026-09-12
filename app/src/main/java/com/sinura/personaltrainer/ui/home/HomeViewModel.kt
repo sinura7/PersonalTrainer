@@ -60,7 +60,7 @@ data class HomeUiState(
     val error: String? = null,
     val missedWorkPrompt: Boolean = false,
     val overdueCount: Int = 0,
-    /** False until a plan or custom week is accepted. Home shows the get-started sheet. */
+    /** False until a plan or custom week is accepted. Home stays quiet, not a sheet. */
     val setupComplete: Boolean = true,
     val bodyweightCheckInDue: Boolean = false,
     val latestBodyweightKg: Double? = null,

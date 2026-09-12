@@ -8,11 +8,16 @@ import org.junit.Test
 class ReminderCopyTest {
     @Test
     fun quietHoursLineUsesStoredHours() {
-        assertEquals("Quiet hours 22:00–07:00", ReminderCopy.quietHoursLine(22, 7))
-        assertEquals("21:00", ReminderCopy.hourLabel(21))
+        assertEquals(
+            "Quiet hours 22:00–07:00",
+            ReminderCopy.quietHoursLine(22, 7, ClockFormat.TWENTY_FOUR),
+        )
+        assertEquals("10 PM", ReminderCopy.hourLabel(22, ClockFormat.TWELVE))
         assertTrue(ReminderCopy.startChoices(22).contains(22))
         assertTrue(ReminderCopy.endChoices(7).contains(7))
         assertTrue(ReminderCopy.startChoices(19).contains(19))
+        assertEquals(7, ReminderCopy.toHour24(7, pm = false))
+        assertEquals(19, ReminderCopy.toHour24(7, pm = true))
     }
 
     @Test

@@ -58,8 +58,6 @@ fun HomeScreen(
     onOpenRoutine: (String) -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
-    onGenerateSchedule: () -> Unit = {},
-    onBuildWeek: () -> Unit = {},
     pendingOccurrenceStartId: String? = null,
     onPendingOccurrenceConsumed: () -> Unit = {},
     pendingOccurrenceReviewId: String? = null,
@@ -104,8 +102,6 @@ fun HomeScreen(
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val sessionLive = state.sessionLive
-    var starterDismissed by rememberSaveable { mutableStateOf(false) }
-    val showStarter = !state.setupComplete && !starterDismissed && !sessionLive
     var weighingIn by rememberSaveable { mutableStateOf(false) }
 
     // Starting a planned day while another session is live is a question, not something the
@@ -138,24 +134,6 @@ fun HomeScreen(
                 viewModel.recordBodyweight(it)
             },
             onDismiss = { weighingIn = false },
-        )
-    }
-
-    if (showStarter) {
-        GetStartedSheet(
-            onGenerate = {
-                starterDismissed = true
-                onGenerateSchedule()
-            },
-            onBuild = {
-                starterDismissed = true
-                onBuildWeek()
-            },
-            onWorkout = {
-                starterDismissed = true
-                viewModel.startFreeWorkout()
-            },
-            onDismiss = { starterDismissed = true },
         )
     }
 
@@ -365,21 +343,11 @@ fun HomeScreen(
                         routines = state.routines,
                         quietStart = state.missedWorkPrompt,
                         setupComplete = state.setupComplete,
-                        offerSetupActions = !showStarter,
-                        onGenerateSchedule = onGenerateSchedule,
-                        onBuildWeek = onBuildWeek,
-                        onSuggestWeek = {
-                            viewModel.requestWeekSuggestion()
-                            onOpenPlan()
-                        },
-                        onReplayAnswers = {
-                            viewModel.requestAnswerReplay()
-                            onOpenPlan()
-                        },
                         onPrimary = {
                             leftoverDay?.takeUnless { it.isRest }?.let(viewModel::startSuggestedDay)
                         },
                         onStartFree = { viewModel.startFreeWorkout() },
+                        onOpenPlan = onOpenPlan,
                     )
                 }
             }
@@ -450,11 +418,6 @@ internal fun HomeMasthead(
 object HomeTags {
     const val START = "home-start"
     const val FREE = "home-free-start"
-    const val REPLAY = "home-replay"
-    const val GET_STARTED = "home-get-started"
-    const val GENERATE = "home-generate-schedule"
-    const val BUILD_WEEK = "home-build-week"
-    const val STARTER_WORKOUT = "home-starter-workout"
     const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"
     const val STILL_OPEN = "home-still-open"
     const val ADD = "home-add"

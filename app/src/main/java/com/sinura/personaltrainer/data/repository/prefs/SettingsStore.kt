@@ -102,6 +102,8 @@ internal val REST_BATTERY_HINT = booleanPreferencesKey("rest_battery_hint_shown"
 internal val REMINDER_OPT_OUT = booleanPreferencesKey("reminder_opt_out")
 internal val REMINDER_QUIET_START = intPreferencesKey("reminder_quiet_start_hour")
 internal val REMINDER_QUIET_END = intPreferencesKey("reminder_quiet_end_hour")
+internal val REMINDER_DAY_ALARMS = stringSetPreferencesKey("reminder_day_alarms")
+internal val LAUNCH_PERMISSIONS_ASKED = booleanPreferencesKey("launch_permissions_asked")
 internal val PENDING_OCCURRENCE_ID = stringPreferencesKey("pending_occurrence_id")
 
 internal val DRIVE_ACCOUNT = stringPreferencesKey("drive_account_email")
