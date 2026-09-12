@@ -550,7 +550,7 @@ class SettingsViewModelTest {
     @Test
     fun dayAlarmPersistsPerWeekday() = runBlocking {
         deps = FakeAppDependencies(
-            ApplicationProvider.getApplicationContext(),
+            context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -569,7 +569,7 @@ class SettingsViewModelTest {
     @Test
     fun launchPermissionsStayAskedAfterASecondSession() = runBlocking {
         deps = FakeAppDependencies(
-            ApplicationProvider.getApplicationContext(),
+            context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
         viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
@@ -585,7 +585,7 @@ class SettingsViewModelTest {
     @Test
     fun generateWeekReadsEquipmentFromSettings() = runBlocking {
         deps = FakeAppDependencies(
-            ApplicationProvider.getApplicationContext(),
+            context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
         deps.dbMaintenance.seedCatalog()
@@ -614,7 +614,7 @@ class SettingsViewModelTest {
     @Test
     fun generateWeekReadsCoachingGoalFromSettings() = runBlocking {
         deps = FakeAppDependencies(
-            ApplicationProvider.getApplicationContext(),
+            context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
         )
         deps.dbMaintenance.seedCatalog()

@@ -72,8 +72,8 @@ class SaturdayAssignmentTest {
             .toInstant()
             .toEpochMilli()
         deps = FakeAppDependencies(
-            ApplicationProvider.getApplicationContext(),
-            MutableStateFlow(TrainingInsights()),
+            context = ApplicationProvider.getApplicationContext(),
+            insights = MutableStateFlow(TrainingInsights()),
             scheduler = dispatcher,
             time = FrozenTime(frozenMs, "UTC"),
         )

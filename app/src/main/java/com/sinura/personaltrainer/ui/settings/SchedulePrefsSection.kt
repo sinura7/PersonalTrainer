@@ -43,7 +43,7 @@ internal fun SchedulePrefsSection(
         GymCard {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-                    GymSectionHeader("Training weekdays", compact = true)
+                    GymSectionHeader(title = "Training weekdays", compact = true)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                         Weekday.entries.forEach { day ->
                             InstrumentChip(
@@ -55,7 +55,7 @@ internal fun SchedulePrefsSection(
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-                    GymSectionHeader("Training age", compact = true)
+                    GymSectionHeader(title = "Training age", compact = true)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                         TrainingAge.entries.forEach { age ->
                             InstrumentChip(
@@ -67,7 +67,7 @@ internal fun SchedulePrefsSection(
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-                    GymSectionHeader("Where you train", compact = true)
+                    GymSectionHeader(title = "Where you train", compact = true)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                         TrainingPlace.entries.forEach { place ->
                             InstrumentChip(
