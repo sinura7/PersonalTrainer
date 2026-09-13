@@ -17,7 +17,7 @@ class DebugUpdatePolicyTest {
         val activity = read("app/src/main/java/com/sinura/personaltrainer/MainActivity.kt")
         assertTrue(activity.contains("debugUpdate?.onForeground()"))
         val settings = read("app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt")
-        assertTrue(settings.contains("BuildConfig.DEBUG && updateUi.showBanner"))
+        assertTrue(settings.contains("BuildConfig.DEBUG && notice.showBanner"))
         val home = read("app/src/main/java/com/sinura/personaltrainer/ui/home/HomeScreen.kt")
         assertTrue(home.contains("DebugUpdateBanner"))
         assertFalse(home.contains("Get started"))

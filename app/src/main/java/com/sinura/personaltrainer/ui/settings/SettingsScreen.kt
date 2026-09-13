@@ -67,7 +67,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val activity = context.findActivity()
     val debugUpdate = rememberDebugUpdatePort()
-    val updateUi by debugUpdate.ui.collectAsStateWithLifecycle()
+    val notice by debugUpdate.ui.collectAsStateWithLifecycle()
     var page by rememberSaveable { mutableStateOf(SettingsPage.HOME) }
 
     BackHandler(enabled = page != SettingsPage.HOME) {
@@ -161,7 +161,7 @@ fun SettingsScreen(
             SettingsPage.HOME -> {
                 Column(modifier = Modifier.fillMaxSize()) {
                     SettingsHeader()
-                    if (BuildConfig.DEBUG && updateUi.showBanner) {
+                    if (BuildConfig.DEBUG && notice.showBanner) {
                         DebugUpdateBanner(
                             onOpen = { debugUpdate.openOffer(context) },
                             onDismiss = debugUpdate::dismissBanner,
@@ -191,9 +191,7 @@ fun SettingsScreen(
                         ),
                         onOpen = { page = it },
                         updateSummary = if (BuildConfig.DEBUG) {
-                            updateUi.offer?.let { offer ->
-                                DebugUpdateCopy.settingsSummary(offer.versionCode)
-                            }
+                            notice.offer?.let { DebugUpdateCopy.settingsSummary(it.versionCode) }
                         } else {
                             null
                         },
