@@ -24,6 +24,9 @@ object TargetStepper {
     fun nextRestSeconds(current: Int, direction: Int): Int =
         (current + direction * REST_STEP_SECONDS).coerceAtLeast(0)
 
+    fun nextHoldSeconds(current: Int, direction: Int): Int =
+        HoldWork.nextSeconds(current, direction)
+
     /**
      * The kilograms to stage from a well. Zero is "no target", the same answer a cleared
      * box has always given ([TargetEntry.typedWeightKg]).

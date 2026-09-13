@@ -33,4 +33,5 @@ data class SetLogEntity(
     val rpe: Int?,
     val isWarmup: Boolean,
     val completedAt: Long,
+    val durationSeconds: Int? = null,
 )

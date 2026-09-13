@@ -12,6 +12,8 @@ data class FilledSessionLift(
     val targetWeightKg: Double?,
     val restSeconds: Int,
     val sets: List<SetLog>,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 ) {
     val workingLogged: Int get() = sets.count { !it.isWarmup }
 
@@ -22,5 +24,6 @@ data class FilledSessionLift(
     val hasPrescription: Boolean
         get() = targetSets > 0 ||
             restSeconds > 0 ||
+            targetSeconds != null ||
             (targetWeightKg != null && targetWeightKg > 0.0)
 }

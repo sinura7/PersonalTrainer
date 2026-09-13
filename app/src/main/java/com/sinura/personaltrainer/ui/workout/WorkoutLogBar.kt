@@ -67,6 +67,8 @@ internal fun LogBar(
     onNext: () -> Unit,
     onCancelEdit: () -> Unit,
     onApplyMicroRec: () -> Unit,
+    hold: Boolean = false,
+    holdRunning: Boolean = false,
 ) {
     PinnedDock(
         prelude = {
@@ -100,6 +102,8 @@ internal fun LogBar(
                     next = showNext,
                     warmup = warmup,
                     draftLabel = draftLabel,
+                    hold = hold,
+                    holdRunning = holdRunning,
                 ),
                 onClick = if (nextAct) onNext else onLog,
                 enabled = !logging,

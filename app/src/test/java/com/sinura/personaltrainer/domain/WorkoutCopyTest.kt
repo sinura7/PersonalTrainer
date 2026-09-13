@@ -81,4 +81,18 @@ class WorkoutCopyTest {
             ),
         )
     }
+
+    @Test
+    fun aHoldTargetReadsAsSeconds() {
+        assertEquals(
+            "Set 1 of 2 · target 2 × 20–40s",
+            WorkoutCopy.setProgress(
+                workingLogged = 0,
+                targetSets = 2,
+                targetReps = 1,
+                targetSeconds = 20,
+                targetSecondsMax = 40,
+            ),
+        )
+    }
 }

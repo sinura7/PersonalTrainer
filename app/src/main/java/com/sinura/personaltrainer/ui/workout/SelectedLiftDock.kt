@@ -58,6 +58,8 @@ internal fun SelectedLiftDock(
         targetSets = lift.targetSets,
         targetReps = lift.targetReps,
         targetWeightLabel = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit),
+        targetSeconds = lift.targetSeconds,
+        targetSecondsMax = lift.targetSecondsMax,
     )
     val spoken = NextLiftCopy.spoken(
         name = lift.exercise.name,

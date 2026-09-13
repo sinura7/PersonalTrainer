@@ -131,4 +131,31 @@ class LogBarCopyTest {
         assertFalse(working, working.contains(LogBarCopy.LOG_WARMUP))
         assertFalse(warmup, warmup.startsWith(LogBarCopy.LOG_SET))
     }
+
+    @Test
+    fun aHoldSaysStartThenLogHold() {
+        assertEquals(
+            "Start hold · 30s",
+            LogBarCopy.commit(
+                editing = false,
+                next = false,
+                warmup = false,
+                draftLabel = "30s",
+                hold = true,
+            ),
+        )
+        assertEquals(
+            "Log hold · 30s",
+            LogBarCopy.commit(
+                editing = false,
+                next = false,
+                warmup = false,
+                draftLabel = "30s",
+                hold = true,
+                holdRunning = true,
+            ),
+        )
+        assertEquals("Start hold", LogBarCopy.START_HOLD)
+        assertEquals("Log hold", LogBarCopy.LOG_HOLD)
+    }
 }

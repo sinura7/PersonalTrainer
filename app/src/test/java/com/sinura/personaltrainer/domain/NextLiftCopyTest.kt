@@ -27,4 +27,18 @@ class NextLiftCopyTest {
         assertTrue(spoken, spoken.contains("Rest 2:00"))
         assertTrue(spoken, !spoken.contains("Sets Set"))
     }
+
+    @Test
+    fun aHoldPlannedWorkReadsAsSeconds() {
+        assertEquals(
+            "Set 1 of 2 · target 2 × 30s",
+            NextLiftCopy.plannedWork(
+                workingLogged = 0,
+                targetSets = 2,
+                targetReps = 1,
+                targetWeightLabel = null,
+                targetSeconds = 30,
+            ),
+        )
+    }
 }

@@ -94,4 +94,28 @@ class SetLogRulesTest {
         }
     }
 
+    @Test
+    fun aHoldWithoutSecondsIsRefusedEvenIfRepsSayOne() {
+        assertEquals(
+            SetLogRules.INVALID_HOLD,
+            SetLogRules.validate(
+                weightKg = 0.0,
+                reps = 1,
+                isWarmup = false,
+                loadType = LoadType.BODYWEIGHT,
+                durationSeconds = null,
+                isHold = true,
+            ),
+        )
+        assertNull(
+            SetLogRules.validate(
+                weightKg = 0.0,
+                reps = 0,
+                isWarmup = false,
+                loadType = LoadType.BODYWEIGHT,
+                durationSeconds = 1,
+                isHold = true,
+            ),
+        )
+    }
 }

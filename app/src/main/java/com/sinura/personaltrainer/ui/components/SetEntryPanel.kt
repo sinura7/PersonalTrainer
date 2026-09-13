@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.LoadClass
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.PlateMath
 import com.sinura.personaltrainer.domain.SetCopy
@@ -77,8 +78,33 @@ fun SetEntryPanel(
     loadClass: LoadClass = LoadClass.LOADED,
     /** Barbell only. A stack or a dumbbell has no Olympic bar to read out. */
     plated: Boolean = false,
+    hold: Boolean = false,
+    durationSeconds: Int? = null,
+    holdRunning: Boolean = false,
+    remainingSeconds: Int = 0,
+    onSecondsAdjust: (Int) -> Unit = {},
+    onSecondsChange: (Int) -> Unit = {},
 ) {
     val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
+    val timeSeconds = if (holdRunning) remainingSeconds else durationSeconds ?: HoldWork.DEFAULT_SECONDS
+    val workWell: @Composable (Modifier) -> Unit = { wellModifier ->
+        if (hold) {
+            TimeStepper(
+                value = timeSeconds,
+                running = holdRunning,
+                onAdjust = onSecondsAdjust,
+                onSecondsChange = onSecondsChange,
+                modifier = wellModifier,
+            )
+        } else {
+            RepsStepper(
+                value = reps,
+                onAdjust = onRepsAdjust,
+                onRepsChange = onRepsChange,
+                modifier = wellModifier,
+            )
+        }
+    }
     if (stack) {
         Column(
             modifier = modifier.fillMaxWidth(),
@@ -94,12 +120,7 @@ fun SetEntryPanel(
                     plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
                 )
             }
-            RepsStepper(
-                value = reps,
-                onAdjust = onRepsAdjust,
-                onRepsChange = onRepsChange,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            workWell(Modifier.fillMaxWidth())
         }
     } else {
         Row(
@@ -116,11 +137,9 @@ fun SetEntryPanel(
                     plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
                 )
             }
-            RepsStepper(
-                value = reps,
-                onAdjust = onRepsAdjust,
-                onRepsChange = onRepsChange,
-                modifier = Modifier.weight(1f),
+            workWell(
+                if (loadClass.weightMeaning != WeightMeaning.NONE) Modifier.weight(1f)
+                else Modifier.fillMaxWidth(),
             )
         }
     }
@@ -212,6 +231,44 @@ fun RepsStepper(
             // opened; if that well had moved by the time Confirm was pressed, the delta
             // landed somewhere else entirely.
             onConfirm = { onRepsChange(it) },
+            onDismiss = { typing = false },
+        )
+    }
+}
+
+@Composable
+fun TimeStepper(
+    value: Int,
+    onAdjust: (Int) -> Unit,
+    onSecondsChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    running: Boolean = false,
+) {
+    var typing by rememberSaveable { mutableStateOf(false) }
+    val shown = value.coerceAtLeast(0)
+
+    NumeralWell(
+        label = if (running) "hold" else "time",
+        value = HoldWork.clock(shown),
+        unit = null,
+        onType = { if (!running) typing = true },
+        typeLabel = "Type hold seconds",
+        decrementLabel = "−${HoldWork.STEP_SECONDS}s",
+        incrementLabel = "+${HoldWork.STEP_SECONDS}s",
+        onDecrement = { if (!running) onAdjust(-1) },
+        onIncrement = { if (!running) onAdjust(1) },
+        modifier = modifier,
+    )
+
+    if (typing && !running) {
+        NumberEntryDialog(
+            title = "Time",
+            unitLabel = "s",
+            initial = shown.toString(),
+            decimal = false,
+            helper = "Seconds, 5 to ${HoldWork.MAX_SECONDS}. A range like 20–40 uses the first number.",
+            parse = { HoldWork.parseRange(it)?.minSeconds },
+            onConfirm = { onSecondsChange(it) },
             onDismiss = { typing = false },
         )
     }

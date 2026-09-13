@@ -13,6 +13,8 @@ object LogBarCopy {
     const val LOG_WARMUP = "Log warm-up"
     const val SAVE_SET = "Save set"
     const val SAVE_WARMUP = "Save warm-up"
+    const val START_HOLD = "Start hold"
+    const val LOG_HOLD = "Log hold"
 
     /**
      * @param editing a logged row is open for repair; Save, not Log.
@@ -28,11 +30,15 @@ object LogBarCopy {
         next: Boolean,
         warmup: Boolean,
         draftLabel: String,
+        hold: Boolean = false,
+        holdRunning: Boolean = false,
     ): String {
         if (next && !editing) return NEXT
         val verb = when {
             editing && warmup -> SAVE_WARMUP
             editing -> SAVE_SET
+            hold && holdRunning -> LOG_HOLD
+            hold -> START_HOLD
             warmup -> LOG_WARMUP
             else -> LOG_SET
         }

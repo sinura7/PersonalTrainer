@@ -38,6 +38,7 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WorkoutAdvance
@@ -68,6 +69,7 @@ object WorkoutTestTags {
     const val REST_BAR = "workout-rest-bar"
     const val REST_IDLE = "workout-rest-idle"
     const val REST_BATTERY = "workout-rest-battery"
+    const val HOLD_CLOCK = "workout-hold-clock"
     const val MICRO_REC = "workout-micro-rec"
     const val MICRO_REC_APPLY = "workout-micro-rec-apply"
     const val MICRO_REC_WHY = "workout-micro-rec-why"
@@ -93,6 +95,7 @@ fun ActiveWorkoutScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
+    val holdTimer by viewModel.holdTimer.collectAsStateWithLifecycle()
     val microRec by viewModel.microRec.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
     val windowDp = LocalWindowInfo.current.containerDpSize
@@ -208,6 +211,7 @@ fun ActiveWorkoutScreen(
                                 removed.reps,
                                 LoadClass.of(selected?.exercise?.loadType),
                                 unit,
+                                durationSeconds = removed.durationSeconds,
                             ),
                             actionLabel = "Undo",
                             onAction = { viewModel.undoDeleteSet() },
@@ -271,11 +275,30 @@ fun ActiveWorkoutScreen(
                         )
                     }
                     if (logBarVisible) {
+                        val hold = selected?.exercise?.let { HoldWork.isHold(it) } == true
+                        val holdArmed = holdTimer.running || holdTimer.totalSeconds > 0
                         LogBar(
                             editing = state.editingSetId != null,
                             logging = state.logging,
                             error = state.error,
-                            draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
+                            draftLabel = SetCopy.setLine(
+                                state.draft.weightKg,
+                                state.draft.reps,
+                                LoadClass.of(selected?.exercise?.loadType),
+                                unit,
+                                durationSeconds = if (hold) {
+                                    if (holdArmed) {
+                                        HoldWork.elapsedSeconds(
+                                            holdTimer.totalSeconds,
+                                            holdTimer.remainingSeconds,
+                                        )
+                                    } else {
+                                        state.draft.durationSeconds ?: selected?.targetSeconds
+                                    }
+                                } else {
+                                    null
+                                },
+                            ),
                             warmup = state.draft.isWarmup,
                             microRec = microRec.takeUnless {
                                 showNext || LandscapeChrome.foldMicroRecIntoCard(landscape)
@@ -283,9 +306,15 @@ fun ActiveWorkoutScreen(
                             loadClass = LoadClass.of(selected?.exercise?.loadType),
                             unit = unit,
                             showNext = showNext,
+                            hold = hold,
+                            holdRunning = holdArmed,
                             onLog = {
                                 Haptics.commit(view)
-                                viewModel.logSet()
+                                if (hold && !holdArmed && state.editingSetId == null) {
+                                    viewModel.startHoldSet()
+                                } else {
+                                    viewModel.logSet()
+                                }
                             },
                             onNext = {
                                 nextExerciseId?.let(viewModel::advanceToNextLift)
@@ -400,6 +429,18 @@ fun ActiveWorkoutScreen(
                                         } else {
                                             lift.restSeconds
                                         },
+                                        hold = HoldWork.isHold(lift.exercise),
+                                        holdSeconds = if (isSelected) {
+                                            state.draft.durationSeconds ?: lift.targetSeconds
+                                        } else {
+                                            lift.targetSeconds
+                                        },
+                                        holdRunning = isSelected && holdTimer.running,
+                                        holdRemainingSeconds = if (isSelected) {
+                                            holdTimer.remainingSeconds
+                                        } else {
+                                            0
+                                        },
                                     ),
                                     events = WorkoutLiftCardEvents(
                                         onSelect = { viewModel.selectExercise(lift.exercise.id) },
@@ -408,6 +449,8 @@ fun ActiveWorkoutScreen(
                                         onWeightKgChange = viewModel::setWeight,
                                         onRepsAdjust = viewModel::adjustReps,
                                         onRepsChange = viewModel::setReps,
+                                        onSecondsAdjust = viewModel::adjustHoldSeconds,
+                                        onSecondsChange = viewModel::setHoldSeconds,
                                         onApplyLastTime = viewModel::applyLastTimeSet,
                                         onWarmup = viewModel::setWarmup,
                                         onRpe = viewModel::setRpe,

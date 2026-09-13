@@ -8,12 +8,13 @@ package com.sinura.personaltrainer.data.local
  * frozen: a second wipe is a defect. Later schema changes migrate
  * `TemperDatabase` with generated artifacts and tests. P6.1 is v1 → v2.
  * P7.1 is v2 → v3 (schedule rules and occurrences). P8.1 is v3 → v4
- * (measurable goals and bodyweight four-tuple).
+ * (measurable goals and bodyweight four-tuple). Hold prescriptions are
+ * v4 → v5. Not a `TrainerDatabase` v3.
  */
 object FoundationGeneration {
     const val NAME = "temper"
     const val DATABASE_FILE = "temper.db"
-    const val VERSION = 4
+    const val VERSION = 5
     const val LEGACY_DATABASE_FILE = "personal_trainer.db"
 
     /**

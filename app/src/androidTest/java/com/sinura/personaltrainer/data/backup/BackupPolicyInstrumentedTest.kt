@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.local.MIGRATION_TEMPER_1_2
 import com.sinura.personaltrainer.data.local.MIGRATION_TEMPER_2_3
 import com.sinura.personaltrainer.data.local.MIGRATION_TEMPER_3_4
+import com.sinura.personaltrainer.data.local.MIGRATION_TEMPER_4_5
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
@@ -114,7 +115,7 @@ class BackupPolicyInstrumentedTest {
 
     private fun openDb(): TemperDatabase =
         Room.databaseBuilder(context, TemperDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_TEMPER_1_2, MIGRATION_TEMPER_2_3, MIGRATION_TEMPER_3_4)
+            .addMigrations(MIGRATION_TEMPER_1_2, MIGRATION_TEMPER_2_3, MIGRATION_TEMPER_3_4, MIGRATION_TEMPER_4_5)
             .allowMainThreadQueries()
             .build()
 

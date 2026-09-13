@@ -27,9 +27,14 @@ data class TargetDefaults(
     val sets: Int,
     val reps: Int,
     val restSeconds: Int,
+    val seconds: Int? = null,
+    val secondsMax: Int? = null,
 ) {
     /** The line the add-to-routine sheet shows before anything is written. */
-    fun previewLine(): String = "$sets × $reps · ${RestTimer.formatClock(restSeconds)}"
+    fun previewLine(): String {
+        val work = seconds?.let { HoldWork.formatRange(it, secondsMax) } ?: reps.toString()
+        return "$sets × $work · ${RestTimer.formatClock(restSeconds)}"
+    }
 }
 
 /**
@@ -54,8 +59,17 @@ object AddDefaults {
     fun isCompound(exercise: Exercise): Boolean =
         exercise.muscles.drop(1).any { it.weight >= COMPOUND_SECONDARY_WEIGHT }
 
-    fun forExercise(exercise: Exercise, role: LiftRole = LiftRole.PRIMARY): TargetDefaults =
-        forExercise(exercise.loadType, isCompound(exercise), role)
+    fun forExercise(exercise: Exercise, role: LiftRole = LiftRole.PRIMARY): TargetDefaults {
+        if (HoldWork.isHold(exercise)) {
+            return TargetDefaults(
+                sets = 2,
+                reps = HoldWork.HOLD_REPS_PLACEHOLDER,
+                restSeconds = WorkoutPasteRest.ACCESSORY_SECONDS,
+                seconds = HoldWork.DEFAULT_SECONDS,
+            )
+        }
+        return forExercise(exercise.loadType, isCompound(exercise), role)
+    }
 
     /**
      * What the add-to-routine sheet says this lift will land as.

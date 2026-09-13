@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.Routine
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
@@ -74,11 +75,14 @@ class RoutineRepository(
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ) {
         writeRoutine {
             val existing = routineDao.getById(routineId)
             if (existing?.items?.any { it.exercise.id == exercise.id } == true) return@writeRoutine
             val nextOrder = routineDao.maxSortOrder(routineId) + 1
+            val hold = HoldWork.isHold(exercise)
             routineDao.upsertRoutineExercise(
                 RoutineExerciseEntity(
                     id = UUID.randomUUID().toString(),
@@ -86,9 +90,15 @@ class RoutineRepository(
                     exerciseId = exercise.id,
                     sortOrder = nextOrder,
                     targetSets = targetSets.coerceAtLeast(1),
-                    targetReps = targetReps.coerceAtLeast(1),
+                    targetReps = if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else targetReps.coerceAtLeast(1),
                     targetWeightKg = targetWeightKg?.takeIf { it > 0.0 },
                     restSeconds = restSeconds.coerceAtLeast(0),
+                    targetSeconds = if (hold) {
+                        HoldWork.countdownSeconds(targetSeconds)
+                    } else {
+                        null
+                    },
+                    targetSecondsMax = if (hold) targetSecondsMax else null,
                 ),
             )
             touch(routineId)
@@ -127,14 +137,23 @@ class RoutineRepository(
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ) {
         val current = routineDao.getById(routineId)?.items?.firstOrNull { it.item.id == itemId } ?: return
+        val hold = current.item.targetSeconds != null || targetSeconds != null
         routineDao.upsertRoutineExercise(
             current.item.copy(
                 targetSets = targetSets.coerceAtLeast(1),
-                targetReps = targetReps.coerceAtLeast(1),
+                targetReps = if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else targetReps.coerceAtLeast(1),
                 targetWeightKg = targetWeightKg?.takeIf { it > 0.0 },
                 restSeconds = restSeconds.coerceAtLeast(0),
+                targetSeconds = if (hold) {
+                    HoldWork.countdownSeconds(targetSeconds ?: current.item.targetSeconds)
+                } else {
+                    null
+                },
+                targetSecondsMax = if (hold) targetSecondsMax else null,
             ),
         )
         touch(routineId)

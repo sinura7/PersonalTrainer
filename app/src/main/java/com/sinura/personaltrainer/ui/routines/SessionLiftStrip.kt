@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LoadTypeCopy
 import com.sinura.personaltrainer.domain.NumericEntry
@@ -73,6 +74,8 @@ data class SessionLiftItem(
     val reps: Int,
     val restSeconds: Int,
     val targetWeightKg: Double? = null,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 object SessionLiftTags {
@@ -90,12 +93,14 @@ object SessionLiftCopy {
 object CompactLiftCopy {
     const val SETS = "Sets"
     const val REPS = "Reps"
+    const val TIME = "Time"
     const val TARGET_WEIGHT = LoadTypeCopy.TARGET_WEIGHT
     const val REST = "Rest"
 }
 
 object CompactLiftTags {
     const val TARGET_WEIGHT = "compact-lift-target-weight"
+    const val TIME = "compact-lift-time"
 }
 
 /**
@@ -114,7 +119,7 @@ fun SessionLiftStrip(
     onMoveEarlier: (String) -> Unit,
     onMoveLater: (String) -> Unit,
     onRemove: (String) -> Unit,
-    onStageTargets: (String, Int?, Int?, Int?, Double?, String?) -> Unit,
+    onStageTargets: (String, Int?, Int?, Int?, Double?, String?, Int?, Int?) -> Unit,
     onCommitTargets: (String) -> Unit,
     /**
      * The card folded shut, taking its four boxes and their text with it. Whatever rule
@@ -166,8 +171,8 @@ fun SessionLiftStrip(
                 onRemove = { onRemove(item.id) },
                 onSwap = { onSwap(item.id) },
                 onForgetTargetRule = onForgetTargetRule,
-                onStageTargets = { sets, reps, rest, kg, invalid ->
-                    onStageTargets(item.id, sets, reps, rest, kg, invalid)
+                onStageTargets = { sets, reps, rest, kg, invalid, seconds, secondsMax ->
+                    onStageTargets(item.id, sets, reps, rest, kg, invalid, seconds, secondsMax)
                 },
                 onCommitTargets = { onCommitTargets(item.id) },
                 modifier = Modifier.then(
@@ -200,7 +205,7 @@ private fun SessionLiftCard(
     onMoveLater: () -> Unit,
     onRemove: () -> Unit,
     onSwap: () -> Unit,
-    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?, Int?, Int?) -> Unit,
     onCommitTargets: () -> Unit,
     onForgetTargetRule: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -222,6 +227,10 @@ private fun SessionLiftCard(
         reps = item.reps,
         restClock = restClock,
         load = loadDisplay,
+        holdSeconds = item.targetSeconds ?: item.exercise.takeIf { HoldWork.isHold(it) }?.let {
+            HoldWork.DEFAULT_SECONDS
+        },
+        holdSecondsMax = item.targetSecondsMax,
     )
     val shape = RoundedCornerShape(Radius.sm)
     Column(
@@ -282,7 +291,15 @@ private fun SessionLiftCard(
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
                 MetricCluster(
-                    value = "${item.sets} × ${item.reps}",
+                    value = if (item.targetSeconds != null || HoldWork.isHold(item.exercise)) {
+                        HoldWork.workLine(
+                            item.sets,
+                            item.targetSeconds ?: HoldWork.DEFAULT_SECONDS,
+                            item.targetSecondsMax,
+                        )
+                    } else {
+                        "${item.sets} × ${item.reps}"
+                    },
                     label = SessionOrderCopy.WORK,
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
@@ -338,7 +355,7 @@ private fun SessionLiftEditor(
     onMoveLater: () -> Unit,
     onRemove: () -> Unit,
     onSwap: () -> Unit,
-    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?, Int?, Int?) -> Unit,
     onCommitTargets: () -> Unit,
     onForgetTargetRule: (String) -> Unit,
 ) {
@@ -377,6 +394,13 @@ private fun SessionLiftEditor(
                 restSeconds = item.restSeconds,
                 targetWeightKg = item.targetWeightKg,
                 loadType = item.exercise.loadType,
+                hold = HoldWork.isHold(item.exercise),
+                targetSeconds = item.targetSeconds ?: if (HoldWork.isHold(item.exercise)) {
+                    HoldWork.DEFAULT_SECONDS
+                } else {
+                    null
+                },
+                targetSecondsMax = item.targetSecondsMax,
                 onStageTargets = onStageTargets,
                 onCommitTargets = onCommitTargets,
                 onRemove = onRemove,
@@ -465,7 +489,10 @@ internal fun CompactTargetFields(
     restSeconds: Int,
     targetWeightKg: Double?,
     loadType: LoadType = LoadType.EXTERNAL,
-    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
+    hold: Boolean = false,
+    targetSeconds: Int? = null,
+    targetSecondsMax: Int? = null,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?, Int?, Int?) -> Unit,
     onCommitTargets: () -> Unit,
     onRemove: () -> Unit,
     onSwap: (() -> Unit)?,
@@ -474,33 +501,39 @@ internal fun CompactTargetFields(
     val weightLabel = LoadTypeCopy.editorWeightLabel(loadType)
     val showWeight = weightLabel != null
     val storedWeightKg = if (showWeight) targetWeightKg ?: 0.0 else 0.0
+    val storedHold = targetSeconds ?: HoldWork.DEFAULT_SECONDS
     var setsValue by rememberSaveable(rowKey) { mutableIntStateOf(sets) }
     var repsValue by rememberSaveable(rowKey) { mutableIntStateOf(reps) }
     var restValue by rememberSaveable(rowKey) { mutableIntStateOf(restSeconds) }
+    var secondsValue by rememberSaveable(rowKey) { mutableIntStateOf(storedHold) }
+    var secondsMaxValue by rememberSaveable(rowKey) {
+        mutableStateOf(targetSecondsMax)
+    }
     var weightValue by rememberSaveable(rowKey) { mutableStateOf(storedWeightKg) }
     var typing by rememberSaveable(rowKey) { mutableStateOf<TargetWell?>(null) }
-    val persist: (Int, Int, Int, Double) -> Unit = { nextSets, nextReps, nextRest, nextKg ->
-        onStageTargets(
-            nextSets,
-            nextReps,
-            nextRest,
-            TargetStepper.weightToStage(nextKg),
-            null,
-        )
-        onCommitTargets()
-    }
-    // The well values are saved state; what was staged from them is not. After the process is
-    // reclaimed the card is rebuilt showing whatever was last nudged and nothing upstream
-    // knows, so Save walks past it. Re-registering a value that is not what the routine holds
-    // is the same restore the typed boxes used to do. An untouched editor still stages
-    // nothing, so Back never asks about changes nobody made.
+    val persist: (Int, Int, Int, Double, Int, Int?) -> Unit =
+        { nextSets, nextReps, nextRest, nextKg, nextSeconds, nextSecondsMax ->
+            onStageTargets(
+                nextSets,
+                if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else nextReps,
+                nextRest,
+                TargetStepper.weightToStage(nextKg),
+                null,
+                if (hold) nextSeconds else null,
+                if (hold) nextSecondsMax else null,
+            )
+            onCommitTargets()
+        }
     val stagedWeight = if (showWeight) weightValue else 0.0
     val differsFromStored = setsValue != sets ||
-        repsValue != reps ||
+        (!hold && repsValue != reps) ||
         restValue != restSeconds ||
+        (hold && (secondsValue != storedHold || secondsMaxValue != targetSecondsMax)) ||
         TargetStepper.weightToStage(stagedWeight) != targetWeightKg
     LaunchedEffect(rowKey, differsFromStored) {
-        if (differsFromStored) persist(setsValue, repsValue, restValue, stagedWeight)
+        if (differsFromStored) {
+            persist(setsValue, repsValue, restValue, stagedWeight, secondsValue, secondsMaxValue)
+        }
     }
     val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val setsWell: @Composable (Modifier) -> Unit = { modifier ->
@@ -515,12 +548,12 @@ internal fun CompactTargetFields(
             onDecrement = {
                 val next = TargetStepper.nextSets(setsValue, -1)
                 setsValue = next
-                persist(next, repsValue, restValue, weightValue)
+                persist(next, repsValue, restValue, weightValue, secondsValue, secondsMaxValue)
             },
             onIncrement = {
                 val next = TargetStepper.nextSets(setsValue, 1)
                 setsValue = next
-                persist(next, repsValue, restValue, weightValue)
+                persist(next, repsValue, restValue, weightValue, secondsValue, secondsMaxValue)
             },
             modifier = modifier,
         )
@@ -537,16 +570,43 @@ internal fun CompactTargetFields(
             onDecrement = {
                 val next = TargetStepper.nextReps(repsValue, -1)
                 repsValue = next
-                persist(setsValue, next, restValue, weightValue)
+                persist(setsValue, next, restValue, weightValue, secondsValue, secondsMaxValue)
             },
             onIncrement = {
                 val next = TargetStepper.nextReps(repsValue, 1)
                 repsValue = next
-                persist(setsValue, next, restValue, weightValue)
+                persist(setsValue, next, restValue, weightValue, secondsValue, secondsMaxValue)
             },
             modifier = modifier,
         )
     }
+    val timeWell: @Composable (Modifier) -> Unit = { modifier ->
+        NumeralWell(
+            label = CompactLiftCopy.TIME,
+            value = HoldWork.formatRange(secondsValue, secondsMaxValue),
+            unit = null,
+            onType = { typing = TargetWell.TIME },
+            typeLabel = "Type hold seconds",
+            decrementLabel = "−${HoldWork.STEP_SECONDS}s",
+            incrementLabel = "+${HoldWork.STEP_SECONDS}s",
+            onDecrement = {
+                val span = secondsMaxValue?.let { it - secondsValue }
+                val next = TargetStepper.nextHoldSeconds(secondsValue, -1)
+                secondsValue = next
+                secondsMaxValue = span?.let { next + it }
+                persist(setsValue, repsValue, restValue, weightValue, next, secondsMaxValue)
+            },
+            onIncrement = {
+                val span = secondsMaxValue?.let { it - secondsValue }
+                val next = TargetStepper.nextHoldSeconds(secondsValue, 1)
+                secondsValue = next
+                secondsMaxValue = span?.let { next + it }
+                persist(setsValue, repsValue, restValue, weightValue, next, secondsMaxValue)
+            },
+            modifier = modifier.testTag(CompactLiftTags.TIME),
+        )
+    }
+    val workWell = if (hold) timeWell else repsWell
     val restWell: @Composable (Modifier) -> Unit = { modifier ->
         NumeralWell(
             label = CompactLiftCopy.REST,
@@ -559,12 +619,12 @@ internal fun CompactTargetFields(
             onDecrement = {
                 val next = TargetStepper.nextRestSeconds(restValue, -1)
                 restValue = next
-                persist(setsValue, repsValue, next, weightValue)
+                persist(setsValue, repsValue, next, weightValue, secondsValue, secondsMaxValue)
             },
             onIncrement = {
                 val next = TargetStepper.nextRestSeconds(restValue, 1)
                 restValue = next
-                persist(setsValue, repsValue, next, weightValue)
+                persist(setsValue, repsValue, next, weightValue, secondsValue, secondsMaxValue)
             },
             modifier = modifier,
         )
@@ -583,12 +643,12 @@ internal fun CompactTargetFields(
             onDecrement = {
                 val next = WeightConverter.incrementKg(weightValue, unit, -1)
                 weightValue = next
-                persist(setsValue, repsValue, restValue, next)
+                persist(setsValue, repsValue, restValue, next, secondsValue, secondsMaxValue)
             },
             onIncrement = {
                 val next = WeightConverter.incrementKg(weightValue, unit, 1)
                 weightValue = next
-                persist(setsValue, repsValue, restValue, next)
+                persist(setsValue, repsValue, restValue, next, secondsValue, secondsMaxValue)
             },
             modifier = modifier.testTag(CompactLiftTags.TARGET_WEIGHT),
         )
@@ -599,13 +659,13 @@ internal fun CompactTargetFields(
     ) {
         if (stack) {
             setsWell(Modifier.fillMaxWidth())
-            repsWell(Modifier.fillMaxWidth())
+            workWell(Modifier.fillMaxWidth())
             restWell(Modifier.fillMaxWidth())
             if (showWeight) weightWell(Modifier.fillMaxWidth())
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 setsWell(Modifier.weight(1f))
-                repsWell(Modifier.weight(1f))
+                workWell(Modifier.weight(1f))
             }
             if (showWeight) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
@@ -637,7 +697,7 @@ internal fun CompactTargetFields(
             parse = { NumericEntry.typedWhole(it, min = 1, rule = NumericEntry.SETS_RULE).valueOrNull },
             onConfirm = { next ->
                 setsValue = next
-                persist(next, repsValue, restValue, weightValue)
+                persist(next, repsValue, restValue, weightValue, secondsValue, secondsMaxValue)
             },
             onDismiss = { typing = null },
         )
@@ -652,7 +712,7 @@ internal fun CompactTargetFields(
             parse = { NumericEntry.typedWhole(it, min = 1, rule = NumericEntry.REPS_WHOLE_RULE).valueOrNull },
             onConfirm = { next ->
                 repsValue = next
-                persist(setsValue, next, restValue, weightValue)
+                persist(setsValue, next, restValue, weightValue, secondsValue, secondsMaxValue)
             },
             onDismiss = { typing = null },
         )
@@ -667,7 +727,7 @@ internal fun CompactTargetFields(
             parse = { NumericEntry.typedWhole(it, min = 0, rule = NumericEntry.REST_RULE).valueOrNull },
             onConfirm = { next ->
                 restValue = next
-                persist(setsValue, repsValue, next, weightValue)
+                persist(setsValue, repsValue, next, weightValue, secondsValue, secondsMaxValue)
             },
             onDismiss = { typing = null },
         )
@@ -684,11 +744,34 @@ internal fun CompactTargetFields(
             parse = { NumericEntry.parseWeightKg(it, unit) },
             onConfirm = { next ->
                 weightValue = next
-                persist(setsValue, repsValue, restValue, next)
+                persist(setsValue, repsValue, restValue, next, secondsValue, secondsMaxValue)
+            },
+            onDismiss = { typing = null },
+        )
+    }
+    if (hold && typing == TargetWell.TIME) {
+        NumberEntryDialog(
+            title = CompactLiftCopy.TIME,
+            unitLabel = "s",
+            initial = HoldWork.formatRange(secondsValue, secondsMaxValue).trimEnd('s'),
+            decimal = false,
+            helper = "Whole seconds, 5 or more. A range like 20-40 is fine.",
+            parse = { HoldWork.parseRange(it) },
+            onConfirm = { range ->
+                secondsValue = range.minSeconds
+                secondsMaxValue = range.maxSeconds
+                persist(
+                    setsValue,
+                    repsValue,
+                    restValue,
+                    weightValue,
+                    range.minSeconds,
+                    range.maxSeconds,
+                )
             },
             onDismiss = { typing = null },
         )
     }
 }
 
-private enum class TargetWell { SETS, REPS, REST, WEIGHT }
+private enum class TargetWell { SETS, REPS, TIME, REST, WEIGHT }

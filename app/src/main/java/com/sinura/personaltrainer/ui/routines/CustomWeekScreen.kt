@@ -185,6 +185,8 @@ fun CustomWeekScreen(
                                     reps = item.targetReps,
                                     restSeconds = item.restSeconds,
                                     targetWeightKg = item.targetWeightKg,
+                                    targetSeconds = item.targetSeconds,
+                                    targetSecondsMax = item.targetSecondsMax,
                                 )
                             },
                             selectedId = expandedId,
@@ -197,8 +199,8 @@ fun CustomWeekScreen(
                                 if (expandedId == id) expandedRequest = null
                                 viewModel.removeLift(id)
                             },
-                            onStageTargets = { id, sets, reps, rest, kg, invalid ->
-                                viewModel.stageTargets(id, sets, reps, rest, kg, invalid)
+                            onStageTargets = { id, sets, reps, rest, kg, invalid, seconds, secondsMax ->
+                                viewModel.stageTargets(id, sets, reps, rest, kg, invalid, seconds, secondsMax)
                             },
                             onCommitTargets = { },
                             onForgetTargetRule = { id -> viewModel.forgetTargetRule(id) },

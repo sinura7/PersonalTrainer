@@ -31,6 +31,8 @@ data class RoutineExercise(
     val targetReps: Int,
     val targetWeightKg: Double?,
     val restSeconds: Int,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 data class Routine(
@@ -51,6 +53,8 @@ data class SessionExercise(
     val targetReps: Int,
     val targetWeightKg: Double?,
     val restSeconds: Int,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 data class SetLog(
@@ -64,6 +68,7 @@ data class SetLog(
     val rpe: Int?,
     val isWarmup: Boolean,
     val completedAt: Long,
+    val durationSeconds: Int? = null,
 )
 
 data class WorkoutSession(
@@ -108,6 +113,8 @@ data class WorkoutSession(
         var bodyweightReps = 0
         sets.forEach { set ->
             if (set.isWarmup) return@forEach
+            val duration = set.durationSeconds
+            if (duration != null && duration > 0) return@forEach
             val work = SetWork.of(
                 weightKg = set.weightKg,
                 reps = set.reps,
@@ -172,6 +179,8 @@ data class WorkoutSession(
                     targetReps = row.targetReps,
                     targetWeightKg = row.targetWeightKg,
                     restSeconds = row.restSeconds,
+                    targetSeconds = row.targetSeconds,
+                    targetSecondsMax = row.targetSecondsMax,
                     sets = setsFor(row.exercise.id),
                 )
             }
@@ -192,6 +201,8 @@ data class WorkoutSession(
                     targetReps = 0,
                     targetWeightKg = null,
                     restSeconds = 0,
+                    targetSeconds = null,
+                    targetSecondsMax = null,
                     sets = setsFor(id),
                 )
             }

@@ -1346,6 +1346,8 @@ class RoutineEditorViewModelTest {
         val plank = lowerB.exercises.first { it.exercise.id == "ex-side-plank" }
         assertEquals(2, plank.targetSets)
         assertEquals(1, plank.targetReps)
+        assertEquals(20, plank.targetSeconds)
+        assertEquals(40, plank.targetSecondsMax)
         assertTrue("side plank stored hold seconds as reps: ${plank.targetReps}", plank.targetReps != 20 && plank.targetReps != 40)
         assertEquals(WorkoutPasteRest.ACCESSORY_SECONDS, plank.restSeconds)
         val upperA = routines.first { it.name == "Upper A" }
@@ -1353,6 +1355,8 @@ class RoutineEditorViewModelTest {
         assertTrue(upperA.notes.contains("Weekly layout") || upperA.notes.contains("Mon — Upper A"))
         val hang = upperA.exercises.first { it.exercise.id == "ex-dead-hang" }
         assertEquals(1, hang.targetReps)
+        assertEquals(20, hang.targetSeconds)
+        assertEquals(40, hang.targetSecondsMax)
         assertTrue("dead hang stored hold seconds as reps: ${hang.targetReps}", hang.targetReps != 20 && hang.targetReps != 40)
         val slots = withTimeout(TestWaits.FLOW_MS) {
             deps.scheduleRepository.observeSlots().first { it.any { slot -> slot.anchorDay == Weekday.MONDAY } }

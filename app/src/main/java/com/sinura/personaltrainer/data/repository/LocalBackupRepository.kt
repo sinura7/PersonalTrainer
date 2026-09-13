@@ -217,6 +217,8 @@ class LocalBackupRepository(
                     targetReps = it.targetReps,
                     targetWeightKg = it.targetWeightKg,
                     restSeconds = it.restSeconds,
+                    targetSeconds = it.targetSeconds,
+                    targetSecondsMax = it.targetSecondsMax,
                 )
             },
             sessions = sessions.map {
@@ -241,6 +243,8 @@ class LocalBackupRepository(
                     targetReps = it.targetReps,
                     targetWeightKg = it.targetWeightKg,
                     restSeconds = it.restSeconds,
+                    targetSeconds = it.targetSeconds,
+                    targetSecondsMax = it.targetSecondsMax,
                 )
             },
             setLogs = sets.map {
@@ -254,6 +258,7 @@ class LocalBackupRepository(
                     rpe = it.rpe,
                     isWarmup = it.isWarmup,
                     completedAt = it.completedAt,
+                    durationSeconds = it.durationSeconds,
                 )
             },
             exerciseMuscles = snapshot.credits.map {
@@ -403,6 +408,8 @@ class LocalBackupRepository(
                             targetReps = it.targetReps,
                             targetWeightKg = it.targetWeightKg,
                             restSeconds = it.restSeconds,
+                            targetSeconds = it.targetSeconds,
+                            targetSecondsMax = it.targetSecondsMax,
                         )
                     },
                 )
@@ -450,6 +457,8 @@ class LocalBackupRepository(
                             targetReps = it.targetReps,
                             targetWeightKg = it.targetWeightKg,
                             restSeconds = it.restSeconds,
+                            targetSeconds = it.targetSeconds,
+                            targetSecondsMax = it.targetSecondsMax,
                         )
                     },
                 )
@@ -467,6 +476,7 @@ class LocalBackupRepository(
                             rpe = it.rpe,
                             isWarmup = it.isWarmup,
                             completedAt = it.completedAt,
+                            durationSeconds = it.durationSeconds,
                         )
                     },
                 )

@@ -31,10 +31,16 @@ object WorkoutCopy {
         targetWeightLabel: String? = null,
         liveReps: Int? = null,
         liveWeightLabel: String? = null,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ): String {
         val logged = workingLogged.coerceAtLeast(0)
         val sets = targetSets.coerceAtLeast(1)
-        val reps = (liveReps ?: targetReps).coerceAtLeast(1)
+        val work = if (targetSeconds != null) {
+            HoldWork.formatRange(targetSeconds, targetSecondsMax)
+        } else {
+            (liveReps ?: targetReps).coerceAtLeast(1).toString()
+        }
         val weightLabel = liveWeightLabel ?: targetWeightLabel
         val past = logged >= sets
         return buildString {
@@ -47,7 +53,7 @@ object WorkoutCopy {
             append(if (past) " · target was " else " · target ")
             append(sets)
             append(" × ")
-            append(reps)
+            append(work)
             if (weightLabel != null) {
                 append(" @ ")
                 append(weightLabel)

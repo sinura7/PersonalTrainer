@@ -191,6 +191,8 @@ class OnboardingApplier(
                         targetReps = lift.targetReps,
                         targetWeightKg = lift.targetWeightKg,
                         restSeconds = lift.restSeconds,
+                        targetSeconds = lift.targetSeconds,
+                        targetSecondsMax = lift.targetSecondsMax,
                     )
                 }
                 scheduleRepository.pin(
