@@ -13,6 +13,9 @@
   1 September 2026 — [ADR-021](ADR-021-home-start-and-day-add.md) keeps
   row-tap confirm, but Home's filled Volt is **Start a workout**
   (freestyle), not `Start {planned title}`.
+  13 September 2026 — [ADR-021](ADR-021-home-start-and-day-add.md) §2:
+  that Volt opens Home's start sheet (free / routine / cardio / Extra),
+  not an immediate empty session and not `StartOptionsSheet`.
 - **Supersedes:** [ADR-017](ADR-017-home-week-board.md) §1 only the
   reading that Volt (or a planned row) **starts** the next undone block
   immediately
@@ -93,8 +96,7 @@ want to start **this** workout, and what does it entail.
 
 - Does tapping a planned Home row start the session immediately? No.
 - Does the tagged row stay dead? No. It opens the same confirm.
-- Does Volt open `StartOptionsSheet`? No.
-  **[ADR-021](ADR-021-home-start-and-day-add.md):** Home's filled Volt
-  is Start a workout, not the planned-block name.
+- Does Volt open `StartOptionsSheet`? No. It opens Home's own start
+  sheet ([ADR-021](ADR-021-home-start-and-day-add.md) §2).
 - May Stretch own the Home Volt while a workout is still planned? No.
 - Does Plan Start? No.

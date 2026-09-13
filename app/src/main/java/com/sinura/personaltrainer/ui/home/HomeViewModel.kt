@@ -7,6 +7,8 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.AuxiliaryPacks
+import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.DayBlockOrder
@@ -16,6 +18,7 @@ import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
@@ -30,6 +33,7 @@ import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
+import com.sinura.personaltrainer.workout.StartCardioOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import com.sinura.personaltrainer.workout.StartOccurrenceOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -266,35 +270,103 @@ class HomeViewModel @JvmOverloads constructor(
      */
     fun startFreeWorkout() {
         viewModelScope.launch {
-            when (val outcome = container.workoutRepository.startFreeWorkoutSafely()) {
-                is StartSessionOutcome.Started -> {
-                    // Cleared only on a real start: a Blocked free tap must not unbind
-                    // the planned session that is still running.
+            openWorkout(container.workoutRepository.startFreeWorkoutSafely(), freeDay())
+        }
+    }
+
+    fun startRoutine(routineId: String) {
+        viewModelScope.launch {
+            val routine = container.routineRepository.getById(routineId)
+            if (routine == null) {
+                actionError.value = "That routine is no longer available."
+                return@launch
+            }
+            if (routine.exercises.isEmpty()) {
+                actionError.value = SessionOrderCopy.NEED_A_LIFT
+                return@launch
+            }
+            openWorkout(
+                container.workoutRepository.startRoutineSafely(routine),
+                freeDay(title = routine.name, routineId = routine.id),
+            )
+        }
+    }
+
+    fun startCardio(type: CardioType) {
+        viewModelScope.launch {
+            when (
+                val outcome = container.startLiveCardio(
+                    type = type,
+                    now = time.captureNow(),
+                    title = CardioCopy.name(type),
+                )
+            ) {
+                is StartCardioOutcome.Open -> {
                     PendingOccurrence.forget(container)
                     actionError.value = null
-                    _navigateToSession.value = outcome.session.id
+                    _navigateToCardio.value = outcome.sessionId
                 }
-                is StartSessionOutcome.Blocked ->
-                    _blockedByInProgress.value = BlockedStart(
-                        day = SuggestedTrainingDay(
-                            epochDay = todayEpochDay(),
-                            dayOfWeek = Weekday.fromEpochDay(todayEpochDay()),
-                            isRest = false,
-                            focusKind = SessionFocusKind.FULL_BODY,
-                            focusTitle = "Free workout",
-                            routineId = null,
-                            routineName = "Free workout",
-                            reason = "",
-                            emphasisMuscles = emptyList(),
-                            confidence = ScheduleConfidence.HIGH,
-                        ),
-                        sessionId = outcome.inProgress.id,
-                    )
-                is StartSessionOutcome.Unavailable ->
-                    actionError.value = outcome.message
+                is StartCardioOutcome.Rejected ->
+                    actionError.value = outcome.reason
             }
         }
     }
+
+    fun startAux(packId: String) {
+        viewModelScope.launch {
+            val pack = AuxiliaryPacks.byId(packId) ?: return@launch
+            val routineId = AuxiliaryBlocks.ensureRoutine(
+                pack,
+                container.routineRepository,
+                container.exerciseRepository,
+            )
+            val routine = container.routineRepository.getById(routineId)
+            if (routine == null || routine.exercises.isEmpty()) {
+                actionError.value = SessionOrderCopy.NEED_A_LIFT
+                return@launch
+            }
+            openWorkout(
+                container.workoutRepository.startRoutineSafely(routine),
+                freeDay(title = pack.title, routineId = routine.id),
+            )
+        }
+    }
+
+    private suspend fun openWorkout(
+        outcome: StartSessionOutcome,
+        blockedDay: SuggestedTrainingDay,
+    ) {
+        when (outcome) {
+            is StartSessionOutcome.Started -> {
+                PendingOccurrence.forget(container)
+                actionError.value = null
+                _navigateToSession.value = outcome.session.id
+            }
+            is StartSessionOutcome.Blocked ->
+                _blockedByInProgress.value = BlockedStart(
+                    day = blockedDay,
+                    sessionId = outcome.inProgress.id,
+                )
+            is StartSessionOutcome.Unavailable ->
+                actionError.value = outcome.message
+        }
+    }
+
+    private fun freeDay(
+        title: String = "Free workout",
+        routineId: String? = null,
+    ) = SuggestedTrainingDay(
+        epochDay = todayEpochDay(),
+        dayOfWeek = Weekday.fromEpochDay(todayEpochDay()),
+        isRest = false,
+        focusKind = SessionFocusKind.FULL_BODY,
+        focusTitle = title,
+        routineId = routineId,
+        routineName = title,
+        reason = "",
+        emphasisMuscles = emptyList(),
+        confidence = ScheduleConfidence.HIGH,
+    )
 
     fun applyMissedWork(choice: MissedWorkChoice) {
         viewModelScope.launch {

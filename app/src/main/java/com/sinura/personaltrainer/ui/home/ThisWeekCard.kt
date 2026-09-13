@@ -44,7 +44,8 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  * Empty-agenda leftover on Home: what the slot week says when no occurrence
  * was generated. When today has an agenda, [DailyAgendaCard] is the only Start.
  *
- * Quiet empty plus a normal Start. Generating a week lives in Settings.
+ * Quiet empty plus a normal Start that opens the start sheet.
+ * Generating a week lives in Settings.
  */
 @Composable
 fun ThisWeekCard(

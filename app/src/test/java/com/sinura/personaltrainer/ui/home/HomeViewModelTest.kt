@@ -345,6 +345,71 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun startRoutineOpensThatRoutineWithoutMarkingThePlan() = runBlocking {
+        deps = graph()
+        deps.preferencesRepository.setOnboardingComplete(true)
+        val today = todayEpochDay()
+        val weekday = Weekday.fromEpochDay(today)
+        val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
+        val planned = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-start-planned", "Squat")
+        deps.routineRepository.addExercise(planned.id, squat, 3, 5, 100.0, 90)
+        val extra = deps.routineRepository.create("Pull")
+        val row = insertTestExercise(deps, "ex-home-start-pull", "Row")
+        deps.routineRepository.addExercise(extra.id, row, 3, 8, 60.0, 90)
+        deps.scheduleRepository.pin(planned.id, null, weekday)
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
+        deps.plannerRepository.ensureWeek(weekStart)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
+
+        viewModel!!.startRoutine(extra.id)
+        val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
+        val session = deps.workoutRepository.getSession(sessionId)!!
+        assertEquals(extra.id, session.routineId)
+        assertEquals("Pull", session.routineName)
+        assertEquals(1, session.exercises.size)
+        assertNull(deps.pendingOccurrenceId.value)
+        assertEquals(
+            OccurrenceStatus.PLANNED,
+            deps.plannerRepository.occurrencesBetween(today, today).single().status,
+        )
+    }
+
+    @Test
+    fun startCardioOpensLiveWalk() = runBlocking {
+        deps = graph()
+        deps.preferencesRepository.setOnboardingComplete(true)
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
+
+        viewModel!!.startCardio(com.sinura.personaltrainer.domain.CardioType.WALK)
+        val sessionId = viewModel!!.navigateToCardio.awaitFirst { it != null }!!
+        val live = deps.activityRepository.getLive()!!
+        assertEquals(sessionId, live.id)
+        assertEquals("Walk", live.title)
+        assertNull(deps.pendingOccurrenceId.value)
+    }
+
+    @Test
+    fun startAuxStartsThePackWithoutMintingAPlanRow() = runBlocking {
+        deps = graph()
+        deps.preferencesRepository.setOnboardingComplete(true)
+        deps.dbMaintenance.seedCatalog()
+        val today = todayEpochDay()
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
+
+        viewModel!!.startAux("golf")
+        val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
+        val session = deps.workoutRepository.getSession(sessionId)!!
+        assertEquals("Golf warm-up", session.routineName)
+        assertTrue(session.exercises.isNotEmpty())
+        assertTrue(deps.plannerRepository.occurrencesBetween(today, today).isEmpty())
+        assertNull(deps.pendingOccurrenceId.value)
+    }
+
+    @Test
     fun skipOccurrenceMarksALeftoverSkippedWithoutChangingTheRule() = runBlocking {
         deps = graph()
         val today = todayEpochDay()

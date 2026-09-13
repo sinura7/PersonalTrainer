@@ -270,7 +270,7 @@ fun DayAddPicker(
 }
 
 @Composable
-private fun CardioPickCard(
+internal fun CardioPickCard(
     type: CardioType,
     onClick: () -> Unit,
 ) {
