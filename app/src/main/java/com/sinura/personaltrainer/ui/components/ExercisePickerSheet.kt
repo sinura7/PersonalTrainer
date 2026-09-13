@@ -49,11 +49,13 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.LibraryFilter
 import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LoadTypeCopy
@@ -91,8 +93,9 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
  * the screen, the search stays pinned to the top, and everything below it is catalog.
  *
  * Creating is not chrome any more: it appears as a single row above the results, only when
- * what has been typed matches nothing. The muscle chips sit on that row — not a permanent
- * field at the top — because a blank group used to become "Other" and never heat a plate.
+ * what has been typed matches nothing. The create-row muscle chips sit on that row — not a
+ * permanent field at the top — because a blank group used to become "Other" and never heat
+ * a plate. Catalog chips (All plus Body's ten groups) sit under search and filter the list.
  *
  * Multi-add writes as it goes. Every tap lands on the routine or the day immediately, and
  * the cart is a numbered view of that session rather than a staging list held by the sheet:
@@ -107,9 +110,18 @@ fun ExercisePickerSheet(
     val query = state.query
     val results = state.results
     val title = state.title
-    val suggestion = state.suggestion
+    var selectedMuscleName by rememberSaveable { mutableStateOf("") }
+    val selectedMuscle = CanonicalMuscle.bodyMapOrder.firstOrNull { it.name == selectedMuscleName }
+    val visibleResults = state.visibleFor(selectedMuscle)
+    val suggestion = state.suggestion?.takeIf {
+        selectedMuscle == null || LibraryFilter.matches(it, selectedMuscle)
+    }
     val suggestionReason = state.suggestionReason
-    val siblings = if (state.showSiblings) state.siblings else emptyList()
+    val siblings = if (state.showSiblings) {
+        state.siblings.filter { selectedMuscle == null || LibraryFilter.matches(it, selectedMuscle) }
+    } else {
+        emptyList()
+    }
     val selectedIds = state.selectedIds
     val selectedOrder = state.selectedOrder
     val cart = state.cart
@@ -151,6 +163,29 @@ fun ExercisePickerSheet(
                     onValueChange = { onEvent(ExercisePickerEvent.QueryChanged(it)) },
                     placeholder = "Search, or name a new lift",
                 )
+            }
+            LazyRow(
+                modifier = Modifier.padding(bottom = Metrics.space3),
+                contentPadding = PaddingValues(horizontal = Metrics.gutter),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                item(key = "muscle-all") {
+                    InstrumentChip(
+                        label = "All",
+                        selected = selectedMuscle == null,
+                        onClick = { selectedMuscleName = "" },
+                    )
+                }
+                items(CanonicalMuscle.bodyMapOrder, key = { it.name }) { muscle ->
+                    InstrumentChip(
+                        label = muscle.displayName,
+                        selected = selectedMuscle == muscle,
+                        onClick = {
+                            selectedMuscleName =
+                                if (selectedMuscleName == muscle.name) "" else muscle.name
+                        },
+                    )
+                }
             }
             if (multiSelect && cart.isNotEmpty()) {
                 val cartState = rememberLazyListState()
@@ -244,7 +279,9 @@ fun ExercisePickerSheet(
                 }
                 if (canCreate) {
                     item(key = "create") {
-                        var group by rememberSaveable(needle) { mutableStateOf("") }
+                        var group by rememberSaveable(needle, selectedMuscleName) {
+                            mutableStateOf(MuscleGroups.forNewDraft(selectedMuscle))
+                        }
                         var loadTypeName by rememberSaveable(needle) {
                             mutableStateOf(LoadType.EXTERNAL.name)
                         }
@@ -268,22 +305,25 @@ fun ExercisePickerSheet(
                         }
                     }
                 }
-                if (results.isEmpty() && !canCreate) {
+                if (visibleResults.isEmpty() && !canCreate) {
                     item(key = "empty") {
                         EmptyState(
                             scene = EmptyScene.CATALOG,
                             title = if (needle.isEmpty()) "Search the library" else "No matches",
-                            body = if (needle.isEmpty()) {
-                                "Type a lift name to search, or name a new one to create it."
-                            } else {
-                                "Nothing in the library matches. Create it as a custom lift above."
+                            body = when {
+                                needle.isNotEmpty() && selectedMuscle != null ->
+                                    "Nothing in ${selectedMuscle.displayName} matches that name."
+                                needle.isNotEmpty() ->
+                                    "Nothing in the library matches. Create it as a custom lift above."
+                                else ->
+                                    "Type a lift name to search, or name a new one to create it."
                             },
                             modifier = Modifier.padding(Metrics.gutter),
                             compact = true,
                         )
                     }
                 } else {
-                    itemsIndexed(results, key = { _, exercise -> exercise.id }) { index, exercise ->
+                    itemsIndexed(visibleResults, key = { _, exercise -> exercise.id }) { index, exercise ->
                         Column(modifier = instrumentAnimateItem()) {
                             PickerLiftRow(
                                 exercise = exercise,
@@ -297,7 +337,7 @@ fun ExercisePickerSheet(
                                     }
                                 },
                             )
-                            if (index < results.lastIndex) HairlineDivider()
+                            if (index < visibleResults.lastIndex) HairlineDivider()
                         }
                     }
                 }
