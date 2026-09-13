@@ -111,13 +111,15 @@ internal fun BodyweightPrefsSection(
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             Kicker("Check-in day")
             SettingsRadioList(
-                items = checkInChoices,
-                selected = checkInOverride,
-                title = { day -> if (day == null) "Auto" else day.titleLabel() },
-                subtitle = { day ->
-                    if (day == null) "First training day · ${autoDay.shortLabel()}" else null
+                items = checkInChoices.map { day ->
+                    if (day == null) {
+                        SettingsRadioOption("Auto", "First training day · ${autoDay.shortLabel()}")
+                    } else {
+                        SettingsRadioOption(day.titleLabel())
+                    }
                 },
-                onSelect = onCheckInDay,
+                selectedIndex = checkInChoices.indexOf(checkInOverride),
+                onSelect = { onCheckInDay(checkInChoices[it]) },
             )
         }
     }

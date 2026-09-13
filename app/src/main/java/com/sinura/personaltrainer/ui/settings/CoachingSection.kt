@@ -42,21 +42,17 @@ internal fun CoachingSection(
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Goal", compact = true)
             SettingsRadioList(
-                items = TrainingGoal.entries,
-                selected = preferences.goal,
-                title = { it.displayName },
-                subtitle = { it.blurb },
-                onSelect = onGoal,
+                items = TrainingGoal.entries.map { SettingsRadioOption(it.displayName, it.blurb) },
+                selectedIndex = TrainingGoal.entries.indexOf(preferences.goal),
+                onSelect = { onGoal(TrainingGoal.entries[it]) },
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Emphasis", compact = true)
             SettingsRadioList(
-                items = TrainingEmphasis.entries,
-                selected = preferences.emphasis,
-                title = { it.displayName },
-                subtitle = { it.blurb },
-                onSelect = onEmphasis,
+                items = TrainingEmphasis.entries.map { SettingsRadioOption(it.displayName, it.blurb) },
+                selectedIndex = TrainingEmphasis.entries.indexOf(preferences.emphasis),
+                onSelect = { onEmphasis(TrainingEmphasis.entries[it]) },
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {

@@ -33,28 +33,31 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
 
+internal data class SettingsRadioOption(
+    val title: String,
+    val subtitle: String? = null,
+)
+
 @Composable
-internal fun <T> SettingsRadioList(
-    items: List<T>,
-    selected: T?,
-    title: (T) -> String,
-    onSelect: (T) -> Unit,
+internal fun SettingsRadioList(
+    items: List<SettingsRadioOption>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    subtitle: (T) -> String? = { null },
 ) {
     GroupedList(modifier = modifier.selectableGroup()) {
         items.forEachIndexed { index, item ->
             if (index > 0) HairlineDivider()
-            val isSelected = item == selected
+            val isSelected = index == selectedIndex
             InstrumentRow(
-                title = title(item),
-                subtitle = subtitle(item),
+                title = item.title,
+                subtitle = item.subtitle,
                 selected = isSelected,
-                onClick = { onSelect(item) },
+                onClick = { onSelect(index) },
                 trailing = {
                     if (isSelected) {
                         Icon(
-                            TemperIcons.Check,
+                            imageVector = TemperIcons.Check,
                             contentDescription = null,
                             tint = Volt,
                             modifier = Modifier.size(Metrics.icon),
@@ -99,7 +102,7 @@ internal fun SettingsStrip(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    label,
+                    text = label,
                     style = InstrumentType.bodyStrong,
                     color = if (isSelected) Volt else TextSecondary,
                     maxLines = 1,

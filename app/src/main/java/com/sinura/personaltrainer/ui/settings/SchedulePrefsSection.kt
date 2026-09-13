@@ -42,20 +42,17 @@ internal fun SchedulePrefsSection(
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Split", compact = true)
             SettingsRadioList(
-                items = SplitStyle.entries,
-                selected = preferences.splitStyle,
-                title = { it.displayName },
-                subtitle = { it.blurb },
-                onSelect = onSplit,
+                items = SplitStyle.entries.map { SettingsRadioOption(it.displayName, it.blurb) },
+                selectedIndex = SplitStyle.entries.indexOf(preferences.splitStyle),
+                onSelect = { onSplit(SplitStyle.entries[it]) },
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Week starts", compact = true)
             SettingsRadioList(
-                items = weekStarts,
-                selected = preferences.weekStart,
-                title = { it.titleLabel() },
-                onSelect = onWeekStart,
+                items = weekStarts.map { SettingsRadioOption(it.titleLabel()) },
+                selectedIndex = weekStarts.indexOf(preferences.weekStart),
+                onSelect = { onWeekStart(weekStarts[it]) },
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
@@ -71,21 +68,17 @@ internal fun SchedulePrefsSection(
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Training age", compact = true)
             SettingsRadioList(
-                items = TrainingAge.entries,
-                selected = trainingAge,
-                title = { it.displayName },
-                subtitle = { it.blurb },
-                onSelect = onTrainingAge,
+                items = TrainingAge.entries.map { SettingsRadioOption(it.displayName, it.blurb) },
+                selectedIndex = TrainingAge.entries.indexOf(trainingAge),
+                onSelect = { onTrainingAge(TrainingAge.entries[it]) },
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Where you train", compact = true)
             SettingsRadioList(
-                items = TrainingPlace.entries,
-                selected = trainingPlace,
-                title = { it.displayName },
-                subtitle = { it.blurb },
-                onSelect = onTrainingPlace,
+                items = TrainingPlace.entries.map { SettingsRadioOption(it.displayName, it.blurb) },
+                selectedIndex = trainingPlace?.let { TrainingPlace.entries.indexOf(it) } ?: -1,
+                onSelect = { onTrainingPlace(TrainingPlace.entries[it]) },
             )
         }
     }

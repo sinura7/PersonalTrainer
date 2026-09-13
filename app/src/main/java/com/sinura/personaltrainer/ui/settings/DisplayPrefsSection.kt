@@ -28,20 +28,17 @@ internal fun DisplayPrefsSection(
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Weight", compact = true)
             SettingsRadioList(
-                items = listOf(WeightUnit.LBS, WeightUnit.KG),
-                selected = selectedUnit,
-                title = { it.displayName },
-                onSelect = onSelectUnit,
+                items = listOf(WeightUnit.LBS, WeightUnit.KG).map { SettingsRadioOption(it.displayName) },
+                selectedIndex = listOf(WeightUnit.LBS, WeightUnit.KG).indexOf(selectedUnit),
+                onSelect = { onSelectUnit(listOf(WeightUnit.LBS, WeightUnit.KG)[it]) },
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Hours", compact = true)
             SettingsRadioList(
-                items = ClockFormat.entries,
-                selected = clockFormat,
-                title = { it.displayName },
-                subtitle = { it.shortLabel },
-                onSelect = onSelectClock,
+                items = ClockFormat.entries.map { SettingsRadioOption(it.displayName, it.shortLabel) },
+                selectedIndex = ClockFormat.entries.indexOf(clockFormat),
+                onSelect = { onSelectClock(ClockFormat.entries[it]) },
             )
         }
         Text(

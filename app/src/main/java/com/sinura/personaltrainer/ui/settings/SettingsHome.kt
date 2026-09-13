@@ -143,7 +143,7 @@ internal fun SettingsIndexRow(
             .testTag(tag),
         leading = {
             Icon(
-                icon,
+                imageVector = icon,
                 contentDescription = null,
                 tint = TextSecondary,
                 modifier = Modifier.size(Metrics.icon),
@@ -151,7 +151,7 @@ internal fun SettingsIndexRow(
         },
         trailing = {
             Icon(
-                TemperIcons.Chevron,
+                imageVector = TemperIcons.Chevron,
                 contentDescription = null,
                 tint = TextTertiary,
                 modifier = Modifier.size(Metrics.chevron),
