@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 13 Sep 2026 — Live 51: Temper Debug notices a newer live drop and offers a
+> quiet prompt on `trunk`. `debugLiveCode` 51; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 13 Sep 2026 — Temper Debug notices a newer live drop and offers a quiet
 > prompt. Does not bump live 50. Gym-floor does not check debug pre-releases.
 > Android's install safety gate is unchanged.
