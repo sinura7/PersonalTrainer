@@ -113,7 +113,7 @@ class SetLogRulesTest {
                 reps = 0,
                 isWarmup = false,
                 loadType = LoadType.BODYWEIGHT,
-                durationSeconds = 30,
+                durationSeconds = 1,
                 isHold = true,
             ),
         )
