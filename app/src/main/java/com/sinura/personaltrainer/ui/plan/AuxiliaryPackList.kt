@@ -69,7 +69,7 @@ fun AuxiliaryPackList(
             val warmups = visible.filter { it.kind == AuxiliaryKind.WARMUP }
             val mobility = visible.filter { it.kind == AuxiliaryKind.MOBILITY }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Kicker(title, modifier = Modifier.weight(1f))
+                Kicker(text = title, modifier = Modifier.weight(1f))
                 TextButton(
                     onClick = { kitName = null },
                     contentPadding = PaddingValues(0.dp),
@@ -110,7 +110,7 @@ private fun ExtraEquipmentList(
     onCancel: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Kicker(title, modifier = Modifier.weight(1f))
+        Kicker(text = title, modifier = Modifier.weight(1f))
         TextButton(
             onClick = onCancel,
             contentPadding = PaddingValues(0.dp),
