@@ -111,6 +111,7 @@ fun ReminderPrefsSection(
                             ReminderCopy.DAY_OFF
                         },
                         modifier = Modifier.testTag(reminderDayTag(day)),
+                        selected = on && day == selected,
                         onClick = {
                             if (on) {
                                 editing = day
@@ -118,20 +119,6 @@ fun ReminderPrefsSection(
                                 onSetDayAlarm(day, reminder.hour, reminder.minute)
                                 editing = day
                             }
-                        },
-                        trailing = {
-                            InstrumentSwitch(
-                                checked = on,
-                                onCheckedChange = { checked ->
-                                    if (checked) {
-                                        onSetDayAlarm(day, reminder.hour, reminder.minute)
-                                        editing = day
-                                    } else {
-                                        onClearDayAlarm(day)
-                                        if (editing == day) editing = null
-                                    }
-                                },
-                            )
                         },
                     )
                 }
@@ -197,6 +184,18 @@ fun ReminderPrefsSection(
         }
         if (enabled && selected != null && preferences.dayAlarms.isNotEmpty()) {
             val day = selected
+            TextButton(
+                onClick = {
+                    onClearDayAlarm(day)
+                    editing = null
+                },
+            ) {
+                Text(
+                    "${ReminderCopy.TURN_OFF} ${day.titleLabel()}",
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                )
+            }
             Text(
                 ReminderCopy.timeLabel(
                     reminder.hour,
