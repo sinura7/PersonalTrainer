@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 13 Sep 2026 — Live 54: Extra asks what equipment is here (None /
+> Free weights / Machines / Mixed), then matching warm-up and mobility
+> packs with pictures on `trunk`. `debugLiveCode` 54; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 13 Sep 2026 — Extra asks what equipment is here (None / Free weights /
 > Machines / Mixed), then shows matching warm-up and mobility packs.
 > Settings kit is a suggestion. Does not bump live 53. Gym-floor
