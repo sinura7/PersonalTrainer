@@ -17,6 +17,8 @@ import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WorkoutPasteRest
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
@@ -1308,6 +1310,59 @@ class RoutineEditorViewModelTest {
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
         }
+    }
+
+    @Test
+    fun pasteFillsUpperABenchAndCreatesTheOtherBlocks() = runBlocking {
+        deps.dbMaintenance.seedCatalog()
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        val text = checkNotNull(
+            javaClass.getResource("/paste-routine-reference.md"),
+        ).readText()
+        vm.importPaste(text)
+        val state = vm.awaitState {
+            it.name == "Upper A" &&
+                it.routine?.exercises?.any { row -> row.exercise.id == "ex-barbell-bench-press" } == true
+        }
+        val bench = state.routine!!.exercises.first { it.exercise.id == "ex-barbell-bench-press" }
+        assertEquals(4, bench.targetSets)
+        assertEquals(4, bench.targetReps)
+        assertEquals(WorkoutPasteRest.COMPOUND_SECONDS, bench.restSeconds)
+        assertEquals(
+            listOf("Lower A", "Upper B", "Lower B", "Cardio", "Flexibility"),
+            state.createdFromPaste,
+        )
+        val names = deps.routineRepository.observeAll().first().map { it.name }.toSet()
+        assertTrue(names.containsAll(setOf("Upper A", "Lower A", "Upper B", "Lower B", "Cardio", "Flexibility")))
+        val routines = deps.routineRepository.observeAll().first()
+        val lowerB = routines.first { it.name == "Lower B" }
+        val squat = lowerB.exercises.first { it.exercise.id == "ex-front-squat" }
+        assertEquals(3, squat.targetSets)
+        assertEquals(8, squat.targetReps)
+        val plank = lowerB.exercises.first { it.exercise.id == "ex-side-plank" }
+        assertEquals(2, plank.targetSets)
+        assertEquals(1, plank.targetReps)
+        assertEquals(WorkoutPasteRest.ACCESSORY_SECONDS, plank.restSeconds)
+        val upperA = routines.first { it.name == "Upper A" }
+        assertTrue(upperA.notes.contains("2–3 min"))
+        assertTrue(upperA.notes.contains("Weekly layout"))
+        val hang = upperA.exercises.first { it.exercise.id == "ex-dead-hang" }
+        assertEquals(1, hang.targetReps)
+        val slots = deps.scheduleRepository.slots()
+        assertEquals(Weekday.MONDAY, slots.first { it.routineId == upperA.id }.anchorDay)
+        assertEquals(
+            Weekday.TUESDAY,
+            slots.first { it.routineId == routines.first { it.name == "Lower A" }.id }.anchorDay,
+        )
+        assertEquals(
+            Weekday.THURSDAY,
+            slots.first { it.routineId == routines.first { it.name == "Upper B" }.id }.anchorDay,
+        )
+        assertEquals(Weekday.FRIDAY, slots.first { it.routineId == lowerB.id }.anchorDay)
+        assertTrue(slots.any { it.anchorDay == Weekday.SATURDAY })
+        assertTrue(slots.none { it.anchorDay == Weekday.WEDNESDAY })
+        assertTrue(slots.none { it.anchorDay == Weekday.SUNDAY })
     }
 
     private fun createViewModel(
