@@ -16,11 +16,11 @@ import org.junit.Test
 class DefaultExercisesTest {
 
     @Test
-    fun catalogHasExactly129EntriesAtVersion7() {
-        // Batch 1 (37) + batch 2 (33) + batch 3 (28) + batch 4 (3) + batch 5 (28 Hyper Pro).
-        // v7 is the keyed-still write, not a sixth batch.
-        assertEquals(129, DefaultExercises.catalog().size)
-        assertEquals(7, DefaultExercises.CATALOG_VERSION)
+    fun catalogHasExactly135EntriesAtVersion8() {
+        // Batch 1 (37) + batch 2 (33) + batch 3 (28) + batch 4 (3) + batch 5 (28 Hyper Pro)
+        // + batch 6 (6 paste-corpus holds).
+        assertEquals(135, DefaultExercises.catalog().size)
+        assertEquals(8, DefaultExercises.CATALOG_VERSION)
     }
 
     @Test
@@ -262,10 +262,10 @@ class DefaultExercisesTest {
             "ex-close-grip-bench-press", "ex-plank", "ex-hanging-leg-raise", "ex-cable-crunch",
         )
 
-        /** The plan's per-bucket totals for the 129-lift catalog. */
+        /** The plan's per-bucket totals for the 135-lift catalog. */
         val BUCKET_COUNTS = mapOf(
-            "Chest" to 14, "Back" to 20, "Hinge" to 9, "Shoulders" to 13, "Biceps" to 9,
-            "Triceps" to 8, "Quads" to 17, "Hamstrings" to 10, "Glutes" to 9, "Calves" to 5,
+            "Chest" to 15, "Back" to 22, "Hinge" to 9, "Shoulders" to 14, "Biceps" to 9,
+            "Triceps" to 8, "Quads" to 19, "Hamstrings" to 10, "Glutes" to 9, "Calves" to 5,
             "Core" to 15,
         )
 
@@ -276,7 +276,7 @@ class DefaultExercisesTest {
                 "ex-incline-dumbbell-bench-press", "ex-machine-chest-press", "ex-dip",
                 "ex-cable-fly", "ex-pec-deck", "ex-decline-bench-press",
                 "ex-smith-machine-bench-press", "ex-assisted-dip",
-                "ex-hyper-pro-push-up",
+                "ex-hyper-pro-push-up", "ex-doorway-chest-stretch",
             ),
             "Back" to listOf(
                 "ex-barbell-row", "ex-pendlay-row", "ex-one-arm-dumbbell-row", "ex-lat-pulldown",
@@ -287,6 +287,7 @@ class DefaultExercisesTest {
                 "ex-assisted-pull-up", "ex-assisted-chin-up",
                 "ex-hyper-pro-standing-row", "ex-hyper-pro-trap-3-raise",
                 "ex-hyper-pro-pullover",
+                "ex-dead-hang", "ex-scapular-hang",
             ),
             // Hinge is a curation bucket, not a muscle: its lifts credit back and glutes.
             "Hinge" to listOf(
@@ -301,6 +302,7 @@ class DefaultExercisesTest {
                 "ex-cable-lateral-raise", "ex-machine-lateral-raise", "ex-reverse-pec-deck",
                 "ex-dumbbell-rear-delt-fly",
                 "ex-hyper-pro-face-pull", "ex-hyper-pro-external-rotator",
+                "ex-y-hold",
             ),
             "Biceps" to listOf(
                 "ex-barbell-curl", "ex-dumbbell-curl",
@@ -321,6 +323,7 @@ class DefaultExercisesTest {
                 "ex-hyper-pro-bulgarian-split-squat", "ex-hyper-pro-couch-stretch",
                 "ex-hyper-pro-kot-squat", "ex-hyper-pro-leg-extension",
                 "ex-hyper-pro-reverse-nordic",
+                "ex-wall-sit", "ex-deep-squat-hold",
             ),
             "Hamstrings" to listOf(
                 "ex-romanian-deadlift", "ex-leg-curl",
