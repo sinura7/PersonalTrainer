@@ -40,11 +40,20 @@ class HomeStartSheetTest {
         assertTrue(sheet.contains("HomeStart.namedRoutines"))
         assertTrue(sheet.contains("CardioPickCard("))
         assertTrue(sheet.contains("AuxiliaryPackList("))
+        assertTrue(sheet.contains("suggestedKit"))
+        assertTrue(sheet.contains("ExtraEquipment"))
         assertTrue(sheet.contains("ScheduleKind.planCardioTypes"))
         assertFalse(sheet.contains("Get started"))
         assertFalse(sheet.contains("StartOptionsSheet("))
         assertFalse(sheet.contains("askKeep"))
         assertFalse(sheet.contains("PlanDayCopy.JUST_TODAY"))
+        val extra = readOwned("ui/plan/AuxiliaryPackList.kt")
+        assertTrue(extra.contains("ExtraEquipment.PICK"))
+        assertTrue(extra.contains("suggestedKit"))
+        assertTrue(extra.contains("PickerStill"))
+        assertTrue(extra.contains("AuxiliaryPacks.visibleFor"))
+        val picker = readOwned("ui/plan/DayAddPicker.kt")
+        assertTrue(picker.contains("suggestedKit = suggestedKit"))
     }
 
     private fun readOwned(relative: String): String {

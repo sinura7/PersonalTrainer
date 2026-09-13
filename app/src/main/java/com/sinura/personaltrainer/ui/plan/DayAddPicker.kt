@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.ExtraEquipment
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleKind
@@ -78,6 +79,7 @@ fun DayAddPicker(
     onNewWorkout: (Boolean) -> Unit,
     onAddCardio: (CardioType, Boolean) -> Unit,
     onAddAux: (String, Boolean) -> Unit,
+    suggestedKit: ExtraEquipment = ExtraEquipment.MIXED,
 ) {
     var pendingKind by rememberSaveable { mutableStateOf(PendingKeep.NONE.name) }
     var pendingWorkoutId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -202,6 +204,7 @@ fun DayAddPicker(
                     )
                 },
                 onCancel = onCancel,
+                suggestedKit = suggestedKit,
             )
             DayPicker.WORKOUT -> {
                 GroupedList {

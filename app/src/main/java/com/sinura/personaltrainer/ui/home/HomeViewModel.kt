@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.DayBlockOrder
 import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.ExtraEquipment
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
@@ -71,6 +72,7 @@ data class HomeUiState(
     val occurrences: List<com.sinura.personaltrainer.domain.ScheduleOccurrence> = emptyList(),
     val rules: List<com.sinura.personaltrainer.domain.ScheduleRule> = emptyList(),
     val weekStartEpochDay: Long = 0L,
+    val suggestedExtraEquipment: ExtraEquipment = ExtraEquipment.MIXED,
 ) {
     /** True for a live workout or live cardio — Home's filled Volt hides for both. */
     val sessionLive: Boolean get() = inProgress != null || liveActivity != null
@@ -99,13 +101,20 @@ class HomeViewModel @JvmOverloads constructor(
                 ) { occurrences, rules, decisions -> Triple(occurrences, rules, decisions) },
             ) { lighterStart, planner -> lighterStart to planner },
             combine(
-                container.preferencesRepository.schedulePreferences,
-                container.preferencesRepository.preferredDays,
-                container.preferencesRepository.bodyweightLog,
-                container.preferencesRepository.bodyweightCheckInWeekday,
-                container.preferencesRepository.onboardingComplete,
-            ) { preferences, preferredDays, log, checkIn, setupComplete ->
-                HomeCadence(preferences, preferredDays, log, checkIn, setupComplete)
+                combine(
+                    container.preferencesRepository.schedulePreferences,
+                    container.preferencesRepository.preferredDays,
+                    container.preferencesRepository.bodyweightLog,
+                    container.preferencesRepository.bodyweightCheckInWeekday,
+                    container.preferencesRepository.onboardingComplete,
+                ) { preferences, preferredDays, log, checkIn, setupComplete ->
+                    HomeCadence(preferences, preferredDays, log, checkIn, setupComplete)
+                },
+                container.preferencesRepository.coachPreferences,
+            ) { cadence, coach ->
+                cadence.copy(
+                    suggestedExtra = ExtraEquipment.fromPreferences(coach.availableEquipment),
+                )
             },
         ) { planner, cadence -> planner to cadence },
     ) { insights, livePair, error, extras ->
@@ -162,6 +171,7 @@ class HomeViewModel @JvmOverloads constructor(
             occurrences = occurrences,
             rules = rules,
             weekStartEpochDay = weekStart,
+            suggestedExtraEquipment = cadence.suggestedExtra,
         )
     }
         // Same reason as Plan: this transform walks every finished session to build the logged
@@ -615,6 +625,7 @@ class HomeViewModel @JvmOverloads constructor(
         val bodyweightLog: List<com.sinura.personaltrainer.domain.BodyweightEntry>,
         val checkInWeekday: Weekday?,
         val setupComplete: Boolean,
+        val suggestedExtra: ExtraEquipment = ExtraEquipment.MIXED,
     )
 }
 

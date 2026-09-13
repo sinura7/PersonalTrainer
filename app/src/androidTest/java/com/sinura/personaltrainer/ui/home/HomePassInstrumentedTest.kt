@@ -25,6 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExtraEquipment
 import com.sinura.personaltrainer.domain.HomeStartCopy
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.PlanDayCopy
@@ -42,6 +43,7 @@ import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
+import com.sinura.personaltrainer.ui.plan.ExtraEquipmentTags
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import org.junit.Rule
@@ -273,10 +275,35 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        compose.onNodeWithText(ExtraEquipment.PICK).assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.NONE.label).assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.MACHINES.label).assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.MIXED.label).assertIsDisplayed()
+        compose.onNodeWithText("Golf warm-up").assertDoesNotExist()
+        compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.MIXED)).performClick()
         compose.onNodeWithText("Golf warm-up").assertIsDisplayed()
         compose.onNodeWithText("Lower-body warm-up").assertIsDisplayed()
         compose.onNodeWithText("Shoulder warm-up").assertIsDisplayed()
         compose.onNodeWithText("Stretch").assertIsDisplayed()
+    }
+
+    @Test
+    fun startSheetExtraNoneHidesMachineCore() {
+        setConstrainedContent(fontScale = 1f) {
+            HomeStartSheet(
+                routines = emptyList(),
+                onDismiss = {},
+                onStartFree = {},
+                onStartRoutine = {},
+                onStartCardio = {},
+                onStartExtra = {},
+            )
+        }
+        compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
+        compose.onNodeWithText("Floor brace. Dead bugs, planks. No machine.").assertIsDisplayed()
+        compose.onNodeWithText("Crunches and leg raises. Not a static hold.", substring = true)
+            .assertDoesNotExist()
     }
 
     @Test

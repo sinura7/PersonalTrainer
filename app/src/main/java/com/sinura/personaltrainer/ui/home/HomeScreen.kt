@@ -245,6 +245,7 @@ fun HomeScreen(
                 startSheet = false
                 viewModel.startAux(packId)
             },
+            suggestedKit = state.suggestedExtraEquipment,
         )
     }
 

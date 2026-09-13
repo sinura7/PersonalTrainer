@@ -34,7 +34,7 @@ object AccessibilityMatrix {
             title = "Home",
             states = requiredStates,
             voltAction = "Start a workout (sheet: free / routine / cardio / Extra). Planned rows confirm, then start.",
-            talkBackNotes = "Settings is a tab. Home week strip picks the day. Selected day is filled, not faint type. Planned rows open a start confirm, and a row skipped today still opens one. A day block is one button: title, order and count, then its state or Start on the foot; Skip and Up / Down sit inside it. The filled Volt is Start a workout and opens a sheet: free, a Plan routine, cardio, or Extra. There is no Get started sheet and no Add row on Home. Day blocks have no clocks; Up / Down rearranges them. This week, Library, Goals and the ready-to-progress list stay off this screen.",
+            talkBackNotes = "Settings is a tab. Home week strip picks the day. Selected day is filled, not faint type. Planned rows open a start confirm, and a row skipped today still opens one. A day block is one button: title, order and count, then its state or Start on the foot; Skip and Up / Down sit inside it. The filled Volt is Start a workout and opens a sheet: free, a Plan routine, cardio, or Extra. Extra asks what equipment is here, then shows matching warm-up and mobility pictures. There is no Get started sheet and no Add row on Home. Day blocks have no clocks; Up / Down rearranges them. This week, Library, Goals and the ready-to-progress list stay off this screen.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -58,7 +58,7 @@ object AccessibilityMatrix {
             title = "Plan day",
             states = requiredStates,
             voltAction = "Add session",
-            talkBackNotes = "Back and Add session are named. Session rows open the editor. Up / Down rearranges the day's blocks. Remove deletes. No clocks, Start, Swap, or Unpin.",
+            talkBackNotes = "Back and Add session are named. Session rows open the editor. Up / Down rearranges the day's blocks. Remove deletes. Extra asks what equipment is here before the warm-up pictures. No clocks, Start, Swap, or Unpin.",
             automatedEvidence = true,
         ),
         PagePass(
