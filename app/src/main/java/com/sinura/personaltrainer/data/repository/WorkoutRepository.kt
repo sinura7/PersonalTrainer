@@ -577,7 +577,10 @@ class WorkoutRepository(
             if (holdSeconds == null && reps < 1) error("Reps must be at least 1.")
             val loadType = loadTypeOf(current, exerciseId)
             val isHold = holdSeconds != null ||
-                current.exercises.any { it.exercise.id == exerciseId && HoldWork.isHold(it.exercise) }
+                current.exercises.any {
+                    it.exercise.id == exerciseId &&
+                        HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
+                }
             val violation = SetLogRules.validate(
                 weightKg = weightKg,
                 reps = reps,

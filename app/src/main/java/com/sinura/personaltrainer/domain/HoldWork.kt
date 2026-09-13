@@ -17,10 +17,13 @@ object HoldWork {
 
     private val HOLD_MOVEMENT_KEYS = setOf("plank", "hold", "isometric", "static")
 
-    fun isHold(exercise: Exercise): Boolean {
-        val movement = exercise.movementKey?.lowercase()
+    fun isHold(exercise: Exercise): Boolean =
+        isHold(exercise.id, exercise.name, exercise.movementKey)
+
+    fun isHold(id: String, name: String, movementKey: String? = null): Boolean {
+        val movement = movementKey?.lowercase()
         if (movement != null && movement in HOLD_MOVEMENT_KEYS) return true
-        return looksLikeHold(exercise.id, exercise.name)
+        return looksLikeHold(id, name)
     }
 
     /**

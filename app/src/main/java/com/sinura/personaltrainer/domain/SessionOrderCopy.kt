@@ -151,6 +151,8 @@ object SessionOrderCopy {
         targetReps: Int,
         restClock: String?,
         load: String?,
+        holdSeconds: Int? = null,
+        holdSecondsMax: Int? = null,
     ): String = buildString {
         append("$number. $name")
         if (muscleGroup.isNotBlank()) append(". $muscleGroup")

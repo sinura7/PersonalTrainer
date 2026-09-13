@@ -24,5 +24,6 @@ data class FilledSessionLift(
     val hasPrescription: Boolean
         get() = targetSets > 0 ||
             restSeconds > 0 ||
+            targetSeconds != null ||
             (targetWeightKg != null && targetWeightKg > 0.0)
 }

@@ -58,6 +58,8 @@ internal fun FilledLiftCard(
         targetReps = lift.targetReps,
         restClock = restClock.takeIf { lift.hasPrescription },
         load = loadDisplay,
+        holdSeconds = lift.targetSeconds,
+        holdSecondsMax = lift.targetSecondsMax,
     )
     val setsById = lift.sets.associateBy { it.id }
     val headerTrailing = @Composable {
