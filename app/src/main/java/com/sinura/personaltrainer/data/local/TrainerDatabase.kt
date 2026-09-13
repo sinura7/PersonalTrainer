@@ -26,7 +26,9 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
         ScheduleSlotEntity::class,
     ],
     version = 2,
-    exportSchema = true,
+    // Frozen v2 JSON is the committed baseline. Re-export would rewrite it
+    // whenever shared entities gain columns (hold seconds live on Temper v5).
+    exportSchema = false,
 )
 abstract class TrainerDatabase : AppRoomDatabase() {
 
