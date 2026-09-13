@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
@@ -141,22 +142,8 @@ internal fun SettingsIndexRow(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(tag),
-        leading = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = TextSecondary,
-                modifier = Modifier.size(Metrics.icon),
-            )
-        },
-        trailing = {
-            Icon(
-                imageVector = TemperIcons.Chevron,
-                contentDescription = null,
-                tint = TextTertiary,
-                modifier = Modifier.size(Metrics.chevron),
-            )
-        },
+        leading = settingsRowMark(icon),
+        trailing = settingsRowChevron(),
         onClick = onClick,
     )
 }
@@ -164,4 +151,22 @@ internal fun SettingsIndexRow(
 @Composable
 private fun IndexHairline() {
     HairlineDivider(startIndent = Metrics.rowIconHairline)
+}
+
+private fun settingsRowMark(icon: ImageVector): @Composable () -> Unit = {
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = TextSecondary,
+        modifier = Modifier.size(Metrics.icon),
+    )
+}
+
+private fun settingsRowChevron(): @Composable RowScope.() -> Unit = {
+    Icon(
+        imageVector = TemperIcons.Chevron,
+        contentDescription = null,
+        tint = TextTertiary,
+        modifier = Modifier.size(Metrics.chevron),
+    )
 }

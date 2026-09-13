@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
@@ -54,16 +55,7 @@ internal fun SettingsRadioList(
                 subtitle = item.subtitle,
                 selected = isSelected,
                 onClick = { onSelect(index) },
-                trailing = {
-                    if (isSelected) {
-                        Icon(
-                            imageVector = TemperIcons.Check,
-                            contentDescription = null,
-                            tint = Volt,
-                            modifier = Modifier.size(Metrics.icon),
-                        )
-                    }
-                },
+                trailing = settingsRadioCheck(isSelected),
             )
         }
     }
@@ -109,5 +101,16 @@ internal fun SettingsStrip(
                 )
             }
         }
+    }
+}
+
+private fun settingsRadioCheck(selected: Boolean): @Composable RowScope.() -> Unit = {
+    if (selected) {
+        Icon(
+            imageVector = TemperIcons.Check,
+            contentDescription = null,
+            tint = Volt,
+            modifier = Modifier.size(Metrics.icon),
+        )
     }
 }
