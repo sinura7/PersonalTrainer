@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
@@ -48,6 +49,8 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.update.DebugUpdateBanner
+import com.sinura.personaltrainer.ui.update.rememberDebugUpdatePort
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -148,6 +151,9 @@ fun HomeScreen(
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
     val reviewOccurrenceId by viewModel.reviewOccurrenceId.collectAsStateWithLifecycle()
     val focusEpochDay by viewModel.focusEpochDay.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val debugUpdate = rememberDebugUpdatePort()
+    val updateUi by debugUpdate.ui.collectAsStateWithLifecycle()
     LaunchedEffect(weekStart, today) {
         val end = weekStart + 6
         if (selectedEpochDay !in weekStart..end) {
@@ -279,6 +285,14 @@ fun HomeScreen(
                             com.sinura.personaltrainer.domain.MissedWorkChoice.SKIP_MISSED,
                         )
                     },
+                )
+            }
+        }
+        if (updateUi.showBanner) {
+            item {
+                DebugUpdateBanner(
+                    onOpen = { debugUpdate.openOffer(context) },
+                    onDismiss = debugUpdate::dismissBanner,
                 )
             }
         }

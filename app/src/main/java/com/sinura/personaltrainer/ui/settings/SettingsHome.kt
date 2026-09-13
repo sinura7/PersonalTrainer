@@ -31,6 +31,8 @@ internal fun SettingsHome(
     bodyweightSummary: String,
     onOpen: (SettingsPage) -> Unit,
     modifier: Modifier = Modifier,
+    updateSummary: String? = null,
+    onOpenUpdate: () -> Unit = {},
 ) {
     LazyColumn(
         modifier = modifier
@@ -44,6 +46,19 @@ internal fun SettingsHome(
         ),
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
+        if (updateSummary != null) {
+            item(key = "update") {
+                GroupedList {
+                    SettingsIndexRow(
+                        title = SettingsHomeCopy.UPDATE,
+                        subtitle = updateSummary,
+                        icon = TemperIcons.Check,
+                        tag = SettingsTags.ROW_UPDATE,
+                        onClick = onOpenUpdate,
+                    )
+                }
+            }
+        }
         item(key = "training") {
             GroupedList {
                 SettingsIndexRow(

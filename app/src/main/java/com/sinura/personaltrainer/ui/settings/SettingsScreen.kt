@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,6 +26,7 @@ import com.sinura.personaltrainer.diagnostics.DiagnosticMetadata
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.DebugUpdateCopy
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.domain.TrainingAge
@@ -39,6 +41,8 @@ import com.sinura.personaltrainer.ui.reminders.ReminderPrefsSection
 import com.sinura.personaltrainer.ui.reminders.openAppNotificationSettings
 import com.sinura.personaltrainer.ui.reminders.rememberNotificationsEnabled
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.update.DebugUpdateBanner
+import com.sinura.personaltrainer.ui.update.rememberDebugUpdatePort
 
 @Composable
 fun SettingsScreen(
@@ -62,6 +66,8 @@ fun SettingsScreen(
     val generateNotice by viewModel.generateNotice.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context.findActivity()
+    val debugUpdate = rememberDebugUpdatePort()
+    val updateUi by debugUpdate.ui.collectAsStateWithLifecycle()
     var page by rememberSaveable { mutableStateOf(SettingsPage.HOME) }
 
     BackHandler(enabled = page != SettingsPage.HOME) {
@@ -70,6 +76,7 @@ fun SettingsScreen(
 
     LaunchedEffect(Unit) {
         viewModel.refreshAlarmCapability()
+        debugUpdate.onSettingsOpened()
     }
 
     val resolutionLauncher = rememberLauncherForActivityResult(
@@ -154,6 +161,16 @@ fun SettingsScreen(
             SettingsPage.HOME -> {
                 Column(modifier = Modifier.fillMaxSize()) {
                     SettingsHeader()
+                    if (BuildConfig.DEBUG && updateUi.showBanner) {
+                        DebugUpdateBanner(
+                            onOpen = { debugUpdate.openOffer(context) },
+                            onDismiss = debugUpdate::dismissBanner,
+                            modifier = Modifier.padding(
+                                horizontal = Metrics.gutter,
+                                vertical = Metrics.space2,
+                            ),
+                        )
+                    }
                     SettingsHome(
                         displaySummary = SettingsHomeCopy.displaySummary(selectedUnit, clockFormat),
                         remindersSummary = SettingsHomeCopy.remindersSummary(
@@ -173,6 +190,14 @@ fun SettingsScreen(
                             checkIn = checkInWeekday,
                         ),
                         onOpen = { page = it },
+                        updateSummary = if (BuildConfig.DEBUG) {
+                            updateUi.offer?.let { offer ->
+                                DebugUpdateCopy.settingsSummary(offer.versionCode)
+                            }
+                        } else {
+                            null
+                        },
+                        onOpenUpdate = { debugUpdate.openOffer(context) },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -489,6 +514,7 @@ object SettingsTags {
     const val ROW_PLAN = "settings-row-plan"
     const val ROW_DIAGNOSTICS = "settings-row-diagnostics"
     const val ROW_ABOUT = "settings-row-about"
+    const val ROW_UPDATE = "settings-row-update"
     const val ROW_LOG = "settings-row-log"
     const val ROW_FOUNDATION = "settings-row-foundation"
 }

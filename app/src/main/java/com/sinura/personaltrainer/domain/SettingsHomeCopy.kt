@@ -19,6 +19,7 @@ object SettingsHomeCopy {
     const val DEVELOPER = "Developer"
     const val LOG = "Log"
     const val FOUNDATION = "Foundation"
+    const val UPDATE = "Update available"
 
     const val OFF = "Off"
     const val NO_DAYS = "No days yet"

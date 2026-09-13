@@ -2,8 +2,17 @@ package com.sinura.personaltrainer
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.sinura.personaltrainer.update.DataStoreDebugUpdateCache
+import com.sinura.personaltrainer.update.DebugUpdateChecker
+import com.sinura.personaltrainer.update.DebugUpdateMonitor
+import com.sinura.personaltrainer.update.DebugUpdatePort
+import com.sinura.personaltrainer.update.DisabledDebugUpdate
+import com.sinura.personaltrainer.update.HttpUrlConnectionDebugUpdateHttp
+import com.sinura.personaltrainer.update.debugUpdateDataStore
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
@@ -49,6 +58,30 @@ class AppContainer(context: Context) : AppDependencies {
     override val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
     override val computeDispatcher: CoroutineDispatcher = Dispatchers.Default
     override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime
+
+    /**
+     * Temper Debug only. Gym-floor is [DisabledDebugUpdate]: it never talks to
+     * GitHub and never nags. The prompt opens the drop; it does not skip
+     * Android's install gate.
+     */
+    val debugUpdate: DebugUpdatePort = if (BuildConfig.DEBUG) {
+        val cache = DataStoreDebugUpdateCache(context.debugUpdateDataStore)
+        DebugUpdateMonitor(
+            checker = DebugUpdateChecker(
+                http = HttpUrlConnectionDebugUpdateHttp(),
+                cache = cache,
+                enabled = true,
+                installedVersionCode = BuildConfig.VERSION_CODE,
+                nowMillis = { System.currentTimeMillis() },
+                isOnline = { NetworkChecker(context).isOnline() },
+            ),
+            cache = cache,
+            scope = CoroutineScope(SupervisorJob() + ioDispatcher),
+            ioDispatcher = ioDispatcher,
+        )
+    } else {
+        DisabledDebugUpdate
+    }
 
     private val database: TemperDatabase = TemperDatabase.create(context)
 

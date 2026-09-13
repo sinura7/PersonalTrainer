@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
         app?.container?.restTimerController?.refreshAlarmCapability()
         // Week rollover must not wait for a process restart.
         app?.ensureCurrentWeek()
+        app?.container?.debugUpdate?.onForeground()
     }
 
     override fun onNewIntent(intent: Intent) {
