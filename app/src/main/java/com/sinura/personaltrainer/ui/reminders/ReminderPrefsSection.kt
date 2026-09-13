@@ -6,16 +6,23 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -42,7 +49,7 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 /**
  * Per-day workout reminder alarms. Quiet hours stay secondary.
- * Rest-timer notifications are unchanged.
+ * Rest-timer notifications stay on Rest, unchanged.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -68,10 +75,15 @@ fun ReminderPrefsSection(
     Column(
         modifier = modifier
             .testTag(REMINDERS_TAG)
-            .padding(top = Metrics.space3),
+            .fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
     ) {
-        Kicker("Reminders")
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
+        ) {
         if (enabled && !notificationsEnabled) {
             GymNoticeBanner(
                 title = ReminderCopy.PERMISSION_TITLE,
@@ -91,163 +103,131 @@ fun ReminderPrefsSection(
                 },
             )
             if (enabled) {
-                HairlineDivider()
-                Column(
-                    modifier = Modifier.padding(
-                        start = Metrics.space4,
-                        end = Metrics.space4,
-                        top = Metrics.space3,
-                        bottom = Metrics.space4,
+                Weekday.entries.forEach { day ->
+                    HairlineDivider()
+                    val on = day in preferences.dayAlarms
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        InstrumentRow(
+                            title = day.titleLabel(),
+                            subtitle = if (on) {
+                                val stored = preferences.dayAlarms.getValue(day)
+                                ReminderCopy.timeLabel(stored.hour, stored.minute, clockFormat)
+                            } else {
+                                ReminderCopy.DAY_OFF
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag(reminderDayTag(day)),
+                            selected = on && day == selected,
+                            onClick = {
+                                if (on) {
+                                    editing = day
+                                } else {
+                                    onSetDayAlarm(day, reminder.hour, reminder.minute)
+                                    editing = day
+                                }
+                            },
+                        )
+                        InstrumentSwitch(
+                            checked = on,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    onSetDayAlarm(day, reminder.hour, reminder.minute)
+                                    editing = day
+                                } else {
+                                    onClearDayAlarm(day)
+                                    if (editing == day) editing = null
+                                }
+                            },
+                            modifier = Modifier.padding(end = Metrics.space4),
+                        )
+                    }
+                }
+            }
+        }
+        if (enabled) {
+            if (preferences.dayAlarms.isEmpty()) {
+                Text(
+                    ReminderCopy.ALARM_EMPTY,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+            }
+            TextButton(onClick = { quietOpen = !quietOpen }) {
+                Text(
+                    if (quietOpen) "Hide quiet hours" else "Quiet hours",
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                )
+            }
+            if (quietOpen) {
+                Text(
+                    ReminderCopy.quietHoursLine(
+                        preferences.quietStartHour,
+                        preferences.quietEndHour,
+                        clockFormat,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space3),
-                ) {
-                    Kicker(ReminderCopy.DAYS)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                        Weekday.entries.forEach { day ->
-                            val on = day in preferences.dayAlarms
-                            InstrumentChip(
-                                label = day.shortLabel(),
-                                selected = on,
-                                onClick = {
-                                    if (on) {
-                                        onClearDayAlarm(day)
-                                        if (editing == day) editing = null
-                                    } else {
-                                        onSetDayAlarm(day, reminder.hour, reminder.minute)
-                                        editing = day
-                                    }
-                                },
-                                modifier = Modifier.testTag(reminderDayTag(day)),
-                            )
-                        }
-                    }
-                    if (preferences.dayAlarms.isEmpty()) {
-                        Text(
-                            ReminderCopy.ALARM_EMPTY,
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
-                        )
-                    } else {
-                        Text(
-                            ReminderCopy.timeLabel(
-                                reminder.hour,
-                                reminder.minute,
-                                clockFormat,
-                            ),
-                            style = InstrumentType.body,
-                            color = TextSecondary,
-                        )
-                        Kicker(ReminderCopy.TIME)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                            (1..12).forEach { twelve ->
-                                InstrumentChip(
-                                    label = twelve.toString(),
-                                    selected = ReminderCopy.twelveHour(reminder.hour) == twelve,
-                                    onClick = {
-                                        val day = selected
-                                        if (day != null) {
-                                            val hour = ReminderCopy.toHour24(
-                                                twelve,
-                                                ReminderCopy.isPm(reminder.hour),
-                                            )
-                                            onSetDayAlarm(day, hour, reminder.minute)
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                            ReminderCopy.minuteChoices.forEach { minute ->
-                                InstrumentChip(
-                                    label = "%02d".format(minute),
-                                    selected = reminder.minute == minute,
-                                    onClick = {
-                                        val day = selected
-                                        if (day != null) onSetDayAlarm(day, reminder.hour, minute)
-                                    },
-                                )
-                            }
-                            InstrumentChip(
-                                label = "AM",
-                                selected = !ReminderCopy.isPm(reminder.hour),
-                                onClick = {
-                                    val day = selected
-                                    if (day != null) {
-                                        val hour = ReminderCopy.toHour24(
-                                            ReminderCopy.twelveHour(reminder.hour),
-                                            pm = false,
-                                        )
-                                        onSetDayAlarm(day, hour, reminder.minute)
-                                    }
-                                },
-                            )
-                            InstrumentChip(
-                                label = "PM",
-                                selected = ReminderCopy.isPm(reminder.hour),
-                                onClick = {
-                                    val day = selected
-                                    if (day != null) {
-                                        val hour = ReminderCopy.toHour24(
-                                            ReminderCopy.twelveHour(reminder.hour),
-                                            pm = true,
-                                        )
-                                        onSetDayAlarm(day, hour, reminder.minute)
-                                    }
-                                },
-                            )
-                        }
-                    }
-                    TextButton(onClick = { quietOpen = !quietOpen }) {
-                        Text(
-                            if (quietOpen) "Hide quiet hours" else "Quiet hours",
-                            style = InstrumentType.bodyStrong,
-                            color = TextSecondary,
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
+                Text(
+                    ReminderCopy.QUIET_CAPTION,
+                    style = InstrumentType.caption,
+                    color = TextTertiary,
+                )
+                Kicker(ReminderCopy.QUIET_START)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    ReminderCopy.startChoices(preferences.quietStartHour).forEach { hour ->
+                        InstrumentChip(
+                            label = ReminderCopy.hourLabel(hour, clockFormat),
+                            selected = preferences.quietStartHour == hour,
+                            onClick = { onQuietHours(hour, preferences.quietEndHour) },
                         )
                     }
-                    if (quietOpen) {
-                        Text(
-                            ReminderCopy.quietHoursLine(
-                                preferences.quietStartHour,
-                                preferences.quietEndHour,
-                                clockFormat,
-                            ),
-                            style = InstrumentType.body,
-                            color = TextSecondary,
+                }
+                Kicker(ReminderCopy.QUIET_END)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    ReminderCopy.endChoices(preferences.quietEndHour).forEach { hour ->
+                        InstrumentChip(
+                            label = ReminderCopy.hourLabel(hour, clockFormat),
+                            selected = preferences.quietEndHour == hour,
+                            onClick = { onQuietHours(preferences.quietStartHour, hour) },
                         )
-                        Text(
-                            ReminderCopy.QUIET_CAPTION,
-                            style = InstrumentType.caption,
-                            color = TextTertiary,
-                        )
-                        Kicker(ReminderCopy.QUIET_START)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                            ReminderCopy.startChoices(preferences.quietStartHour).forEach { hour ->
-                                InstrumentChip(
-                                    label = ReminderCopy.hourLabel(hour, clockFormat),
-                                    selected = preferences.quietStartHour == hour,
-                                    onClick = { onQuietHours(hour, preferences.quietEndHour) },
-                                )
-                            }
-                        }
-                        Kicker(ReminderCopy.QUIET_END)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                            ReminderCopy.endChoices(preferences.quietEndHour).forEach { hour ->
-                                InstrumentChip(
-                                    label = ReminderCopy.hourLabel(hour, clockFormat),
-                                    selected = preferences.quietEndHour == hour,
-                                    onClick = { onQuietHours(preferences.quietStartHour, hour) },
-                                )
-                            }
-                        }
                     }
                 }
             }
         }
         Text(
-            "Rest alerts are unchanged. Exact alarms when the phone allows them.",
+            ReminderCopy.REST_STAYS_ON_REST,
             style = InstrumentType.caption,
             color = TextTertiary,
         )
+        }
+        if (enabled && selected != null && preferences.dayAlarms.isNotEmpty()) {
+            val day = selected
+            Text(
+                ReminderCopy.timeLabel(
+                    reminder.hour,
+                    reminder.minute,
+                    clockFormat,
+                ),
+                style = InstrumentType.body,
+                color = TextSecondary,
+            )
+            Kicker("${ReminderCopy.TIME} · ${day.titleLabel()}")
+            key(day) {
+                ReminderTimeWheel(
+                    hour = reminder.hour,
+                    minute = reminder.minute,
+                    onTime = { hour, minute ->
+                        onSetDayAlarm(day, hour, minute)
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -286,5 +266,9 @@ fun openAppNotificationSettings(context: Context) {
 }
 
 const val REMINDERS_TAG = "plan-reminders"
+const val REMINDER_TIME_WHEEL = "reminder-time-wheel"
+const val REMINDER_TIME_HOUR = "reminder-time-hour"
+const val REMINDER_TIME_MINUTE = "reminder-time-minute"
+const val REMINDER_TIME_PERIOD = "reminder-time-period"
 
 fun reminderDayTag(day: Weekday): String = "reminder-day-${day.name}"

@@ -82,7 +82,7 @@ object AccessibilityMatrix {
             title = "Settings",
             states = requiredStates,
             voltAction = "Export to file",
-            talkBackNotes = "Settings is a tab. Back is gone. Weight and hours sit at the top. Reminders are per-day workout alarms. The week generator lives here. Export is the page's Volt. Restore is never the gym act. Share diagnostics is quiet.",
+            talkBackNotes = "Settings is a tab. The root is a short index of rows. Display, Reminders, Week generator, Rest timer, Backup, and About open focused screens. Back is gone on the index. Reminders are per-day workout alarms with a scroll time and AM/PM. The week generator lives on its own Settings screen. Export is Backup's Volt. Restore is never the gym act. Share diagnostics is quiet.",
             automatedEvidence = true,
         ),
         PagePass(

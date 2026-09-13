@@ -18,6 +18,15 @@ class ReminderCopyTest {
         assertTrue(ReminderCopy.startChoices(19).contains(19))
         assertEquals(7, ReminderCopy.toHour24(7, pm = false))
         assertEquals(19, ReminderCopy.toHour24(7, pm = true))
+        assertEquals(0, ReminderCopy.toHour24(12, pm = false))
+        assertEquals(12, ReminderCopy.toHour24(12, pm = true))
+        assertEquals(7, ReminderCopy.twelveHour(19))
+        assertTrue(ReminderCopy.isPm(19))
+        assertFalse(ReminderCopy.isPm(7))
+        assertEquals(60, ReminderCopy.minutes.size)
+        assertEquals(listOf("AM", "PM"), ReminderCopy.periodLabels)
+        assertFalse(ReminderCopy.shouldCommitSettledPage(3, 3))
+        assertTrue(ReminderCopy.shouldCommitSettledPage(4, 3))
     }
 
     @Test

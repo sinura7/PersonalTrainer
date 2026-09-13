@@ -3,15 +3,13 @@ package com.sinura.personaltrainer.ui.settings
 
 import android.app.Activity
 import android.content.Intent
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,6 +23,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.diagnostics.DiagnosticMetadata
 import com.sinura.personaltrainer.data.backup.BackupJson
+import com.sinura.personaltrainer.domain.ClockFormat
+import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SettingsHomeCopy
+import com.sinura.personaltrainer.domain.TrainingAge
+import com.sinura.personaltrainer.domain.TrainingPlace
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -57,6 +62,11 @@ fun SettingsScreen(
     val generateNotice by viewModel.generateNotice.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context.findActivity()
+    var page by rememberSaveable { mutableStateOf(SettingsPage.HOME) }
+
+    BackHandler(enabled = page != SettingsPage.HOME) {
+        page = SettingsPage.HOME
+    }
 
     LaunchedEffect(Unit) {
         viewModel.refreshAlarmCapability()
@@ -139,21 +149,38 @@ fun SettingsScreen(
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        SettingsHeader()
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(
-                start = Metrics.gutter,
-                end = Metrics.gutter,
-                top = Metrics.space2,
-                bottom = Metrics.space8,
-            ),
-            verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
-        ) {
-            item(key = "display") {
+    val goHome = { page = SettingsPage.HOME }
+    when (page) {
+            SettingsPage.HOME -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    SettingsHeader()
+                    SettingsHome(
+                        displaySummary = SettingsHomeCopy.displaySummary(selectedUnit, clockFormat),
+                        remindersSummary = SettingsHomeCopy.remindersSummary(
+                            reminderPrefs,
+                            clockFormat,
+                        ),
+                        generatorSummary = SettingsHomeCopy.generatorSummary(
+                            daysPerWeek = schedulePrefs.trainingDaysPerWeek,
+                            preferredDays = preferredDays,
+                            split = schedulePrefs.splitStyle,
+                            goal = coachPrefs.goal,
+                        ),
+                        restSummary = SettingsHomeCopy.restSummary(restPrefs),
+                        bodyweightSummary = SettingsHomeCopy.bodyweightSummary(
+                            bodyweightKg = bodyweightKg,
+                            unit = selectedUnit,
+                            checkIn = checkInWeekday,
+                        ),
+                        onOpen = { page = it },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+            SettingsPage.DISPLAY -> SettingsSubpage(
+                title = SettingsHomeCopy.DISPLAY,
+                onBack = goHome,
+            ) {
                 DisplayPrefsSection(
                     selectedUnit = selectedUnit,
                     clockFormat = clockFormat,
@@ -161,46 +188,11 @@ fun SettingsScreen(
                     onSelectClock = viewModel::setClockFormat,
                 )
             }
-            item(key = "generator") {
-                SettingsGroup(
-                    title = "Week generator",
-                    caption = "Days, split, coaching and equipment. Generate writes a new week. " +
-                        "Days you already pinned stay.",
-                ) {
-                    SchedulePrefsSection(
-                        preferences = schedulePrefs,
-                        preferredDays = preferredDays,
-                        trainingAge = trainingAge,
-                        trainingPlace = trainingPlace,
-                        onDays = viewModel::setTrainingDays,
-                        onSplit = viewModel::setSplitStyle,
-                        onWeekStart = viewModel::setWeekStart,
-                        onTogglePreferredDay = viewModel::togglePreferredDay,
-                        onTrainingAge = viewModel::setTrainingAge,
-                        onTrainingPlace = viewModel::setTrainingPlace,
-                    )
-                    CoachingSection(
-                        preferences = coachPrefs,
-                        onGoal = viewModel::setTrainingGoal,
-                        onEmphasis = viewModel::setTrainingEmphasis,
-                        onToggleEquipment = viewModel::toggleEquipment,
-                    )
-                    generateNotice?.let { notice ->
-                        GymNoticeBanner(
-                            title = notice,
-                            body = "Home and Plan show the new week.",
-                            actionLabel = "OK",
-                            onAction = viewModel::dismissGenerateNotice,
-                        )
-                    }
-                    PrimaryGymButton(
-                        text = "Generate a week",
-                        onClick = viewModel::generateWeek,
-                        height = Metrics.touchMin,
-                    )
-                }
-            }
-            item(key = "reminders") {
+            SettingsPage.REMINDERS -> SettingsSubpage(
+                title = SettingsHomeCopy.REMINDERS,
+                onBack = goHome,
+                scroll = false,
+            ) {
                 ReminderPrefsSection(
                     preferences = reminderPrefs,
                     clockFormat = clockFormat,
@@ -212,22 +204,27 @@ fun SettingsScreen(
                     onOpenNotificationSettings = {
                         openAppNotificationSettings(context)
                     },
+                    modifier = Modifier.weight(1f),
                 )
             }
-            item(key = "bodyweight") {
-                BodyweightPrefsSection(
-                    bodyweightKg = bodyweightKg,
-                    unit = selectedUnit,
-                    weekStart = schedulePrefs.weekStart,
-                    daysPerWeek = schedulePrefs.trainingDaysPerWeek,
+            SettingsPage.GENERATOR -> SettingsSubpage(
+                title = SettingsHomeCopy.GENERATOR,
+                onBack = goHome,
+            ) {
+                SettingsGeneratorPane(
+                    schedulePrefs = schedulePrefs,
                     preferredDays = preferredDays,
-                    checkInOverride = checkInWeekday,
-                    onRecordBodyweight = viewModel::recordBodyweight,
-                    onClearBodyweight = viewModel::clearBodyweight,
-                    onCheckInDay = viewModel::setBodyweightCheckInWeekday,
+                    trainingAge = trainingAge,
+                    trainingPlace = trainingPlace,
+                    coachPrefs = coachPrefs,
+                    generateNotice = generateNotice,
+                    viewModel = viewModel,
                 )
             }
-            item(key = "rest") {
+            SettingsPage.REST -> SettingsSubpage(
+                title = SettingsHomeCopy.REST,
+                onBack = goHome,
+            ) {
                 RestTimerPrefsSection(
                     preferences = restPrefs,
                     offerExactAlarmAccess = offerExactAlarmAccess,
@@ -242,46 +239,63 @@ fun SettingsScreen(
                     onCustomDefault = viewModel::setDefaultRestCustom,
                 )
             }
-            item(key = "backup") {
-                BackupRestoreSection(
-                    state = backup,
-                    clock = clockFormat,
-                    onSignIn = { viewModel.backup.signIn(activity) },
-                    onSignOut = { viewModel.backup.signOut(activity) },
-                    onCreateBackup = { viewModel.backup.beginDriveBackup() },
-                    onAutoBackupChange = viewModel.backup::setAutoBackupEnabled,
-                    onShowBackupPassword = viewModel.backup::beginRevealBackupPassword,
-                    onRefresh = { viewModel.backup.refreshBackups(activity) },
-                    onRestore = { file -> viewModel.backup.requestRestore(activity, file) },
-                    onExportFile = { viewModel.backup.beginFileExport() },
-                    onExportPlaintext = { viewModel.backup.beginPlaintextExport() },
-                    onImportFile = {
-                        // Some file managers hand back JSON as octet-stream or text/plain.
-                        importLauncher.launch(arrayOf(BackupJson.MIME_TYPE, "text/plain", "*/*"))
-                    },
-                    onExportSafety = { id ->
-                        pendingSafetyExportId = id
-                        viewModel.backup.beginSafetyExport()
-                    },
-                    onRestoreSafety = viewModel.backup::requestSafetyRestore,
-                    onDeleteSafety = { id -> pendingSafetyDeleteId = id },
-                    onDismissError = viewModel.backup::dismissError,
-                    onFinishRestore = viewModel.backup::finishRestore,
-                    onDismissRestoreNote = viewModel.backup::dismissRestoreNote,
+            SettingsPage.BODYWEIGHT -> SettingsSubpage(
+                title = SettingsHomeCopy.BODYWEIGHT,
+                onBack = goHome,
+            ) {
+                BodyweightPrefsSection(
+                    bodyweightKg = bodyweightKg,
+                    unit = selectedUnit,
+                    weekStart = schedulePrefs.weekStart,
+                    daysPerWeek = schedulePrefs.trainingDaysPerWeek,
+                    preferredDays = preferredDays,
+                    checkInOverride = checkInWeekday,
+                    onRecordBodyweight = viewModel::recordBodyweight,
+                    onClearBodyweight = viewModel::clearBodyweight,
+                    onCheckInDay = viewModel::setBodyweightCheckInWeekday,
                 )
             }
-            item(key = "plan-setup") {
+            SettingsPage.BACKUP -> SettingsSubpage(
+                title = SettingsHomeCopy.BACKUP,
+                onBack = goHome,
+            ) {
+                SettingsBackupPane(
+                    backup = backup,
+                    clockFormat = clockFormat,
+                    viewModel = viewModel,
+                    activity = activity,
+                    onImportFile = {
+                        importLauncher.launch(arrayOf(BackupJson.MIME_TYPE, "text/plain", "*/*"))
+                    },
+                    onExportSafety = {
+                        pendingSafetyExportId = it
+                        viewModel.backup.beginSafetyExport()
+                    },
+                    onDeleteSafety = { pendingSafetyDeleteId = it },
+                )
+            }
+            SettingsPage.PLAN -> SettingsSubpage(
+                title = SettingsHomeCopy.PLAN,
+                onBack = goHome,
+            ) {
                 PlanSetupSection(onRerun = onOpenGuidedSetup)
             }
-            if (BuildConfig.DEBUG) {
-                item(key = "log") {
-                    LogRedactSection()
-                }
-                item(key = "foundation") {
-                    FoundationGenerationSection()
-                }
+            SettingsPage.LOG -> SettingsSubpage(
+                title = SettingsHomeCopy.LOG,
+                onBack = goHome,
+            ) {
+                if (BuildConfig.DEBUG) LogRedactSection()
             }
-            item(key = "diagnostics") {
+            SettingsPage.FOUNDATION -> SettingsSubpage(
+                title = SettingsHomeCopy.FOUNDATION,
+                onBack = goHome,
+            ) {
+                if (BuildConfig.DEBUG) FoundationGenerationSection()
+            }
+            SettingsPage.DIAGNOSTICS -> SettingsSubpage(
+                title = SettingsHomeCopy.DIAGNOSTICS,
+                onBack = goHome,
+            ) {
                 DiagnosticsSection(
                     onShare = {
                         val send = Intent(Intent.ACTION_SEND).apply {
@@ -296,11 +310,13 @@ fun SettingsScreen(
                     onClear = { DiagnosticMetadata.clear(context) },
                 )
             }
-            item(key = "about") {
+            SettingsPage.ABOUT -> SettingsSubpage(
+                title = SettingsHomeCopy.ABOUT,
+                onBack = goHome,
+            ) {
                 AboutSection()
             }
         }
-    }
 
     backup.pendingPreview?.let { preview ->
         ConfirmActionDialog(
@@ -373,6 +389,83 @@ fun SettingsScreen(
     }
 }
 
+@Composable
+private fun SettingsGeneratorPane(
+    schedulePrefs: SchedulePreferences,
+    preferredDays: Set<Weekday>,
+    trainingAge: TrainingAge,
+    trainingPlace: TrainingPlace?,
+    coachPrefs: CoachPreferences,
+    generateNotice: String?,
+    viewModel: SettingsViewModel,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
+        SchedulePrefsSection(
+            preferences = schedulePrefs,
+            preferredDays = preferredDays,
+            trainingAge = trainingAge,
+            trainingPlace = trainingPlace,
+            onDays = viewModel::setTrainingDays,
+            onSplit = viewModel::setSplitStyle,
+            onWeekStart = viewModel::setWeekStart,
+            onTogglePreferredDay = viewModel::togglePreferredDay,
+            onTrainingAge = viewModel::setTrainingAge,
+            onTrainingPlace = viewModel::setTrainingPlace,
+        )
+        CoachingSection(
+            preferences = coachPrefs,
+            onGoal = viewModel::setTrainingGoal,
+            onEmphasis = viewModel::setTrainingEmphasis,
+            onToggleEquipment = viewModel::toggleEquipment,
+        )
+        generateNotice?.let { notice ->
+            GymNoticeBanner(
+                title = notice,
+                body = "Home and Plan show the new week.",
+                actionLabel = "OK",
+                onAction = viewModel::dismissGenerateNotice,
+            )
+        }
+        PrimaryGymButton(
+            text = "Generate a week",
+            onClick = viewModel::generateWeek,
+            height = Metrics.touchMin,
+        )
+    }
+}
+
+@Composable
+private fun SettingsBackupPane(
+    backup: BackupUiState,
+    clockFormat: ClockFormat,
+    viewModel: SettingsViewModel,
+    activity: Activity,
+    onImportFile: () -> Unit,
+    onExportSafety: (String) -> Unit,
+    onDeleteSafety: (String) -> Unit,
+) {
+    BackupRestoreSection(
+        state = backup,
+        clock = clockFormat,
+        onSignIn = { viewModel.backup.signIn(activity) },
+        onSignOut = { viewModel.backup.signOut(activity) },
+        onCreateBackup = { viewModel.backup.beginDriveBackup() },
+        onAutoBackupChange = viewModel.backup::setAutoBackupEnabled,
+        onShowBackupPassword = viewModel.backup::beginRevealBackupPassword,
+        onRefresh = { viewModel.backup.refreshBackups(activity) },
+        onRestore = { file -> viewModel.backup.requestRestore(activity, file) },
+        onExportFile = { viewModel.backup.beginFileExport() },
+        onExportPlaintext = { viewModel.backup.beginPlaintextExport() },
+        onImportFile = onImportFile,
+        onExportSafety = onExportSafety,
+        onRestoreSafety = viewModel.backup::requestSafetyRestore,
+        onDeleteSafety = onDeleteSafety,
+        onDismissError = viewModel.backup::dismissError,
+        onFinishRestore = viewModel.backup::finishRestore,
+        onDismissRestoreNote = viewModel.backup::dismissRestoreNote,
+    )
+}
+
 object SettingsTags {
     const val EXPORT_FILE = "settings-export-file"
     const val SHARE_DIAGNOSTICS = "settings-share-diagnostics"
@@ -383,4 +476,16 @@ object SettingsTags {
     const val AUTO_BACKUP = "settings-auto-backup"
     const val SHOW_BACKUP_PASSWORD = "settings-show-backup-password"
     const val PLAY_COMPLETE_CUE = "settings-play-complete-cue"
+    const val HOME = "settings-home"
+    const val ROW_DISPLAY = "settings-row-display"
+    const val ROW_REMINDERS = "settings-row-reminders"
+    const val ROW_GENERATOR = "settings-row-generator"
+    const val ROW_REST = "settings-row-rest"
+    const val ROW_BODYWEIGHT = "settings-row-bodyweight"
+    const val ROW_BACKUP = "settings-row-backup"
+    const val ROW_PLAN = "settings-row-plan"
+    const val ROW_DIAGNOSTICS = "settings-row-diagnostics"
+    const val ROW_ABOUT = "settings-row-about"
+    const val ROW_LOG = "settings-row-log"
+    const val ROW_FOUNDATION = "settings-row-foundation"
 }

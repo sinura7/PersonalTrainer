@@ -20,10 +20,17 @@ object ReminderCopy {
     const val PERMISSION_ACTION = "Turn on"
     const val GONE = "That session is no longer on the plan."
     const val ALARM_EMPTY = "No days yet. Pick a day, then scroll the time."
+    const val DAY_OFF = "Off"
+    const val REST_STAYS_ON_REST = "Rest alerts live on Rest. Exact alarms when the phone allows them."
 
     val quietStartHours: List<Int> = listOf(20, 21, 22, 23)
     val quietEndHours: List<Int> = listOf(5, 6, 7, 8)
-    val minuteChoices: List<Int> = listOf(0, 15, 30, 45)
+    val hours12: List<Int> = (1..12).toList()
+    val minutes: List<Int> = (0..59).toList()
+    val periodLabels: List<String> = listOf("AM", "PM")
+
+    fun shouldCommitSettledPage(settledPage: Int, initialPage: Int): Boolean =
+        settledPage != initialPage
 
     fun hourLabel(hour: Int, format: ClockFormat = ClockFormat.TWELVE): String =
         ClockCopy.hourChip(hour, format)
