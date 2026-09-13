@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 13 Sep 2026 — Live 53: one Start a workout sheet (no Add row) and
+> hold set timer (Dead Hang is SETS + TIME; floor Start hold is a
+> countdown, then rest) on `trunk`. `debugLiveCode` 53; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 13 Sep 2026 — Hold set timer: Dead Hang and other static holds
 > use TIME in the editor and a work countdown on the floor. Rest
 > still starts after the set. Temper `v4 → v5` adds hold seconds;
