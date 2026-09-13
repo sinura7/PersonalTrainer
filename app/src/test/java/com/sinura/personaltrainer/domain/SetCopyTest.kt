@@ -107,4 +107,13 @@ class SetCopyTest {
         assertEquals("Set 3", SetCopy.tableExtras(3, null))
         assertEquals("Set 3 · RPE 8", SetCopy.tableExtras(3, 8))
     }
+
+    @Test
+    fun aHoldReadsAsSecondsNotAFakeRep() {
+        assertEquals("30s", SetCopy.setLine(0.0, 1, LoadClass.BODYWEIGHT, WeightUnit.KG, durationSeconds = 30))
+        assertEquals(
+            "20 kg × 40s",
+            SetCopy.setLine(20.0, 0, LoadClass.LOADED, WeightUnit.KG, durationSeconds = 40),
+        )
+    }
 }

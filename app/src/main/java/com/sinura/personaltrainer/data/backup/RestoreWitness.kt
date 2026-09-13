@@ -136,6 +136,8 @@ object RestoreWitness {
             json.num("targetReps", row.targetReps)
             json.num("targetWeightKg", row.targetWeightKg)
             json.num("restSeconds", row.restSeconds)
+            json.num("targetSeconds", row.targetSeconds)
+            json.num("targetSecondsMax", row.targetSecondsMax)
             json.endObject()
         }
         json.endArray()
@@ -173,6 +175,8 @@ object RestoreWitness {
                 json.num("targetReps", row.targetReps)
                 json.num("targetWeightKg", row.targetWeightKg)
                 json.num("restSeconds", row.restSeconds)
+                json.num("targetSeconds", row.targetSeconds)
+                json.num("targetSecondsMax", row.targetSecondsMax)
                 json.endObject()
             }
         json.endArray()
@@ -191,6 +195,7 @@ object RestoreWitness {
                 json.num("rpe", row.rpe)
                 json.bool("isWarmup", row.isWarmup)
                 json.num("completedAt", row.completedAt)
+                json.num("durationSeconds", row.durationSeconds)
                 json.endObject()
             }
         json.endArray()

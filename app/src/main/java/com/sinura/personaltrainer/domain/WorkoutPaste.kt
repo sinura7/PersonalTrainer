@@ -26,11 +26,12 @@ data class WorkScheme(
     val isTimed: Boolean get() = secondsMin != null
     val storedSets: Int get() = setsMin.coerceAtLeast(1)
     /**
-     * What Room can store today: sets × reps. A hold is seconds, not reps,
-     * so timed work writes 1 rather than 20s-as-20-reps. The prescription
-     * stays on [secondsMin]/[secondsMax] and in the routine notes.
+     * Reps column for Room. Holds keep a 1 placeholder so the NOT NULL
+     * column stays valid; the prescription lives on [storedSeconds].
      */
-    val storedReps: Int get() = if (isTimed) 1 else (repsMin ?: 1).coerceAtLeast(1)
+    val storedReps: Int get() = if (isTimed) HoldWork.HOLD_REPS_PLACEHOLDER else (repsMin ?: 1).coerceAtLeast(1)
+    val storedSeconds: Int? get() = secondsMin
+    val storedSecondsMax: Int? get() = secondsMax?.takeIf { secondsMin != null && it != secondsMin }
 
     fun prescription(): String {
         val sets = if (setsMin == setsMax) "$setsMin" else "$setsMin–$setsMax"
@@ -61,6 +62,8 @@ data class PastedLift(
 ) {
     val targetSets: Int get() = scheme.storedSets
     val targetReps: Int get() = scheme.storedReps
+    val targetSeconds: Int? get() = scheme.storedSeconds
+    val targetSecondsMax: Int? get() = scheme.storedSecondsMax
 }
 
 data class PastedUnmatched(
@@ -168,16 +171,7 @@ internal object WorkoutPasteRest {
  * put the plank on the rep scheme.
  */
 internal object WorkoutPasteHolds {
-    fun isHold(exercise: Exercise): Boolean {
-        val id = exercise.id.lowercase()
-        val name = exercise.name.lowercase()
-        if (id.contains("hang") || id.contains("plank") || id.contains("hold") ||
-            id.contains("wall-sit") || id.contains("stretch")
-        ) {
-            return true
-        }
-        return listOf("hang", "plank", "wall sit", "hold", "stretch").any { name.contains(it) }
-    }
+    fun isHold(exercise: Exercise): Boolean = HoldWork.isHold(exercise)
 
     fun schemeFor(
         exercise: Exercise,

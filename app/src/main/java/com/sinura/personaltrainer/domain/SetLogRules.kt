@@ -5,6 +5,7 @@ object SetLogRules {
         "Enter a weight for working sets. Use warm-up for 0 kg."
     const val INVALID_WEIGHT = "Weight must be zero or greater."
     const val INVALID_REPS = "Reps must be at least 1."
+    const val INVALID_HOLD = "Hold at least 5 seconds."
 
     /**
      * @param loadType how the lift is loaded. Null — a custom, or a row from a backup this
@@ -21,9 +22,16 @@ object SetLogRules {
         reps: Int,
         isWarmup: Boolean,
         loadType: LoadType? = null,
+        durationSeconds: Int? = null,
+        isHold: Boolean = false,
     ): String? {
         if (!weightKg.isFinite() || weightKg < 0.0) return INVALID_WEIGHT
         if (!isWarmup && weightKg == 0.0 && requiresWeight(loadType)) return ZERO_WORKING_WEIGHT
+        if (isHold) {
+            val held = durationSeconds ?: 0
+            if (held < HoldWork.MIN_SECONDS) return INVALID_HOLD
+            return null
+        }
         if (reps < 1) return INVALID_REPS
         return null
     }
@@ -44,5 +52,6 @@ object SetLogRules {
         message == ZERO_WORKING_WEIGHT ||
             message == INVALID_WEIGHT ||
             message == INVALID_REPS ||
+            message == INVALID_HOLD ||
             message.startsWith("This workout")
 }

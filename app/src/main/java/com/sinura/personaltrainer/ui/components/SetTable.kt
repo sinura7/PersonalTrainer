@@ -56,7 +56,13 @@ data class SetTableLine(
         ): SetTableLine = SetTableLine(
             id = set.id,
             number = set.setNumber,
-            line = SetCopy.setLine(set.weightKg, set.reps, loadClass, unit),
+            line = SetCopy.setLine(
+                set.weightKg,
+                set.reps,
+                loadClass,
+                unit,
+                durationSeconds = set.durationSeconds,
+            ),
             extras = SetCopy.tableExtras(set.setNumber, set.rpe),
             isWarmup = set.isWarmup,
             isLatest = isLatest,

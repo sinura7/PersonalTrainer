@@ -13,6 +13,8 @@ data class CustomWeekLift(
     val targetReps: Int,
     val restSeconds: Int,
     val targetWeightKg: Double? = null,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 enum class CustomWeekDayMark {
@@ -95,6 +97,8 @@ object CustomWeekPolicy {
                 targetSets = defaults.sets,
                 targetReps = defaults.reps,
                 restSeconds = defaults.restSeconds,
+                targetSeconds = defaults.seconds,
+                targetSecondsMax = defaults.secondsMax,
             )
         }
         return existing + added
@@ -118,15 +122,24 @@ object CustomWeekPolicy {
         reps: Int?,
         restSeconds: Int?,
         weightKg: Double?,
+        seconds: Int? = null,
+        secondsMax: Int? = null,
     ): List<CustomWeekLift> = lifts.map { lift ->
         if (lift.id != itemId) {
             lift
         } else {
+            val hold = HoldWork.isHold(lift.exercise)
             lift.copy(
                 targetSets = sets?.takeIf { it >= 1 } ?: lift.targetSets,
-                targetReps = reps?.takeIf { it >= 1 } ?: lift.targetReps,
+                targetReps = if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else (reps?.takeIf { it >= 1 } ?: lift.targetReps),
                 restSeconds = restSeconds?.coerceAtLeast(0) ?: lift.restSeconds,
                 targetWeightKg = weightKg?.takeIf { it > 0.0 },
+                targetSeconds = if (hold) {
+                    HoldWork.countdownSeconds(seconds ?: lift.targetSeconds)
+                } else {
+                    null
+                },
+                targetSecondsMax = if (hold) secondsMax else null,
             )
         }
     }

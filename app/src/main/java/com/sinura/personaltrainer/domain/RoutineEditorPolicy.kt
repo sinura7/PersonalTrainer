@@ -79,14 +79,27 @@ object RoutineEditorPolicy {
         storedReps: Int,
         storedWeightKg: Double?,
         storedRestSeconds: Int,
+        typedSeconds: Int? = null,
+        typedSecondsMax: Int? = null,
+        storedSeconds: Int? = null,
+        storedSecondsMax: Int? = null,
+        hold: Boolean = false,
     ): PendingTargets? {
         val sets = typedSets ?: storedSets
-        val reps = typedReps ?: storedReps
+        val reps = if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else (typedReps ?: storedReps)
         val rest = typedRestSeconds ?: storedRestSeconds
+        val seconds = if (hold) {
+            HoldWork.countdownSeconds(typedSeconds ?: storedSeconds)
+        } else {
+            null
+        }
+        val secondsMax = if (hold) typedSecondsMax ?: storedSecondsMax else null
         if (sets == storedSets &&
             reps == storedReps &&
             rest == storedRestSeconds &&
-            typedWeightKg == storedWeightKg
+            typedWeightKg == storedWeightKg &&
+            seconds == storedSeconds &&
+            secondsMax == storedSecondsMax
         ) {
             return null
         }
@@ -95,6 +108,8 @@ object RoutineEditorPolicy {
             targetReps = reps,
             targetWeightKg = typedWeightKg,
             restSeconds = rest,
+            targetSeconds = seconds,
+            targetSecondsMax = secondsMax,
         )
     }
 
@@ -156,6 +171,8 @@ data class PendingTargets(
     val targetReps: Int,
     val targetWeightKg: Double?,
     val restSeconds: Int,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 /** Where the routine editor is in its lifecycle. */

@@ -228,6 +228,8 @@ fun RoutineEditorScreen(
                                 reps = item.targetReps,
                                 restSeconds = item.restSeconds,
                                 targetWeightKg = item.targetWeightKg,
+                                targetSeconds = item.targetSeconds,
+                                targetSecondsMax = item.targetSecondsMax,
                             )
                         },
                         selectedId = expandedLiftId,
@@ -242,8 +244,8 @@ fun RoutineEditorScreen(
                             exerciseId != null && state.swapCandidates(exerciseId).isNotEmpty()
                         },
                         onSwap = { id -> viewModel.requestSwap(id) },
-                        onStageTargets = { id, sets, reps, rest, kg, invalid ->
-                            viewModel.stageTargets(id, sets, reps, kg, rest, invalid)
+                        onStageTargets = { id, sets, reps, rest, kg, invalid, seconds, secondsMax ->
+                            viewModel.stageTargets(id, sets, reps, kg, rest, invalid, seconds, secondsMax)
                         },
                         onCommitTargets = { id -> viewModel.commitTargets(id) },
                         onForgetTargetRule = { id -> viewModel.forgetTargetRule(id) },

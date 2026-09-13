@@ -42,7 +42,7 @@ class TemperDatabaseTest {
     @Test
     fun opensBesideLegacyNameAndHasNoDestructiveFallback() {
         assertEquals(FoundationGeneration.DATABASE_FILE, "temper.db")
-        assertEquals(4, FoundationGeneration.VERSION)
+        assertEquals(5, FoundationGeneration.VERSION)
         assertTrue(FoundationGeneration.FROZEN)
         val source = java.io.File("src/main/java/com/sinura/personaltrainer/data/local/TemperDatabase.kt")
             .takeIf { it.isFile }

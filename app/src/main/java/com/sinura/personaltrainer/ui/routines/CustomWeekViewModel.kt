@@ -310,31 +310,30 @@ class CustomWeekViewModel @JvmOverloads constructor(
         rest: Int?,
         weightKg: Double?,
         invalidReason: String? = null,
+        seconds: Int? = null,
+        secondsMax: Int? = null,
     ) {
         if (applying.value) return
         if (invalidReason == null) {
             invalidTargets.remove(itemId)
-            // The box was fixed, so its complaint must not outlive it — but fixing one card
-            // does not answer for another, so the banner moves to whatever is still
-            // unreadable rather than clearing outright.
             moveTargetRuleBanner()
         } else {
             invalidTargets[itemId] = invalidReason
-            // Nothing is staged from a card that cannot be read, which is what the KDoc above
-            // promises and what the week did NOT do: CustomWeekPolicy.updateTargets keeps the
-            // stored value when sets, reps or rest arrive null, but a null weight CLEARS the
-            // stored target, because a cleared weight box is a real answer ("no target") and
-            // TargetEntry cannot tell that apart from a box holding "-50". So typing "-50"
-            // over a 100 kg target wiped the 100 kg — the exact silent rewrite UX06 exists to
-            // stop, in the code written to stop it. Returning here keeps every box as stored.
-            // Nothing is lost: the card re-sends all four boxes on the next keystroke, and
-            // confirm() refuses until the rule is answered.
             persistDraft()
             return
         }
         val day = selectedDay.value
         days.value = days.value + (
-            day to CustomWeekPolicy.updateTargets(days.value[day].orEmpty(), itemId, sets, reps, rest, weightKg)
+            day to CustomWeekPolicy.updateTargets(
+                days.value[day].orEmpty(),
+                itemId,
+                sets,
+                reps,
+                rest,
+                weightKg,
+                seconds,
+                secondsMax,
+            )
             )
         persistDraft()
     }

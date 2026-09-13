@@ -430,6 +430,8 @@ internal fun assertTimedHold(lift: PastedLift, secondsMin: Int, secondsMax: Int)
     assertTrue("${lift.exercise.id} must be a hold, was ${lift.scheme.prescription()}", lift.scheme.isTimed)
     assertEquals(secondsMin, lift.scheme.secondsMin)
     assertEquals(secondsMax, lift.scheme.secondsMax)
+    assertEquals(secondsMin, lift.targetSeconds)
+    assertEquals(secondsMax, lift.targetSecondsMax)
     assertEquals(
         "${lift.exercise.id} stored the hold as reps (${lift.targetReps})",
         1,

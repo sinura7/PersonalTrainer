@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 13 Sep 2026 — Hold set timer: Dead Hang and other static holds
+> use TIME in the editor and a work countdown on the floor. Rest
+> still starts after the set. Temper `v4 → v5` adds hold seconds;
+> gym-floor `appVersionCode` stays 1. Does not bump live 52.
+>
 > 13 Sep 2026 — Live 52: Extra/cardio pictures, Body stills, Add-lifts
 > muscle chips, and paste-to-routine on `trunk`. `debugLiveCode` 52;
 > suffix from `python3 tools/debug-drop-plan.py`.

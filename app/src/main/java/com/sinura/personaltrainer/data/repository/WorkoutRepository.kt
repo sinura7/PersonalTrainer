@@ -26,6 +26,7 @@ import com.sinura.personaltrainer.domain.ExerciseSetEntry
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.FinishedSessionEdits
 import com.sinura.personaltrainer.domain.HistoryKind
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.IncrementTable
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
@@ -296,6 +297,8 @@ class WorkoutRepository(
                     targetReps = item.targetReps,
                     targetWeightKg = item.targetWeightKg,
                     restSeconds = item.restSeconds,
+                    targetSeconds = item.targetSeconds,
+                    targetSecondsMax = item.targetSecondsMax,
                 )
             }
             startInserted(session, exercises)
@@ -391,6 +394,8 @@ class WorkoutRepository(
                 // The progression hint owns weight; a copied one would only contradict it.
                 targetWeightKg = null,
                 restSeconds = item.restSeconds,
+                targetSeconds = item.targetSeconds,
+                targetSecondsMax = item.targetSecondsMax,
             )
         }
 
@@ -454,12 +459,15 @@ class WorkoutRepository(
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ) {
         database.withTransaction {
             val current = workoutDao.getSession(sessionId) ?: return@withTransaction
             if (current.session.finishedAt != null) return@withTransaction
             if (current.exercises.any { it.exercise.id == exercise.id }) return@withTransaction
             val nextOrder = workoutDao.maxSessionExerciseOrder(sessionId) + 1
+            val hold = HoldWork.isHold(exercise)
             workoutDao.upsertSessionExercise(
                 SessionExerciseEntity(
                     id = ids.newId(),
@@ -467,9 +475,11 @@ class WorkoutRepository(
                     exerciseId = exercise.id,
                     sortOrder = nextOrder,
                     targetSets = targetSets.coerceAtLeast(1),
-                    targetReps = targetReps.coerceAtLeast(1),
+                    targetReps = if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else targetReps.coerceAtLeast(1),
                     targetWeightKg = targetWeightKg?.takeIf { it > 0.0 },
                     restSeconds = restSeconds.coerceAtLeast(0),
+                    targetSeconds = if (hold) HoldWork.countdownSeconds(targetSeconds) else null,
+                    targetSecondsMax = if (hold) targetSecondsMax else null,
                 ),
             )
         }
@@ -527,9 +537,19 @@ class WorkoutRepository(
                     exerciseId = replacement.id,
                     sortOrder = existing.sortOrder,
                     targetSets = existing.targetSets,
-                    targetReps = existing.targetReps,
+                    targetReps = if (HoldWork.isHold(replacement)) {
+                        HoldWork.HOLD_REPS_PLACEHOLDER
+                    } else {
+                        existing.targetReps
+                    },
                     targetWeightKg = null,
                     restSeconds = existing.restSeconds,
+                    targetSeconds = if (HoldWork.isHold(replacement)) {
+                        existing.targetSeconds ?: HoldWork.DEFAULT_SECONDS
+                    } else {
+                        null
+                    },
+                    targetSecondsMax = if (HoldWork.isHold(replacement)) existing.targetSecondsMax else null,
                 ),
             )
         }
@@ -542,6 +562,7 @@ class WorkoutRepository(
         reps: Int,
         rpe: Int?,
         isWarmup: Boolean,
+        durationSeconds: Int? = null,
     ): LoggedSet {
         // Count-then-insert must be one Room transaction. Two overlapping logSet calls
         // (or a log overlapping a delete/renumber) used to both read the same count and
@@ -552,12 +573,23 @@ class WorkoutRepository(
             if (current.session.finishedAt != null) {
                 error("This workout is already finished.")
             }
-            if (reps < 1) error("Reps must be at least 1.")
-            val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
+            val holdSeconds = durationSeconds?.takeIf { it > 0 }
+            if (holdSeconds == null && reps < 1) error("Reps must be at least 1.")
+            val loadType = loadTypeOf(current, exerciseId)
+            val isHold = holdSeconds != null ||
+                current.exercises.any { it.exercise.id == exerciseId && HoldWork.isHold(it.exercise) }
+            val violation = SetLogRules.validate(
+                weightKg = weightKg,
+                reps = reps,
+                isWarmup = isWarmup,
+                loadType = loadType,
+                durationSeconds = holdSeconds,
+                isHold = isHold,
+            )
             if (violation != null) error(violation)
             val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
             val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
-            val safeReps = reps.coerceAtLeast(1)
+            val safeReps = if (holdSeconds != null) 0 else reps.coerceAtLeast(1)
             val completedAt = time.nowMillis()
             val row = SetLogEntity(
                 id = ids.newId(),
@@ -569,15 +601,14 @@ class WorkoutRepository(
                 rpe = rpe,
                 isWarmup = isWarmup,
                 completedAt = completedAt,
+                durationSeconds = holdSeconds,
             )
             workoutDao.insertSet(row)
             row
         }
         return LoggedSet(
             setId = entity.id,
-            records = if (entity.isWarmup) {
-                // A warm-up is preparation, not work. It is excluded from volume, from the
-                // heat map and from records, and announcing one as a PR would be a lie.
+            records = if (entity.isWarmup || entity.durationSeconds != null) {
                 emptySet()
             } else {
                 recordsBrokenBy(
@@ -598,27 +629,33 @@ class WorkoutRepository(
         reps: Int,
         rpe: Int?,
         isWarmup: Boolean,
+        durationSeconds: Int? = null,
     ) {
         val current = workoutDao.getSet(setId) ?: error("That set is no longer available.")
         // Deliberately no finished-guard: correcting a mistyped weight in last week's
         // session is the point. The copy below touches neither completedAt nor setNumber,
         // so the set keeps the day it happened on and its place in the exercise — which is
         // what stops an edit from re-dating a personal record or heating the wrong week.
-        if (reps < 1) error("Reps must be at least 1.")
+        val holdSeconds = durationSeconds?.takeIf { it > 0 } ?: current.durationSeconds
+        val isHold = holdSeconds != null
+        if (!isHold && reps < 1) error("Reps must be at least 1.")
         val violation = SetLogRules.validate(
             weightKg,
             reps,
             isWarmup,
             loadTypeOf(workoutDao.getSession(current.sessionId), current.exerciseId),
+            durationSeconds = holdSeconds,
+            isHold = isHold,
         )
         if (violation != null) error(violation)
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else current.weightKg
         workoutDao.updateSet(
             current.copy(
                 weightKg = safeWeight,
-                reps = reps.coerceAtLeast(1),
+                reps = if (isHold) 0 else reps.coerceAtLeast(1),
                 rpe = rpe,
                 isWarmup = isWarmup,
+                durationSeconds = holdSeconds,
             ),
         )
     }
@@ -646,6 +683,7 @@ class WorkoutRepository(
                 rpe = deleted.rpe,
                 isWarmup = deleted.isWarmup,
                 completedAt = deleted.completedAt,
+                durationSeconds = deleted.durationSeconds,
             )
         }
     }
@@ -671,6 +709,7 @@ class WorkoutRepository(
                     rpe = set.rpe,
                     isWarmup = set.isWarmup,
                     completedAt = set.completedAt,
+                    durationSeconds = set.durationSeconds,
                 ),
             )
             renumber(set.sessionId, set.exerciseId)
@@ -1018,6 +1057,7 @@ class WorkoutRepository(
         val rpe: Int?,
         val isWarmup: Boolean,
         val completedAt: Long,
+        val durationSeconds: Int? = null,
     )
 
     suspend fun readyForProgression(

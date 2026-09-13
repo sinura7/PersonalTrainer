@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.EditorPhase
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LiftCart
 import com.sinura.personaltrainer.domain.LoadType
@@ -415,6 +416,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
          * than reading the unparseable box as "leave this one alone" (UX06).
          */
         invalidReason: String? = null,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ) {
         stagedTargets[itemId] = StagedTargets(
             targetSets = targetSets,
@@ -422,6 +425,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             targetWeightKg = targetWeightKg,
             restSeconds = restSeconds,
             invalidReason = invalidReason,
+            targetSeconds = targetSeconds,
+            targetSecondsMax = targetSecondsMax,
         )
     }
 
@@ -458,7 +463,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 cleared = true
                 val kept = staged.copy(invalidReason = null, targetWeightKg = storedWeightKg)
                 if (kept.targetSets == null && kept.targetReps == null &&
-                    kept.targetWeightKg == null && kept.restSeconds == null
+                    kept.targetWeightKg == null && kept.restSeconds == null &&
+                    kept.targetSeconds == null
                 ) {
                     null
                 } else {
@@ -546,6 +552,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             storedReps = stored.targetReps,
             storedWeightKg = stored.targetWeightKg,
             storedRestSeconds = stored.restSeconds,
+            typedSeconds = staged.targetSeconds,
+            typedSecondsMax = staged.targetSecondsMax,
+            storedSeconds = stored.targetSeconds,
+            storedSecondsMax = stored.targetSecondsMax,
+            hold = HoldWork.isHold(stored.exercise) || staged.targetSeconds != null,
         )
         if (pending == null) {
             // Identical to what is stored, so there is nothing to write and nothing to keep.
@@ -564,6 +575,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             targetReps = pending.targetReps,
             targetWeightKg = pending.targetWeightKg,
             restSeconds = pending.restSeconds,
+            targetSeconds = pending.targetSeconds,
+            targetSecondsMax = pending.targetSecondsMax,
         )
         // Dropped only once it is stored. A failed write is kept so that Save and Back are one
         // more chance to land it — dropping it here is how a typed target disappears quietly,
@@ -917,9 +930,15 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         addExercise(
             exercise = exercise,
             targetSets = scheme?.storedSets ?: defaults.sets,
-            targetReps = if (scheme?.isTimed == true) 1 else (scheme?.storedReps ?: defaults.reps),
+            targetReps = if (scheme?.isTimed == true) {
+                HoldWork.HOLD_REPS_PLACEHOLDER
+            } else {
+                scheme?.storedReps ?: defaults.reps
+            },
             targetWeightKg = null,
             restSeconds = scheme?.let { WorkoutPasteRest.forLift(exercise, it) } ?: defaults.restSeconds,
+            targetSeconds = if (scheme?.isTimed == true) scheme.storedSeconds else defaults.seconds,
+            targetSecondsMax = if (scheme?.isTimed == true) scheme.storedSecondsMax else defaults.secondsMax,
         )
     }
 
@@ -970,6 +989,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 targetReps = lift.targetReps,
                 targetWeightKg = null,
                 restSeconds = lift.restSeconds,
+                targetSeconds = lift.targetSeconds,
+                targetSecondsMax = lift.targetSecondsMax,
             )
         }
     }
@@ -1033,6 +1054,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     targetReps = defaults.reps,
                     targetWeightKg = null,
                     restSeconds = defaults.restSeconds,
+                    targetSeconds = defaults.seconds,
+                    targetSecondsMax = defaults.secondsMax,
                 )
             } else if (!adding && row != null) {
                 container.routineRepository.removeExercise(row.id, id)
@@ -1085,6 +1108,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ) {
         val started = error.mark()
         if (missing) {
@@ -1111,6 +1136,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     targetReps = targetReps,
                     targetWeightKg = targetWeightKg,
                     restSeconds = restSeconds,
+                    targetSeconds = targetSeconds,
+                    targetSecondsMax = targetSecondsMax,
                 )
                 if (!leaving) {
                     showPicker.value = false
@@ -1178,8 +1205,14 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ): RoutineWriteOutcome {
-        if (targetSets < 1 || targetReps < 1) {
+        val hold = targetSeconds != null
+        if (targetSets < 1 || (!hold && targetReps < 1)) {
+            return RoutineWriteOutcome.Rejected(RoutineSaveCopy.TARGETS_REJECTED)
+        }
+        if (hold && (targetSeconds ?: 0) < HoldWork.MIN_SECONDS) {
             return RoutineWriteOutcome.Rejected(RoutineSaveCopy.TARGETS_REJECTED)
         }
         val id = ensureRoutineId() ?: return RoutineWriteOutcome.Failed
@@ -1191,6 +1224,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 targetReps = targetReps,
                 targetWeightKg = targetWeightKg,
                 restSeconds = restSeconds,
+                targetSeconds = targetSeconds,
+                targetSecondsMax = targetSecondsMax,
             )
             RoutineWriteOutcome.Stored
         }.getOrElse { thrown ->
@@ -1321,6 +1356,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val targetWeightKg: Double?,
         val restSeconds: Int?,
         val invalidReason: String? = null,
+        val targetSeconds: Int? = null,
+        val targetSecondsMax: Int? = null,
     )
 
     private data class EditorCore(

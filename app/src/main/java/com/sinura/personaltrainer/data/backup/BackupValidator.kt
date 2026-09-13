@@ -148,10 +148,12 @@ object BackupValidator {
             if (line.targetSets < 0 || line.restSeconds < 0) {
                 return invalid("a routine entry has negative targets")
             }
-            // The editor coerces a routine target to at least one rep (RoutineRepository), so a
-            // stored 0 is a state the app never writes. Accepting it here would restore a target
-            // the app itself would refuse.
-            if (line.targetReps < 1) {
+            val holdSeconds = line.targetSeconds
+            if (holdSeconds != null) {
+                if (holdSeconds < 1) {
+                    return invalid("a routine entry has an impossible hold")
+                }
+            } else if (line.targetReps < 1) {
                 return invalid("a routine entry targets fewer than one rep")
             }
             if (!isPlausibleWeight(line.targetWeightKg)) {
@@ -173,9 +175,12 @@ object BackupValidator {
             if (line.targetSets < 0 || line.restSeconds < 0) {
                 return invalid("a workout entry has negative targets")
             }
-            // Session targets are seeded from routine targets and updated through the same
-            // coerce-to-at-least-one path, so the app never stores 0. Mirror that here.
-            if (line.targetReps < 1) {
+            val holdSeconds = line.targetSeconds
+            if (holdSeconds != null) {
+                if (holdSeconds < 1) {
+                    return invalid("a workout entry has an impossible hold")
+                }
+            } else if (line.targetReps < 1) {
                 return invalid("a workout entry targets fewer than one rep")
             }
             if (!isPlausibleWeight(line.targetWeightKg)) {
@@ -195,9 +200,12 @@ object BackupValidator {
                 return invalid("a logged set uses an exercise that is not in this file")
             }
             if (set.setNumber < 1) return invalid("a logged set has an invalid set number")
-            // Logging a set requires reps >= 1 (WorkoutRepository rejects "Reps must be at least
-            // 1" and coerces up), for warmups too. A stored 0 could only come from corruption.
-            if (set.reps < 1) return invalid("a logged set has fewer than one rep")
+            val held = set.durationSeconds
+            if (held != null) {
+                if (held < 1) return invalid("a logged set has an impossible hold")
+            } else if (set.reps < 1) {
+                return invalid("a logged set has fewer than one rep")
+            }
             if (!isPlausibleWeight(set.weightKg) || set.weightKg < 0.0) {
                 return invalid("a logged set has an impossible weight")
             }

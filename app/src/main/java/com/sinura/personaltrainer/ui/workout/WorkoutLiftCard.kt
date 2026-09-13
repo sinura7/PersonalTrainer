@@ -58,6 +58,7 @@ import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutCopy
@@ -101,6 +102,10 @@ internal data class WorkoutLiftCardState(
     val restSeconds: Int,
     val restRunning: Boolean = false,
     val restRemainingSeconds: Int = 0,
+    val hold: Boolean = false,
+    val holdSeconds: Int? = null,
+    val holdRunning: Boolean = false,
+    val holdRemainingSeconds: Int = 0,
 )
 
 internal data class WorkoutLiftCardEvents(
@@ -110,6 +115,8 @@ internal data class WorkoutLiftCardEvents(
     val onWeightKgChange: (Double) -> Unit,
     val onRepsAdjust: (Int) -> Unit,
     val onRepsChange: (Int) -> Unit,
+    val onSecondsAdjust: (Int) -> Unit = {},
+    val onSecondsChange: (Int) -> Unit = {},
     val onApplyLastTime: (Double, Int) -> Unit,
     val onWarmup: (Boolean) -> Unit,
     val onRpe: (Int?) -> Unit,
@@ -143,12 +150,18 @@ internal fun WorkoutLiftCard(
     val restSeconds = card.restSeconds
     val restRunning = card.restRunning
     val restRemainingSeconds = card.restRemainingSeconds
+    val hold = card.hold
+    val holdSeconds = card.holdSeconds
+    val holdRunning = card.holdRunning
+    val holdRemainingSeconds = card.holdRemainingSeconds
     val onSelect = events.onSelect
     val onSwap = events.onSwap
     val onRemove = events.onRemove
     val onWeightKgChange = events.onWeightKgChange
     val onRepsAdjust = events.onRepsAdjust
     val onRepsChange = events.onRepsChange
+    val onSecondsAdjust = events.onSecondsAdjust
+    val onSecondsChange = events.onSecondsChange
     val onApplyLastTime = events.onApplyLastTime
     val onWarmup = events.onWarmup
     val onRpe = events.onRpe
@@ -228,6 +241,29 @@ internal fun WorkoutLiftCard(
                     onApplySet = onApplyLastTime,
                 )
             }
+            if (hold && (holdRunning || holdRemainingSeconds > 0 || (holdSeconds ?: 0) > 0)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(WorkoutTestTags.HOLD_CLOCK),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    Kicker(
+                        text = if (holdRunning) "Hold" else "Time",
+                        color = if (holdRunning) RestCyan else TextSecondary,
+                        asHeading = false,
+                    )
+                    Text(
+                        HoldWork.clock(
+                            if (holdRunning) holdRemainingSeconds else holdSeconds ?: 0,
+                        ),
+                        style = InstrumentType.numeralSm,
+                        color = if (holdRunning) RestCyan else TextPrimary,
+                        maxLines = 1,
+                    )
+                }
+            }
             SetEntryPanel(
                 weightKg = draftWeightKg,
                 reps = draftReps,
@@ -237,6 +273,12 @@ internal fun WorkoutLiftCard(
                 unit = unit,
                 loadClass = LoadClass.of(lift.exercise.loadType),
                 plated = lift.exercise.equipment == EquipmentType.BARBELL,
+                hold = hold,
+                durationSeconds = holdSeconds,
+                holdRunning = holdRunning,
+                remainingSeconds = holdRemainingSeconds,
+                onSecondsAdjust = onSecondsAdjust,
+                onSecondsChange = onSecondsChange,
                 modifier = Modifier
                     .testTag(LogLoopBringIntoView.ANCHOR_TAG)
                     .bringIntoViewRequester(entryRequester),
@@ -392,8 +434,10 @@ internal fun CurrentLiftHeader(
                 targetSets = targetSets,
                 targetReps = targetReps,
                 targetWeightLabel = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit),
-                liveReps = liveRec?.nextReps,
+                liveReps = liveRec?.nextReps.takeUnless { lift.targetSeconds != null },
                 liveWeightLabel = liveWeightLabel,
+                targetSeconds = lift.targetSeconds,
+                targetSecondsMax = lift.targetSecondsMax,
             ),
             style = InstrumentType.caption,
             color = TextSecondary,

@@ -13,11 +13,15 @@ object NextLiftCopy {
         targetSets: Int,
         targetReps: Int,
         targetWeightLabel: String?,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ): String = WorkoutCopy.setProgress(
         workingLogged = workingLogged,
         targetSets = targetSets,
         targetReps = targetReps,
         targetWeightLabel = targetWeightLabel,
+        targetSeconds = targetSeconds,
+        targetSecondsMax = targetSecondsMax,
     )
 
     fun spoken(

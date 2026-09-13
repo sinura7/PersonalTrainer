@@ -172,3 +172,19 @@ val MIGRATION_TEMPER_3_4 = object : Migration(3, 4) {
         )
     }
 }
+
+/**
+ * Temper v4 → v5: hold prescriptions and logged hold duration.
+ *
+ * Additive nullable columns. Existing rows stay rep-based until the
+ * editor writes seconds. `fallbackToDestructiveMigration` remains banned.
+ */
+val MIGRATION_TEMPER_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `routine_exercises` ADD COLUMN `targetSeconds` INTEGER")
+        db.execSQL("ALTER TABLE `routine_exercises` ADD COLUMN `targetSecondsMax` INTEGER")
+        db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `targetSeconds` INTEGER")
+        db.execSQL("ALTER TABLE `session_exercises` ADD COLUMN `targetSecondsMax` INTEGER")
+        db.execSQL("ALTER TABLE `set_logs` ADD COLUMN `durationSeconds` INTEGER")
+    }
+}

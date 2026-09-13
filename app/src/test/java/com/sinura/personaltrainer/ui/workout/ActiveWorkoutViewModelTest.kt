@@ -211,6 +211,53 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun startingAHangSetStartsTheWorkTimerAndDoesNotLogAFakeRep() = runBlocking {
+        val fixture = seedHangWorkout()
+        assertEquals(30, fixture.session.exercises.single().targetSeconds)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
+        }
+
+        vm.logSet()
+
+        val hold = vm.holdTimer.value
+        assertTrue(hold.running)
+        assertEquals(30, hold.totalSeconds)
+        assertEquals(30, hold.remainingSeconds)
+        assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty())
+        assertFalse(deps.restTimerStore.current().running)
+    }
+
+    @Test
+    fun loggingAHangWritesSecondsNotAFakeOneRepAndThenRestStarts() = runBlocking {
+        val fixture = seedHangWorkout()
+        assertEquals(30, fixture.session.exercises.single().targetSeconds)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
+        }
+
+        vm.startHoldSet()
+        assertTrue(vm.holdTimer.value.running)
+        vm.logSetAndSettle()
+
+        val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
+        val row = persisted.sets.single()
+        assertNotNull(row.durationSeconds)
+        assertTrue(row.durationSeconds!! >= 1)
+        assertEquals(0, row.reps)
+        assertTrue(
+            "a hang must not log as 1 rep with no seconds",
+            row.reps != 1 || row.durationSeconds != null,
+        )
+        assertFalse("a hang must not log as 1 rep with no seconds", row.reps == 1 && row.durationSeconds == null)
+        deps.restTimerStore.snapshot.first { it.running }
+        assertTrue(deps.restTimerStore.current().running)
+        assertFalse(vm.holdTimer.value.running)
+    }
+
+    @Test
     fun aWeightChangedWhileTheSetIsBeingWrittenSurvivesTheLog() = runBlocking {
         // The wells belong to the NEXT set. Room's write is tens of milliseconds and a finger
         // is faster, so the load dialled in for the set after this one used to be taken back
@@ -1236,7 +1283,11 @@ class ActiveWorkoutViewModelTest {
         return SeededWorkout(deps.workoutRepository.startRoutine(routine))
     }
 
-    private suspend fun insertExercise(id: String, name: String) {
+    private suspend fun insertExercise(
+        id: String,
+        name: String,
+        loadType: String = "EXTERNAL",
+    ) {
         deps.database.exerciseDao().insertAll(
             listOf(
                 ExerciseEntity(
@@ -1245,10 +1296,42 @@ class ActiveWorkoutViewModelTest {
                     muscleGroup = "Legs",
                     notes = "",
                     isCustom = false,
+                    loadType = loadType,
                     nameKey = name.lowercase(),
                 ),
             ),
         )
+    }
+
+    private suspend fun seedHangWorkout(
+        targetSeconds: Int = 30,
+        restSeconds: Int = 75,
+    ): SeededWorkout {
+        insertExercise(HANG, "Dead Hang", loadType = "BODYWEIGHT")
+        deps.database.routineDao().upsertRoutine(
+            RoutineEntity(
+                id = ROUTINE,
+                name = "Hangs",
+                notes = "",
+                createdAt = STAMP,
+                updatedAt = STAMP,
+            ),
+        )
+        deps.database.routineDao().upsertRoutineExercise(
+            RoutineExerciseEntity(
+                id = "re-$HANG",
+                routineId = ROUTINE,
+                exerciseId = HANG,
+                sortOrder = 0,
+                targetSets = 2,
+                targetReps = 1,
+                targetWeightKg = null,
+                restSeconds = restSeconds,
+                targetSeconds = targetSeconds,
+            ),
+        )
+        val routine = checkNotNull(deps.routineRepository.getById(ROUTINE))
+        return SeededWorkout(deps.workoutRepository.startRoutine(routine))
     }
 
     private fun handleFor(sessionId: String): SavedStateHandle =
@@ -1270,6 +1353,7 @@ class ActiveWorkoutViewModelTest {
     private companion object {
         const val SQUAT = "squat"
         const val ROW = "row"
+        const val HANG = "ex-dead-hang"
         const val ROUTINE = "routine-lower"
         const val STAMP = 1_700_000_000_000L
     }

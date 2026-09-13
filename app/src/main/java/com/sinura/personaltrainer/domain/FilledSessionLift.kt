@@ -12,6 +12,8 @@ data class FilledSessionLift(
     val targetWeightKg: Double?,
     val restSeconds: Int,
     val sets: List<SetLog>,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 ) {
     val workingLogged: Int get() = sets.count { !it.isWarmup }
 

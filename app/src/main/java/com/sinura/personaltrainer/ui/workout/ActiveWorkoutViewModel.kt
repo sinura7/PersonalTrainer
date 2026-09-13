@@ -15,6 +15,8 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.HoldTimerUiState
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
@@ -40,6 +42,7 @@ import com.sinura.personaltrainer.workout.WorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraftRecovery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
@@ -84,6 +87,7 @@ data class ActiveExerciseDraft(
     val reps: Int = 5,
     val rpe: Int? = null,
     val isWarmup: Boolean = false,
+    val durationSeconds: Int? = null,
 )
 
 /** Whether the session row behind this screen has been resolved yet. */
@@ -242,6 +246,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     private val restTimer = container.restTimerController
+    private val _holdTimer = MutableStateFlow(HoldTimerUiState())
+    val holdTimer: StateFlow<HoldTimerUiState> = _holdTimer.asStateFlow()
+    private var holdJob: Job? = null
 
     /**
      * Flips true the first time the session query emits — including when it emits null.
@@ -596,6 +603,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             session.value ?: return
         }
         val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
+        val hold = planned?.exercise?.let { HoldWork.isHold(it) } == true
         val targetReps = planned?.targetReps ?: 5
         val restPrefs = container.preferencesRepository.restTimerPreferences.first()
         restTotal.value = RestTimer.secondsToStart(planned?.restSeconds, restPrefs)
@@ -628,9 +636,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             ?: 0.0
         draft.value = ActiveExerciseDraft(
             weightKg = lastWeight,
-            reps = targetReps.coerceAtLeast(1),
+            reps = if (hold) 0 else targetReps.coerceAtLeast(1),
             rpe = null,
             isWarmup = false,
+            durationSeconds = if (hold) HoldWork.countdownSeconds(planned?.targetSeconds) else null,
         )
         persistDraft()
     }
@@ -640,6 +649,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // choosing, and leaving it armed would move them again a beat later.
         _pendingAdvance.value = null
         wantAnotherSet.value = false
+        if (selectedExerciseId.value != exerciseId) {
+            stopHoldTimer()
+        }
         if (selectedExerciseId.value == exerciseId) {
             reselections.tryEmit(exerciseId)
         } else {
@@ -687,6 +699,61 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     fun setReps(reps: Int) {
         draft.value = draft.value.copy(reps = reps.coerceAtLeast(1))
         persistDraft()
+    }
+
+    fun adjustHoldSeconds(direction: Int) {
+        val current = draft.value.durationSeconds ?: HoldWork.DEFAULT_SECONDS
+        setHoldSeconds(HoldWork.nextSeconds(current, direction))
+    }
+
+    fun setHoldSeconds(seconds: Int) {
+        draft.value = draft.value.copy(
+            durationSeconds = HoldWork.countdownSeconds(seconds),
+            reps = 0,
+        )
+        persistDraft()
+    }
+
+    /**
+     * Starts the in-set work clock for a static hold. Rest still starts
+     * after the set is logged, unchanged.
+     */
+    fun startHoldSet() {
+        val exerciseId = selectedExerciseId.value ?: return
+        val selected = session.value?.exercises?.firstOrNull { it.exercise.id == exerciseId }
+            ?: return
+        if (!HoldWork.isHold(selected.exercise)) return
+        if (_holdTimer.value.running) return
+        val total = HoldWork.countdownSeconds(
+            draft.value.durationSeconds ?: selected.targetSeconds,
+        )
+        restTimer.stop()
+        holdJob?.cancel()
+        _holdTimer.value = HoldTimerUiState(
+            running = true,
+            remainingSeconds = total,
+            totalSeconds = total,
+            elapsedSeconds = 0,
+        )
+        holdJob = viewModelScope.launch {
+            var remaining = total
+            while (remaining > 0) {
+                delay(1_000)
+                remaining--
+                _holdTimer.value = HoldTimerUiState(
+                    running = remaining > 0,
+                    remainingSeconds = remaining,
+                    totalSeconds = total,
+                    elapsedSeconds = total - remaining,
+                )
+            }
+        }
+    }
+
+    private fun stopHoldTimer() {
+        holdJob?.cancel()
+        holdJob = null
+        _holdTimer.value = HoldTimerUiState()
     }
 
     /**
@@ -835,6 +902,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 targetReps = defaults.reps,
                 targetWeightKg = null,
                 restSeconds = defaults.restSeconds,
+                targetSeconds = defaults.seconds,
+                targetSecondsMax = defaults.secondsMax,
             )
             selectExercise(exercise.id)
             showPicker.value = false
@@ -888,17 +957,34 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             return
         }
         val current = draft.value
+        val selectedLift = session.value?.exercises
+            ?.firstOrNull { it.exercise.id == exerciseId }
+        val hold = selectedLift?.let { HoldWork.isHold(it.exercise) } == true
+        val holdState = _holdTimer.value
+        val editingId = editingSetId.value
+        if (hold && editingId == null && holdState.totalSeconds == 0 && !holdState.running) {
+            startHoldSet()
+            return
+        }
+        val duration = when {
+            !hold -> null
+            holdState.totalSeconds > 0 ->
+                HoldWork.elapsedSeconds(holdState.totalSeconds, holdState.remainingSeconds)
+            else -> HoldWork.countdownSeconds(
+                current.durationSeconds ?: selectedLift?.targetSeconds,
+            )
+        }
+        val reps = if (hold) 0 else current.reps
         // The same rule the repository enforces, run early so the refusal lands on the field
         // the user is looking at rather than as a thrown error after the tap.
-        val loadType = session.value?.exercises
-            ?.firstOrNull { it.exercise.id == exerciseId }
-            ?.exercise
-            ?.loadType
+        val loadType = selectedLift?.exercise?.loadType
         val invalid = SetLogRules.validate(
             weightKg = current.weightKg,
-            reps = current.reps,
+            reps = reps,
             isWarmup = current.isWarmup,
             loadType = loadType,
+            durationSeconds = duration,
+            isHold = hold,
         )
         if (invalid != null) {
             error.fail(source = ERR_LOG_SET, message = invalid)
@@ -907,16 +993,17 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         logging.value = true
         viewModelScope.launch {
             try {
-                val editingId = editingSetId.value
                 if (editingId != null) {
                     container.workoutRepository.updateSet(
                         setId = editingId,
                         weightKg = current.weightKg,
-                        reps = current.reps,
+                        reps = reps,
                         rpe = current.rpe,
                         isWarmup = current.isWarmup,
+                        durationSeconds = duration,
                     )
                     editingSetId.value = null
+                    stopHoldTimer()
                 } else {
                     // Snapshot the count before the insert. The session Flow may publish the
                     // new row as soon as Room commits; reading it after logSet() and then
@@ -926,19 +1013,17 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         ?.sets
                         ?.count { it.exerciseId == exerciseId && !it.isWarmup }
                         ?: 0
-                    val targetSets = session.value
-                        ?.exercises
-                        ?.firstOrNull { it.exercise.id == exerciseId }
-                        ?.targetSets
-                        ?: 0
+                    val targetSets = selectedLift?.targetSets ?: 0
                     val logged = container.workoutRepository.logSet(
                         sessionId = sessionId,
                         exerciseId = exerciseId,
                         weightKg = current.weightKg,
-                        reps = current.reps,
+                        reps = reps,
                         rpe = current.rpe,
                         isWarmup = current.isWarmup,
+                        durationSeconds = duration,
                     )
+                    stopHoldTimer()
                     if (logged.records.isNotEmpty()) {
                         _personalRecord.value = PersonalRecordMoment(
                             exerciseName = session.value
@@ -1050,12 +1135,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         editingSetId.value = set.id
         // Revising a set is not moving on from it.
         _pendingAdvance.value = null
+        stopHoldTimer()
         selectedExerciseId.value = set.exerciseId
         draft.value = ActiveExerciseDraft(
             weightKg = set.weightKg,
-            reps = set.reps,
+            reps = if (set.durationSeconds != null) 0 else set.reps,
             rpe = set.rpe,
             isWarmup = set.isWarmup,
+            durationSeconds = set.durationSeconds,
         )
         persistDraft()
     }

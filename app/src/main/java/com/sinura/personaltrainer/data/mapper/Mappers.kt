@@ -91,6 +91,8 @@ fun RoutineWithExercises.toDomain(): Routine = Routine(
                 targetReps = rel.item.targetReps,
                 targetWeightKg = rel.item.targetWeightKg,
                 restSeconds = rel.item.restSeconds,
+                targetSeconds = rel.item.targetSeconds,
+                targetSecondsMax = rel.item.targetSecondsMax,
             )
         },
 )
@@ -112,6 +114,8 @@ fun RoutineExercise.toEntity(): RoutineExerciseEntity = RoutineExerciseEntity(
     targetReps = targetReps,
     targetWeightKg = targetWeightKg,
     restSeconds = restSeconds,
+    targetSeconds = targetSeconds,
+    targetSecondsMax = targetSecondsMax,
 )
 
 fun SessionWithDetails.toDomain(): WorkoutSession = WorkoutSession(
@@ -135,6 +139,8 @@ fun SessionWithDetails.toDomain(): WorkoutSession = WorkoutSession(
                 targetReps = rel.item.targetReps,
                 targetWeightKg = rel.item.targetWeightKg,
                 restSeconds = rel.item.restSeconds,
+                targetSeconds = rel.item.targetSeconds,
+                targetSecondsMax = rel.item.targetSecondsMax,
             )
         },
     sets = sets
@@ -151,6 +157,7 @@ fun SessionWithDetails.toDomain(): WorkoutSession = WorkoutSession(
                 rpe = rel.set.rpe,
                 isWarmup = rel.set.isWarmup,
                 completedAt = rel.set.completedAt,
+                durationSeconds = rel.set.durationSeconds,
             )
         },
 )

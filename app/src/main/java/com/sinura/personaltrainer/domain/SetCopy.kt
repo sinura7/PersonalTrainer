@@ -14,7 +14,26 @@ object SetCopy {
      * and is not decoration, because the same field on an assisted lift reads `8 reps −20 kg`
      * and means the opposite thing about how hard the set was.
      */
-    fun setLine(weightKg: Double, reps: Int, loadClass: LoadClass, unit: WeightUnit): String {
+    fun setLine(
+        weightKg: Double,
+        reps: Int,
+        loadClass: LoadClass,
+        unit: WeightUnit,
+        durationSeconds: Int? = null,
+    ): String {
+        val held = durationSeconds?.takeIf { it > 0 }
+        if (held != null) {
+            val clock = HoldWork.formatRange(held)
+            val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
+            return when (loadClass) {
+                LoadClass.LOADED -> "${(load ?: 0.0).toWeightLabel(unit)} × $clock"
+                LoadClass.BODYWEIGHT -> clock
+                LoadClass.BODYWEIGHT_ADDED ->
+                    if (load == null) clock else "$clock +${load.toWeightLabel(unit)}"
+                LoadClass.BODYWEIGHT_ASSISTED ->
+                    if (load == null) clock else "$clock −${load.toWeightLabel(unit)}"
+            }
+        }
         val safeReps = reps.coerceAtLeast(0)
         val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
         return when (loadClass) {

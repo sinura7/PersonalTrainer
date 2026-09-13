@@ -36,12 +36,12 @@ object SessionOrderCopy {
 
     /** Says the two things a tap does now: it counts, and it is already saved. */
     const val PICKER_HINT = "Tap in the order you'll lift. 1 is first, and each tap is saved."
-    const val TAP_TO_SET = "Tap a lift to set sets, reps, rest and load."
+    const val TAP_TO_SET = "Tap a lift to set sets, time or reps, rest and load."
     const val EMPTY_EDITOR_BODY =
         "Tap lifts in the order you'll do them. Each tap adds one to this routine."
     const val EMPTY_WEEK_BODY =
         "Tap lifts in the order you'll do them. Each tap adds one to this day."
-    const val EDIT_LIFTS_SUBTITLE = "Tap a card for sets, reps, rest and load."
+    const val EDIT_LIFTS_SUBTITLE = "Tap a card for sets, time or reps, rest and load."
     const val AGENDA_SEPARATE =
         "Each session stays its own. Finish one, then start the next."
 
@@ -114,10 +114,17 @@ object SessionOrderCopy {
         reps: Int,
         restClock: String,
         load: String?,
+        holdSeconds: Int? = null,
+        holdSecondsMax: Int? = null,
     ): String = buildString {
         append("$number. $name")
         if (muscleGroup.isNotBlank()) append(". $muscleGroup")
-        append(". $sets by $reps. Rest $restClock")
+        if (holdSeconds != null) {
+            append(". ${HoldWork.workLine(sets, holdSeconds, holdSecondsMax)}")
+        } else {
+            append(". $sets by $reps")
+        }
+        append(". Rest $restClock")
         if (!load.isNullOrBlank()) append(". $load")
     }
 
@@ -128,7 +135,8 @@ object SessionOrderCopy {
     fun filledCount(workingLogged: Int, targetSets: Int): String =
         if (targetSets > 0) "$workingLogged/$targetSets" else workingLogged.toString()
 
-    fun workValue(sets: Int, reps: Int): String = "$sets × $reps"
+    fun workValue(sets: Int, reps: Int, holdSeconds: Int? = null, holdSecondsMax: Int? = null): String =
+        if (holdSeconds != null) HoldWork.workLine(sets, holdSeconds, holdSecondsMax) else "$sets × $reps"
 
     /**
      * TalkBack for a filled history card. Prescription language only when the
@@ -148,7 +156,7 @@ object SessionOrderCopy {
         if (muscleGroup.isNotBlank()) append(". $muscleGroup")
         append(". ${filledCount(workingLogged, targetSets)}")
         if (targetSets > 0) {
-            append(". ${workValue(targetSets, targetReps.coerceAtLeast(1))}")
+            append(". ${workValue(targetSets, targetReps.coerceAtLeast(1), holdSeconds, holdSecondsMax)}")
         } else {
             append(if (workingLogged == 1) " set" else " sets")
         }
