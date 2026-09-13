@@ -52,6 +52,12 @@ object ThumbSize {
     val row = 40.dp
     val header = 56.dp
     val chipGlyph = 20.dp
+    /** Extra picker rows — image-forward, still a thumb not a hero. */
+    val picker = 72.dp
+    /** Cardio picker still inside a horizontal card. */
+    val cardioStill = 96.dp
+    /** Horizontal cardio pick card. */
+    val cardioCard = 128.dp
 }
 
 /**

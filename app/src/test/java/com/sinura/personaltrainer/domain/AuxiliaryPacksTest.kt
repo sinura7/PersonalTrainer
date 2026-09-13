@@ -36,6 +36,23 @@ class AuxiliaryPacksTest {
     }
 
     @Test
+    fun everyPackExposesACatalogStillFromItsOwnLifts() {
+        val catalogKeys = DefaultExercises.catalog().map { it.imageKey }.toSet()
+        AuxiliaryPacks.all.forEach { pack ->
+            assertTrue("${pack.id} imageKey blank", pack.imageKey.isNotBlank())
+            assertTrue("${pack.id} imageKey ${pack.imageKey} missing", pack.imageKey in catalogKeys)
+            assertTrue(
+                "${pack.id} still is not one of its lifts",
+                pack.lifts.any { it.exerciseId.replace('-', '_') == pack.imageKey },
+            )
+        }
+        assertEquals(
+            AuxiliaryPacks.all.size,
+            AuxiliaryPacks.all.map { it.imageKey }.toSet().size,
+        )
+    }
+
+    @Test
     fun theGolfCoolDownIsAMobilityPackThatFollowsTheRound() {
         val pack = AuxiliaryPacks.byId("golf-cooldown")
         assertEquals(AuxiliaryPacks.GolfCooldown, pack)

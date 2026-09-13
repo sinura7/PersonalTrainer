@@ -28,6 +28,12 @@ data class AuxiliaryPack(
     val caption: String,
     val kind: AuxiliaryKind,
     val lifts: List<AuxiliaryLift>,
+    /**
+     * Catalog still to show on Extra pickers. Hyphens in the lift id
+     * become underscores — the same key [SeedExercise.imageKey] writes,
+     * so extras reuse ADR-022 stills instead of a second pack.
+     */
+    val imageKey: String,
 )
 
 object AuxiliaryPacks {
@@ -42,6 +48,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-hyper-pro-external-rotator", 2, 8, 20),
             AuxiliaryLift("ex-hyper-pro-face-pull", 2, 10, 20),
         ),
+        imageKey = "ex_hyper_pro_woodchop",
     )
 
     /**
@@ -61,6 +68,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-hyper-pro-elephant-walk", 1, 10, 20),
             AuxiliaryLift("ex-dead-bug", 2, 8, 20),
         ),
+        imageKey = "ex_hyper_pro_couch_stretch",
     )
 
     val LowerBody = AuxiliaryPack(
@@ -74,6 +82,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-barbell-glute-bridge", 1, 8, 20),
             AuxiliaryLift("ex-hyper-pro-elephant-walk", 1, 10, 20),
         ),
+        imageKey = "ex_bodyweight_squat",
     )
 
     val UpperBody = AuxiliaryPack(
@@ -87,6 +96,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-inverted-row", 1, 8, 20),
             AuxiliaryLift("ex-hyper-pro-external-rotator", 1, 10, 20),
         ),
+        imageKey = "ex_push_up",
     )
 
     val Shoulder = AuxiliaryPack(
@@ -100,6 +110,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-lateral-raise", 2, 12, 20),
             AuxiliaryLift("ex-dumbbell-rear-delt-fly", 2, 12, 20),
         ),
+        imageKey = "ex_lateral_raise",
     )
 
     val Stretch = AuxiliaryPack(
@@ -113,6 +124,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-hyper-pro-elephant-walk", 1, 10, 20),
             AuxiliaryLift("ex-hyper-pro-incline-pigeon", 1, 8, 20),
         ),
+        imageKey = "ex_hyper_pro_calf_stretch",
     )
 
     val LowerBack = AuxiliaryPack(
@@ -125,6 +137,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-dead-bug", 2, 8, 20),
             AuxiliaryLift("ex-plank", 1, 40, 20),
         ),
+        imageKey = "ex_back_extension",
     )
 
     val Hips = AuxiliaryPack(
@@ -137,6 +150,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-hyper-pro-incline-pigeon", 1, 8, 20),
             AuxiliaryLift("ex-hyper-pro-elephant-walk", 1, 10, 20),
         ),
+        imageKey = "ex_hyper_pro_incline_pigeon",
     )
 
     val Holds = AuxiliaryPack(
@@ -149,6 +163,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-side-plank", 1, 30, 20),
             AuxiliaryLift("ex-dead-bug", 2, 8, 20),
         ),
+        imageKey = "ex_plank",
     )
 
     val Core = AuxiliaryPack(
@@ -161,6 +176,7 @@ object AuxiliaryPacks {
             AuxiliaryLift("ex-machine-crunch", 2, 12, 30),
             AuxiliaryLift("ex-cable-crunch", 2, 12, 30),
         ),
+        imageKey = "ex_hanging_leg_raise",
     )
 
     val all: List<AuxiliaryPack> = listOf(

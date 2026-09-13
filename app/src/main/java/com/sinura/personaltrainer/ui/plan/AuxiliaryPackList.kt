@@ -22,6 +22,9 @@ import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.PickerStill
+import com.sinura.personaltrainer.ui.components.ThumbSize
+import com.sinura.personaltrainer.ui.components.extraPackArtwork
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -89,6 +92,12 @@ private fun PackGroup(
                     .fillMaxWidth()
                     .testTag(AuxiliaryPackTags.row(pack.id))
                     .semantics { contentDescription = pack.title },
+                leading = {
+                    PickerStill(
+                        art = extraPackArtwork(pack.id),
+                        size = ThumbSize.picker,
+                    )
+                },
                 onClick = { onPick(pack.id) },
             )
         }
