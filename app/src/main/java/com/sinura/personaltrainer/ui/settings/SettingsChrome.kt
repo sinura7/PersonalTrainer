@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -55,7 +53,9 @@ internal fun SettingsGroup(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
     ) {
-        Kicker(title)
+        if (title.isNotBlank()) {
+            Kicker(title)
+        }
         content()
         Text(caption, style = InstrumentType.caption, color = TextTertiary)
     }

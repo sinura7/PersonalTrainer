@@ -12,5 +12,10 @@ class GetStartedCopyTest {
         assertTrue(GetStartedCopy.EMPTY_CAPTION.contains("Start a workout"))
         assertFalse(GetStartedCopy.EMPTY_CAPTION.contains("Generate", ignoreCase = true))
         assertFalse(GetStartedCopy.EMPTY_CAPTION.contains("Get started", ignoreCase = true))
+        val gone = listOf(
+            java.io.File("app/src/main/java/com/sinura/personaltrainer/ui/home/GetStartedSheet.kt"),
+            java.io.File("../app/src/main/java/com/sinura/personaltrainer/ui/home/GetStartedSheet.kt"),
+        )
+        assertFalse(gone.any { it.isFile })
     }
 }
