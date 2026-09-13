@@ -1318,7 +1318,7 @@ class RoutineEditorViewModelTest {
         val vm = createViewModel("new")
         vm.awaitState { !it.isLoading }
         val text = checkNotNull(
-            javaClass.getResource("/paste-routine-reference.md"),
+            javaClass.getResource("/weekly-program-reference.md"),
         ).readText()
         vm.importPaste(text)
         val state = vm.awaitState {
@@ -1334,9 +1334,11 @@ class RoutineEditorViewModelTest {
             listOf("Lower A", "Upper B", "Lower B", "Cardio", "Flexibility"),
             state.createdFromPaste,
         )
-        val names = deps.routineRepository.observeAll().first().map { it.name }.toSet()
-        assertTrue(names.containsAll(setOf("Upper A", "Lower A", "Upper B", "Lower B", "Cardio", "Flexibility")))
-        val routines = deps.routineRepository.observeAll().first()
+        val routines = awaitList("pasted routines", deps.routineRepository.observeAll()) { list ->
+            list.any { it.name == "Lower B" && it.exercises.any { row -> row.exercise.id == "ex-front-squat" } } &&
+                list.any { it.name == "Upper A" && it.exercises.any { row -> row.exercise.id == "ex-dead-hang" } }
+        }
+        assertTrue(routines.map { it.name }.containsAll(setOf("Upper A", "Lower A", "Upper B", "Lower B", "Cardio", "Flexibility")))
         val lowerB = routines.first { it.name == "Lower B" }
         val squat = lowerB.exercises.first { it.exercise.id == "ex-front-squat" }
         assertEquals(3, squat.targetSets)
@@ -1344,13 +1346,17 @@ class RoutineEditorViewModelTest {
         val plank = lowerB.exercises.first { it.exercise.id == "ex-side-plank" }
         assertEquals(2, plank.targetSets)
         assertEquals(1, plank.targetReps)
+        assertTrue("side plank stored hold seconds as reps: ${plank.targetReps}", plank.targetReps != 20 && plank.targetReps != 40)
         assertEquals(WorkoutPasteRest.ACCESSORY_SECONDS, plank.restSeconds)
         val upperA = routines.first { it.name == "Upper A" }
         assertTrue(upperA.notes.contains("2–3 min"))
-        assertTrue(upperA.notes.contains("Weekly layout"))
+        assertTrue(upperA.notes.contains("Weekly layout") || upperA.notes.contains("Mon — Upper A"))
         val hang = upperA.exercises.first { it.exercise.id == "ex-dead-hang" }
         assertEquals(1, hang.targetReps)
-        val slots = deps.scheduleRepository.slots()
+        assertTrue("dead hang stored hold seconds as reps: ${hang.targetReps}", hang.targetReps != 20 && hang.targetReps != 40)
+        val slots = withTimeout(TestWaits.FLOW_MS) {
+            deps.scheduleRepository.observeSlots().first { it.any { slot -> slot.anchorDay == Weekday.MONDAY } }
+        }
         assertEquals(Weekday.MONDAY, slots.first { it.routineId == upperA.id }.anchorDay)
         assertEquals(
             Weekday.TUESDAY,

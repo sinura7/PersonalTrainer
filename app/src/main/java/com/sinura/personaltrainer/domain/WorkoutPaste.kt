@@ -163,6 +163,40 @@ internal object WorkoutPasteRest {
     }
 }
 
+/**
+ * Holds are seconds. A paired line like "3×10–15 / 3×30–45s" must not
+ * put the plank on the rep scheme.
+ */
+internal object WorkoutPasteHolds {
+    fun isHold(exercise: Exercise): Boolean {
+        val id = exercise.id.lowercase()
+        val name = exercise.name.lowercase()
+        if (id.contains("hang") || id.contains("plank") || id.contains("hold") ||
+            id.contains("wall-sit") || id.contains("stretch")
+        ) {
+            return true
+        }
+        return listOf("hang", "plank", "wall sit", "hold", "stretch").any { name.contains(it) }
+    }
+
+    fun schemeFor(
+        exercise: Exercise,
+        schemes: List<WorkScheme>,
+        index: Int,
+        fallback: WorkScheme,
+    ): WorkScheme {
+        if (schemes.isEmpty()) return fallback
+        if (schemes.size == 1) return schemes.single()
+        val timed = schemes.firstOrNull { it.isTimed }
+        val reps = schemes.firstOrNull { !it.isTimed }
+        return if (isHold(exercise)) {
+            timed ?: schemes.getOrElse(index) { schemes.first() }
+        } else {
+            reps ?: schemes.getOrElse(index) { schemes.first() }
+        }
+    }
+}
+
 object WorkoutPaste {
     fun catalogExercises(seeds: List<SeedExercise> = DefaultExercises.catalog()): List<Exercise> =
         seeds.map { seed ->
@@ -219,14 +253,13 @@ object WorkoutPaste {
                     return@forEachIndexed
                 }
                 used += hit.id
-                val scheme = schemes.getOrElse(index) {
-                    schemes.firstOrNull() ?: WorkScheme(
-                        setsMin = AddDefaults.forExercise(hit).sets,
-                        setsMax = AddDefaults.forExercise(hit).sets,
-                        repsMin = AddDefaults.forExercise(hit).reps,
-                        repsMax = AddDefaults.forExercise(hit).reps,
-                    )
-                }
+                val fallback = WorkScheme(
+                    setsMin = AddDefaults.forExercise(hit).sets,
+                    setsMax = AddDefaults.forExercise(hit).sets,
+                    repsMin = AddDefaults.forExercise(hit).reps,
+                    repsMax = AddDefaults.forExercise(hit).reps,
+                )
+                val scheme = WorkoutPasteHolds.schemeFor(hit, schemes, index, fallback)
                 val rest = WorkoutPasteRest.forLift(hit, scheme)
                 val remaining = choice.filterNot {
                     WorkoutCatalogMatch.normalize(it) == WorkoutCatalogMatch.normalize(hit.name) ||
@@ -300,8 +333,8 @@ internal object WorkoutPasteParser {
     private val STRENGTH_HEADER = Regex("""^(.+?)\s+\((strength|muscle)\)\s*$""", RegexOption.IGNORE_CASE)
     private val CARDIO_HEADER = Regex("""^cardio\b""", RegexOption.IGNORE_CASE)
     private val FLEX_HEADER = Regex("""^flexibility\b""", RegexOption.IGNORE_CASE)
-    private val WEEKLY_HEADER = Regex("""^weekly layout\b""", RegexOption.IGNORE_CASE)
-    private val PROGRESSION_HEADER = Regex("""^progression\s*$""", RegexOption.IGNORE_CASE)
+    private val WEEKLY_HEADER = Regex("""^(weekly layout|week)$""", RegexOption.IGNORE_CASE)
+    private val PROGRESSION_HEADER = Regex("""^progression$""", RegexOption.IGNORE_CASE)
     private val WARMUP_LINE = Regex("""^warm\s*up\b""", RegexOption.IGNORE_CASE)
     private val WEEKDAY_HEAD = Regex(
         """^(mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b""",
@@ -325,37 +358,40 @@ internal object WorkoutPasteParser {
         var section = PasteSection.SESSION
         text.lineSequence().forEach { raw ->
             val line = raw.trim().trimStart('\uFEFF')
-            if (line.isEmpty() || line.startsWith("#") || line.startsWith(">")) return@forEach
+            if (line.isEmpty() || line.startsWith(">")) return@forEach
+            val content = line.trimStart('#').trim()
+            if (content.isEmpty()) return@forEach
+            header(content)?.let { next ->
+                current?.let { sessions += it }
+                current = next
+                section = PasteSection.SESSION
+                return@forEach
+            }
             when {
-                WEEKLY_HEADER.containsMatchIn(line) -> {
+                WEEKLY_HEADER.matches(content) -> {
                     current?.let { sessions += it }
                     current = null
                     section = PasteSection.WEEKLY
                     return@forEach
                 }
-                PROGRESSION_HEADER.containsMatchIn(line) -> {
+                PROGRESSION_HEADER.matches(content) -> {
                     current?.let { sessions += it }
                     current = null
                     section = PasteSection.PROGRESSION
                     return@forEach
                 }
-                WARMUP_LINE.containsMatchIn(line) -> {
-                    warmupLine = line
+                WARMUP_LINE.containsMatchIn(content) -> {
+                    warmupLine = content
                     return@forEach
                 }
             }
             when (section) {
-                PasteSection.WEEKLY -> weekLines += line
-                PasteSection.PROGRESSION -> progressionLines += line
+                PasteSection.WEEKLY -> weekLines += content
+                PasteSection.PROGRESSION -> progressionLines += content
                 PasteSection.SESSION -> {
-                    header(line)?.let { next ->
-                        current?.let { sessions += it }
-                        current = next
-                        return@forEach
-                    }
                     val session = current ?: return@forEach
-                    if (looksLikeProse(line)) return@forEach
-                    session.lines += workLine(line, session.defaultScheme)
+                    if (looksLikeProse(content)) return@forEach
+                    session.lines += workLine(content, session.defaultScheme)
                 }
             }
         }

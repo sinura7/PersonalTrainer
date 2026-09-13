@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -122,6 +123,25 @@ class WorkoutPasteParserTest {
         assertEquals(listOf("Mon — Upper A (strength bias)"), parsed.weekLines)
         assertTrue(checkNotNull(parsed.warmupLine).contains("ramp sets"))
         assertTrue(parsed.progressionLines.single().contains("Deload every 6th week"))
+    }
+
+    @Test
+    fun markdownWeekAtTheTopDoesNotSwallowTheBlocks() {
+        val parsed = WorkoutPasteParser.parseDocument(
+            """
+            ## Week
+            Mon — Upper A (strength bias)
+            ## Upper A (strength)
+            Barbell bench press — 4×4–6
+            Static: dead hang — 2×20–40s
+            ## Progression
+            Deload every 6th week
+            """.trimIndent(),
+        )
+        assertEquals(listOf("Upper A"), parsed.sessions.map { it.name })
+        assertEquals(2, parsed.sessions.single().lines.size)
+        assertEquals(listOf("Mon — Upper A (strength bias)"), parsed.weekLines)
+        assertTrue(parsed.progressionLines.single().contains("Deload"))
     }
 }
 
@@ -312,6 +332,42 @@ class WorkoutPasteReferenceTest {
     }
 
     @Test
+    fun staticsAreTimeNotReps() {
+        assertTimedHold(plan.sessionNamed("Upper A")!!.lift("ex-dead-hang"), 20, 40)
+        assertTimedHold(plan.sessionNamed("Lower A")!!.lift("ex-wall-sit"), 30, 45)
+        assertTimedHold(plan.sessionNamed("Upper B")!!.lift("ex-scapular-hang"), 20, 30)
+        assertTimedHold(plan.sessionNamed("Lower B")!!.lift("ex-side-plank"), 20, 40)
+        assertTimedHold(plan.sessionNamed("Lower B")!!.lift("ex-deep-squat-hold"), 30, 45)
+        val crunch = plan.sessionNamed("Lower A")!!.lift("ex-cable-crunch")
+        assertFalse(crunch.scheme.isTimed)
+        assertEquals("ex-plank", crunch.alternative?.id)
+    }
+
+    @Test
+    fun weightedPlankIsSecondsNotReps() {
+        val hold = WorkoutPaste.parseAndMatch(
+            """
+            Lower A (strength)
+            Abs: weighted plank — 3×30–45s
+            """.trimIndent(),
+            catalog,
+        ).sessionNamed("Lower A")!!.lift("ex-plank")
+        assertTimedHold(hold, 30, 45)
+    }
+
+    @Test
+    fun pairedCrunchOrPlankDoesNotPutTheHoldOnReps() {
+        val plank = WorkoutPaste.parseAndMatch(
+            """
+            Lower A (strength)
+            Abs: weighted plank or cable crunch — 3×30–45s / 3×10–15
+            """.trimIndent(),
+            catalog,
+        ).sessionNamed("Lower A")!!.lift("ex-plank")
+        assertTimedHold(plank, 30, 45)
+    }
+
+    @Test
     fun bareCurlMatchesBarbellCurlNotLegCurl() {
         val hit = WorkoutCatalogMatch.match("curl", catalog)
         assertEquals("ex-barbell-curl", hit?.id)
@@ -319,4 +375,66 @@ class WorkoutPasteReferenceTest {
 
     private fun PastedSession.lift(id: String): PastedLift =
         lifts.first { it.exercise.id == id }
+}
+
+class WorkoutPasteWeeklyProgramTest {
+    private val catalog = WorkoutPaste.catalogExercises()
+    private val plan by lazy {
+        val text = checkNotNull(
+            WorkoutPasteWeeklyProgramTest::class.java.getResource("/weekly-program-reference.md"),
+        ) { "weekly-program-reference.md missing from test resources" }.readText()
+        WorkoutPaste.parseAndMatch(text, catalog)
+    }
+
+    @Test
+    fun markdownWeekStillMakesTheFourStrengthBlocks() {
+        assertEquals(
+            listOf("Upper A", "Lower A", "Upper B", "Lower B"),
+            plan.strengthSessions().map { it.name },
+        )
+        assertNotNull(plan.sessionNamed("Cardio"))
+        assertNotNull(plan.sessionNamed("Flexibility"))
+        assertEquals(Weekday.MONDAY, plan.weekPins.first().weekday)
+        assertEquals(listOf("Upper A"), plan.weekPins.first().sessionNames)
+        assertTrue(checkNotNull(plan.progressionNote).contains("Deload every 6th week"))
+    }
+
+    @Test
+    fun staticsOnTheWeeklyProgramAreTimeNotReps() {
+        assertTimedHold(plan.sessionNamed("Upper A")!!.lift("ex-dead-hang"), 20, 40)
+        assertTimedHold(plan.sessionNamed("Lower A")!!.lift("ex-wall-sit"), 30, 45)
+        assertTimedHold(plan.sessionNamed("Upper B")!!.lift("ex-scapular-hang"), 20, 30)
+        assertTimedHold(plan.sessionNamed("Lower B")!!.lift("ex-side-plank"), 20, 40)
+        assertTimedHold(plan.sessionNamed("Lower B")!!.lift("ex-deep-squat-hold"), 30, 45)
+        val yHold = plan.sessionNamed("Upper B")!!.lift("ex-scapular-hang").alternative
+        assertEquals("ex-y-hold", yHold?.id)
+        assertFalse(plan.sessionNamed("Lower A")!!.lift("ex-cable-crunch").scheme.isTimed)
+        assertEquals("ex-plank", plan.sessionNamed("Lower A")!!.lift("ex-cable-crunch").alternative?.id)
+    }
+
+    @Test
+    fun cardioAndCarsStayVisibleDrafts() {
+        val cardio = plan.sessionNamed("Cardio")!!
+        assertTrue(cardio.lifts.isEmpty())
+        assertTrue(cardio.unmatched.isNotEmpty())
+        val flex = plan.sessionNamed("Flexibility")!!
+        assertTrue(flex.unmatched.any { it.raw.contains("articular", ignoreCase = true) })
+        assertTrue(flex.unmatched.any { it.raw.contains("Ankle", ignoreCase = true) })
+    }
+
+    private fun PastedSession.lift(id: String): PastedLift =
+        lifts.first { it.exercise.id == id }
+}
+
+internal fun assertTimedHold(lift: PastedLift, secondsMin: Int, secondsMax: Int) {
+    assertTrue("${lift.exercise.id} must be a hold, was ${lift.scheme.prescription()}", lift.scheme.isTimed)
+    assertEquals(secondsMin, lift.scheme.secondsMin)
+    assertEquals(secondsMax, lift.scheme.secondsMax)
+    assertEquals(
+        "${lift.exercise.id} stored the hold as reps (${lift.targetReps})",
+        1,
+        lift.targetReps,
+    )
+    assertNotEquals(secondsMin, lift.targetReps)
+    assertNotEquals(secondsMax, lift.targetReps)
 }
