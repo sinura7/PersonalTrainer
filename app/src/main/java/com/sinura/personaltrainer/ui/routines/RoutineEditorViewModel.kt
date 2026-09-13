@@ -954,6 +954,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     )
                 }
             }
+        } catch (thrown: CancellationException) {
+            throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "paste week pins failed", thrown)
         }
