@@ -220,6 +220,33 @@ fun HomeScreen(
             emptyList()
         }
     }
+    var startSheet by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(sessionLive) {
+        if (sessionLive) startSheet = false
+    }
+
+    if (startSheet && !sessionLive) {
+        HomeStartSheet(
+            routines = state.routines,
+            onDismiss = { startSheet = false },
+            onStartFree = {
+                startSheet = false
+                viewModel.startFreeWorkout()
+            },
+            onStartRoutine = { routineId ->
+                startSheet = false
+                viewModel.startRoutine(routineId)
+            },
+            onStartCardio = { type ->
+                startSheet = false
+                viewModel.startCardio(type)
+            },
+            onStartExtra = { packId ->
+                startSheet = false
+                viewModel.startAux(packId)
+            },
+        )
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -303,12 +330,11 @@ fun HomeScreen(
                         items = selectedAgenda,
                         sessionLive = sessionLive,
                         onStartOccurrence = viewModel::startOccurrence,
-                        onStartFree = { viewModel.startFreeWorkout() },
+                        onStartFree = { startSheet = true },
                         routines = state.routines,
                         kicker = dayKicker,
                         stillOpen = stillOpen,
                         today = today,
-                        epochDay = selectedEpochDay,
                         quietStart = state.missedWorkPrompt,
                         canEditDay = selectedEpochDay >= today,
                         confirmOccurrenceId = reviewOccurrenceId,
@@ -317,34 +343,6 @@ fun HomeScreen(
                             viewModel.moveDayBlock(selectedAgenda, occurrenceId, delta)
                         },
                         onSkipOccurrence = viewModel::skipOccurrence,
-                        onAddWorkout = { routineId, once ->
-                            viewModel.addDaySession(
-                                selectedEpochDay,
-                                HomeDayAdd.Workout(routineId),
-                                once,
-                            )
-                        },
-                        onNewWorkout = { once ->
-                            viewModel.addDaySession(
-                                selectedEpochDay,
-                                HomeDayAdd.NewWorkout,
-                                once,
-                            )
-                        },
-                        onAddCardio = { type, once ->
-                            viewModel.addDaySession(
-                                selectedEpochDay,
-                                HomeDayAdd.Cardio(type),
-                                once,
-                            )
-                        },
-                        onAddAux = { packId, once ->
-                            viewModel.addDaySession(
-                                selectedEpochDay,
-                                HomeDayAdd.Aux(packId),
-                                once,
-                            )
-                        },
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
                         day = leftoverDay,
@@ -360,7 +358,7 @@ fun HomeScreen(
                         onPrimary = {
                             leftoverDay?.takeUnless { it.isRest }?.let(viewModel::startSuggestedDay)
                         },
-                        onStartFree = { viewModel.startFreeWorkout() },
+                        onStartFree = { startSheet = true },
                         onOpenPlan = onOpenPlan,
                     )
                 }
@@ -434,8 +432,6 @@ object HomeTags {
     const val FREE = "home-free-start"
     const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"
     const val STILL_OPEN = "home-still-open"
-    const val ADD = "home-add"
-    const val ADD_EXTRA = ADD
     const val SESSION = "home-session-start"
 
     fun agendaRow(occurrenceId: String): String = "home-agenda-$occurrenceId"

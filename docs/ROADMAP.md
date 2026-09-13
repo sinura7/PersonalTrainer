@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 13 Sep 2026 — Home: one **Start a workout** sheet (free / Plan routine /
+> cardio pictures / Extra pictures). Add row gone. Plan still adds.
+> Does not bump live 52. Gym-floor `appVersionCode` stays 1.
+>
 > 13 Sep 2026 — Live 52: Extra/cardio pictures, Body stills, Add-lifts
 > muscle chips, and paste-to-routine on `trunk`. `debugLiveCode` 52;
 > suffix from `python3 tools/debug-drop-plan.py`.

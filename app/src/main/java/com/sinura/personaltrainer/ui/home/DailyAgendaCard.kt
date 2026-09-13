@@ -5,9 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,8 +21,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
-import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.HomeStartCopy
 import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.PlanDayCopy
@@ -38,13 +35,9 @@ import com.sinura.personaltrainer.domain.DayBlockCopy
 import com.sinura.personaltrainer.domain.sessionLifts
 import com.sinura.personaltrainer.domain.sessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
-import com.sinura.personaltrainer.ui.components.GroupedList
-import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
-import com.sinura.personaltrainer.ui.plan.DayAddPicker
-import com.sinura.personaltrainer.ui.plan.DayPicker
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -55,8 +48,8 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  * generated any row (P7.5). ThisWeekCard is the empty-agenda leftover.
  *
  * Planned rows start that session (confirm). The filled Volt is
- * Start a workout (freestyle). Add sits under the last planned row.
- * Still open leftovers can skip (ADR-021).
+ * Start a workout and opens the start sheet (free / routine / cardio /
+ * Extra). Plan still adds sessions. Still open leftovers can skip (ADR-021).
  *
  * Each session is its own [DayBlock] — stills, order, estimate, Start on
  * the foot — rather than a row in one grouped list: a day's sessions are
@@ -72,22 +65,15 @@ fun DailyAgendaCard(
     kicker: String = "Today",
     stillOpen: List<AgendaItem> = emptyList(),
     today: Long = com.sinura.personaltrainer.ui.units.LocalTodayEpochDay.current,
-    epochDay: Long = today,
     quietStart: Boolean = false,
     canEditDay: Boolean = false,
     onMoveOccurrence: (String, Int) -> Unit = { _, _ -> },
     onSkipOccurrence: (String) -> Unit = {},
-    onAddWorkout: (String, Boolean) -> Unit = { _, _ -> },
-    onNewWorkout: (Boolean) -> Unit = {},
-    onAddCardio: (CardioType, Boolean) -> Unit = { _, _ -> },
-    onAddAux: (String, Boolean) -> Unit = { _, _ -> },
     confirmOccurrenceId: String? = null,
     onConfirmOccurrenceConsumed: () -> Unit = {},
 ) {
     val catalog = items + stillOpen
     var pendingOccurrenceId by rememberSaveable { mutableStateOf<String?>(null) }
-    var picking by rememberSaveable(epochDay) { mutableStateOf(DayPicker.NONE.name) }
-    val picker = runCatching { DayPicker.valueOf(picking) }.getOrNull() ?: DayPicker.NONE
     val pendingItem = catalog.firstOrNull { item ->
         item.occurrence.id == pendingOccurrenceId && DailyAgenda.canOpenStart(item, today)
     }?.takeUnless { sessionLive }
@@ -128,22 +114,16 @@ fun DailyAgendaCard(
         )
     }
 
-    val weekday = Weekday.fromEpochDay(epochDay)
-    val hasStrength = items.any { item ->
-        val modality = item.rule?.modality ?: ScheduleModality.STRENGTH
-        modality == ScheduleModality.STRENGTH && !ScheduleKind.isAux(item.rule?.templateId)
-    }
-
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         Kicker(kicker)
-        if (items.isEmpty() && stillOpen.isEmpty() && picker == DayPicker.NONE) {
+        if (items.isEmpty() && stillOpen.isEmpty()) {
             Text(
-                com.sinura.personaltrainer.domain.PlanDayCopy.EMPTY,
+                PlanDayCopy.EMPTY,
                 style = InstrumentType.body,
                 color = TextPrimary,
             )
             Text(
-                com.sinura.personaltrainer.domain.PlanDayCopy.EMPTY_BODY,
+                HomeStartCopy.EMPTY_BODY,
                 style = InstrumentType.caption,
                 color = TextSecondary,
             )
@@ -169,45 +149,6 @@ fun DailyAgendaCard(
                         onMove = onMoveOccurrence,
                         onOpen = { pendingOccurrenceId = item.occurrence.id },
                     )
-                }
-                if (canEditDay && !sessionLive && picker == DayPicker.NONE) {
-                    GroupedList {
-                        AddUnderTodayRow(onClick = { picking = DayPicker.KIND.name })
-                    }
-                }
-            }
-        }
-        if (canEditDay && !sessionLive) {
-            if (picker != DayPicker.NONE) {
-                DayAddPicker(
-                    picking = picker,
-                    weekday = weekday,
-                    hasStrength = hasStrength,
-                    occurrences = items,
-                    routines = routines,
-                    askKeep = true,
-                    onPickKind = { picking = it.name },
-                    onCancel = { picking = DayPicker.NONE.name },
-                    onAddWorkout = { id, once ->
-                        picking = DayPicker.NONE.name
-                        onAddWorkout(id, once)
-                    },
-                    onNewWorkout = { once ->
-                        picking = DayPicker.NONE.name
-                        onNewWorkout(once)
-                    },
-                    onAddCardio = { type, once ->
-                        picking = DayPicker.NONE.name
-                        onAddCardio(type, once)
-                    },
-                    onAddAux = { packId, once ->
-                        picking = DayPicker.NONE.name
-                        onAddAux(packId, once)
-                    },
-                )
-            } else if (items.isEmpty()) {
-                GroupedList {
-                    AddUnderTodayRow(onClick = { picking = DayPicker.KIND.name })
                 }
             }
         }
@@ -266,25 +207,6 @@ fun DailyAgendaCard(
             }
         }
     }
-}
-
-@Composable
-private fun AddUnderTodayRow(onClick: () -> Unit) {
-    InstrumentRow(
-        title = PlanDayCopy.ADD,
-        subtitle = PlanDayCopy.ADD_SUBTITLE,
-        modifier = Modifier
-            .testTag(HomeTags.ADD)
-            .semantics { contentDescription = PlanDayCopy.ADD },
-        leading = {
-            Icon(
-                Icons.Outlined.Add,
-                contentDescription = null,
-                tint = TextSecondary,
-            )
-        },
-        onClick = onClick,
-    )
 }
 
 @Composable
