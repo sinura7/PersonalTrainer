@@ -13,7 +13,7 @@ object HomeStartCopy {
     const val CARDIO = "Cardio"
     const val CARDIO_SUBTITLE = "Walk, run, ride, row, swim, or hike."
     const val EXTRA = "Extra"
-    const val EXTRA_SUBTITLE = "A warm-up or stretch. Asks what you have first."
+    const val EXTRA_SUBTITLE = "A warm-up or stretch. Asks what equipment is here."
     const val EMPTY_BODY = "Start a workout, cardio, or a warm-up / stretch block."
     const val PICK_ROUTINE = "Routine"
 }
