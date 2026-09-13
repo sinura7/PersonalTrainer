@@ -18,7 +18,7 @@ import sys
 ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                     "app", "src", "main", "res", "drawable-nodpi")
 
-EX_COUNT = 129
+EX_COUNT = 135
 EX_EDGE = 256
 POSE_EDGE = 256
 UNLIT_EDGE = 1024

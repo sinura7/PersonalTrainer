@@ -41,9 +41,13 @@ data class SeedExercise(
  * v7 writes [SeedExercise.imageKey] on every built-in (drawable name = frozen id with
  * hyphens turned to underscores). No new lifts. Family stills stay the fallback for
  * customs. Body unlit/heat stills are not this bump.
+ *
+ * v8 adds only the holds and stretches the paste-routine corpus names that
+ * were missing. It does not re-seed or wipe. Family stills stand in until
+ * keyed stills exist for those six rows.
  */
 object DefaultExercises {
-    const val CATALOG_VERSION = 7
+    const val CATALOG_VERSION = 8
 
     /**
      * The family vocabulary. Batch 1 shipped 23 families and batch 2 adds three; a later batch
@@ -886,6 +890,69 @@ object DefaultExercises {
             loadType = LoadType.BODYWEIGHT_PLUS,
             movementKey = "twist",
             primary = "core",
+            secondaries = listOf("shoulders" to 0.25),
+        ),
+
+        // Batch 6 (v8): named in the owner paste corpus and missing from the
+        // catalog. Appended, never reordered. Family stills stand in for thumbs.
+        seed(
+            id = "ex-dead-hang",
+            name = "Dead Hang",
+            muscleGroup = "Back",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "pull-up",
+            primary = "back",
+            secondaries = listOf("core" to 0.25),
+        ),
+        seed(
+            id = "ex-scapular-hang",
+            name = "Scapular Hang",
+            muscleGroup = "Back",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "pull-up",
+            primary = "back",
+            secondaries = listOf("shoulders" to 0.50),
+        ),
+        seed(
+            id = "ex-wall-sit",
+            name = "Wall Sit",
+            muscleGroup = "Quads",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "squat",
+            primary = "quadriceps",
+            secondaries = listOf("glutes" to 0.50),
+        ),
+        seed(
+            id = "ex-deep-squat-hold",
+            name = "Deep Squat Hold",
+            muscleGroup = "Quads",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "squat",
+            primary = "quadriceps",
+            secondaries = listOf("glutes" to 0.50),
+        ),
+        seed(
+            id = "ex-y-hold",
+            name = "Y-Hold",
+            muscleGroup = "Shoulders",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "rear-delt",
+            primary = "shoulders",
+            secondaries = listOf("back" to 0.50),
+        ),
+        seed(
+            id = "ex-doorway-chest-stretch",
+            name = "Doorway Chest Stretch",
+            muscleGroup = "Chest",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "chest-fly",
+            primary = "chest",
             secondaries = listOf("shoulders" to 0.25),
         ),
     )

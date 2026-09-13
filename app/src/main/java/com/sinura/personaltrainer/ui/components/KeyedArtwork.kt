@@ -45,10 +45,13 @@ private val KEYED: Map<String, Int> = mapOf(
     "ex_close_grip_lat_pulldown" to R.drawable.ex_close_grip_lat_pulldown,
     "ex_conventional_deadlift" to R.drawable.ex_conventional_deadlift,
     "ex_dead_bug" to R.drawable.ex_dead_bug,
+    "ex_dead_hang" to R.drawable.ex_dead_hang,
     "ex_decline_bench_press" to R.drawable.ex_decline_bench_press,
     "ex_decline_sit_up" to R.drawable.ex_decline_sit_up,
+    "ex_deep_squat_hold" to R.drawable.ex_deep_squat_hold,
     "ex_diamond_push_up" to R.drawable.ex_diamond_push_up,
     "ex_dip" to R.drawable.ex_dip,
+    "ex_doorway_chest_stretch" to R.drawable.ex_doorway_chest_stretch,
     "ex_dumbbell_bench_press" to R.drawable.ex_dumbbell_bench_press,
     "ex_dumbbell_curl" to R.drawable.ex_dumbbell_curl,
     "ex_dumbbell_rear_delt_fly" to R.drawable.ex_dumbbell_rear_delt_fly,
@@ -129,6 +132,7 @@ private val KEYED: Map<String, Int> = mapOf(
     "ex_reverse_pec_deck" to R.drawable.ex_reverse_pec_deck,
     "ex_romanian_deadlift" to R.drawable.ex_romanian_deadlift,
     "ex_russian_twist" to R.drawable.ex_russian_twist,
+    "ex_scapular_hang" to R.drawable.ex_scapular_hang,
     "ex_seated_cable_row" to R.drawable.ex_seated_cable_row,
     "ex_seated_calf_raise" to R.drawable.ex_seated_calf_raise,
     "ex_seated_dumbbell_press" to R.drawable.ex_seated_dumbbell_press,
@@ -146,6 +150,8 @@ private val KEYED: Map<String, Int> = mapOf(
     "ex_trap_bar_deadlift" to R.drawable.ex_trap_bar_deadlift,
     "ex_tricep_pushdown" to R.drawable.ex_tricep_pushdown,
     "ex_walking_lunge" to R.drawable.ex_walking_lunge,
+    "ex_wall_sit" to R.drawable.ex_wall_sit,
+    "ex_y_hold" to R.drawable.ex_y_hold,
 )
 
 internal val KEYED_STILL_KEYS: Set<String> = KEYED.keys
