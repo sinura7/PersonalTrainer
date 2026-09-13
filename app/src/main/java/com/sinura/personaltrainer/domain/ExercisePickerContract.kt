@@ -43,6 +43,13 @@ data class ExercisePickerState(
                 results + siblings + listOfNotNull(suggestion),
             ),
         )
+
+    /**
+     * Same ten groups Body lists, in Body's order. The sheet adds All in front.
+     * Search already narrowed [results]; this then keeps lifts that train [muscle].
+     */
+    fun visibleFor(muscle: CanonicalMuscle?): List<Exercise> =
+        LibraryFilter.apply(results, muscle)
 }
 
 sealed class ExercisePickerEvent {
