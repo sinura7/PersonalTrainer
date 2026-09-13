@@ -279,6 +279,7 @@ fun GymNoticeBanner(
     actionLabel: String,
     onAction: () -> Unit,
     modifier: Modifier = Modifier,
+    onDismiss: (() -> Unit)? = null,
 ) {
     InstrumentBanner(
         accent = Warn,
@@ -288,6 +289,7 @@ fun GymNoticeBanner(
         modifier = modifier,
         actionLabel = actionLabel,
         onAction = onAction,
+        onDismiss = onDismiss,
     )
 }
 

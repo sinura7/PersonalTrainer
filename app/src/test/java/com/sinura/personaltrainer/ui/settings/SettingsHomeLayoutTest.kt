@@ -22,7 +22,10 @@ class SettingsHomeLayoutTest {
         assertTrue(home.contains("TemperIcons.Plan"))
         assertTrue(home.contains("TemperIcons.Diagnostics"))
         assertTrue(home.contains("TemperIcons.About"))
+        assertTrue(home.contains("TemperIcons.Check"))
         assertTrue(home.contains("TemperIcons.Chevron"))
+        assertTrue(home.contains("SettingsHomeCopy.UPDATE"))
+        assertTrue(home.contains("SettingsTags.ROW_UPDATE"))
         assertFalse(home.contains("SchedulePrefsSection"))
         assertFalse(home.contains("CoachingSection"))
         assertFalse(home.contains("BackupRestoreSection"))
@@ -115,6 +118,12 @@ class SettingsHomeLayoutTest {
         val home = readOwned("ui/home/HomeScreen.kt")
         assertFalse(home.contains("GetStartedSheet"))
         assertFalse(home.contains("Get started"))
+        assertTrue(home.contains("DebugUpdateBanner"))
+        assertTrue(home.contains("rememberDebugUpdatePort"))
+        val screen = readOwned("ui/settings/SettingsScreen.kt")
+        assertTrue(screen.contains("DebugUpdateBanner"))
+        assertTrue(screen.contains("BuildConfig.DEBUG"))
+        assertFalse(screen.contains("Get started"))
     }
 
     private fun readOwned(relative: String): String {
