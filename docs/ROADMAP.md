@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 13 Sep 2026 — Live 49: Settings as an index of focused screens
+> on `trunk`. `debugLiveCode` 49; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 13 Sep 2026 — Settings is an index of rows. Week generator and Reminders
 > are focused screens under Settings. Reminder time is a scroll wheel with
 > AM/PM, not hour chips. Does not bump live 48.
