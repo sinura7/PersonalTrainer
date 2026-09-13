@@ -875,13 +875,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     extras += session.name
                     idsByName[session.name] = created.id
                 }
-                pinPastedWeek(plan, idsByName)
                 pasteState.update {
                     PasteUi(
                         unmatched = first.unmatched,
                         createdNames = extras,
                     )
                 }
+                pinPastedWeek(plan, idsByName)
                 error.clearFrom(source = ERR_PASTE, before = started)
                 error.clearFrom(source = ERR_SAVE, before = started)
             } catch (thrown: CancellationException) {

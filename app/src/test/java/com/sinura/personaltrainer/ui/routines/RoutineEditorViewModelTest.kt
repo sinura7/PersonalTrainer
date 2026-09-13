@@ -1323,7 +1323,8 @@ class RoutineEditorViewModelTest {
         vm.importPaste(text)
         val state = vm.awaitState {
             it.name == "Upper A" &&
-                it.routine?.exercises?.any { row -> row.exercise.id == "ex-barbell-bench-press" } == true
+                it.routine?.exercises?.any { row -> row.exercise.id == "ex-barbell-bench-press" } == true &&
+                it.createdFromPaste.isNotEmpty()
         }
         val bench = state.routine!!.exercises.first { it.exercise.id == "ex-barbell-bench-press" }
         assertEquals(4, bench.targetSets)
