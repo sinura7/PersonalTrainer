@@ -336,7 +336,9 @@ disposition in ADR-013. Archives are not phrase-checked.
 
 E2's APK-size proof for catalog stills. `ex_*` WebPs must be 256×256 and
 under 700 KB together. Family pose fallbacks match. The Body unlit pair
-is 1024×1024 so the panel is not upscaling 768. Heat stays 768.
+is 1024×1024 so the panel is not upscaling 768. Heat stays 768. Body
+muscle-row stills are ten 256×256 `muscle_*` WebPs, rendered from the
+unlit figure by `tools/render-muscle-stills.py`.
 
 ```bash
 python3 tools/check-still-pack.py

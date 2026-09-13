@@ -4,7 +4,8 @@
 E2's APK-size proof: the 129 `ex_*` WebPs used to be 768×768 (~2.56 MB).
 They must stay 256×256 and under EX_BYTES_CEILING. Family pose fallbacks
 match the thumb pack. The Body unlit pair is 1024×1024 so the panel does
-not upscale 768. Heat stills stay 768 for the mark.
+not upscale 768. Heat stills stay 768 for the mark. Body muscle-row stills
+are 256×256, one per mapped muscle.
 
 Usage:  python3 tools/check-still-pack.py
 Exit code is nonzero on a size or dimension miss.
@@ -25,6 +26,20 @@ HEAT_EDGE = 768
 # 129 lossless-ish 256 thumbs were ~0.4 MB in the E2 encode. 700 KB is
 # enough room for a slightly noisier still without returning to 768.
 EX_BYTES_CEILING = 700_000
+MUSCLE_COUNT = 10
+MUSCLE_EDGE = 256
+MUSCLE_NAMES = (
+    "muscle_chest.webp",
+    "muscle_back.webp",
+    "muscle_shoulders.webp",
+    "muscle_biceps.webp",
+    "muscle_triceps.webp",
+    "muscle_quadriceps.webp",
+    "muscle_hamstrings.webp",
+    "muscle_glutes.webp",
+    "muscle_calves.webp",
+    "muscle_core.webp",
+)
 
 
 def webp_wh(data: bytes) -> tuple[int, int] | None:
@@ -91,9 +106,19 @@ def main() -> None:
         ("temper_back_heat.webp", HEAT_EDGE),
     ):
         expect(os.path.join(ROOT, name), edge)
+    muscles = sorted(
+        n for n in os.listdir(ROOT) if n.startswith("muscle_") and n.endswith(".webp")
+    )
+    if muscles != sorted(MUSCLE_NAMES):
+        fail(f"muscle pack {muscles}, want {list(MUSCLE_NAMES)}")
+    if len(muscles) != MUSCLE_COUNT:
+        fail(f"{len(muscles)} muscle_* webps, want {MUSCLE_COUNT}")
+    for name in muscles:
+        expect(os.path.join(ROOT, name), MUSCLE_EDGE)
     print(
         f"check-still-pack: OK — {len(ex)} ex_* at {EX_EDGE}px, "
-        f"{ex_bytes} bytes, unlit {UNLIT_EDGE}px"
+        f"{ex_bytes} bytes, unlit {UNLIT_EDGE}px, "
+        f"{len(muscles)} muscle_* at {MUSCLE_EDGE}px"
     )
 
 

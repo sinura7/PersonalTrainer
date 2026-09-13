@@ -1,7 +1,5 @@
 package com.sinura.personaltrainer.ui.progress
 
-import androidx.compose.animation.animateColorAsState
-import com.sinura.personaltrainer.ui.theme.instrumentTween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,13 +47,13 @@ import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.MuscleStill
 import com.sinura.personaltrainer.ui.components.drawTemperFigure
 import com.sinura.personaltrainer.ui.components.hotspotsFor
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
-import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.SteelDim
 import com.sinura.personaltrainer.ui.theme.Surface1
@@ -237,10 +234,9 @@ private fun LegendSwatch(label: String, color: Color) {
 /**
  * One muscle, as a readout.
  *
- * The trailing edge — the slot the eye lands on and the only column that lines up down the
- * list — used to hold the band word, which the swatch beside the name already says in
- * colour. The volume it duplicated was buried mid-sentence in "4 sets · 3,120 kg · 2 days
- * ago". The numbers now hold the columns and the sentence is gone.
+ * The leading still is that body part on the Temper figure. Live load stays
+ * on the silhouette and in the trailing numerals. First launch keeps
+ * [BodyHeatCopy.SEE_LIFTS] on the trailing edge.
  */
 @Composable
 fun MuscleHeatRow(
@@ -255,11 +251,6 @@ fun MuscleHeatRow(
      */
     doorway: Boolean = false,
 ) {
-    val fill by animateColorAsState(
-        targetValue = heatColor(load.heat),
-        animationSpec = instrumentTween(Motion.BASE),
-        label = "row-${load.muscle.name}",
-    )
     val spoken = muscleRowSpoken(load, unit, doorway)
     InstrumentRow(
         title = load.muscle.displayName,
@@ -270,12 +261,7 @@ fun MuscleHeatRow(
         subtitle = recencyLabel(load),
         onClick = onClick,
         leading = {
-            Box(
-                modifier = Modifier
-                    .size(width = HEAT_SWATCH_WIDTH, height = HEAT_SWATCH_HEIGHT)
-                    .background(fill)
-                    .clearAndSetSemantics { },
-            )
+            MuscleStill(muscle = load.muscle)
         },
     ) {
         if (doorway) {
@@ -348,5 +334,3 @@ object BodyTags {
 }
 
 private val LEGEND_DOT = 10.dp
-private val HEAT_SWATCH_WIDTH = 10.dp
-private val HEAT_SWATCH_HEIGHT = 32.dp

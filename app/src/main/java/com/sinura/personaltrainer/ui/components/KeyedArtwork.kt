@@ -7,7 +7,8 @@ import com.sinura.personaltrainer.R
  * One WebP still per catalog lift, keyed by [Exercise.imageKey].
  *
  * Family stills in [artworkFor] stay the fallback for customs and
- * unknown keys. Body tab unlit/heat stills are not this pack.
+ * unknown keys. Body tab unlit/heat stills and the muscle-row pack
+ * are not this catalog.
  */
 @DrawableRes
 internal fun keyedArtwork(imageKey: String?): Int? {
