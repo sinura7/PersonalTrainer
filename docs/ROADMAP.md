@@ -15,20 +15,18 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
-<<<<<<< HEAD
+> 13 Sep 2026 — Paste a written workout on Create a routine. Temper
+> reads the lifts, sets, reps, rest, timed holds, alternatives, weekly
+> layout, and progression. Timed work is not stored as reps. Catalog v8
+> adds only the named holds that were missing. Does not bump live 51.
+> Gym-floor `appVersionCode` stays 1.
+>
 > 13 Sep 2026 — Body muscle rows carry a Temper still of that body part.
 > Does not bump live 51. Gym-floor `appVersionCode` stays 1.
 >
 > 13 Sep 2026 — Add lifts: horizontal muscle chips (All plus Body's ten
 > groups). Chest hides a back squat; search still works inside the filter.
 > Does not bump live 51.
-=======
-> 13 Sep 2026 — Paste a written workout on Create a routine. Temper
-> reads the lifts, sets, reps, rest, timed holds, alternatives, weekly
-> layout, and progression. Timed work is not stored as reps. Catalog v8
-> adds only the named holds that were missing. Does not bump live 51.
-> Gym-floor `appVersionCode` stays 1.
->>>>>>> 8e548a3 (Fill Create a routine from a pasted written workout.)
 >
 > 13 Sep 2026 — Live 51: Temper Debug notices a newer live drop and offers a
 > quiet prompt on `trunk`. `debugLiveCode` 51; suffix from
