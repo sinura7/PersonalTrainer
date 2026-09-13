@@ -46,9 +46,13 @@ internal class DebugUpdateMonitor(
     private val held = MutableStateFlow(DebugUpdateUi())
     override val ui: StateFlow<DebugUpdateUi> = held.asStateFlow()
 
-    override fun onForeground() = refresh(FOREGROUND_TTL_MS)
+    override fun onForeground() {
+        scope.launch { refresh(FOREGROUND_TTL_MS) }
+    }
 
-    override fun onSettingsOpened() = refresh(SETTINGS_TTL_MS)
+    override fun onSettingsOpened() {
+        scope.launch { refresh(SETTINGS_TTL_MS) }
+    }
 
     override fun dismissBanner() {
         val offer = held.value.offer ?: return
@@ -67,23 +71,21 @@ internal class DebugUpdateMonitor(
             .onFailure { error -> AppLog.w(TAG, "Opening the GitHub drop failed", error) }
     }
 
-    private fun refresh(minIntervalMs: Long) {
-        scope.launch {
-            mutex.withLock {
-                val offer = withContext(ioDispatcher) {
-                    runCatchingCancellable { checker.check(minIntervalMs) }.getOrElse { error ->
-                        AppLog.w(TAG, "Debug update refresh failed", error)
-                        null
-                    }
+    internal suspend fun refresh(minIntervalMs: Long) {
+        mutex.withLock {
+            val offer = withContext(ioDispatcher) {
+                runCatchingCancellable { checker.check(minIntervalMs) }.getOrElse { error ->
+                    AppLog.w(TAG, "Debug update refresh failed", error)
+                    null
                 }
-                val dismissed = withContext(ioDispatcher) {
-                    runCatchingCancellable { cache.dismissedVersionCode() }.getOrDefault(0)
-                }
-                held.value = DebugUpdateUi(
-                    offer = offer,
-                    showBanner = offer != null && offer.versionCode > dismissed,
-                )
             }
+            val dismissed = withContext(ioDispatcher) {
+                runCatchingCancellable { cache.dismissedVersionCode() }.getOrDefault(0)
+            }
+            held.value = DebugUpdateUi(
+                offer = offer,
+                showBanner = offer != null && offer.versionCode > dismissed,
+            )
         }
     }
 }

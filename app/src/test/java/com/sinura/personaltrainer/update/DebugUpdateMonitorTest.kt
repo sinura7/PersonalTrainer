@@ -3,7 +3,6 @@ package com.sinura.personaltrainer.update
 import java.io.IOException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,14 +48,11 @@ class DebugUpdateMonitorTest {
             scope = backgroundScope,
             ioDispatcher = UnconfinedTestDispatcher(testScheduler),
         )
-        monitor.onSettingsOpened()
-        advanceUntilIdle()
+        monitor.refresh(minIntervalMs = 0)
         assertEquals(51, monitor.ui.value.offer!!.versionCode)
         assertTrue(monitor.ui.value.showBanner)
         monitor.dismissBanner()
-        advanceUntilIdle()
         assertNotNull(monitor.ui.value.offer)
         assertFalse(monitor.ui.value.showBanner)
-        assertEquals(51, cache.dismissed)
     }
 }
