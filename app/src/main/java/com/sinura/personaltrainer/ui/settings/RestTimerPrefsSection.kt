@@ -38,7 +38,7 @@ internal fun RestTimerPrefsSection(
 ) {
     var showCustom by rememberSaveable { mutableStateOf(false) }
     SettingsGroup(
-        title = "Rest timer",
+        title = "",
         caption = "The cue plays when rest ends. Play complete cue to hear it now. " +
             "The last five seconds tick while the phone is awake. Default rest is used " +
             "after a working set if the lift has none and you haven't picked a preset.",

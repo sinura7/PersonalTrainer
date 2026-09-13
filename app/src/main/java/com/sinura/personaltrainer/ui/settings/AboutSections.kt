@@ -3,7 +3,6 @@ package com.sinura.personaltrainer.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,10 +15,14 @@ import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.local.FoundationGeneration
 import com.sinura.personaltrainer.domain.PlanSetupCopy
+import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.InstrumentSwitch
+import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.TemperMark
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -38,7 +41,7 @@ import com.sinura.personaltrainer.logging.AppLog
 @Composable
 internal fun PlanSetupSection(onRerun: () -> Unit) {
     SettingsGroup(
-        title = "Your plan",
+        title = "",
         caption = PlanSetupCopy.CAPTION,
     ) {
         GroupedList {
@@ -55,7 +58,7 @@ internal fun PlanSetupSection(onRerun: () -> Unit) {
 internal fun LogRedactSection() {
     var redact by remember { mutableStateOf(AppLog.redactMessages) }
     SettingsGroup(
-        title = "Log",
+        title = "",
         caption = "On by default. Off only until this process dies. A restart redacts again.",
     ) {
         GroupedList {
@@ -76,7 +79,7 @@ internal fun LogRedactSection() {
 @Composable
 internal fun FoundationGenerationSection() {
     SettingsGroup(
-        title = "Foundation generation",
+        title = "",
         caption = if (FoundationGeneration.FROZEN) {
             "The Temper foundation database is frozen. A second development reset is a defect."
         } else {
@@ -104,7 +107,7 @@ internal fun FoundationGenerationSection() {
 @Composable
 internal fun DiagnosticsSection(onShare: () -> Unit, onClear: () -> Unit) {
     SettingsGroup(
-        title = "Diagnostics",
+        title = "",
         caption = "Nothing is sent automatically. A shared bundle names the app, schema, " +
             "and device, plus event IDs, exception classes, and Temper stack frames. It " +
             "never includes workout names, weights, notes, bodyweight, emails, tokens, " +
@@ -124,11 +127,14 @@ internal fun DiagnosticsSection(onShare: () -> Unit, onClear: () -> Unit) {
 }
 
 @Composable
-internal fun AboutSection() {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+internal fun AboutSection(
+    onOpenLog: () -> Unit = {},
+    onOpenFoundation: () -> Unit = {},
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
         TemperMark(size = 64.dp)
         SettingsGroup(
-            title = "About",
+            title = "",
             caption = "Install or update the APK yourself, or let Obtainium watch GitHub Releases. " +
                 "The Play Store is not required.",
         ) {
@@ -144,6 +150,28 @@ internal fun AboutSection() {
                         )
                     },
                 )
+            }
+        }
+        if (BuildConfig.DEBUG) {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+                Kicker(SettingsHomeCopy.DEVELOPER)
+                GroupedList {
+                    SettingsIndexRow(
+                        title = SettingsHomeCopy.LOG,
+                        subtitle = SettingsHomeCopy.LOG_SUMMARY,
+                        icon = TemperIcons.Log,
+                        tag = SettingsTags.ROW_LOG,
+                        onClick = onOpenLog,
+                    )
+                    HairlineDivider(startIndent = Metrics.rowIconHairline)
+                    SettingsIndexRow(
+                        title = SettingsHomeCopy.FOUNDATION,
+                        subtitle = SettingsHomeCopy.FOUNDATION_SUMMARY,
+                        icon = TemperIcons.Foundation,
+                        tag = SettingsTags.ROW_FOUNDATION,
+                        onClick = onOpenFoundation,
+                    )
+                }
             }
         }
     }

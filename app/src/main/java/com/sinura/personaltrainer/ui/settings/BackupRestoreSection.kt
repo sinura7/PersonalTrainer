@@ -86,7 +86,7 @@ internal fun BackupRestoreSection(
         if (state.isBusy) dismissedStatus = null
     }
     SettingsGroup(
-        title = "Backup",
+        title = "",
         caption = state.backupCaption,
     ) {
         GroupedList {

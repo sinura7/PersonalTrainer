@@ -3,8 +3,6 @@ package com.sinura.personaltrainer.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.runtime.Composable
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
@@ -13,11 +11,8 @@ import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
-import com.sinura.personaltrainer.ui.components.InstrumentChip
-import com.sinura.personaltrainer.ui.plan.PreferenceBlock
 import com.sinura.personaltrainer.ui.theme.Metrics
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun SchedulePrefsSection(
     preferences: SchedulePreferences,
@@ -31,54 +26,67 @@ internal fun SchedulePrefsSection(
     onTrainingAge: (TrainingAge) -> Unit,
     onTrainingPlace: (TrainingPlace) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
-        GymCard {
-            PreferenceBlock(
-                preferences = preferences,
-                onDays = onDays,
-                onSplit = onSplit,
-                onWeekStart = onWeekStart,
+    val days = (SchedulePreferences.MIN_DAYS..SchedulePreferences.MAX_DAYS).toList()
+    val weekStarts = listOf(Weekday.MONDAY, Weekday.SUNDAY)
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            GymSectionHeader(title = "Training days", compact = true)
+            GymCard {
+                SettingsStrip(
+                    labels = days.map { it.toString() },
+                    selected = { preferences.trainingDaysPerWeek == days[it] },
+                    onSelect = { onDays(days[it]) },
+                )
+            }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            GymSectionHeader(title = "Split", compact = true)
+            SettingsRadioList(
+                items = SplitStyle.entries,
+                selected = preferences.splitStyle,
+                title = { it.displayName },
+                subtitle = { it.blurb },
+                onSelect = onSplit,
             )
         }
-        GymCard {
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
-                Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-                    GymSectionHeader(title = "Training weekdays", compact = true)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                        Weekday.entries.forEach { day ->
-                            InstrumentChip(
-                                label = day.shortLabel(),
-                                selected = day in preferredDays,
-                                onClick = { onTogglePreferredDay(day) },
-                            )
-                        }
-                    }
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-                    GymSectionHeader(title = "Training age", compact = true)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                        TrainingAge.entries.forEach { age ->
-                            InstrumentChip(
-                                label = age.displayName,
-                                selected = trainingAge == age,
-                                onClick = { onTrainingAge(age) },
-                            )
-                        }
-                    }
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
-                    GymSectionHeader(title = "Where you train", compact = true)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                        TrainingPlace.entries.forEach { place ->
-                            InstrumentChip(
-                                label = place.shortLabel,
-                                selected = trainingPlace == place,
-                                onClick = { onTrainingPlace(place) },
-                            )
-                        }
-                    }
-                }
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            GymSectionHeader(title = "Week starts", compact = true)
+            SettingsRadioList(
+                items = weekStarts,
+                selected = preferences.weekStart,
+                title = { it.titleLabel() },
+                onSelect = onWeekStart,
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            GymSectionHeader(title = "Training weekdays", compact = true)
+            GymCard {
+                SettingsStrip(
+                    labels = Weekday.entries.map { it.shortLabel() },
+                    selected = { Weekday.entries[it] in preferredDays },
+                    onSelect = { onTogglePreferredDay(Weekday.entries[it]) },
+                )
             }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            GymSectionHeader(title = "Training age", compact = true)
+            SettingsRadioList(
+                items = TrainingAge.entries,
+                selected = trainingAge,
+                title = { it.displayName },
+                subtitle = { it.blurb },
+                onSelect = onTrainingAge,
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+            GymSectionHeader(title = "Where you train", compact = true)
+            SettingsRadioList(
+                items = TrainingPlace.entries,
+                selected = trainingPlace,
+                title = { it.displayName },
+                subtitle = { it.blurb },
+                onSelect = onTrainingPlace,
+            )
         }
     }
 }

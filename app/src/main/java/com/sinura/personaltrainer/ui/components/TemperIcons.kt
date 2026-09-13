@@ -43,6 +43,42 @@ object TemperIcons {
     val Delete: ImageVector
         get() = delete ?: binMark().also { delete = it }
 
+    val Display: ImageVector
+        get() = display ?: displayMark().also { display = it }
+
+    val Reminders: ImageVector
+        get() = reminders ?: bellMark().also { reminders = it }
+
+    val Generator: ImageVector
+        get() = generator ?: calendarMark().also { generator = it }
+
+    val Rest: ImageVector
+        get() = rest ?: clockMark().also { rest = it }
+
+    val Bodyweight: ImageVector
+        get() = bodyweight ?: scaleMark().also { bodyweight = it }
+
+    val Backup: ImageVector
+        get() = backup ?: trayMark().also { backup = it }
+
+    val Diagnostics: ImageVector
+        get() = diagnostics ?: barsMark().also { diagnostics = it }
+
+    val About: ImageVector
+        get() = about ?: infoMark().also { about = it }
+
+    val Log: ImageVector
+        get() = log ?: logMark().also { log = it }
+
+    val Foundation: ImageVector
+        get() = foundation ?: cylinderMark().also { foundation = it }
+
+    val Check: ImageVector
+        get() = check ?: checkMark().also { check = it }
+
+    val Chevron: ImageVector
+        get() = chevron ?: chevronMark().also { chevron = it }
+
     private var home: ImageVector? = null
     private var body: ImageVector? = null
     private var plan: ImageVector? = null
@@ -50,6 +86,18 @@ object TemperIcons {
     private var settings: ImageVector? = null
     private var edit: ImageVector? = null
     private var delete: ImageVector? = null
+    private var display: ImageVector? = null
+    private var reminders: ImageVector? = null
+    private var generator: ImageVector? = null
+    private var rest: ImageVector? = null
+    private var bodyweight: ImageVector? = null
+    private var backup: ImageVector? = null
+    private var diagnostics: ImageVector? = null
+    private var about: ImageVector? = null
+    private var log: ImageVector? = null
+    private var foundation: ImageVector? = null
+    private var check: ImageVector? = null
+    private var chevron: ImageVector? = null
 }
 
 private fun ImageVector.Builder.plate(vararg xy: Float) {
@@ -146,4 +194,80 @@ private fun binMark(): ImageVector = vector("Delete") {
     plate(4.0f, 5.6f, 20.0f, 5.6f, 20.0f, 7.8f, 4.0f, 7.8f)
     // Body, tapering in so the silhouette is a bin and not a box.
     plate(5.6f, 8.6f, 18.4f, 8.6f, 17.0f, 20.8f, 7.0f, 20.8f)
+}
+
+private fun displayMark(): ImageVector = vector("Display") {
+    plate(3.2f, 4.4f, 20.8f, 4.4f, 20.8f, 15.2f, 3.2f, 15.2f)
+    plate(10.6f, 16.0f, 13.4f, 16.0f, 13.4f, 18.6f, 10.6f, 18.6f)
+    plate(7.2f, 19.0f, 16.8f, 19.0f, 16.8f, 21.2f, 7.2f, 21.2f)
+}
+
+private fun bellMark(): ImageVector = vector("Reminders") {
+    plate(10.6f, 2.4f, 13.4f, 2.4f, 13.4f, 5.0f, 10.6f, 5.0f)
+    plate(7.6f, 5.4f, 16.4f, 5.4f, 17.6f, 11.2f, 6.4f, 11.2f)
+    plate(6.0f, 11.6f, 18.0f, 11.6f, 19.2f, 16.8f, 4.8f, 16.8f)
+    plate(10.4f, 17.4f, 13.6f, 17.4f, 13.6f, 20.4f, 10.4f, 20.4f)
+}
+
+private fun calendarMark(): ImageVector = vector("Generator") {
+    plate(4.4f, 4.4f, 19.6f, 4.4f, 19.0f, 8.4f, 5.0f, 8.4f)
+    plate(7.0f, 2.2f, 9.2f, 2.2f, 9.2f, 6.0f, 7.0f, 6.0f)
+    plate(14.8f, 2.2f, 17.0f, 2.2f, 17.0f, 6.0f, 14.8f, 6.0f)
+    plate(4.4f, 9.4f, 7.4f, 9.4f, 7.4f, 20.8f, 4.4f, 20.8f)
+    plate(16.6f, 9.4f, 19.6f, 9.4f, 19.6f, 20.8f, 16.6f, 20.8f)
+    plate(4.4f, 18.0f, 19.6f, 18.0f, 19.6f, 20.8f, 4.4f, 20.8f)
+    plate(9.4f, 10.4f, 14.6f, 10.4f, 14.6f, 15.6f, 9.4f, 15.6f)
+}
+
+private fun clockMark(): ImageVector = vector("Rest") {
+    plate(10.8f, 2.2f, 13.2f, 2.2f, 13.2f, 5.6f, 10.8f, 5.6f)
+    plate(18.4f, 10.8f, 21.8f, 10.8f, 21.8f, 13.2f, 18.4f, 13.2f)
+    plate(10.8f, 18.4f, 13.2f, 18.4f, 13.2f, 21.8f, 10.8f, 21.8f)
+    plate(2.2f, 10.8f, 5.6f, 10.8f, 5.6f, 13.2f, 2.2f, 13.2f)
+    plate(11.1f, 6.8f, 12.9f, 6.8f, 12.9f, 12.8f, 11.1f, 12.8f)
+    plate(12.0f, 11.1f, 17.0f, 11.1f, 17.0f, 12.9f, 12.0f, 12.9f)
+}
+
+private fun scaleMark(): ImageVector = vector("Bodyweight") {
+    plate(8.4f, 3.0f, 15.6f, 3.0f, 15.6f, 9.6f, 8.4f, 9.6f)
+    plate(11.0f, 10.0f, 13.0f, 10.0f, 13.0f, 16.0f, 11.0f, 16.0f)
+    plate(3.2f, 16.4f, 20.8f, 16.4f, 19.2f, 21.2f, 4.8f, 21.2f)
+}
+
+private fun trayMark(): ImageVector = vector("Backup") {
+    plate(7.6f, 8.8f, 12.0f, 3.2f, 16.4f, 8.8f)
+    plate(11.0f, 8.0f, 13.0f, 8.0f, 13.0f, 14.4f, 11.0f, 14.4f)
+    plate(4.0f, 15.2f, 20.0f, 15.2f, 18.2f, 21.2f, 5.8f, 21.2f)
+}
+
+private fun barsMark(): ImageVector = vector("Diagnostics") {
+    plate(4.4f, 13.6f, 8.0f, 13.6f, 8.0f, 20.8f, 4.4f, 20.8f)
+    plate(10.2f, 8.4f, 13.8f, 8.4f, 13.8f, 20.8f, 10.2f, 20.8f)
+    plate(16.0f, 3.6f, 19.6f, 3.6f, 19.6f, 20.8f, 16.0f, 20.8f)
+}
+
+private fun infoMark(): ImageVector = vector("About") {
+    plate(10.6f, 3.2f, 13.4f, 3.2f, 13.4f, 6.4f, 10.6f, 6.4f)
+    plate(10.6f, 8.8f, 13.4f, 8.8f, 13.4f, 20.8f, 10.6f, 20.8f)
+}
+
+private fun logMark(): ImageVector = vector("Log") {
+    plate(4.4f, 4.4f, 19.6f, 4.4f, 19.6f, 7.6f, 4.4f, 7.6f)
+    plate(4.4f, 10.2f, 19.6f, 10.2f, 19.6f, 13.4f, 4.4f, 13.4f)
+    plate(4.4f, 16.0f, 15.2f, 16.0f, 15.2f, 19.2f, 4.4f, 19.2f)
+}
+
+private fun cylinderMark(): ImageVector = vector("Foundation") {
+    plate(5.2f, 4.0f, 18.8f, 4.0f, 18.8f, 8.4f, 5.2f, 8.4f)
+    plate(5.2f, 9.4f, 18.8f, 9.4f, 18.8f, 15.2f, 5.2f, 15.2f)
+    plate(5.2f, 16.2f, 18.8f, 16.2f, 18.8f, 20.6f, 5.2f, 20.6f)
+}
+
+private fun checkMark(): ImageVector = vector("Check") {
+    plate(4.0f, 12.0f, 6.6f, 10.4f, 10.6f, 16.8f, 8.0f, 18.4f)
+    plate(9.2f, 16.4f, 11.8f, 14.8f, 20.4f, 5.2f, 17.8f, 3.6f)
+}
+
+private fun chevronMark(): ImageVector = vector("Chevron") {
+    plate(8.8f, 4.8f, 11.4f, 4.8f, 17.4f, 12.0f, 11.4f, 19.2f, 8.8f, 19.2f, 14.4f, 12.0f)
 }

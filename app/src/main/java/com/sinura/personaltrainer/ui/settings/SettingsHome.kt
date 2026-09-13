@@ -4,17 +4,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.domain.PlanSetupCopy
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 @Composable
 internal fun SettingsHome(
@@ -40,37 +45,42 @@ internal fun SettingsHome(
     ) {
         item(key = "training") {
             GroupedList {
-                IndexRow(
+                SettingsIndexRow(
                     title = SettingsHomeCopy.DISPLAY,
                     subtitle = displaySummary,
+                    icon = TemperIcons.Display,
                     tag = SettingsTags.ROW_DISPLAY,
                     onClick = { onOpen(SettingsPage.DISPLAY) },
                 )
-                HairlineDivider()
-                IndexRow(
+                IndexHairline()
+                SettingsIndexRow(
                     title = SettingsHomeCopy.REMINDERS,
                     subtitle = remindersSummary,
+                    icon = TemperIcons.Reminders,
                     tag = SettingsTags.ROW_REMINDERS,
                     onClick = { onOpen(SettingsPage.REMINDERS) },
                 )
-                HairlineDivider()
-                IndexRow(
+                IndexHairline()
+                SettingsIndexRow(
                     title = SettingsHomeCopy.GENERATOR,
                     subtitle = generatorSummary,
+                    icon = TemperIcons.Generator,
                     tag = SettingsTags.ROW_GENERATOR,
                     onClick = { onOpen(SettingsPage.GENERATOR) },
                 )
-                HairlineDivider()
-                IndexRow(
+                IndexHairline()
+                SettingsIndexRow(
                     title = SettingsHomeCopy.REST,
                     subtitle = restSummary,
+                    icon = TemperIcons.Rest,
                     tag = SettingsTags.ROW_REST,
                     onClick = { onOpen(SettingsPage.REST) },
                 )
-                HairlineDivider()
-                IndexRow(
+                IndexHairline()
+                SettingsIndexRow(
                     title = SettingsHomeCopy.BODYWEIGHT,
                     subtitle = bodyweightSummary,
+                    icon = TemperIcons.Bodyweight,
                     tag = SettingsTags.ROW_BODYWEIGHT,
                     onClick = { onOpen(SettingsPage.BODYWEIGHT) },
                 )
@@ -78,52 +88,37 @@ internal fun SettingsHome(
         }
         item(key = "keep") {
             GroupedList {
-                IndexRow(
+                SettingsIndexRow(
                     title = SettingsHomeCopy.BACKUP,
                     subtitle = SettingsHomeCopy.BACKUP_SUMMARY,
+                    icon = TemperIcons.Backup,
                     tag = SettingsTags.ROW_BACKUP,
                     onClick = { onOpen(SettingsPage.BACKUP) },
                 )
-                HairlineDivider()
-                IndexRow(
+                IndexHairline()
+                SettingsIndexRow(
                     title = SettingsHomeCopy.PLAN,
                     subtitle = PlanSetupCopy.ROW_TITLE,
+                    icon = TemperIcons.Plan,
                     tag = SettingsTags.ROW_PLAN,
                     onClick = { onOpen(SettingsPage.PLAN) },
                 )
             }
         }
-        if (BuildConfig.DEBUG) {
-            item(key = "debug") {
-                GroupedList {
-                    IndexRow(
-                        title = SettingsHomeCopy.LOG,
-                        subtitle = SettingsHomeCopy.LOG_SUMMARY,
-                        tag = SettingsTags.ROW_LOG,
-                        onClick = { onOpen(SettingsPage.LOG) },
-                    )
-                    HairlineDivider()
-                    IndexRow(
-                        title = SettingsHomeCopy.FOUNDATION,
-                        subtitle = SettingsHomeCopy.FOUNDATION_SUMMARY,
-                        tag = SettingsTags.ROW_FOUNDATION,
-                        onClick = { onOpen(SettingsPage.FOUNDATION) },
-                    )
-                }
-            }
-        }
         item(key = "about") {
             GroupedList {
-                IndexRow(
+                SettingsIndexRow(
                     title = SettingsHomeCopy.DIAGNOSTICS,
                     subtitle = SettingsHomeCopy.DIAGNOSTICS_SUMMARY,
+                    icon = TemperIcons.Diagnostics,
                     tag = SettingsTags.ROW_DIAGNOSTICS,
                     onClick = { onOpen(SettingsPage.DIAGNOSTICS) },
                 )
-                HairlineDivider()
-                IndexRow(
+                IndexHairline()
+                SettingsIndexRow(
                     title = SettingsHomeCopy.ABOUT,
                     subtitle = SettingsHomeCopy.ABOUT_SUMMARY,
+                    icon = TemperIcons.About,
                     tag = SettingsTags.ROW_ABOUT,
                     onClick = { onOpen(SettingsPage.ABOUT) },
                 )
@@ -133,9 +128,10 @@ internal fun SettingsHome(
 }
 
 @Composable
-private fun IndexRow(
+internal fun SettingsIndexRow(
     title: String,
     subtitle: String,
+    icon: ImageVector,
     tag: String,
     onClick: () -> Unit,
 ) {
@@ -145,6 +141,27 @@ private fun IndexRow(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(tag),
+        leading = {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(Metrics.icon),
+            )
+        },
+        trailing = {
+            Icon(
+                TemperIcons.Chevron,
+                contentDescription = null,
+                tint = TextTertiary,
+                modifier = Modifier.size(Metrics.chevron),
+            )
+        },
         onClick = onClick,
     )
+}
+
+@Composable
+private fun IndexHairline() {
+    HairlineDivider(startIndent = Metrics.rowIconHairline)
 }

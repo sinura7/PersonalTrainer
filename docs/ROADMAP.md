@@ -15,6 +15,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 13 Sep 2026 — Settings rows carry Temper marks. Log and Foundation
+> sit under About in debug. Week generator is sectioned. Does not bump live 49.
+>
 > 13 Sep 2026 — Live 49: Settings as an index of focused screens
 > on `trunk`. `debugLiveCode` 49; suffix from
 > `python3 tools/debug-drop-plan.py`.

@@ -40,5 +40,6 @@ class SettingsHomeCopyTest {
             SettingsHomeCopy.BACKUP_SUMMARY,
             "Export, restore, Drive",
         )
+        assertEquals(SettingsHomeCopy.DEVELOPER, "Developer")
     }
 }

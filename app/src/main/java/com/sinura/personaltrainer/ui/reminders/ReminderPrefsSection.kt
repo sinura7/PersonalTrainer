@@ -4,8 +4,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -36,14 +33,16 @@ import com.sinura.personaltrainer.domain.ReminderCopy
 import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
+import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.InstrumentSwitch
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 
@@ -51,7 +50,6 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
  * Per-day workout reminder alarms. Quiet hours stay secondary.
  * Rest-timer notifications stay on Rest, unchanged.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ReminderPrefsSection(
     preferences: ReminderPreferences,
@@ -76,13 +74,13 @@ fun ReminderPrefsSection(
         modifier = modifier
             .testTag(REMINDERS_TAG)
             .fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
+        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
+            verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
         ) {
         if (enabled && !notificationsEnabled) {
             GymNoticeBanner(
@@ -148,54 +146,59 @@ fun ReminderPrefsSection(
                 }
             }
         }
+        if (enabled && preferences.dayAlarms.isEmpty()) {
+            Text(
+                ReminderCopy.ALARM_EMPTY,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+        }
         if (enabled) {
-            if (preferences.dayAlarms.isEmpty()) {
-                Text(
-                    ReminderCopy.ALARM_EMPTY,
-                    style = InstrumentType.caption,
-                    color = TextSecondary,
-                )
-            }
-            TextButton(onClick = { quietOpen = !quietOpen }) {
-                Text(
-                    if (quietOpen) "Hide quiet hours" else "Quiet hours",
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                )
-            }
-            if (quietOpen) {
-                Text(
-                    ReminderCopy.quietHoursLine(
-                        preferences.quietStartHour,
-                        preferences.quietEndHour,
-                        clockFormat,
-                    ),
-                    style = InstrumentType.body,
-                    color = TextSecondary,
-                )
-                Text(
-                    ReminderCopy.QUIET_CAPTION,
-                    style = InstrumentType.caption,
-                    color = TextTertiary,
-                )
-                Kicker(ReminderCopy.QUIET_START)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    ReminderCopy.startChoices(preferences.quietStartHour).forEach { hour ->
-                        InstrumentChip(
-                            label = ReminderCopy.hourLabel(hour, clockFormat),
-                            selected = preferences.quietStartHour == hour,
-                            onClick = { onQuietHours(hour, preferences.quietEndHour) },
-                        )
-                    }
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+                GroupedList {
+                    InstrumentRow(
+                        title = "Quiet hours",
+                        subtitle = ReminderCopy.quietHoursLine(
+                            preferences.quietStartHour,
+                            preferences.quietEndHour,
+                            clockFormat,
+                        ),
+                        onClick = { quietOpen = !quietOpen },
+                    )
                 }
-                Kicker(ReminderCopy.QUIET_END)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    ReminderCopy.endChoices(preferences.quietEndHour).forEach { hour ->
-                        InstrumentChip(
-                            label = ReminderCopy.hourLabel(hour, clockFormat),
-                            selected = preferences.quietEndHour == hour,
-                            onClick = { onQuietHours(preferences.quietStartHour, hour) },
-                        )
+                if (quietOpen) {
+                    Text(
+                        ReminderCopy.QUIET_CAPTION,
+                        style = InstrumentType.caption,
+                        color = TextTertiary,
+                    )
+                    GymSectionHeader(title = ReminderCopy.QUIET_START, compact = true)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        ReminderCopy.startChoices(preferences.quietStartHour).forEach { hour ->
+                            InstrumentChip(
+                                label = ReminderCopy.hourLabel(hour, clockFormat),
+                                selected = preferences.quietStartHour == hour,
+                                onClick = { onQuietHours(hour, preferences.quietEndHour) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    GymSectionHeader(title = ReminderCopy.QUIET_END, compact = true)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        ReminderCopy.endChoices(preferences.quietEndHour).forEach { hour ->
+                            InstrumentChip(
+                                label = ReminderCopy.hourLabel(hour, clockFormat),
+                                selected = preferences.quietEndHour == hour,
+                                onClick = { onQuietHours(preferences.quietStartHour, hour) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
             }
@@ -208,24 +211,29 @@ fun ReminderPrefsSection(
         }
         if (enabled && selected != null && preferences.dayAlarms.isNotEmpty()) {
             val day = selected
-            Text(
-                ReminderCopy.timeLabel(
-                    reminder.hour,
-                    reminder.minute,
-                    clockFormat,
-                ),
-                style = InstrumentType.body,
-                color = TextSecondary,
-            )
-            Kicker("${ReminderCopy.TIME} · ${day.titleLabel()}")
-            key(day) {
-                ReminderTimeWheel(
-                    hour = reminder.hour,
-                    minute = reminder.minute,
-                    onTime = { hour, minute ->
-                        onSetDayAlarm(day, hour, minute)
-                    },
+            GymCard {
+                GymSectionHeader(
+                    title = "${ReminderCopy.TIME} · ${day.titleLabel()}",
+                    compact = true,
                 )
+                Text(
+                    ReminderCopy.timeLabel(
+                        reminder.hour,
+                        reminder.minute,
+                        clockFormat,
+                    ),
+                    style = InstrumentType.numeralMd,
+                    color = TextPrimary,
+                )
+                key(day) {
+                    ReminderTimeWheel(
+                        hour = reminder.hour,
+                        minute = reminder.minute,
+                        onTime = { hour, minute ->
+                            onSetDayAlarm(day, hour, minute)
+                        },
+                    )
+                }
             }
         }
     }
