@@ -34,7 +34,7 @@ import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
-import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.reminders.ReminderPrefsSection
 import com.sinura.personaltrainer.ui.reminders.openAppNotificationSettings
 import com.sinura.personaltrainer.ui.reminders.rememberNotificationsEnabled
@@ -314,7 +314,10 @@ fun SettingsScreen(
                 title = SettingsHomeCopy.ABOUT,
                 onBack = goHome,
             ) {
-                AboutSection()
+                AboutSection(
+                    onOpenLog = { page = SettingsPage.LOG },
+                    onOpenFoundation = { page = SettingsPage.FOUNDATION },
+                )
             }
         }
 
@@ -426,7 +429,7 @@ private fun SettingsGeneratorPane(
                 onAction = viewModel::dismissGenerateNotice,
             )
         }
-        PrimaryGymButton(
+        SecondaryGymButton(
             text = "Generate a week",
             onClick = viewModel::generateWeek,
             height = Metrics.touchMin,

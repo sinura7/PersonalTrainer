@@ -43,6 +43,15 @@ object Metrics {
     /** Between a section's kicker and its content. */
     val kickerGap: Dp = space2
 
+    /** Tab marks and Settings row marks. */
+    val icon: Dp = 24.dp
+
+    /** Trailing chevron on an index row. Smaller than [icon] so the title keeps the eye. */
+    val chevron: Dp = 16.dp
+
+    /** Hairline indent under a leading [icon] in an InstrumentRow. */
+    val rowIconHairline: Dp = space4 + icon + space3
+
     val hairline: Dp = 1.dp
 
     /** A border that has to read as a state, not just an edge: selected, or being edited. */

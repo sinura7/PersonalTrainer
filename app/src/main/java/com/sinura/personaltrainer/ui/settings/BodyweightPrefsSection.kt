@@ -2,8 +2,7 @@ package com.sinura.personaltrainer.ui.settings
 
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
@@ -22,7 +21,6 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.GymCard
-import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -33,7 +31,6 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.domain.Weekday
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun BodyweightPrefsSection(
     bodyweightKg: Double?,
@@ -70,8 +67,13 @@ internal fun BodyweightPrefsSection(
         daysPerWeek = daysPerWeek,
         override = null,
     )
+    val orderedDays = (0 until 7).map { weekStart.plus(it.toLong()) }
+    val checkInChoices: List<Weekday?> = buildList {
+        add(null)
+        addAll(orderedDays)
+    }
     SettingsGroup(
-        title = "Bodyweight",
+        title = "",
         caption = if (checkInOverride == null) {
             "Weekly check-in on ${autoDay.shortLabel()} — your first training day. Home asks that morning."
         } else {
@@ -105,24 +107,20 @@ internal fun BodyweightPrefsSection(
                     }
                 }
             }
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             Kicker("Check-in day")
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
-                InstrumentChip(
-                    label = "Auto",
-                    selected = checkInOverride == null,
-                    onClick = { onCheckInDay(null) },
-                )
-                (0 until 7).map { weekStart.plus(it.toLong()) }.forEach { day ->
-                    InstrumentChip(
-                        label = day.shortLabel(),
-                        selected = checkInOverride == day,
-                        onClick = { onCheckInDay(day) },
-                    )
-                }
-            }
+            SettingsRadioList(
+                items = checkInChoices.map { day ->
+                    if (day == null) {
+                        SettingsRadioOption("Auto", "First training day · ${autoDay.shortLabel()}")
+                    } else {
+                        SettingsRadioOption(day.titleLabel())
+                    }
+                },
+                selectedIndex = checkInChoices.indexOf(checkInOverride),
+                onSelect = { onCheckInDay(checkInChoices[it]) },
+            )
         }
     }
 }

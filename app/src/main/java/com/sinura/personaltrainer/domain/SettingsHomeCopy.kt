@@ -16,6 +16,7 @@ object SettingsHomeCopy {
     const val PLAN = "Your plan"
     const val DIAGNOSTICS = "Diagnostics"
     const val ABOUT = "About"
+    const val DEVELOPER = "Developer"
     const val LOG = "Log"
     const val FOUNDATION = "Foundation"
 
