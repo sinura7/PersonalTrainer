@@ -170,7 +170,10 @@ fun SettingsScreen(
                     )
                 }
             }
-            SettingsPage.DISPLAY -> SettingsSubpage(SettingsHomeCopy.DISPLAY, goHome) {
+            SettingsPage.DISPLAY -> SettingsSubpage(
+                title = SettingsHomeCopy.DISPLAY,
+                onBack = goHome,
+            ) {
                 DisplayPrefsSection(
                     selectedUnit = selectedUnit,
                     clockFormat = clockFormat,
@@ -197,7 +200,10 @@ fun SettingsScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
-            SettingsPage.GENERATOR -> SettingsSubpage(SettingsHomeCopy.GENERATOR, goHome) {
+            SettingsPage.GENERATOR -> SettingsSubpage(
+                title = SettingsHomeCopy.GENERATOR,
+                onBack = goHome,
+            ) {
                 SchedulePrefsSection(
                     preferences = schedulePrefs,
                     preferredDays = preferredDays,
@@ -230,7 +236,10 @@ fun SettingsScreen(
                     height = Metrics.touchMin,
                 )
             }
-            SettingsPage.REST -> SettingsSubpage(SettingsHomeCopy.REST, goHome) {
+            SettingsPage.REST -> SettingsSubpage(
+                title = SettingsHomeCopy.REST,
+                onBack = goHome,
+            ) {
                 RestTimerPrefsSection(
                     preferences = restPrefs,
                     offerExactAlarmAccess = offerExactAlarmAccess,
@@ -245,7 +254,10 @@ fun SettingsScreen(
                     onCustomDefault = viewModel::setDefaultRestCustom,
                 )
             }
-            SettingsPage.BODYWEIGHT -> SettingsSubpage(SettingsHomeCopy.BODYWEIGHT, goHome) {
+            SettingsPage.BODYWEIGHT -> SettingsSubpage(
+                title = SettingsHomeCopy.BODYWEIGHT,
+                onBack = goHome,
+            ) {
                 BodyweightPrefsSection(
                     bodyweightKg = bodyweightKg,
                     unit = selectedUnit,
@@ -258,7 +270,10 @@ fun SettingsScreen(
                     onCheckInDay = viewModel::setBodyweightCheckInWeekday,
                 )
             }
-            SettingsPage.BACKUP -> SettingsSubpage(SettingsHomeCopy.BACKUP, goHome) {
+            SettingsPage.BACKUP -> SettingsSubpage(
+                title = SettingsHomeCopy.BACKUP,
+                onBack = goHome,
+            ) {
                 BackupRestoreSection(
                     state = backup,
                     clock = clockFormat,
@@ -286,16 +301,28 @@ fun SettingsScreen(
                     onDismissRestoreNote = viewModel.backup::dismissRestoreNote,
                 )
             }
-            SettingsPage.PLAN -> SettingsSubpage(SettingsHomeCopy.PLAN, goHome) {
+            SettingsPage.PLAN -> SettingsSubpage(
+                title = SettingsHomeCopy.PLAN,
+                onBack = goHome,
+            ) {
                 PlanSetupSection(onRerun = onOpenGuidedSetup)
             }
-            SettingsPage.LOG -> SettingsSubpage(SettingsHomeCopy.LOG, goHome) {
+            SettingsPage.LOG -> SettingsSubpage(
+                title = SettingsHomeCopy.LOG,
+                onBack = goHome,
+            ) {
                 if (BuildConfig.DEBUG) LogRedactSection()
             }
-            SettingsPage.FOUNDATION -> SettingsSubpage(SettingsHomeCopy.FOUNDATION, goHome) {
+            SettingsPage.FOUNDATION -> SettingsSubpage(
+                title = SettingsHomeCopy.FOUNDATION,
+                onBack = goHome,
+            ) {
                 if (BuildConfig.DEBUG) FoundationGenerationSection()
             }
-            SettingsPage.DIAGNOSTICS -> SettingsSubpage(SettingsHomeCopy.DIAGNOSTICS, goHome) {
+            SettingsPage.DIAGNOSTICS -> SettingsSubpage(
+                title = SettingsHomeCopy.DIAGNOSTICS,
+                onBack = goHome,
+            ) {
                 DiagnosticsSection(
                     onShare = {
                         val send = Intent(Intent.ACTION_SEND).apply {
@@ -310,7 +337,10 @@ fun SettingsScreen(
                     onClear = { DiagnosticMetadata.clear(context) },
                 )
             }
-            SettingsPage.ABOUT -> SettingsSubpage(SettingsHomeCopy.ABOUT, goHome) {
+            SettingsPage.ABOUT -> SettingsSubpage(
+                title = SettingsHomeCopy.ABOUT,
+                onBack = goHome,
+            ) {
                 AboutSection()
             }
         }
