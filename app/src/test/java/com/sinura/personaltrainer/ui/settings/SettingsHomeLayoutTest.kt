@@ -48,7 +48,8 @@ class SettingsHomeLayoutTest {
         assertFalse(homeBranch.contains("SchedulePrefsSection"))
         assertFalse(homeBranch.contains("BackupRestoreSection"))
         assertFalse(homeBranch.contains("Generate a week"))
-        val generatePane = screen.substringAfter("SettingsGeneratorPane").substringBefore("SettingsBackupPane")
+        val generatePane = screen.substringAfter("private fun SettingsGeneratorPane")
+            .substringBefore("private fun SettingsBackupPane")
         assertTrue(generatePane.contains("SecondaryGymButton("))
         assertFalse(generatePane.contains("PrimaryGymButton("))
     }

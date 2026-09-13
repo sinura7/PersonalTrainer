@@ -21,6 +21,7 @@ internal fun DisplayPrefsSection(
     onSelectUnit: (WeightUnit) -> Unit,
     onSelectClock: (ClockFormat) -> Unit,
 ) {
+    val units = listOf(WeightUnit.LBS, WeightUnit.KG)
     Column(
         modifier = Modifier.testTag(SettingsTags.DISPLAY),
         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
@@ -28,9 +29,9 @@ internal fun DisplayPrefsSection(
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader(title = "Weight", compact = true)
             SettingsRadioList(
-                items = listOf(WeightUnit.LBS, WeightUnit.KG).map { SettingsRadioOption(it.displayName) },
-                selectedIndex = listOf(WeightUnit.LBS, WeightUnit.KG).indexOf(selectedUnit),
-                onSelect = { onSelectUnit(listOf(WeightUnit.LBS, WeightUnit.KG)[it]) },
+                items = units.map { SettingsRadioOption(it.displayName) },
+                selectedIndex = units.indexOf(selectedUnit),
+                onSelect = { onSelectUnit(units[it]) },
             )
         }
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
