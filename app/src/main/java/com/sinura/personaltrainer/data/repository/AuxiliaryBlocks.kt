@@ -33,7 +33,8 @@ object AuxiliaryBlocks {
         val dayOccs = planner.occurrencesBetween(epochDay, epochDay)
         val alreadyOnDay = dayOccs.any { occ ->
             val rule = rules.firstOrNull { it.id == occ.ruleId }
-            ScheduleKind.auxPackId(rule?.templateId) == pack.id
+            val existingId = ScheduleKind.auxPackId(rule?.templateId) ?: return@any false
+            existingId == pack.id || AuxiliaryPacks.byId(existingId)?.family == pack.family
         }
         if (alreadyOnDay) return
         val hours = rules.filter { it.weekday == weekday }.map { it.hour }
@@ -75,8 +76,11 @@ object AuxiliaryBlocks {
         routines: RoutineRepository,
         exercises: ExerciseRepository,
     ): String {
-        val existing = routines.observeAll().first()
-            .firstOrNull { it.name.equals(pack.title, ignoreCase = true) }
+        val wanted = pack.lifts.map { it.exerciseId }
+        val existing = routines.observeAll().first().firstOrNull { routine ->
+            routine.name.equals(pack.title, ignoreCase = true) &&
+                routine.exercises.sortedBy { it.sortOrder }.map { it.exercise.id } == wanted
+        }
         if (existing != null) return existing.id
         val created = routines.create(pack.title, pack.caption)
         for (lift in pack.lifts) {

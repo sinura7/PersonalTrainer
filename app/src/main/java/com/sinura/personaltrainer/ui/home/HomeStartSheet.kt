@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.ExtraEquipment
 import com.sinura.personaltrainer.domain.HomeStart
 import com.sinura.personaltrainer.domain.HomeStartCopy
 import com.sinura.personaltrainer.domain.PlanDayCopy
@@ -63,6 +64,7 @@ fun HomeStartSheet(
     onStartRoutine: (String) -> Unit,
     onStartCardio: (CardioType) -> Unit,
     onStartExtra: (String) -> Unit,
+    suggestedKit: ExtraEquipment = ExtraEquipment.MIXED,
 ) {
     var picking by rememberSaveable { mutableStateOf(HomeStartPage.KIND.name) }
     val page = runCatching { HomeStartPage.valueOf(picking) }.getOrNull()
@@ -99,6 +101,7 @@ fun HomeStartSheet(
                     usedPackIds = emptySet(),
                     onPick = onStartExtra,
                     onCancel = { picking = HomeStartPage.KIND.name },
+                    suggestedKit = suggestedKit,
                     modifier = Modifier.testTag(HomeStartTags.EXTRA_PAGE),
                 )
             }

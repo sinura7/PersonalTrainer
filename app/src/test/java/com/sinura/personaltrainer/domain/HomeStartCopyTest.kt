@@ -12,6 +12,7 @@ class HomeStartCopyTest {
         assertEquals("Select a routine", HomeStartCopy.ROUTINE)
         assertEquals("Cardio", HomeStartCopy.CARDIO)
         assertEquals("Extra", HomeStartCopy.EXTRA)
+        assertTrue(HomeStartCopy.EXTRA_SUBTITLE.contains("equipment", ignoreCase = true))
         assertTrue(HomeStartCopy.EMPTY_BODY.startsWith("Start a workout"))
         assertFalse(HomeStartCopy.EMPTY_BODY.contains("Add a workout"))
         assertFalse(HomeStartCopy.ROUTINE_SUBTITLE.contains("generator", ignoreCase = true))

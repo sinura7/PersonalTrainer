@@ -6,7 +6,7 @@
   means when a write does not land (UX04 batch A, owner decision D16).
   13 September 2026 — §2–§3: Home's filled Volt opens a start sheet
   (free / Plan routine / cardio / Extra). Home Add is gone. Plan still
-  adds.
+  adds. Extra asks what equipment is here, then matching packs.
 - **Supersedes:** [ADR-018](ADR-018-home-start-confirm.md) §4 only the
 - **Supersedes:** [ADR-018](ADR-018-home-start-confirm.md) §4 only the
   reading that Home's filled Volt **names** the next planned block;
@@ -67,7 +67,9 @@ authorize that work.
    immediate Volt); **Select a routine** (named Plan routines, not the
    generator — tap starts that routine); **Cardio** then the live-52
    picture cards (Walk, Run / sprints, Ride, Row, Swim, Hike); **Extra**
-   then the warm-up / mobility pictures. None of those mint a Plan row.
+   then **what equipment is here** (None / Free weights / Machines / Mixed;
+   Settings kit is a suggestion they can override), then the matching
+   warm-up / mobility pictures. None of those mint a Plan row.
    While a session is live, the bar is the way back and the Volt hides.
    While the missed-work prompt's Keep-the-dates is the screen's Volt,
    Start a workout goes quiet (same rule as ADR-018 quiet start). There

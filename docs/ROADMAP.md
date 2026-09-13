@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 13 Sep 2026 — Extra asks what equipment is here (None / Free weights /
+> Machines / Mixed), then shows matching warm-up and mobility packs.
+> Settings kit is a suggestion. Does not bump live 53. Gym-floor
+> `appVersionCode` stays 1.
+>
 > 13 Sep 2026 — Live 53: one Start a workout sheet (no Add row) and
 > hold set timer (Dead Hang is SETS + TIME; floor Start hold is a
 > countdown, then rest) on `trunk`. `debugLiveCode` 53; suffix from

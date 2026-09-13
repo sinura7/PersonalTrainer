@@ -175,6 +175,7 @@ fun PlanDayScreen(
                                 picking = DayPicker.NONE
                                 viewModel.addAuxiliary(epochDay, packId)
                             },
+                            suggestedKit = state.suggestedExtraEquipment,
                         )
                     }
                 }

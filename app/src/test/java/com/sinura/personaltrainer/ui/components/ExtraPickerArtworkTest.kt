@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.components
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.ExtraEquipment
 import com.sinura.personaltrainer.domain.ScheduleKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -48,5 +49,16 @@ class ExtraPickerArtworkTest {
             AuxiliaryPacks.all.size,
             AuxiliaryPacks.all.map { extraPackArtwork(it.id) }.toSet().size,
         )
+        ExtraEquipment.entries.forEach { kit ->
+            val arts = AuxiliaryPacks.forEquipment(kit).map { extraPackArtwork(it.id) }
+            assertEquals(kit.name, arts.size, arts.toSet().size)
+            arts.forEach { id ->
+                assertNotEquals(
+                    "$kit fell back to the unlit figure",
+                    R.drawable.temper_front_unlit,
+                    id,
+                )
+            }
+        }
     }
 }
