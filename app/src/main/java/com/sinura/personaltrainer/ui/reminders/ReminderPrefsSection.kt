@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -19,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -102,25 +106,45 @@ fun ReminderPrefsSection(
                 Weekday.entries.forEach { day ->
                     HairlineDivider()
                     val on = day in preferences.dayAlarms
-                    InstrumentRow(
-                        title = day.titleLabel(),
-                        subtitle = if (on) {
-                            val stored = preferences.dayAlarms.getValue(day)
-                            ReminderCopy.timeLabel(stored.hour, stored.minute, clockFormat)
-                        } else {
-                            ReminderCopy.DAY_OFF
-                        },
-                        modifier = Modifier.testTag(reminderDayTag(day)),
-                        selected = on && day == selected,
-                        onClick = {
-                            if (on) {
-                                editing = day
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        InstrumentRow(
+                            title = day.titleLabel(),
+                            subtitle = if (on) {
+                                val stored = preferences.dayAlarms.getValue(day)
+                                ReminderCopy.timeLabel(stored.hour, stored.minute, clockFormat)
                             } else {
-                                onSetDayAlarm(day, reminder.hour, reminder.minute)
-                                editing = day
-                            }
-                        },
-                    )
+                                ReminderCopy.DAY_OFF
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag(reminderDayTag(day)),
+                            selected = on && day == selected,
+                            onClick = {
+                                if (on) {
+                                    editing = day
+                                } else {
+                                    onSetDayAlarm(day, reminder.hour, reminder.minute)
+                                    editing = day
+                                }
+                            },
+                        )
+                        InstrumentSwitch(
+                            checked = on,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    onSetDayAlarm(day, reminder.hour, reminder.minute)
+                                    editing = day
+                                } else {
+                                    onClearDayAlarm(day)
+                                    if (editing == day) editing = null
+                                }
+                            },
+                            modifier = Modifier.padding(end = Metrics.space4),
+                        )
+                    }
                 }
             }
         }
@@ -184,18 +208,6 @@ fun ReminderPrefsSection(
         }
         if (enabled && selected != null && preferences.dayAlarms.isNotEmpty()) {
             val day = selected
-            TextButton(
-                onClick = {
-                    onClearDayAlarm(day)
-                    editing = null
-                },
-            ) {
-                Text(
-                    "${ReminderCopy.TURN_OFF} ${day.titleLabel()}",
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                )
-            }
             Text(
                 ReminderCopy.timeLabel(
                     reminder.hour,

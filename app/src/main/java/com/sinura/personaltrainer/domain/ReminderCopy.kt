@@ -21,7 +21,6 @@ object ReminderCopy {
     const val GONE = "That session is no longer on the plan."
     const val ALARM_EMPTY = "No days yet. Pick a day, then scroll the time."
     const val DAY_OFF = "Off"
-    const val TURN_OFF = "Turn off"
     const val REST_STAYS_ON_REST = "Rest alerts live on Rest. Exact alarms when the phone allows them."
 
     val quietStartHours: List<Int> = listOf(20, 21, 22, 23)
