@@ -15,17 +15,19 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
-<<<<<<< HEAD
+> 13 Sep 2026 — Live 52: Extra/cardio pictures, Body stills, Add-lifts
+> muscle chips, and paste-to-routine on `trunk`. `debugLiveCode` 52;
+> suffix from `python3 tools/debug-drop-plan.py`.
+>
+> 13 Sep 2026 — Extra and cardio pickers show pictures: horizontal cardio
+> cards (Walk, Run / sprints, Ride, Row, Swim, Hike) and a catalog still
+> on each warm-up and mobility row. Does not bump live 51.
+>
 > 13 Sep 2026 — Paste a written workout on Create a routine. Temper
 > reads the lifts, sets, reps, rest, timed holds, alternatives, weekly
 > layout, and progression. Timed work is not stored as reps. Catalog v8
 > adds only the named holds that were missing. Does not bump live 51.
 > Gym-floor `appVersionCode` stays 1.
-=======
-> 13 Sep 2026 — Extra and cardio pickers show pictures: horizontal cardio
-> cards (Walk, Run / sprints, Ride, Row, Swim, Hike) and a catalog still
-> on each warm-up and mobility row. Does not bump live 51.
->>>>>>> cursor/extra-picker-images-b87f
 >
 > 13 Sep 2026 — Body muscle rows carry a Temper still of that body part.
 > Does not bump live 51. Gym-floor `appVersionCode` stays 1.
