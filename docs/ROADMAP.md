@@ -15,6 +15,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 13 Sep 2026 — Body muscle rows carry a Temper still of that body part.
+> Does not bump live 51. Gym-floor `appVersionCode` stays 1.
+>
 > 13 Sep 2026 — Add lifts: horizontal muscle chips (All plus Body's ten
 > groups). Chest hides a back squat; search still works inside the filter.
 > Does not bump live 51.
