@@ -104,9 +104,12 @@ class SettingsHomeLayoutTest {
         assertFalse(reminders.contains("FlowRow"))
 
         val wheel = readOwned("ui/reminders/ReminderTimeWheel.kt")
-        assertTrue(wheel.contains("VerticalPager"))
+        assertTrue(wheel.contains("SnapWheelColumn"))
         assertTrue(wheel.contains("periodLabels"))
         assertFalse(wheel.contains("InstrumentChip"))
+        val snap = readOwned("ui/components/SnapWheel.kt")
+        assertTrue(snap.contains("VerticalPager"))
+        assertTrue(snap.contains("PageSize.Fixed"))
     }
 
     @Test
