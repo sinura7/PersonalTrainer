@@ -19,6 +19,10 @@
 > and in-app APK download/install on `trunk`. `debugLiveCode` 59; suffix from
 > `python3 tools/debug-drop-plan.py`.
 >
+> 14 Sep 2026 — debug-live.yml skips the obsolete SDK `tools` package so
+> the live 59 drop can restore the stable signer. Gym-floor
+> `appVersionCode` stays 1.
+>
 > 14 Sep 2026 — Floor card: overflow ⋮ on the identity row; compact
 > weight row then reps row. Does not bump live 58. Gym-floor
 > `appVersionCode` stays 1.

@@ -55,8 +55,15 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Default packages are `tools platform-tools`. Google no longer ships
+      # the obsolete `tools` package (`sdkmanager` → Failed to find package
+      # 'tools'), which aborted live 59 before the stable signer restored.
+      # Empty string still accepts licenses and puts cmdline-tools on PATH;
+      # ubuntu-latest already has platform-tools and build-tools.
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          packages: ''
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
