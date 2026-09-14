@@ -132,21 +132,14 @@ private fun vector(name: String, build: ImageVector.Builder.() -> Unit): ImageVe
         viewportHeight = 24f,
     ).apply(build).build()
 
-private fun glyph(name: String, d: String): ImageVector =
-    ImageVector.Builder(
-        name = name,
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
-        viewportWidth = 24f,
-        viewportHeight = 24f,
-    ).apply {
-        path(
-            fill = GlyphInk,
-            pathFillType = PathFillType.EvenOdd,
-        ) {
-            appendSvg(d)
-        }
-    }.build()
+private fun glyph(name: String, d: String): ImageVector = vector(name) {
+    path(
+        fill = GlyphInk,
+        pathFillType = PathFillType.EvenOdd,
+    ) {
+        appendSvg(d)
+    }
+}
 
 /**
  * A pencil on the same diagonal the plate language uses everywhere else: point, shaft,
