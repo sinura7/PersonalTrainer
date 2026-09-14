@@ -17,7 +17,7 @@ class DayBlockLayoutTest {
         assertTrue(block.contains("private fun SessionLiftRows"))
         assertTrue(block.contains("private fun SessionLiftRow"))
         assertTrue(block.contains("ExerciseThumb(exercise = exercise)"))
-        assertTrue(block.contains("INDEX_WIDTH"))
+        assertFalse(block.contains("INDEX_WIDTH"))
         assertFalse(block.contains("SessionOrderList"))
         assertFalse(block.contains("joinToString(\" · \")"))
         assertFalse(block.contains("STILL_LIMIT"))

@@ -8,19 +8,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.text
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.DayBlockCopy
 import com.sinura.personaltrainer.domain.Exercise
@@ -136,7 +131,7 @@ fun DayBlockHead(
             labels = lines.names,
             exercises = exercises,
             nameColor = ink,
-            indexColor = meta,
+            extraColor = meta,
         )
     }
     lines.meta?.let { line ->
@@ -151,16 +146,17 @@ fun DayBlockHead(
 }
 
 /**
- * One pictured lift per row: still on the left, number then name to the
- * right, names sharing a column so 1 / 2 / 3 / 4 read as a list. A 4-up
- * still strip duplicated those names. Remainder `+N` is its own last line.
+ * One pictured lift per row: still on the left, number and name to the
+ * right. Stills are one width, digits are tabular, so 1 / 2 / 3 / 4 read
+ * as a list. A 4-up still strip duplicated those names. Remainder `+N`
+ * is its own last line.
  */
 @Composable
 private fun SessionLiftRows(
     labels: List<String>,
     exercises: List<Exercise>,
     nameColor: Color,
-    indexColor: Color,
+    extraColor: Color,
 ) {
     val extra = labels.lastOrNull()?.takeIf { DayBlockCopy.isExtra(it) }
     val rows = if (extra != null) labels.dropLast(1) else labels
@@ -169,15 +165,10 @@ private fun SessionLiftRows(
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         rows.forEachIndexed { index, label ->
-            val number = index + 1
-            val name = label.substringAfter(' ', missingDelimiterValue = label)
             SessionLiftRow(
                 exercise = exercises.getOrNull(index),
-                number = number,
-                name = name,
-                spoken = label,
-                nameColor = nameColor,
-                indexColor = indexColor,
+                label = label,
+                color = nameColor,
             )
         }
         extra?.let { line ->
@@ -185,10 +176,9 @@ private fun SessionLiftRows(
                 line,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = ThumbSize.row + Metrics.space2)
-                    .clearAndSetSemantics { text = AnnotatedString(line) },
+                    .padding(start = ThumbSize.row + Metrics.space2),
                 style = InstrumentType.body,
-                color = indexColor,
+                color = extraColor,
             )
         }
     }
@@ -197,16 +187,11 @@ private fun SessionLiftRows(
 @Composable
 private fun SessionLiftRow(
     exercise: Exercise?,
-    number: Int,
-    name: String,
-    spoken: String,
-    nameColor: Color,
-    indexColor: Color,
+    label: String,
+    color: Color,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clearAndSetSemantics { text = AnnotatedString(spoken) },
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
@@ -216,23 +201,12 @@ private fun SessionLiftRow(
             Spacer(Modifier.size(ThumbSize.row))
         }
         Text(
-            number.toString(),
-            modifier = Modifier.width(INDEX_WIDTH),
-            style = InstrumentType.caption,
-            color = indexColor,
-            textAlign = TextAlign.End,
-            maxLines = 1,
-        )
-        Text(
-            name,
+            label,
             modifier = Modifier.weight(1f),
             style = InstrumentType.body,
-            color = nameColor,
+            color = color,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
     }
 }
-
-/** Fixed so 1 and 8 leave the names on one vertical edge. */
-private val INDEX_WIDTH = Metrics.space4
