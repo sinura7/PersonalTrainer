@@ -18,8 +18,11 @@ object DayBlockCopy {
     const val STILL_LIMIT = 4
 
     data class Lines(
-        /** "1 Squat · 2 Row", then "· +2" past [STILL_LIMIT]. Null without lifts. */
-        val names: String?,
+        /**
+         * Numbered lifts in session order, one string per pictured lift
+         * (`"1 Squat"`), then `"+2"` past [STILL_LIMIT]. Empty without lifts.
+         */
+        val names: List<String>,
         /**
          * "2 lifts · about 13 min". For an empty planned block, what it is
          * instead: "No lifts yet" for strength, "Ready" for cardio.
@@ -65,7 +68,7 @@ object DayBlockCopy {
             modality == ScheduleModality.STRENGTH -> SessionOrderCopy.EMPTY_PREVIEW
             else -> SessionOrderCopy.READY
         }
-        return Lines(names = null, meta = empty, status = status(status), settled = settled)
+        return Lines(names = emptyList(), meta = empty, status = status(status), settled = settled)
     }
 
     /**
@@ -82,14 +85,16 @@ object DayBlockCopy {
      * The session order under the stills, numbered like the picker. Only
      * the lifts that have a still are named; the meta line carries the
      * count, so a longer session ends in "+N" rather than repeating it.
+     *
+     * One lift per entry so the card can draw an ordered list. A middot
+     * sentence wrapped mid-name and made 1, 2, 3, 4 unreadable.
      */
-    fun names(names: List<String>, limit: Int = STILL_LIMIT): String? {
-        if (names.isEmpty()) return null
+    fun names(names: List<String>, limit: Int = STILL_LIMIT): List<String> {
+        if (names.isEmpty()) return emptyList()
         val cap = limit.coerceAtLeast(1)
         val shown = names.take(cap).mapIndexed { index, name -> "${index + 1} $name" }
-            .joinToString(" · ")
         val rest = names.size - cap
-        return if (rest > 0) "$shown · +$rest" else shown
+        return if (rest > 0) shown + "+$rest" else shown
     }
 
     /** "2 lifts · about 13 min". Also the last line of the start confirm. */

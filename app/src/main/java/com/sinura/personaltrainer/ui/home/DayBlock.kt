@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -32,9 +34,9 @@ import com.sinura.personaltrainer.ui.theme.Volt
  * row was an [com.sinura.personaltrainer.ui.components.InstrumentRow] — a
  * title, a one-line order and that trailing word — which is how a settings
  * list looks, not a session. This is the same control drawn as what it is:
- * a bordered block with the session's first four stills, the order under
- * them, the count and the estimate, and Start (or Do it today) on the foot
- * where the row's trailing word was.
+ * a bordered block with the session's first four stills, the lifts as a
+ * numbered list under them, the count and the estimate, and Start (or Do
+ * it today) on the foot where the row's trailing word was.
  *
  * Separate blocks on purpose. A day's sessions are independent — cardio,
  * then the main session, then a pack, each finished on its own
@@ -99,9 +101,9 @@ fun DayBlock(
 }
 
 /**
- * The head of a block — title, stills, order, meta — emitted into the
- * enclosing card's column. Shared with the empty-agenda leftover card so
- * both today-surfaces draw a session the same way.
+ * The head of a block — title, stills, numbered list, meta — emitted into
+ * the enclosing card's column. Shared with the empty-agenda leftover card
+ * so both today-surfaces draw a session the same way.
  *
  * Done and moved blocks go quiet in ink. The stills stay as they are: a
  * still is the lift's identity, not the day's state (ADR-022).
@@ -128,16 +130,8 @@ fun DayBlockHead(
             }
         }
     }
-    lines.names?.let { names ->
-        // Two lines: four full lift names do not fit one line at 360 dp, and the
-        // stills above only say which lifts, not in what order.
-        Text(
-            names,
-            style = InstrumentType.body,
-            color = meta,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+    if (lines.names.isNotEmpty()) {
+        SessionOrderList(lines = lines.names, color = meta)
     }
     lines.meta?.let { line ->
         Text(
@@ -147,5 +141,24 @@ fun DayBlockHead(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/**
+ * One pictured lift per line, remainder on its own last line. A wrapping
+ * middot sentence made 4 sit under 3; a Column keeps 1, 2, 3, 4 in order
+ * even when a long name wraps.
+ */
+@Composable
+private fun SessionOrderList(lines: List<String>, color: Color) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        lines.forEach { line ->
+            Text(
+                line,
+                modifier = Modifier.fillMaxWidth(),
+                style = InstrumentType.body,
+                color = color,
+            )
+        }
     }
 }

@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Home session cards (and the empty-agenda leftover head) name
+> lifts as a numbered list, one pictured lift per line, remainder `+N`
+> on its own line. Stills, `7 lifts · about 60 min`, and Start stay.
+> Does not bump live 54. Gym-floor `appVersionCode` stays 1.
+>
 > 13 Sep 2026 — Live 54: Extra asks what equipment is here (None /
 > Free weights / Machines / Mixed), then matching warm-up and mobility
 > packs with pictures on `trunk`. `debugLiveCode` 54; suffix from

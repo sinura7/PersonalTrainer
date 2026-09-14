@@ -179,7 +179,8 @@ class HomePassInstrumentedTest {
         compose.onNodeWithText("Start Push").assertDoesNotExist()
         compose.onNodeWithText("Start Cardio").assertDoesNotExist()
         compose.onNodeWithText(SessionOrderCopy.AGENDA_SEPARATE).assertIsDisplayed()
-        compose.onNodeWithText("1 Squat · 2 Row").assertIsDisplayed()
+        compose.onNodeWithText("1 Squat").assertIsDisplayed()
+        compose.onNodeWithText("2 Row").assertIsDisplayed()
     }
 
     @Test
