@@ -26,7 +26,6 @@ import com.sinura.personaltrainer.diagnostics.DiagnosticMetadata
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
-import com.sinura.personaltrainer.domain.DebugUpdateCopy
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.domain.TrainingAge
@@ -42,6 +41,7 @@ import com.sinura.personaltrainer.ui.reminders.openAppNotificationSettings
 import com.sinura.personaltrainer.ui.reminders.rememberNotificationsEnabled
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.update.DebugUpdateBanner
+import com.sinura.personaltrainer.ui.update.debugUpdateSettingsSummary
 import com.sinura.personaltrainer.ui.update.rememberDebugUpdatePort
 
 @Composable
@@ -163,7 +163,8 @@ fun SettingsScreen(
                     SettingsHeader()
                     if (BuildConfig.DEBUG && notice.showBanner) {
                         DebugUpdateBanner(
-                            onOpen = { debugUpdate.openOffer(context) },
+                            ui = notice,
+                            onInstall = debugUpdate::install,
                             onDismiss = debugUpdate::dismissBanner,
                             modifier = Modifier.padding(
                                 horizontal = Metrics.gutter,
@@ -191,11 +192,11 @@ fun SettingsScreen(
                         ),
                         onOpen = { page = it },
                         updateSummary = if (BuildConfig.DEBUG) {
-                            notice.offer?.let { DebugUpdateCopy.settingsSummary(it.versionCode) }
+                            debugUpdateSettingsSummary(notice)
                         } else {
                             null
                         },
-                        onOpenUpdate = { debugUpdate.openOffer(context) },
+                        onOpenUpdate = debugUpdate::install,
                         modifier = Modifier.weight(1f),
                     )
                 }

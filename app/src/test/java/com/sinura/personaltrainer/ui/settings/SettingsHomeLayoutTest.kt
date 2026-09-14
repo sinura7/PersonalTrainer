@@ -121,9 +121,11 @@ class SettingsHomeLayoutTest {
         assertFalse(home.contains("Get started"))
         assertTrue(home.contains("DebugUpdateBanner"))
         assertTrue(home.contains("rememberDebugUpdatePort"))
+        assertTrue(home.contains("debugUpdate::install"))
         val screen = readOwned("ui/settings/SettingsScreen.kt")
         assertTrue(screen.contains("DebugUpdateBanner"))
         assertTrue(screen.contains("BuildConfig.DEBUG"))
+        assertTrue(screen.contains("debugUpdate::install"))
         assertFalse(screen.contains("Get started"))
     }
 

@@ -100,8 +100,8 @@ class DebugUpdateCheckerTest {
                 offer = DebugUpdateOffer(
                     versionCode = 51,
                     tag = "debug-live-2026-09-13-2",
-                    releaseUrl = "https://example.test/rel",
-                    apkUrl = "https://example.test/apk",
+                    releaseUrl = "https://github.com/sinura7/PersonalTrainer/releases/tag/debug-live-2026-09-13-2",
+                    apkUrl = "https://github.com/sinura7/PersonalTrainer/releases/download/debug-live-2026-09-13-2/PersonalTrainer-1.0.0-debug.apk",
                 ),
             ),
         )
@@ -145,7 +145,7 @@ class DebugUpdateCheckerTest {
           "html_url": "https://github.com/sinura7/PersonalTrainer/releases/tag/$tag",
           "assets": [{
             "name": "$apkName",
-            "browser_download_url": "https://example.test/$apkName"
+            "browser_download_url": "https://github.com/sinura7/PersonalTrainer/releases/download/$tag/$apkName"
           }]
         }]
     """.trimIndent()

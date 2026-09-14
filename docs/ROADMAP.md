@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Temper Debug downloads the new package in-app and hands it
+> to Android's installer. Does not bump live 58. Gym-floor does not install
+> GitHub APKs. Obtainium is not a required step.
+>
 > 14 Sep 2026 — Live 58: compact gym-floor chrome (one current lift,
 > one Log set) on `trunk`. `debugLiveCode` 58; suffix from
 > `python3 tools/debug-drop-plan.py`.
