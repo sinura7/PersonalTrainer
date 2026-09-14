@@ -23,6 +23,10 @@
 > the live 59 drop can restore the stable signer. Gym-floor
 > `appVersionCode` stays 1.
 >
+> 14 Sep 2026 — GymNoticeBanner keeps modifier as the first optional
+> parameter so lintDebug can publish live 59. Gym-floor `appVersionCode`
+> stays 1.
+>
 > 14 Sep 2026 — Floor card: overflow ⋮ on the identity row; compact
 > weight row then reps row. Does not bump live 58. Gym-floor
 > `appVersionCode` stays 1.

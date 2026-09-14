@@ -277,9 +277,9 @@ fun PersonalRecordBanner(
 fun GymNoticeBanner(
     title: String,
     body: String,
+    modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
-    modifier: Modifier = Modifier,
     onDismiss: (() -> Unit)? = null,
 ) {
     InstrumentBanner(
