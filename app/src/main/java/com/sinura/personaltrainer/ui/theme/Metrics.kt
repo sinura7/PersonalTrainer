@@ -60,6 +60,13 @@ object Metrics {
     /** Absolute minimum touch target. */
     val touchMin: Dp = 48.dp
 
+    /**
+     * One snap-wheel numeral on the gym floor. The column is three of
+     * these — same live scroller as the reminder time wheel, a little
+     * shorter so two stacked wheels are not a poster.
+     */
+    val wheelRow: Dp = space8
+
     /** A list row with a value on the trailing edge. */
     val rowMin: Dp = 56.dp
 

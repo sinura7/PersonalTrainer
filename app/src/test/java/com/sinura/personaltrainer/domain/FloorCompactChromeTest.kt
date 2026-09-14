@@ -30,4 +30,9 @@ class FloorCompactChromeTest {
     fun compactFloorStacksWeightAboveReps() {
         assertTrue(FloorCompactChrome.stackWeightAboveReps())
     }
+
+    @Test
+    fun compactFloorWeightAndRepsAreWheels() {
+        assertTrue(FloorCompactChrome.weightAndRepsAreWheels())
+    }
 }

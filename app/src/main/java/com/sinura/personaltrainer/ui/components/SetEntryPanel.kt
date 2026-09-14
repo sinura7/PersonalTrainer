@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.LoadClass
+import com.sinura.personaltrainer.domain.FloorEntryWheels
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.PlateMath
@@ -51,14 +54,15 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 /**
  * Weight and reps in one panel.
  *
- * The gym floor (`compact`) stacks them: a weight row, then a reps (or time)
- * row. Each is one labelled compact line — not giant empty wells, and not two
- * numbers squeezed onto one cramped pair. Extra, paste, and Home still use
- * the tall wells; those sit side by side until the system font is large enough
- * that a three-digit half-kilo no longer fits, then they stack too.
+ * The gym floor (`compact`) stacks them as snap-scroll wheels: a weight
+ * wheel, then a reps (or hold-time) wheel. Flick to change. No keyboard.
+ * Extra, paste, and Home still use the tall wells; those sit side by side
+ * until the system font is large enough that a three-digit half-kilo no
+ * longer fits, then they stack too.
  *
- * Nudge with the plates, or tap the number to type when the nudge is too far. The numeral
- * is the field — an underline marks it as tappable so typing is not a hidden gesture.
+ * On Extra / paste / Home, nudge with the plates, or tap the number to
+ * type when the nudge is too far. The numeral is the field — an underline
+ * marks it as tappable so typing is not a hidden gesture.
  *
  * **How many wells appear depends on the lift.** A push-up has no weight to enter, so it gets
  * one well and reps fill the panel: a labelled empty weight box is an invitation to put a
@@ -87,6 +91,23 @@ fun SetEntryPanel(
     onSecondsChange: (Int) -> Unit = {},
     compact: Boolean = false,
 ) {
+    if (compact) {
+        CompactFloorEntry(
+            weightKg = weightKg,
+            reps = reps,
+            onWeightKgChange = onWeightKgChange,
+            onRepsChange = onRepsChange,
+            modifier = modifier,
+            unit = unit,
+            loadClass = loadClass,
+            plated = plated,
+            hold = hold,
+            durationSeconds = durationSeconds,
+            holdRunning = holdRunning,
+            onSecondsChange = onSecondsChange,
+        )
+        return
+    }
     val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val timeSeconds = if (holdRunning) remainingSeconds else durationSeconds ?: HoldWork.DEFAULT_SECONDS
     val workWell: @Composable (Modifier) -> Unit = { wellModifier ->
@@ -109,7 +130,7 @@ fun SetEntryPanel(
             )
         }
     }
-    if (compact || stack) {
+    if (stack) {
         Column(
             modifier = modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Metrics.space2),
@@ -146,6 +167,135 @@ fun SetEntryPanel(
             workWell(
                 if (loadClass.weightMeaning != WeightMeaning.NONE) Modifier.weight(1f)
                 else Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CompactFloorEntry(
+    weightKg: Double,
+    reps: Int,
+    onWeightKgChange: (Double) -> Unit,
+    onRepsChange: (Int) -> Unit,
+    modifier: Modifier,
+    unit: WeightUnit,
+    loadClass: LoadClass,
+    plated: Boolean,
+    hold: Boolean,
+    durationSeconds: Int?,
+    holdRunning: Boolean,
+    onSecondsChange: (Int) -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        if (loadClass.weightMeaning != WeightMeaning.NONE) {
+            val displays = remember(unit, weightKg) {
+                FloorEntryWheels.weightDisplays(unit, weightKg)
+            }
+            val labels = remember(displays) {
+                displays.map { WeightConverter.formatDisplayNumber(it) }
+            }
+            val page = FloorEntryWheels.weightPage(weightKg, unit)
+            val shown = labels.getOrElse(page) { "" }
+            val plates = if (plated && loadClass.weightMeaning == WeightMeaning.LIFTED) {
+                PlateMath.load(weightKg, unit)?.caption()
+            } else {
+                null
+            }
+            FloorSnapRow(
+                label = loadClass.weightMeaning.fieldLabel.lowercase(),
+                spoken = "${loadClass.weightMeaning.fieldLabel} $shown ${unit.suffix}",
+                values = labels,
+                selectedIndex = page,
+                onSettledIndex = { next ->
+                    onWeightKgChange(FloorEntryWheels.weightKgAt(next, unit, weightKg))
+                },
+                tag = "workout-weight-wheel",
+                caption = plates,
+                parkKey = unit,
+            )
+        }
+        if (hold) {
+            if (!holdRunning) {
+                val seconds = durationSeconds ?: HoldWork.DEFAULT_SECONDS
+                val values = remember(seconds) { FloorEntryWheels.holdSecondsValues(seconds) }
+                val labels = remember(values) { values.map { HoldWork.clock(it) } }
+                val page = FloorEntryWheels.holdPage(seconds)
+                FloorSnapRow(
+                    label = "time",
+                    spoken = "time ${labels.getOrElse(page) { "" }}",
+                    values = labels,
+                    selectedIndex = page,
+                    onSettledIndex = { next ->
+                        onSecondsChange(FloorEntryWheels.holdSecondsAt(next, seconds))
+                    },
+                    tag = "workout-hold-wheel",
+                    parkKey = "hold",
+                )
+            }
+        } else {
+            val values = remember { FloorEntryWheels.repsValues() }
+            val labels = remember(values) { values.map { it.toString() } }
+            val page = FloorEntryWheels.repsPage(reps)
+            FloorSnapRow(
+                label = "reps",
+                spoken = "reps $reps",
+                values = labels,
+                selectedIndex = page,
+                onSettledIndex = { next -> onRepsChange(FloorEntryWheels.repsAt(next)) },
+                tag = "workout-reps-wheel",
+                parkKey = "reps",
+            )
+        }
+    }
+}
+
+@Composable
+private fun FloorSnapRow(
+    label: String,
+    spoken: String,
+    values: List<String>,
+    selectedIndex: Int,
+    onSettledIndex: (Int) -> Unit,
+    tag: String,
+    caption: String? = null,
+    parkKey: Any? = Unit,
+    userScrollEnabled: Boolean = true,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(Metrics.wheelRow * 3),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            Kicker(label, asHeading = false)
+            SnapValueWheel(
+                values = values,
+                selectedIndex = selectedIndex,
+                onSettledIndex = onSettledIndex,
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = spoken },
+                tag = tag,
+                rowHeight = Metrics.wheelRow,
+                userScrollEnabled = userScrollEnabled,
+                parkKey = parkKey,
+            )
+        }
+        if (caption != null) {
+            Text(
+                caption,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

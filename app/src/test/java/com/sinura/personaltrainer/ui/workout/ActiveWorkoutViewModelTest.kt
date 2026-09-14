@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.domain.FloorEntryWheels
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -208,6 +209,48 @@ class ActiveWorkoutViewModelTest {
 
         vm.onPersonalRecordShown()
         assertNull(vm.personalRecord.value)
+    }
+
+    @Test
+    fun logSetWritesTheNumbersTheWheelsDisplay() = runBlocking {
+        val fixture = seedWorkout(priorWeightKg = 80.0)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState {
+            val suggested = it.hint?.suggestedWeightKg ?: return@awaitState false
+            it.loadState == SessionLoadState.FOUND && it.draft.weightKg == suggested
+        }
+
+        val start = vm.uiState.value.draft
+        val wheeledKg = FloorEntryWheels.swipeWeightKg(start.weightKg, WeightUnit.KG, 1)
+        val wheeledReps = FloorEntryWheels.swipeReps(start.reps, 1)
+        vm.setWeight(wheeledKg)
+        vm.setReps(wheeledReps)
+        vm.awaitState { it.draft.weightKg == wheeledKg && it.draft.reps == wheeledReps }
+        vm.logSetAndSettle()
+
+        val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
+        assertEquals(wheeledKg, persisted.sets.single().weightKg, 0.0001)
+        assertEquals(wheeledReps, persisted.sets.single().reps)
+    }
+
+    @Test
+    fun holdWheelSecondsStartTheWorkClockNotAFakeRep() = runBlocking {
+        val fixture = seedHangWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
+        }
+
+        val wheeled = FloorEntryWheels.swipeHoldSeconds(30, 1)
+        vm.setHoldSeconds(wheeled)
+        vm.awaitState { it.draft.durationSeconds == wheeled }
+        vm.logSet()
+
+        val hold = vm.holdTimer.value
+        assertTrue(hold.running)
+        assertEquals(wheeled, hold.totalSeconds)
+        assertEquals(wheeled, hold.remainingSeconds)
+        assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty())
     }
 
     @Test
