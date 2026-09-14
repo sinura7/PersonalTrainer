@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Live 56: Home session cards picture each lift beside its
+> name, and Create a routine paste quotes failing lines and fills
+> Upper/Lower on `trunk`. `debugLiveCode` 56; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 14 Sep 2026 — Create a routine paste quotes the failing line (unknown
 > name, bad dose, two lifts, hold vs reps) and fills Allen's numbered
 > Upper A / Lower A / Upper B / Lower B. Does not bump live 55.
