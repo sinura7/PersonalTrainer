@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Live 60: floor snap-scroll weight and reps wheels on
+> `trunk`. `debugLiveCode` 60; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 14 Sep 2026 — Gym floor weight and reps are snap-scroll wheels
 > (plate steps 2.5 kg / 5 lbs, reps by 1, holds in seconds). Does
 > not bump live 59. Gym-floor `appVersionCode` stays 1.
