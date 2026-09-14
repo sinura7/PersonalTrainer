@@ -66,11 +66,28 @@ data class PastedLift(
     val targetSecondsMax: Int? get() = scheme.storedSecondsMax
 }
 
+enum class PasteIssueKind {
+    UNKNOWN_EXERCISE,
+    BAD_DOSE,
+    TWO_LIFTS_NEEDED,
+    HOLD_VS_REPS,
+}
+
 data class PastedUnmatched(
     val raw: String,
     val names: List<String>,
     val scheme: WorkScheme?,
-)
+    val kind: PasteIssueKind = PasteIssueKind.UNKNOWN_EXERCISE,
+    val reason: String = "",
+    val sessionName: String? = null,
+) {
+    fun displayLine(): String =
+        if (sessionName.isNullOrBlank()) raw else "$sessionName: $raw"
+
+    val canPick: Boolean
+        get() = kind == PasteIssueKind.UNKNOWN_EXERCISE ||
+            kind == PasteIssueKind.TWO_LIFTS_NEEDED
+}
 
 data class PastedSession(
     val name: String,
@@ -103,7 +120,7 @@ data class PastedSession(
         }
         if (unmatched.isNotEmpty()) {
             lines += WorkoutPasteCopy.UNMATCHED_NOTES
-            unmatched.forEach { lines += "• ${it.raw}" }
+            unmatched.forEach { lines += "• ${WorkoutPasteCopy.issue(it)}" }
         }
         return lines.joinToString("\n")
     }
@@ -178,16 +195,39 @@ internal object WorkoutPasteHolds {
         schemes: List<WorkScheme>,
         index: Int,
         fallback: WorkScheme,
+        role: String? = null,
     ): WorkScheme {
         if (schemes.isEmpty()) return fallback
-        if (schemes.size == 1) return schemes.single()
-        val timed = schemes.firstOrNull { it.isTimed }
-        val reps = schemes.firstOrNull { !it.isTimed }
-        return if (isHold(exercise)) {
-            timed ?: schemes.getOrElse(index) { schemes.first() }
+        val picked = if (schemes.size == 1) {
+            schemes.single()
         } else {
-            reps ?: schemes.getOrElse(index) { schemes.first() }
+            val timed = schemes.firstOrNull { it.isTimed }
+            val reps = schemes.firstOrNull { !it.isTimed }
+            if (isHold(exercise)) {
+                timed ?: schemes.getOrElse(index) { schemes.first() }
+            } else {
+                reps ?: schemes.getOrElse(index) { schemes.first() }
+            }
         }
+        return coerceHold(exercise, picked, role)
+    }
+
+    /**
+     * A hold written without an `s` still has to land as seconds.
+     * `Static: dead hang — 2×20–40` is 20–40 seconds, not 20–40 reps.
+     */
+    fun coerceHold(exercise: Exercise, scheme: WorkScheme, role: String? = null): WorkScheme {
+        if (!isHold(exercise) || scheme.isTimed) return scheme
+        val lo = scheme.repsMin ?: return scheme
+        val hi = scheme.repsMax ?: lo
+        val staticRole = role.equals("static", ignoreCase = true)
+        if (!staticRole && lo < HoldWork.MIN_SECONDS) return scheme
+        return scheme.copy(
+            repsMin = null,
+            repsMax = null,
+            secondsMin = lo,
+            secondsMax = hi,
+        )
     }
 }
 
@@ -238,22 +278,53 @@ object WorkoutPaste {
                 val hit = choice.firstNotNullOfOrNull { option ->
                     WorkoutCatalogMatch.match(option, catalog, used)
                 }
+                val schemeForMiss = schemes.getOrNull(index) ?: schemes.firstOrNull()
                 if (hit == null) {
-                    unmatched += PastedUnmatched(
-                        raw = line.raw,
-                        names = choice,
-                        scheme = schemes.getOrNull(index) ?: schemes.firstOrNull(),
-                    )
+                    val kind = when {
+                        line.groups.size > 1 -> PasteIssueKind.TWO_LIFTS_NEEDED
+                        line.claimedDose && schemes.isEmpty() -> PasteIssueKind.BAD_DOSE
+                        else -> PasteIssueKind.UNKNOWN_EXERCISE
+                    }
+                    unmatched += unmatchedLine(line, choice, schemeForMiss, kind)
                     return@forEachIndexed
                 }
                 used += hit.id
-                val fallback = WorkScheme(
-                    setsMin = AddDefaults.forExercise(hit).sets,
-                    setsMax = AddDefaults.forExercise(hit).sets,
-                    repsMin = AddDefaults.forExercise(hit).reps,
-                    repsMax = AddDefaults.forExercise(hit).reps,
+                val defaults = AddDefaults.forExercise(hit)
+                val fallback = holdAwareFallback(defaults)
+                var scheme = WorkoutPasteHolds.schemeFor(
+                    exercise = hit,
+                    schemes = schemes,
+                    index = index,
+                    fallback = fallback,
+                    role = line.role,
                 )
-                val scheme = WorkoutPasteHolds.schemeFor(hit, schemes, index, fallback)
+                if (WorkoutPasteHolds.isHold(hit) && !scheme.isTimed) {
+                    unmatched += unmatchedLine(
+                        line = line,
+                        names = listOf(hit.name),
+                        scheme = scheme,
+                        kind = PasteIssueKind.HOLD_VS_REPS,
+                    )
+                    scheme = fallback.copy(setsMin = scheme.setsMin, setsMax = scheme.setsMax)
+                } else if (
+                    !WorkoutPasteHolds.isHold(hit) &&
+                    scheme.isTimed &&
+                    line.lineSchemes.any { it.isTimed }
+                ) {
+                    unmatched += unmatchedLine(
+                        line = line,
+                        names = listOf(hit.name),
+                        scheme = scheme,
+                        kind = PasteIssueKind.HOLD_VS_REPS,
+                    )
+                } else if (line.claimedDose && line.schemes.isEmpty() && session.defaultScheme == null) {
+                    unmatched += unmatchedLine(
+                        line = line,
+                        names = listOf(hit.name),
+                        scheme = scheme,
+                        kind = PasteIssueKind.BAD_DOSE,
+                    )
+                }
                 val rest = WorkoutPasteRest.forLift(hit, scheme)
                 val remaining = choice.filterNot {
                     WorkoutCatalogMatch.normalize(it) == WorkoutCatalogMatch.normalize(hit.name) ||
@@ -278,7 +349,8 @@ object WorkoutPaste {
             if (matchedHere.isNotEmpty()) {
                 lifts += matchedHere
             } else if (line.groups.isEmpty()) {
-                unmatched += PastedUnmatched(raw = line.raw, names = line.names, scheme = schemes.firstOrNull())
+                val kind = if (line.claimedDose) PasteIssueKind.BAD_DOSE else PasteIssueKind.UNKNOWN_EXERCISE
+                unmatched += unmatchedLine(line, line.names, schemes.firstOrNull(), kind)
             }
         }
         return PastedSession(
@@ -290,6 +362,36 @@ object WorkoutPaste {
             originalLines = session.lines.map { it.raw },
         )
     }
+
+    private fun holdAwareFallback(defaults: TargetDefaults): WorkScheme =
+        if (defaults.seconds != null) {
+            WorkScheme(
+                setsMin = defaults.sets,
+                setsMax = defaults.sets,
+                secondsMin = defaults.seconds,
+                secondsMax = defaults.secondsMax,
+            )
+        } else {
+            WorkScheme(
+                setsMin = defaults.sets,
+                setsMax = defaults.sets,
+                repsMin = defaults.reps,
+                repsMax = defaults.reps,
+            )
+        }
+
+    private fun unmatchedLine(
+        line: ParsedWorkLine,
+        names: List<String>,
+        scheme: WorkScheme?,
+        kind: PasteIssueKind,
+    ): PastedUnmatched = PastedUnmatched(
+        raw = line.raw,
+        names = names,
+        scheme = scheme,
+        kind = kind,
+        reason = WorkoutPasteCopy.reason(kind, names),
+    )
 }
 
 internal data class ParsedSession(
@@ -306,6 +408,10 @@ internal data class ParsedWorkLine(
     val groups: List<List<String>>,
     val schemes: List<WorkScheme>,
     val each: Boolean,
+    val role: String? = null,
+    val claimedDose: Boolean = false,
+    /** Schemes written on this line, not a session default. */
+    val lineSchemes: List<WorkScheme> = emptyList(),
 ) {
     val names: List<String> get() = groups.flatten()
 }
@@ -336,6 +442,7 @@ internal object WorkoutPasteParser {
     )
     private val HOLD_DEFAULT = Regex("""(\d+)\s*[–-]\s*(\d+)\s*s\b""", RegexOption.IGNORE_CASE)
     private val ROLE = Regex("""^(abs|static|arms|finish with)\s*:\s*""", RegexOption.IGNORE_CASE)
+    private val LIST_PREFIX = Regex("""^(\d+[.)]\s+|[-*•]\s+)""")
     private val SCHEME = Regex(
         """(\d+)(?:\s*[–-]\s*(\d+))?\s*[×xX]\s*(\d+)(?:\s*[–-]\s*(\d+))?(s|sec|secs|seconds)?(?:\s*/\s*(leg|side))?(\s*each)?""",
         RegexOption.IGNORE_CASE,
@@ -454,18 +561,33 @@ internal object WorkoutPasteParser {
     }
 
     private fun looksLikeProse(line: String): Boolean {
-        if (ROLE.containsMatchIn(line) || SCHEME.containsMatchIn(line)) return false
-        val words = line.split(Regex("""\s+"""))
-        return words.size > 14 && !line.contains("—") && !line.contains("–")
+        val unmarked = LIST_PREFIX.replaceFirst(line.trim(), "")
+        if (ROLE.containsMatchIn(unmarked) || SCHEME.containsMatchIn(unmarked)) return false
+        val words = unmarked.split(Regex("""\s+"""))
+        return words.size > 14 && !unmarked.contains("—") && !unmarked.contains("–")
     }
 
     private fun workLine(raw: String, inherited: WorkScheme?): ParsedWorkLine {
-        val withoutRole = ROLE.replace(raw, "")
+        val unmarked = LIST_PREFIX.replaceFirst(raw.trim(), "")
+        val role = ROLE.find(unmarked)?.groupValues?.get(1)?.lowercase()
+        val withoutRole = ROLE.replace(unmarked, "")
         val (body, schemesFromLine) = splitSchemes(withoutRole)
         val schemes = schemesFromLine.ifEmpty { listOfNotNull(inherited) }
         val each = schemes.any { it.each } || withoutRole.contains(" each", ignoreCase = true)
         val groups = splitNameGroups(body)
-        return ParsedWorkLine(raw = raw, groups = groups, schemes = schemes, each = each)
+        val looksLikeDose = withoutRole.contains('—') ||
+            withoutRole.contains('–') ||
+            SCHEME.containsMatchIn(withoutRole)
+        val claimedDose = looksLikeDose && schemesFromLine.isEmpty()
+        return ParsedWorkLine(
+            raw = raw,
+            groups = groups,
+            schemes = schemes,
+            each = each,
+            role = role,
+            claimedDose = claimedDose,
+            lineSchemes = schemesFromLine,
+        )
     }
 
     private fun splitSchemes(line: String): Pair<String, List<WorkScheme>> {
@@ -475,6 +597,7 @@ internal object WorkoutPasteParser {
             val right = line.substring(dash.range.last + 1).trim()
             val schemes = parseSchemeList(right)
             if (schemes.isNotEmpty()) return left to schemes
+            if (left.isNotEmpty() && right.isNotEmpty()) return left to emptyList()
         }
         val embedded = SCHEME.findAll(line).toList()
         val hasTimes = line.contains('×') || line.contains('x', ignoreCase = true)
@@ -529,9 +652,14 @@ internal object WorkoutPasteParser {
         if (stripped.isEmpty()) return emptyList()
         return stripped.split(Regex("""\s+\+\s+""")).map { group ->
             group.split(Regex("""\s+or\s+|\s*,\s+|\s+/\s+""", RegexOption.IGNORE_CASE))
-                .map { it.trim().trimEnd('—', '–', '-', ',', '.') }
+                .map { cleanName(it) }
                 .filter { it.isNotEmpty() }
         }.filter { it.isNotEmpty() }
+    }
+
+    private fun cleanName(name: String): String {
+        val unmarked = LIST_PREFIX.replaceFirst(name.trim(), "")
+        return ROLE.replace(unmarked, "").trim().trimEnd('—', '–', '-', ',', '.')
     }
 
     private data class ParsedSessionBuilder(

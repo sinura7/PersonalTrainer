@@ -15,9 +15,11 @@ object WorkoutPasteCopy {
     const val EMPTY = "Paste a workout first."
     const val NOTHING = "Could not read a workout in that text."
     const val FAILED = "Could not fill that workout. Try again."
-    const val UNMATCHED = "Unmatched"
+    const val EMPTY_LIBRARY = "The lift library is empty, so nothing could be matched."
+    const val ISSUE_TITLE = "This line did not fill"
+    const val UNMATCHED = "These lines did not fill"
     const val UNMATCHED_BODY =
-        "Temper did not find these in the library. Pick a lift for each."
+        "Everything that matched is already in. Each row quotes the line and says why it did not fill."
     const val PICK = "Pick a lift"
     const val PASTED_HEADING = "Pasted"
     const val UNMATCHED_NOTES = "Unmatched"
@@ -31,5 +33,34 @@ object WorkoutPasteCopy {
         names.size == 1 -> "Also made ${names.single()}."
         names.size == 2 -> "Also made ${names[0]} and ${names[1]}."
         else -> "Also made ${names.dropLast(1).joinToString(", ")}, and ${names.last()}."
+    }
+
+    fun quotedNames(names: List<String>): String =
+        names.filter { it.isNotBlank() }.joinToString(" or ") { "“$it”" }
+
+    fun reason(kind: PasteIssueKind, names: List<String>): String = when (kind) {
+        PasteIssueKind.UNKNOWN_EXERCISE -> {
+            val quoted = quotedNames(names).ifBlank { "that name" }
+            "No library lift named $quoted."
+        }
+        PasteIssueKind.BAD_DOSE ->
+            "Could not read the sets, reps, or hold time."
+        PasteIssueKind.TWO_LIFTS_NEEDED -> {
+            val quoted = quotedNames(names).ifBlank { "one of the names" }
+            "This line is two lifts. $quoted did not match the library."
+        }
+        PasteIssueKind.HOLD_VS_REPS -> {
+            val name = names.firstOrNull().orEmpty().ifBlank { "That lift" }
+            "$name is a timed hold (seconds), not reps — or the other way around."
+        }
+    }
+
+    fun issue(item: PastedUnmatched): String = "“${item.displayLine()}” — ${item.reason}"
+
+    fun pasteIssues(items: List<PastedUnmatched>): String {
+        if (items.isEmpty()) return ""
+        val head = issue(items.first())
+        val more = items.size - 1
+        return if (more <= 0) head else "$head And $more more below."
     }
 }
