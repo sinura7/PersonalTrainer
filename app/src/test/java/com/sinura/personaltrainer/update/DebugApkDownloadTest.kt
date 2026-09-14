@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.update
 
-import com.sinura.personaltrainer.update.DebugApkDownload.writeTo
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
@@ -22,15 +21,14 @@ class DebugApkDownloadTest {
         val payload = byteArrayOf(0x50, 0x4B, 0x03, 0x04) + ByteArray(100) { 1 }
         var lastRead = 0L
         var lastTotal = -1L
-        writeTo(
+        DebugApkDownload.writeTo(
             input = ByteArrayInputStream(payload),
             into = dest,
             contentLength = payload.size.toLong(),
-            onProgress = { read, total ->
-                lastRead = read
-                lastTotal = total
-            },
-        )
+        ) { read, total ->
+            lastRead = read
+            lastTotal = total
+        }
         assertEquals(payload.size.toLong(), lastRead)
         assertEquals(payload.size.toLong(), lastTotal)
         assertEquals(payload.size.toLong(), dest.length())
@@ -44,12 +42,11 @@ class DebugApkDownloadTest {
         val dest = tmp.newFile("big.apk")
         dest.delete()
         try {
-            writeTo(
+            DebugApkDownload.writeTo(
                 input = ByteArrayInputStream(ByteArray(16)),
                 into = dest,
                 contentLength = DebugApkDownload.MAX_BYTES + 1,
-                onProgress = { _, _ -> },
-            )
+            ) { _, _ -> }
             error("expected oversize to throw")
         } catch (_: IOException) {
         }
