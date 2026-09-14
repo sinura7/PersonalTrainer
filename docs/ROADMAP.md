@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Live 57: Create a routine paste reads `Lower A (strength)**`
+> and quotes whole-text fails, plus Home still+name rows from live 56
+> on `trunk`. `debugLiveCode` 57; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 14 Sep 2026 — Create a routine paste reads `Lower A (strength)**`
 > without a `##` heading (leftover `**` stripped). A blob that is still
 > not a workout quotes why (no session name / no numbered lifts). Does
