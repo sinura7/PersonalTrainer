@@ -142,6 +142,64 @@ class WorkoutPasteAllenCorpusTest {
         lifts.first { it.exercise.id == id }
 }
 
+class WorkoutPastePhoneLowerATest {
+    private val catalog = WorkoutPaste.catalogExercises()
+    private val blob = checkNotNull(
+        javaClass.getResource("/allen-lower-a-phone-paste.txt"),
+    ) { "allen-lower-a-phone-paste.txt missing from test resources" }.readText()
+
+    @Test
+    fun phoneBlobIsTheExactLive56String() {
+        assertTrue(blob, blob.startsWith("Lower A (strength)**"))
+        assertFalse(blob, blob.contains("##"))
+        assertTrue(blob, blob.contains("—"))
+        assertTrue(blob, blob.contains("×"))
+        assertTrue(blob, blob.contains("**"))
+    }
+
+    @Test
+    fun phoneLowerATrailingStarsUsedToBeZeroSessions() {
+        // Live 56: STRENGTH_HEADER required (strength|muscle) at end of line.
+        // "Lower A (strength)**" did not match, current stayed null, numbered
+        // lifts were skipped, and the banner said NOTHING.
+        val plan = WorkoutPaste.parseAndMatch(blob, catalog)
+        assertEquals(listOf("Lower A"), plan.sessions.map { it.name })
+        assertEquals("strength", plan.sessionNamed("Lower A")?.emphasis)
+        assertEquals(null, WorkoutPaste.unreadableReason(blob, plan))
+    }
+
+    @Test
+    fun phoneLowerAImportsEveryWrittenLift() {
+        val lower = WorkoutPaste.parseAndMatch(blob, catalog).sessionNamed("Lower A")!!
+        assertEquals(
+            listOf(
+                "ex-barbell-back-squat",
+                "ex-romanian-deadlift",
+                "ex-walking-lunge",
+                "ex-leg-curl",
+                "ex-standing-calf-raise",
+                "ex-cable-crunch",
+                "ex-wall-sit",
+            ),
+            lower.lifts.map { it.exercise.id },
+        )
+        assertEquals(4, lower.lift("ex-barbell-back-squat").targetSets)
+        assertEquals(4, lower.lift("ex-barbell-back-squat").scheme.repsMin)
+        assertEquals(6, lower.lift("ex-barbell-back-squat").scheme.repsMax)
+        val lunges = lower.lift("ex-walking-lunge")
+        assertEquals(3, lunges.targetSets)
+        assertEquals(8, lunges.targetReps)
+        assertTrue(lunges.scheme.perSide)
+        assertEquals("ex-plank", lower.lift("ex-cable-crunch").alternative?.id)
+        assertFalse(lower.lift("ex-cable-crunch").scheme.isTimed)
+        assertTimedHold(lower.lift("ex-wall-sit"), 30, 45)
+        assertTrue("Lower A unmatched=${lower.unmatched}", lower.unmatched.isEmpty())
+    }
+
+    private fun PastedSession.lift(id: String): PastedLift =
+        lifts.first { it.exercise.id == id }
+}
+
 class WorkoutPasteIssueCopyTest {
     private val catalog = WorkoutPaste.catalogExercises()
 
@@ -250,6 +308,37 @@ class WorkoutPasteIssueCopyTest {
         assertTrue(WorkoutPasteCopy.issue(miss).contains("Dead hang — 3×4"))
         assertTrue(miss.reason, miss.reason.contains("timed hold") || miss.reason.contains("seconds"))
         assertFalse(miss.canPick)
+    }
+
+    @Test
+    fun garbagePasteQuotesNoSessionNameAndNoNumberedLifts() {
+        val text = "asdf potato"
+        val plan = WorkoutPaste.parseAndMatch(text, catalog)
+        assertTrue(plan.sessions.isEmpty())
+        val reason = checkNotNull(WorkoutPaste.unreadableReason(text, plan))
+        assertTrue(reason, reason.contains(WorkoutPasteCopy.NO_SESSION_NAME))
+        assertTrue(reason, reason.contains(WorkoutPasteCopy.NO_NUMBERED_LIFTS))
+        assertFalse(reason, reason.contains("Could not read a workout in that text"))
+    }
+
+    @Test
+    fun numberedLiftsWithoutASessionNameQuoteTheMissingTitle() {
+        val text = "1. Back squat — 4×4–6"
+        val plan = WorkoutPaste.parseAndMatch(text, catalog)
+        assertTrue(plan.sessions.isEmpty())
+        val reason = checkNotNull(WorkoutPaste.unreadableReason(text, plan))
+        assertEquals(WorkoutPasteCopy.NO_SESSION_NAME, reason)
+        assertFalse(reason, reason.contains("Could not read a workout in that text"))
+    }
+
+    @Test
+    fun leftoverStarsOnANonSessionTitleAreQuoted() {
+        val text = "**Tuesday**\nasdf"
+        val plan = WorkoutPaste.parseAndMatch(text, catalog)
+        val reason = checkNotNull(WorkoutPaste.unreadableReason(text, plan))
+        assertTrue(reason, reason.contains(WorkoutPasteCopy.NO_SESSION_NAME))
+        assertTrue(reason, reason.contains(WorkoutPasteCopy.IGNORED_STARS))
+        assertTrue(reason, reason.contains(WorkoutPasteCopy.NO_NUMBERED_LIFTS))
     }
 
     @Test

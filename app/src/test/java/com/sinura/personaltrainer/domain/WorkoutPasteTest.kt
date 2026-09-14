@@ -126,6 +126,39 @@ class WorkoutPasteParserTest {
     }
 
     @Test
+    fun trailingStarsOnBlockTitlesStillOpenASession() {
+        listOf(
+            "Upper A (strength)**" to "Upper A",
+            "Lower A (strength)**" to "Lower A",
+            "Upper B (muscle)**" to "Upper B",
+            "Lower B (muscle)**" to "Lower B",
+            "**Upper A (strength)**" to "Upper A",
+            "Lower A" to "Lower A",
+        ).forEach { (title, name) ->
+            val parsed = WorkoutPasteParser.parse("$title\n1. Back squat — 4×4–6")
+            assertEquals(title, listOf(name), parsed.map { it.name })
+            assertEquals(title, 1, parsed.single().lines.size)
+            assertEquals(
+                title,
+                listOf(listOf("Back squat")),
+                parsed.single().lines.single().groups,
+            )
+        }
+    }
+
+    @Test
+    fun leftoverStarsAreStrippedFromATitle() {
+        assertEquals(
+            "Lower A (strength)",
+            WorkoutPasteParser.stripPasteDecor("Lower A (strength)**"),
+        )
+        assertEquals(
+            "Lower A (strength)",
+            WorkoutPasteParser.stripPasteDecor("**Lower A (strength)**"),
+        )
+    }
+
+    @Test
     fun numberedMarkdownDoesNotPoisonTheName() {
         val line = WorkoutPasteParser.parse(
             """

@@ -13,7 +13,9 @@ object WorkoutPasteCopy {
     const val CONFIRM = "Fill from paste"
     const val PASTING = "Reading…"
     const val EMPTY = "Paste a workout first."
-    const val NOTHING = "Could not read a workout in that text."
+    const val NO_SESSION_NAME = "No session name at the top (like Lower A)."
+    const val IGNORED_STARS = "The leftover ** on the title was ignored."
+    const val NO_NUMBERED_LIFTS = "No numbered lifts."
     const val FAILED = "Could not fill that workout. Try again."
     const val EMPTY_LIBRARY = "The lift library is empty, so nothing could be matched."
     const val ISSUE_TITLE = "This line did not fill"
@@ -62,5 +64,19 @@ object WorkoutPasteCopy {
         val head = issue(items.first())
         val more = items.size - 1
         return if (more <= 0) head else "$head And $more more below."
+    }
+
+    fun wholeFailure(
+        noSessionName: Boolean,
+        noNumberedLifts: Boolean,
+        leftoverStars: Boolean,
+    ): String {
+        val parts = mutableListOf<String>()
+        if (noSessionName) {
+            parts += NO_SESSION_NAME
+            if (leftoverStars) parts += IGNORED_STARS
+        }
+        if (noNumberedLifts) parts += NO_NUMBERED_LIFTS
+        return parts.joinToString(" ").ifBlank { NO_SESSION_NAME }
     }
 }

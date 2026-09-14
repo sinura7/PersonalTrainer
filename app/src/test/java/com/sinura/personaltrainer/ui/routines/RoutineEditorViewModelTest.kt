@@ -1406,6 +1406,55 @@ class RoutineEditorViewModelTest {
         )
     }
 
+    @Test
+    fun pasteFillsPhoneLowerAWithTrailingStars() = runBlocking {
+        deps.dbMaintenance.seedCatalog()
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        val text = checkNotNull(javaClass.getResource("/allen-lower-a-phone-paste.txt")).readText()
+        vm.importPaste(text)
+        val state = vm.awaitState {
+            it.name == "Lower A" &&
+                it.routine?.exercises?.any { row -> row.exercise.id == "ex-barbell-back-squat" } == true &&
+                it.error == null
+        }
+        val ids = state.routine!!.exercises.map { it.exercise.id }
+        assertEquals(
+            listOf(
+                "ex-barbell-back-squat",
+                "ex-romanian-deadlift",
+                "ex-walking-lunge",
+                "ex-leg-curl",
+                "ex-standing-calf-raise",
+                "ex-cable-crunch",
+                "ex-wall-sit",
+            ),
+            ids,
+        )
+        val squat = state.routine!!.exercises.first { it.exercise.id == "ex-barbell-back-squat" }
+        assertEquals(4, squat.targetSets)
+        assertEquals(4, squat.targetReps)
+        val sit = state.routine!!.exercises.first { it.exercise.id == "ex-wall-sit" }
+        assertEquals(2, sit.targetSets)
+        assertEquals(1, sit.targetReps)
+        assertEquals(30, sit.targetSeconds)
+        assertEquals(45, sit.targetSecondsMax)
+    }
+
+    @Test
+    fun garbagePasteQuotesAConcreteReason() = runBlocking {
+        deps.dbMaintenance.seedCatalog()
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        vm.importPaste("asdf potato")
+        val state = vm.awaitState { it.error != null }
+        val error = checkNotNull(state.error)
+        assertTrue(error, error.contains(WorkoutPasteCopy.NO_SESSION_NAME))
+        assertTrue(error, error.contains(WorkoutPasteCopy.NO_NUMBERED_LIFTS))
+        assertFalse(error, error.contains("Could not read a workout in that text"))
+        assertTrue(state.routine?.exercises.isNullOrEmpty())
+    }
+
     private fun createViewModel(
         routineId: String,
         container: AppDependencies = deps,
