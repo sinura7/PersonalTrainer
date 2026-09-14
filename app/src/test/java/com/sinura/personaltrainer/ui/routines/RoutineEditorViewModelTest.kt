@@ -1415,7 +1415,7 @@ class RoutineEditorViewModelTest {
         vm.importPaste(text)
         val state = vm.awaitState {
             it.name == "Lower A" &&
-                it.routine?.exercises?.any { row -> row.exercise.id == "ex-barbell-back-squat" } == true &&
+                it.routine?.exercises?.size == 7 &&
                 it.error == null
         }
         val ids = state.routine!!.exercises.map { it.exercise.id }
