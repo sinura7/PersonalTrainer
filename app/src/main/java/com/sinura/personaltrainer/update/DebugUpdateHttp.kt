@@ -8,7 +8,6 @@ import java.net.URL
 
 private const val TAG = "PT/DebugUpdateHttp"
 private const val BODY_MAX_BYTES = 512 * 1024
-private const val USER_AGENT = "Temper-Debug (com.sinura.personaltrainer.debug)"
 
 /**
  * One GitHub GET. The seam that lets [DebugUpdateChecker] run on a plain JVM.
@@ -25,7 +24,7 @@ class HttpUrlConnectionDebugUpdateHttp : DebugUpdateHttp {
             connectTimeout = 10_000
             readTimeout = 15_000
             instanceFollowRedirects = true
-            setRequestProperty("User-Agent", USER_AGENT)
+            setRequestProperty("User-Agent", DEBUG_UPDATE_USER_AGENT)
             setRequestProperty("Accept", "application/vnd.github+json")
         }
         return try {

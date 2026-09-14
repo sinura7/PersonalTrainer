@@ -1,8 +1,5 @@
 package com.sinura.personaltrainer.update
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.CoroutineDispatcher
@@ -25,7 +22,7 @@ interface DebugUpdatePort {
     fun onForeground()
     fun onSettingsOpened()
     fun dismissBanner()
-    fun openOffer(context: Context)
+    fun install()
 }
 
 object DisabledDebugUpdate : DebugUpdatePort {
@@ -33,25 +30,34 @@ object DisabledDebugUpdate : DebugUpdatePort {
     override fun onForeground() {}
     override fun onSettingsOpened() {}
     override fun dismissBanner() {}
-    override fun openOffer(context: Context) {}
+    override fun install() {}
 }
 
 internal class DebugUpdateMonitor(
     private val checker: DebugUpdateChecker,
     private val cache: DebugUpdateCache,
+    private val fetcher: DebugApkFetcher,
+    private val installer: DebugApkInstaller,
     private val scope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher,
 ) : DebugUpdatePort {
     private val mutex = Mutex()
+    private val installMutex = Mutex()
     private val held = MutableStateFlow(DebugUpdateUi())
     override val ui: StateFlow<DebugUpdateUi> = held.asStateFlow()
 
     override fun onForeground() {
-        scope.launch { refresh(FOREGROUND_TTL_MS) }
+        scope.launch {
+            refresh(FOREGROUND_TTL_MS)
+            retryInstallIfPermissionGranted()
+        }
     }
 
     override fun onSettingsOpened() {
-        scope.launch { refresh(SETTINGS_TTL_MS) }
+        scope.launch {
+            refresh(SETTINGS_TTL_MS)
+            retryInstallIfPermissionGranted()
+        }
     }
 
     override fun dismissBanner() {
@@ -63,16 +69,67 @@ internal class DebugUpdateMonitor(
         }
     }
 
-    override fun openOffer(context: Context) {
-        val url = held.value.offer?.releaseUrl ?: return
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        runCatchingCancellable { context.startActivity(intent) }
-            .onFailure { error -> AppLog.w(TAG, "Opening the GitHub drop failed", error) }
+    override fun install() {
+        scope.launch { runInstall() }
+    }
+
+    private suspend fun retryInstallIfPermissionGranted() {
+        if (held.value.install != DebugUpdateInstall.NeedsPermission) return
+        if (!installer.canInstall()) return
+        runInstall()
+    }
+
+    private suspend fun runInstall() {
+        if (!installMutex.tryLock()) return
+        try {
+            val offer = held.value.offer ?: return
+            if (!installer.canInstall()) {
+                publishInstall(DebugUpdateInstall.NeedsPermission)
+                installer.openInstallPermissionSettings()
+                return
+            }
+            publishInstall(DebugUpdateInstall.Downloading, percent = null)
+            val dest = withContext(ioDispatcher) {
+                runCatchingCancellable {
+                    val file = installer.stagingFile(offer.versionCode)
+                    fetcher.fetch(offer.apkUrl, file) { read, total ->
+                        publishInstall(
+                            DebugUpdateInstall.Downloading,
+                            percent = DebugApkDownload.percent(read, total),
+                        )
+                    }
+                    file
+                }
+            }.getOrElse { error ->
+                AppLog.w(TAG, "Downloading the debug APK failed", error)
+                publishInstall(DebugUpdateInstall.Failed)
+                return
+            }
+            publishInstall(DebugUpdateInstall.Installing)
+            runCatchingCancellable { installer.install(dest) }
+                .onFailure { error ->
+                    AppLog.w(TAG, "Handing the debug APK to the installer failed", error)
+                    publishInstall(DebugUpdateInstall.Failed)
+                    return
+                }
+            publishInstall(DebugUpdateInstall.Idle)
+        } finally {
+            installMutex.unlock()
+        }
+    }
+
+    private fun publishInstall(install: DebugUpdateInstall, percent: Int? = null) {
+        val current = held.value
+        held.value = current.copy(
+            install = install,
+            downloadPercent = if (install == DebugUpdateInstall.Downloading) percent else null,
+        )
     }
 
     internal suspend fun refresh(minIntervalMs: Long) {
+        if (held.value.install.blocksRefresh) return
         mutex.withLock {
+            if (held.value.install.blocksRefresh) return
             val offer = withContext(ioDispatcher) {
                 runCatchingCancellable { checker.check(minIntervalMs) }.getOrElse { error ->
                     AppLog.w(TAG, "Debug update refresh failed", error)
@@ -82,10 +139,16 @@ internal class DebugUpdateMonitor(
             val dismissed = withContext(ioDispatcher) {
                 runCatchingCancellable { cache.dismissedVersionCode() }.getOrDefault(0)
             }
+            val previous = held.value
             held.value = DebugUpdateUi(
                 offer = offer,
                 showBanner = offer != null && offer.versionCode > dismissed,
+                install = if (offer == null) DebugUpdateInstall.Idle else previous.install,
+                downloadPercent = null,
             )
         }
     }
 }
+
+private val DebugUpdateInstall.blocksRefresh: Boolean
+    get() = this == DebugUpdateInstall.Downloading || this == DebugUpdateInstall.Installing

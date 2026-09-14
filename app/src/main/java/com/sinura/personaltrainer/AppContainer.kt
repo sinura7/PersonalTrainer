@@ -6,11 +6,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.sinura.personaltrainer.update.AndroidDebugApkInstaller
 import com.sinura.personaltrainer.update.DataStoreDebugUpdateCache
 import com.sinura.personaltrainer.update.DebugUpdateChecker
 import com.sinura.personaltrainer.update.DebugUpdateMonitor
 import com.sinura.personaltrainer.update.DebugUpdatePort
 import com.sinura.personaltrainer.update.DisabledDebugUpdate
+import com.sinura.personaltrainer.update.HttpUrlConnectionDebugApkFetcher
 import com.sinura.personaltrainer.update.HttpUrlConnectionDebugUpdateHttp
 import com.sinura.personaltrainer.update.debugUpdateDataStore
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
@@ -61,8 +63,8 @@ class AppContainer(context: Context) : AppDependencies {
 
     /**
      * Temper Debug only. Gym-floor is [DisabledDebugUpdate]: it never talks to
-     * GitHub and never nags. The prompt opens the drop; it does not skip
-     * Android's install gate.
+     * GitHub and never nags. The tap path downloads the debug APK and hands it
+     * to Android's installer; it does not skip the system install sheet.
      */
     val debugUpdate: DebugUpdatePort = if (BuildConfig.DEBUG) {
         val cache = DataStoreDebugUpdateCache(context.debugUpdateDataStore)
@@ -76,6 +78,8 @@ class AppContainer(context: Context) : AppDependencies {
                 isOnline = { NetworkChecker(context).isOnline() },
             ),
             cache = cache,
+            fetcher = HttpUrlConnectionDebugApkFetcher(),
+            installer = AndroidDebugApkInstaller(context),
             scope = CoroutineScope(SupervisorJob() + ioDispatcher),
             ioDispatcher = ioDispatcher,
         )

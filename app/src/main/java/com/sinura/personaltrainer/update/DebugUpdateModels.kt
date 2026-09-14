@@ -1,7 +1,9 @@
 package com.sinura.personaltrainer.update
 
 /**
- * A newer Temper Debug drop on GitHub, ready to open — not to silent-install.
+ * A newer Temper Debug drop on GitHub. The tap path downloads the APK and
+ * hands it to Android's installer — it does not silent-install, and it does
+ * not open the GitHub webpage.
  */
 data class DebugUpdateOffer(
     val versionCode: Int,
@@ -10,9 +12,19 @@ data class DebugUpdateOffer(
     val apkUrl: String,
 )
 
+enum class DebugUpdateInstall {
+    Idle,
+    NeedsPermission,
+    Downloading,
+    Installing,
+    Failed,
+}
+
 data class DebugUpdateUi(
     val offer: DebugUpdateOffer? = null,
     val showBanner: Boolean = false,
+    val install: DebugUpdateInstall = DebugUpdateInstall.Idle,
+    val downloadPercent: Int? = null,
 )
 
 internal data class CachedDebugCheck(

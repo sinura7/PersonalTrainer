@@ -16,7 +16,6 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
@@ -151,7 +150,6 @@ fun HomeScreen(
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
     val reviewOccurrenceId by viewModel.reviewOccurrenceId.collectAsStateWithLifecycle()
     val focusEpochDay by viewModel.focusEpochDay.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     val debugUpdate = rememberDebugUpdatePort()
     val updateUi by debugUpdate.ui.collectAsStateWithLifecycle()
     LaunchedEffect(weekStart, today) {
@@ -319,7 +317,8 @@ fun HomeScreen(
         if (updateUi.showBanner) {
             item {
                 DebugUpdateBanner(
-                    onOpen = { debugUpdate.openOffer(context) },
+                    ui = updateUi,
+                    onInstall = debugUpdate::install,
                     onDismiss = debugUpdate::dismissBanner,
                 )
             }
