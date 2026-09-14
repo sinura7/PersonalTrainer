@@ -51,9 +51,10 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  * Start a workout and opens the start sheet (free / routine / cardio /
  * Extra). Plan still adds sessions. Still open leftovers can skip (ADR-021).
  *
- * Each session is its own [DayBlock] — stills, numbered list, estimate, Start on
- * the foot — rather than a row in one grouped list: a day's sessions are
- * separate things, and the block is the control (ADR-021 §1).
+ * Each session is its own [DayBlock] — still beside number and name,
+ * estimate, Start on the foot — rather than a row in one grouped list: a
+ * day's sessions are separate things, and the block is the control
+ * (ADR-021 §1).
  */
 @Composable
 fun DailyAgendaCard(

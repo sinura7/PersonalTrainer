@@ -8,41 +8,70 @@ import org.junit.Test
 
 class DayBlockCopyTest {
     private val lifts = listOf("Squat", "Row", "Bench", "Curl", "Fly", "Dip")
+    private val upper = listOf(
+        "Barbell Bench Press",
+        "Pull-Up",
+        "Overhead Press",
+        "Chest-Supported Dumbbell Row",
+        "Lat Pulldown",
+        "Skull Crusher",
+        "Face Pull",
+    )
 
     @Test
-    fun orderNamesOnlyTheLiftsWithAStillAndCountsTheRest() {
+    fun aTypicalSessionNamesEveryLiftAndALongOneStopsAtEight() {
+        assertEquals(8, DayBlockCopy.ROW_LIMIT)
         assertEquals(listOf("1 Squat", "2 Row"), DayBlockCopy.names(listOf("Squat", "Row")))
         assertEquals(listOf("1 Squat"), DayBlockCopy.names(listOf("Squat")))
         assertEquals(
-            listOf("1 Squat", "2 Row", "3 Bench", "4 Curl", "+2"),
+            listOf("1 Squat", "2 Row", "3 Bench", "4 Curl", "5 Fly", "6 Dip"),
             DayBlockCopy.names(lifts),
         )
+        assertNull(DayBlockCopy.extra(lifts))
         assertEquals(listOf("1 Squat", "+5"), DayBlockCopy.names(lifts, limit = 0))
+        assertEquals("+5", DayBlockCopy.extra(lifts, limit = 0))
         assertEquals(emptyList<String>(), DayBlockCopy.names(emptyList()))
+        assertNull(DayBlockCopy.extra(emptyList()))
+        assertFalse(DayBlockCopy.isExtra("1 Squat"))
+        assertTrue(DayBlockCopy.isExtra("+3"))
     }
 
     @Test
-    fun orderIsAListNotAMiddotSentence() {
-        val upper = listOf(
-            "Barbell Bench Press",
-            "Pull-Up",
-            "Overhead Press",
-            "Chest-Supported Dumbbell Row",
-            "Lat Pulldown",
-            "Skull Crusher",
-            "Face Pull",
-        )
+    fun upperANamesAllSevenLiftsAsAListNotAMiddotSentence() {
         assertEquals(
             listOf(
                 "1 Barbell Bench Press",
                 "2 Pull-Up",
                 "3 Overhead Press",
                 "4 Chest-Supported Dumbbell Row",
-                "+3",
+                "5 Lat Pulldown",
+                "6 Skull Crusher",
+                "7 Face Pull",
             ),
             DayBlockCopy.names(upper),
         )
+        assertNull(DayBlockCopy.extra(upper))
         assertTrue(DayBlockCopy.names(upper).none { it.contains(" · ") })
+    }
+
+    @Test
+    fun nineLiftsPictureEightAndCountTheNinth() {
+        val nine = upper + "Band Pull-Apart" + "Cable Crunch"
+        assertEquals(
+            listOf(
+                "1 Barbell Bench Press",
+                "2 Pull-Up",
+                "3 Overhead Press",
+                "4 Chest-Supported Dumbbell Row",
+                "5 Lat Pulldown",
+                "6 Skull Crusher",
+                "7 Face Pull",
+                "8 Band Pull-Apart",
+                "+1",
+            ),
+            DayBlockCopy.names(nine),
+        )
+        assertEquals("+1", DayBlockCopy.extra(nine))
     }
 
     @Test

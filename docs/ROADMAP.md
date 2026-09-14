@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Home session cards (and the empty-agenda leftover head)
+> picture each lift beside its number and name. The 4-up still strip is
+> gone. A typical session (Upper A, 7) names every lift; past eight rows
+> the rest is `+N`. Title, `7 lifts · about 60 min`, and Start stay.
+> Does not bump live 55. Gym-floor `appVersionCode` stays 1.
+>
 > 14 Sep 2026 — Live 55: Extra forty locked combos after kit pick,
 > tab and Settings glyphs, and numbered Home session lifts on
 > `trunk`. `debugLiveCode` 55; suffix from
