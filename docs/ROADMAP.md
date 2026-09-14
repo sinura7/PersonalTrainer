@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Live 55: Extra forty locked combos after kit pick,
+> tab and Settings glyphs, and numbered Home session lifts on
+> `trunk`. `debugLiveCode` 55; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 14 Sep 2026 — Extra recommends forty locked combos after Bodyweight
 > (none) / Free weights / Machines / Mixed. Catalog v9 adds eight floor
 > stretch names. Does not bump live 54. Gym-floor `appVersionCode` stays 1.
