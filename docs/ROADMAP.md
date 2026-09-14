@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Floor card: overflow ⋮ on the identity row; compact
+> weight row then reps row. Does not bump live 58. Gym-floor
+> `appVersionCode` stays 1.
+>
 > 14 Sep 2026 — Live 58: compact gym-floor chrome (one current lift,
 > one Log set) on `trunk`. `debugLiveCode` 58; suffix from
 > `python3 tools/debug-drop-plan.py`.

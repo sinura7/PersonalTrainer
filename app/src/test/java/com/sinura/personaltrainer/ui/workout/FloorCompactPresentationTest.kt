@@ -6,8 +6,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Live-57 floor spacing: one current lift, compact wells, idle rest as a
- * quiet line, Log set as the only Volt. Primary controls stay in the dock.
+ * Live-58 floor restack: overflow on the identity row, weight then reps,
+ * idle rest a quiet line, Log set the only Volt. Primary controls stay in
+ * the dock.
  */
 class FloorCompactPresentationTest {
     @Test
@@ -44,7 +45,27 @@ class FloorCompactPresentationTest {
     }
 
     @Test
-    fun activeLiftUsesACompactWeightRepsRowAndKeepsHoldClock() {
+    fun overflowLivesOnTheHeaderRowNotItsOwnRow() {
+        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.overflowOnHeaderRow())
+        val card = readOwned("ui/workout/WorkoutLiftCard.kt")
+        assertTrue(card.contains("menu = {"))
+        assertTrue(card.contains("LiftOverflowMenu("))
+        assertTrue(card.contains("WorkoutTestTags.LIFT_OPTIONS"))
+        assertFalse(card.contains("CurrentLiftHeader("))
+        assertFalse(card.contains("SetDots("))
+        val headerCall = card.substring(card.indexOf("\n    LiftCard("), card.indexOf("if (!selected)"))
+        assertTrue(headerCall.contains("trailing = headerTrailing"))
+        assertTrue(headerCall.contains("menu = {"))
+        val liftCard = readOwned("ui/components/LiftCard.kt")
+        val header = liftCard.substring(liftCard.indexOf("Row("), liftCard.indexOf("content()"))
+        assertTrue(header.contains("trailing()"))
+        assertTrue(header.contains("menu()"))
+        assertTrue(liftCard.contains("verticalAlignment = Alignment.Top"))
+    }
+
+    @Test
+    fun compactFloorStacksWeightAboveRepsAndKeepsHoldClock() {
+        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.stackWeightAboveReps())
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
         assertTrue(card.contains("compact = true"))
         assertTrue(card.contains("FloorCompactChrome.showOptionalLogOptions(restRunning)"))
@@ -55,7 +76,18 @@ class FloorCompactPresentationTest {
         assertTrue(liftCard.contains("CountBadge("))
         val entry = readOwned("ui/components/SetEntryPanel.kt")
         assertTrue(entry.contains("compact: Boolean = false"))
-        assertTrue(entry.contains("InstrumentType.numeralMd"))
+        assertTrue(entry.contains("if (compact || stack)"))
+        val wellStart = entry.indexOf("internal fun NumeralWell")
+        val compactStart = entry.indexOf("if (compact)", wellStart)
+        val tallStart = entry.indexOf("clip(RoundedCornerShape(Radius.md))", compactStart)
+        assertTrue(compactStart >= 0 && tallStart > compactStart)
+        val compactWell = entry.substring(compactStart, tallStart)
+        assertTrue(compactWell.contains("Kicker(label, asHeading = false)"))
+        assertTrue(compactWell.contains("InstrumentType.numeralMd"))
+        assertTrue(compactWell.contains("compact = true"))
+        assertTrue(compactWell.contains("padding(horizontal = Metrics.space2, vertical = Metrics.space1)"))
+        assertFalse(compactWell.contains("numeralLg"))
+        assertFalse(compactWell.contains("padding(Metrics.space3)"))
         val header = readOwned("ui/workout/WorkoutHeader.kt")
         assertTrue(header.contains("ELAPSED") || header.contains("elapsed") || header.contains("Elapsed"))
     }

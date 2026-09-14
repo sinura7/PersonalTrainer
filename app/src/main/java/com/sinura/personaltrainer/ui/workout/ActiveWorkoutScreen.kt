@@ -79,6 +79,7 @@ object WorkoutTestTags {
     const val SELECTED_LIFT = "workout-selected-lift"
     const val START_NEXT = "workout-start-next"
     const val START_REST = "workout-start-rest"
+    const val LIFT_OPTIONS = "workout-lift-options"
     fun liftCard(exerciseId: String) = "workout-lift-card-$exerciseId"
     fun liftSets(exerciseId: String) = "workout-lift-sets-$exerciseId"
     fun liftRest(exerciseId: String) = "workout-lift-rest-$exerciseId"

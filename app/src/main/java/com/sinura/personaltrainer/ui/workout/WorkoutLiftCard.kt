@@ -9,16 +9,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreVert
@@ -54,7 +51,6 @@ import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
-import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
@@ -62,7 +58,6 @@ import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.WorkoutCopy
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -144,7 +139,6 @@ internal fun WorkoutLiftCard(
     val draftReps = card.draftReps
     val draftWarmup = card.draftWarmup
     val draftRpe = card.draftRpe
-    val microRec = card.microRec
     val unit = card.unit
     val canEdit = card.canEdit
     val showAddSet = card.showAddSet
@@ -211,6 +205,15 @@ internal fun WorkoutLiftCard(
         onClick = onSelect,
         cardTag = WorkoutTestTags.liftCard(lift.exercise.id),
         trailing = headerTrailing,
+        menu = {
+            if (selected && canEdit) {
+                LiftOverflowMenu(
+                    liftId = lift.id,
+                    onSwap = onSwap,
+                    onRemove = onRemove,
+                )
+            }
+        },
     ) {
         if (!selected) return@LiftCard
         Column(
@@ -224,18 +227,6 @@ internal fun WorkoutLiftCard(
                 ),
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
-            if (canEdit) {
-                CurrentLiftHeader(
-                    lift = lift,
-                    workingLogged = workingLogged,
-                    unit = unit,
-                    canEdit = canEdit,
-                    rec = microRec,
-                    onSwap = onSwap,
-                    onRemove = onRemove,
-                    showName = false,
-                )
-            }
             lastPerformance?.let { last ->
                 LastTimeStrip(
                     summary = last,
@@ -362,110 +353,41 @@ private fun LiftChipBadges(
 }
 
 @Composable
-internal fun CurrentLiftHeader(
-    lift: SessionExercise,
-    workingLogged: Int,
-    unit: WeightUnit,
-    canEdit: Boolean,
-    rec: SetMicroRec?,
+private fun LiftOverflowMenu(
+    liftId: String,
     onSwap: () -> Unit,
     onRemove: () -> Unit,
-    modifier: Modifier = Modifier,
-    showName: Boolean = true,
 ) {
-    val targetSets = lift.targetSets.coerceAtLeast(1)
-    val targetReps = lift.targetReps.coerceAtLeast(1)
-    var menuOpen by rememberSaveable(lift.id) { mutableStateOf(false) }
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        if (showName || canEdit) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (showName) {
-                    Text(
-                        lift.exercise.name,
-                        modifier = Modifier.weight(1f),
-                        style = InstrumentType.display,
-                        color = TextPrimary,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-                if (canEdit) {
-                    Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(
-                                Icons.Outlined.MoreVert,
-                                contentDescription = "Lift options",
-                                tint = TextSecondary,
-                            )
-                        }
-                        InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Swap lift…", style = InstrumentType.bodyStrong, color = TextPrimary)
-                                },
-                                onClick = {
-                                    menuOpen = false
-                                    onSwap()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Remove lift", style = InstrumentType.bodyStrong, color = Danger)
-                                },
-                                onClick = {
-                                    menuOpen = false
-                                    onRemove()
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        if (showName) {
-            SetDots(completed = workingLogged, target = targetSets)
-            val liveRec = rec?.takeIf { it.reasonCode != SetMicroRecCalculator.LIFT_DONE }
-            val loadClass = LoadClass.of(lift.exercise.loadType)
-            val liveWeightLabel = liveRec?.nextWeightKg
-                ?.takeIf { it > 0.0 && loadClass.weightMeaning != com.sinura.personaltrainer.domain.WeightMeaning.NONE }
-                ?.toWeightLabel(unit)
-            Text(
-                WorkoutCopy.setProgress(
-                    workingLogged = workingLogged,
-                    targetSets = targetSets,
-                    targetReps = targetReps,
-                    targetWeightLabel = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit),
-                    liveReps = liveRec?.nextReps.takeUnless { lift.targetSeconds != null },
-                    liveWeightLabel = liveWeightLabel,
-                    targetSeconds = lift.targetSeconds,
-                    targetSecondsMax = lift.targetSecondsMax,
-                ),
-                style = InstrumentType.caption,
-                color = TextSecondary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
+    var menuOpen by rememberSaveable(liftId) { mutableStateOf(false) }
+    Box {
+        IconButton(
+            onClick = { menuOpen = true },
+            modifier = Modifier.testTag(WorkoutTestTags.LIFT_OPTIONS),
+        ) {
+            Icon(
+                Icons.Outlined.MoreVert,
+                contentDescription = "Lift options",
+                tint = TextSecondary,
             )
         }
-    }
-}
-
-@Composable
-internal fun SetDots(completed: Int, target: Int) {
-    val total = maxOf(target, completed)
-    Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        repeat(total) { index ->
-            Box(
-                modifier = Modifier
-                    .size(Metrics.space2)
-                    .clip(CircleShape)
-                    // Progress, not an action. Volt on this screen is reserved for the
-                    // things that are live or about to be tapped.
-                    .background(if (index < completed) TextSecondary else Hairline),
+        InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = {
+                    Text("Swap lift…", style = InstrumentType.bodyStrong, color = TextPrimary)
+                },
+                onClick = {
+                    menuOpen = false
+                    onSwap()
+                },
+            )
+            DropdownMenuItem(
+                text = {
+                    Text("Remove lift", style = InstrumentType.bodyStrong, color = Danger)
+                },
+                onClick = {
+                    menuOpen = false
+                    onRemove()
+                },
             )
         }
     }
