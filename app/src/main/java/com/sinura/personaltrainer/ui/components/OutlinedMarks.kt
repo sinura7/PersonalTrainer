@@ -72,7 +72,7 @@ private fun svgMark(name: String, d: String, autoMirror: Boolean = false): Image
         }
     }.build()
 
-private fun PathBuilder.appendSvg(d: String) {
+internal fun PathBuilder.appendSvg(d: String) {
     for (node in PathParser().parsePathString(d).toNodes()) {
         when (node) {
             is PathNode.MoveTo -> moveTo(node.x, node.y)

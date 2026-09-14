@@ -23,5 +23,9 @@ class ShippingTabsTest {
         )
         assertFalse(shippingTabs.any { it.route == Route.Library })
         assertFalse(shippingTabs.any { it.route == Route.PlanDay })
+        assertEquals(
+            listOf("Home", "Body", "Plan", "History", "Settings"),
+            shippingTabs.map { it.icon.name },
+        )
     }
 }

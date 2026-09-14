@@ -115,7 +115,7 @@ internal fun SettingsHome(
                 SettingsIndexRow(
                     title = SettingsHomeCopy.PLAN,
                     subtitle = PlanSetupCopy.ROW_TITLE,
-                    icon = TemperIcons.Plan,
+                    icon = TemperIcons.YourPlan,
                     tag = SettingsTags.ROW_PLAN,
                     onClick = { onOpen(SettingsPage.PLAN) },
                 )
