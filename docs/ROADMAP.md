@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Create a routine paste reads `Lower A (strength)**`
+> without a `##` heading (leftover `**` stripped). A blob that is still
+> not a workout quotes why (no session name / no numbered lifts). Does
+> not bump live 56. Gym-floor `appVersionCode` stays 1.
+>
 > 14 Sep 2026 — Live 56: Home session cards picture each lift beside its
 > name, and Create a routine paste quotes failing lines and fills
 > Upper/Lower on `trunk`. `debugLiveCode` 56; suffix from

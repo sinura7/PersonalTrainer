@@ -870,8 +870,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     return@launchWrite
                 }
                 val plan = WorkoutPaste.parseAndMatch(text, catalog)
-                if (plan.sessions.isEmpty()) {
-                    error.fail(source = ERR_PASTE, message = WorkoutPasteCopy.NOTHING)
+                WorkoutPaste.unreadableReason(text, plan)?.let { reason ->
+                    error.fail(source = ERR_PASTE, message = reason)
                     return@launchWrite
                 }
                 val currentId = ensureRoutineId() ?: return@launchWrite

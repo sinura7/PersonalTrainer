@@ -265,6 +265,19 @@ object WorkoutPaste {
         )
     }
 
+    /**
+     * Why this paste is not a workout, in everyday words. Null when at
+     * least one lift matched or a line is waiting to be picked.
+     *
+     * Per-line quoting never runs when the parser never opened a session.
+     */
+    fun unreadableReason(text: String, plan: WorkoutPastePlan): String? {
+        if (plan.sessions.any { it.lifts.isNotEmpty() || it.unmatched.isNotEmpty() }) {
+            return null
+        }
+        return WorkoutPasteParser.explainEmpty(text)
+    }
+
     private fun matchSession(session: ParsedSession, catalog: List<Exercise>): PastedSession {
         val lifts = mutableListOf<PastedLift>()
         val unmatched = mutableListOf<PastedUnmatched>()
@@ -431,6 +444,10 @@ private enum class PasteSection {
 
 internal object WorkoutPasteParser {
     private val STRENGTH_HEADER = Regex("""^(.+?)\s+\((strength|muscle)\)\s*$""", RegexOption.IGNORE_CASE)
+    private val BLOCK_HEADER = Regex(
+        """^(upper|lower)\s+([ab])(?:\s+\((strength|muscle)\))?\s*$""",
+        RegexOption.IGNORE_CASE,
+    )
     private val CARDIO_HEADER = Regex("""^cardio\b""", RegexOption.IGNORE_CASE)
     private val FLEX_HEADER = Regex("""^flexibility\b""", RegexOption.IGNORE_CASE)
     private val WEEKLY_HEADER = Regex("""^(weekly layout|week)$""", RegexOption.IGNORE_CASE)
@@ -460,7 +477,7 @@ internal object WorkoutPasteParser {
         text.lineSequence().forEach { raw ->
             val line = raw.trim().trimStart('\uFEFF')
             if (line.isEmpty() || line.startsWith(">")) return@forEach
-            val content = line.trimStart('#').trim()
+            val content = stripPasteDecor(line)
             if (content.isEmpty()) return@forEach
             header(content)?.let { next ->
                 current?.let { sessions += it }
@@ -492,7 +509,7 @@ internal object WorkoutPasteParser {
                 PasteSection.SESSION -> {
                     val session = current ?: return@forEach
                     if (looksLikeProse(content)) return@forEach
-                    session.lines += workLine(content, session.defaultScheme)
+                    session.lines += workLine(content, session.defaultScheme).copy(raw = line)
                 }
             }
         }
@@ -502,6 +519,42 @@ internal object WorkoutPasteParser {
             weekLines = weekLines,
             progressionLines = progressionLines,
             warmupLine = warmupLine,
+        )
+    }
+
+    /**
+     * ChatGPT leftover on a title: `Lower A (strength)**` or wrapping
+     * `**Lower A (strength)**`. `##` headings are already a hash prefix.
+     */
+    internal fun stripPasteDecor(line: String): String {
+        var cleaned = line.trim().trimStart('\uFEFF')
+        cleaned = cleaned.trimStart('#').trim()
+        cleaned = cleaned.replace(Regex("""^[\*_]+"""), "").replace(Regex("""[\*_]+$"""), "").trim()
+        return cleaned
+    }
+
+    /**
+     * Everyday words for a blob that never became a session with work.
+     * Numbered lifts with no title used to vanish into the generic empty
+     * parse; quote that, including leftover `**` on the first line.
+     */
+    fun explainEmpty(text: String): String {
+        var leftoverStars = false
+        var workLines = 0
+        var sessionHeaders = 0
+        text.lineSequence().forEach { raw ->
+            val line = raw.trim().trimStart('\uFEFF')
+            if (line.isEmpty() || line.startsWith(">")) return@forEach
+            val content = stripPasteDecor(line)
+            if (content.isEmpty()) return@forEach
+            if (line.contains("**") || line.contains("__")) leftoverStars = true
+            if (header(content) != null) sessionHeaders++
+            if (looksLikeWork(content)) workLines++
+        }
+        return WorkoutPasteCopy.wholeFailure(
+            noSessionName = sessionHeaders == 0,
+            noNumberedLifts = workLines == 0,
+            leftoverStars = leftoverStars,
         )
     }
 
@@ -533,6 +586,16 @@ internal object WorkoutPasteParser {
                 kind = PastedSessionKind.STRENGTH,
             )
         }
+        BLOCK_HEADER.matchEntire(line)?.let { match ->
+            val side = match.groupValues[1].lowercase().replaceFirstChar { it.uppercase() }
+            val letter = match.groupValues[2].uppercase()
+            val emphasis = match.groupValues[3].lowercase().ifBlank { null }
+            return ParsedSessionBuilder(
+                name = "$side $letter",
+                emphasis = emphasis,
+                kind = PastedSessionKind.STRENGTH,
+            )
+        }
         if (CARDIO_HEADER.containsMatchIn(line)) {
             return ParsedSessionBuilder(
                 name = "Cardio",
@@ -558,6 +621,13 @@ internal object WorkoutPasteParser {
             )
         }
         return null
+    }
+
+    private fun looksLikeWork(line: String): Boolean {
+        val unmarked = LIST_PREFIX.replaceFirst(line.trim(), "")
+        return ROLE.containsMatchIn(unmarked) ||
+            SCHEME.containsMatchIn(unmarked) ||
+            LIST_PREFIX.containsMatchIn(line)
     }
 
     private fun looksLikeProse(line: String): Boolean {
