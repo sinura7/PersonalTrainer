@@ -49,13 +49,13 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 /**
- * Weight and reps, side by side, in one panel.
+ * Weight and reps in one panel.
  *
- * These were two stacked full-width rows with 108x96dp labelled buttons on either side of
- * each: about three hundred vertical density-independent pixels spent on two numbers that
- * are always read together, which pushed the set list — the record of what you have
- * actually done — off the bottom of the screen. Side by side they fit in roughly a third of
- * that, and the two values a lifter is deciding between sit in one glance.
+ * The gym floor (`compact`) stacks them: a weight row, then a reps (or time)
+ * row. Each is one labelled compact line — not giant empty wells, and not two
+ * numbers squeezed onto one cramped pair. Extra, paste, and Home still use
+ * the tall wells; those sit side by side until the system font is large enough
+ * that a three-digit half-kilo no longer fits, then they stack too.
  *
  * Nudge with the plates, or tap the number to type when the nudge is too far. The numeral
  * is the field — an underline marks it as tappable so typing is not a hidden gesture.
@@ -109,7 +109,7 @@ fun SetEntryPanel(
             )
         }
     }
-    if (stack) {
+    if (compact || stack) {
         Column(
             modifier = modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Metrics.space2),
@@ -326,8 +326,9 @@ internal fun NumeralWell(
                     .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
                     .padding(horizontal = Metrics.space2, vertical = Metrics.space1),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
+                Kicker(label, asHeading = false)
                 Row(
                     modifier = Modifier
                         .weight(1f)
@@ -335,6 +336,7 @@ internal fun NumeralWell(
                         .clickable(onClick = onType, onClickLabel = typeLabel)
                         .semantics { contentDescription = spoken },
                     verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.End,
                 ) {
                     Text(
                         value,

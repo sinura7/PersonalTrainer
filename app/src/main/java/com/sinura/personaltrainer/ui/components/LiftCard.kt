@@ -38,6 +38,9 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
  * header. One chrome is what keeps a squat on the floor looking like the
  * same squat in History. Library and the picker stay [ExerciseRow] — a
  * list, not a card.
+ *
+ * [menu] sits on the identity row, outside the merged-semantics tap target,
+ * so swap / remove stay a real button instead of a second header row.
  */
 @Composable
 fun LiftCard(
@@ -49,6 +52,7 @@ fun LiftCard(
     onClick: (() -> Unit)? = null,
     cardTag: String? = null,
     trailing: @Composable () -> Unit = {},
+    menu: @Composable () -> Unit = {},
     content: @Composable () -> Unit = {},
 ) {
     val shape = RoundedCornerShape(Radius.sm)
@@ -68,49 +72,56 @@ fun LiftCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-                .then(if (cardTag != null) Modifier.testTag(cardTag) else Modifier)
-                .semantics(mergeDescendants = true) {
-                    if (spoken != null) contentDescription = spoken
-                    this.selected = selected
-                }
                 .padding(Metrics.space3),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalAlignment = Alignment.Top,
         ) {
-            if (number != null) {
-                CountBadge(number = number, selected = selected)
-            }
-            ExerciseThumb(
-                exercise = exercise,
-                size = ThumbSize.header,
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    exercise.name,
-                    style = InstrumentType.title,
-                    color = TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (exercise.muscleGroup.isNotBlank()) {
-                        Text(
-                            exercise.muscleGroup,
-                            modifier = Modifier.weight(1f, fill = false),
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    EquipmentChip(exercise.equipment)
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                    .then(if (cardTag != null) Modifier.testTag(cardTag) else Modifier)
+                    .semantics(mergeDescendants = true) {
+                        if (spoken != null) contentDescription = spoken
+                        this.selected = selected
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                if (number != null) {
+                    CountBadge(number = number, selected = selected)
                 }
+                ExerciseThumb(
+                    exercise = exercise,
+                    size = ThumbSize.header,
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        exercise.name,
+                        style = InstrumentType.title,
+                        color = TextPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (exercise.muscleGroup.isNotBlank()) {
+                            Text(
+                                exercise.muscleGroup,
+                                modifier = Modifier.weight(1f, fill = false),
+                                style = InstrumentType.caption,
+                                color = TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        EquipmentChip(exercise.equipment)
+                    }
+                }
+                trailing()
             }
-            trailing()
+            menu()
         }
         content()
     }

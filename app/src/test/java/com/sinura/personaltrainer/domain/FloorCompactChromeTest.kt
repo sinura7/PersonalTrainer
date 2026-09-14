@@ -20,4 +20,14 @@ class FloorCompactChromeTest {
     fun idleStartNextIsNotASecondVolt() {
         assertFalse(FloorCompactChrome.idleStartNextIsVolt())
     }
+
+    @Test
+    fun overflowSitsOnTheHeaderRow() {
+        assertTrue(FloorCompactChrome.overflowOnHeaderRow())
+    }
+
+    @Test
+    fun compactFloorStacksWeightAboveReps() {
+        assertTrue(FloorCompactChrome.stackWeightAboveReps())
+    }
 }

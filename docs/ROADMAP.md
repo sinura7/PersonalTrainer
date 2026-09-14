@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Floor card: overflow ⋮ on the identity row; compact
+> weight row then reps row. Does not bump live 58. Gym-floor
+> `appVersionCode` stays 1.
+>
 > 14 Sep 2026 — Temper Debug downloads the new package in-app and hands it
 > to Android's installer. Does not bump live 58. Gym-floor does not install
 > GitHub APKs. Obtainium is not a required step.
