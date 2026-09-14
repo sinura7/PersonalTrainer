@@ -23,7 +23,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LogBarCopy
-import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -195,19 +194,20 @@ internal fun SecondaryLogOptions(
     onWarmup: (Boolean) -> Unit,
     onRpe: (Int?) -> Unit,
     recommendedRpe: Int? = null,
+    showRpe: Boolean = true,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            item(key = "warmup") {
-                InstrumentChip(
-                    label = "Warm-up",
-                    selected = warmup,
-                    onClick = { onWarmup(!warmup) },
-                )
-            }
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        item(key = "warmup") {
+            InstrumentChip(
+                label = "Warm-up",
+                selected = warmup,
+                onClick = { onWarmup(!warmup) },
+            )
+        }
+        if (showRpe) {
             item(key = "rpe-label") {
                 Kicker("RPE", modifier = Modifier.padding(horizontal = Metrics.space2))
             }
@@ -220,10 +220,5 @@ internal fun SecondaryLogOptions(
                 )
             }
         }
-        Text(
-            RpeCopy.blurb(recommendedRpe),
-            style = InstrumentType.caption,
-            color = TextTertiary,
-        )
     }
 }

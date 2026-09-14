@@ -6,8 +6,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Phone-check 12 Sep 2026: X is go-Home, Finish owns save/discard,
- * Start next is rest-dock primary.
+ * Phone-check 12 Sep 2026: X is go-Home, Finish owns save/discard.
+ * Start next stays on the idle rest line; Log set is the Volt.
  */
 class FloorPhoneCheckPresentationTest {
     @Test

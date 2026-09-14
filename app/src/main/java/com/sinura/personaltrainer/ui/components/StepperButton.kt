@@ -10,8 +10,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +52,7 @@ fun StepperButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -92,7 +93,8 @@ fun StepperButton(
 
     Box(
         modifier = modifier
-            .heightIn(min = Metrics.commit)
+            .heightIn(min = if (compact) Metrics.touchMin else Metrics.commit)
+            .then(if (compact) Modifier.widthIn(min = Metrics.touchMin) else Modifier)
             .clip(RoundedCornerShape(Radius.sm))
             .background(background)
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
@@ -114,7 +116,7 @@ fun StepperButton(
         Text(
             label,
             modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
-            style = InstrumentType.numeralMd,
+            style = if (compact) InstrumentType.bodyStrong else InstrumentType.numeralMd,
             color = TextPrimary,
             maxLines = 2,
             textAlign = TextAlign.Center,

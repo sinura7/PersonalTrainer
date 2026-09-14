@@ -19,8 +19,8 @@ class RestIdlePresentationTest {
         assertTrue(idle.contains("bodyStrong"))
         assertTrue(idle.contains("RestIdleCopy.START_NEXT"))
         assertTrue(idle.contains("RestIdleCopy.START"))
-        assertTrue(idle.contains("PrimaryGymButton"))
-        assertFalse(idle.contains("numeralMd"))
+        assertTrue(idle.contains("TextButton("))
+        assertFalse("idle rest must not use a filled Volt", idle.contains("PrimaryGymButton"))
     }
 
     @Test

@@ -297,7 +297,8 @@ fun RestBatteryHintRow(
 
 /**
  * Idle rest on the log: not a countdown. Planned duration is a label.
- * Start next is the majority act (keep going, no rest). Start is rest only.
+ * One quiet line until Start. Start next is keep-going, not a Volt bar.
+ * Log set, pinned under this dock, is the filled act.
  */
 @Composable
 fun RestIdleRow(
@@ -310,13 +311,14 @@ fun RestIdleRow(
 ) {
     val clock = RestTimer.formatClock(totalSeconds.coerceAtLeast(0))
     val duration = RestIdleCopy.dockDuration(clock, afterWarmup)
-    Column(
+    Row(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .testTag("workout-rest-idle")
                 .clickable(role = Role.Button, onClick = onOpenRest)
                 .semantics {
@@ -334,27 +336,26 @@ fun RestIdleRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            verticalAlignment = Alignment.CenterVertically,
+        TextButton(
+            onClick = onStartNext,
+            modifier = Modifier
+                .heightIn(min = Metrics.touchMin)
+                .testTag("workout-start-next"),
         ) {
-            PrimaryGymButton(
-                text = RestIdleCopy.START_NEXT,
-                onClick = onStartNext,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag("workout-start-next"),
-                height = Metrics.control,
-            )
-            RestControl(
-                label = RestIdleCopy.START,
-                onClick = onStart,
-                modifier = Modifier
-                    .widthIn(min = Metrics.touchMin)
-                    .testTag("workout-start-rest"),
+            Text(
+                RestIdleCopy.START_NEXT,
+                style = InstrumentType.bodyStrong,
+                color = TextPrimary,
+                maxLines = 1,
             )
         }
+        RestControl(
+            label = RestIdleCopy.START,
+            onClick = onStart,
+            modifier = Modifier
+                .widthIn(min = Metrics.touchMin)
+                .testTag("workout-start-rest"),
+        )
     }
 }
 

@@ -5,7 +5,8 @@ package com.sinura.personaltrainer.domain
  *
  * The planned duration is a label, not a countdown. Warm-ups never start
  * the clock; the copy says so instead of leaving a live-looking 1:00 up.
- * The dock's primary is Start next (keep going). Start is rest only.
+ * Start next keeps going without rest; it is a quiet control, not a
+ * second Volt. Log set is the filled act. Start is rest only.
  */
 object RestIdleCopy {
     const val KICKER = "Not running"

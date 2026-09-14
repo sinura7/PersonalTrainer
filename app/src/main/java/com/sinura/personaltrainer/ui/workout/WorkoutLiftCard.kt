@@ -58,6 +58,7 @@ import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -215,24 +216,26 @@ internal fun WorkoutLiftCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .testTag(WorkoutTestTags.CURRENT_LIFT)
                 .padding(
-                    start = Metrics.space3,
-                    end = Metrics.space3,
-                    bottom = Metrics.space3,
+                    start = Metrics.space2,
+                    end = Metrics.space2,
+                    bottom = Metrics.space2,
                 ),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
-            CurrentLiftHeader(
-                lift = lift,
-                workingLogged = workingLogged,
-                unit = unit,
-                canEdit = canEdit,
-                rec = microRec,
-                onSwap = onSwap,
-                onRemove = onRemove,
-                showName = false,
-                modifier = Modifier.testTag(WorkoutTestTags.CURRENT_LIFT),
-            )
+            if (canEdit) {
+                CurrentLiftHeader(
+                    lift = lift,
+                    workingLogged = workingLogged,
+                    unit = unit,
+                    canEdit = canEdit,
+                    rec = microRec,
+                    onSwap = onSwap,
+                    onRemove = onRemove,
+                    showName = false,
+                )
+            }
             lastPerformance?.let { last ->
                 LastTimeStrip(
                     summary = last,
@@ -279,6 +282,7 @@ internal fun WorkoutLiftCard(
                 remainingSeconds = holdRemainingSeconds,
                 onSecondsAdjust = onSecondsAdjust,
                 onSecondsChange = onSecondsChange,
+                compact = true,
                 modifier = Modifier
                     .testTag(LogLoopBringIntoView.ANCHOR_TAG)
                     .bringIntoViewRequester(entryRequester),
@@ -287,6 +291,7 @@ internal fun WorkoutLiftCard(
                 warmup = draftWarmup,
                 rpe = draftRpe,
                 recommendedRpe = card.recommendedRpe,
+                showRpe = FloorCompactChrome.showOptionalLogOptions(restRunning),
                 onWarmup = onWarmup,
                 onRpe = onRpe,
             )
@@ -422,28 +427,30 @@ internal fun CurrentLiftHeader(
                 }
             }
         }
-        SetDots(completed = workingLogged, target = targetSets)
-        val liveRec = rec?.takeIf { it.reasonCode != SetMicroRecCalculator.LIFT_DONE }
-        val loadClass = LoadClass.of(lift.exercise.loadType)
-        val liveWeightLabel = liveRec?.nextWeightKg
-            ?.takeIf { it > 0.0 && loadClass.weightMeaning != com.sinura.personaltrainer.domain.WeightMeaning.NONE }
-            ?.toWeightLabel(unit)
-        Text(
-            WorkoutCopy.setProgress(
-                workingLogged = workingLogged,
-                targetSets = targetSets,
-                targetReps = targetReps,
-                targetWeightLabel = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit),
-                liveReps = liveRec?.nextReps.takeUnless { lift.targetSeconds != null },
-                liveWeightLabel = liveWeightLabel,
-                targetSeconds = lift.targetSeconds,
-                targetSecondsMax = lift.targetSecondsMax,
-            ),
-            style = InstrumentType.caption,
-            color = TextSecondary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+        if (showName) {
+            SetDots(completed = workingLogged, target = targetSets)
+            val liveRec = rec?.takeIf { it.reasonCode != SetMicroRecCalculator.LIFT_DONE }
+            val loadClass = LoadClass.of(lift.exercise.loadType)
+            val liveWeightLabel = liveRec?.nextWeightKg
+                ?.takeIf { it > 0.0 && loadClass.weightMeaning != com.sinura.personaltrainer.domain.WeightMeaning.NONE }
+                ?.toWeightLabel(unit)
+            Text(
+                WorkoutCopy.setProgress(
+                    workingLogged = workingLogged,
+                    targetSets = targetSets,
+                    targetReps = targetReps,
+                    targetWeightLabel = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit),
+                    liveReps = liveRec?.nextReps.takeUnless { lift.targetSeconds != null },
+                    liveWeightLabel = liveWeightLabel,
+                    targetSeconds = lift.targetSeconds,
+                    targetSecondsMax = lift.targetSecondsMax,
+                ),
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
