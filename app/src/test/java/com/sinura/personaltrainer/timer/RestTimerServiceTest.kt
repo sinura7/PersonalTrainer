@@ -39,6 +39,9 @@ class RestTimerServiceTest {
         app = ApplicationProvider.getApplicationContext()
         RestTimerCompletion.reset()
         app.container.restTimerController.stop(fromService = true)
+        // DataStore outlives a test. A backup/settings case that left ticks
+        // off would mute theLastFiveSecondsTickOncePerSecond in the suite.
+        runBlocking { app.container.preferencesRepository.setRestTickEnabled(true) }
         shadowOf(Looper.getMainLooper()).idle()
     }
 
@@ -184,9 +187,18 @@ class RestTimerServiceTest {
         val intent = Intent(app, RestTimerService::class.java)
             .setAction(RestTimerService.ACTION_SYNC)
         val controller = Robolectric.buildService(RestTimerService::class.java, intent)
-        controller.create().startCommand(0, 1)
+        val service = controller.create().startCommand(0, 1).get()
         val looper = shadowOf(Looper.getMainLooper())
         looper.idle()
+        val giveUpAt = System.nanoTime() + PREFS_WAIT_NANOS
+        while (service.tickPreferences?.tickEnabled != true && System.nanoTime() < giveUpAt) {
+            Thread.sleep(10)
+            looper.idle()
+        }
+        assertTrue(
+            "tick preference never reached the service",
+            service.tickPreferences?.tickEnabled == true,
+        )
 
         looper.idleFor(Duration.ofSeconds(84))
         assertEquals(emptyList<Int>(), ticks)
