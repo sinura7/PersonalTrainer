@@ -56,7 +56,7 @@ class DayBlockCopyTest {
 
     @Test
     fun nineLiftsPictureEightAndCountTheNinth() {
-        val nine = upper + "Band Pull-Apart"
+        val nine = upper + "Band Pull-Apart" + "Cable Crunch"
         assertEquals(
             listOf(
                 "1 Barbell Bench Press",
