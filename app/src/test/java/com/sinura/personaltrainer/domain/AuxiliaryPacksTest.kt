@@ -67,11 +67,10 @@ class AuxiliaryPacksTest {
         assertEquals("golf-cooldown", AuxiliaryPacks.mobility.first().id)
         assertEquals(
             listOf(
-                "ex-hyper-pro-couch-stretch",
-                "ex-hyper-pro-incline-pigeon",
-                "ex-hyper-pro-calf-stretch",
+                "ex-couch-stretch",
+                "ex-good-morning",
                 "ex-hyper-pro-elephant-walk",
-                "ex-dead-bug",
+                "ex-hyper-pro-calf-stretch",
             ),
             pack.lifts.map { it.exerciseId },
         )
@@ -88,7 +87,7 @@ class AuxiliaryPacksTest {
         assertFalse("None listed machine Core", "core" in noneIds)
         assertFalse("None listed Hyper Pro golf", "golf" in noneIds)
         assertTrue("None hid floor Core", "core-none" in noneIds)
-        assertTrue("None hid floor Holds", "holds" in noneIds)
+        assertTrue("None hid floor Holds", "holds-none" in noneIds)
         none.forEach { pack ->
             pack.lifts.forEach { lift ->
                 val equipment = catalogEquipment.getValue(lift.exerciseId)
@@ -108,8 +107,8 @@ class AuxiliaryPacksTest {
     fun machinesIncludesMachinePacks() {
         val machines = AuxiliaryPacks.forEquipment(ExtraEquipment.MACHINES)
         val machineIds = machines.map { it.id }.toSet()
-        assertTrue("Machines hid Core", "core" in machineIds)
-        assertTrue("Machines hid golf", "golf" in machineIds)
+        assertTrue("Machines hid Core", "core-machines" in machineIds)
+        assertTrue("Machines hid golf", "golf-machines" in machineIds)
         assertTrue("Machines hid machine lower-body", "lower-body-machines" in machineIds)
         assertFalse("Machines listed floor Core", "core-none" in machineIds)
         assertTrue(
@@ -132,8 +131,8 @@ class AuxiliaryPacksTest {
         val machines = machinePacks.map { it.id }.toSet()
         assertNotEquals(none, machines)
         assertTrue(
-            "None and Machines only shared floor Holds",
-            (none intersect machines) == setOf("holds"),
+            "None and Machines must not share a pack",
+            (none intersect machines).isEmpty(),
         )
         val noneLifts = nonePacks.flatMap { pack -> pack.lifts.map { it.exerciseId } }.toSet()
         val machineLifts = machinePacks.flatMap { pack -> pack.lifts.map { it.exerciseId } }.toSet()
@@ -185,5 +184,41 @@ class AuxiliaryPacksTest {
                 setOf(EquipmentType.DUMBBELL.name, EquipmentType.MACHINE.name),
             ),
         )
+        assertEquals("Bodyweight (none)", ExtraEquipment.NONE.label)
+        assertTrue(ExtraEquipment.entries.none { it.label == "None" })
+    }
+
+    @Test
+    fun fortyCombosCoverTenTypesAndFourKits() {
+        assertEquals(40, AuxiliaryPacks.all.size)
+        ExtraEquipment.entries.forEach { kit ->
+            val packs = AuxiliaryPacks.forEquipment(kit)
+            assertEquals(kit.label, 10, packs.size)
+            assertEquals(kit.label, 10, packs.map { it.family }.toSet().size)
+            packs.forEach { pack ->
+                assertTrue("${pack.id} too short", pack.lifts.size in 3..4)
+            }
+        }
+        listOf(
+            "golf", "lower-body", "upper-body", "shoulder",
+            "golf-cooldown", "stretch", "lower-back", "hips", "holds", "core",
+        ).forEach { family ->
+            assertEquals(family, 4, AuxiliaryPacks.all.count { it.family == family })
+        }
+    }
+
+    @Test
+    fun mixedCombosMixFreeWeightsAndMachines() {
+        AuxiliaryPacks.forEquipment(ExtraEquipment.MIXED).forEach { pack ->
+            val types = pack.lifts.map { catalogEquipment.getValue(it.exerciseId) }.toSet()
+            assertTrue(
+                "${pack.id} has no free weight: $types",
+                types.any { it in ExtraEquipment.FREE },
+            )
+            assertTrue(
+                "${pack.id} has no machine: $types",
+                types.any { it in ExtraEquipment.GYM_STACK },
+            )
+        }
     }
 }

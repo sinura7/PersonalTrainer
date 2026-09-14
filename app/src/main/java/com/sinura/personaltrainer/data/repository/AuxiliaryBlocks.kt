@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.data.repository
 import com.sinura.personaltrainer.domain.AuxiliaryPack
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
 import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SlotRuleImport
@@ -85,6 +86,7 @@ object AuxiliaryBlocks {
         val created = routines.create(pack.title, pack.caption)
         for (lift in pack.lifts) {
             val exercise = exercises.getById(lift.exerciseId) ?: continue
+            val hold = HoldWork.isHold(exercise)
             routines.addExercise(
                 routineId = created.id,
                 exercise = exercise,
@@ -92,6 +94,7 @@ object AuxiliaryBlocks {
                 targetReps = lift.reps,
                 targetWeightKg = null,
                 restSeconds = lift.restSeconds,
+                targetSeconds = if (hold) lift.reps else null,
             )
         }
         return created.id

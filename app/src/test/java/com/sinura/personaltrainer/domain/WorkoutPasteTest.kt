@@ -292,17 +292,19 @@ class WorkoutPasteReferenceTest {
         assertTrue(cardio.unmatched.isNotEmpty())
         assertTrue(cardio.notes().contains("Zone 2"))
         val flex = plan.sessionNamed("Flexibility")!!
-        assertEquals("ex-hyper-pro-couch-stretch", flex.lift("ex-hyper-pro-couch-stretch").exercise.id)
-        assertEquals("ex-hyper-pro-elephant-walk", flex.lift("ex-hyper-pro-elephant-walk").exercise.id)
+        assertEquals("ex-couch-stretch", flex.lift("ex-couch-stretch").exercise.id)
+        assertEquals("ex-hamstring-stretch", flex.lift("ex-hamstring-stretch").exercise.id)
         assertEquals("ex-doorway-chest-stretch", flex.lift("ex-doorway-chest-stretch").exercise.id)
-        assertEquals("ex-hyper-pro-calf-stretch", flex.lift("ex-hyper-pro-calf-stretch").exercise.id)
+        assertEquals("ex-calf-stretch", flex.lift("ex-calf-stretch").exercise.id)
+        assertEquals("ex-ankle-rocks", flex.lift("ex-ankle-rocks").exercise.id)
+        assertEquals("ex-90-90-hips", flex.lift("ex-couch-stretch").alternative?.id)
         assertTrue(flex.unmatched.any { it.raw.contains("articular", ignoreCase = true) })
         assertTrue(flex.unmatched.none { it.raw.contains("Weekly", ignoreCase = true) })
         assertTrue(flex.unmatched.none { it.raw.contains("Deload", ignoreCase = true) })
-        assertEquals(45, flex.lift("ex-hyper-pro-couch-stretch").scheme.secondsMin)
-        assertEquals(60, flex.lift("ex-hyper-pro-couch-stretch").scheme.secondsMax)
-        assertTrue(flex.lift("ex-hyper-pro-couch-stretch").scheme.isTimed)
-        assertEquals(1, flex.lift("ex-hyper-pro-couch-stretch").targetReps)
+        assertEquals(45, flex.lift("ex-couch-stretch").scheme.secondsMin)
+        assertEquals(60, flex.lift("ex-couch-stretch").scheme.secondsMax)
+        assertTrue(flex.lift("ex-couch-stretch").scheme.isTimed)
+        assertEquals(1, flex.lift("ex-couch-stretch").targetReps)
     }
 
     @Test
@@ -419,7 +421,8 @@ class WorkoutPasteWeeklyProgramTest {
         assertTrue(cardio.unmatched.isNotEmpty())
         val flex = plan.sessionNamed("Flexibility")!!
         assertTrue(flex.unmatched.any { it.raw.contains("articular", ignoreCase = true) })
-        assertTrue(flex.unmatched.any { it.raw.contains("Ankle", ignoreCase = true) })
+        assertEquals("ex-ankle-rocks", flex.lift("ex-ankle-rocks").exercise.id)
+        assertTrue(flex.unmatched.none { it.raw.contains("Ankle", ignoreCase = true) })
     }
 
     private fun PastedSession.lift(id: String): PastedLift =

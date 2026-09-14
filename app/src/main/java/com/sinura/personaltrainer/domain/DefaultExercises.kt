@@ -45,9 +45,14 @@ data class SeedExercise(
  * v8 adds only the holds and stretches the paste-routine corpus names that
  * were missing. It does not re-seed or wipe. Family stills stand in until
  * keyed stills exist for those six rows.
+ *
+ * v9 adds the floor Extra names the Saturday stretch list needed
+ * (couch, pigeon, calf, 90/90, ankle rocks, joint circles, floor
+ * woodchop, hamstring stretch). Additive upsert. Family stills stand
+ * in until Allen's ChatGPT stills land.
  */
 object DefaultExercises {
-    const val CATALOG_VERSION = 8
+    const val CATALOG_VERSION = 9
 
     /**
      * The family vocabulary. Batch 1 shipped 23 families and batch 2 adds three; a later batch
@@ -69,6 +74,8 @@ object DefaultExercises {
         // Batch 5 (v6): Freak Athlete Hyper Pro laundry list.
         "reverse-hyper", "glute-ham-raise", "reverse-nordic", "ql-raise",
         "elephant-walk", "couch-stretch", "pigeon",
+        // Batch 7 (v9): floor Extra stretches / CARs.
+        "joint-circles",
     )
 
     fun catalog(): List<SeedExercise> = CATALOG
@@ -954,6 +961,88 @@ object DefaultExercises {
             movementKey = "chest-fly",
             primary = "chest",
             secondaries = listOf("shoulders" to 0.25),
+        ),
+
+        // Batch 7 (v9): floor Extra names. Appended, never reordered.
+        seed(
+            id = "ex-floor-woodchop",
+            name = "Floor Woodchop",
+            muscleGroup = "Core",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "twist",
+            primary = "core",
+            secondaries = listOf("shoulders" to 0.25),
+        ),
+        seed(
+            id = "ex-couch-stretch",
+            name = "Couch Stretch",
+            muscleGroup = "Quads",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "couch-stretch",
+            primary = "quadriceps",
+            secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-pigeon-stretch",
+            name = "Pigeon Stretch",
+            muscleGroup = "Glutes",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "pigeon",
+            primary = "glutes",
+            secondaries = listOf("hamstrings" to 0.25),
+        ),
+        seed(
+            id = "ex-calf-stretch",
+            name = "Calf Stretch",
+            muscleGroup = "Calves",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "calf-raise",
+            primary = "calves",
+            secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-90-90-hips",
+            name = "90/90 Hips",
+            muscleGroup = "Glutes",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "pigeon",
+            primary = "glutes",
+            secondaries = listOf("hamstrings" to 0.25),
+        ),
+        seed(
+            id = "ex-ankle-rocks",
+            name = "Ankle Rocks",
+            muscleGroup = "Calves",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "calf-raise",
+            primary = "calves",
+            secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-joint-circles",
+            name = "Joint Circles",
+            muscleGroup = "Shoulders",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "joint-circles",
+            primary = "shoulders",
+            secondaries = listOf("core" to 0.25),
+        ),
+        seed(
+            id = "ex-hamstring-stretch",
+            name = "Hamstring Stretch",
+            muscleGroup = "Hamstrings",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "elephant-walk",
+            primary = "hamstrings",
+            secondaries = emptyList(),
         ),
     )
 

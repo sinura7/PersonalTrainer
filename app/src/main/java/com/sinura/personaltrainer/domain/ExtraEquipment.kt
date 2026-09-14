@@ -2,12 +2,13 @@ package com.sinura.personaltrainer.domain
 
 /**
  * Second Extra question: what is actually here for this session.
+ * Labels: Bodyweight (none) / Free weights / Machines / Mixed.
  *
  * Settings kit is a guess (home vs hotel). The picker still asks, and
  * the answer only filters Extra packs — it does not rewrite Settings.
  */
 enum class ExtraEquipment(val label: String, val caption: String) {
-    NONE("None", "Bodyweight and the floor."),
+    NONE("Bodyweight (none)", "Bodyweight and the floor."),
     FREE_WEIGHTS("Free weights", "Dumbbells, kettlebells, a bar."),
     MACHINES("Machines", "Stacks, cables, a hip machine."),
     MIXED("Mixed", "Free weights and machines."),
