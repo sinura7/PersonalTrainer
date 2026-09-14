@@ -14,7 +14,7 @@ class LandscapeChromeTest {
         assertTrue(LandscapeChrome.compactHeader(landscape = true))
         assertTrue(LandscapeChrome.hideIdleRest(landscape = true))
         assertTrue(LandscapeChrome.hideSelectedLiftDock(landscape = true))
-        assertFalse(LandscapeChrome.hideSelectedLiftDock(landscape = false))
+        assertTrue(LandscapeChrome.hideSelectedLiftDock(landscape = false))
         assertTrue(LandscapeChrome.foldMicroRecIntoCard(landscape = true))
         assertFalse(LandscapeChrome.compactHeader(landscape = false))
         assertTrue(LandscapeChrome.logVisibleInLandscape(restRunning = false))

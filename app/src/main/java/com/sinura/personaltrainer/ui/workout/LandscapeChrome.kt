@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.domain.FloorCompactChrome
+
 /**
  * Landscape survival for the workout log and the rest floor.
  *
@@ -28,7 +30,11 @@ object LandscapeChrome {
 
     fun hideIdleRest(landscape: Boolean): Boolean = landscape
 
-    fun hideSelectedLiftDock(landscape: Boolean): Boolean = landscape
+    fun hideSelectedLiftDock(landscape: Boolean): Boolean {
+        // Portrait used to pin a THIS LIFT strip under the expanded card.
+        // That duplicate ate the list. The expanded card is the one copy.
+        return landscape || !FloorCompactChrome.showSelectedLiftDock()
+    }
 
     fun foldMicroRecIntoCard(landscape: Boolean): Boolean = landscape
 

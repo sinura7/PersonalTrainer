@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Gym floor chrome is compact: one current-lift copy
+> (the expanded card), idle rest as a quiet line, Log set as the one
+> Volt. Does not bump live 57. Gym-floor `appVersionCode` stays 1.
+>
 > 14 Sep 2026 — Live 57: Create a routine paste reads `Lower A (strength)**`
 > and quotes whole-text fails, plus Home still+name rows from live 56
 > on `trunk`. `debugLiveCode` 57; suffix from

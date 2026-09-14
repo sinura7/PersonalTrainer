@@ -8,9 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +24,8 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.LoadClass
@@ -84,6 +85,7 @@ fun SetEntryPanel(
     remainingSeconds: Int = 0,
     onSecondsAdjust: (Int) -> Unit = {},
     onSecondsChange: (Int) -> Unit = {},
+    compact: Boolean = false,
 ) {
     val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val timeSeconds = if (holdRunning) remainingSeconds else durationSeconds ?: HoldWork.DEFAULT_SECONDS
@@ -95,6 +97,7 @@ fun SetEntryPanel(
                 onAdjust = onSecondsAdjust,
                 onSecondsChange = onSecondsChange,
                 modifier = wellModifier,
+                compact = compact,
             )
         } else {
             RepsStepper(
@@ -102,6 +105,7 @@ fun SetEntryPanel(
                 onAdjust = onRepsAdjust,
                 onRepsChange = onRepsChange,
                 modifier = wellModifier,
+                compact = compact,
             )
         }
     }
@@ -118,6 +122,7 @@ fun SetEntryPanel(
                     unit = unit,
                     meaning = loadClass.weightMeaning,
                     plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
+                    compact = compact,
                 )
             }
             workWell(Modifier.fillMaxWidth())
@@ -135,6 +140,7 @@ fun SetEntryPanel(
                     unit = unit,
                     meaning = loadClass.weightMeaning,
                     plated = plated && loadClass.weightMeaning == WeightMeaning.LIFTED,
+                    compact = compact,
                 )
             }
             workWell(
@@ -154,6 +160,7 @@ fun WeightStepper(
     /** What this number is a measurement of. See [LoadClass.weightMeaning]. */
     meaning: WeightMeaning = WeightMeaning.LIFTED,
     plated: Boolean = false,
+    compact: Boolean = false,
 ) {
     val displayNumber = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(valueKg, unit))
     // Steppers are for nudging a number, not setting one: 20 kg to 140 kg is 48 taps at the
@@ -174,6 +181,7 @@ fun WeightStepper(
         onIncrement = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, 1)) },
         plateCaption = plates,
         modifier = modifier,
+        compact = compact,
     )
 
     if (typing) {
@@ -202,6 +210,7 @@ fun RepsStepper(
     onAdjust: (Int) -> Unit,
     onRepsChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     var typing by rememberSaveable { mutableStateOf(false) }
 
@@ -216,6 +225,7 @@ fun RepsStepper(
         onDecrement = { onAdjust(-1) },
         onIncrement = { onAdjust(1) },
         modifier = modifier,
+        compact = compact,
     )
 
     if (typing) {
@@ -243,6 +253,7 @@ fun TimeStepper(
     onSecondsChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
     running: Boolean = false,
+    compact: Boolean = false,
 ) {
     var typing by rememberSaveable { mutableStateOf(false) }
     val shown = value.coerceAtLeast(0)
@@ -258,6 +269,7 @@ fun TimeStepper(
         onDecrement = { if (!running) onAdjust(-1) },
         onIncrement = { if (!running) onAdjust(1) },
         modifier = modifier,
+        compact = compact,
     )
 
     if (typing && !running) {
@@ -289,7 +301,83 @@ internal fun NumeralWell(
     modifier: Modifier = Modifier,
     typeHint: String? = null,
     plateCaption: String? = null,
+    compact: Boolean = false,
 ) {
+    val spoken = buildString {
+        append(label)
+        append(' ')
+        append(value)
+        if (unit != null) {
+            append(' ')
+            append(unit)
+        }
+    }
+    if (compact) {
+        Column(
+            modifier = modifier,
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Metrics.touchMin)
+                    .clip(RoundedCornerShape(Radius.sm))
+                    .background(Surface1)
+                    .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
+                    .padding(horizontal = Metrics.space2, vertical = Metrics.space1),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(typeLabel)
+                        .clickable(onClick = onType, onClickLabel = typeLabel)
+                        .semantics { contentDescription = spoken },
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Text(
+                        value,
+                        modifier = Modifier.alignByBaseline(),
+                        style = InstrumentType.numeralMd,
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (unit != null) {
+                        Text(
+                            unit,
+                            modifier = Modifier
+                                .alignByBaseline()
+                                .padding(start = Metrics.space1),
+                            style = InstrumentType.unit,
+                            color = TextSecondary,
+                        )
+                    }
+                }
+                StepperButton(
+                    label = decrementLabel,
+                    onClick = onDecrement,
+                    compact = true,
+                )
+                StepperButton(
+                    label = incrementLabel,
+                    onClick = onIncrement,
+                    compact = true,
+                )
+            }
+            if (plateCaption != null) {
+                Text(
+                    plateCaption,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        return
+    }
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(Radius.md))
