@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Live 59: floor card restack (header ⋮, weight then reps)
+> and in-app APK download/install on `trunk`. `debugLiveCode` 59; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 14 Sep 2026 — Floor card: overflow ⋮ on the identity row; compact
 > weight row then reps row. Does not bump live 58. Gym-floor
 > `appVersionCode` stays 1.

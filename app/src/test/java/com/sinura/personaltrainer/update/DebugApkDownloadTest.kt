@@ -25,11 +25,10 @@ class DebugApkDownloadTest {
             input = ByteArrayInputStream(payload),
             into = dest,
             contentLength = payload.size.toLong(),
-            onProgress = { read, total ->
-                lastRead = read
-                lastTotal = total
-            },
-        )
+        ) { read, total ->
+            lastRead = read
+            lastTotal = total
+        }
         assertEquals(payload.size.toLong(), lastRead)
         assertEquals(payload.size.toLong(), lastTotal)
         assertEquals(payload.size.toLong(), dest.length())
@@ -47,8 +46,7 @@ class DebugApkDownloadTest {
                 input = ByteArrayInputStream(ByteArray(16)),
                 into = dest,
                 contentLength = DebugApkDownload.MAX_BYTES + 1,
-                onProgress = { _, _ -> },
-            )
+            ) { _, _ -> }
             error("expected oversize to throw")
         } catch (_: IOException) {
         }
