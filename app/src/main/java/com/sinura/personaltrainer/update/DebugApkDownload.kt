@@ -12,7 +12,7 @@ internal object DebugApkDownload {
     const val MAX_BYTES = 96L * 1024L * 1024L
     private const val BUFFER_BYTES = 64 * 1024
 
-    fun copy(
+    fun writeTo(
         input: InputStream,
         into: File,
         contentLength: Long,

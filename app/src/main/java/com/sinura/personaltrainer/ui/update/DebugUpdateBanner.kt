@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.DebugUpdateCopy
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
@@ -97,7 +96,7 @@ private fun DownloadProgressRule(percent: Int?) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(4.dp)
+            .height(Metrics.space1)
             .clip(RoundedCornerShape(Radius.xs))
             .background(Hairline)
             .testTag(DebugUpdateTags.PROGRESS),

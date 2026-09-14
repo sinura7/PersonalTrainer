@@ -21,7 +21,7 @@ class DebugApkDownloadTest {
         val payload = byteArrayOf(0x50, 0x4B, 0x03, 0x04) + ByteArray(100) { 1 }
         var lastRead = 0L
         var lastTotal = -1L
-        DebugApkDownload.copy(
+        DebugApkDownload.writeTo(
             input = ByteArrayInputStream(payload),
             into = dest,
             contentLength = payload.size.toLong(),
@@ -43,7 +43,7 @@ class DebugApkDownloadTest {
         val dest = tmp.newFile("big.apk")
         dest.delete()
         try {
-            DebugApkDownload.copy(
+            DebugApkDownload.writeTo(
                 input = ByteArrayInputStream(ByteArray(16)),
                 into = dest,
                 contentLength = DebugApkDownload.MAX_BYTES + 1,

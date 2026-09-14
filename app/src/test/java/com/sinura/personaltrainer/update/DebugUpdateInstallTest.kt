@@ -4,6 +4,7 @@ import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -28,8 +29,7 @@ class DebugUpdateInstallTest {
         val installer = FakeInstaller(dir = tmp.root, canInstall = false)
         val monitor = monitor(fetcher, installer)
         monitor.refresh(minIntervalMs = 0)
-        monitor.install()
-        advanceUntilIdle()
+        monitor.installNow()
         assertEquals(DebugUpdateInstall.NeedsPermission, monitor.ui.value.install)
         assertEquals(1, installer.settingsOpened)
         assertEquals(0, fetcher.starts)
@@ -43,8 +43,7 @@ class DebugUpdateInstallTest {
         val installer = FakeInstaller(dir = tmp.root, canInstall = true)
         val monitor = monitor(fetcher, installer)
         monitor.refresh(minIntervalMs = 0)
-        monitor.install()
-        advanceUntilIdle()
+        monitor.installNow()
         assertEquals(1, fetcher.starts)
         assertEquals(
             "https://github.com/sinura7/PersonalTrainer/releases/download/debug-live-2026-09-13-2/PersonalTrainer-1.0.0+debug.51-debug.apk",
@@ -63,8 +62,7 @@ class DebugUpdateInstallTest {
         val installer = FakeInstaller(dir = tmp.root, canInstall = true)
         val monitor = monitor(fetcher, installer)
         monitor.refresh(minIntervalMs = 0)
-        monitor.install()
-        advanceUntilIdle()
+        monitor.installNow()
         assertEquals(DebugUpdateInstall.Failed, monitor.ui.value.install)
         assertNull(installer.installed)
         assertEquals(1, fetcher.starts)
@@ -77,9 +75,9 @@ class DebugUpdateInstallTest {
         val installer = FakeInstaller(dir = tmp.root, canInstall = true)
         val monitor = monitor(fetcher, installer)
         monitor.refresh(minIntervalMs = 0)
-        monitor.install()
+        launch { monitor.installNow() }
         advanceUntilIdle()
-        monitor.install()
+        launch { monitor.installNow() }
         advanceUntilIdle()
         assertEquals(1, fetcher.starts)
         gate.complete(Unit)
@@ -94,12 +92,10 @@ class DebugUpdateInstallTest {
         val installer = FakeInstaller(dir = tmp.root, canInstall = false)
         val monitor = monitor(fetcher, installer)
         monitor.refresh(minIntervalMs = 0)
-        monitor.install()
-        advanceUntilIdle()
+        monitor.installNow()
         assertEquals(1, installer.settingsOpened)
         installer.canInstall = true
-        monitor.onForeground()
-        advanceUntilIdle()
+        monitor.retryInstallIfPermissionGranted()
         assertNotNull(installer.installed)
         assertEquals(1, installer.settingsOpened)
     }
@@ -110,10 +106,8 @@ class DebugUpdateInstallTest {
         val installer = FakeInstaller(dir = tmp.root, canInstall = false)
         val monitor = monitor(fetcher, installer)
         monitor.refresh(minIntervalMs = 0)
-        monitor.install()
-        advanceUntilIdle()
-        monitor.onForeground()
-        advanceUntilIdle()
+        monitor.installNow()
+        monitor.retryInstallIfPermissionGranted()
         assertEquals(1, installer.settingsOpened)
         assertEquals(0, fetcher.starts)
         assertEquals(DebugUpdateInstall.NeedsPermission, monitor.ui.value.install)

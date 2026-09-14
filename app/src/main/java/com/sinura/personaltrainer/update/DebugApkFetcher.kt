@@ -45,7 +45,7 @@ internal class HttpUrlConnectionDebugApkFetcher : DebugApkFetcher {
             }
             val length = connection.contentLengthLong
             connection.inputStream.use { input ->
-                DebugApkDownload.copy(input, into, length, onProgress)
+                DebugApkDownload.writeTo(input, into, length, onProgress)
             }
             if (!DebugApkDownload.looksLikeApk(into)) {
                 into.delete()

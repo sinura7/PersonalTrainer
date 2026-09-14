@@ -73,7 +73,10 @@ internal class DebugUpdateMonitor(
         scope.launch { runInstall() }
     }
 
-    private suspend fun retryInstallIfPermissionGranted() {
+    /** JVM tests call this so they do not race the fire-and-forget tap. */
+    internal suspend fun installNow() = runInstall()
+
+    internal suspend fun retryInstallIfPermissionGranted() {
         if (held.value.install != DebugUpdateInstall.NeedsPermission) return
         if (!installer.canInstall()) return
         runInstall()
