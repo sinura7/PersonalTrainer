@@ -126,6 +126,60 @@ class WorkoutPasteParserTest {
     }
 
     @Test
+    fun numberedMarkdownDoesNotPoisonTheName() {
+        val line = WorkoutPasteParser.parse(
+            """
+            Upper A (strength)
+            1. Barbell bench press — 4×4–6
+            """.trimIndent(),
+        ).single().lines.single()
+        assertEquals(listOf(listOf("Barbell bench press")), line.groups)
+        assertEquals("1. Barbell bench press — 4×4–6", line.raw)
+        assertEquals(4, line.schemes.single().setsMin)
+        assertEquals(6, line.schemes.single().repsMax)
+    }
+
+    @Test
+    fun numberedOrKeepsBothNamesInOrder() {
+        val line = WorkoutPasteParser.parse(
+            """
+            Upper A (strength)
+            2. Weighted pull-up or lat pulldown — 4×4–6
+            """.trimIndent(),
+        ).single().lines.single()
+        assertEquals(listOf(listOf("Weighted pull-up", "lat pulldown")), line.groups)
+    }
+
+    @Test
+    fun numberedRolePrefixIsStripped() {
+        val abs = WorkoutPasteParser.parse(
+            """
+            Upper A (strength)
+            6. Abs: hanging knee raise — 3×8–12
+            """.trimIndent(),
+        ).single().lines.single()
+        assertEquals(listOf(listOf("hanging knee raise")), abs.groups)
+        assertEquals("abs", abs.role)
+        val arms = WorkoutPasteParser.parse(
+            """
+            Upper B (muscle)
+            6. Arms: curl + triceps pushdown — 2–3×10–15 each
+            """.trimIndent(),
+        ).single().lines.single()
+        assertEquals(listOf(listOf("curl"), listOf("triceps pushdown")), arms.groups)
+        assertEquals("arms", arms.role)
+        val hold = WorkoutPasteParser.parse(
+            """
+            Upper A (strength)
+            7. Static: dead hang — 2×20–40s (ligament/grip)
+            """.trimIndent(),
+        ).single().lines.single()
+        assertEquals(listOf(listOf("dead hang")), hold.groups)
+        assertEquals("static", hold.role)
+        assertTrue(hold.schemes.single().isTimed)
+    }
+
+    @Test
     fun markdownWeekAtTheTopDoesNotSwallowTheBlocks() {
         val parsed = WorkoutPasteParser.parseDocument(
             """

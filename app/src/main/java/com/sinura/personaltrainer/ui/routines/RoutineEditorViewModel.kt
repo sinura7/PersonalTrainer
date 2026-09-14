@@ -866,7 +866,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             try {
                 val catalog = container.exerciseRepository.observeAll().first()
                 if (catalog.isEmpty()) {
-                    error.fail(source = ERR_PASTE, message = WorkoutPasteCopy.FAILED)
+                    error.fail(source = ERR_PASTE, message = WorkoutPasteCopy.EMPTY_LIBRARY)
                     return@launchWrite
                 }
                 val plan = WorkoutPaste.parseAndMatch(text, catalog)
@@ -889,14 +889,29 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     idsByName[session.name] = created.id
                 }
                 pinPastedWeek(plan, idsByName)
+                val strengthBlocks = plan.strengthSessions()
+                val strengthMisses = strengthBlocks.flatMap { session ->
+                    session.unmatched.map { miss ->
+                        miss.copy(
+                            sessionName = session.name.takeIf { strengthBlocks.size > 1 },
+                        )
+                    }
+                }
                 pasteState.update {
                     PasteUi(
-                        unmatched = first.unmatched,
+                        unmatched = strengthMisses,
                         createdNames = extras,
                     )
                 }
-                error.clearFrom(source = ERR_PASTE, before = started)
-                error.clearFrom(source = ERR_SAVE, before = started)
+                if (strengthMisses.isNotEmpty()) {
+                    error.fail(
+                        source = ERR_PASTE,
+                        message = WorkoutPasteCopy.pasteIssues(strengthMisses),
+                    )
+                } else {
+                    error.clearFrom(source = ERR_PASTE, before = started)
+                    error.clearFrom(source = ERR_SAVE, before = started)
+                }
             } catch (thrown: CancellationException) {
                 throw thrown
             } catch (thrown: Exception) {

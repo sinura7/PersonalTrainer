@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WorkoutPasteCopy
 import com.sinura.personaltrainer.domain.WorkoutPasteRest
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
@@ -1374,6 +1375,35 @@ class RoutineEditorViewModelTest {
         assertTrue(slots.any { it.anchorDay == Weekday.SATURDAY })
         assertTrue(slots.none { it.anchorDay == Weekday.WEDNESDAY })
         assertTrue(slots.none { it.anchorDay == Weekday.SUNDAY })
+    }
+
+    @Test
+    fun pasteQuotesTheFailingLineWhenALiftIsUnknown() = runBlocking {
+        deps.dbMaintenance.seedCatalog()
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        vm.importPaste(
+            """
+            Upper A (strength)
+            1. Not a real lift — 3×8
+            2. Barbell bench press — 4×4–6
+            """.trimIndent(),
+        )
+        val state = vm.awaitState {
+            it.routine?.exercises?.any { row -> row.exercise.id == "ex-barbell-bench-press" } == true &&
+                it.unmatched.isNotEmpty() &&
+                it.error != null
+        }
+        val miss = state.unmatched.single()
+        assertEquals("1. Not a real lift — 3×8", miss.raw)
+        assertTrue(miss.reason, miss.reason.contains("No library lift"))
+        val error = checkNotNull(state.error)
+        assertTrue(error, error.contains("1. Not a real lift — 3×8"))
+        assertTrue(error, error.contains("No library lift"))
+        assertEquals(WorkoutPasteCopy.issue(miss), error)
+        assertTrue(
+            state.routine!!.exercises.any { it.exercise.id == "ex-barbell-bench-press" },
+        )
     }
 
     private fun createViewModel(

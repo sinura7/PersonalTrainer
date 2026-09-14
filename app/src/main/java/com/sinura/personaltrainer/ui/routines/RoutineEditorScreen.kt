@@ -195,7 +195,19 @@ fun RoutineEditorScreen(
             // is routed by the family that raised it. A message is not a place.
             state.error
                 ?.takeUnless { state.showExercisePicker }
-                ?.let { message -> item(key = "error") { GymErrorBanner(message, onDismiss = viewModel::dismissError) } }
+                ?.let { message ->
+                    item(key = "error") {
+                        GymErrorBanner(
+                            message = message,
+                            onDismiss = viewModel::dismissError,
+                            title = if (state.unmatched.isNotEmpty()) {
+                                WorkoutPasteCopy.ISSUE_TITLE
+                            } else {
+                                "Something failed"
+                            },
+                        )
+                    }
+                }
 
             if (exercises.isEmpty()) {
                 item(key = "empty") {
@@ -439,10 +451,15 @@ private fun UnmatchedPasteBlock(
         Text(WorkoutPasteCopy.UNMATCHED_BODY, style = InstrumentType.caption, color = TextTertiary)
         items.forEach { item ->
             InstrumentRow(
-                title = item.raw,
-                onClick = if (enabled) ({ onPick(item) }) else null,
-                trailing = {
-                    Text(WorkoutPasteCopy.PICK, style = InstrumentType.bodyStrong, color = Volt)
+                title = item.displayLine(),
+                subtitle = item.reason,
+                onClick = if (enabled && item.canPick) ({ onPick(item) }) else null,
+                trailing = if (item.canPick) {
+                    {
+                        Text(WorkoutPasteCopy.PICK, style = InstrumentType.bodyStrong, color = Volt)
+                    }
+                } else {
+                    null
                 },
             )
         }

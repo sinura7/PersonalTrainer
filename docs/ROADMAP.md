@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Create a routine paste quotes the failing line (unknown
+> name, bad dose, two lifts, hold vs reps) and fills Allen's numbered
+> Upper A / Lower A / Upper B / Lower B. Does not bump live 55.
+> Gym-floor `appVersionCode` stays 1.
+>
 > 14 Sep 2026 — Home session cards (and the empty-agenda leftover head)
 > picture each lift beside its number and name. The 4-up still strip is
 > gone. A typical session (Upper A, 7) names every lift; past eight rows

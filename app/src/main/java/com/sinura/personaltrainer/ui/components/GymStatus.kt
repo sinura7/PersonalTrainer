@@ -121,11 +121,12 @@ fun GymErrorBanner(
     modifier: Modifier = Modifier,
     onRetry: (() -> Unit)? = null,
     onDismiss: (() -> Unit)? = null,
+    title: String = "Something failed",
 ) {
     InstrumentBanner(
         accent = Danger,
         container = DangerContainer,
-        title = "Something failed",
+        title = title,
         body = message,
         modifier = modifier,
         icon = {
