@@ -6,25 +6,31 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Home's session card names lifts as an ordered list, not a wrapping
- * middot sentence. The stills, the count line, and Start stay.
+ * Home's session card pictures each lift beside its number and name.
+ * The 4-up still strip is gone; a typical session names every lift.
  */
 class DayBlockLayoutTest {
     @Test
-    fun sessionOrderIsANumberedListNotARunOnSentence() {
+    fun sessionOrderIsStillPlusNameRowsNotAStripOrARunOnSentence() {
         val block = readOwned("ui/home/DayBlock.kt")
-        assertTrue(block.contains("SessionOrderList"))
-        assertTrue(block.contains("private fun SessionOrderList"))
-        assertTrue(block.contains("lines.forEach"))
+        assertTrue(block.contains("SessionLiftRows"))
+        assertTrue(block.contains("private fun SessionLiftRows"))
+        assertTrue(block.contains("private fun SessionLiftRow"))
+        assertTrue(block.contains("ExerciseThumb(exercise = exercise)"))
+        assertTrue(block.contains("INDEX_WIDTH"))
+        assertFalse(block.contains("SessionOrderList"))
         assertFalse(block.contains("joinToString(\" · \")"))
+        assertFalse(block.contains("STILL_LIMIT"))
         val order = block.substringAfter("if (lines.names.isNotEmpty())")
             .substringBefore("lines.meta")
-        assertTrue(order.contains("SessionOrderList("))
-        assertFalse(order.contains("maxLines = 2"))
-        assertFalse(order.contains("Text(\n            names,"))
+        assertTrue(order.contains("SessionLiftRows("))
+        assertFalse(order.contains("Row(horizontalArrangement"))
+        assertFalse(order.contains("exercises.take("))
 
         val copy = readOwned("domain/DayBlockCopy.kt")
+        assertTrue(copy.contains("const val ROW_LIMIT = 8"))
         assertTrue(copy.contains("shown + \"+\$rest\""))
+        assertFalse(copy.contains("STILL_LIMIT"))
         assertFalse(copy.contains("joinToString(\" · \")"))
     }
 

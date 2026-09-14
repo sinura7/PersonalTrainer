@@ -6,8 +6,9 @@ package com.sinura.personaltrainer.domain
  * S-02: the card used to be a title and a numbered name list. The stills
  * are the first [STILL_LIMIT] lifts; [mix] is the equipment in tap order,
  * unique, so a machine day reads as machines rather than a paragraph of
- * names. Home's day board pictures four ([DayBlockCopy.STILL_LIMIT]); this
- * sheet pictures three, which is what the audit asked for here.
+ * names. Home's day board pictures each lift beside its name
+ * ([DayBlockCopy.ROW_LIMIT]); this sheet pictures three, which is what
+ * the audit asked for here.
  */
 object RoutineCardCopy {
     const val STILL_LIMIT = 3
