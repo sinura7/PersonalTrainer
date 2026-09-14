@@ -20,6 +20,12 @@ class HoldWorkTest {
             "ex-y-hold",
             "ex-plank",
             "ex-doorway-chest-stretch",
+            "ex-couch-stretch",
+            "ex-pigeon-stretch",
+            "ex-calf-stretch",
+            "ex-90-90-hips",
+            "ex-hamstring-stretch",
+            "ex-hyper-pro-incline-pigeon",
         ).forEach { id ->
             val lift = catalog.first { it.id == id }
             assertTrue("$id must be a hold", HoldWork.isHold(lift))
@@ -43,6 +49,10 @@ class HoldWorkTest {
             movementKey = "isometric",
         )
         assertTrue(HoldWork.isHold(isometric))
+        listOf("ex-ankle-rocks", "ex-joint-circles", "ex-floor-woodchop").forEach { id ->
+            val lift = catalog.first { it.id == id }
+            assertFalse("$id must stay reps", HoldWork.isHold(lift))
+        }
     }
 
     @Test

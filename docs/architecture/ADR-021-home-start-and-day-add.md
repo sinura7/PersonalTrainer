@@ -67,7 +67,7 @@ authorize that work.
    immediate Volt); **Select a routine** (named Plan routines, not the
    generator — tap starts that routine); **Cardio** then the live-52
    picture cards (Walk, Run / sprints, Ride, Row, Swim, Hike); **Extra**
-   then **what equipment is here** (None / Free weights / Machines / Mixed;
+   then **what equipment is here** (Bodyweight (none) / Free weights / Machines / Mixed;
    Settings kit is a suggestion they can override), then the matching
    warm-up / mobility pictures. None of those mint a Plan row.
    While a session is live, the bar is the way back and the Volt hides.

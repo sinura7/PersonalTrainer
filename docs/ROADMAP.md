@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 14 Sep 2026 — Extra recommends forty locked combos after Bodyweight
+> (none) / Free weights / Machines / Mixed. Catalog v9 adds eight floor
+> stretch names. Does not bump live 54. Gym-floor `appVersionCode` stays 1.
+>
 > 14 Sep 2026 — Bottom tabs and Settings index rows use Allen's glyphs
 > (house, calendar, stick figure, list+clock, gear; nine row leftovers).
 > Tint on draw. Debug Update / Log / Foundation keep their current marks.

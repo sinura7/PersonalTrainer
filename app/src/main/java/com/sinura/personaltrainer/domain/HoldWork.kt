@@ -46,6 +46,10 @@ object HoldWork {
         if (nameKey.contains("dead hang") || nameKey.contains("scapular hang")) return true
         if (nameKey.endsWith(" hang") || nameKey == "hang") return true
         if (idKey.contains("deadhang") || idKey.contains("scapular-hang")) return true
+        if (nameKey.contains("90/90") || nameKey.contains("90-90") || idKey.contains("90-90")) {
+            return true
+        }
+        if (nameKey.contains("pigeon") || idKey.contains("pigeon")) return true
         return idKey.endsWith("-hang") || idKey.contains("-hang-")
     }
 

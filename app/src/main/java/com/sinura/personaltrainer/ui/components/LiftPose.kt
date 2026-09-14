@@ -56,7 +56,7 @@ internal fun poseFor(movementKey: String?): LiftPose = when (movementKey) {
     "hip-thrust", "hip-abduction", "glute-kickback", "pigeon" -> LiftPose.HIP
     "bench-press", "push-up", "dip" -> LiftPose.HORIZONTAL_PRESS
     "overhead-press" -> LiftPose.VERTICAL_PRESS
-    "chest-fly", "lateral-raise", "rear-delt" -> LiftPose.FLY
+    "chest-fly", "lateral-raise", "rear-delt", "joint-circles" -> LiftPose.FLY
     "row", "pullover", "shrug" -> LiftPose.HORIZONTAL_PULL
     "pulldown", "pull-up" -> LiftPose.VERTICAL_PULL
     "curl" -> LiftPose.ARM_CURL

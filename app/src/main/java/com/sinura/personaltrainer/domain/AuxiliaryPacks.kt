@@ -1,17 +1,24 @@
 package com.sinura.personaltrainer.domain
 
 /**
- * Short extra blocks minted from catalog rows that already exist.
+ * Short extra blocks minted from catalog rows.
  *
- * Not a seed expansion. Missing ids are skipped at attach time so an
- * older catalog still yields a shorter pack rather than a crash.
+ * Missing ids are skipped at attach time so an older catalog still
+ * yields a shorter pack rather than a crash.
  *
  * Warm-ups prepare a session. Mobility packs are the longevity extras
  * (stretch, holds, core) and the golf cool-down. Each pack is its own day
  * block — not spliced into the pinned workout.
  *
- * [kit] / [shownFor] are the Extra second question: None, Free weights,
+ * Ten Extra types × four kits = forty packs. Mixed is free weights plus
+ * machines, not a silent copy of the machine list. Floor Extra
+ * ([ExtraEquipment.NONE]) never includes gym-stack lifts.
+ *
+ * [shownFor] is the Extra second question: Bodyweight (none), Free weights,
  * Machines, Mixed. Catalog + these packs — not an LLM writing sessions.
+ *
+ * Hold rows store seconds in [AuxiliaryLift.reps]; [AuxiliaryBlocks] writes
+ * them as hold time.
  */
 data class AuxiliaryLift(
     val exerciseId: String,
@@ -46,64 +53,43 @@ object AuxiliaryPacks {
     val Golf = pack(
         id = "golf",
         title = "Golf warm-up",
-        caption = "Hips, rotation, shoulders. Exercises only — not a round.",
+        caption = "A swing, a chop, rear delts, a face pull.",
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
-            lift("ex-hyper-pro-elephant-walk", 1, 10),
+            lift("ex-kettlebell-swing", 2, 10),
             lift("ex-hyper-pro-woodchop", 2, 8),
-            lift("ex-hyper-pro-external-rotator", 2, 8),
-            lift("ex-hyper-pro-face-pull", 2, 10),
+            lift("ex-dumbbell-rear-delt-fly", 2, 12),
+            lift("ex-face-pull", 2, 12),
         ),
-        imageKey = "ex_hyper_pro_woodchop",
-        shownFor = setOf(ExtraEquipment.MACHINES, ExtraEquipment.MIXED),
-    )
-
-    /**
-     * After a round, not before one: the warm-up above readies rotation, this
-     * unloads the hips and calves that carried eighteen holes and finishes with
-     * a brace so the back is not left to settle on its own.
-     */
-    val GolfCooldown = pack(
-        id = "golf-cooldown",
-        title = "Golf cool-down",
-        caption = "About ten minutes. Hips, calves, a walk-out and a brace. After a round.",
-        kind = AuxiliaryKind.MOBILITY,
-        lifts = listOf(
-            lift("ex-hyper-pro-couch-stretch"),
-            lift("ex-hyper-pro-incline-pigeon"),
-            lift("ex-hyper-pro-calf-stretch"),
-            lift("ex-hyper-pro-elephant-walk", 1, 10),
-            lift("ex-dead-bug", 2, 8),
-        ),
-        imageKey = "ex_hyper_pro_couch_stretch",
-        shownFor = setOf(ExtraEquipment.MACHINES, ExtraEquipment.MIXED),
+        imageKey = "ex_face_pull",
+        shownFor = setOf(ExtraEquipment.MIXED),
     )
 
     val LowerBody = pack(
         id = "lower-body",
         title = "Lower-body warm-up",
-        caption = "Squats, lunges, glutes. Before a lower-body session.",
+        caption = "A goblet squat, lunges, a leg press, a walk-out.",
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
-            lift("ex-bodyweight-squat", 2, 10),
+            lift("ex-goblet-squat", 2, 8),
             lift("ex-walking-lunge"),
-            lift("ex-barbell-glute-bridge"),
+            lift("ex-leg-press", 2, 10),
             lift("ex-hyper-pro-elephant-walk", 1, 10),
         ),
-        imageKey = "ex_bodyweight_squat",
+        imageKey = "ex_walking_lunge",
         shownFor = setOf(ExtraEquipment.MIXED),
     )
 
     val UpperBody = pack(
         id = "upper-body",
         title = "Upper-body warm-up",
-        caption = "Push-ups, rows, face pulls. Before an upper-body session.",
+        caption = "Push-ups, a DB row, a face pull, a chest press.",
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
             lift("ex-push-up", 2, 8),
+            lift("ex-one-arm-dumbbell-row", 2, 8),
             lift("ex-face-pull", 2, 12),
-            lift("ex-inverted-row"),
-            lift("ex-hyper-pro-external-rotator", 1, 10),
+            lift("ex-machine-chest-press", 2, 8),
         ),
         imageKey = "ex_push_up",
         shownFor = setOf(ExtraEquipment.MIXED),
@@ -112,42 +98,62 @@ object AuxiliaryPacks {
     val Shoulder = pack(
         id = "shoulder",
         title = "Shoulder warm-up",
-        caption = "Rotators, face pulls, raises. Before pressing.",
+        caption = "Laterals, a face pull, rear delts, a rotator.",
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
-            lift("ex-hyper-pro-external-rotator", 2, 10),
-            lift("ex-face-pull", 2, 12),
             lift("ex-lateral-raise", 2, 12),
+            lift("ex-face-pull", 2, 12),
             lift("ex-dumbbell-rear-delt-fly", 2, 12),
+            lift("ex-hyper-pro-external-rotator", 2, 10),
         ),
         imageKey = "ex_lateral_raise",
+        shownFor = setOf(ExtraEquipment.MIXED),
+    )
+
+    /**
+     * After a round, not before one: the warm-up above readies rotation, this
+     * unloads the hips and calves that carried eighteen holes.
+     */
+    val GolfCooldown = pack(
+        id = "golf-cooldown",
+        title = "Golf cool-down",
+        caption = "A couch stretch, a light hinge, a walk-out, calves. After a round.",
+        kind = AuxiliaryKind.MOBILITY,
+        lifts = listOf(
+            hold("ex-couch-stretch"),
+            lift("ex-good-morning"),
+            lift("ex-hyper-pro-elephant-walk", 1, 10),
+            hold("ex-hyper-pro-calf-stretch"),
+        ),
+        imageKey = "ex_good_morning",
         shownFor = setOf(ExtraEquipment.MIXED),
     )
 
     val Stretch = pack(
         id = "stretch",
         title = "Stretch",
-        caption = "About eight minutes. Hips, calves, walk-outs. Any time of day.",
+        caption = "A light good-morning, a couch stretch, a walk-out, ankle rocks.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
-            lift("ex-hyper-pro-calf-stretch"),
-            lift("ex-hyper-pro-couch-stretch"),
+            lift("ex-good-morning"),
+            hold("ex-couch-stretch"),
             lift("ex-hyper-pro-elephant-walk", 1, 10),
-            lift("ex-hyper-pro-incline-pigeon"),
+            lift("ex-ankle-rocks", 2, 10),
         ),
-        imageKey = "ex_hyper_pro_calf_stretch",
-        shownFor = setOf(ExtraEquipment.MACHINES, ExtraEquipment.MIXED),
+        imageKey = "ex_ankle_rocks",
+        shownFor = setOf(ExtraEquipment.MIXED),
     )
 
     val LowerBack = pack(
         id = "lower-back",
         title = "Lower back",
-        caption = "About eight minutes. Extensions and a hold.",
+        caption = "An extension, a hinge, a brace, a reverse hyper.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
             lift("ex-back-extension", 2, 10, 30),
+            lift("ex-good-morning"),
             lift("ex-dead-bug", 2, 8),
-            lift("ex-plank", 1, 40),
+            lift("ex-hyper-pro-reverse-hyper", 2, 8, 30),
         ),
         imageKey = "ex_back_extension",
         shownFor = setOf(ExtraEquipment.MIXED),
@@ -156,58 +162,61 @@ object AuxiliaryPacks {
     val Hips = pack(
         id = "hips",
         title = "Hips",
-        caption = "About eight minutes. Groin and hip openers.",
+        caption = "A goblet squat, a hip machine, a split squat, a walk-out.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
-            lift("ex-hyper-pro-couch-stretch"),
-            lift("ex-hyper-pro-incline-pigeon"),
+            lift("ex-goblet-squat", 2, 8),
+            lift("ex-hip-abduction-machine", 2, 12),
+            lift("ex-bulgarian-split-squat"),
             lift("ex-hyper-pro-elephant-walk", 1, 10),
         ),
-        imageKey = "ex_hyper_pro_incline_pigeon",
-        shownFor = setOf(ExtraEquipment.MACHINES, ExtraEquipment.MIXED),
+        imageKey = "ex_hip_abduction_machine",
+        shownFor = setOf(ExtraEquipment.MIXED),
     )
 
     val Holds = pack(
         id = "holds",
         title = "Holds",
-        caption = "About six minutes. Static holds before bed or any time.",
+        caption = "A carry, a hang, a side plank, a couch stretch.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
-            lift("ex-plank", 1, 40, 30),
-            lift("ex-side-plank", 1, 30),
-            lift("ex-dead-bug", 2, 8),
+            lift("ex-farmer-s-carry", 1, 8, 30),
+            hold("ex-dead-hang", seconds = 30),
+            hold("ex-side-plank", seconds = 30),
+            hold("ex-hyper-pro-couch-stretch"),
         ),
-        imageKey = "ex_plank",
-        shownFor = ExtraEquipment.entries.toSet(),
+        imageKey = "ex_side_plank",
+        shownFor = setOf(ExtraEquipment.MIXED),
     )
 
     val Core = pack(
         id = "core",
         title = "Core",
-        caption = "About eight minutes. Crunches and leg raises. Not a static hold.",
+        caption = "A twist, a cable crunch, a carry, hanging raises.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
-            lift("ex-hanging-leg-raise", 2, 8, 30),
-            lift("ex-machine-crunch", 2, 12, 30),
+            lift("ex-russian-twist", 2, 12),
             lift("ex-cable-crunch", 2, 12, 30),
+            lift("ex-farmer-s-carry", 1, 8, 30),
+            lift("ex-hanging-leg-raise", 2, 8, 30),
         ),
         imageKey = "ex_hanging_leg_raise",
-        shownFor = setOf(ExtraEquipment.MACHINES, ExtraEquipment.MIXED),
+        shownFor = setOf(ExtraEquipment.MIXED),
     )
 
     val GolfNone = pack(
         id = "golf-none",
         family = "golf",
         title = "Golf warm-up",
-        caption = "Floor rotation and a brace. No bench, no cable.",
+        caption = "Joint circles, a floor chop, Y-holds, squats. No kit.",
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
-            lift("ex-doorway-chest-stretch"),
-            lift("ex-y-hold", 2, 8),
-            lift("ex-push-up", 2, 8),
-            lift("ex-dead-bug", 2, 8),
+            lift("ex-joint-circles", 2, 8),
+            lift("ex-floor-woodchop", 2, 8),
+            hold("ex-y-hold", sets = 2, seconds = 20),
+            lift("ex-bodyweight-squat", 2, 10),
         ),
-        imageKey = "ex_y_hold",
+        imageKey = "ex_floor_woodchop",
         shownFor = setOf(ExtraEquipment.NONE),
     )
 
@@ -219,9 +228,9 @@ object AuxiliaryPacks {
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
             lift("ex-bodyweight-squat", 2, 10),
-            lift("ex-wall-sit", 1, 30),
+            hold("ex-wall-sit", seconds = 30),
             lift("ex-single-leg-calf-raise", 1, 10),
-            lift("ex-deep-squat-hold", 1, 20),
+            hold("ex-deep-squat-hold", seconds = 30),
         ),
         imageKey = "ex_wall_sit",
         shownFor = setOf(ExtraEquipment.NONE),
@@ -231,13 +240,13 @@ object AuxiliaryPacks {
         id = "upper-body-none",
         family = "upper-body",
         title = "Upper-body warm-up",
-        caption = "Push-ups, inverted rows, a diamond. Floor and a bar.",
+        caption = "Push-ups, inverted rows, a diamond, a scap hang.",
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
             lift("ex-push-up", 2, 8),
             lift("ex-inverted-row"),
             lift("ex-diamond-push-up", 2, 8),
-            lift("ex-doorway-chest-stretch"),
+            hold("ex-scapular-hang", seconds = 20),
         ),
         imageKey = "ex_diamond_push_up",
         shownFor = setOf(ExtraEquipment.NONE),
@@ -247,13 +256,13 @@ object AuxiliaryPacks {
         id = "shoulder-none",
         family = "shoulder",
         title = "Shoulder warm-up",
-        caption = "Y-holds, a doorway stretch, inverted rows.",
+        caption = "Y-holds, inverted rows, a doorway, a scap hang.",
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
-            lift("ex-y-hold", 2, 10),
+            hold("ex-y-hold", sets = 2, seconds = 20),
             lift("ex-inverted-row"),
-            lift("ex-doorway-chest-stretch"),
-            lift("ex-diamond-push-up", 2, 8),
+            hold("ex-doorway-chest-stretch"),
+            hold("ex-scapular-hang", seconds = 20),
         ),
         imageKey = "ex_inverted_row",
         shownFor = setOf(ExtraEquipment.NONE),
@@ -263,15 +272,15 @@ object AuxiliaryPacks {
         id = "golf-cooldown-none",
         family = "golf-cooldown",
         title = "Golf cool-down",
-        caption = "Floor hips and a brace. After a round with no bench.",
+        caption = "Couch, pigeon, calves, hamstrings. After a round on the floor.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
-            lift("ex-dead-bug", 2, 8),
-            lift("ex-plank", 1, 40),
-            lift("ex-side-plank", 1, 30),
-            lift("ex-doorway-chest-stretch"),
+            hold("ex-couch-stretch"),
+            hold("ex-pigeon-stretch"),
+            hold("ex-calf-stretch"),
+            hold("ex-hamstring-stretch"),
         ),
-        imageKey = "ex_side_plank",
+        imageKey = "ex_pigeon_stretch",
         shownFor = setOf(ExtraEquipment.NONE),
     )
 
@@ -279,15 +288,15 @@ object AuxiliaryPacks {
         id = "stretch-none",
         family = "stretch",
         title = "Stretch",
-        caption = "Doorway, a deep squat, Y-holds. The floor.",
+        caption = "Couch, 90/90, a doorway, ankle rocks. The floor.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
-            lift("ex-doorway-chest-stretch"),
-            lift("ex-deep-squat-hold", 1, 20),
-            lift("ex-y-hold", 2, 8),
-            lift("ex-wall-sit", 1, 30),
+            hold("ex-couch-stretch"),
+            hold("ex-90-90-hips"),
+            hold("ex-doorway-chest-stretch"),
+            lift("ex-ankle-rocks", 2, 10),
         ),
-        imageKey = "ex_doorway_chest_stretch",
+        imageKey = "ex_couch_stretch",
         shownFor = setOf(ExtraEquipment.NONE),
     )
 
@@ -295,12 +304,13 @@ object AuxiliaryPacks {
         id = "lower-back-none",
         family = "lower-back",
         title = "Lower back",
-        caption = "Dead bugs and a plank. No hyperextension bench.",
+        caption = "Dead bugs, a plank, a side plank, a back extension.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
             lift("ex-dead-bug", 2, 8),
-            lift("ex-plank", 1, 40),
-            lift("ex-side-plank", 1, 30),
+            hold("ex-plank", seconds = 40),
+            hold("ex-side-plank", seconds = 30),
+            lift("ex-back-extension", 2, 10, 30),
         ),
         imageKey = "ex_dead_bug",
         shownFor = setOf(ExtraEquipment.NONE),
@@ -310,15 +320,31 @@ object AuxiliaryPacks {
         id = "hips-none",
         family = "hips",
         title = "Hips",
-        caption = "Deep squat, wall sit, a Nordic. Floor only.",
+        caption = "A deep squat, a couch stretch, pigeon, 90/90.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
-            lift("ex-deep-squat-hold", 1, 20),
-            lift("ex-wall-sit", 1, 30),
-            lift("ex-nordic-ham-curl"),
-            lift("ex-dead-bug", 2, 8),
+            hold("ex-deep-squat-hold", seconds = 30),
+            hold("ex-couch-stretch"),
+            hold("ex-pigeon-stretch"),
+            hold("ex-90-90-hips"),
         ),
-        imageKey = "ex_nordic_ham_curl",
+        imageKey = "ex_90_90_hips",
+        shownFor = setOf(ExtraEquipment.NONE),
+    )
+
+    val HoldsNone = pack(
+        id = "holds-none",
+        family = "holds",
+        title = "Holds",
+        caption = "Plank, side plank, a wall sit, a deep squat. Floor only.",
+        kind = AuxiliaryKind.MOBILITY,
+        lifts = listOf(
+            hold("ex-plank", seconds = 40),
+            hold("ex-side-plank", seconds = 30),
+            hold("ex-wall-sit", seconds = 30),
+            hold("ex-deep-squat-hold", seconds = 30),
+        ),
+        imageKey = "ex_plank",
         shownFor = setOf(ExtraEquipment.NONE),
     )
 
@@ -326,15 +352,15 @@ object AuxiliaryPacks {
         id = "core-none",
         family = "core",
         title = "Core",
-        caption = "Floor brace. Dead bugs, planks. No machine.",
+        caption = "Dead bugs, planks, an ab wheel. No machine.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
             lift("ex-dead-bug", 2, 8),
-            lift("ex-plank", 1, 40),
-            lift("ex-side-plank", 1, 30),
-            lift("ex-decline-sit-up", 2, 10),
+            hold("ex-plank", seconds = 40),
+            hold("ex-side-plank", seconds = 30),
+            lift("ex-ab-wheel-rollout", 2, 8),
         ),
-        imageKey = "ex_decline_sit_up",
+        imageKey = "ex_ab_wheel_rollout",
         shownFor = setOf(ExtraEquipment.NONE),
     )
 
@@ -342,7 +368,7 @@ object AuxiliaryPacks {
         id = "golf-free",
         family = "golf",
         title = "Golf warm-up",
-        caption = "Swings, a twist, rear delts. Dumbbells and a bell.",
+        caption = "Swings, a twist, rear delts, a goblet squat.",
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
             lift("ex-kettlebell-swing", 2, 10),
@@ -358,13 +384,13 @@ object AuxiliaryPacks {
         id = "lower-body-free",
         family = "lower-body",
         title = "Lower-body warm-up",
-        caption = "Goblet squats, a DB hinge, a glute bridge.",
+        caption = "Goblet squats, a DB hinge, lunges, a swing.",
         kind = AuxiliaryKind.WARMUP,
         lifts = listOf(
             lift("ex-goblet-squat", 2, 8),
             lift("ex-dumbbell-romanian-deadlift", 2, 8),
-            lift("ex-barbell-glute-bridge"),
             lift("ex-walking-lunge"),
+            lift("ex-kettlebell-swing", 2, 10),
         ),
         imageKey = "ex_goblet_squat",
         shownFor = setOf(ExtraEquipment.FREE_WEIGHTS),
@@ -406,15 +432,15 @@ object AuxiliaryPacks {
         id = "golf-cooldown-free",
         family = "golf-cooldown",
         title = "Golf cool-down",
-        caption = "A carry, a twist, a hinge. After a round with DBs.",
+        caption = "A light hinge, a single-leg RDL, a couch stretch, calves.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
-            lift("ex-farmer-s-carry", 1, 8, 30),
-            lift("ex-russian-twist", 2, 10),
             lift("ex-good-morning"),
-            lift("ex-dead-bug", 2, 8),
+            lift("ex-single-leg-romanian-deadlift"),
+            hold("ex-couch-stretch"),
+            hold("ex-calf-stretch"),
         ),
-        imageKey = "ex_farmer_s_carry",
+        imageKey = "ex_single_leg_romanian_deadlift",
         shownFor = setOf(ExtraEquipment.FREE_WEIGHTS),
     )
 
@@ -422,15 +448,15 @@ object AuxiliaryPacks {
         id = "stretch-free",
         family = "stretch",
         title = "Stretch",
-        caption = "A light good-morning, a hinge, a doorway.",
+        caption = "A couch stretch, hamstrings, a light good-morning, ankle rocks.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
+            hold("ex-couch-stretch"),
+            hold("ex-hamstring-stretch"),
             lift("ex-good-morning"),
-            lift("ex-single-leg-romanian-deadlift"),
-            lift("ex-doorway-chest-stretch"),
-            lift("ex-deep-squat-hold", 1, 20),
+            lift("ex-ankle-rocks", 2, 10),
         ),
-        imageKey = "ex_good_morning",
+        imageKey = "ex_hamstring_stretch",
         shownFor = setOf(ExtraEquipment.FREE_WEIGHTS),
     )
 
@@ -444,7 +470,7 @@ object AuxiliaryPacks {
             lift("ex-barbell-glute-bridge", 2, 8),
             lift("ex-good-morning"),
             lift("ex-dead-bug", 2, 8),
-            lift("ex-plank", 1, 40),
+            hold("ex-plank", seconds = 40),
         ),
         imageKey = "ex_barbell_glute_bridge",
         shownFor = setOf(ExtraEquipment.FREE_WEIGHTS),
@@ -454,7 +480,7 @@ object AuxiliaryPacks {
         id = "hips-free",
         family = "hips",
         title = "Hips",
-        caption = "Hip thrust, a split squat, a swing.",
+        caption = "Hip thrust, a split squat, a swing, a goblet squat.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
             lift("ex-hip-thrust", 2, 8),
@@ -463,6 +489,22 @@ object AuxiliaryPacks {
             lift("ex-goblet-squat", 2, 8),
         ),
         imageKey = "ex_hip_thrust",
+        shownFor = setOf(ExtraEquipment.FREE_WEIGHTS),
+    )
+
+    val HoldsFree = pack(
+        id = "holds-free",
+        family = "holds",
+        title = "Holds",
+        caption = "A carry, a plank, Y-holds, a dead hang.",
+        kind = AuxiliaryKind.MOBILITY,
+        lifts = listOf(
+            lift("ex-farmer-s-carry", 1, 8, 30),
+            hold("ex-plank", seconds = 40),
+            hold("ex-y-hold", sets = 2, seconds = 20),
+            hold("ex-dead-hang", seconds = 30),
+        ),
+        imageKey = "ex_dead_hang",
         shownFor = setOf(ExtraEquipment.FREE_WEIGHTS),
     )
 
@@ -476,10 +518,26 @@ object AuxiliaryPacks {
             lift("ex-russian-twist", 2, 12),
             lift("ex-farmer-s-carry", 1, 8, 30),
             lift("ex-dead-bug", 2, 8),
-            lift("ex-plank", 1, 40),
+            hold("ex-plank", seconds = 40),
         ),
         imageKey = "ex_russian_twist",
         shownFor = setOf(ExtraEquipment.FREE_WEIGHTS),
+    )
+
+    val GolfMachines = pack(
+        id = "golf-machines",
+        family = "golf",
+        title = "Golf warm-up",
+        caption = "A walk-out, a chop, a rotator, a face pull.",
+        kind = AuxiliaryKind.WARMUP,
+        lifts = listOf(
+            lift("ex-hyper-pro-elephant-walk", 1, 10),
+            lift("ex-hyper-pro-woodchop", 2, 8),
+            lift("ex-hyper-pro-external-rotator", 2, 8),
+            lift("ex-face-pull", 2, 12),
+        ),
+        imageKey = "ex_hyper_pro_woodchop",
+        shownFor = setOf(ExtraEquipment.MACHINES),
     )
 
     val LowerBodyMachines = pack(
@@ -530,18 +588,98 @@ object AuxiliaryPacks {
         shownFor = setOf(ExtraEquipment.MACHINES),
     )
 
+    val GolfCooldownMachines = pack(
+        id = "golf-cooldown-machines",
+        family = "golf-cooldown",
+        title = "Golf cool-down",
+        caption = "Couch, pigeon, calves, a walk-out. After a round on the bench.",
+        kind = AuxiliaryKind.MOBILITY,
+        lifts = listOf(
+            hold("ex-hyper-pro-couch-stretch"),
+            hold("ex-hyper-pro-incline-pigeon"),
+            hold("ex-hyper-pro-calf-stretch"),
+            lift("ex-hyper-pro-elephant-walk", 1, 10),
+        ),
+        imageKey = "ex_hyper_pro_couch_stretch",
+        shownFor = setOf(ExtraEquipment.MACHINES),
+    )
+
+    val StretchMachines = pack(
+        id = "stretch-machines",
+        family = "stretch",
+        title = "Stretch",
+        caption = "Calves, couch, walk-outs, pigeon. Hyper Pro.",
+        kind = AuxiliaryKind.MOBILITY,
+        lifts = listOf(
+            hold("ex-hyper-pro-calf-stretch"),
+            hold("ex-hyper-pro-couch-stretch"),
+            lift("ex-hyper-pro-elephant-walk", 1, 10),
+            hold("ex-hyper-pro-incline-pigeon"),
+        ),
+        imageKey = "ex_hyper_pro_calf_stretch",
+        shownFor = setOf(ExtraEquipment.MACHINES),
+    )
+
     val LowerBackMachines = pack(
         id = "lower-back-machines",
         family = "lower-back",
         title = "Lower back",
-        caption = "A back extension, reverse hyper, a brace.",
+        caption = "A back extension, reverse hyper, a QL raise.",
         kind = AuxiliaryKind.MOBILITY,
         lifts = listOf(
             lift("ex-hyper-pro-45-degree-back-extension", 2, 10, 30),
             lift("ex-hyper-pro-reverse-hyper", 2, 8, 30),
-            lift("ex-dead-bug", 2, 8),
+            lift("ex-hyper-pro-ql-raise", 2, 8, 30),
         ),
         imageKey = "ex_hyper_pro_45_degree_back_extension",
+        shownFor = setOf(ExtraEquipment.MACHINES),
+    )
+
+    val HipsMachines = pack(
+        id = "hips-machines",
+        family = "hips",
+        title = "Hips",
+        caption = "Couch, pigeon, a hip machine, a cable kickback.",
+        kind = AuxiliaryKind.MOBILITY,
+        lifts = listOf(
+            hold("ex-hyper-pro-couch-stretch"),
+            hold("ex-hyper-pro-incline-pigeon"),
+            lift("ex-hip-abduction-machine", 2, 12),
+            lift("ex-cable-kickback", 2, 12),
+        ),
+        imageKey = "ex_hyper_pro_incline_pigeon",
+        shownFor = setOf(ExtraEquipment.MACHINES),
+    )
+
+    val HoldsMachines = pack(
+        id = "holds-machines",
+        family = "holds",
+        title = "Holds",
+        caption = "A dead hang, a scap hang, a couch stretch, Y-holds.",
+        kind = AuxiliaryKind.MOBILITY,
+        lifts = listOf(
+            hold("ex-dead-hang", seconds = 30),
+            hold("ex-scapular-hang", seconds = 20),
+            hold("ex-hyper-pro-couch-stretch"),
+            hold("ex-y-hold", sets = 2, seconds = 20),
+        ),
+        imageKey = "ex_scapular_hang",
+        shownFor = setOf(ExtraEquipment.MACHINES),
+    )
+
+    val CoreMachines = pack(
+        id = "core-machines",
+        family = "core",
+        title = "Core",
+        caption = "A machine crunch, a cable crunch, Hyper Pro sit-up and raise.",
+        kind = AuxiliaryKind.MOBILITY,
+        lifts = listOf(
+            lift("ex-machine-crunch", 2, 12, 30),
+            lift("ex-cable-crunch", 2, 12, 30),
+            lift("ex-hyper-pro-sit-up", 2, 10, 30),
+            lift("ex-hyper-pro-leg-raise", 2, 8, 30),
+        ),
+        imageKey = "ex_machine_crunch",
         shownFor = setOf(ExtraEquipment.MACHINES),
     )
 
@@ -549,10 +687,12 @@ object AuxiliaryPacks {
         Golf, LowerBody, UpperBody, Shoulder,
         GolfCooldown, Stretch, LowerBack, Hips, Holds, Core,
         GolfNone, LowerBodyNone, UpperBodyNone, ShoulderNone,
-        GolfCooldownNone, StretchNone, LowerBackNone, HipsNone, CoreNone,
+        GolfCooldownNone, StretchNone, LowerBackNone, HipsNone, HoldsNone, CoreNone,
         GolfFree, LowerBodyFree, UpperBodyFree, ShoulderFree,
-        GolfCooldownFree, StretchFree, LowerBackFree, HipsFree, CoreFree,
-        LowerBodyMachines, UpperBodyMachines, ShoulderMachines, LowerBackMachines,
+        GolfCooldownFree, StretchFree, LowerBackFree, HipsFree, HoldsFree, CoreFree,
+        GolfMachines, LowerBodyMachines, UpperBodyMachines, ShoulderMachines,
+        GolfCooldownMachines, StretchMachines, LowerBackMachines, HipsMachines,
+        HoldsMachines, CoreMachines,
     )
 
     val warmups: List<AuxiliaryPack> = all.filter { it.kind == AuxiliaryKind.WARMUP }
@@ -580,6 +720,13 @@ object AuxiliaryPacks {
         reps: Int = 8,
         restSeconds: Int = 20,
     ) = AuxiliaryLift(exerciseId, sets, reps, restSeconds)
+
+    private fun hold(
+        exerciseId: String,
+        sets: Int = 1,
+        seconds: Int = 45,
+        restSeconds: Int = 20,
+    ) = AuxiliaryLift(exerciseId, sets, seconds, restSeconds)
 
     private fun pack(
         id: String,
