@@ -46,11 +46,11 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.FloorTimerSlot
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
-import com.sinura.personaltrainer.ui.components.RestDock
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.Haptics
@@ -77,6 +77,8 @@ object WorkoutTestTags {
     const val NEXT = "workout-next"
     const val ANOTHER_SET = "workout-another-set"
     const val RPE_TRACK = "workout-rpe-track"
+    const val INSTRUMENT_STRIP = "workout-instrument-strip"
+    const val REST_WHEEL = "workout-rest-wheel"
     const val ADD_SET = "workout-add-set"
     const val LAST_TIME = "workout-last-time"
     const val SELECTED_LIFT = "workout-selected-lift"
@@ -229,12 +231,19 @@ fun ActiveWorkoutScreen(
                 compact = LandscapeChrome.compactHeader(landscape),
                 onExit = { keepAndExit() },
                 onFinish = { confirmEnd = true },
+                onOpenTimer = { session?.id?.let(onOpenRest) },
+                restRunning = rest.running,
+                restRemainingSeconds = rest.remainingSeconds,
+                plannedRestSeconds = selected?.restSeconds?.takeIf { it > 0 }
+                    ?: rest.totalSeconds,
+                holdRunning = holdTimer.running,
+                holdElapsedSeconds = holdTimer.elapsedSeconds,
             )
         },
         bottomBar = {
-            // G-02: rest Start/Skip and Log set share the lower dock so a
-            // one-handed thumb can hit both. Finish stays in the header —
-            // it is not a mid-set act. The list above is readout and entry.
+            // G-02 / Packet 2: timer slot, advance choice, and Log set share
+            // the LogBar dock so a one-handed thumb reaches every control.
+            // Finish stays in the header — it is not a mid-set act.
             val showRest = session != null
             if (showRest || logBarVisible) {
                 Column(
@@ -245,30 +254,16 @@ fun ActiveWorkoutScreen(
                             else Modifier.navigationBarsPadding(),
                         ),
                 ) {
-                    if (showRest) {
-                        if (selected != null && !LandscapeChrome.hideSelectedLiftDock(landscape)) {
-                            SelectedLiftDock(
-                                lift = selected,
-                                workingLogged = workingLogged,
-                                unit = unit,
-                                restSeconds = selected.restSeconds.takeIf { it > 0 } ?: rest.totalSeconds,
-                                restRunning = rest.running,
-                                restRemainingSeconds = rest.remainingSeconds,
-                            )
-                        }
-                        RestDock(
-                            remainingSeconds = rest.remainingSeconds,
-                            totalSeconds = rest.totalSeconds,
-                            running = rest.running,
-                            completedTimerId = rest.completedTimerId,
-                            hideWhenIdle = LandscapeChrome.hideIdleRest(landscape),
-                            afterWarmup = afterWarmup,
-                            batteryHint = rest.batteryHint,
-                            onDismissBatteryHint = viewModel::acknowledgeRestBatteryHint,
-                            onSkip = viewModel::skipRest,
-                            onStart = viewModel::startSelectedRest,
-                            onStartNext = viewModel::startNextLift,
-                            onOpenRest = { session.id.let(onOpenRest) },
+                    if (showRest && selected != null &&
+                        !LandscapeChrome.hideSelectedLiftDock(landscape)
+                    ) {
+                        SelectedLiftDock(
+                            lift = selected,
+                            workingLogged = workingLogged,
+                            unit = unit,
+                            restSeconds = selected.restSeconds.takeIf { it > 0 } ?: rest.totalSeconds,
+                            restRunning = rest.running,
+                            restRemainingSeconds = rest.remainingSeconds,
                         )
                     }
                     if (logBarVisible) {
@@ -306,6 +301,21 @@ fun ActiveWorkoutScreen(
                             advanceChoice = pendingAdvance != null,
                             hold = hold,
                             holdRunning = holdArmed,
+                            showTimer = showRest,
+                            restRemainingSeconds = rest.remainingSeconds,
+                            restTotalSeconds = rest.totalSeconds,
+                            restRunning = rest.running,
+                            restCompletedTimerId = rest.completedTimerId,
+                            hideIdleRest = LandscapeChrome.hideIdleRest(landscape),
+                            afterWarmup = afterWarmup,
+                            restBatteryHint = rest.batteryHint,
+                            holdElapsedSeconds = holdTimer.elapsedSeconds,
+                            onSkipRest = viewModel::skipRest,
+                            onStartRest = viewModel::startSelectedRest,
+                            onSelectRestDuration = viewModel::selectRestDuration,
+                            onDismissRestBatteryHint = viewModel::acknowledgeRestBatteryHint,
+                            onStartNextLift = viewModel::startNextLift,
+                            onOpenRest = { session?.id?.let(onOpenRest) },
                             onLog = {
                                 Haptics.commit(view)
                                 if (hold && !holdArmed && state.editingSetId == null) {
@@ -324,6 +334,25 @@ fun ActiveWorkoutScreen(
                             onAnotherSet = viewModel::stayOnCurrentExercise,
                             onCancelEdit = viewModel::cancelEdit,
                             onApplyMicroRec = viewModel::applyMicroRec,
+                        )
+                    } else if (showRest) {
+                        // Empty free workout: timer alone until a lift is selected.
+                        FloorTimerSlot(
+                            remainingSeconds = rest.remainingSeconds,
+                            totalSeconds = rest.totalSeconds,
+                            restRunning = rest.running,
+                            completedTimerId = rest.completedTimerId,
+                            hideWhenIdle = LandscapeChrome.hideIdleRest(landscape),
+                            afterWarmup = afterWarmup,
+                            batteryHint = rest.batteryHint,
+                            holdRunning = holdTimer.running,
+                            holdElapsedSeconds = holdTimer.elapsedSeconds,
+                            onSkip = viewModel::skipRest,
+                            onStart = viewModel::startSelectedRest,
+                            onSelectRestDuration = viewModel::selectRestDuration,
+                            onDismissBatteryHint = viewModel::acknowledgeRestBatteryHint,
+                            onStartNext = viewModel::startNextLift,
+                            onOpenRest = { session.id.let(onOpenRest) },
                         )
                     }
                 }

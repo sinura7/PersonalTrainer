@@ -14,12 +14,13 @@ class RestIdlePresentationTest {
         assertTrue("RestIdleRow missing", idleStart >= 0)
         assertTrue("RestLinearTrack missing", idleEnd > idleStart)
         val idle = src.substring(idleStart, idleEnd)
-        assertFalse("idle rest must not use numeralMd", idle.contains("numeralMd"))
+        assertFalse("idle rest label must not use numeralMd", idle.contains("numeralMd"))
         assertTrue(idle.contains("RestIdleCopy"))
         assertTrue(idle.contains("bodyStrong"))
         assertTrue(idle.contains("RestIdleCopy.START_NEXT"))
         assertTrue(idle.contains("RestIdleCopy.START"))
         assertTrue(idle.contains("TextButton("))
+        assertTrue(idle.contains("SnapValueWheel("))
         assertFalse("idle rest must not use a filled Volt", idle.contains("PrimaryGymButton"))
     }
 

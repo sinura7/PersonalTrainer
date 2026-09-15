@@ -41,4 +41,11 @@ class FloorCompactChromeTest {
         assertTrue(FloorCompactChrome.warmupOutsideRpeTrack())
         assertTrue(FloorCompactChrome.rpeTrackFitsWithoutScroll())
     }
+
+    @Test
+    fun packet2SplitsInstrumentStripFromDockControls() {
+        assertTrue(FloorCompactChrome.headerIsReadOnlyInstrumentStrip())
+        assertTrue(FloorCompactChrome.oneClockTwoModes())
+        assertTrue(FloorCompactChrome.restLengthIsInlineWheel())
+    }
 }

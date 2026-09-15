@@ -23,6 +23,7 @@ import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.components.FloorTimerSlot
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
@@ -36,20 +37,16 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
- * The one action that matters, and the values it is about to commit.
+ * Every gym-floor control in one dock (Packet 2).
  *
- * The button is pinned while the entry panel scrolls, so after reviewing the set list a
- * lifter could face a full-width commit button whose payload was nowhere on screen. Echoing
- * the draft in the label means the tap is never blind. W-11: the Warm-up chip changes the
- * verb (`Log warm-up` vs `Log set`) through [LogBarCopy.commit].
+ * Owns the timer slot (rest countdown or set count-up), the Packet 1
+ * advance choice (Next lift / Another set), and the single Volt
+ * [LogBarCopy.commit]. The header strip is read-only instruments.
  *
- * Scaffold's bottomBar draws edge-to-edge. The tab bar is gone on this route, so this
- * dock owns the system-nav inset the same way the tab bar and live bar already do —
- * otherwise Log sits under the three-button nav / gesture pill.
- *
- * When a lift hits its prescription and another is waiting, [advanceChoice] keeps
- * Next lift / Another set standing until the lifter chooses or logs — no dwell timer
- * moves the loop.
+ * Scaffold's bottomBar draws edge-to-edge. The tab bar is gone on this
+ * route, so this dock owns the system-nav inset the same way the tab
+ * bar and live bar already do — otherwise Log sits under the three-
+ * button nav / gesture pill.
  */
 @Composable
 internal fun LogBar(
@@ -70,71 +67,107 @@ internal fun LogBar(
     holdRunning: Boolean = false,
     advanceChoice: Boolean = false,
     onAnotherSet: (() -> Unit)? = null,
+    showTimer: Boolean = false,
+    restRemainingSeconds: Int = 0,
+    restTotalSeconds: Int = 0,
+    restRunning: Boolean = false,
+    restCompletedTimerId: String? = null,
+    hideIdleRest: Boolean = false,
+    afterWarmup: Boolean = false,
+    restBatteryHint: Boolean = false,
+    holdElapsedSeconds: Int = 0,
+    onSkipRest: () -> Unit = {},
+    onStartRest: () -> Unit = {},
+    onSelectRestDuration: (Int) -> Unit = {},
+    onDismissRestBatteryHint: () -> Unit = {},
+    onStartNextLift: () -> Unit = {},
+    onOpenRest: () -> Unit = {},
 ) {
     val nextAct = (showNext || advanceChoice) && !editing
-    PinnedDock(
-        prelude = {
-            error?.let {
-                Text(it, style = InstrumentType.body, color = Danger)
-            }
-            if (editing) {
-                TextButton(
-                    onClick = onCancelEdit,
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .heightIn(min = Metrics.touchMin),
-                ) {
-                    Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-            }
-            microRec?.let { rec ->
-                MicroRecLine(
-                    rec = rec,
-                    loadClass = loadClass,
-                    unit = unit,
-                    onApply = onApplyMicroRec,
-                )
-            }
-        },
-        volt = {
-            PrimaryGymButton(
-                text = LogBarCopy.commit(
-                    editing = editing,
-                    next = nextAct,
-                    warmup = warmup,
-                    draftLabel = draftLabel,
-                    hold = hold,
-                    holdRunning = holdRunning,
-                ),
-                onClick = if (nextAct) onNext else onLog,
-                enabled = !logging,
-                modifier = Modifier.testTag(
-                    if (nextAct) WorkoutTestTags.NEXT else WorkoutTestTags.LOG_SET,
-                ),
-                height = Metrics.commit,
-                hapticFeedback = nextAct || editing,
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (showTimer) {
+            FloorTimerSlot(
+                remainingSeconds = restRemainingSeconds,
+                totalSeconds = restTotalSeconds,
+                restRunning = restRunning,
+                completedTimerId = restCompletedTimerId,
+                hideWhenIdle = hideIdleRest,
+                afterWarmup = afterWarmup,
+                batteryHint = restBatteryHint,
+                holdRunning = holdRunning,
+                holdElapsedSeconds = holdElapsedSeconds,
+                onSkip = onSkipRest,
+                onStart = onStartRest,
+                onSelectRestDuration = onSelectRestDuration,
+                onDismissBatteryHint = onDismissRestBatteryHint,
+                onStartNext = onStartNextLift,
+                onOpenRest = onOpenRest,
             )
-        },
-        secondary = if (advanceChoice && !editing && onAnotherSet != null) {
-            {
-                TextButton(
-                    onClick = onAnotherSet,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = Metrics.touchMin)
-                        .testTag(WorkoutTestTags.ANOTHER_SET),
-                ) {
-                    Text(
-                        LogBarCopy.ANOTHER_SET,
-                        style = InstrumentType.bodyStrong,
-                        color = TextSecondary,
+        }
+        PinnedDock(
+            prelude = {
+                error?.let {
+                    Text(it, style = InstrumentType.body, color = Danger)
+                }
+                if (editing) {
+                    TextButton(
+                        onClick = onCancelEdit,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .heightIn(min = Metrics.touchMin),
+                    ) {
+                        Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
+                    }
+                }
+                microRec?.let { rec ->
+                    MicroRecLine(
+                        rec = rec,
+                        loadClass = loadClass,
+                        unit = unit,
+                        onApply = onApplyMicroRec,
                     )
                 }
-            }
-        } else {
-            null
-        },
-    )
+            },
+            volt = {
+                PrimaryGymButton(
+                    text = LogBarCopy.commit(
+                        editing = editing,
+                        next = nextAct,
+                        warmup = warmup,
+                        draftLabel = draftLabel,
+                        hold = hold,
+                        holdRunning = holdRunning,
+                    ),
+                    onClick = if (nextAct) onNext else onLog,
+                    enabled = !logging,
+                    modifier = Modifier.testTag(
+                        if (nextAct) WorkoutTestTags.NEXT else WorkoutTestTags.LOG_SET,
+                    ),
+                    height = Metrics.commit,
+                    hapticFeedback = nextAct || editing,
+                )
+            },
+            secondary = if (advanceChoice && !editing && onAnotherSet != null) {
+                {
+                    TextButton(
+                        onClick = onAnotherSet,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = Metrics.touchMin)
+                            .testTag(WorkoutTestTags.ANOTHER_SET),
+                    ) {
+                        Text(
+                            LogBarCopy.ANOTHER_SET,
+                            style = InstrumentType.bodyStrong,
+                            color = TextSecondary,
+                        )
+                    }
+                }
+            } else {
+                null
+            },
+        )
+    }
 }
 
 @Composable

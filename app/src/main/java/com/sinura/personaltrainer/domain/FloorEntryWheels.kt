@@ -4,12 +4,12 @@ import kotlin.math.abs
 import kotlin.math.round
 
 /**
- * Gym-floor weight, reps, and hold-time as snap-scroll wheels.
+ * Gym-floor weight, reps, hold-time, and planned rest as snap-scroll wheels.
  *
  * Same motion as the Settings reminder wheel: flick a vertical column, it
  * settles on one value. Weight steps with the plates the −5/+5 row already
  * used (2.5 kg, or 5 lbs). Reps move by 1. Holds are seconds in 5s, never
- * a fake 1-rep stand-in.
+ * a fake 1-rep stand-in. Rest length steps by 15s to match the floor ±15.
  *
  * The first settle on the page the wheel opened on is not a choice. A
  * flick is.
@@ -17,6 +17,7 @@ import kotlin.math.round
 object FloorEntryWheels {
     const val MAX_KG = 400.0
     const val MAX_LBS = 1_000.0
+    const val REST_STEP_SECONDS = 15
 
     fun weightStep(unit: WeightUnit): Double = unit.step
 
@@ -92,6 +93,39 @@ object FloorEntryWheels {
 
     fun swipeHoldSeconds(current: Int, pageDelta: Int): Int =
         holdSecondsAt(holdPage(current) + pageDelta, current)
+
+    fun restSecondsValues(
+        currentSeconds: Int = RestTimerPreferences.DEFAULT_SECONDS,
+    ): List<Int> {
+        val steps = (
+            RestTimerPreferences.MIN_SECONDS..RestTimerPreferences.MAX_SECONDS
+                step REST_STEP_SECONDS
+            ).toList()
+        val current = currentSeconds.coerceIn(
+            RestTimerPreferences.MIN_SECONDS,
+            RestTimerPreferences.MAX_SECONDS,
+        )
+        if (current in steps) return steps
+        return (steps + current).sorted()
+    }
+
+    fun restPage(seconds: Int): Int {
+        val values = restSecondsValues(seconds)
+        val exact = values.indexOf(seconds)
+        if (exact >= 0) return exact
+        return values.indices.minBy { abs(values[it] - seconds) }
+    }
+
+    fun restSecondsAt(
+        page: Int,
+        currentSeconds: Int = RestTimerPreferences.DEFAULT_SECONDS,
+    ): Int {
+        val values = restSecondsValues(currentSeconds)
+        return values[page.coerceIn(0, values.lastIndex)]
+    }
+
+    fun swipeRestSeconds(current: Int, pageDelta: Int): Int =
+        restSecondsAt(restPage(current) + pageDelta, current)
 
     fun shouldCommitSettledPage(settledPage: Int, initialPage: Int): Boolean =
         settledPage != initialPage

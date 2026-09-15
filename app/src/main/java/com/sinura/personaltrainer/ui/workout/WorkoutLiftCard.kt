@@ -55,7 +55,6 @@ import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.FloorCompactChrome
-import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
@@ -235,29 +234,8 @@ internal fun WorkoutLiftCard(
                     onApplySet = onApplyLastTime,
                 )
             }
-            if (hold && (holdRunning || holdRemainingSeconds > 0 || (holdSeconds ?: 0) > 0)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag(WorkoutTestTags.HOLD_CLOCK),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                ) {
-                    Kicker(
-                        text = if (holdRunning) "Hold" else "Time",
-                        color = if (holdRunning) RestCyan else TextSecondary,
-                        asHeading = false,
-                    )
-                    Text(
-                        HoldWork.clock(
-                            if (holdRunning) holdRemainingSeconds else holdSeconds ?: 0,
-                        ),
-                        style = InstrumentType.numeralSm,
-                        color = if (holdRunning) RestCyan else TextPrimary,
-                        maxLines = 1,
-                    )
-                }
-            }
+            // Packet 2: running set clock lives in LogBar's FloorTimerSlot
+            // (count-up). No second countdown on the live card.
             SetEntryPanel(
                 weightKg = draftWeightKg,
                 reps = draftReps,

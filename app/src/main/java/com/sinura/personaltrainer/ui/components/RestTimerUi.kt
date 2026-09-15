@@ -64,6 +64,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.FloorEntryWheels
+import com.sinura.personaltrainer.domain.FloorTimerSurface
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestBatteryCopy
 import com.sinura.personaltrainer.domain.RestFinishFlash
@@ -93,13 +96,99 @@ import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import kotlinx.coroutines.delay
 
 /**
+ * One clock slot in the lower dock (Packet 2 / G-02).
+ *
+ * Rest counts down; a running set counts up. Modes never stack. Planned
+ * rest length edits inline with [SnapValueWheel]; the full rest page keeps
+ * presets and ±15. Overlay rest on the live log stays forbidden.
+ */
+@Composable
+fun FloorTimerSlot(
+    remainingSeconds: Int,
+    totalSeconds: Int,
+    restRunning: Boolean,
+    onSkip: () -> Unit,
+    onStart: () -> Unit,
+    onSelectRestDuration: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    completedTimerId: String? = null,
+    hideWhenIdle: Boolean = false,
+    afterWarmup: Boolean = false,
+    batteryHint: Boolean = false,
+    onDismissBatteryHint: () -> Unit = {},
+    onStartNext: () -> Unit = {},
+    onOpenRest: () -> Unit = {},
+    holdRunning: Boolean = false,
+    holdElapsedSeconds: Int = 0,
+) {
+    when (FloorTimerSurface.mode(holdRunning)) {
+        FloorTimerSurface.Mode.SET -> {
+            HairlineDivider(startIndent = 0.dp)
+            SetWorkDock(
+                elapsedSeconds = holdElapsedSeconds,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .background(Surface1)
+                    .padding(horizontal = Metrics.space4, vertical = Metrics.space2),
+            )
+        }
+        FloorTimerSurface.Mode.REST -> RestDock(
+            remainingSeconds = remainingSeconds,
+            totalSeconds = totalSeconds,
+            running = restRunning,
+            onSkip = onSkip,
+            onStart = onStart,
+            onSelectRestDuration = onSelectRestDuration,
+            modifier = modifier,
+            completedTimerId = completedTimerId,
+            hideWhenIdle = hideWhenIdle,
+            afterWarmup = afterWarmup,
+            batteryHint = batteryHint,
+            onDismissBatteryHint = onDismissBatteryHint,
+            onStartNext = onStartNext,
+            onOpenRest = onOpenRest,
+        )
+    }
+}
+
+/**
+ * In-set work clock: count-up only. Rest UI is hidden while this runs.
+ */
+@Composable
+fun SetWorkDock(
+    elapsedSeconds: Int,
+    modifier: Modifier = Modifier,
+) {
+    val clock = HoldWork.clock(FloorTimerSurface.setClockSeconds(elapsedSeconds))
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = Metrics.rowMin)
+            .testTag("workout-hold-clock")
+            .semantics {
+                contentDescription = "${FloorTimerSurface.SET_KICKER} $clock elapsed"
+            },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Kicker(FloorTimerSurface.HOLD_KICKER, color = RestCyan, asHeading = false)
+        Text(
+            clock,
+            style = InstrumentType.numeralMd,
+            color = TextPrimary,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
  * The rest clock, pinned in the lower dock above Log set (G-02).
  *
  * The log used to hold an 88 dp ring and a −15 / Skip / +15 stack. That is the floor page
  * now. Here the running state is a ~56 dp row: REST, a [InstrumentType.numeralMd] clock, a
  * 4 dp track, and trailing Skip. Idle is Not running + planned duration + Start.
- * Preset chips live on the floor. Tap the bar or the idle line to push it. The
- * hairline sits above the row so the list and the dock stay visually split when
+ * Preset chips live on the floor. Planned duration is tap-to-edit inline.
+ * The hairline sits above the row so the list and the dock stay visually split when
  * rest lives at the bottom.
  */
 @Composable
@@ -109,7 +198,7 @@ fun RestDock(
     running: Boolean,
     onSkip: () -> Unit,
     onStart: () -> Unit,
-    onOpenRest: () -> Unit,
+    onSelectRestDuration: (Int) -> Unit,
     modifier: Modifier = Modifier,
     completedTimerId: String? = null,
     hideWhenIdle: Boolean = false,
@@ -117,6 +206,8 @@ fun RestDock(
     batteryHint: Boolean = false,
     onDismissBatteryHint: () -> Unit = {},
     onStartNext: () -> Unit = {},
+    /** @deprecated Packet 2: full page opens from the instrument strip. */
+    onOpenRest: () -> Unit = {},
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
@@ -175,7 +266,7 @@ fun RestDock(
             afterWarmup = afterWarmup,
             onStart = onStart,
             onStartNext = onStartNext,
-            onOpenRest = onOpenRest,
+            onSelectRestDuration = onSelectRestDuration,
             modifier = modifier
                 .fillMaxWidth()
                 .background(Surface1)
@@ -296,66 +387,94 @@ fun RestBatteryHintRow(
 }
 
 /**
- * Idle rest on the log: not a countdown. Planned duration is a label.
- * One quiet line until Start. Start next is keep-going, not a Volt bar.
- * Log set, pinned under this dock, is the filled act.
+ * Idle rest on the log: not a countdown. Planned duration is a label
+ * that expands an inline [SnapValueWheel] on tap. Start next is
+ * keep-going, not a Volt bar. Log set, pinned under this dock, is the
+ * filled act. The instrument strip opens the full rest page.
  */
 @Composable
 fun RestIdleRow(
     totalSeconds: Int,
     onStart: () -> Unit,
-    onOpenRest: () -> Unit,
+    onSelectRestDuration: (Int) -> Unit,
     modifier: Modifier = Modifier,
     afterWarmup: Boolean = false,
     onStartNext: () -> Unit = {},
 ) {
-    val clock = RestTimer.formatClock(totalSeconds.coerceAtLeast(0))
+    var editing by rememberSaveable { mutableStateOf(false) }
+    val safeTotal = totalSeconds.coerceAtLeast(0)
+    val clock = RestTimer.formatClock(safeTotal)
     val duration = RestIdleCopy.dockDuration(clock, afterWarmup)
-    Row(
+    val values = remember(safeTotal) { FloorEntryWheels.restSecondsValues(safeTotal) }
+    val labels = remember(values) { values.map { RestTimer.formatClock(it) } }
+    val page = FloorEntryWheels.restPage(safeTotal)
+
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .testTag("workout-rest-idle")
-                .clickable(role = Role.Button, onClick = onOpenRest)
-                .semantics {
-                    contentDescription = RestIdleCopy.spoken(clock, afterWarmup)
-                },
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Kicker(RestIdleCopy.KICKER)
-            Text(
-                duration,
-                style = InstrumentType.bodyStrong,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = Metrics.touchMin)
+                    .testTag("workout-rest-idle")
+                    .clickable(role = Role.Button) { editing = !editing }
+                    .semantics {
+                        contentDescription = RestIdleCopy.spoken(clock, afterWarmup) +
+                            " Tap to edit rest length."
+                    },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Kicker(RestIdleCopy.KICKER)
+                Text(
+                    duration,
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (!editing) {
+                TextButton(
+                    onClick = onStartNext,
+                    modifier = Modifier
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag("workout-start-next"),
+                ) {
+                    Text(
+                        RestIdleCopy.START_NEXT,
+                        style = InstrumentType.bodyStrong,
+                        color = TextPrimary,
+                        maxLines = 1,
+                    )
+                }
+                RestControl(
+                    label = RestIdleCopy.START,
+                    onClick = onStart,
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-start-rest"),
+                )
+            }
+        }
+        if (editing) {
+            SnapValueWheel(
+                values = labels,
+                selectedIndex = page,
+                onSettledIndex = { next ->
+                    onSelectRestDuration(FloorEntryWheels.restSecondsAt(next, safeTotal))
+                },
+                tag = "workout-rest-wheel",
+                parkKey = "rest-$safeTotal",
+                modifier = Modifier.fillMaxWidth(),
             )
         }
-        TextButton(
-            onClick = onStartNext,
-            modifier = Modifier
-                .heightIn(min = Metrics.touchMin)
-                .testTag("workout-start-next"),
-        ) {
-            Text(
-                RestIdleCopy.START_NEXT,
-                style = InstrumentType.bodyStrong,
-                color = TextPrimary,
-                maxLines = 1,
-            )
-        }
-        RestControl(
-            label = RestIdleCopy.START,
-            onClick = onStart,
-            modifier = Modifier
-                .widthIn(min = Metrics.touchMin)
-                .testTag("workout-start-rest"),
-        )
     }
 }
 
