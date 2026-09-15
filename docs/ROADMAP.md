@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Live 73: floor packet H goldens / accessibility final pass
+> on `trunk`. Final drop of the workout-entry plan.
+> `debugLiveCode` 73; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 15 Sep 2026 — Floor packet H: goldens catalog wiring, TalkBack matrix,
 > RPE recommended spoken word, 360/font/reduced-motion/H4 ratchets on
 > `trunk`. Program complete pending owner's physical TalkBack + alarm pass.
