@@ -43,9 +43,9 @@ internal fun LoggedSetsPanel(
     onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
     onAddSet: () -> Unit,
+    modifier: Modifier = Modifier,
     addSetCaption: String? = null,
     targetSets: Int = 0,
-    modifier: Modifier = Modifier,
 ) {
     if (sets.isEmpty()) return
     // Which row is showing its actions. The actions used to hang off `isLatest`, so the
