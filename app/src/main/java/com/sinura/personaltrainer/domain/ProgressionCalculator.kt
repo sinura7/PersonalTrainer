@@ -99,4 +99,41 @@ object ProgressionCalculator {
             loadType = loadType,
         )
     }
+
+    /**
+     * The load suggestion after the two modifiers that can hold it.
+     *
+     * The three callers used to assemble [hint] → [RpeModifier.apply] →
+     * [LighterWeekModifier.apply] by hand. That is one decision written three
+     * times, and a later rung would have to be added in all three. The RPE
+     * evidence is a parameter because they source it differently and must keep
+     * doing so: next-session callers pass prior sessions' top-set RPEs;
+     * in-set callers pass this session's logged RPEs.
+     */
+    fun adjusted(
+        exerciseId: String,
+        exerciseName: String,
+        lastWeightKg: Double,
+        lastWorkingReps: Int,
+        targetReps: Int,
+        loadType: LoadType?,
+        unit: WeightUnit,
+        rpeEvidenceNewestFirst: List<Int?>,
+        lighterWeek: Boolean,
+    ): ProgressionHint {
+        val hint = hint(
+            exerciseId = exerciseId,
+            exerciseName = exerciseName,
+            lastWeightKg = lastWeightKg,
+            lastWorkingReps = lastWorkingReps,
+            targetReps = targetReps,
+            displayStep = IncrementTable.displayStep(loadType ?: LoadType.EXTERNAL, unit),
+            loadType = loadType,
+            unit = unit,
+        )
+        return LighterWeekModifier.apply(
+            RpeModifier.apply(hint, rpeEvidenceNewestFirst),
+            lighterWeek,
+        )
+    }
 }

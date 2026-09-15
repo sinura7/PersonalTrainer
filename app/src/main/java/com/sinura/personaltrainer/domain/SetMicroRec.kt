@@ -214,28 +214,26 @@ object SetMicroRecCalculator {
         }
         val targetReps = inputs.targetReps.coerceAtLeast(1)
         val action = ProgressionCalculator.action(basis.reps, targetReps)
-        val probe = ProgressionCalculator.hint(
+        val rpes = buildList {
+            addAll(inputs.thisSessionWorking.map { it.rpe })
+            if (previewOnly) add(basis.rpe)
+        }
+        val afterLight = ProgressionCalculator.adjusted(
             exerciseId = inputs.hint?.exerciseId.orEmpty(),
             exerciseName = inputs.hint?.exerciseName.orEmpty(),
             lastWeightKg = basis.weightKg,
             lastWorkingReps = basis.reps,
             targetReps = targetReps,
-            displayStep = displayStep,
             loadType = inputs.loadType,
             unit = inputs.unit,
+            rpeEvidenceNewestFirst = rpes.takeLast(RpeModifier.RPE_HOLD_SESSIONS).asReversed(),
+            lighterWeek = inputs.lighterWeek,
         )
-        val rpes = buildList {
-            addAll(inputs.thisSessionWorking.map { it.rpe })
-            if (previewOnly) add(basis.rpe)
-        }
-        val recent = rpes.takeLast(RpeModifier.RPE_HOLD_SESSIONS).asReversed()
-        val afterRpe = RpeModifier.apply(probe, recent)
-        val afterLight = LighterWeekModifier.apply(afterRpe, inputs.lighterWeek)
         val effortRpe = basis.rpe
         val reason = reasonCode(
             action = action,
             rpe = effortRpe,
-            rpeHold = afterRpe.rpeHold,
+            rpeHold = afterLight.rpeHold,
             lighterHold = afterLight.lighterHold,
             bodyweight = bodyweight,
         )
@@ -259,7 +257,7 @@ object SetMicroRecCalculator {
             showApply = showApply,
             reason = reason,
             extraCodes = buildList {
-                if (afterRpe.rpeHold) add(RPE_HOLD)
+                if (afterLight.rpeHold) add(RPE_HOLD)
                 if (afterLight.lighterHold) add(LIGHTER_HOLD)
             },
         )

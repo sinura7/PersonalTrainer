@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProgressionCalculatorTest {
@@ -157,6 +158,62 @@ class ProgressionCalculatorTest {
         assertEquals(62.5, hint.suggestedWeightKg, 0.001)
         assertEquals(ProgressionAction.INCREASE, hint.action)
         assertEquals(LoadType.EXTERNAL, hint.loadType)
+    }
+
+    @Test
+    fun adjustedAgreesWithTheInlineSequence() {
+        val lastWeightKg = 100.0
+        val lastWorkingReps = 5
+        val targetReps = 5
+        val loadType = LoadType.EXTERNAL
+        val unit = WeightUnit.KG
+        val rpes = listOf(9, 9)
+        val lighterWeek = false
+        val inline = LighterWeekModifier.apply(
+            RpeModifier.apply(
+                ProgressionCalculator.hint(
+                    exerciseId = "ex-squat",
+                    exerciseName = "Barbell Back Squat",
+                    lastWeightKg = lastWeightKg,
+                    lastWorkingReps = lastWorkingReps,
+                    targetReps = targetReps,
+                    displayStep = IncrementTable.displayStep(loadType, unit),
+                    loadType = loadType,
+                    unit = unit,
+                ),
+                rpes,
+            ),
+            lighterWeek,
+        )
+        val got = ProgressionCalculator.adjusted(
+            exerciseId = "ex-squat",
+            exerciseName = "Barbell Back Squat",
+            lastWeightKg = lastWeightKg,
+            lastWorkingReps = lastWorkingReps,
+            targetReps = targetReps,
+            loadType = loadType,
+            unit = unit,
+            rpeEvidenceNewestFirst = rpes,
+            lighterWeek = lighterWeek,
+        )
+        assertEquals(inline, got)
+        assertEquals(ProgressionAction.HOLD, got.action)
+        assertTrue(got.rpeHold)
+
+        val climbing = ProgressionCalculator.adjusted(
+            exerciseId = "ex-squat",
+            exerciseName = "Barbell Back Squat",
+            lastWeightKg = lastWeightKg,
+            lastWorkingReps = lastWorkingReps,
+            targetReps = targetReps,
+            loadType = loadType,
+            unit = unit,
+            rpeEvidenceNewestFirst = listOf(7, 7),
+            lighterWeek = true,
+        )
+        assertEquals(ProgressionAction.HOLD, climbing.action)
+        assertTrue(climbing.lighterHold)
+        assertEquals(100.0, climbing.suggestedWeightKg, 0.001)
     }
 }
 
