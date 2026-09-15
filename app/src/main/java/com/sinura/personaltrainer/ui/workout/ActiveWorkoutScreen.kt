@@ -378,7 +378,6 @@ fun ActiveWorkoutScreen(
                             onStartRest = viewModel::startSelectedRest,
                             onSelectRestDuration = viewModel::selectRestDuration,
                             onDismissRestBatteryHint = viewModel::acknowledgeRestBatteryHint,
-                            onStartNextLift = viewModel::startNextLift,
                             onOpenRest = { session?.id?.let(onOpenRest) },
                             onLog = {
                                 if (hold && !holdArmed && state.editingSetId == null) {

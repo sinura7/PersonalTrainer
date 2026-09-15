@@ -28,7 +28,7 @@ class FloorPhoneCheckPresentationTest {
         val idleStart = dock.indexOf("fun RestIdleRow")
         val idleEnd = dock.indexOf("fun RestLinearTrack")
         val idle = dock.substring(idleStart, idleEnd)
-        assertTrue(dock.contains("onStartNext"))
+        assertFalse(dock.contains("onStartNext"))
         assertFalse(
             "idle Start next must not be composed",
             idle.contains("RestIdleCopy.START_NEXT"),
@@ -36,10 +36,10 @@ class FloorPhoneCheckPresentationTest {
         assertTrue(idle.contains("RestIdleCopy.START"))
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.showIdleStartNext())
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("onStartNextLift"))
+        assertFalse(bar.contains("onStartNextLift"))
         assertTrue(bar.contains("onStartRest"))
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(workout.contains("onStartNextLift = viewModel::startNextLift"))
+        assertFalse(workout.contains("onStartNextLift = viewModel::startNextLift"))
         assertTrue(workout.contains("onStartRest = viewModel::startSelectedRest"))
     }
 

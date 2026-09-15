@@ -82,7 +82,6 @@ internal fun LogBar(
     onStartRest: () -> Unit = {},
     onSelectRestDuration: (Int) -> Unit = {},
     onDismissRestBatteryHint: () -> Unit = {},
-    onStartNextLift: () -> Unit = {},
     onOpenRest: () -> Unit = {},
     stopwatchRunning: Boolean = false,
     stopwatchElapsedSeconds: Int = 0,
@@ -115,7 +114,6 @@ internal fun LogBar(
                 onStart = onStartRest,
                 onSelectRestDuration = onSelectRestDuration,
                 onDismissBatteryHint = onDismissRestBatteryHint,
-                onStartNext = onStartNextLift,
                 onOpenRest = onOpenRest,
             )
         }
