@@ -351,7 +351,15 @@ fun RestDock(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Kicker(kicker, color = accent, asHeading = false)
+                if (justFinished) {
+                    Kicker(kicker, color = accent, asHeading = false)
+                } else {
+                    FloorFieldGlyph(
+                        icon = TemperIcons.FloorRest,
+                        modifier = Modifier.testTag("workout-rest-glyph"),
+                        tint = accent,
+                    )
+                }
                 Text(
                     clock,
                     modifier = Modifier.graphicsLayer {
@@ -466,7 +474,10 @@ fun RestIdleRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Kicker(RestIdleCopy.KICKER)
+                FloorFieldGlyph(
+                    icon = TemperIcons.FloorRest,
+                    modifier = Modifier.testTag("workout-rest-glyph"),
+                )
                 Text(
                     duration,
                     style = InstrumentType.bodyStrong,
@@ -651,7 +662,14 @@ fun RestSweepRing(
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Kicker(kicker, color = accent)
+            if (kicker == TalkBackPolicy.REST_RUNNING_KICKER) {
+                FloorFieldGlyph(
+                    icon = TemperIcons.FloorRest,
+                    tint = accent,
+                )
+            } else {
+                Kicker(kicker, color = accent)
+            }
             Text(
                 clock,
                 style = InstrumentType.numeralHero,
