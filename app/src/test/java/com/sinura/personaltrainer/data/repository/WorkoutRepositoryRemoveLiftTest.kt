@@ -78,14 +78,19 @@ class WorkoutRepositoryRemoveLiftTest {
             sessionId = SESSION,
             itemId = SE_BENCH,
         )
-        val row = database.workoutDao().getSession(SESSION)!!.session
-        database.workoutDao().upsertSession(row.copy(finishedAt = FINISH, durationMinutes = 45))
+        database.workoutDao().finishSession(
+            id = SESSION,
+            notes = "",
+            durationMinutes = 45,
+            finishedAt = FINISH,
+        )
 
         repository.restoreExerciseToSession(removed = removed)
 
         val after = database.workoutDao().getSession(SESSION)!!
         assertTrue(after.exercises.none { it.item.id == SE_BENCH })
         assertEquals(1, after.exercises.size)
+        assertEquals(SE_SQUAT, after.exercises.single().item.id)
     }
 
     private suspend fun sessionExerciseIds(): List<String> =
