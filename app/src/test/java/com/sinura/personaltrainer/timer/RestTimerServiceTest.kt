@@ -166,7 +166,18 @@ class RestTimerServiceTest {
                 after.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
             )
         }
+        // completeOnce may suspend on DataStore before posting DONE; one idle
+        // after the freeze is not always enough on a busy runner.
+        val giveUpAt = System.nanoTime() + PREFS_WAIT_NANOS
+        while (
+            manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID } &&
+            System.nanoTime() < giveUpAt
+        ) {
+            Thread.sleep(10)
+            looper.idle()
+        }
         assertNotNull(
+            "DONE_ID never posted after screen-on deadline",
             manager.activeNotifications.firstOrNull { it.id == RestTimerNotifications.DONE_ID },
         )
         controller.destroy()
