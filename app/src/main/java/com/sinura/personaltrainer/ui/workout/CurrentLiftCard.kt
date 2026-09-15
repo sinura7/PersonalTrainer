@@ -44,7 +44,6 @@ import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
-import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
