@@ -14,6 +14,11 @@ data class CoachDecision(
     val anotherSetAdvised: Boolean,
     val reasonCode: String,
     val trace: RuleTrace,
+    val previewOnly: Boolean = false,
+    val showApply: Boolean = false,
+    val warmupSets: List<WarmupSet> = emptyList(),
+    val equipment: EquipmentType? = null,
+    val loadType: LoadType? = null,
 )
 
 /**
@@ -70,4 +75,24 @@ fun SetMicroRec.toDecision(): CoachDecision = CoachDecision(
     anotherSetAdvised = anotherSetAdvised,
     reasonCode = reasonCode,
     trace = trace,
+    previewOnly = previewOnly,
+    showApply = showApply,
+    warmupSets = warmupSets,
+    equipment = equipment,
+    loadType = loadType,
+)
+
+fun CoachDecision.toMicroRec(): SetMicroRec = SetMicroRec(
+    nextWeightKg = weightKg,
+    nextReps = reps,
+    nextRpe = rpe,
+    previewOnly = previewOnly,
+    showApply = showApply,
+    reasonCode = reasonCode,
+    trace = trace,
+    restSeconds = restSeconds,
+    anotherSetAdvised = anotherSetAdvised,
+    warmupSets = warmupSets,
+    equipment = equipment,
+    loadType = loadType,
 )

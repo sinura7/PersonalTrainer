@@ -45,6 +45,7 @@ internal fun LoggedSetsPanel(
     onAddSet: () -> Unit,
     addSetCaption: String? = null,
     targetSets: Int = 0,
+    modifier: Modifier = Modifier,
 ) {
     if (sets.isEmpty()) return
     // Which row is showing its actions. The actions used to hang off `isLatest`, so the
@@ -61,20 +62,26 @@ internal fun LoggedSetsPanel(
         if (editingSetId != null) selectedSetId = null
     }
     val unit = LocalWeightUnit.current
+    var showAllSets by rememberSaveable { mutableStateOf(false) }
     val ordinals = SetOrdinalCopy.loggedLines(
         warmupFlags = sets.map { it.isWarmup },
         targetSets = targetSets,
     )
-    val rows = sets.mapIndexed { index, set ->
+    val indexed = sets.mapIndexed { index, set -> set to ordinals.getOrNull(index) }
+    val visible = if (showAllSets || indexed.size <= 2) indexed else indexed.takeLast(2)
+    val rows = visible.map { (set, ordinal) ->
         SetTableLine.fromLog(
             set = set,
             loadClass = loadClassOf(set),
             unit = unit,
             isLatest = set.id == latestSetId,
-            ordinal = ordinals.getOrNull(index),
+            ordinal = ordinal,
         )
     }
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
         SetTable(
             rows = rows,
             selectedId = selected,
@@ -101,6 +108,18 @@ internal fun LoggedSetsPanel(
                         selectedSetId = null
                         onDelete(row.id)
                     },
+                )
+            }
+        }
+        if (sets.size > 2) {
+            TextButton(
+                onClick = { showAllSets = !showAllSets },
+                modifier = Modifier.heightIn(min = Metrics.touchMin),
+            ) {
+                Text(
+                    if (showAllSets) "Fewer sets" else "All sets",
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
                 )
             }
         }

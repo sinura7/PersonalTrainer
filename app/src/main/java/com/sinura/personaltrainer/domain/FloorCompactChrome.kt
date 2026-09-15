@@ -69,10 +69,17 @@ object FloorCompactChrome {
     fun manualSetStopwatch(): Boolean = true
 
     /**
-     * Packet 4: HOLD / +N / BACK OFF sits in the Next row, not a
-     * watermark behind the wheels. Why still opens the trace.
+     * Packet 4/F: HOLD / +N / BACK OFF sits in the entry surface above
+     * the fields, not a watermark and not above Log. Why still opens the
+     * trace.
      */
     fun progressionKickerInline(): Boolean = true
+
+    /** Packet F: Add set under the table is gone; Another set lives in the dock. */
+    fun addSetHiddenOnFloor(): Boolean = true
+
+    /** Packet F: lift-complete dock replaces the clock with Next / Finish. */
+    fun liftCompleteReplacesClock(): Boolean = true
 
     /**
      * Packet B: weight, reps, and hold draft need word labels.

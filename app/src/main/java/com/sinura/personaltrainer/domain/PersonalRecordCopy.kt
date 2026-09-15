@@ -10,6 +10,8 @@ package com.sinura.personaltrainer.domain
  * "Strongest set ever" where the summary said "Best estimated 1RM" for the same record.
  */
 object PersonalRecordCopy {
+    const val BANNER = "Personal record"
+
     fun celebration(kind: PersonalRecordKind): String = when (kind) {
         PersonalRecordKind.WEIGHT -> "Heaviest ever"
         PersonalRecordKind.REPS -> "Most reps ever"

@@ -30,9 +30,12 @@ import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LighterWeek
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
+import com.sinura.personaltrainer.domain.LogReceipt
+import com.sinura.personaltrainer.domain.LogReceiptCopy
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -47,6 +50,7 @@ import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.workout.SavedStateFloorTimer
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.DiscardOutcome
@@ -205,21 +209,20 @@ data class ActiveWorkoutUiState(
         }
 }
 
-/** A record broken by the set just logged, for the in-workout moment. */
 /**
- * A lift finished its prescribed sets and another is waiting.
- *
- * Standing dock choice — not a timed auto-move. [finishedName] is what the screen
- * names as done; [nextExerciseId] is where Next lift goes. Cleared only by
- * choosing Next lift / Another set, logging, editing, or switching lifts.
+ * A lift finished its prescribed sets. Standing dock choice — not a timed
+ * auto-move. [nextExerciseId] is the next unfinished lift, or null when
+ * Finish workout is the Volt. Cleared only by Next / Another / Finish,
+ * logging, editing, or switching lifts.
  */
 data class PendingAdvance(
     val finishedExerciseId: String,
     val finishedName: String,
-    val nextExerciseId: String,
+    val nextExerciseId: String?,
     val nextName: String,
 )
 
+/** A record broken by the set just logged, for the in-workout moment. */
 data class PersonalRecordMoment(
     val exerciseName: String,
     val kinds: Set<PersonalRecordKind>,
@@ -303,6 +306,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     val setStopwatch: StateFlow<SetStopwatchUiState> = _setStopwatch.asStateFlow()
     private var setStopwatchJob: Job? = null
     private var timedGeneration = 0
+    private var pendingRestJob: Job? = null
     private val _floorTimerCue = MutableSharedFlow<FloorTimerCue>(
         extraBufferCapacity = 8,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
@@ -1123,6 +1127,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         holdJob = null
         setStopwatchJob?.cancel()
         setStopwatchJob = null
+        cancelPendingRest()
+    }
+
+    private fun cancelPendingRest() {
+        pendingRestJob?.cancel()
+        pendingRestJob = null
     }
 
     private fun bumpHoldJob() {
@@ -1446,6 +1456,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      */
     val pendingAdvance: StateFlow<PendingAdvance?> = _pendingAdvance.asStateFlow()
 
+    private val _logReceipt = MutableStateFlow<LogReceipt?>(null)
+    val logReceipt: StateFlow<LogReceipt?> = _logReceipt.asStateFlow()
+
+    fun onLogReceiptShown() {
+        _logReceipt.value = null
+    }
+
     private val _logFeedback = MutableSharedFlow<LogCommitFeedback>(
         extraBufferCapacity = 16,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
@@ -1518,10 +1535,33 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     editingSetId.value = null
                     stopHoldTimer()
                     clearSetStopwatch()
+                    emitLogReceipt(
+                        setId = editingId,
+                        weightKg = current.weightKg,
+                        reps = reps,
+                        rpe = current.rpe,
+                        isWarmup = current.isWarmup,
+                        durationSeconds = duration,
+                        loadType = loadType,
+                        warmupAfter = session.value
+                            ?.sets
+                            ?.count { it.exerciseId == exerciseId && it.isWarmup }
+                            ?: 0,
+                        workingAfter = session.value
+                            ?.sets
+                            ?.count { it.exerciseId == exerciseId && !it.isWarmup }
+                            ?: 0,
+                        targetSets = selectedLift?.targetSets ?: 0,
+                    )
+                    _logFeedback.tryEmit(LogCommitFeedback.SUCCESS)
                 } else {
                     val previousWorking = session.value
                         ?.sets
                         ?.count { it.exerciseId == exerciseId && !it.isWarmup }
+                        ?: 0
+                    val previousWarmup = session.value
+                        ?.sets
+                        ?.count { it.exerciseId == exerciseId && it.isWarmup }
                         ?: 0
                     val targetSets = selectedLift?.targetSets ?: 0
                     val logged = container.workoutRepository.logSet(
@@ -1535,6 +1575,20 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     )
                     stopHoldTimer()
                     clearSetStopwatch()
+                    val workingAfter = previousWorking + if (current.isWarmup) 0 else 1
+                    val warmupAfter = previousWarmup + if (current.isWarmup) 1 else 0
+                    emitLogReceipt(
+                        setId = logged.setId,
+                        weightKg = current.weightKg,
+                        reps = reps,
+                        rpe = current.rpe,
+                        isWarmup = current.isWarmup,
+                        durationSeconds = duration,
+                        loadType = loadType,
+                        warmupAfter = warmupAfter,
+                        workingAfter = workingAfter,
+                        targetSets = targetSets,
+                    )
                     _logFeedback.tryEmit(LogCommitFeedback.SUCCESS)
                     if (logged.records.isNotEmpty()) {
                         _personalRecord.value = PersonalRecordMoment(
@@ -1549,12 +1603,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                             reps = current.reps,
                         )
                     }
-                    val workingAfter = previousWorking + if (current.isWarmup) 0 else 1
                     wantAnotherSet.value = false
                     _pendingAdvance.value = null
-                    if (!current.isWarmup && targetSets > 0 && workingAfter == targetSets) {
+                    val liftComplete = !current.isWarmup &&
+                        WorkoutAdvance.liftComplete(workingAfter, targetSets, wantAnother = false)
+                    if (liftComplete) {
                         val after = session.value
-                        val nextId = after?.nextUnfinishedExerciseAfter(exerciseId)
+                        val nextId = WorkoutAdvance.nextUnfinishedExerciseId(after, exerciseId)
                         val nameOf = { id: String ->
                             after?.exercises
                                 ?.firstOrNull { it.exercise.id == id }
@@ -1562,28 +1617,25 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                                 ?.name
                                 .orEmpty()
                         }
-                        _pendingAdvance.value = nextId?.let { next ->
-                            PendingAdvance(
-                                finishedExerciseId = exerciseId,
-                                finishedName = nameOf(exerciseId),
-                                nextExerciseId = next,
-                                nextName = nameOf(next),
-                            )
-                        }
-                    }
-                    if (
-                        RestTimer.shouldStartAfterLog(
-                            isWarmup = current.isWarmup,
-                            workingSetsAfterLog = workingAfter,
-                            targetSets = targetSets,
-                        ) ||
-                        RestTimer.shouldStartAfterExtra(
-                            isWarmup = current.isWarmup,
-                            workingSetsAfterLog = workingAfter,
-                            targetSets = targetSets,
+                        _pendingAdvance.value = PendingAdvance(
+                            finishedExerciseId = exerciseId,
+                            finishedName = nameOf(exerciseId),
+                            nextExerciseId = nextId,
+                            nextName = nextId?.let(nameOf).orEmpty(),
                         )
-                    ) {
-                        startRestAfterSet(
+                    }
+                    cancelPendingRest()
+                    val startRest = RestTimer.shouldStartAfterLog(
+                        isWarmup = current.isWarmup,
+                        workingSetsAfterLog = workingAfter,
+                        targetSets = targetSets,
+                    ) || RestTimer.shouldStartAfterExtra(
+                        isWarmup = current.isWarmup,
+                        workingSetsAfterLog = workingAfter,
+                        targetSets = targetSets,
+                    )
+                    if (startRest) {
+                        scheduleRestAfterReceipt(
                             prescribedSeconds = RestPrescription.seconds(
                                 reasonCode = microRec.value?.reasonCode
                                     ?: SetMicroRecCalculator.QUALITY,
@@ -1591,10 +1643,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                                 reps = reps,
                             ),
                         )
+                    } else if (liftComplete) {
+                        restTimer.stop()
                     }
-                }
-                if (editingId != null) {
-                    _logFeedback.tryEmit(LogCommitFeedback.SUCCESS)
                 }
                 error.clearFrom(source = ERR_LOG_SET, before = started)
                 draft.value = draft.value.copy(isWarmup = false, rpe = null)
@@ -1615,24 +1666,24 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
-    /** Take the offer: move the loop to the waiting lift. */
+    /** Take the offer: move the loop to the waiting unfinished lift. */
     fun advanceNow() {
-        val pending = _pendingAdvance.value ?: return
+        val current = session.value ?: return
+        val selected = selectedExerciseId.value
+        val next = _pendingAdvance.value?.nextExerciseId
+            ?: WorkoutAdvance.nextUnfinishedExerciseId(current, selected)
+            ?: return
         _pendingAdvance.value = null
-        applySelection(pending.nextExerciseId)
+        applySelection(next)
         wantAnotherSet.value = false
         persistDraft()
     }
 
     /**
-     * Refuse the offer and stay on the lift that just finished, ready for another set. Without
-     * arming [wantAnotherSet] the entry wells would be closed on a lift already at target, so
-     * refusing would leave nothing to do but refuse again.
+     * Refuse the offer and stay on the lift that just finished, ready for another set.
      */
     fun stayOnCurrentExercise() {
-        if (_pendingAdvance.value == null) return
-        _pendingAdvance.value = null
-        wantAnotherSet.value = true
+        requestExtraSet()
     }
 
     fun dismissError() {
@@ -1688,6 +1739,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             try {
                 val removed = container.workoutRepository.deleteSet(setId)
                 if (wasLatest) {
+                    cancelPendingRest()
                     restTimer.stop()
                 }
                 undoableRemove.value = null
@@ -1759,6 +1811,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun skipRest() {
+        cancelPendingRest()
         restTimer.stop()
     }
 
@@ -1958,6 +2011,51 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         message = "Could not discard this workout. Try again.",
                     )
             }
+        }
+    }
+
+    private fun emitLogReceipt(
+        setId: String,
+        weightKg: Double,
+        reps: Int,
+        rpe: Int?,
+        isWarmup: Boolean,
+        durationSeconds: Int?,
+        loadType: LoadType?,
+        warmupAfter: Int,
+        workingAfter: Int,
+        targetSets: Int,
+    ) {
+        val loadClass = LoadClass.of(loadType)
+        val ordinal = LogReceiptCopy.ordinal(
+            isWarmup = isWarmup,
+            warmupAfter = warmupAfter,
+            workingAfter = workingAfter,
+            targetSets = targetSets,
+        )
+        val payload = LogReceiptCopy.payload(
+            weightKg = weightKg,
+            reps = reps,
+            loadClass = loadClass,
+            unit = cachedWeightUnit,
+            rpe = rpe,
+            durationSeconds = durationSeconds,
+        )
+        _logReceipt.value = LogReceipt(
+            setId = setId,
+            line = LogReceiptCopy.line(ordinal, payload),
+            weightKg = weightKg,
+            reps = reps,
+            rpe = rpe,
+            isWarmup = isWarmup,
+        )
+    }
+
+    private fun scheduleRestAfterReceipt(prescribedSeconds: Int) {
+        cancelPendingRest()
+        pendingRestJob = viewModelScope.launch {
+            delay(Motion.ROW_SETTLE_MS.toLong())
+            startRestAfterSet(prescribedSeconds)
         }
     }
 

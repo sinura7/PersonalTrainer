@@ -164,6 +164,17 @@ data class RuleTrace(
             nextRpe: Int?,
             nowMs: Long,
             todayEpochDay: Long,
+            lastWeightKg: Double? = null,
+            lastReps: Int? = null,
+            lastRpe: Int? = null,
+            lastSetLine: String? = null,
+            incrementLabel: String? = null,
+            targetReps: Int? = null,
+            targetSets: Int? = null,
+            restSeconds: Int? = null,
+            call: String? = null,
+            rule: String? = null,
+            alternatives: List<String> = emptyList(),
         ): RuleTrace = RuleTrace(
             ruleId = SetMicroRecCalculator.RULE_ID,
             version = VERSION,
@@ -172,12 +183,34 @@ data class RuleTrace(
             evidenceStartEpochDay = todayEpochDay,
             evidenceEndEpochDay = todayEpochDay,
             facts = buildList {
+                call?.let { add(TraceFact("call", it)) }
+                lastSetLine?.let { add(TraceFact("lastSet", it)) }
+                lastWeightKg?.let { add(TraceFact("lastWeightKg", it.toString())) }
+                lastReps?.let { add(TraceFact("lastReps", it.toString())) }
+                lastRpe?.let { add(TraceFact("lastRpe", it.toString())) }
                 add(TraceFact("nextWeightKg", nextWeightKg.toString()))
                 add(TraceFact("nextReps", nextReps.toString()))
                 nextRpe?.let { add(TraceFact("nextRpe", it.toString())) }
+                incrementLabel?.let { add(TraceFact("increment", it)) }
+                restSeconds?.let { add(TraceFact("rest", "Start at ${RestTimer.formatClock(it)}")) }
+                rule?.let { add(TraceFact("rule", it)) }
             },
-            thresholds = emptyList(),
-            alternatives = emptyList(),
+            thresholds = buildList {
+                targetReps?.let { add(TraceThreshold("targetReps", it.toString())) }
+                targetSets?.let { add(TraceThreshold("targetSets", it.toString())) }
+                incrementLabel?.let { add(TraceThreshold("increment", incrementLabel)) }
+                if (reasonCodes.contains(SetMicroRecCalculator.RPE_HOLD) ||
+                    reasonCodes.contains(SetMicroRecCalculator.TOP_SET)
+                ) {
+                    add(
+                        TraceThreshold(
+                            "rpeHold",
+                            RpeModifier.RPE_HOLD_THRESHOLD.toInt().toString() + "+",
+                        ),
+                    )
+                }
+            },
+            alternatives = alternatives,
             generatedAtMs = nowMs,
         )
     }

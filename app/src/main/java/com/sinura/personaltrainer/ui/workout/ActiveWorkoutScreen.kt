@@ -92,6 +92,7 @@ object WorkoutTestTags {
     const val REPS_TIME_GLYPH = "workout-reps-time-glyph"
     const val REST_GLYPH = "workout-rest-glyph"
     const val NEXT = "workout-next"
+    const val DOCK_FINISH = "workout-dock-finish"
     const val ANOTHER_SET = "workout-another-set"
     const val RPE_TRACK = "workout-rpe-track"
     const val RPE_HELPER = "workout-rpe-helper"
@@ -104,6 +105,8 @@ object WorkoutTestTags {
     const val START_SET_CLOCK = "workout-start-set-clock"
     const val STOP_SET_CLOCK = "workout-stop-set-clock"
     const val ADD_SET = "workout-add-set"
+    const val LOG_RECEIPT = "workout-log-receipt"
+    const val NEXT_PREVIEW = "workout-next-preview"
     const val LAST_TIME = "workout-last-time"
     const val SELECTED_LIFT = "workout-selected-lift"
     const val START_NEXT = "workout-start-next"
@@ -147,6 +150,7 @@ fun ActiveWorkoutScreen(
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
     val removedLift by viewModel.removedLift.collectAsStateWithLifecycle()
     val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
+    val logReceipt by viewModel.logReceipt.collectAsStateWithLifecycle()
     val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
     val rpeHelperVisible by viewModel.rpeHelperVisible.collectAsStateWithLifecycle()
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
@@ -170,8 +174,10 @@ fun ActiveWorkoutScreen(
         )
     }
     val workingLogged = advance.workingLogged
-    val nextExerciseId = advance.nextExerciseId
-    val showNext = advance.showNext
+    val pending = pendingAdvance
+    val showNext = advance.showNext || pending?.nextExerciseId != null
+    val showFinish = advance.showFinish || (pending != null && pending.nextExerciseId == null)
+    val showAnother = advance.showAnother || pending != null
     val sessionWork = remember(session) { session?.work() ?: SetWork.NONE }
     val unit = LocalWeightUnit.current
     val view = LocalView.current
@@ -222,7 +228,8 @@ fun ActiveWorkoutScreen(
     // beats fire once and the record is always cleared.
     LaunchedEffect(personalRecord) {
         if (personalRecord == null) return@LaunchedEffect
-        Haptics.celebrate(view)
+        delay(Motion.PR_ACCENT_DELAY_MS.toLong())
+        Haptics.recordAccent(view)
         delay(PERSONAL_RECORD_DWELL_MS)
         viewModel.onPersonalRecordShown()
     }
@@ -380,13 +387,11 @@ fun ActiveWorkoutScreen(
                                 },
                             ),
                             warmup = state.draft.isWarmup,
-                            microRec = microRec.takeUnless {
-                                showNext || LandscapeChrome.foldMicroRecIntoCard(landscape)
-                            },
-                            loadClass = LoadClass.of(selected?.exercise?.loadType),
-                            unit = unit,
                             showNext = showNext,
-                            advanceChoice = pendingAdvance != null,
+                            showFinish = showFinish,
+                            showAnother = showAnother,
+                            nextName = advance.nextName ?: pendingAdvance?.nextName,
+                            nextLift = advance.nextLift,
                             hold = hold,
                             holdRunning = holdArmed,
                             showTimer = showRest,
@@ -425,6 +430,8 @@ fun ActiveWorkoutScreen(
                             onOpenNotifications = { openRestNotificationSettings(context) },
                             onDismissRestBatteryHint = viewModel::acknowledgeRestBatteryHint,
                             onOpenRest = { session?.id?.let(onOpenRest) },
+                            receiptLine = logReceipt?.line,
+                            onReceiptDismissed = viewModel::onLogReceiptShown,
                             onLog = {
                                 if (hold && !holdArmed && state.editingSetId == null) {
                                     viewModel.startHoldSet()
@@ -433,15 +440,15 @@ fun ActiveWorkoutScreen(
                                 }
                             },
                             onNext = {
-                                if (pendingAdvance != null) {
-                                    viewModel.advanceNow()
-                                } else {
-                                    nextExerciseId?.let(viewModel::advanceToNextLift)
-                                }
+                                Haptics.warn(view)
+                                viewModel.advanceNow()
                             },
-                            onAnotherSet = viewModel::stayOnCurrentExercise,
+                            onFinish = { confirmEnd = true },
+                            onAnotherSet = {
+                                Haptics.tick(view)
+                                viewModel.requestExtraSet()
+                            },
                             onCancelEdit = viewModel::cancelEdit,
-                            onApplyMicroRec = viewModel::applyMicroRec,
                         )
                     }
                 }
@@ -551,10 +558,11 @@ fun ActiveWorkoutScreen(
                                             recommendedRpe = microRec?.nextRpe,
                                             unit = unit,
                                             canEdit = logged.isEmpty(),
-                                            showAddSet = WorkoutAdvance.cardOffersAnotherSet(
-                                                logged,
-                                                currentLift.targetSets,
-                                            ),
+                                            showAddSet = !FloorCompactChrome.addSetHiddenOnFloor() &&
+                                                WorkoutAdvance.cardOffersAnotherSet(
+                                                    logged,
+                                                    currentLift.targetSets,
+                                                ),
                                             restRunning = rest.running,
                                             restRemainingSeconds = rest.remainingSeconds,
                                             restSeconds = currentLift.restSeconds.takeIf { it > 0 }
@@ -581,6 +589,7 @@ fun ActiveWorkoutScreen(
                                             onEditSet = viewModel::editSet,
                                             onDeleteSet = viewModel::deleteSet,
                                             onAddSet = viewModel::requestExtraSet,
+                                            onApplyMicroRec = viewModel::applyMicroRec,
                                         ),
                                     )
                                 }

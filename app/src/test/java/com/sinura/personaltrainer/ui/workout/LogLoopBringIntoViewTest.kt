@@ -13,6 +13,7 @@ class LogLoopBringIntoViewTest {
     @Test
     fun afterLogAnchorIsTheEntryWellsNotTheLoggedSetsPanel() {
         assertEquals(WorkoutTestTags.SET_ENTRY, LogLoopBringIntoView.ANCHOR_TAG)
+        assertEquals(WorkoutTestTags.LOG_RECEIPT, LogLoopBringIntoView.AFTER_LOG_TAG)
         assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains("logged", ignoreCase = true))
         assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains("sets-panel", ignoreCase = true))
     }

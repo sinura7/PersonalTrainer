@@ -12,7 +12,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -60,8 +59,7 @@ fun recordEnter(): EnterTransition =
     if (LocalReducedMotion.current) {
         fadeIn(snap())
     } else {
-        scaleIn(initialScale = 0.92f, animationSpec = Motion.celebrate()) +
-            fadeIn(tween(Motion.FAST))
+        fadeIn(tween(Motion.FAST))
     }
 
 @Suppress("ModifierFactoryExtensionFunction") // animateItem is LazyItemScope-only
@@ -117,6 +115,18 @@ object Motion {
 
     /** Clock row swap after a mode change. Reduced motion snaps this to 0. */
     const val CLOCK_SWAP_MS = 180
+
+    /** Use on the recommendation strip: draft only, not Log success. */
+    const val DRAFT_SETTLE_MS = 150
+
+    /** New logged row settle before rest motion. Reduced motion snaps this to 0. */
+    const val ROW_SETTLE_MS = 180
+
+    /** Current-lift card swap after Next. Reduced motion snaps this to 0. */
+    const val CARD_SWAP_MS = 240
+
+    /** Gold accent after Log success on a personal record (HA-24). */
+    const val PR_ACCENT_DELAY_MS = 120
 
     /** 0:00 → Back to the bar. Reduced motion snaps this to 0. */
     const val REST_DONE_MS = 240

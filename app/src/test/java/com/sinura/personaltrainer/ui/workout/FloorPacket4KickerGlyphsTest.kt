@@ -11,30 +11,39 @@ import org.junit.Test
  */
 class FloorPacket4KickerGlyphsTest {
     @Test
-    fun kickerSitsOnTheNextRowAndWhyStillOpensTheTrace() {
+    fun kickerSitsOnTheEntryStripAndWhyStillOpensTheTrace() {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.progressionKickerInline())
+        val card = readOwned("ui/workout/WorkoutLiftCard.kt")
+        val recAt = card.indexOf("MicroRecLine(")
+        val fieldsAt = card.indexOf("SetEntryPanel(")
+        assertTrue("rec strip must sit above the fields", recAt in 0 until fieldsAt)
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("ProgressionKickerMark("))
-        assertTrue(bar.contains("SetMicroRecCopy.kicker"))
-        assertTrue(bar.contains("WorkoutTestTags.MICRO_REC_WHY"))
-        assertTrue(bar.contains("SetMicroRecCopy.whyLines"))
+        val micro = bar.substring(
+            bar.indexOf("fun MicroRecLine"),
+            bar.indexOf("fun SecondaryLogOptions"),
+        )
+        assertTrue(micro.contains("SetMicroRecCopy.collapsed"))
+        assertTrue(micro.contains("WorkoutTestTags.MICRO_REC_WHY"))
+        assertTrue(micro.contains("SetMicroRecCopy.whyLines"))
+        assertTrue(micro.contains("SetMicroRecCopy.USE_SUGGESTION"))
+        assertTrue(micro.contains("SetMicroRecCopy.KEEP_MY_NUMBERS"))
+        assertFalse("kicker must not be a second Volt", micro.contains("PrimaryGymButton"))
         assertFalse(
-            "kicker must not be a second Volt",
-            bar.contains("PrimaryGymButton") &&
-                bar.substring(
-                    bar.indexOf("fun MicroRecLine"),
-                    bar.indexOf("fun SecondaryLogOptions"),
-                ).contains("PrimaryGymButton"),
+            "the dock must not host the rec strip",
+            bar.substring(0, bar.indexOf("fun MicroRecLine")).contains("MicroRecLine("),
         )
         val mark = readOwned("ui/workout/SetMicroRecUi.kt")
         assertTrue(mark.contains("fun ProgressionKickerMark"))
         assertTrue(mark.contains("WorkoutTestTags.PROGRESSION_KICKER"))
+        assertTrue(mark.contains("Coach.decide("))
+        assertFalse(mark.contains("SetMicroRecCalculator.suggest"))
         val copy = readOwned("domain/SetMicroRec.kt")
         assertTrue(copy.contains("object ProgressionKickerCopy"))
         assertTrue(copy.contains("const val HOLD"))
         assertTrue(copy.contains("const val BACK_OFF"))
         assertTrue(copy.contains("fun fromHint"))
         assertTrue(copy.contains("fun fromMicroRec"))
+        assertTrue(copy.contains("fun collapsed"))
         assertTrue(copy.contains("RpeModifier") || copy.contains("RPE_HOLD"))
     }
 

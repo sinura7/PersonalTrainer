@@ -25,24 +25,31 @@ import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.RpeCopy
+import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.FloorFieldGlyph
 import com.sinura.personaltrainer.ui.components.FloorTimerSlot
+import com.sinura.personaltrainer.ui.components.GymReceiptBanner
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.Danger
+import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
+import androidx.compose.ui.platform.LocalView
 
 /**
  * Every gym-floor control in one dock (Packet 2).
@@ -63,18 +70,20 @@ internal fun LogBar(
     error: String?,
     draftLabel: String,
     warmup: Boolean,
-    microRec: SetMicroRec?,
-    loadClass: LoadClass,
-    unit: WeightUnit,
     showNext: Boolean,
     onLog: () -> Unit,
     onNext: () -> Unit,
     onCancelEdit: () -> Unit,
-    onApplyMicroRec: () -> Unit,
     hold: Boolean = false,
     holdRunning: Boolean = false,
-    advanceChoice: Boolean = false,
+    showFinish: Boolean = false,
+    showAnother: Boolean = false,
+    nextName: String? = null,
+    nextLift: SessionExercise? = null,
     onAnotherSet: (() -> Unit)? = null,
+    onFinish: () -> Unit = {},
+    receiptLine: String? = null,
+    onReceiptDismissed: () -> Unit = {},
     showTimer: Boolean = false,
     restRemainingSeconds: Int = 0,
     restTotalSeconds: Int = 0,
@@ -104,10 +113,13 @@ internal fun LogBar(
     canLog: Boolean = true,
     suggestionUnavailable: Boolean = false,
 ) {
-    val nextAct = (showNext || advanceChoice) && !editing
-    val logEnabled = if (nextAct) !logging else canLog
+    val nextAct = showNext && !editing
+    val finishAct = showFinish && !editing
+    val timedActive = restRunning || holdRunning || stopwatchRunning
+    val completeDock = (nextAct || finishAct) && !editing && !timedActive
+    val logEnabled = if (nextAct || finishAct) !logging else canLog
     Column(modifier = Modifier.fillMaxWidth()) {
-        if (showTimer) {
+        if (showTimer && !completeDock) {
             FloorTimerSlot(
                 remainingSeconds = restRemainingSeconds,
                 totalSeconds = restTotalSeconds,
@@ -159,12 +171,17 @@ internal fun LogBar(
                         Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
                     }
                 }
-                microRec?.let { rec ->
-                    MicroRecLine(
-                        rec = rec,
-                        loadClass = loadClass,
-                        unit = unit,
-                        onApply = onApplyMicroRec,
+                receiptLine?.let { line ->
+                    GymReceiptBanner(
+                        message = line,
+                        onDismissed = onReceiptDismissed,
+                        modifier = Modifier.testTag(WorkoutTestTags.LOG_RECEIPT),
+                    )
+                }
+                if (completeDock) {
+                    NextLiftPreview(
+                        lift = nextLift,
+                        nextName = nextName,
                     )
                 }
             },
@@ -173,26 +190,36 @@ internal fun LogBar(
                     text = LogBarCopy.commit(
                         editing = editing,
                         next = nextAct,
+                        finish = finishAct,
+                        nextName = nextName,
                         warmup = warmup,
                         draftLabel = draftLabel,
                         hold = hold,
                         holdRunning = holdRunning,
-                        logging = logging && !nextAct,
+                        logging = logging && !nextAct && !finishAct,
                     ),
-                    onClick = if (nextAct) onNext else onLog,
+                    onClick = when {
+                        finishAct -> onFinish
+                        nextAct -> onNext
+                        else -> onLog
+                    },
                     enabled = logEnabled,
                     disabledReason = LogCommitCopy.disabledReason(
-                        logging = logging && !nextAct,
-                        liftReady = nextAct || canLog || logging,
+                        logging = logging && !nextAct && !finishAct,
+                        liftReady = nextAct || finishAct || canLog || logging,
                     ),
                     modifier = Modifier.testTag(
-                        if (nextAct) WorkoutTestTags.NEXT else WorkoutTestTags.LOG_SET,
+                        when {
+                            finishAct -> WorkoutTestTags.DOCK_FINISH
+                            nextAct -> WorkoutTestTags.NEXT
+                            else -> WorkoutTestTags.LOG_SET
+                        },
                     ),
                     height = Metrics.commit,
                     hapticFeedback = true,
                 )
             },
-            secondary = if (advanceChoice && !editing && onAnotherSet != null) {
+            secondary = if (showAnother && !editing && onAnotherSet != null) {
                 {
                     TextButton(
                         onClick = onAnotherSet,
@@ -216,12 +243,54 @@ internal fun LogBar(
 }
 
 @Composable
+private fun NextLiftPreview(
+    lift: SessionExercise?,
+    nextName: String?,
+) {
+    if (lift == null && nextName.isNullOrBlank()) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Metrics.commit)
+            .testTag(WorkoutTestTags.NEXT_PREVIEW),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        lift?.let {
+            ExerciseThumb(exercise = it.exercise, size = ThumbSize.row)
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                nextName?.takeIf { it.isNotBlank() } ?: lift?.exercise?.name.orEmpty(),
+                style = InstrumentType.title,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            lift?.let { sessionLift ->
+                val planned = WorkoutAdvance.plannedWork(sessionLift.targetSets, sessionLift.targetReps)
+                if (planned.isNotBlank()) {
+                    Text(
+                        planned,
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 internal fun MicroRecLine(
     rec: SetMicroRec,
     loadClass: LoadClass,
     unit: WeightUnit,
     onApply: () -> Unit,
 ) {
+    if (!SetMicroRecCopy.visibleOnEntry(rec)) return
+    val view = LocalView.current
     var showWhy by rememberSaveable(rec.reasonCode, rec.nextWeightKg, rec.nextReps, rec.nextRpe) {
         mutableStateOf(false)
     }
@@ -240,17 +309,8 @@ internal fun MicroRecLine(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
-            ProgressionKickerMark(
-                rec = rec,
-                loadClass = loadClass,
-                unit = unit,
-            )
             Text(
-                if (SetMicroRecCopy.kicker(rec, loadClass, unit) != null) {
-                    SetMicroRecCopy.payload(rec, loadClass, unit)
-                } else {
-                    SetMicroRecCopy.line(rec, loadClass, unit)
-                },
+                SetMicroRecCopy.collapsed(rec, loadClass, unit),
                 modifier = Modifier
                     .weight(1f)
                     .testTag(WorkoutTestTags.MICRO_REC),
@@ -273,7 +333,10 @@ internal fun MicroRecLine(
             }
             if (rec.showApply && !rec.previewOnly) {
                 TextButton(
-                    onClick = onApply,
+                    onClick = {
+                        Haptics.tick(view)
+                        onApply()
+                    },
                     modifier = Modifier
                         .heightIn(min = Metrics.touchMin)
                         .testTag(WorkoutTestTags.MICRO_REC_APPLY),
@@ -282,24 +345,22 @@ internal fun MicroRecLine(
                 }
             }
         }
-        SetMicroRecCopy.warmupLine(rec, unit)?.let { warmup ->
-            Text(
-                text = warmup,
-                style = InstrumentType.caption,
-                color = TextTertiary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
     if (showWhy) {
+        val canUse = rec.showApply && !rec.previewOnly
         ConfirmActionDialog(
             title = "Why",
             body = SetMicroRecCopy.whyLines(rec).joinToString("\n"),
-            confirmLabel = "OK",
-            onConfirm = { showWhy = false },
+            confirmLabel = if (canUse) SetMicroRecCopy.USE_SUGGESTION else SetMicroRecCopy.KEEP_MY_NUMBERS,
+            dismissLabel = if (canUse) SetMicroRecCopy.KEEP_MY_NUMBERS else null,
+            onConfirm = {
+                if (canUse) {
+                    Haptics.tick(view)
+                    onApply()
+                }
+                showWhy = false
+            },
             onDismiss = { showWhy = false },
-            dismissLabel = null,
         )
     }
 }

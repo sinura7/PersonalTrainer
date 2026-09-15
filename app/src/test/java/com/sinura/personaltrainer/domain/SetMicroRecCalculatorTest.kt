@@ -54,6 +54,23 @@ class SetMicroRecCalculatorTest {
     }
 
     @Test
+    fun tracesNameThresholdsAndAlternativesWithoutChangingTheLoad() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 5, rpe = 6))),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
+        assertEquals(5, rec.nextReps)
+        assertTrue(rec.trace.alternatives.contains(SetMicroRecCopy.ALT_ADD_REP))
+        assertTrue(rec.trace.alternatives.contains(SetMicroRecCopy.ALT_BACK_OFF))
+        assertTrue(rec.trace.facts.any { it.name == "lastSet" })
+        assertTrue(rec.trace.thresholds.any { it.name == "targetReps" })
+        assertTrue(rec.trace.facts.any { it.name == "call" })
+    }
+
+    @Test
     fun rpeIntentUsesLastWorkingNotTheDraftWells() {
         val rec = checkNotNull(
             SetMicroRecCalculator.suggest(

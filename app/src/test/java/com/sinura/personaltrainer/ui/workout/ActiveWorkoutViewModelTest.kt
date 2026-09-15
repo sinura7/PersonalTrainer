@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
@@ -1078,6 +1079,64 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun lastLiftOffersFinishNotOpenEndedLog() = runBlocking {
+        val fixture = seedWorkout(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
+        vm.setWeight(100.0)
+        vm.awaitState { it.draft.weightKg == 100.0 }
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        val pending = withTimeout(TestWaits.FLOW_MS) { vm.pendingAdvance.first { it != null } }
+        assertNotNull(pending)
+        assertNull(pending!!.nextExerciseId)
+        val session = checkNotNull(vm.uiState.value.session)
+        val advance = WorkoutAdvance.forSelection(
+            session = session,
+            selectedExerciseId = SQUAT,
+            wantAnother = vm.extraSetRequested.value,
+            editing = false,
+        )
+        assertTrue(advance.liftComplete)
+        assertTrue(advance.showFinish)
+        assertFalse(advance.showNext)
+        assertTrue(advance.showAnother)
+        assertFalse(deps.restTimerStore.current().running)
+    }
+
+    @Test
+    fun loggedReceiptMatchesTheCapturedPayloadAndRestWaitsForSettle() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3, restSeconds = 75)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.setReps(5)
+        vm.setRpe(8)
+        vm.awaitState { it.draft.rpe == 8 }
+
+        vm.logSet()
+        vm.awaitState { !it.logging }
+        val receipt = checkNotNull(vm.logReceipt.value)
+        val row = checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.single()
+        assertEquals(row.id, receipt.setId)
+        assertEquals(100.0, receipt.weightKg, 0.0001)
+        assertEquals(5, receipt.reps)
+        assertEquals(8, receipt.rpe)
+        assertTrue(receipt.line.contains("logged"))
+        assertTrue(receipt.line.contains("100 kg × 5"))
+        assertTrue(receipt.line.contains("RPE 8"))
+        assertFalse(deps.restTimerStore.current().running)
+
+        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+        dispatcher.scheduler.runCurrent()
+        dispatcher.scheduler.advanceUntilIdle()
+        withTimeout(TestWaits.FLOW_MS) { deps.restTimerStore.snapshot.first { it.running } }
+        assertEquals(fixture.session.id, deps.restTimerStore.current().sessionId)
+    }
+
+    @Test
     fun advanceNowTakesTheStandingNextLift() = runBlocking {
         val fixture = seedTwoLifts(targetSets = 1)
         val vm = createViewModel(fixture.session.id)
@@ -1944,6 +2003,9 @@ class ActiveWorkoutViewModelTest {
     private suspend fun ActiveWorkoutViewModel.logSetAndSettle() {
         logSet()
         awaitState { !it.logging }
+        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+        dispatcher.scheduler.runCurrent()
+        dispatcher.scheduler.advanceUntilIdle()
     }
 
     /**
