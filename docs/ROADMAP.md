@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Live 61: floor packet 1 (RPE fit, standing Next/Another,
+> 6s dwell) plus Extra ChatGPT stills on `trunk`. `debugLiveCode` 61;
+> suffix from `python3 tools/debug-drop-plan.py`.
+>
 > 15 Sep 2026 — Floor packet 1: RPE 6–10 fit at 360/font 2.0 with Warm-up
 > outside the track; standing Next lift / Another set (no dwell
 > auto-advance); status banner dwell ~6s. Does not bump live 60.
