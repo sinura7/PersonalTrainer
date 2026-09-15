@@ -90,7 +90,7 @@ object AccessibilityMatrix {
             title = "Active strength",
             states = requiredStates,
             voltAction = "Log set",
-            talkBackNotes = "Rest is not announced every second. Idle rest says it is not running. First rest names unrestricted battery. Rest Start/Skip and Log set sit in the lower dock. Process restore keeps the set.",
+            talkBackNotes = "Rest is not announced every second. Idle rest says it is not running. First rest names unrestricted battery. Rest Start/Skip and Log set sit in the lower dock. Process restore keeps the set. RPE chips are a radio row and name the meaning: RPE 8, about two reps left, not selected. Warm-up is outside that row. A selected warm-up ramp names WU and the weight. Set context speaks SET 3 OF 4, WU 2, or EXTRA 1.",
             automatedEvidence = true,
         ),
         PagePass(

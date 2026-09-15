@@ -77,7 +77,7 @@ class FloorCompactPresentationTest {
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.weightAndRepsAreWheels())
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
         assertTrue(card.contains("compact = true"))
-        assertTrue(card.contains("FloorCompactChrome.showOptionalLogOptions(restRunning)"))
+        assertTrue(card.contains("FloorCompactChrome.showOptionalLogOptions(isWarmup = draftWarmup)"))
         assertFalse(card.contains("WorkoutTestTags.HOLD_CLOCK"))
         assertFalse(card.contains("ExerciseThumb("))
         val liftCard = readOwned("ui/components/LiftCard.kt")

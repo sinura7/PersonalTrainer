@@ -1,11 +1,13 @@
 package com.sinura.personaltrainer.ui.workout
 
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -16,10 +18,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.domain.LogCommitCopy
+import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -27,6 +33,7 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.FloorFieldGlyph
 import com.sinura.personaltrainer.ui.components.FloorTimerSlot
 import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -285,49 +292,90 @@ internal fun MicroRecLine(
 }
 
 /**
- * Warm-up is its own chip above the RPE track. RPE 6–10 are equal-weight
- * compact chips in one non-scrolling row so all five stay visible at
- * 360 dp / font scale 2.0 (Warm-up used to share that row and clipped
- * to "Varm-up" while hiding 10).
+ * Packet D: RPE for a working-set draft. Warm-up lives above the weight
+ * well, outside this track. Five equal chips, one non-scrolling row.
  */
 @Composable
 internal fun SecondaryLogOptions(
     warmup: Boolean,
     rpe: Int?,
-    onWarmup: (Boolean) -> Unit,
     onRpe: (Int?) -> Unit,
     recommendedRpe: Int? = null,
     showRpe: Boolean = true,
+    showHelper: Boolean = false,
+    onDismissHelper: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        InstrumentChip(
-            label = "Warm-up",
-            selected = warmup,
-            onClick = { onWarmup(!warmup) },
-        )
-        if (showRpe) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
             FloorFieldGlyph(
                 icon = TemperIcons.FloorRpe,
-                spoken = "RPE",
+                spoken = null,
                 modifier = Modifier.testTag(WorkoutTestTags.RPE_GLYPH),
             )
+            Kicker(
+                text = RpeCopy.LABEL,
+                asHeading = false,
+            )
+        }
+        if (warmup && !showRpe) {
+            Text(
+                RpeCopy.WARMUP_REASON,
+                modifier = Modifier
+                    .testTag(WorkoutTestTags.RPE_WARMUP_REASON)
+                    .semantics { contentDescription = RpeCopy.WARMUP_REASON },
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+        }
+        if (showRpe) {
+            if (showHelper) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.RPE_HELPER)
+                        .clickable(role = Role.Button, onClick = onDismissHelper)
+                        .semantics { contentDescription = RpeCopy.helperSpoken() },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    Text(
+                        RpeCopy.HELPER,
+                        modifier = Modifier.weight(1f),
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                    )
+                    Text(
+                        RpeCopy.HELPER_DISMISS,
+                        style = InstrumentType.bodyStrong,
+                        color = Volt,
+                    )
+                }
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .selectableGroup()
                     .testTag(WorkoutTestTags.RPE_TRACK),
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                (6..10).forEach { value ->
+                RpeCopy.VALUES.forEach { value ->
+                    val selected = rpe == value
                     InstrumentChip(
                         label = value.toString(),
-                        selected = rpe == value,
-                        recommended = recommendedRpe == value && rpe != value,
-                        onClick = { onRpe(if (rpe == value) null else value) },
+                        selected = selected,
+                        recommended = recommendedRpe == value && !selected,
+                        onClick = { onRpe(if (selected) null else value) },
                         compact = true,
+                        role = Role.RadioButton,
+                        spoken = RpeCopy.spoken(value, selected),
                         modifier = Modifier.weight(1f),
                     )
                 }

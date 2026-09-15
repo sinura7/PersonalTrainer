@@ -471,6 +471,19 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     )
 
     /**
+     * Packet D: first-use RPE helper. Hidden after a permanent dismiss
+     * in DataStore — not a Room row.
+     */
+    val rpeHelperVisible: StateFlow<Boolean> =
+        container.preferencesRepository.rpeHelperDismissed
+            .map { dismissed -> !dismissed }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = true,
+            )
+
+    /**
      * In-set next load. Recomputed on log, RPE, warmup, lift switch, delete/undo, and edit.
      * Stepper ticks do not change it unless draft RPE is set (preview).
      * Eager: [applyMicroRec] reads this value, not a rendered snapshot.
@@ -1004,15 +1017,43 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * with its own **Use**, and only that tap moves it into the wells.
      */
     fun setRpe(rpe: Int?) {
-        draft.value = draft.value.copy(rpe = rpe)
+        if (draft.value.isWarmup) return
+        val current = draft.value
+        draft.value = current.copy(rpe = rpe)
         markDraftDirty()
         persistDraft()
     }
 
     fun setWarmup(isWarmup: Boolean) {
-        draft.value = draft.value.copy(isWarmup = isWarmup)
+        val current = draft.value
+        draft.value = current.copy(
+            isWarmup = isWarmup,
+            rpe = if (isWarmup) null else current.rpe,
+        )
         markDraftDirty()
         persistDraft()
+    }
+
+    /**
+     * Packet D: one ramp chip writes the lighter weight and Warm-up.
+     * It does not log. RPE is cleared so a working-set effort cannot
+     * sit on a warm-up draft.
+     */
+    fun applyWarmupRamp(weightKg: Double) {
+        if (!weightKg.isFinite() || weightKg <= 0.0) return
+        draft.value = draft.value.copy(
+            weightKg = weightKg,
+            isWarmup = true,
+            rpe = null,
+        )
+        markDraftDirty()
+        persistDraft()
+    }
+
+    fun dismissRpeHelper() {
+        viewModelScope.launch {
+            container.preferencesRepository.dismissRpeHelper()
+        }
     }
 
     fun setNotes(value: String) {

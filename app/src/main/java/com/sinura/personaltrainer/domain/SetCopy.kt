@@ -121,8 +121,15 @@ object SetCopy {
      * when it was logged. Warm-up is a mark on the row, not a second word
      * here, so the workout log and a finished session say the same thing.
      */
-    fun tableExtras(setNumber: Int, rpe: Int?): String = buildList {
-        add("Set $setNumber")
+    fun tableExtras(setNumber: Int, rpe: Int?): String =
+        tableExtras(ordinal = "Set $setNumber", rpe = rpe)
+
+    /**
+     * Floor rows pass a derived ordinal (`WU 1`, `Set 2 of 4`, `Extra 1`).
+     * History still names the stored number through [tableExtras] `(setNumber)`.
+     */
+    fun tableExtras(ordinal: String, rpe: Int?): String = buildList {
+        add(ordinal)
         rpe?.let { add("RPE $it") }
     }.joinToString(" · ")
 

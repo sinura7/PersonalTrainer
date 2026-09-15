@@ -84,6 +84,9 @@ object Motion {
     /** Press feedback and chip selection. */
     const val TAP = 90
 
+    /** Packet D: RPE / warm-up chip fill and check settle. Same length as [TAP]. */
+    const val FIELD_MS = TAP
+
     /** Colour changes, small reveals. */
     const val FAST = 150
 

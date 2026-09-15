@@ -89,6 +89,11 @@ object WorkoutTestTags {
     const val NEXT = "workout-next"
     const val ANOTHER_SET = "workout-another-set"
     const val RPE_TRACK = "workout-rpe-track"
+    const val RPE_HELPER = "workout-rpe-helper"
+    const val RPE_WARMUP_REASON = "workout-rpe-warmup-reason"
+    const val SET_CONTEXT = "workout-set-context"
+    const val WARMUP_CHIP = "workout-warmup-chip"
+    const val WARMUP_RAMP = "workout-warmup-ramp"
     const val INSTRUMENT_STRIP = "workout-instrument-strip"
     const val REST_WHEEL = "workout-rest-wheel"
     const val START_SET_CLOCK = "workout-start-set-clock"
@@ -137,6 +142,7 @@ fun ActiveWorkoutScreen(
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
     val removedLift by viewModel.removedLift.collectAsStateWithLifecycle()
     val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
+    val rpeHelperVisible by viewModel.rpeHelperVisible.collectAsStateWithLifecycle()
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var liftSwitcherOpen by rememberSaveable { mutableStateOf(false) }
@@ -523,6 +529,7 @@ fun ActiveWorkoutScreen(
                                                 ?: currentLift.targetSeconds,
                                             holdRunning = holdTimer.running,
                                             holdRemainingSeconds = holdTimer.remainingSeconds,
+                                            rpeHelperVisible = rpeHelperVisible,
                                         ),
                                         events = WorkoutLiftCardEvents(
                                             onWeightKgChange = viewModel::setWeight,
@@ -533,6 +540,8 @@ fun ActiveWorkoutScreen(
                                             onApplyLastTime = viewModel::applyLastTimeSet,
                                             onWarmup = viewModel::setWarmup,
                                             onRpe = viewModel::setRpe,
+                                            onApplyWarmupRamp = viewModel::applyWarmupRamp,
+                                            onDismissRpeHelper = viewModel::dismissRpeHelper,
                                             onApplySuggested = viewModel::applySuggestedWeight,
                                             onEditSet = viewModel::editSet,
                                             onDeleteSet = viewModel::deleteSet,

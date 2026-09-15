@@ -34,18 +34,27 @@ class WorkoutLogBarTest {
             "Warm-up must not share a scrolling row with RPE",
             secondary.contains("LazyRow("),
         )
-        assertTrue("Warm-up chip", secondary.contains("label = \"Warm-up\""))
         assertTrue("RPE glyph", secondary.contains("TemperIcons.FloorRpe"))
-        assertFalse("RPE text kicker is replaced", secondary.contains("Kicker(\"RPE\")"))
+        assertTrue("RPE label", secondary.contains("RpeCopy.LABEL"))
         assertTrue("RPE track tag", secondary.contains("WorkoutTestTags.RPE_TRACK"))
-        assertTrue("RPE values", secondary.contains("(6..10)"))
+        assertTrue("RPE values", secondary.contains("RpeCopy.VALUES"))
         assertTrue("compact chips", secondary.contains("compact = true"))
         assertTrue("equal weight chips", secondary.contains(".weight(1f)"))
-        val warmupAt = secondary.indexOf("label = \"Warm-up\"")
-        val trackAt = secondary.indexOf("WorkoutTestTags.RPE_TRACK")
-        assertTrue("Warm-up chip must be composed before the RPE track", warmupAt in 0 until trackAt)
+        assertTrue("radio semantics", secondary.contains("Role.RadioButton"))
+        assertTrue("TalkBack meaning", secondary.contains("RpeCopy.spoken"))
+        assertTrue("warmup reason", secondary.contains("RpeCopy.WARMUP_REASON"))
+        assertFalse("Warm-up chip moved above weight", secondary.contains("label = \"Warm-up\""))
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.warmupOutsideRpeTrack())
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.rpeTrackFitsWithoutScroll())
+        val card = readOwned("ui/workout/WorkoutLiftCard.kt")
+        val warmupAt = card.indexOf("WarmupControls(")
+        val weightAt = card.indexOf("SetEntryPanel(")
+        val rpeAt = card.indexOf("SecondaryLogOptions(")
+        assertTrue("Warm-up chip must sit above the weight well", warmupAt in 0 until weightAt)
+        assertTrue("RPE must sit below the weight well", rpeAt > weightAt)
+        assertTrue(card.contains("label = \"Warm-up\""))
+        assertTrue(card.contains("WorkoutTestTags.WARMUP_CHIP"))
+        assertTrue(card.contains("WarmupRamp.sets"))
     }
 
     @Test

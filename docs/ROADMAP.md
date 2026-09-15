@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Floor packet D: RPE always on working drafts, warm-up
+> ramp chips, visible WU / Set n of target / Extra ordinals. Next Kotlin
+> is Packet E. Gym-floor `appVersionCode` stays 1.
+>
 > 15 Sep 2026 — Live 68: floor packet C one current lift, switcher, and
 > minute telemetry on `trunk`.
 > `debugLiveCode` 68; suffix from

@@ -74,6 +74,18 @@ class HapticsPaletteTest {
         assertFalse(stepper.contains("FAST_REPEAT_MS"))
     }
 
+    @Test
+    fun rpeAndWarmupChipsTickOnTheFieldSettle() {
+        val chip = readOwned("ui/components/InstrumentChip.kt")
+        assertTrue(chip.contains("Haptics.tick(view)"))
+        assertTrue(chip.contains("Motion.FIELD_MS"))
+        val card = readOwned("ui/workout/WorkoutLiftCard.kt")
+        assertTrue(card.contains("InstrumentChip("))
+        assertTrue(card.contains("label = \"Warm-up\""))
+        val bar = readOwned("ui/workout/WorkoutLogBar.kt")
+        assertTrue(bar.contains("Role.RadioButton"))
+    }
+
     private fun readOwned(relative: String): String {
         val roots = listOf(
             File("app/src/main/java/com/sinura/personaltrainer"),

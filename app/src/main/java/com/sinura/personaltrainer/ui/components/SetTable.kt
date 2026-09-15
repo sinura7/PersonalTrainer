@@ -53,6 +53,7 @@ data class SetTableLine(
             loadClass: LoadClass,
             unit: WeightUnit,
             isLatest: Boolean = false,
+            ordinal: String? = null,
         ): SetTableLine = SetTableLine(
             id = set.id,
             number = set.setNumber,
@@ -63,7 +64,7 @@ data class SetTableLine(
                 unit,
                 durationSeconds = set.durationSeconds,
             ),
-            extras = SetCopy.tableExtras(set.setNumber, set.rpe),
+            extras = SetCopy.tableExtras(ordinal ?: "Set ${set.setNumber}", set.rpe),
             isWarmup = set.isWarmup,
             isLatest = isLatest,
         )
@@ -121,9 +122,9 @@ private fun SetTableRow(
             .semantics {
                 selected = isSelected
                 contentDescription = when {
-                    onSelect == null -> "Set ${row.number}, ${row.line}"
-                    isSelected -> "Set ${row.number}, ${row.line}, selected. Revise or Remove."
-                    else -> "Set ${row.number}, ${row.line}. Tap to revise or remove."
+                    onSelect == null -> "${row.extras}, ${row.line}"
+                    isSelected -> "${row.extras}, ${row.line}, selected. Revise or Remove."
+                    else -> "${row.extras}, ${row.line}. Tap to revise or remove."
                 }
             }
             .then(

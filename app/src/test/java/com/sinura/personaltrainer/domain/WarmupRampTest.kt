@@ -137,4 +137,47 @@ class WarmupRampTest {
         assertTrue(working.warmupSets.isEmpty())
         assertNull(SetMicroRecCopy.warmupLine(working, WeightUnit.KG))
     }
+
+    @Test
+    fun chipLabelNamesPercentAndWeight() {
+        val set = WarmupSet(weightKg = 40.0, percent = 40)
+        assertEquals("40% · 40 kg", WarmupRamp.chipLabel(set, WeightUnit.KG))
+    }
+
+    @Test
+    fun nextUnusedRampSkipsLoggedWarmupWeights() {
+        val ramp = WarmupRamp.sets(100.0, LoadType.EXTERNAL, WeightUnit.KG)
+        assertEquals(0, WarmupRamp.nextUnusedIndex(ramp, emptyList()))
+        assertEquals(1, WarmupRamp.nextUnusedIndex(ramp, listOf(40.0)))
+        assertEquals(2, WarmupRamp.nextUnusedIndex(ramp, listOf(40.0, 60.0)))
+        assertEquals(-1, WarmupRamp.nextUnusedIndex(ramp, listOf(40.0, 60.0, 80.0)))
+    }
+
+    @Test
+    fun workingWeightStaysOnThePlanAfterAWarmupLeftover() {
+        assertEquals(
+            100.0,
+            WarmupRamp.workingWeightKg(
+                draftKg = 40.0,
+                draftIsWarmup = false,
+                workingLogged = 0,
+                targetKg = 100.0,
+                suggestedKg = 100.0,
+                lastKg = 97.5,
+            ),
+            0.0001,
+        )
+        assertEquals(
+            110.0,
+            WarmupRamp.workingWeightKg(
+                draftKg = 110.0,
+                draftIsWarmup = false,
+                workingLogged = 0,
+                targetKg = 100.0,
+                suggestedKg = null,
+                lastKg = null,
+            ),
+            0.0001,
+        )
+    }
 }

@@ -14,9 +14,16 @@ interface DisplayPrefs {
     /** Null is Auto: first training day of the week. */
     val bodyweightCheckInWeekday: Flow<Weekday?>
 
+    /**
+     * First-use RPE helper. Device-local: restore and backup leave it
+     * alone, so a new phone still explains 6 and 10 once.
+     */
+    val rpeHelperDismissed: Flow<Boolean>
+
     suspend fun setWeightUnit(unit: WeightUnit)
     suspend fun setClockFormat(format: ClockFormat)
     suspend fun setBodyweightCheckInWeekday(day: Weekday?)
+    suspend fun dismissRpeHelper()
 }
 
 internal class DisplayPrefsStore(private val store: SettingsStore) : DisplayPrefs {
@@ -28,6 +35,9 @@ internal class DisplayPrefsStore(private val store: SettingsStore) : DisplayPref
 
     override val bodyweightCheckInWeekday: Flow<Weekday?> =
         store.pref { prefs -> Weekday.fromStorage(prefs[BODYWEIGHT_CHECK_IN_WEEKDAY]) }
+
+    override val rpeHelperDismissed: Flow<Boolean> =
+        store.pref { prefs -> prefs[RPE_HELPER_DISMISSED] ?: false }
 
     override suspend fun setWeightUnit(unit: WeightUnit) {
         store.data.edit { prefs -> prefs[WEIGHT_UNIT] = unit.storageKey }
@@ -45,5 +55,9 @@ internal class DisplayPrefsStore(private val store: SettingsStore) : DisplayPref
                 prefs[BODYWEIGHT_CHECK_IN_WEEKDAY] = day.name
             }
         }
+    }
+
+    override suspend fun dismissRpeHelper() {
+        store.data.edit { prefs -> prefs[RPE_HELPER_DISMISSED] = true }
     }
 }

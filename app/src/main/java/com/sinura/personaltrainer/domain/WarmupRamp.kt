@@ -43,4 +43,48 @@ object WarmupRamp {
             WarmupSet(weightKg = kg, percent = percent)
         }.distinctBy { it.weightKg }
     }
+
+    /**
+     * The bar the percentage chips are measured from.
+     *
+     * After a warm-up log the wells keep the lighter number. The ramp must
+     * still read off the planned working weight, not that leftover 40 kg.
+     * Once the lifter has typed a working load at or above the plan, that
+     * typed number wins.
+     */
+    fun workingWeightKg(
+        draftKg: Double,
+        draftIsWarmup: Boolean,
+        workingLogged: Int,
+        targetKg: Double?,
+        suggestedKg: Double?,
+        lastKg: Double?,
+    ): Double {
+        val planned = sequenceOf(targetKg, suggestedKg, lastKg)
+            .mapNotNull { it }
+            .firstOrNull { it.isFinite() && it > 0.0 }
+            ?: 0.0
+        val draft = if (draftKg.isFinite()) draftKg.coerceAtLeast(0.0) else 0.0
+        if (workingLogged <= 0 && planned > 0.0) {
+            if (draftIsWarmup || draft + 1e-6 < planned) return planned
+        }
+        if (!draftIsWarmup && draft > 0.0) return draft
+        return planned
+    }
+
+    fun chipLabel(set: WarmupSet, unit: WeightUnit): String =
+        "${set.percent}% · ${set.weightKg.toWeightLabel(unit)}"
+
+    /**
+     * Index of the next ramp weight that has not been logged as a warm-up.
+     * -1 when every rung is used or the ramp is empty.
+     */
+    fun nextUnusedIndex(ramp: List<WarmupSet>, loggedWarmupKg: List<Double>): Int {
+        if (ramp.isEmpty()) return -1
+        return ramp.indexOfFirst { step ->
+            loggedWarmupKg.none { logged ->
+                logged.isFinite() && kotlin.math.abs(logged - step.weightKg) < 1e-6
+            }
+        }
+    }
 }
