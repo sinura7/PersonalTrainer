@@ -13,6 +13,8 @@ class MotionPolicyTest {
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.DRAW))
         assertEquals(Motion.FAST, Motion.durationMs(reduced = false, fullMs = Motion.FAST))
         assertEquals(Motion.TAP, Motion.durationMs(reduced = false, fullMs = Motion.TAP))
+        assertEquals(Motion.FIELD_MS, Motion.TAP)
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.FIELD_MS))
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.TICK_MS))
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.FLASH_MS))
     }

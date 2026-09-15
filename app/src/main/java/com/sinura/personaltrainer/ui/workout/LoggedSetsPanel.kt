@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.ui.components.SetTable
 import com.sinura.personaltrainer.ui.components.SetTableLine
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -43,6 +44,7 @@ internal fun LoggedSetsPanel(
     onDelete: (String) -> Unit,
     onAddSet: () -> Unit,
     addSetCaption: String? = null,
+    targetSets: Int = 0,
 ) {
     if (sets.isEmpty()) return
     // Which row is showing its actions. The actions used to hang off `isLatest`, so the
@@ -59,12 +61,17 @@ internal fun LoggedSetsPanel(
         if (editingSetId != null) selectedSetId = null
     }
     val unit = LocalWeightUnit.current
-    val rows = sets.map { set ->
+    val ordinals = SetOrdinalCopy.loggedLines(
+        warmupFlags = sets.map { it.isWarmup },
+        targetSets = targetSets,
+    )
+    val rows = sets.mapIndexed { index, set ->
         SetTableLine.fromLog(
             set = set,
             loadClass = loadClassOf(set),
             unit = unit,
             isLatest = set.id == latestSetId,
+            ordinal = ordinals.getOrNull(index),
         )
     }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {

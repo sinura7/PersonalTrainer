@@ -9,16 +9,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
@@ -61,6 +64,11 @@ fun InstrumentChip(
      * 360 dp / font scale 2.0 without scrolling or clipping.
      */
     compact: Boolean = false,
+    /**
+     * Floor RPE uses radio. Warm-up and ramp chips stay toggle/checkbox.
+     */
+    role: Role = Role.Checkbox,
+    spoken: String? = null,
 ) {
     val view = LocalView.current
     // VoltDim, not solid Volt: the palette declares this token as "selected chips, active
@@ -69,12 +77,13 @@ fun InstrumentChip(
     // twice.
     val background by animateColorAsState(
         targetValue = if (selected) VoltDim else Surface2,
-        animationSpec = instrumentTween(Motion.TAP),
+        animationSpec = instrumentTween(Motion.FIELD_MS),
         label = "chip-fill",
     )
     Box(
         modifier = modifier
             .heightIn(min = Metrics.touchMin)
+            .then(if (compact) Modifier.widthIn(min = Metrics.touchMin) else Modifier)
             .clip(RoundedCornerShape(Radius.xs))
             .background(background)
             .border(
@@ -88,9 +97,17 @@ fun InstrumentChip(
             // which TalkBack cannot see at all.
             .selectable(
                 selected = selected,
+                role = role,
                 onClick = {
                     Haptics.tick(view)
                     onClick()
+                },
+            )
+            .then(
+                if (spoken == null) {
+                    Modifier
+                } else {
+                    Modifier.semantics { contentDescription = spoken }
                 },
             )
             .padding(horizontal = if (compact) Metrics.space2 else Metrics.space4),

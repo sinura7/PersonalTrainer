@@ -106,6 +106,8 @@ class SetCopyTest {
     fun tableExtrasNameTheSetThenRpe() {
         assertEquals("Set 3", SetCopy.tableExtras(3, null))
         assertEquals("Set 3 · RPE 8", SetCopy.tableExtras(3, 8))
+        assertEquals("WU 1 · RPE 8", SetCopy.tableExtras("WU 1", 8))
+        assertEquals("Extra 1", SetCopy.tableExtras("Extra 1", null))
     }
 
     @Test

@@ -11,9 +11,10 @@ class FloorCompactChromeTest {
     }
 
     @Test
-    fun optionalRpePanelWaitsUntilRestRuns() {
-        assertFalse(FloorCompactChrome.showOptionalLogOptions(restRunning = false))
-        assertTrue(FloorCompactChrome.showOptionalLogOptions(restRunning = true))
+    fun rpeChipsBelongToAWorkingDraftNotToRest() {
+        assertTrue(FloorCompactChrome.showOptionalLogOptions())
+        assertTrue(FloorCompactChrome.showOptionalLogOptions(isWarmup = false))
+        assertFalse(FloorCompactChrome.showOptionalLogOptions(isWarmup = true))
     }
 
     @Test

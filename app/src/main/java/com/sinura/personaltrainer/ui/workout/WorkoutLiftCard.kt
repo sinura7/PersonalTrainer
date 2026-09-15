@@ -38,18 +38,22 @@ import java.text.DateFormat
 import java.util.Date
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
+import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
-import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.LoadClass
+import com.sinura.personaltrainer.domain.WarmupRamp
+import com.sinura.personaltrainer.domain.WarmupSet
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.SetEntryPanel
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -89,6 +93,7 @@ internal data class WorkoutLiftCardState(
     val holdSeconds: Int? = null,
     val holdRunning: Boolean = false,
     val holdRemainingSeconds: Int = 0,
+    val rpeHelperVisible: Boolean = false,
 )
 
 internal data class WorkoutLiftCardEvents(
@@ -100,6 +105,8 @@ internal data class WorkoutLiftCardEvents(
     val onApplyLastTime: (Double, Int) -> Unit,
     val onWarmup: (Boolean) -> Unit,
     val onRpe: (Int?) -> Unit,
+    val onApplyWarmupRamp: (Double) -> Unit = {},
+    val onDismissRpeHelper: () -> Unit = {},
     val onApplySuggested: () -> Unit,
     val onEditSet: (String) -> Unit,
     val onDeleteSet: (String) -> Unit,
@@ -109,8 +116,9 @@ internal data class WorkoutLiftCardEvents(
 /**
  * Packet C: entry surface for the current lift only.
  *
- * Identity lives on [CurrentLiftCard]. This column is weight, reps, optional
- * RPE, and logged sets — the wells [LogLoopBringIntoView] keeps on screen.
+ * Identity lives on [CurrentLiftCard]. This column is set context, warm-up,
+ * weight, reps, RPE, and logged sets — the wells [LogLoopBringIntoView]
+ * keeps on screen.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -129,7 +137,6 @@ internal fun WorkoutLiftCard(
     val draftRpe = card.draftRpe
     val unit = card.unit
     val showAddSet = card.showAddSet
-    val restRunning = card.restRunning
     val hold = card.hold
     val holdSeconds = card.holdSeconds
     val holdRunning = card.holdRunning
@@ -145,6 +152,38 @@ internal fun WorkoutLiftCard(
     val onEditSet = events.onEditSet
     val onDeleteSet = events.onDeleteSet
     val onAddSet = events.onAddSet
+    val workingLogged = loggedSets.count { !it.isWarmup }
+    val warmupLogged = loggedSets.count { it.isWarmup }
+    val targetSets = lift.targetSets
+    val setContext = SetOrdinalCopy.draftLine(
+        isWarmup = draftWarmup,
+        warmupLogged = warmupLogged,
+        workingLogged = workingLogged,
+        targetSets = targetSets,
+    )
+    val showRpe = FloorCompactChrome.showOptionalLogOptions(isWarmup = draftWarmup)
+    val workingKg = WarmupRamp.workingWeightKg(
+        draftKg = draftWeightKg,
+        draftIsWarmup = draftWarmup,
+        workingLogged = workingLogged,
+        targetKg = lift.targetWeightKg,
+        suggestedKg = card.hint?.suggestedWeightKg,
+        lastKg = card.hint?.lastWeightKg ?: lastPerformance?.topSet?.weightKg,
+    )
+    val ramp = if (workingLogged == 0) {
+        WarmupRamp.sets(
+            workingWeightKg = workingKg,
+            loadType = lift.exercise.loadType,
+            unit = unit,
+            equipment = lift.exercise.equipment,
+        )
+    } else {
+        emptyList()
+    }
+    val rampEmphasis = WarmupRamp.nextUnusedIndex(
+        ramp = ramp,
+        loggedWarmupKg = loggedSets.filter { it.isWarmup }.map { it.weightKg },
+    )
     val entryRequester = remember { BringIntoViewRequester() }
     var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
     LaunchedEffect(lift.id, loggedSets.size) {
@@ -161,6 +200,10 @@ internal fun WorkoutLiftCard(
             .padding(bottom = Metrics.space2),
         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
+        Kicker(
+            text = setContext,
+            modifier = Modifier.testTag(WorkoutTestTags.SET_CONTEXT),
+        )
         lastPerformance?.let { last ->
             LastTimeStrip(
                 summary = last,
@@ -169,6 +212,15 @@ internal fun WorkoutLiftCard(
                 onApplySet = onApplyLastTime,
             )
         }
+        WarmupControls(
+            selected = draftWarmup,
+            draftWeightKg = draftWeightKg,
+            ramp = ramp,
+            emphasisIndex = rampEmphasis,
+            unit = unit,
+            onWarmup = onWarmup,
+            onApplyRamp = events.onApplyWarmupRamp,
+        )
         SetEntryPanel(
             weightKg = draftWeightKg,
             reps = draftReps,
@@ -198,9 +250,10 @@ internal fun WorkoutLiftCard(
             warmup = draftWarmup,
             rpe = draftRpe,
             recommendedRpe = card.recommendedRpe,
-            showRpe = FloorCompactChrome.showOptionalLogOptions(restRunning),
-            onWarmup = onWarmup,
+            showRpe = showRpe,
+            showHelper = showRpe && card.rpeHelperVisible,
             onRpe = onRpe,
+            onDismissHelper = events.onDismissRpeHelper,
         )
         if (loggedSets.isNotEmpty()) {
             Column(
@@ -213,11 +266,58 @@ internal fun WorkoutLiftCard(
                     editingSetId = editingSetId,
                     loadClassOf = { LoadClass.of(lift.exercise.loadType) },
                     showAddSet = showAddSet,
+                    targetSets = targetSets,
                     onEdit = onEditSet,
                     onDelete = onDeleteSet,
                     onAddSet = onAddSet,
                     addSetCaption = card.microRec?.let { SetMicroRecCopy.anotherSetLine(it) },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WarmupControls(
+    selected: Boolean,
+    draftWeightKg: Double,
+    ramp: List<WarmupSet>,
+    emphasisIndex: Int,
+    unit: WeightUnit,
+    onWarmup: (Boolean) -> Unit,
+    onApplyRamp: (Double) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        InstrumentChip(
+            label = "Warm-up",
+            selected = selected,
+            onClick = { onWarmup(!selected) },
+            spoken = if (selected) "Warm-up, selected" else "Warm-up, not selected",
+            modifier = Modifier.testTag(WorkoutTestTags.WARMUP_CHIP),
+        )
+        if (ramp.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(WorkoutTestTags.WARMUP_RAMP),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                ramp.forEachIndexed { index, step ->
+                    val label = WarmupRamp.chipLabel(step, unit)
+                    val applied = selected && kotlin.math.abs(draftWeightKg - step.weightKg) < 1e-6
+                    InstrumentChip(
+                        label = label,
+                        selected = applied,
+                        recommended = !applied && index == emphasisIndex,
+                        onClick = { onApplyRamp(step.weightKg) },
+                        compact = true,
+                        spoken = "$label. Warm-up.",
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }

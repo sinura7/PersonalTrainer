@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.FloorStepper
 import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.LoadType
@@ -173,9 +174,8 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(155.0)
         vm.setReps(8)
         vm.setRpe(8)
-        vm.setWarmup(true)
         vm.awaitState {
-            it.draft.weightKg == 155.0 && it.draft.reps == 8 && it.draft.rpe == 8 && it.draft.isWarmup
+            it.draft.weightKg == 155.0 && it.draft.reps == 8 && it.draft.rpe == 8
         }
         vm.selectExercise(SQUAT)
 
@@ -183,7 +183,7 @@ class ActiveWorkoutViewModelTest {
         assertEquals(155.0, state.draft.weightKg, 0.0001)
         assertEquals(8, state.draft.reps)
         assertEquals(8, state.draft.rpe)
-        assertTrue(state.draft.isWarmup)
+        assertFalse(state.draft.isWarmup)
         assertTrue(state.draftDirty)
     }
 
@@ -502,6 +502,82 @@ class ActiveWorkoutViewModelTest {
         assertNull(settled.draft.rpe)
         assertEquals(60.0, settled.draft.weightKg, 0.0001)
         assertEquals(12, settled.draft.reps)
+    }
+
+    @Test
+    fun rpeDoesNotMutateWeightReps() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setWeight(102.5)
+        vm.setReps(6)
+        vm.awaitState { it.draft.weightKg == 102.5 && it.draft.reps == 6 }
+
+        vm.setRpe(8)
+        val withRpe = vm.awaitState { it.draft.rpe == 8 }
+        assertEquals(102.5, withRpe.draft.weightKg, 0.0001)
+        assertEquals(6, withRpe.draft.reps)
+
+        vm.setRpe(null)
+        val cleared = vm.awaitState { it.draft.rpe == null }
+        assertEquals(102.5, cleared.draft.weightKg, 0.0001)
+        assertEquals(6, cleared.draft.reps)
+    }
+
+    @Test
+    fun rpeHiddenInWarmupDoesNotKeepAWorkingEffort() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setRpe(9)
+        vm.awaitState { it.draft.rpe == 9 }
+
+        vm.setWarmup(true)
+        val warmup = vm.awaitState { it.draft.isWarmup }
+        assertNull(warmup.draft.rpe)
+        assertFalse(FloorCompactChrome.showOptionalLogOptions(isWarmup = true))
+
+        vm.setRpe(8)
+        assertNull(vm.awaitState { it.draft.isWarmup }.draft.rpe)
+    }
+
+    @Test
+    fun applyWarmupRampSetsWeightAndWarmupWithoutLoggingOrRest() = runBlocking {
+        val fixture = seedWorkout(targetWeightKg = 100.0)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setRpe(7)
+        vm.awaitState { it.draft.rpe == 7 }
+
+        vm.applyWarmupRamp(40.0)
+        val applied = vm.awaitState { it.draft.isWarmup && it.draft.weightKg == 40.0 }
+        assertEquals(40.0, applied.draft.weightKg, 0.0001)
+        assertTrue(applied.draft.isWarmup)
+        assertNull(applied.draft.rpe)
+        assertEquals(5, applied.draft.reps)
+        assertTrue(applied.draftDirty)
+        assertTrue(vm.uiState.value.session?.sets.isNullOrEmpty())
+
+        vm.logSetAndSettle()
+        val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }
+        assertTrue(logged.sets.single().isWarmup)
+        assertEquals(40.0, logged.sets.single().weightKg, 0.0001)
+        assertFalse(deps.restTimerStore.current().running)
+        val after = vm.awaitState { !it.logging && !it.draft.isWarmup }
+        assertEquals(40.0, after.draft.weightKg, 0.0001)
+    }
+
+    @Test
+    fun rpeHelperDismissesPermanentlyWithoutARoomRow() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        assertTrue(vm.rpeHelperVisible.value)
+        assertFalse(deps.preferencesRepository.rpeHelperDismissed.first())
+
+        vm.dismissRpeHelper()
+        assertTrue(deps.preferencesRepository.rpeHelperDismissed.first { it })
+        assertFalse(vm.rpeHelperVisible.first { !it })
     }
 
     @Test

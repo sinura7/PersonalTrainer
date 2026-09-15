@@ -6,15 +6,18 @@ package com.sinura.personaltrainer.domain
  * Phone height is the scarce resource. The expanded lift card is the
  * one current-lift copy (still, number, name, 0/4, overflow ⋮). Weight
  * and reps are stacked stepper plates with tap-to-type, not live wheels
- * and not a side-by-side pair. The THIS LIFT dock strip stays off. Warm-up
- * / RPE stay collapsed while rest is idle. Log set is the one filled Volt.
+ * and not a side-by-side pair. The THIS LIFT dock strip stays off. RPE
+ * chips belong to a working-set draft, not rest. Log set is the one filled Volt.
  */
 object FloorCompactChrome {
     /** The expanded card is the identity. Do not pin a second THIS LIFT strip. */
     fun showSelectedLiftDock(): Boolean = false
 
-    /** RPE chips belong to a running rest, not an idle half-screen optional panel. */
-    fun showOptionalLogOptions(restRunning: Boolean): Boolean = restRunning
+    /**
+     * Packet D: RPE chips belong to a working-set draft, independent of rest.
+     * Warm-up hides them with a visible reason, not a missing row.
+     */
+    fun showOptionalLogOptions(isWarmup: Boolean = false): Boolean = !isWarmup
 
     /** Start next is a quiet keep-going, not a second filled Volt. */
     fun idleStartNextIsVolt(): Boolean = false
