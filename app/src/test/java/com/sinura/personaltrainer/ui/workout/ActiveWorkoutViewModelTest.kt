@@ -1374,10 +1374,16 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun prefillFailureDegradesAndLogStillWorks() = runBlocking {
         val fixture = seedWorkout(targetWeightKg = 100.0)
+        assertEquals(
+            100.0,
+            fixture.session.exercises.single().targetWeightKg ?: -1.0,
+            0.0001,
+        )
         val vm = createViewModel(fixture.session.id, container = failingHistory())
         val state = vm.awaitState {
             it.loadState == SessionLoadState.FOUND &&
-                it.liftReadiness == LiftEntryReadiness.DEGRADED
+                it.liftReadiness == LiftEntryReadiness.DEGRADED &&
+                it.draft.weightKg == 100.0
         }
         assertTrue(state.suggestionUnavailable)
         assertTrue(state.canLog)
@@ -1461,7 +1467,7 @@ class ActiveWorkoutViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
         val seen = mutableListOf<LogCommitFeedback>()
-        val job = launch { vm.logFeedback.collect { seen.add(it) } }
+        val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
         try {
             vm.awaitPrefilled()
             vm.logSet()
@@ -1487,7 +1493,7 @@ class ActiveWorkoutViewModelTest {
         vm.awaitPrefilled()
         vm.setWeight(100.0)
         val seen = mutableListOf<LogCommitFeedback>()
-        val job = launch { vm.logFeedback.collect { seen.add(it) } }
+        val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
         try {
             deps.database.workoutDao().deleteSession(fixture.session.id)
             vm.logSetAndSettle()
@@ -1507,7 +1513,7 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitFound()
         val seen = mutableListOf<LogCommitFeedback>()
-        val job = launch { vm.logFeedback.collect { seen.add(it) } }
+        val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
         try {
             vm.setWeight(0.0)
             vm.logSetAndSettle()

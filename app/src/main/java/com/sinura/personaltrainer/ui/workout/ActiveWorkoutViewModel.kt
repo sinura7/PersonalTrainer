@@ -733,14 +733,17 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         } catch (thrown: Exception) {
             AppLog.w(TAG, "Prefilling the next set failed", thrown)
             if (!isCurrentPrefill(exerciseId, generation)) return
-            if (!keepDraft && !draftDirty.value) {
+            val livePlanned = session.value?.exercises
+                ?.firstOrNull { it.exercise.id == exerciseId }
+                ?: planned
+            if (!draftDirty.value && (!keepDraft || draft.value.weightKg <= 0.0)) {
                 draft.value = ActiveExerciseDraft(
-                    weightKg = planned?.targetWeightKg ?: 0.0,
+                    weightKg = livePlanned?.targetWeightKg ?: 0.0,
                     reps = if (hold) 0 else targetReps.coerceAtLeast(1),
                     rpe = null,
                     isWarmup = false,
                     durationSeconds = if (hold) {
-                        HoldWork.countdownSeconds(planned?.targetSeconds)
+                        HoldWork.countdownSeconds(livePlanned?.targetSeconds)
                     } else {
                         null
                     },
