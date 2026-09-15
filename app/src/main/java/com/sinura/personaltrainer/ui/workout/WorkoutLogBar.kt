@@ -250,7 +250,7 @@ internal fun MicroRecLine(
         }
         SetMicroRecCopy.warmupLine(rec, unit)?.let { warmup ->
             Text(
-                warmup,
+                text = warmup,
                 style = InstrumentType.caption,
                 color = TextTertiary,
                 maxLines = 1,
