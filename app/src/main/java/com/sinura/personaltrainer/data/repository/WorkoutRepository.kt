@@ -880,7 +880,10 @@ class WorkoutRepository(
      * Last finished sessions that contain this lift, newest first.
      *
      * One batched read shared by the hint, the RPE window, and last
-     * performance so a lift switch is not ten small queries.
+     * performance so a lift switch is not ten small queries. The default
+     * is [RpeModifier.RPE_HOLD_SESSIONS]. [StallSignal] reads finished
+     * history itself — it needs [StallSignal.STALL_SESSIONS], which is
+     * larger — rather than raising this default.
      */
     private suspend fun lastFinishedWork(
         exerciseId: String,

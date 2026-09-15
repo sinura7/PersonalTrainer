@@ -32,6 +32,7 @@ object RuleTraceCopy {
         SetMicroRecCalculator.SKIP_RPE_DROP -> "No RPE · drop"
         SetMicroRecCalculator.CLOSE_HOLD -> "Close. Hold."
         SetMicroRecCalculator.CLIMB_REPS -> "Add a rep"
+        RuleTrace.STALL -> "No progress"
         SetMicroRecCalculator.FAILED_DROP -> "Missed target"
         SetMicroRecCalculator.LIFT_DONE -> "This lift is done"
         SetMicroRecCalculator.FIRST_SET -> "First set"
@@ -53,6 +54,9 @@ object RuleTraceCopy {
         "suggestedWeightKg" -> "Suggested weight (kg)"
         "lastReps" -> "Last reps"
         "suggestedReps" -> "Suggested reps"
+        "sessionsHeld" -> "Sessions held"
+        "lastWeekSets" -> "Last week sets"
+        "suggestedSets" -> "Suggested sets"
         "nextWeightKg" -> "Next weight (kg)"
         "nextReps" -> "Next reps"
         "nextRpe" -> "Next RPE"
@@ -61,6 +65,7 @@ object RuleTraceCopy {
 
     fun thresholdLabel(name: String): String = when (name) {
         "targetReps" -> "Target reps"
+        "stallSessions" -> "Stall after"
         else -> humanizeKey(name)
     }
 

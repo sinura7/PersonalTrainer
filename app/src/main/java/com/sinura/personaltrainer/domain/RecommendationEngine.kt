@@ -142,6 +142,8 @@ object RecommendationEngine {
         val deload = deloadSignal(inputs)
         // Both say "do less", so only the more specific one is worth the slot.
         val rest = if (deload == null) restSignal(inputs) else null
+        // Same destination as deload; do not spend a second card on it.
+        val stall = if (deload == null) stallSignal(inputs) else null
         val imbalances = imbalances(inputs)
         val suppressedByImbalance = buildSet {
             imbalances.forEach { rec ->
@@ -154,7 +156,7 @@ object RecommendationEngine {
         val neglected = neglectedMuscles(inputs).filter { it.actionMuscle !in suppressedByImbalance }
 
         return rank(
-            listOfNotNull(deload, rest) +
+            listOfNotNull(deload, rest, stall) +
                 imbalances +
                 neglected +
                 listOfNotNull(coreCoverageGap(inputs)) +
@@ -349,6 +351,23 @@ object RecommendationEngine {
         )
     }
 
+    internal fun stallSignal(inputs: CoachInputs): TrainingRecommendation? {
+        val finding = StallSignal.detect(inputs.history) ?: return null
+        val rec = TrainingRecommendation(
+            id = "stall-${finding.exerciseId}",
+            kicker = KICKER_PROGRESSION,
+            title = "${finding.exerciseName}: no progress in ${finding.sessionsHeld} sessions",
+            reason = "Top sets of ${finding.exerciseName} have not improved across " +
+                "${finding.sessionsHeld} finished sessions. Schedule a lighter week.",
+            priority = RecommendationPriority.ATTENTION,
+            action = RecommendationAction.MARK_LIGHTER_WEEK,
+            actionExerciseId = finding.exerciseId,
+            actionExerciseName = finding.exerciseName,
+            rankScore = 50,
+        )
+        return rec.copy(trace = RuleTrace.forStall(finding, inputs.nowMs))
+    }
+
     // -----------------------------------------------------------------------
     // Plumbing
     // -----------------------------------------------------------------------
@@ -406,6 +425,7 @@ object RecommendationEngine {
             TrainingGoal.STRENGTH -> when {
                 recommendation.id == "progression-ready" -> 10
                 recommendation.id.startsWith("deload") -> 10
+                recommendation.id.startsWith("stall-") -> 10
                 else -> 0
             }
             TrainingGoal.HYPERTROPHY -> when {
