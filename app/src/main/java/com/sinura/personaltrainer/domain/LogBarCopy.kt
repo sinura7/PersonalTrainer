@@ -8,7 +8,8 @@ package com.sinura.personaltrainer.domain
  * the button so the tap is never blind.
  */
 object LogBarCopy {
-    const val NEXT = "Next"
+    const val NEXT = "Next lift"
+    const val ANOTHER_SET = "Another set"
     const val LOG_SET = "Log set"
     const val LOG_WARMUP = "Log warm-up"
     const val SAVE_SET = "Save set"

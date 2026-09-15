@@ -57,6 +57,7 @@ class MotionPolicyTest {
         assertTrue(motion.contains("STATUS_DWELL_MS"))
         assertTrue(motion.contains("FINISHED_DWELL_MS"))
         assertTrue(motion.contains("RECORD_STAGGER_MS"))
+        assertEquals(6_000L, Motion.STATUS_DWELL_MS)
         assertTrue(motion.contains("PULSE_MS"))
         assertTrue(motion.contains("TICK_MS"))
         assertTrue(readOwned("ui/theme/Motion.kt").contains("instrumentAnimateItem"))

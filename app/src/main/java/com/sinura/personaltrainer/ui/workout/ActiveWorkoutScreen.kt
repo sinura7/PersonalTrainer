@@ -55,6 +55,7 @@ import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import kotlinx.coroutines.delay
 
@@ -74,6 +75,8 @@ object WorkoutTestTags {
     const val MICRO_REC_APPLY = "workout-micro-rec-apply"
     const val MICRO_REC_WHY = "workout-micro-rec-why"
     const val NEXT = "workout-next"
+    const val ANOTHER_SET = "workout-another-set"
+    const val RPE_TRACK = "workout-rpe-track"
     const val ADD_SET = "workout-add-set"
     const val LAST_TIME = "workout-last-time"
     const val SELECTED_LIFT = "workout-selected-lift"
@@ -186,7 +189,7 @@ fun ActiveWorkoutScreen(
     Scaffold(
         snackbarHost = {
             val errorBanner = state.error != null && !logBarVisible
-            if (errorBanner || deletedSet != null || pendingAdvance != null) {
+            if (errorBanner || deletedSet != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -196,18 +199,8 @@ fun ActiveWorkoutScreen(
                     if (errorBanner) {
                         GymErrorBanner(message = state.error!!)
                     }
-                    // The dwell, the way out and the fade are the banner's own: it waits
-                    // Motion.STATUS_DWELL_MS, calls onDismissed only if the action was not
-                    // taken, and animates through instrumentTween, which snaps under reduced
-                    // motion. So the offer to move on is a banner, not a bespoke timer.
-                    pendingAdvance?.let { advance ->
-                        GymStatusBanner(
-                            message = "${advance.finishedName} done · next ${advance.nextName}",
-                            actionLabel = "Stay here",
-                            onAction = { viewModel.stayOnCurrentExercise() },
-                            onDismissed = { viewModel.advanceNow() },
-                        )
-                    }
+                    // Undo dwell uses Motion.STATUS_DWELL_MS (~6s). Advance is not a
+                    // banner: Next lift / Another set stand in the dock until chosen.
                     deletedSet?.let { removed ->
                         GymStatusBanner(
                             message = "Set deleted · " + SetCopy.setLine(
@@ -310,6 +303,7 @@ fun ActiveWorkoutScreen(
                             loadClass = LoadClass.of(selected?.exercise?.loadType),
                             unit = unit,
                             showNext = showNext,
+                            advanceChoice = pendingAdvance != null,
                             hold = hold,
                             holdRunning = holdArmed,
                             onLog = {
@@ -321,8 +315,13 @@ fun ActiveWorkoutScreen(
                                 }
                             },
                             onNext = {
-                                nextExerciseId?.let(viewModel::advanceToNextLift)
+                                if (pendingAdvance != null) {
+                                    viewModel.advanceNow()
+                                } else {
+                                    nextExerciseId?.let(viewModel::advanceToNextLift)
+                                }
                             },
+                            onAnotherSet = viewModel::stayOnCurrentExercise,
                             onCancelEdit = viewModel::cancelEdit,
                             onApplyMicroRec = viewModel::applyMicroRec,
                         )
@@ -567,4 +566,4 @@ fun ActiveWorkoutScreen(
 }
 
 
-private const val PERSONAL_RECORD_DWELL_MS = 6_000L
+private const val PERSONAL_RECORD_DWELL_MS = Motion.STATUS_DWELL_MS

@@ -6,9 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LogBarCopy
@@ -50,6 +46,10 @@ import com.sinura.personaltrainer.ui.theme.Volt
  * Scaffold's bottomBar draws edge-to-edge. The tab bar is gone on this route, so this
  * dock owns the system-nav inset the same way the tab bar and live bar already do —
  * otherwise Log sits under the three-button nav / gesture pill.
+ *
+ * When a lift hits its prescription and another is waiting, [advanceChoice] keeps
+ * Next lift / Another set standing until the lifter chooses or logs — no dwell timer
+ * moves the loop.
  */
 @Composable
 internal fun LogBar(
@@ -68,7 +68,10 @@ internal fun LogBar(
     onApplyMicroRec: () -> Unit,
     hold: Boolean = false,
     holdRunning: Boolean = false,
+    advanceChoice: Boolean = false,
+    onAnotherSet: (() -> Unit)? = null,
 ) {
+    val nextAct = (showNext || advanceChoice) && !editing
     PinnedDock(
         prelude = {
             error?.let {
@@ -94,11 +97,10 @@ internal fun LogBar(
             }
         },
         volt = {
-            val nextAct = showNext && !editing
             PrimaryGymButton(
                 text = LogBarCopy.commit(
                     editing = editing,
-                    next = showNext,
+                    next = nextAct,
                     warmup = warmup,
                     draftLabel = draftLabel,
                     hold = hold,
@@ -112,6 +114,25 @@ internal fun LogBar(
                 height = Metrics.commit,
                 hapticFeedback = nextAct || editing,
             )
+        },
+        secondary = if (advanceChoice && !editing && onAnotherSet != null) {
+            {
+                TextButton(
+                    onClick = onAnotherSet,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.ANOTHER_SET),
+                ) {
+                    Text(
+                        LogBarCopy.ANOTHER_SET,
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                    )
+                }
+            }
+        } else {
+            null
         },
     )
 }
@@ -187,6 +208,12 @@ internal fun MicroRecLine(
     }
 }
 
+/**
+ * Warm-up is its own chip above the RPE track. RPE 6–10 are equal-weight
+ * compact chips in one non-scrolling row so all five stay visible at
+ * 360 dp / font scale 2.0 (Warm-up used to share that row and clipped
+ * to "Varm-up" while hiding 10).
+ */
 @Composable
 internal fun SecondaryLogOptions(
     warmup: Boolean,
@@ -196,28 +223,34 @@ internal fun SecondaryLogOptions(
     recommendedRpe: Int? = null,
     showRpe: Boolean = true,
 ) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        item(key = "warmup") {
-            InstrumentChip(
-                label = "Warm-up",
-                selected = warmup,
-                onClick = { onWarmup(!warmup) },
-            )
-        }
+        InstrumentChip(
+            label = "Warm-up",
+            selected = warmup,
+            onClick = { onWarmup(!warmup) },
+        )
         if (showRpe) {
-            item(key = "rpe-label") {
-                Kicker("RPE", modifier = Modifier.padding(horizontal = Metrics.space2))
-            }
-            items((6..10).toList(), key = { it }) { value ->
-                InstrumentChip(
-                    label = value.toString(),
-                    selected = rpe == value,
-                    recommended = recommendedRpe == value && rpe != value,
-                    onClick = { onRpe(if (rpe == value) null else value) },
-                )
+            Kicker("RPE")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(WorkoutTestTags.RPE_TRACK),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                (6..10).forEach { value ->
+                    InstrumentChip(
+                        label = value.toString(),
+                        selected = rpe == value,
+                        recommended = recommendedRpe == value && rpe != value,
+                        onClick = { onRpe(if (rpe == value) null else value) },
+                        compact = true,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
     }

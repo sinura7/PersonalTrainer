@@ -28,4 +28,10 @@ object FloorCompactChrome {
 
     /** Compact floor: swipe a live scroller, do not type the number. */
     fun weightAndRepsAreWheels(): Boolean = true
+
+    /** Warm-up is not an RPE value; it sits outside the 6–10 track. */
+    fun warmupOutsideRpeTrack(): Boolean = true
+
+    /** RPE 6–10 share one non-scrolling row (360 dp / font 2.0). */
+    fun rpeTrackFitsWithoutScroll(): Boolean = true
 }

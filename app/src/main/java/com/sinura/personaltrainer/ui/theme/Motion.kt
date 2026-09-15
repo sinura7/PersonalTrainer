@@ -107,7 +107,7 @@ object Motion {
     const val RECORD_STAGGER_MS = 140L
 
     /** How long a status banner stays readable. Not collapsed by reduced motion. */
-    const val STATUS_DWELL_MS = 2_600L
+    const val STATUS_DWELL_MS = 6_000L
 
     /** Gold flash on a finished rest before the dock returns to idle. */
     const val FINISHED_DWELL_MS = 3_500L

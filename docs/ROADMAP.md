@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Floor packet 1: RPE 6–10 fit at 360/font 2.0 with Warm-up
+> outside the track; standing Next lift / Another set (no dwell
+> auto-advance); status banner dwell ~6s. Does not bump live 60.
+> Gym-floor `appVersionCode` stays 1.
+>
 > 15 Sep 2026 — Extra ChatGPT stills replace the fourteen family
 > stand-ins (`ex_floor_woodchop` through `ex_doorway_chest_stretch`).
 > Does not bump live 60. Gym-floor `appVersionCode` stays 1.
