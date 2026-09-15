@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Live 70: floor packet E one dock clock, rest presets,
+> hold and stopwatch on `trunk`.
+> `debugLiveCode` 70; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 15 Sep 2026 — Live 69: floor packet D RPE, warm-up ramp, and ordinals
 > on `trunk`.
 > `debugLiveCode` 69; suffix from
@@ -22,7 +27,8 @@
 >
 > 15 Sep 2026 — Floor packet E: one dock clock, rest presets / ±15 /
 > Custom, hold and stopwatch recover from elapsed realtime. Next Kotlin
-> is Packet F. Gym-floor `appVersionCode` stays 1.
+> is Packet F. Live 70 is the Obtainium drop. Gym-floor
+> `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Floor packet D: RPE always on working drafts, warm-up
 > ramp chips, visible WU / Set n of target / Extra ordinals. Next Kotlin
