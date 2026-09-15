@@ -596,6 +596,7 @@ fun RestIdleRow(
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            FloorFieldGlyph(icon = TemperIcons.FloorRest)
             Text(
                 duration,
                 modifier = Modifier
