@@ -15,15 +15,20 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Live 65: floor packet 5 undo host plus progression
+> engine (`Coach.decide` ladder) on `trunk`.
+> `debugLiveCode` 65; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 15 Sep 2026 — Progression engine packets 0–9: one `Coach.decide()`
 > ladder, rep climb on a close hold, stall card (lighter week only),
 > prescribed starting rest, extra-set invite, goal as an AddDefaults
 > axis, per-kit increments, warm-up ramp, weekly volume as a card.
-> Does not bump live. Gym-floor `appVersionCode` stays 1.
+> Live 65 is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Floor packet 5: one undo host (~6s) for delete set,
 > remove lift, and skip day. Finish, discard, and leave still ask.
-> Does not bump live 64. Gym-floor `appVersionCode` stays 1.
+> Live 65 is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Live 64: floor packet 4 (HOLD / +N / BACK OFF kicker
 > with Why; weight, reps/time, RPE, rest glyphs) on `trunk`.
