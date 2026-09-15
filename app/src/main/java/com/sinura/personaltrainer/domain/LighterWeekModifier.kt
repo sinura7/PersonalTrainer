@@ -13,6 +13,7 @@ object LighterWeekModifier {
         return hint.copy(
             action = ProgressionAction.HOLD,
             suggestedWeightKg = hint.lastWeightKg,
+            suggestedReps = hint.lastReps,
             lighterHold = true,
         )
     }

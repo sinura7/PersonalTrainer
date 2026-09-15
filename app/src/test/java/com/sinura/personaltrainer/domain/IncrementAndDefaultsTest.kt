@@ -246,6 +246,20 @@ class ProgressionCopyTest {
     }
 
     @Test
+    fun aLoadedHoldIsToldToTryOneMoreRep() {
+        val strip = ProgressionCopy.stripReason(
+            hint(LoadType.EXTERNAL, ProgressionAction.HOLD).copy(
+                lastReps = 4,
+                targetReps = 5,
+                suggestedWeightKg = 100.0,
+                suggestedReps = 5,
+            ),
+            WeightUnit.KG,
+        )
+        assertEquals("Close. Keep 100 kg. Try 5 reps.", strip)
+    }
+
+    @Test
     fun anUnknownLoadTypeIsTreatedAsLoadable() {
         // Refusing to suggest anything for a custom is worse than suggesting the common step.
         assertEquals("Hit target. Add 2.5 kg.", ProgressionCopy.stripReason(hint(null), WeightUnit.KG))

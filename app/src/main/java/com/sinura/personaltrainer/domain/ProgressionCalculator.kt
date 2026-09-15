@@ -81,6 +81,14 @@ object ProgressionCalculator {
         loadType: LoadType?,
         unit: WeightUnit,
     ): ProgressionHint {
+        val decided = action(lastWorkingReps, targetReps)
+        // Loaded hold: one more rep at the same weight, capped at the target. Bodyweight
+        // already has its own +1 path; a missing step here must not invent one.
+        val suggestedReps = if (decided == ProgressionAction.HOLD && displayStep != null) {
+            (lastWorkingReps + 1).coerceAtMost(targetReps.coerceAtLeast(1))
+        } else {
+            lastWorkingReps
+        }
         return ProgressionHint(
             exerciseId = exerciseId,
             exerciseName = exerciseName,
@@ -95,8 +103,9 @@ object ProgressionCalculator {
                 weightMeaning = LoadClass.of(loadType).weightMeaning,
                 unit = unit,
             ),
-            action = action(lastWorkingReps, targetReps),
+            action = decided,
             loadType = loadType,
+            suggestedReps = suggestedReps,
         )
     }
 

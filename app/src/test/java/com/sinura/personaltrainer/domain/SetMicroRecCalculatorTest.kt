@@ -148,6 +148,113 @@ class SetMicroRecCalculatorTest {
         assertTrue(rec.showApply)
     }
 
+    @Test
+    fun twoRepsShortAlsoClimbsOneRepNotTheWeight() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 3, rpe = 8))),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.CLIMB_REPS, rec.reasonCode)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+        assertEquals(4, rec.nextReps)
+    }
+
+    @Test
+    fun climbCapsAtTheTarget() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 4, rpe = 7))),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.CLIMB_REPS, rec.reasonCode)
+        assertEquals(5, rec.nextReps)
+    }
+
+    @Test
+    fun rpeHoldDoesNotClimbReps() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    workingLogged = 2,
+                    working = listOf(set(100.0, 5, rpe = 9), set(100.0, 5, rpe = 10)),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.RPE_HOLD, rec.reasonCode)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+        assertEquals(5, rec.nextReps)
+    }
+
+    @Test
+    fun lighterWeekDoesNotClimbReps() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    lighterWeek = true,
+                    workingLogged = 1,
+                    working = listOf(set(100.0, 4, rpe = 8)),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.LIGHTER_HOLD, rec.reasonCode)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+        assertEquals(4, rec.nextReps)
+    }
+
+    @Test
+    fun assistedHoldClimbsRepsAtTheSameAssist() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    loadType = LoadType.ASSISTED,
+                    targetReps = 8,
+                    workingLogged = 1,
+                    working = listOf(set(20.0, 7, rpe = 8)),
+                    hint = hint(suggested = 20.0, lastReps = 7, targetReps = 8),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.CLIMB_REPS, rec.reasonCode)
+        assertEquals(20.0, rec.nextWeightKg, 0.0001)
+        assertEquals(8, rec.nextReps)
+    }
+
+    @Test
+    fun aOneRepHoldPlaceholderDoesNotInventAClimb() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    loadType = LoadType.BODYWEIGHT,
+                    targetReps = HoldWork.HOLD_REPS_PLACEHOLDER,
+                    workingLogged = 1,
+                    working = listOf(set(0.0, HoldWork.HOLD_REPS_PLACEHOLDER, rpe = 8)),
+                    hint = hint(
+                        suggested = 0.0,
+                        lastReps = HoldWork.HOLD_REPS_PLACEHOLDER,
+                        targetReps = HoldWork.HOLD_REPS_PLACEHOLDER,
+                    ),
+                ),
+            ),
+        )
+        assertTrue(rec.reasonCode != SetMicroRecCalculator.CLIMB_REPS)
+        assertEquals(0.0, rec.nextWeightKg, 0.0001)
+        assertEquals(HoldWork.HOLD_REPS_PLACEHOLDER, rec.nextReps)
+    }
+
+    @Test
+    fun climbRaisesEstimatedOneRepMax() {
+        val before = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(100.0, 4))
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 4, rpe = 8))),
+            ),
+        )
+        val after = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(rec.nextWeightKg, rec.nextReps))
+        assertTrue(after > before)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+    }
+
     data class V1Case(
         val name: String,
         val inputs: SetMicroRecInputs,
@@ -239,11 +346,11 @@ class SetMicroRecCalculatorTest {
                 nextReps = 5,
             ),
             V1Case(
-                "close hold",
+                "close hold climbs a rep",
                 inputs(workingLogged = 1, working = listOf(set(100.0, 4, rpe = 8))),
-                reason = SetMicroRecCalculator.CLOSE_HOLD,
+                reason = SetMicroRecCalculator.CLIMB_REPS,
                 nextWeightKg = 100.0,
-                nextReps = 4,
+                nextReps = 5,
             ),
             V1Case(
                 "failed drop",

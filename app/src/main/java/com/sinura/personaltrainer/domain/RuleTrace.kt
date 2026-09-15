@@ -100,6 +100,7 @@ data class RuleTrace(
                     TraceFact("lastWeightKg", hint.lastWeightKg.toString()),
                     TraceFact("suggestedWeightKg", hint.suggestedWeightKg.toString()),
                     TraceFact("lastReps", hint.lastReps.toString()),
+                    TraceFact("suggestedReps", hint.suggestedReps.toString()),
                 ),
                 thresholds = listOf(TraceThreshold("targetReps", hint.targetReps.toString())),
                 alternatives = emptyList(),

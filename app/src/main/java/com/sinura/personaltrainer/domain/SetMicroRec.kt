@@ -4,7 +4,8 @@ package com.sinura.personaltrainer.domain
  * In-set next-load / next-reps. Local and deterministic (ADR-008).
  *
  * [ProgressionCalculator] +step is next *session*. A hit this session repeats
- * the load, except RPE 6–7 in-tank (loaded) and bodyweight +1. Never an LLM.
+ * the load, except RPE 6–7 in-tank (loaded), a loaded 1–2-rep hold (add a
+ * rep), and bodyweight +1. Never an LLM.
  */
 data class LoggedSetView(
     val weightKg: Double,
@@ -73,6 +74,7 @@ object SetMicroRecCalculator {
     const val TOP_SET = "TOP_SET"
     const val RPE_HOLD = "RPE_HOLD"
     const val CLOSE_HOLD = "CLOSE_HOLD"
+    const val CLIMB_REPS = "CLIMB_REPS"
     const val FAILED_DROP = "FAILED_DROP"
     const val LIGHTER_HOLD = "LIGHTER_HOLD"
     const val BW_ADD_REP = "BW_ADD_REP"
@@ -276,7 +278,7 @@ object SetMicroRecCalculator {
             return if (rpe == null) SKIP_RPE_DROP else if (bodyweight) BW_DROP_REP else FAILED_DROP
         }
         if (action == ProgressionAction.HOLD) {
-            return if (bodyweight) BW_HOLD else CLOSE_HOLD
+            return if (bodyweight) BW_HOLD else CLIMB_REPS
         }
         // INCREASE: in-session loaded is repeat unless in-tank.
         if (rpe != null && rpe >= 9) return TOP_SET
@@ -298,6 +300,9 @@ object SetMicroRecCalculator {
     ): Pair<Double, Int> {
         val climb = reason == IN_TANK || reason == BW_ADD_REP
         val drop = reason == FAILED_DROP || reason == SKIP_RPE_DROP || reason == BW_DROP_REP
+        if (reason == CLIMB_REPS) {
+            return lastWeightKg to (lastReps + 1).coerceAtMost(targetReps.coerceAtLeast(1))
+        }
         if (bodyweight) {
             val reps = when {
                 climb -> lastReps + 1
