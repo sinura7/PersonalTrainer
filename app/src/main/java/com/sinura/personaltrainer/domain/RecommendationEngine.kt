@@ -144,6 +144,7 @@ object RecommendationEngine {
         val rest = if (deload == null) restSignal(inputs) else null
         // Same destination as deload; do not spend a second card on it.
         val stall = if (deload == null) stallSignal(inputs) else null
+        val volume = if (deload == null) volumeRamp(inputs) else null
         val imbalances = imbalances(inputs)
         val suppressedByImbalance = buildSet {
             imbalances.forEach { rec ->
@@ -156,7 +157,7 @@ object RecommendationEngine {
         val neglected = neglectedMuscles(inputs).filter { it.actionMuscle !in suppressedByImbalance }
 
         return rank(
-            listOfNotNull(deload, rest, stall) +
+            listOfNotNull(deload, rest, stall, volume) +
                 imbalances +
                 neglected +
                 listOfNotNull(coreCoverageGap(inputs)) +
@@ -368,6 +369,36 @@ object RecommendationEngine {
         return rec.copy(trace = RuleTrace.forStall(finding, inputs.nowMs))
     }
 
+    internal fun volumeRamp(inputs: CoachInputs): TrainingRecommendation? {
+        val finding = VolumeRamp.detect(
+            history = inputs.history,
+            nowMs = inputs.nowMs,
+            time = inputs.time,
+            zoneId = inputs.zoneId,
+            exerciseCatalog = inputs.exerciseCatalog,
+        ) ?: return null
+        val rec = TrainingRecommendation(
+            id = "volume-ramp-${finding.muscle.name}",
+            kicker = KICKER_LOAD,
+            title = "${finding.muscle.displayName} can take more volume",
+            reason = "${finding.muscle.displayName} ran ${finding.lastWeekSets} sets last week, " +
+                "all under RPE 8; ${finding.suggestedSets} would be productive.",
+            priority = RecommendationPriority.INFO,
+            action = RecommendationAction.OPEN_BODY_MAP,
+            actionMuscle = finding.muscle,
+            rankScore = 20,
+        )
+        val endDay = inputs.time.civilDate(inputs.nowMs, inputs.zoneId).epochDay
+        return rec.copy(
+            trace = RuleTrace.forVolumeRamp(
+                finding = finding,
+                nowMs = inputs.nowMs,
+                evidenceStartEpochDay = endDay - VolumeRamp.LOOKBACK_DAYS + 1L,
+                evidenceEndEpochDay = endDay,
+            ),
+        )
+    }
+
     // -----------------------------------------------------------------------
     // Plumbing
     // -----------------------------------------------------------------------
@@ -432,6 +463,7 @@ object RecommendationEngine {
                 recommendation.id.startsWith("imbalance") -> 10
                 recommendation.id.startsWith("neglect") -> 10
                 recommendation.id == "coverage-core" -> 10
+                recommendation.id.startsWith("volume-ramp-") -> 10
                 else -> 0
             }
             TrainingGoal.RESILIENCE -> when {
