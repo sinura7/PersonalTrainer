@@ -25,7 +25,7 @@
 >
 > 15 Sep 2026 — Workout-entry implementation plan (Packets A–H, docs only,
 > no drop): [workout-entry-implementation-plan.md](workout-entry-implementation-plan.md).
-> Packet A is this Kotlin. Next is Packet B after merge.
+> Packet A is on `trunk`. Next Kotlin is Packet B.
 > Gym-floor `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Live 65: floor packet 5 undo host plus progression
