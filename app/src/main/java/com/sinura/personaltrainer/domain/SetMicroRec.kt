@@ -87,6 +87,7 @@ object SetMicroRecCalculator {
     const val BW_ADD_REP = "BW_ADD_REP"
     const val BW_HOLD = "BW_HOLD"
     const val BW_DROP_REP = "BW_DROP_REP"
+    const val ANOTHER_SET_RPE_CEILING = 7
 
     fun suggest(inputs: SetMicroRecInputs): SetMicroRec? {
         if (inputs.editing) return null
@@ -343,8 +344,6 @@ object SetMicroRecCalculator {
         if (working.any { it.rpe == null }) return false
         return working.all { (it.rpe ?: 99) <= ANOTHER_SET_RPE_CEILING }
     }
-
-    const val ANOTHER_SET_RPE_CEILING = 7
 
     private fun rec(
         inputs: SetMicroRecInputs,
