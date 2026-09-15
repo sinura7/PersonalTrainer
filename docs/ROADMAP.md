@@ -15,9 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Live 72: floor packet G set-row overflow, Skip for now,
+> LIFO undo on `trunk`.
+> `debugLiveCode` 72; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 15 Sep 2026 — Floor packet G: set-row overflow, Skip for now, LIFO undo
 > with TalkBack dwell and process restore on `trunk`. Next Kotlin is
-> Packet H (goldens/a11y evidence only).
+> Packet H (goldens/a11y evidence only). Live 72 is the Obtainium drop.
 >
 > 15 Sep 2026 — Live 71: floor packet F receipt, named Next / Finish,
 > Coach.decide on `trunk`.
