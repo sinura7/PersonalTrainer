@@ -79,18 +79,16 @@ class RestTimerViewModelTest {
         assertEquals("Squat", state.floor.exerciseName)
         assertNull(state.floor.lastSetLine)
 
-        // Wait for the number startSelectedRest will actually read. It takes restTotal.value
-        // (RestTimerViewModel:179), which the init coroutine seeds only after a DataStore
-        // read (:78-81) — and the barrier above resolves as soon as the session lands, which
-        // happens while that read is still in flight. Start the rest in that window and it
-        // uses the 90 s default instead of this fixture's 75, so the assertion below fails on
-        // the value rather than hanging. uiState.rest.totalSeconds is restTotal while idle.
-        vm.awaitState { it.rest.totalSeconds == 75 }
+        // Wait for the number startSelectedRest will actually read. Prefill seeds
+        // restTotal from the prescribed starting rest (150 for a heavy five), not
+        // the 75 stamped on the routine. Start before that lands and the clock
+        // is the 90 s default.
+        vm.awaitState { it.rest.totalSeconds == 150 }
         vm.startSelectedRest()
         deps.restTimerStore.snapshot.first { it.running }
         val rest = deps.restTimerStore.current()
         assertEquals(fixture.session.id, rest.sessionId)
-        assertEquals(75, rest.totalSeconds)
+        assertEquals(150, rest.totalSeconds)
 
         vm.skipRest()
         assertFalse(deps.restTimerStore.current().running)

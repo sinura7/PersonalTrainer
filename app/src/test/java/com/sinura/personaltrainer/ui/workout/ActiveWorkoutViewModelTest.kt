@@ -339,7 +339,8 @@ class ActiveWorkoutViewModelTest {
         vm.startSetStopwatch()
         assertTrue(vm.setStopwatch.value.running)
         assertTrue(deps.restTimerStore.current().running)
-        assertEquals(75, deps.restTimerStore.current().totalSeconds)
+        // Stored routine rest is 75; the starting clock is the prescribed heavy rest.
+        assertEquals(150, deps.restTimerStore.current().totalSeconds)
     }
 
     @Test
@@ -809,7 +810,8 @@ class ActiveWorkoutViewModelTest {
 
         val rest = deps.restTimerStore.current()
         assertEquals(fixture.session.id, rest.sessionId)
-        assertEquals(75, rest.totalSeconds)
+        assertEquals(150, rest.totalSeconds)
+        assertEquals(75, fixture.session.exercises.single().restSeconds)
     }
 
     @Test
