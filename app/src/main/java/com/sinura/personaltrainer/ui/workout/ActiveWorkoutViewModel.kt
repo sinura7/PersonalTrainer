@@ -28,12 +28,14 @@ import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
+import com.sinura.personaltrainer.domain.RestPrescription
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.domain.SessionOrderCopy
-import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.SetMicroRec
+import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -612,7 +614,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val hold = planned?.exercise?.let { HoldWork.isHold(it) } == true
         val targetReps = planned?.targetReps ?: 5
         val restPrefs = container.preferencesRepository.restTimerPreferences.first()
-        restTotal.value = RestTimer.secondsToStart(planned?.restSeconds, restPrefs)
         val schedule = container.preferencesRepository.schedulePreferences.first()
         val thisWeek = LighterWeek.weekStartEpochDay(
             civilToday(),
@@ -636,6 +637,22 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         )
         hint.value = progression
         lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
+        restTotal.value = RestTimer.secondsToStart(
+            planned?.restSeconds,
+            restPrefs,
+            prescribedSeconds = workoutMicroRec(
+                session = current,
+                selectedExerciseId = exerciseId,
+                draft = draft.value,
+                hint = progression,
+                editingSetId = editingSetId.value,
+                lighterWeek = lighter,
+                unit = container.preferencesRepository.weightUnit.first(),
+                nowMs = time.nowMillis(),
+                todayEpochDay = todayEpochDay(),
+                historySets = lastPerformance.value?.sets.orEmpty(),
+            )?.restSeconds,
+        )
         if (keepDraft) return
         val lastWeight = progression?.suggestedWeightKg
             ?: planned?.targetWeightKg
@@ -1137,7 +1154,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                             targetSets = targetSets,
                         )
                     ) {
-                        startRestAfterSet()
+                        startRestAfterSet(
+                            prescribedSeconds = RestPrescription.seconds(
+                                reasonCode = microRec.value?.reasonCode
+                                    ?: SetMicroRecCalculator.QUALITY,
+                                loadType = loadType,
+                                reps = reps,
+                            ),
+                        )
                     }
                 }
                 error.clearFrom(source = ERR_LOG_SET, before = started)
@@ -1474,11 +1498,20 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
-    private fun startRestAfterSet() {
-        val seconds = restTotal.value.coerceIn(
-            RestTimerPreferences.MIN_SECONDS,
-            RestTimerPreferences.MAX_SECONDS,
+    private fun startRestAfterSet(prescribedSeconds: Int? = null) {
+        val planned = session.value?.exercises
+            ?.firstOrNull { it.exercise.id == selectedExerciseId.value }
+        val seconds = RestTimer.secondsToStart(
+            planned?.restSeconds,
+            RestTimerPreferences(
+                defaultRestSeconds = restTotal.value.coerceIn(
+                    RestTimerPreferences.MIN_SECONDS,
+                    RestTimerPreferences.MAX_SECONDS,
+                ),
+            ),
+            prescribedSeconds = prescribedSeconds,
         )
+        restTotal.value = seconds
         restTimer.start(seconds, sessionId)
         viewModelScope.launch {
             container.preferencesRepository.markRestAlarmEligible()

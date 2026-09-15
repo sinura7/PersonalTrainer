@@ -255,6 +255,29 @@ class SetMicroRecCalculatorTest {
         assertEquals(100.0, rec.nextWeightKg, 0.0001)
     }
 
+    @Test
+    fun nextRestFollowsTheLoggedReps() {
+        val heavy = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 3, rpe = 8))),
+            ),
+        )
+        val highRep = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    targetReps = 15,
+                    workingLogged = 1,
+                    working = listOf(set(40.0, 15, rpe = 8)),
+                ),
+            ),
+        )
+        assertTrue(heavy.restSeconds > highRep.restSeconds)
+        assertEquals(
+            RestPrescription.seconds(heavy.reasonCode, LoadType.EXTERNAL, heavy.nextReps),
+            heavy.restSeconds,
+        )
+    }
+
     data class V1Case(
         val name: String,
         val inputs: SetMicroRecInputs,

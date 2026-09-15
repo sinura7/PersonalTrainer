@@ -57,6 +57,8 @@ data class SetMicroRec(
     val showApply: Boolean,
     val reasonCode: String,
     val trace: RuleTrace,
+    /** Starting rest for the next clock. Not written onto the stored routine. */
+    val restSeconds: Int,
 )
 
 object SetMicroRecCalculator {
@@ -352,6 +354,11 @@ object SetMicroRecCalculator {
             showApply = showApply && !previewOnly,
             reasonCode = reason,
             trace = trace,
+            restSeconds = RestPrescription.seconds(
+                reasonCode = reason,
+                loadType = inputs.loadType,
+                reps = reps,
+            ),
         )
     }
 }
