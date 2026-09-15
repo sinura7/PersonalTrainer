@@ -116,4 +116,12 @@ class SetCopyTest {
             SetCopy.setLine(20.0, 0, LoadClass.LOADED, WeightUnit.KG, durationSeconds = 40),
         )
     }
+
+    @Test
+    fun aTimedStrengthSetKeepsRepsAndAppendsTheClock() {
+        assertEquals(
+            "100 kg × 5 · 12s",
+            SetCopy.setLine(100.0, 5, LoadClass.LOADED, WeightUnit.KG, durationSeconds = 12),
+        )
+    }
 }

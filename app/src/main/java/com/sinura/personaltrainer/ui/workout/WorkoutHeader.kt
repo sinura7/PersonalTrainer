@@ -68,6 +68,8 @@ internal fun WorkoutHeader(
     plannedRestSeconds: Int = 0,
     holdRunning: Boolean = false,
     holdElapsedSeconds: Int = 0,
+    stopwatchRunning: Boolean = false,
+    stopwatchElapsedSeconds: Int = 0,
 ) {
     var elapsedSeconds by remember { mutableIntStateOf(0) }
     LaunchedEffect(startedAt) {
@@ -86,8 +88,10 @@ internal fun WorkoutHeader(
         restRunning = restRunning,
         restRemainingSeconds = restRemainingSeconds,
         plannedRestSeconds = plannedRestSeconds,
+        stopwatchRunning = stopwatchRunning,
+        stopwatchElapsedSeconds = stopwatchElapsedSeconds,
     )
-    val timerLive = holdRunning || restRunning
+    val timerLive = holdRunning || restRunning || stopwatchRunning
 
     Column(
         modifier = Modifier
@@ -167,7 +171,11 @@ internal fun WorkoutHeader(
                 )
                 MetricCluster(
                     value = timerState.substringAfter(' ', timerState),
-                    label = if (holdRunning) FloorTimerSurface.SET_STATE else FloorTimerSurface.REST_STATE,
+                    label = when {
+                        holdRunning -> FloorTimerSurface.SET_STATE
+                        stopwatchRunning -> FloorTimerSurface.SET_STATE
+                        else -> FloorTimerSurface.REST_STATE
+                    },
                     horizontalAlignment = Alignment.Start,
                     valueColor = if (timerLive) RestCyan else TextPrimary,
                     modifier = Modifier.weight(1f),

@@ -42,6 +42,7 @@ import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WorkoutAdvance
+import com.sinura.personaltrainer.domain.FloorTimerSurface
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
@@ -79,6 +80,8 @@ object WorkoutTestTags {
     const val RPE_TRACK = "workout-rpe-track"
     const val INSTRUMENT_STRIP = "workout-instrument-strip"
     const val REST_WHEEL = "workout-rest-wheel"
+    const val START_SET_CLOCK = "workout-start-set-clock"
+    const val STOP_SET_CLOCK = "workout-stop-set-clock"
     const val ADD_SET = "workout-add-set"
     const val LAST_TIME = "workout-last-time"
     const val SELECTED_LIFT = "workout-selected-lift"
@@ -105,6 +108,7 @@ fun ActiveWorkoutScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
     val holdTimer by viewModel.holdTimer.collectAsStateWithLifecycle()
+    val setStopwatch by viewModel.setStopwatch.collectAsStateWithLifecycle()
     val microRec by viewModel.microRec.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
     val windowDp = LocalWindowInfo.current.containerDpSize
@@ -238,6 +242,8 @@ fun ActiveWorkoutScreen(
                     ?: rest.totalSeconds,
                 holdRunning = holdTimer.running,
                 holdElapsedSeconds = holdTimer.elapsedSeconds,
+                stopwatchRunning = setStopwatch.running,
+                stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
             )
         },
         bottomBar = {
@@ -287,6 +293,9 @@ fun ActiveWorkoutScreen(
                                     } else {
                                         state.draft.durationSeconds ?: selected?.targetSeconds
                                     }
+                                } else if (setStopwatch.used) {
+                                    FloorTimerSurface.setClockSeconds(setStopwatch.elapsedSeconds)
+                                        .coerceAtLeast(1)
                                 } else {
                                     null
                                 },
@@ -310,6 +319,11 @@ fun ActiveWorkoutScreen(
                             afterWarmup = afterWarmup,
                             restBatteryHint = rest.batteryHint,
                             holdElapsedSeconds = holdTimer.elapsedSeconds,
+                            stopwatchRunning = setStopwatch.running,
+                            stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
+                            offerSetClock = !hold,
+                            onStartSetClock = viewModel::startSetStopwatch,
+                            onStopSetClock = viewModel::stopSetStopwatch,
                             onSkipRest = viewModel::skipRest,
                             onStartRest = viewModel::startSelectedRest,
                             onSelectRestDuration = viewModel::selectRestDuration,
@@ -347,6 +361,8 @@ fun ActiveWorkoutScreen(
                             batteryHint = rest.batteryHint,
                             holdRunning = holdTimer.running,
                             holdElapsedSeconds = holdTimer.elapsedSeconds,
+                            stopwatchRunning = setStopwatch.running,
+                            stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
                             onSkip = viewModel::skipRest,
                             onStart = viewModel::startSelectedRest,
                             onSelectRestDuration = viewModel::selectRestDuration,

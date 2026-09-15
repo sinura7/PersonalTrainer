@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Floor packet 3: optional set stopwatch in the dock
+> timer slot (count-up). Unused leaves duration blank; used writes
+> seconds beside reps. Does not cancel a pending rest alarm. Does not
+> bump live 62. Gym-floor `appVersionCode` stays 1.
+>
 > 15 Sep 2026 — Floor packet 2: read-only instrument strip (elapsed ·
 > sets · volume · rest/hold state) taps open the timer; LogBar owns the
 > timer slot, Next/Another, and the one Volt Log set; rest length is an

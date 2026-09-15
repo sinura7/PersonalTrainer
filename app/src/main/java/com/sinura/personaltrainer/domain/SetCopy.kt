@@ -22,7 +22,8 @@ object SetCopy {
         durationSeconds: Int? = null,
     ): String {
         val held = durationSeconds?.takeIf { it > 0 }
-        if (held != null) {
+        val safeReps = reps.coerceAtLeast(0)
+        if (held != null && safeReps < 1) {
             val clock = HoldWork.formatRange(held)
             val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
             return when (loadClass) {
@@ -34,9 +35,8 @@ object SetCopy {
                     if (load == null) clock else "$clock −${load.toWeightLabel(unit)}"
             }
         }
-        val safeReps = reps.coerceAtLeast(0)
         val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
-        return when (loadClass) {
+        val repsLine = when (loadClass) {
             LoadClass.LOADED -> "${(load ?: 0.0).toWeightLabel(unit)} × $safeReps"
             LoadClass.BODYWEIGHT -> repsLabel(safeReps)
             LoadClass.BODYWEIGHT_ADDED ->
@@ -46,6 +46,7 @@ object SetCopy {
                 if (load == null) repsLabel(safeReps)
                 else "${repsLabel(safeReps)} −${load.toWeightLabel(unit)}"
         }
+        return if (held == null) repsLine else "$repsLine · ${HoldWork.formatRange(held)}"
     }
 
     /**

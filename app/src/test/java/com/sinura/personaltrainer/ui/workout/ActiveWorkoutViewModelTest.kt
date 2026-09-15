@@ -302,6 +302,47 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun loggingWithoutTheStopwatchLeavesDurationNull() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.logSetAndSettle()
+        val row = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
+        assertNull(row.durationSeconds)
+        assertEquals(5, row.reps)
+    }
+
+    @Test
+    fun startingTheStopwatchThenLoggingKeepsRepsAndWritesSeconds() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.startSetStopwatch()
+        assertTrue(vm.setStopwatch.value.running)
+        assertTrue(vm.setStopwatch.value.used)
+        vm.logSetAndSettle()
+        val row = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
+        assertEquals(5, row.reps)
+        assertNotNull(row.durationSeconds)
+        assertTrue(row.durationSeconds!! >= 1)
+        assertFalse(vm.setStopwatch.value.used)
+        assertFalse(vm.setStopwatch.value.running)
+    }
+
+    @Test
+    fun startingTheStopwatchDoesNotCancelARunningRestAlarm() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3, restSeconds = 75)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.startSelectedRest()
+        deps.restTimerStore.snapshot.first { it.running }
+        vm.startSetStopwatch()
+        assertTrue(vm.setStopwatch.value.running)
+        assertTrue(deps.restTimerStore.current().running)
+        assertEquals(75, deps.restTimerStore.current().totalSeconds)
+    }
+
+    @Test
     fun aWeightChangedWhileTheSetIsBeingWrittenSurvivesTheLog() = runBlocking {
         // The wells belong to the NEXT set. Room's write is tens of milliseconds and a finger
         // is faster, so the load dialled in for the set after this one used to be taken back

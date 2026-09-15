@@ -82,6 +82,11 @@ internal fun LogBar(
     onDismissRestBatteryHint: () -> Unit = {},
     onStartNextLift: () -> Unit = {},
     onOpenRest: () -> Unit = {},
+    stopwatchRunning: Boolean = false,
+    stopwatchElapsedSeconds: Int = 0,
+    offerSetClock: Boolean = false,
+    onStartSetClock: () -> Unit = {},
+    onStopSetClock: () -> Unit = {},
 ) {
     val nextAct = (showNext || advanceChoice) && !editing
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -96,6 +101,11 @@ internal fun LogBar(
                 batteryHint = restBatteryHint,
                 holdRunning = holdRunning,
                 holdElapsedSeconds = holdElapsedSeconds,
+                stopwatchRunning = stopwatchRunning,
+                stopwatchElapsedSeconds = stopwatchElapsedSeconds,
+                offerSetClock = offerSetClock,
+                onStartSetClock = onStartSetClock,
+                onStopSetClock = onStopSetClock,
                 onSkip = onSkipRest,
                 onStart = onStartRest,
                 onSelectRestDuration = onSelectRestDuration,
