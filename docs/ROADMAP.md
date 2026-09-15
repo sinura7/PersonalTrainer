@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Extra ChatGPT stills replace the fourteen family
+> stand-ins (`ex_floor_woodchop` through `ex_doorway_chest_stretch`).
+> Does not bump live 60. Gym-floor `appVersionCode` stays 1.
+>
 > 14 Sep 2026 — Live 60: floor snap-scroll weight and reps wheels on
 > `trunk`. `debugLiveCode` 60; suffix from
 > `python3 tools/debug-drop-plan.py`.

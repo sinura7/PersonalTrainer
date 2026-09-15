@@ -43,13 +43,13 @@ data class SeedExercise(
  * customs. Body unlit/heat stills are not this bump.
  *
  * v8 adds only the holds and stretches the paste-routine corpus names that
- * were missing. It does not re-seed or wipe. Family stills stand in until
- * keyed stills exist for those six rows.
+ * were missing. It does not re-seed or wipe. Dedicated stills for those
+ * six rows landed with the Extra ChatGPT pack (no catalog bump).
  *
  * v9 adds the floor Extra names the Saturday stretch list needed
  * (couch, pigeon, calf, 90/90, ankle rocks, joint circles, floor
- * woodchop, hamstring stretch). Additive upsert. Family stills stand
- * in until Allen's ChatGPT stills land.
+ * woodchop, hamstring stretch). Additive upsert. Dedicated stills for
+ * those eight rows landed with the Extra ChatGPT pack (no catalog bump).
  */
 object DefaultExercises {
     const val CATALOG_VERSION = 9
@@ -901,7 +901,7 @@ object DefaultExercises {
         ),
 
         // Batch 6 (v8): named in the owner paste corpus and missing from the
-        // catalog. Appended, never reordered. Family stills stand in for thumbs.
+        // catalog. Appended, never reordered. Dedicated stills in drawable-nodpi.
         seed(
             id = "ex-dead-hang",
             name = "Dead Hang",
