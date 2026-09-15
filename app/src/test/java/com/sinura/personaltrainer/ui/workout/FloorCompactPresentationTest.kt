@@ -41,7 +41,10 @@ class FloorCompactPresentationTest {
         assertTrue(bar.contains("PrimaryGymButton("))
         assertTrue(bar.contains("height = Metrics.commit"))
         assertTrue(bar.contains("showRpe: Boolean"))
+        assertTrue(bar.contains("advanceChoice: Boolean"))
+        assertTrue(bar.contains("LogBarCopy.ANOTHER_SET"))
         assertFalse(bar.contains("RpeCopy.blurb"))
+        assertFalse(bar.contains("LazyRow("))
     }
 
     @Test

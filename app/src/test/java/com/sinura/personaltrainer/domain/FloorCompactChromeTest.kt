@@ -35,4 +35,10 @@ class FloorCompactChromeTest {
     fun compactFloorWeightAndRepsAreWheels() {
         assertTrue(FloorCompactChrome.weightAndRepsAreWheels())
     }
+
+    @Test
+    fun warmupSitsOutsideTheRpeTrack() {
+        assertTrue(FloorCompactChrome.warmupOutsideRpeTrack())
+        assertTrue(FloorCompactChrome.rpeTrackFitsWithoutScroll())
+    }
 }

@@ -71,7 +71,7 @@ class LogBarCopyTest {
     @Test
     fun nextWinsOverWarmupUnlessEditing() {
         assertEquals(
-            "Next",
+            "Next lift",
             LogBarCopy.commit(
                 editing = false,
                 next = true,
@@ -79,6 +79,8 @@ class LogBarCopyTest {
                 draftLabel = "100 kg × 5",
             ),
         )
+        assertEquals("Next lift", LogBarCopy.NEXT)
+        assertEquals("Another set", LogBarCopy.ANOTHER_SET)
         assertEquals(
             "Save warm-up · 100 kg × 5",
             LogBarCopy.commit(

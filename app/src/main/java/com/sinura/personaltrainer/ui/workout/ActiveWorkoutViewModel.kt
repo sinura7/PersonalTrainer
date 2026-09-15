@@ -160,8 +160,9 @@ data class ActiveWorkoutUiState(
 /**
  * A lift finished its prescribed sets and another is waiting.
  *
- * [finishedName] is what the screen names as done; [nextExerciseId] is where it goes if the
- * offer is not refused.
+ * Standing dock choice — not a timed auto-move. [finishedName] is what the screen
+ * names as done; [nextExerciseId] is where Next lift goes. Cleared only by
+ * choosing Next lift / Another set, logging, editing, or switching lifts.
  */
 data class PendingAdvance(
     val finishedExerciseId: String,
@@ -645,8 +646,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun selectExercise(exerciseId: String) {
-        // Any deliberate move settles a standing offer: the lifter has already answered it by
-        // choosing, and leaving it armed would move them again a beat later.
+        // Any deliberate move settles a standing offer: the lifter has already answered
+        // by choosing another lift.
         _pendingAdvance.value = null
         wantAnotherSet.value = false
         if (selectedExerciseId.value != exerciseId) {
@@ -666,6 +667,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun requestExtraSet() {
+        _pendingAdvance.value = null
         wantAnotherSet.value = true
         persistDraft()
     }
@@ -933,13 +935,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     val extraSetRequested: StateFlow<Boolean> = wantAnotherSet.asStateFlow()
 
     /**
-     * The lift the loop is about to move to, and the one it just finished, or null when it is
+     * The lift the loop can move to, and the one it just finished, or null when it is
      * staying put.
      *
-     * Offered rather than taken: the screen shows it for a beat with a way out, because the
-     * prescription is a plan and not a rule. A fourth set on a three-set lift is ordinary, and
-     * a loop that jumps the moment the third lands puts the lifter on the wrong card with a
-     * bar in their hands.
+     * Standing dock choice (Next lift / Another set), not a timed auto-move. The
+     * prescription is a plan and not a rule: a fourth set on a three-set lift is ordinary,
+     * and a loop that jumps the moment the third lands puts the lifter on the wrong card
+     * with a bar in their hands.
      */
     private val _pendingAdvance = MutableStateFlow<PendingAdvance?>(null)
     val pendingAdvance: StateFlow<PendingAdvance?> = _pendingAdvance.asStateFlow()
@@ -1039,11 +1041,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     }
                     val workingAfter = previousWorking + if (current.isWarmup) 0 else 1
                     wantAnotherSet.value = false
-                    // The set that meets the target is the one that offers the move. Warm-ups
-                    // never do, and neither does a lift with no prescription to meet: both
-                    // would march the loop off a lift the session is not done with. The offer
-                    // is only made once per crossing, because `workingAfter == targetSets` is
-                    // false for the extra sets that follow.
+                    // Standing dock offer when the target is met. Warm-ups never offer, and
+                    // neither does a lift with no prescription. Cleared only by Next lift,
+                    // Another set, or a later log/edit/switch — never by a dwell timer.
+                    _pendingAdvance.value = null
                     if (!current.isWarmup && targetSets > 0 && workingAfter == targetSets) {
                         val after = session.value
                         val nextId = after?.nextUnfinishedExerciseAfter(exerciseId)

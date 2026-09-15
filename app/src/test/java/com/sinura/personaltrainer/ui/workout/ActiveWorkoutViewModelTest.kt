@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
+import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import kotlinx.coroutines.CompletableDeferred
 import com.sinura.personaltrainer.workout.WorkoutDraft
@@ -679,6 +680,52 @@ class ActiveWorkoutViewModelTest {
         vm.startNextLift()
         vm.awaitState { it.selectedExerciseId == ROW }
         assertFalse(deps.restTimerStore.current().running)
+    }
+
+    @Test
+    fun finishingTargetSetsOffersStandingAdvanceClearedOnlyByChoice() = runBlocking {
+        val fixture = seedTwoLifts(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
+        vm.setWeight(100.0)
+        vm.awaitState { it.draft.weightKg == 100.0 }
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        val pending = withTimeout(TestWaits.FLOW_MS) {
+            vm.pendingAdvance.first { it != null }
+        }
+        assertNotNull(pending)
+        assertEquals(SQUAT, pending!!.finishedExerciseId)
+        assertEquals(ROW, pending.nextExerciseId)
+        assertEquals(SQUAT, vm.uiState.value.selectedExerciseId)
+
+        // Dwell time must not move the loop; the offer stays until chosen.
+        dispatcher.scheduler.advanceTimeBy(Motion.STATUS_DWELL_MS + 1_000L)
+        assertNotNull(vm.pendingAdvance.value)
+        assertEquals(SQUAT, vm.uiState.value.selectedExerciseId)
+
+        vm.stayOnCurrentExercise()
+        assertNull(vm.pendingAdvance.value)
+        assertTrue(vm.extraSetRequested.value)
+        assertEquals(SQUAT, vm.uiState.value.selectedExerciseId)
+    }
+
+    @Test
+    fun advanceNowTakesTheStandingNextLift() = runBlocking {
+        val fixture = seedTwoLifts(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
+        vm.setWeight(100.0)
+        vm.awaitState { it.draft.weightKg == 100.0 }
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        withTimeout(TestWaits.FLOW_MS) { vm.pendingAdvance.first { it != null } }
+        vm.advanceNow()
+        vm.awaitState { it.selectedExerciseId == ROW }
+        assertNull(vm.pendingAdvance.value)
+        assertFalse(vm.extraSetRequested.value)
     }
 
     @Test

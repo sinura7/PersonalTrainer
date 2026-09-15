@@ -56,6 +56,11 @@ fun InstrumentChip(
      * so a recommended RPE is visible without committing the tap.
      */
     recommended: Boolean = false,
+    /**
+     * Floor RPE 6–10: tighter horizontal padding so five equal chips fit at
+     * 360 dp / font scale 2.0 without scrolling or clipping.
+     */
+    compact: Boolean = false,
 ) {
     val view = LocalView.current
     // VoltDim, not solid Volt: the palette declares this token as "selected chips, active
@@ -88,7 +93,7 @@ fun InstrumentChip(
                     onClick()
                 },
             )
-            .padding(horizontal = Metrics.space4),
+            .padding(horizontal = if (compact) Metrics.space2 else Metrics.space4),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -101,7 +106,7 @@ fun InstrumentChip(
                 style = InstrumentType.bodyStrong,
                 // Volt ink on the dim fill: Pit ink was only legible against a solid accent.
                 color = if (selected) Volt else TextSecondary,
-                maxLines = 2,
+                maxLines = if (compact) 1 else 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
