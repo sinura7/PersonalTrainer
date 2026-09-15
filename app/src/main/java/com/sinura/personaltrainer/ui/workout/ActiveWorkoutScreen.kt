@@ -554,7 +554,9 @@ fun ActiveWorkoutScreen(
                                             draftReps = state.draft.reps,
                                             draftWarmup = state.draft.isWarmup,
                                             draftRpe = state.draft.rpe,
-                                            microRec = microRec,
+                                            microRec = microRec.takeIf {
+                                                LandscapeChrome.foldMicroRecIntoCard(landscape)
+                                            },
                                             recommendedRpe = microRec?.nextRpe,
                                             unit = unit,
                                             canEdit = logged.isEmpty(),
