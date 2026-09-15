@@ -16,5 +16,7 @@ class EndWorkoutCopyTest {
         assertTrue(EndWorkoutCopy.body(0).contains("Nothing is logged yet"))
         assertTrue(EndWorkoutCopy.body(1).contains("set you logged"))
         assertTrue(EndWorkoutCopy.body(3).contains("3 sets"))
+        assertEquals("Finish", EndWorkoutCopy.HEADER_FINISH)
+        assertEquals("Discard", EndWorkoutCopy.HEADER_DISCARD)
     }
 }

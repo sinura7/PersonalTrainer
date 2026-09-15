@@ -15,12 +15,18 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Floor packet A: gym-floor entry state (committed wheels,
+> lift ready/dirty, re-tap no-op, empty dock, hide Start next, Log haptic
+> after save, Finish needs a set). Appearance waits for packet B.
+> Gym-floor `appVersionCode` stays 1.
+>
 > 15 Sep 2026 — Workout-entry experience report is a recommendation
 > only (not law): [workout-entry-experience-report.md](workout-entry-experience-report.md).
 >
 > 15 Sep 2026 — Workout-entry implementation plan (Packets A–H, docs only,
 > no drop): [workout-entry-implementation-plan.md](workout-entry-implementation-plan.md).
-> Next Kotlin is Packet A (state correctness). Gym-floor `appVersionCode` stays 1.
+> Packet A is this Kotlin. Next is Packet B after merge.
+> Gym-floor `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Live 65: floor packet 5 undo host plus progression
 > engine (`Coach.decide` ladder) on `trunk`.

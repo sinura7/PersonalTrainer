@@ -11,8 +11,9 @@ import kotlin.math.round
  * used (2.5 kg, or 5 lbs). Reps move by 1. Holds are seconds in 5s, never
  * a fake 1-rep stand-in. Rest length steps by 15s to match the floor ±15.
  *
- * The first settle on the page the wheel opened on is not a choice. A
- * flick is.
+ * The first settle after open is pager noise, not a choice — including a
+ * neighbour page. After the thumb has left the parked page, settling back
+ * on it is a choice and must write the shown numeral.
  */
 object FloorEntryWheels {
     const val MAX_KG = 400.0
@@ -127,8 +128,39 @@ object FloorEntryWheels {
     fun swipeRestSeconds(current: Int, pageDelta: Int): Int =
         restSecondsAt(restPage(current) + pageDelta, current)
 
-    fun shouldCommitSettledPage(settledPage: Int, initialPage: Int): Boolean =
-        settledPage != initialPage
+    data class WheelSettleMemory(
+        val firstSettleConsumed: Boolean = false,
+        val hasLeftInitialPage: Boolean = false,
+    )
+
+    /**
+     * Floor wheels only. Reminder and onboarding keep their own parked-page
+     * skip and must not call this.
+     *
+     * Ignore the first settle (open / recovered draft). After that, every
+     * settle that is not already the selected index is a choice — including
+     * returning to the page the wheel opened on, once the thumb has left it.
+     */
+    fun shouldCommitSettledPage(
+        settledPage: Int,
+        initialPage: Int,
+        memory: WheelSettleMemory,
+        selectedIndex: Int,
+    ): Boolean {
+        if (!memory.firstSettleConsumed) return false
+        if (settledPage == selectedIndex) return false
+        if (settledPage == initialPage && !memory.hasLeftInitialPage) return false
+        return true
+    }
+
+    fun afterWheelSettle(
+        settledPage: Int,
+        initialPage: Int,
+        memory: WheelSettleMemory,
+    ): WheelSettleMemory = WheelSettleMemory(
+        firstSettleConsumed = true,
+        hasLeftInitialPage = memory.hasLeftInitialPage || settledPage != initialPage,
+    )
 
     private fun nearly(a: Double, b: Double): Boolean = abs(a - b) < 0.001
 

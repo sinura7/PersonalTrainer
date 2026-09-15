@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.FloorTimerSurface
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetCopy
@@ -62,6 +63,8 @@ internal fun WorkoutHeader(
     compact: Boolean,
     onExit: () -> Unit,
     onFinish: () -> Unit,
+    onDiscard: () -> Unit = {},
+    showDiscard: Boolean = false,
     onOpenTimer: () -> Unit = {},
     restRunning: Boolean = false,
     restRemainingSeconds: Int = 0,
@@ -108,16 +111,29 @@ internal fun WorkoutHeader(
             paintBackground = false,
             contentPadding = PaddingValues(0.dp),
             trailing = {
-                TextButton(
-                    onClick = onFinish,
-                    enabled = canFinish,
-                    modifier = Modifier.testTag(WorkoutTestTags.FINISH),
-                ) {
-                    Text(
-                        "Finish",
-                        style = InstrumentType.bodyStrong,
-                        color = if (canFinish) TextPrimary else TextTertiary,
-                    )
+                if (showDiscard) {
+                    TextButton(
+                        onClick = onDiscard,
+                        modifier = Modifier.testTag(WorkoutTestTags.DISCARD),
+                    ) {
+                        Text(
+                            EndWorkoutCopy.HEADER_DISCARD,
+                            style = InstrumentType.bodyStrong,
+                            color = TextPrimary,
+                        )
+                    }
+                } else {
+                    TextButton(
+                        onClick = onFinish,
+                        enabled = canFinish,
+                        modifier = Modifier.testTag(WorkoutTestTags.FINISH),
+                    ) {
+                        Text(
+                            EndWorkoutCopy.HEADER_FINISH,
+                            style = InstrumentType.bodyStrong,
+                            color = if (canFinish) TextPrimary else TextTertiary,
+                        )
+                    }
                 }
             },
         )

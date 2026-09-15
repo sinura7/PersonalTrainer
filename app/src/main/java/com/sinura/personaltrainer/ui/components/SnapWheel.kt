@@ -16,8 +16,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,9 +101,10 @@ fun SnapWheelColumn(
 }
 
 /**
- * A single snap column that writes when the flick settles on a new page.
+ * A single snap column that writes when the flick settles.
  *
- * Opening (or being scrolled onto a value from outside) is not a write.
+ * The first settle after open is not a write (pager noise, recovered draft).
+ * After the thumb has left the parked page, settling back on it is a write.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -147,6 +151,9 @@ private fun SnapValueWheelBody(
         pageCount = { values.size.coerceAtLeast(1) },
     )
     val parkedPage = rememberParkedPage(parkKey, startPage)
+    var settleMemory by remember(parkKey) {
+        mutableStateOf(FloorEntryWheels.WheelSettleMemory())
+    }
     val view = LocalView.current
 
     LaunchedEffect(startPage, values.size) {
@@ -159,8 +166,19 @@ private fun SnapValueWheelBody(
             .distinctUntilChanged()
             .collect { (page, selected) ->
                 if (!userScrollEnabled) return@collect
-                if (!FloorEntryWheels.shouldCommitSettledPage(page, parkedPage)) return@collect
-                if (page == selected) return@collect
+                val memory = settleMemory
+                val commit = FloorEntryWheels.shouldCommitSettledPage(
+                    settledPage = page,
+                    initialPage = parkedPage,
+                    memory = memory,
+                    selectedIndex = selected,
+                )
+                settleMemory = FloorEntryWheels.afterWheelSettle(
+                    settledPage = page,
+                    initialPage = parkedPage,
+                    memory = memory,
+                )
+                if (!commit) return@collect
                 Haptics.tick(view)
                 onSettledIndex(page)
             }

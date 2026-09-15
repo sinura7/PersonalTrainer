@@ -22,6 +22,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -40,8 +42,9 @@ import com.sinura.personaltrainer.ui.theme.Volt
 /**
  * The one loud control on a screen.
  *
- * [hapticFeedback] exists so the log-set button can opt out and fire the heavier commit
- * pattern itself, instead of buzzing twice for one press.
+ * [hapticFeedback] exists so a control can opt out of the press tick.
+ * Log set keeps the press tick and fires [Haptics.commit] only after a
+ * durable write, via the screen's success collector.
  */
 @Composable
 fun PrimaryGymButton(
@@ -51,6 +54,7 @@ fun PrimaryGymButton(
     enabled: Boolean = true,
     height: Dp = Metrics.control,
     hapticFeedback: Boolean = true,
+    disabledReason: String? = null,
 ) {
     val view = LocalView.current
     Button(
@@ -61,7 +65,14 @@ fun PrimaryGymButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = height),
+            .heightIn(min = height)
+            .then(
+                if (!enabled && !disabledReason.isNullOrBlank()) {
+                    Modifier.semantics { contentDescription = disabledReason }
+                } else {
+                    Modifier
+                },
+            ),
         shape = RoundedCornerShape(Radius.md),
         colors = ButtonDefaults.buttonColors(
             containerColor = Volt,

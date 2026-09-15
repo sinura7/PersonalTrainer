@@ -5,8 +5,8 @@ package com.sinura.personaltrainer.domain
  *
  * The planned duration is a label, not a countdown. Warm-ups never start
  * the clock; the copy says so instead of leaving a live-looking 1:00 up.
- * Start next keeps going without rest; it is a quiet control, not a
- * second Volt. Log set is the filled act. Start is rest only.
+ * Start next is gone from this row (Packet A): it was a no-op or a
+ * duplicate of Next lift. Log set is the filled act. Start is rest only.
  */
 object RestIdleCopy {
     const val KICKER = "Not running"
@@ -23,9 +23,8 @@ object RestIdleCopy {
     fun spoken(clock: String, afterWarmup: Boolean): String =
         if (afterWarmup) {
             "Rest is not running. Warm-ups do not start rest. $clock planned. " +
-                "Start next to keep going. Start starts rest only."
-        } else {
-            "Rest is not running. $clock planned. Start next to keep going. " +
                 "Start starts rest only."
+        } else {
+            "Rest is not running. $clock planned. Start starts rest only."
         }
 }

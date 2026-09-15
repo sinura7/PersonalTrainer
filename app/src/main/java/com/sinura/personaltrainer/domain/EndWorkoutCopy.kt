@@ -10,6 +10,8 @@ object EndWorkoutCopy {
     const val SAVE = "Save as is"
     const val DISCARD = "Leave without saving"
     const val LOG_FIRST = "Log a set to save."
+    const val HEADER_FINISH = "Finish"
+    const val HEADER_DISCARD = "Discard"
 
     fun body(loggedSets: Int): String =
         if (loggedSets > 0) {

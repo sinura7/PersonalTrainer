@@ -429,9 +429,9 @@ fun RestBatteryHintRow(
 
 /**
  * Idle rest on the log: not a countdown. Planned duration is a label
- * that expands an inline [SnapValueWheel] on tap. Start next is
- * keep-going, not a Volt bar. Log set, pinned under this dock, is the
- * filled act. The instrument strip opens the full rest page.
+ * that expands an inline [SnapValueWheel] on tap. Start next is not
+ * composed (Packet A). Log set, pinned under this dock, is the filled
+ * act. The instrument strip opens the full rest page.
  */
 @Composable
 fun RestIdleRow(
@@ -487,19 +487,6 @@ fun RestIdleRow(
                 )
             }
             if (!editing) {
-                TextButton(
-                    onClick = onStartNext,
-                    modifier = Modifier
-                        .heightIn(min = Metrics.touchMin)
-                        .testTag("workout-start-next"),
-                ) {
-                    Text(
-                        RestIdleCopy.START_NEXT,
-                        style = InstrumentType.bodyStrong,
-                        color = TextPrimary,
-                        maxLines = 1,
-                    )
-                }
                 RestControl(
                     label = RestIdleCopy.START,
                     onClick = onStart,

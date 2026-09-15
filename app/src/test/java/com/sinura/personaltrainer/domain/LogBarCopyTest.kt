@@ -159,5 +159,17 @@ class LogBarCopyTest {
         )
         assertEquals("Start hold", LogBarCopy.START_HOLD)
         assertEquals("Log hold", LogBarCopy.LOG_HOLD)
+        assertEquals("Logging…", LogBarCopy.LOGGING)
+        assertEquals("Add a lift", LogBarCopy.ADD_LIFT)
+        assertEquals(
+            "Logging…",
+            LogBarCopy.commit(
+                editing = false,
+                next = false,
+                warmup = false,
+                draftLabel = "100 kg × 5",
+                logging = true,
+            ),
+        )
     }
 }
