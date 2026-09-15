@@ -12,6 +12,12 @@
 > LLM-as-author remain forbidden. Settings is a tab
 > ([ADR-014](architecture/ADR-014-settings-tab.md)).
 >
+> 15 Sep 2026 — Progression engine packets 0–9: one `Coach.decide()`
+> ladder, rep climb on a close hold, stall card (lighter week only),
+> prescribed starting rest, extra-set invite, goal as an AddDefaults
+> axis, per-kit increments, warm-up ramp, weekly volume as a card.
+> Does not bump live. Gym-floor `appVersionCode` stays 1.
+>
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
