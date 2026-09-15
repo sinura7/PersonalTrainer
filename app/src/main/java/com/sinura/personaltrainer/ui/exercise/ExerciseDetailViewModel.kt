@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -87,7 +88,10 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
             return
         }
         viewModelScope.launch {
-            val defaults = AddDefaults.forExercise(exercise)
+            val defaults = AddDefaults.forExercise(
+                exercise,
+                goal = container.preferencesRepository.coachPreferences.first().goal,
+            )
             runCatchingCancellable {
                 container.routineRepository.addExercise(
                     routineId = routineId,

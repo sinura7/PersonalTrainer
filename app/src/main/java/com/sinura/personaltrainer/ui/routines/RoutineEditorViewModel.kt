@@ -1061,7 +1061,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // to see the write that finished a moment ago, not the state before it.
             val row = storedRow(id, exercise.id)
             if (adding && row == null) {
-                val defaults = AddDefaults.forExercise(exercise)
+                val defaults = AddDefaults.forExercise(
+                    exercise,
+                    goal = container.preferencesRepository.coachPreferences.first().goal,
+                )
                 container.routineRepository.addExercise(
                     routineId = id,
                     exercise = exercise,

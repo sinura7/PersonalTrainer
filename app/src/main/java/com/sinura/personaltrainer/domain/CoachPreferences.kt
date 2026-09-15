@@ -3,11 +3,12 @@ package com.sinura.personaltrainer.domain
 /**
  * What the lifter is training for.
  *
- * The coach's rules do not change with the goal — a neglected muscle is neglected whatever you
- * are chasing — but their *order* does. Someone training for strength wants to hear about the
- * lift that is ready to go up before they hear about balance; someone training for size wants
- * the reverse. The goal is a ranking modifier for that reason, not a different rule set: a
- * rule that only fires for one goal is a rule that is wrong for the others.
+ * In-set and weekly rules do not change with the goal — a neglected muscle is
+ * neglected whatever you are chasing — but their *order* does, and the
+ * numbers a newly added row lands at do. Muscle raises the rep window and
+ * shortens rest; Strength does the reverse. Those are thresholds the same
+ * rules read, not a different rule set (ADR-025). A rule that only fires for
+ * one goal is still a rule that is wrong for the others.
  */
 enum class TrainingGoal(val displayName: String, val blurb: String) {
     STRENGTH("Strength", "Progression and load first"),

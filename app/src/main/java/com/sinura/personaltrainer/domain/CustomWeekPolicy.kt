@@ -87,10 +87,11 @@ object CustomWeekPolicy {
         existing: List<CustomWeekLift>,
         incoming: List<Exercise>,
         idFactory: () -> String,
+        goal: TrainingGoal = TrainingGoal.GENERAL,
     ): List<CustomWeekLift> {
         val have = existing.map { it.exercise.id }.toSet()
         val added = incoming.filter { it.id !in have }.map { exercise ->
-            val defaults = AddDefaults.forExercise(exercise)
+            val defaults = AddDefaults.forExercise(exercise, goal = goal)
             CustomWeekLift(
                 id = idFactory(),
                 exercise = exercise,

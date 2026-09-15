@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -259,7 +260,10 @@ class StartOptionsViewModel @JvmOverloads constructor(
                 }
                 val session = (outcome as StartSessionOutcome.Started).session
                 PendingOccurrence.forget(container)
-                val defaults = AddDefaults.forExercise(exercise)
+                val defaults = AddDefaults.forExercise(
+                    exercise,
+                    goal = container.preferencesRepository.coachPreferences.first().goal,
+                )
                 container.workoutRepository.addExerciseToSession(
                     sessionId = session.id,
                     exercise = exercise,
