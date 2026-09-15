@@ -445,6 +445,44 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun skipOccurrenceUndoRestoresTheLeftoverStatus() = runBlocking {
+        deps = graph()
+        val today = todayEpochDay()
+        val yesterday = today - 1
+        val yesterdayWeekday = Weekday.fromEpochDay(yesterday)
+        val yesterdayWeekStart = CivilDate.fromEpochDay(yesterday).previousOrSame(Weekday.MONDAY)
+        val todayWeekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-home-skip-undo-squat", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        deps.scheduleRepository.pin(routine.id, null, yesterdayWeekday)
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
+        deps.plannerRepository.ensureWeek(yesterdayWeekStart)
+        if (todayWeekStart.epochDay != yesterdayWeekStart.epochDay) {
+            deps.plannerRepository.ensureWeek(todayWeekStart)
+        }
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
+
+        val leftover = deps.plannerRepository.occurrencesBetween(yesterday, yesterday).single()
+        val previous = leftover.status
+        viewModel!!.skipOccurrence(leftover.id)
+        val offered = viewModel!!.skippedDay.awaitFirst { it != null }!!
+        assertEquals(leftover.id, offered.occurrenceId)
+        assertEquals(previous, offered.previousStatus)
+        assertTrue(offered.title.isNotBlank())
+
+        viewModel!!.undoSkipOccurrence()
+        val restored = withTimeout(TestWaits.FLOW_MS) {
+            deps.plannerRepository.observeOccurrences().first { rows ->
+                rows.any { it.id == leftover.id && it.status == previous }
+            }.first { it.id == leftover.id }
+        }
+        assertEquals(previous, restored.status)
+        assertNull(viewModel!!.skippedDay.value)
+    }
+
+    @Test
     fun skipOccurrenceDoesNotSkipTodaysPlannedSession() = runBlocking {
         deps = graph()
         val today = todayEpochDay()
@@ -463,6 +501,7 @@ class HomeViewModelTest {
         viewModel!!.skipOccurrence(planned.id)
         dispatcher.scheduler.advanceUntilIdle()
         assertEquals(OccurrenceStatus.PLANNED, deps.plannerRepository.getOccurrence(planned.id)!!.status)
+        assertNull(viewModel!!.skippedDay.value)
     }
 
     @Test

@@ -64,4 +64,11 @@ object FloorCompactChrome {
      * text labels on the floor. TalkBack still hears the words.
      */
     fun floorFieldGlyphsReplaceLabels(): Boolean = true
+
+    /**
+     * Packet 5: cheap destructives (delete set, remove lift, skip day)
+     * run immediately and offer Undo for ~6s. Finish, discard, and leave
+     * a live workout still ask first.
+     */
+    fun cheapDestructivesAreUndoable(): Boolean = true
 }

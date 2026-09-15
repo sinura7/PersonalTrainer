@@ -43,13 +43,14 @@ import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.FloorTimerSurface
+import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.FloorTimerSlot
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.GymStatusBanner
+import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.ScreenLoading
@@ -124,11 +125,11 @@ fun ActiveWorkoutScreen(
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
+    val removedLift by viewModel.removedLift.collectAsStateWithLifecycle()
     val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
-    var confirmRemoveLift by rememberSaveable { mutableStateOf(false) }
     val restNotificationsEnabled = restNotificationsEnabledOverride
         ?: rememberRestNotificationsEnabled()
     val session = state.session
@@ -200,7 +201,7 @@ fun ActiveWorkoutScreen(
     Scaffold(
         snackbarHost = {
             val errorBanner = state.error != null && !logBarVisible
-            if (errorBanner || deletedSet != null) {
+            if (errorBanner || deletedSet != null || removedLift != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -212,17 +213,28 @@ fun ActiveWorkoutScreen(
                     }
                     // Undo dwell uses Motion.STATUS_DWELL_MS (~6s). Advance is not a
                     // banner: Next lift / Another set stand in the dock until chosen.
-                    deletedSet?.let { removed ->
-                        GymStatusBanner(
-                            message = "Set deleted · " + SetCopy.setLine(
-                                removed.weightKg,
-                                removed.reps,
-                                LoadClass.of(selected?.exercise?.loadType),
-                                unit,
-                                durationSeconds = removed.durationSeconds,
-                            ),
-                            actionLabel = "Undo",
-                            onAction = { viewModel.undoDeleteSet() },
+                    val undoMessage = removedLift?.let { UndoHostCopy.liftRemoved(it.name) }
+                        ?: deletedSet?.let { removed ->
+                            UndoHostCopy.setDeleted(
+                                SetCopy.setLine(
+                                    removed.weightKg,
+                                    removed.reps,
+                                    LoadClass.of(selected?.exercise?.loadType),
+                                    unit,
+                                    durationSeconds = removed.durationSeconds,
+                                ),
+                            )
+                        }
+                    undoMessage?.let { message ->
+                        GymUndoHost(
+                            message = message,
+                            onUndo = {
+                                if (removedLift != null) {
+                                    viewModel.undoRemoveLift()
+                                } else {
+                                    viewModel.undoDeleteSet()
+                                }
+                            },
                             onDismissed = { viewModel.onUndoOfferHandled() },
                         )
                     }
@@ -498,7 +510,7 @@ fun ActiveWorkoutScreen(
                                     events = WorkoutLiftCardEvents(
                                         onSelect = { viewModel.selectExercise(lift.exercise.id) },
                                         onSwap = viewModel::requestSwap,
-                                        onRemove = { confirmRemoveLift = true },
+                                        onRemove = viewModel::removeSelectedLift,
                                         onWeightKgChange = viewModel::setWeight,
                                         onRepsAdjust = viewModel::adjustReps,
                                         onRepsChange = viewModel::setReps,
@@ -575,22 +587,6 @@ fun ActiveWorkoutScreen(
                 confirmDiscard = true
             },
             onDismiss = { confirmEnd = false },
-        )
-    }
-
-    if (confirmRemoveLift) {
-        val name = selected?.exercise?.name ?: "this lift"
-        ConfirmActionDialog(
-            title = "Remove $name?",
-            body = "It comes out of this session's plan. Nothing logged is affected — this lift " +
-                "has no sets yet.",
-            confirmLabel = "Remove",
-            destructive = true,
-            onConfirm = {
-                confirmRemoveLift = false
-                viewModel.removeSelectedLift()
-            },
-            onDismiss = { confirmRemoveLift = false },
         )
     }
 

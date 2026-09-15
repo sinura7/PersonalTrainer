@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Floor packet 5: one undo host (~6s) for delete set,
+> remove lift, and skip day. Finish, discard, and leave still ask.
+> Does not bump live 64. Gym-floor `appVersionCode` stays 1.
+>
 > 15 Sep 2026 — Live 64: floor packet 4 (HOLD / +N / BACK OFF kicker
 > with Why; weight, reps/time, RPE, rest glyphs) on `trunk`.
 > `debugLiveCode` 64; suffix from

@@ -305,9 +305,38 @@ class PlannerRepositoryTest {
     fun aPlannedDayCanStillBeSkipped() = runBlocking {
         // The guards must refuse settled days, not working ones.
         val occurrence = plannedMonday()
-        deps.plannerRepository.skipOccurrence(occurrence.id)
+        val previous = deps.plannerRepository.skipOccurrence(occurrence.id)
+        assertEquals(OccurrenceStatus.PLANNED, previous)
         assertEquals(
             OccurrenceStatus.SKIPPED,
+            deps.plannerRepository.getOccurrence(occurrence.id)!!.status,
+        )
+    }
+
+    @Test
+    fun restoreSkippedOccurrencePutsThePreviousStatusBack() = runBlocking {
+        val occurrence = plannedMonday()
+        val previous = checkNotNull(deps.plannerRepository.skipOccurrence(occurrence.id))
+        deps.plannerRepository.restoreSkippedOccurrence(
+            occurrenceId = occurrence.id,
+            previousStatus = previous,
+        )
+        assertEquals(
+            OccurrenceStatus.PLANNED,
+            deps.plannerRepository.getOccurrence(occurrence.id)!!.status,
+        )
+    }
+
+    @Test
+    fun restoreSkippedOccurrenceDoesNotUnFinishADoneDay() = runBlocking {
+        val occurrence = plannedMonday()
+        deps.plannerRepository.markOccurrenceDone(occurrence.id, activityId = "act-1")
+        deps.plannerRepository.restoreSkippedOccurrence(
+            occurrenceId = occurrence.id,
+            previousStatus = OccurrenceStatus.PLANNED,
+        )
+        assertEquals(
+            OccurrenceStatus.DONE,
             deps.plannerRepository.getOccurrence(occurrence.id)!!.status,
         )
     }
