@@ -200,6 +200,15 @@ class NumericEntryTest {
     }
 
     @Test
+    fun readsHoldSecondsAndClock() {
+        assertEquals(30, NumericEntry.parseHoldSeconds("30"))
+        assertEquals(30, NumericEntry.parseHoldSeconds("0:30"))
+        assertEquals(90, NumericEntry.parseHoldSeconds("1:30"))
+        assertNull(NumericEntry.parseHoldSeconds("abc"))
+        assertNull(NumericEntry.parseHoldSeconds("2"))
+    }
+
+    @Test
     fun refusesAFumbledRepCount() {
         // A guard against a mis-tap, not a judgement: three digits is far more often a slip
         // than a real set.

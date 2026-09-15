@@ -92,6 +92,36 @@ class IncrementTableTest {
     }
 
     @Test
+    fun barbellStackAndDumbbellNextKgMatchTheTable() {
+        assertEquals(
+            102.5,
+            IncrementTable.nextKg(100.0, WeightUnit.KG, 1, LoadType.EXTERNAL),
+            0.0001,
+        )
+        assertEquals(
+            105.0,
+            IncrementTable.nextKg(100.0, WeightUnit.KG, 1, LoadType.STACK),
+            0.0001,
+        )
+        assertEquals(
+            22.0,
+            IncrementTable.nextKg(
+                20.0,
+                WeightUnit.KG,
+                1,
+                LoadType.EXTERNAL,
+                EquipmentType.DUMBBELL,
+            ),
+            0.0001,
+        )
+        assertEquals(
+            0.0,
+            IncrementTable.nextKg(0.0, WeightUnit.KG, 1, LoadType.BODYWEIGHT),
+            0.0001,
+        )
+    }
+
+    @Test
     fun theStepperAndTheCalculatorReadTheSameTable() {
         // The whole point of the table: these were two systems, and they disagreed.
         WeightUnit.entries.forEach { unit ->

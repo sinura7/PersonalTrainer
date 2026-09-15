@@ -34,8 +34,9 @@ class FloorCompactChromeTest {
     }
 
     @Test
-    fun compactFloorWeightAndRepsAreWheels() {
-        assertTrue(FloorCompactChrome.weightAndRepsAreWheels())
+    fun compactFloorWeightAndRepsAreSteppers() {
+        assertFalse(FloorCompactChrome.weightAndRepsAreWheels())
+        assertFalse(FloorCompactChrome.floorFieldGlyphsReplaceLabels())
     }
 
     @Test

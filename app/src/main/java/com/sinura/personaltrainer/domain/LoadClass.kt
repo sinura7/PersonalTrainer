@@ -90,6 +90,6 @@ enum class WeightMeaning {
             LIFTED -> "Weight"
             NONE -> "Weight"
             ADDED -> "Added"
-            ASSISTANCE -> "Assist"
+            ASSISTANCE -> "Assistance"
         }
 }

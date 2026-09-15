@@ -63,6 +63,9 @@ object NumericEntry {
         return whole
     }
 
+    /** Seconds or `mm:ss`, the same range as [HoldWork.parseRange]. */
+    fun parseHoldSeconds(input: String): Int? = HoldWork.parseRange(input)?.minSeconds
+
     /**
      * Digits, with an optional decimal separator followed by one or two more.
      *

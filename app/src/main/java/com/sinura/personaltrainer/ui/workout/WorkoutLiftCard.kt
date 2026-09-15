@@ -253,6 +253,11 @@ internal fun WorkoutLiftCard(
                 onSecondsAdjust = onSecondsAdjust,
                 onSecondsChange = onSecondsChange,
                 compact = true,
+                loadType = lift.exercise.loadType,
+                equipment = lift.exercise.equipment,
+                plannedKg = lift.targetWeightKg,
+                lastKg = card.hint?.lastWeightKg ?: lastPerformance?.topSet?.weightKg,
+                suggestedKg = card.hint?.suggestedWeightKg,
                 modifier = Modifier
                     .testTag(LogLoopBringIntoView.ANCHOR_TAG)
                     .bringIntoViewRequester(entryRequester),

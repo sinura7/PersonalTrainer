@@ -61,11 +61,22 @@ object Metrics {
     val touchMin: Dp = 48.dp
 
     /**
-     * One snap-wheel numeral on the gym floor. The column is three of
-     * these — same live scroller as the reminder time wheel, a little
-     * shorter so two stacked wheels are not a poster.
+     * One snap-wheel numeral. Rest length (Packet E still) and reminder
+     * / onboarding wheels keep this row. Floor weight and reps left it.
      */
     val wheelRow: Dp = space8
+
+    /** Packet B: left/right plates on the gym-floor weight and reps wells. */
+    val stepperPlateWidth: Dp = 64.dp
+
+    /** Weight plates. Same height as [commit]. */
+    val stepperWeightHeight: Dp = 72.dp
+
+    /** Reps / hold-draft plates. Bodyweight reps use [stepperWeightHeight]. */
+    val stepperRepsHeight: Dp = 64.dp
+
+    /** Center numeral well on the gym floor. */
+    val stepperNumeralMinWidth: Dp = 152.dp
 
     /** A list row with a value on the trailing edge. */
     val rowMin: Dp = 56.dp

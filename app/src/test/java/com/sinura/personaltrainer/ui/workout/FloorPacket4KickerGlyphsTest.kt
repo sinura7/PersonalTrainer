@@ -39,8 +39,8 @@ class FloorPacket4KickerGlyphsTest {
     }
 
     @Test
-    fun fourFloorGlyphsReplaceTheTextLabels() {
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.floorFieldGlyphsReplaceLabels())
+    fun fourFloorGlyphsRemainAsSupportingMarksBesideWordLabels() {
+        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.floorFieldGlyphsReplaceLabels())
         val icons = readOwned("ui/components/TemperIcons.kt")
         assertTrue(icons.contains("val FloorWeight"))
         assertTrue(icons.contains("val FloorRepsTime"))
@@ -53,14 +53,15 @@ class FloorPacket4KickerGlyphsTest {
         assertTrue(paths.contains("const val FLOOR_REST"))
         val entry = readOwned("ui/components/SetEntryPanel.kt")
         val compactFn = entry.indexOf("private fun CompactFloorEntry")
-        val snapRow = entry.indexOf("private fun FloorSnapRow")
-        val wheels = entry.substring(compactFn, snapRow)
-        assertTrue(wheels.contains("TemperIcons.FloorWeight"))
-        assertTrue(wheels.contains("TemperIcons.FloorRepsTime"))
-        assertFalse(wheels.contains("Kicker("))
-        val snap = entry.substring(snapRow, entry.indexOf("fun WeightStepper"))
-        assertTrue(snap.contains("FloorFieldGlyph("))
-        assertFalse(snap.contains("Kicker("))
+        val weightStepper = entry.indexOf("fun WeightStepper")
+        val floor = entry.substring(compactFn, weightStepper)
+        assertTrue(floor.contains("TemperIcons.FloorWeight"))
+        assertTrue(floor.contains("TemperIcons.FloorRepsTime"))
+        assertTrue(floor.contains("Kicker("))
+        assertTrue(floor.contains("meaning.fieldLabel"))
+        assertTrue(floor.contains("label = \"Reps\""))
+        assertTrue(floor.contains("label = \"Time\""))
+        assertTrue(floor.contains("FloorFieldGlyph("))
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         val rpe = bar.substring(bar.indexOf("fun SecondaryLogOptions"))
         assertTrue(rpe.contains("TemperIcons.FloorRpe"))

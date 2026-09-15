@@ -8,15 +8,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -26,22 +26,32 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.FloorStepper
+import com.sinura.personaltrainer.domain.FloorWeightPresets
+import com.sinura.personaltrainer.domain.IncrementTable
 import com.sinura.personaltrainer.domain.LoadClass
-import com.sinura.personaltrainer.domain.FloorEntryWheels
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.PlateMath
 import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.WeightContextAction
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
+import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -50,16 +60,17 @@ import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 /**
  * Weight and reps in one panel.
  *
- * The gym floor (`compact`) stacks them as snap-scroll wheels: a weight
- * wheel, then a reps (or hold-time) wheel. Flick to change. No keyboard.
- * Extra, paste, and Home still use the tall wells; those sit side by side
- * until the system font is large enough that a three-digit half-kilo no
- * longer fits, then they stack too.
+ * The gym floor (`compact`) stacks them as plate steppers: −step, a
+ * labelled numeral, +step. Tap the center to type. Extra, paste, and
+ * Home still use the tall wells; those sit side by side until the system
+ * font is large enough that a three-digit half-kilo no longer fits, then
+ * they stack too.
  *
  * On Extra / paste / Home, nudge with the plates, or tap the number to
  * type when the nudge is too far. The numeral is the field — an underline
@@ -91,6 +102,11 @@ fun SetEntryPanel(
     onSecondsAdjust: (Int) -> Unit = {},
     onSecondsChange: (Int) -> Unit = {},
     compact: Boolean = false,
+    loadType: LoadType? = null,
+    equipment: EquipmentType? = null,
+    plannedKg: Double? = null,
+    lastKg: Double? = null,
+    suggestedKg: Double? = null,
 ) {
     if (compact) {
         CompactFloorEntry(
@@ -106,6 +122,11 @@ fun SetEntryPanel(
             durationSeconds = durationSeconds,
             holdRunning = holdRunning,
             onSecondsChange = onSecondsChange,
+            loadType = loadType,
+            equipment = equipment,
+            plannedKg = plannedKg,
+            lastKg = lastKg,
+            suggestedKg = suggestedKg,
         )
         return
     }
@@ -187,114 +208,278 @@ private fun CompactFloorEntry(
     durationSeconds: Int?,
     holdRunning: Boolean,
     onSecondsChange: (Int) -> Unit,
+    loadType: LoadType?,
+    equipment: EquipmentType?,
+    plannedKg: Double?,
+    lastKg: Double?,
+    suggestedKg: Double?,
 ) {
+    val resolvedLoad = loadType ?: when (loadClass) {
+        LoadClass.LOADED -> LoadType.EXTERNAL
+        LoadClass.BODYWEIGHT -> LoadType.BODYWEIGHT
+        LoadClass.BODYWEIGHT_ADDED -> LoadType.BODYWEIGHT_PLUS
+        LoadClass.BODYWEIGHT_ASSISTED -> LoadType.ASSISTED
+    }
+    val showWeight = loadClass.weightMeaning != WeightMeaning.NONE
+    val stepShown = IncrementTable.displayStep(resolvedLoad, unit, equipment)
+        ?.let { WeightConverter.formatDisplayNumber(it) }
+        ?: unit.stepLabel
+    var typingWeight by rememberSaveable { mutableStateOf(false) }
+    var typingReps by rememberSaveable { mutableStateOf(false) }
+    var typingHold by rememberSaveable { mutableStateOf(false) }
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        if (loadClass.weightMeaning != WeightMeaning.NONE) {
-            val displays = remember(unit, weightKg) {
-                FloorEntryWheels.weightDisplays(unit, weightKg)
-            }
-            val labels = remember(displays) {
-                displays.map { WeightConverter.formatDisplayNumber(it) }
-            }
-            val page = FloorEntryWheels.weightPage(weightKg, unit)
-            val shown = labels.getOrElse(page) { "" }
-            val plates = if (plated && loadClass.weightMeaning == WeightMeaning.LIFTED) {
+        if (showWeight) {
+            val displayNumber = WeightConverter.formatDisplayNumber(
+                WeightConverter.toDisplayValue(weightKg, unit),
+            )
+            val meaning = loadClass.weightMeaning
+            val plates = if (plated && meaning == WeightMeaning.LIFTED) {
                 PlateMath.load(weightKg, unit)?.caption()
             } else {
                 null
             }
-            FloorSnapRow(
+            val source = FloorWeightPresets.source(
+                currentKg = weightKg,
+                plannedKg = plannedKg,
+                lastKg = lastKg,
+                suggestedKg = suggestedKg,
+            )
+            val actions = FloorWeightPresets.contextActions(
+                plannedKg = plannedKg,
+                lastKg = lastKg,
+            )
+            FloorNumeralRow(
+                label = meaning.fieldLabel,
+                value = displayNumber,
+                unit = unit.suffix,
+                spoken = "${meaning.fieldLabel} $displayNumber ${unit.suffix}",
+                typeLabel = "Type ${if (meaning == WeightMeaning.LIFTED) "a weight" else meaning.fieldLabel.lowercase()}",
+                decrementLabel = "−$stepShown",
+                incrementLabel = "+$stepShown",
+                onDecrement = {
+                    onWeightKgChange(
+                        FloorStepper.nextWeightKg(weightKg, unit, -1, resolvedLoad, equipment),
+                    )
+                },
+                onIncrement = {
+                    onWeightKgChange(
+                        FloorStepper.nextWeightKg(weightKg, unit, 1, resolvedLoad, equipment),
+                    )
+                },
+                onType = { typingWeight = true },
                 glyph = TemperIcons.FloorWeight,
                 glyphTag = "workout-weight-glyph",
-                spoken = "${loadClass.weightMeaning.fieldLabel} $shown ${unit.suffix}",
-                values = labels,
-                selectedIndex = page,
-                onSettledIndex = { next ->
-                    onWeightKgChange(FloorEntryWheels.weightKgAt(next, unit, weightKg))
-                },
-                tag = "workout-weight-wheel",
+                wellTag = "workout-weight-stepper",
+                plateWidth = Metrics.stepperPlateWidth,
+                plateHeight = Metrics.stepperWeightHeight,
+                sourceLabel = source?.label,
                 caption = plates,
-                parkKey = unit,
+                contextActions = actions,
+                onContextAction = { onWeightKgChange(it.weightKg) },
+                unitForChips = unit,
             )
+            if (typingWeight) {
+                NumberEntryDialog(
+                    title = meaning.fieldLabel,
+                    unitLabel = unit.suffix,
+                    initial = displayNumber,
+                    decimal = true,
+                    helper = SetCopy.weightFieldHint(
+                        when (meaning) {
+                            WeightMeaning.ADDED -> LoadClass.BODYWEIGHT_ADDED
+                            WeightMeaning.ASSISTANCE -> LoadClass.BODYWEIGHT_ASSISTED
+                            WeightMeaning.LIFTED, WeightMeaning.NONE -> LoadClass.LOADED
+                        },
+                    ) ?: "A number, up to two decimals. 87.5 or 87,5.",
+                    parse = { NumericEntry.parseWeightKg(it, unit) },
+                    onConfirm = { onWeightKgChange(it) },
+                    onDismiss = { typingWeight = false },
+                )
+            }
         }
         if (hold) {
             if (!holdRunning) {
                 val seconds = durationSeconds ?: HoldWork.DEFAULT_SECONDS
-                val values = remember(seconds) { FloorEntryWheels.holdSecondsValues(seconds) }
-                val labels = remember(values) { values.map { HoldWork.clock(it) } }
-                val page = FloorEntryWheels.holdPage(seconds)
-                FloorSnapRow(
+                FloorNumeralRow(
+                    label = "Time",
+                    value = HoldWork.clock(seconds),
+                    unit = null,
+                    spoken = "time ${HoldWork.clock(seconds)}",
+                    typeLabel = "Type hold seconds",
+                    decrementLabel = "−${HoldWork.STEP_SECONDS}s",
+                    incrementLabel = "+${HoldWork.STEP_SECONDS}s",
+                    onDecrement = { onSecondsChange(FloorStepper.nextHoldSeconds(seconds, -1)) },
+                    onIncrement = { onSecondsChange(FloorStepper.nextHoldSeconds(seconds, 1)) },
+                    onType = { typingHold = true },
                     glyph = TemperIcons.FloorRepsTime,
                     glyphTag = "workout-reps-time-glyph",
-                    spoken = "time ${labels.getOrElse(page) { "" }}",
-                    values = labels,
-                    selectedIndex = page,
-                    onSettledIndex = { next ->
-                        onSecondsChange(FloorEntryWheels.holdSecondsAt(next, seconds))
-                    },
-                    tag = "workout-hold-wheel",
-                    parkKey = "hold",
+                    wellTag = "workout-hold-stepper",
+                    plateWidth = Metrics.stepperPlateWidth,
+                    plateHeight = if (showWeight) Metrics.stepperRepsHeight else Metrics.stepperWeightHeight,
                 )
+                if (typingHold) {
+                    NumberEntryDialog(
+                        title = "Time",
+                        unitLabel = "s",
+                        initial = seconds.toString(),
+                        decimal = false,
+                        helper = "Seconds or mm:ss, 5 to ${HoldWork.MAX_SECONDS}.",
+                        parse = { NumericEntry.parseHoldSeconds(it) },
+                        onConfirm = { onSecondsChange(it) },
+                        onDismiss = { typingHold = false },
+                    )
+                }
             }
         } else {
-            val values = remember { FloorEntryWheels.repsValues() }
-            val labels = remember(values) { values.map { it.toString() } }
-            val page = FloorEntryWheels.repsPage(reps)
-            FloorSnapRow(
+            FloorNumeralRow(
+                label = "Reps",
+                value = reps.toString(),
+                unit = "reps",
+                spoken = "reps $reps",
+                typeLabel = "Type a rep count",
+                decrementLabel = "−1",
+                incrementLabel = "+1",
+                onDecrement = { onRepsChange(FloorStepper.nextReps(reps, -1)) },
+                onIncrement = { onRepsChange(FloorStepper.nextReps(reps, 1)) },
+                onType = { typingReps = true },
                 glyph = TemperIcons.FloorRepsTime,
                 glyphTag = "workout-reps-time-glyph",
-                spoken = "reps $reps",
-                values = labels,
-                selectedIndex = page,
-                onSettledIndex = { next -> onRepsChange(FloorEntryWheels.repsAt(next)) },
-                tag = "workout-reps-wheel",
-                parkKey = "reps",
+                wellTag = "workout-reps-stepper",
+                plateWidth = Metrics.stepperPlateWidth,
+                plateHeight = if (showWeight) Metrics.stepperRepsHeight else Metrics.stepperWeightHeight,
             )
+            if (typingReps) {
+                NumberEntryDialog(
+                    title = "Reps",
+                    unitLabel = null,
+                    initial = reps.toString(),
+                    decimal = false,
+                    helper = "A whole number, 1 to ${NumericEntry.MAX_REPS}.",
+                    parse = { NumericEntry.parseReps(it) },
+                    onConfirm = { onRepsChange(it) },
+                    onDismiss = { typingReps = false },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun FloorSnapRow(
+private fun FloorNumeralRow(
+    label: String,
+    value: String,
+    unit: String?,
+    spoken: String,
+    typeLabel: String,
+    decrementLabel: String,
+    incrementLabel: String,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit,
+    onType: () -> Unit,
     glyph: ImageVector,
     glyphTag: String,
-    spoken: String,
-    values: List<String>,
-    selectedIndex: Int,
-    onSettledIndex: (Int) -> Unit,
-    tag: String,
+    wellTag: String,
+    plateWidth: Dp,
+    plateHeight: Dp,
+    sourceLabel: String? = null,
     caption: String? = null,
-    parkKey: Any? = Unit,
-    userScrollEnabled: Boolean = true,
+    contextActions: List<WeightContextAction> = emptyList(),
+    onContextAction: (WeightContextAction) -> Unit = {},
+    unitForChips: WeightUnit = WeightUnit.KG,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-    ) {
+    val view = LocalView.current
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(Metrics.wheelRow * 3),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
-            FloorFieldGlyph(
-                icon = glyph,
-                modifier = Modifier.testTag(glyphTag),
+            StepperButton(
+                label = decrementLabel,
+                onClick = onDecrement,
+                compact = true,
+                plateWidth = plateWidth,
+                plateHeight = plateHeight,
             )
-            SnapValueWheel(
-                values = values,
-                selectedIndex = selectedIndex,
-                onSettledIndex = onSettledIndex,
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .semantics { contentDescription = spoken },
-                tag = tag,
-                rowHeight = Metrics.wheelRow,
-                userScrollEnabled = userScrollEnabled,
-                parkKey = parkKey,
+                    .widthIn(min = Metrics.stepperNumeralMinWidth)
+                    .heightIn(min = plateHeight)
+                    .testTag(wellTag)
+                    .clickable(onClick = onType, onClickLabel = typeLabel)
+                    .semantics {
+                        contentDescription = spoken
+                        customActions = listOf(
+                            CustomAccessibilityAction("Decrease $label") {
+                                onDecrement()
+                                true
+                            },
+                            CustomAccessibilityAction("Increase $label") {
+                                onIncrement()
+                                true
+                            },
+                            CustomAccessibilityAction(typeLabel) {
+                                onType()
+                                true
+                            },
+                        )
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+                ) {
+                    FloorFieldGlyph(
+                        icon = glyph,
+                        modifier = Modifier.testTag(glyphTag),
+                    )
+                    Kicker(label, asHeading = false)
+                }
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Text(
+                        value,
+                        modifier = Modifier.alignByBaseline(),
+                        style = InstrumentType.numeralLg,
+                        color = TextPrimary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (unit != null) {
+                        Text(
+                            unit,
+                            modifier = Modifier
+                                .alignByBaseline()
+                                .padding(start = Metrics.space1),
+                            style = InstrumentType.unit,
+                            color = TextSecondary,
+                        )
+                    }
+                }
+                if (sourceLabel != null) {
+                    Text(
+                        sourceLabel,
+                        style = InstrumentType.caption,
+                        color = TextTertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            StepperButton(
+                label = incrementLabel,
+                onClick = onIncrement,
+                compact = true,
+                plateWidth = plateWidth,
+                plateHeight = plateHeight,
             )
         }
         if (caption != null) {
@@ -305,6 +490,30 @@ private fun FloorSnapRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+        if (contextActions.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                contextActions.forEach { action ->
+                    TextButton(
+                        onClick = {
+                            Haptics.tick(view)
+                            onContextAction(action)
+                        },
+                        modifier = Modifier.heightIn(min = Metrics.touchMin),
+                    ) {
+                        Text(
+                            action.chipLabel(unitForChips),
+                            style = InstrumentType.bodyStrong,
+                            color = Volt,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
         }
     }
 }
