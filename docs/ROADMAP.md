@@ -18,6 +18,10 @@
 > 15 Sep 2026 — Workout-entry experience report is a recommendation
 > only (not law): [workout-entry-experience-report.md](workout-entry-experience-report.md).
 >
+> 15 Sep 2026 — Workout-entry implementation plan (Packets A–H, docs only,
+> no drop): [workout-entry-implementation-plan.md](workout-entry-implementation-plan.md).
+> Next Kotlin is Packet A (state correctness). Gym-floor `appVersionCode` stays 1.
+>
 > 15 Sep 2026 — Live 65: floor packet 5 undo host plus progression
 > engine (`Coach.decide` ladder) on `trunk`.
 > `debugLiveCode` 65; suffix from
