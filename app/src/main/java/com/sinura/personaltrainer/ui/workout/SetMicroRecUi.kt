@@ -1,13 +1,40 @@
 package com.sinura.personaltrainer.ui.workout
 
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoggedSetView
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
+import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.theme.TextPrimary
+
+/**
+ * Packet 4: HOLD / +N / BACK OFF in the Next row. Why stays a separate
+ * tap so this mark is not a second Volt.
+ */
+@Composable
+internal fun ProgressionKickerMark(
+    rec: SetMicroRec,
+    loadClass: LoadClass,
+    unit: WeightUnit,
+    modifier: Modifier = Modifier,
+) {
+    val label = SetMicroRecCopy.kicker(rec, loadClass, unit) ?: return
+    Kicker(
+        text = label,
+        modifier = modifier.testTag(WorkoutTestTags.PROGRESSION_KICKER),
+        color = TextPrimary,
+        asHeading = false,
+    )
+}
 
 /** Same `suggest()` inputs on the log and the rest floor. */
 internal fun workoutMicroRec(

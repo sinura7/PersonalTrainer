@@ -395,16 +395,74 @@ fun setMicroRecInputs(
 )
 
 object SetMicroRecCopy {
-    fun line(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String {
-        val payload = buildString {
+    fun payload(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String {
+        return buildString {
             append(SetCopy.setLine(rec.nextWeightKg, rec.nextReps, loadClass, unit))
             rec.nextRpe?.let { append(" · RPE $it") }
         }
+    }
+
+    fun line(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String {
+        val payload = payload(rec, loadClass, unit)
         return if (rec.previewOnly) payload else "Next: $payload"
     }
+
+    /**
+     * Packet 4: the Next row shows this instead of a watermark. Null when
+     * the rec is not a load call (editing, lift done).
+     */
+    fun kicker(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? =
+        ProgressionKickerCopy.fromMicroRec(rec, loadClass, unit)
 
     fun caption(rec: SetMicroRec): String? =
         if (rec.previewOnly) "If you log this: …" else null
 
     fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.lines(rec.trace)
+}
+
+/**
+ * The three floor verbs for what to do with the load: hold it, add the
+ * plate step, or back off. Sourced from [ProgressionHint] / the in-set
+ * rec, which already ran [RpeModifier].
+ */
+object ProgressionKickerCopy {
+    const val HOLD = "HOLD"
+    const val BACK_OFF = "BACK OFF"
+    const val PLUS_REP = "+1"
+
+    fun fromHint(hint: ProgressionHint, unit: WeightUnit): String =
+        when (hint.action) {
+            ProgressionAction.HOLD -> HOLD
+            ProgressionAction.DECREASE -> BACK_OFF
+            ProgressionAction.INCREASE -> plusLabel(LoadClass.of(hint.loadType), unit)
+        }
+
+    fun fromMicroRec(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? =
+        when (rec.reasonCode) {
+            SetMicroRecCalculator.EDITING,
+            SetMicroRecCalculator.LIFT_DONE,
+            -> null
+            SetMicroRecCalculator.RPE_HOLD,
+            SetMicroRecCalculator.CLOSE_HOLD,
+            SetMicroRecCalculator.LIGHTER_HOLD,
+            SetMicroRecCalculator.BW_HOLD,
+            SetMicroRecCalculator.SKIP_RPE_HOLD,
+            -> HOLD
+            SetMicroRecCalculator.FAILED_DROP,
+            SetMicroRecCalculator.SKIP_RPE_DROP,
+            SetMicroRecCalculator.BW_DROP_REP,
+            -> BACK_OFF
+            else -> plusLabel(loadClass, unit)
+        }
+
+    fun plusLabel(loadClass: LoadClass, unit: WeightUnit): String {
+        val loadType = when (loadClass) {
+            LoadClass.LOADED -> LoadType.EXTERNAL
+            LoadClass.BODYWEIGHT -> LoadType.BODYWEIGHT
+            LoadClass.BODYWEIGHT_ADDED -> LoadType.BODYWEIGHT_PLUS
+            LoadClass.BODYWEIGHT_ASSISTED -> LoadType.ASSISTED
+        }
+        val step = IncrementTable.displayStep(loadType, unit) ?: return PLUS_REP
+        return "+${WeightConverter.formatDisplayNumber(step)}"
+    }
 }

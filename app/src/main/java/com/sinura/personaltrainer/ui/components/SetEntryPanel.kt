@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -206,7 +207,8 @@ private fun CompactFloorEntry(
                 null
             }
             FloorSnapRow(
-                label = loadClass.weightMeaning.fieldLabel.lowercase(),
+                glyph = TemperIcons.FloorWeight,
+                glyphTag = "workout-weight-glyph",
                 spoken = "${loadClass.weightMeaning.fieldLabel} $shown ${unit.suffix}",
                 values = labels,
                 selectedIndex = page,
@@ -225,7 +227,8 @@ private fun CompactFloorEntry(
                 val labels = remember(values) { values.map { HoldWork.clock(it) } }
                 val page = FloorEntryWheels.holdPage(seconds)
                 FloorSnapRow(
-                    label = "time",
+                    glyph = TemperIcons.FloorRepsTime,
+                    glyphTag = "workout-reps-time-glyph",
                     spoken = "time ${labels.getOrElse(page) { "" }}",
                     values = labels,
                     selectedIndex = page,
@@ -241,7 +244,8 @@ private fun CompactFloorEntry(
             val labels = remember(values) { values.map { it.toString() } }
             val page = FloorEntryWheels.repsPage(reps)
             FloorSnapRow(
-                label = "reps",
+                glyph = TemperIcons.FloorRepsTime,
+                glyphTag = "workout-reps-time-glyph",
                 spoken = "reps $reps",
                 values = labels,
                 selectedIndex = page,
@@ -255,7 +259,8 @@ private fun CompactFloorEntry(
 
 @Composable
 private fun FloorSnapRow(
-    label: String,
+    glyph: ImageVector,
+    glyphTag: String,
     spoken: String,
     values: List<String>,
     selectedIndex: Int,
@@ -275,7 +280,10 @@ private fun FloorSnapRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
-            Kicker(label, asHeading = false)
+            FloorFieldGlyph(
+                icon = glyph,
+                modifier = Modifier.testTag(glyphTag),
+            )
             SnapValueWheel(
                 values = values,
                 selectedIndex = selectedIndex,
