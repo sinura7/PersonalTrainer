@@ -38,7 +38,8 @@ class FloorPacket2ToolbarTest {
     fun logBarOwnsTimerAdvanceAndVoltLog() {
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertTrue(bar.contains("FloorTimerSlot("))
-        assertTrue(bar.contains("advanceChoice"))
+        assertTrue(bar.contains("showNext"))
+        assertTrue(bar.contains("showFinish"))
         assertTrue(bar.contains("PrimaryGymButton("))
         assertTrue(bar.contains("height = Metrics.commit"))
         assertTrue(bar.contains("onSelectRestDuration"))

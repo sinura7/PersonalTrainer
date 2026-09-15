@@ -17,6 +17,13 @@ class MotionPolicyTest {
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.FIELD_MS))
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.TICK_MS))
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.FLASH_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.ROW_SETTLE_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.CLOCK_SWAP_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.CARD_SWAP_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.DRAFT_SETTLE_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.PR_ACCENT_DELAY_MS))
+        assertEquals(180, Motion.ROW_SETTLE_MS)
+        assertEquals(120, Motion.PR_ACCENT_DELAY_MS)
     }
 
     @Test

@@ -71,16 +71,29 @@ class LogBarCopyTest {
     @Test
     fun nextWinsOverWarmupUnlessEditing() {
         assertEquals(
-            "Next lift",
+            "Next lift · Seated row",
             LogBarCopy.commit(
                 editing = false,
                 next = true,
                 warmup = true,
                 draftLabel = "100 kg × 5",
+                nextName = "Seated row",
             ),
         )
         assertEquals("Next lift", LogBarCopy.NEXT)
+        assertEquals("Next lift · Seated row", LogBarCopy.nextLift("Seated row"))
         assertEquals("Another set", LogBarCopy.ANOTHER_SET)
+        assertEquals("Finish workout", LogBarCopy.FINISH_WORKOUT)
+        assertEquals(
+            "Finish workout",
+            LogBarCopy.commit(
+                editing = false,
+                next = false,
+                finish = true,
+                warmup = false,
+                draftLabel = "100 kg × 5",
+            ),
+        )
         assertEquals(
             "Save warm-up · 100 kg × 5",
             LogBarCopy.commit(

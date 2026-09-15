@@ -43,6 +43,8 @@ class WorkoutAdvanceSelectionTest {
         assertTrue(state.liftComplete)
         assertEquals(BENCH, state.nextExerciseId)
         assertTrue(state.showNext)
+        assertTrue(state.showAnother)
+        assertFalse(state.showFinish)
     }
 
     @Test
@@ -55,6 +57,8 @@ class WorkoutAdvanceSelectionTest {
         )
         assertFalse(state.liftComplete)
         assertFalse(state.showNext)
+        assertFalse(state.showAnother)
+        assertFalse(state.showFinish)
     }
 
     @Test
@@ -70,21 +74,44 @@ class WorkoutAdvanceSelectionTest {
     }
 
     @Test
-    fun theLastLiftHasNoNextAndNoSessionHasNothingAtAll() {
-        val onLast = WorkoutAdvance.forSelection(
+    fun theLastLiftFinishesOnlyWhenEveryLiftIsDone() {
+        val onLastWithWorkBehind = WorkoutAdvance.forSelection(
             session = session(sets = listOf(set("a", BENCH), set("b", BENCH), set("c", BENCH))),
             selectedExerciseId = BENCH,
             wantAnother = false,
             editing = false,
         )
-        assertTrue(onLast.liftComplete)
-        assertNull(onLast.nextExerciseId)
-        assertFalse(onLast.showNext)
+        assertTrue(onLastWithWorkBehind.liftComplete)
+        assertEquals(SQUAT, onLastWithWorkBehind.nextExerciseId)
+        assertTrue(onLastWithWorkBehind.showNext)
+        assertFalse(onLastWithWorkBehind.showFinish)
+
+        val allDone = WorkoutAdvance.forSelection(
+            session = session(
+                sets = listOf(
+                    set("s1", SQUAT),
+                    set("s2", SQUAT),
+                    set("s3", SQUAT),
+                    set("b1", BENCH),
+                    set("b2", BENCH),
+                    set("b3", BENCH),
+                ),
+            ),
+            selectedExerciseId = BENCH,
+            wantAnother = false,
+            editing = false,
+        )
+        assertTrue(allDone.liftComplete)
+        assertNull(allDone.nextExerciseId)
+        assertFalse(allDone.showNext)
+        assertTrue(allDone.showFinish)
+        assertTrue(allDone.showAnother)
 
         val empty = WorkoutAdvance.forSelection(null, SQUAT, wantAnother = false, editing = false)
         assertEquals(0, empty.workingLogged)
         assertFalse(empty.liftComplete)
         assertNull(empty.nextExerciseId)
+        assertFalse(empty.showFinish)
     }
 
     @Test

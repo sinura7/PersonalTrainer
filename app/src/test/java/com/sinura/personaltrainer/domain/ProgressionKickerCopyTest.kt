@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -70,6 +71,19 @@ class ProgressionKickerCopyTest {
                 LoadClass.LOADED,
                 WeightUnit.KG,
             ),
+        )
+        assertEquals(
+            "HOLD · 100 kg × 5",
+            SetMicroRecCopy.collapsed(
+                rec(SetMicroRecCalculator.RPE_HOLD),
+                LoadClass.LOADED,
+                WeightUnit.KG,
+            ),
+        )
+        assertEquals("Use suggestion", SetMicroRecCopy.USE_SUGGESTION)
+        assertEquals("Keep my numbers", SetMicroRecCopy.KEEP_MY_NUMBERS)
+        assertFalse(
+            SetMicroRecCopy.visibleOnEntry(rec(SetMicroRecCalculator.LIFT_DONE)),
         )
     }
 

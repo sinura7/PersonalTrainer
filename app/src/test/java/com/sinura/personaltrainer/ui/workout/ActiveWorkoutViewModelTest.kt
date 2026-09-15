@@ -24,6 +24,7 @@ import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
@@ -398,7 +399,7 @@ class ActiveWorkoutViewModelTest {
             row.reps != 1 || row.durationSeconds != null,
         )
         assertFalse("a hang must not log as 1 rep with no seconds", row.reps == 1 && row.durationSeconds == null)
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         assertTrue(deps.restTimerStore.current().running)
         assertFalse(vm.holdTimer.value.running)
     }
@@ -437,7 +438,7 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitPrefilled()
         vm.startSelectedRest()
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         vm.startSetStopwatch()
         assertTrue(vm.setStopwatch.value.running)
         assertFalse(deps.restTimerStore.current().running)
@@ -499,7 +500,7 @@ class ActiveWorkoutViewModelTest {
             it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
         }
         vm.startSelectedRest()
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         vm.startHoldSet()
         assertTrue(vm.holdTimer.value.running)
         assertFalse(deps.restTimerStore.current().running)
@@ -532,7 +533,7 @@ class ActiveWorkoutViewModelTest {
         vm.selectExercise(ROW)
         vm.confirmStopTimingAndSwitch()
         assertNull(vm.pendingLiftSwitch.value)
-        assertEquals(ROW, vm.uiState.value.selectedExerciseId)
+        vm.awaitState { it.selectedExerciseId == ROW }
         assertFalse(vm.setStopwatch.value.running)
     }
 
@@ -1009,7 +1010,7 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(100.0)
         vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 2 }
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         assertFalse(vm.extraSetRequested.value)
     }
 
@@ -1078,6 +1079,64 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun lastLiftOffersFinishNotOpenEndedLog() = runBlocking {
+        val fixture = seedWorkout(targetSets = 1)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
+        vm.setWeight(100.0)
+        vm.awaitState { it.draft.weightKg == 100.0 }
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        dispatcher.scheduler.advanceUntilIdle()
+        vm.awaitState { it.session?.sets?.size == 1 }
+        val pending = withTimeout(TestWaits.FLOW_MS) { vm.pendingAdvance.first { it != null } }
+        assertNotNull(pending)
+        assertNull(pending!!.nextExerciseId)
+        val session = checkNotNull(vm.uiState.value.session)
+        val advance = WorkoutAdvance.forSelection(
+            session = session,
+            selectedExerciseId = SQUAT,
+            wantAnother = vm.extraSetRequested.value,
+            editing = false,
+        )
+        assertTrue(advance.liftComplete)
+        assertTrue(advance.showFinish)
+        assertFalse(advance.showNext)
+        assertTrue(advance.showAnother)
+        assertFalse(deps.restTimerStore.current().running)
+    }
+
+    @Test
+    fun loggedReceiptMatchesTheCapturedPayloadAndRestWaitsForSettle() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3, restSeconds = 75)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.setWeight(100.0)
+        vm.setReps(5)
+        vm.setRpe(8)
+        vm.awaitState { it.draft.rpe == 8 }
+
+        vm.logSet()
+        vm.awaitState { !it.logging }
+        val receipt = checkNotNull(vm.logReceipt.value)
+        val row = checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.single()
+        assertEquals(row.id, receipt.setId)
+        assertEquals(100.0, receipt.weightKg, 0.0001)
+        assertEquals(5, receipt.reps)
+        assertEquals(8, receipt.rpe)
+        assertTrue(receipt.line.contains("logged"))
+        assertTrue(receipt.line.contains("100 kg × 5"))
+        assertTrue(receipt.line.contains("RPE 8"))
+        assertFalse(deps.restTimerStore.current().running)
+
+        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+        dispatcher.scheduler.runCurrent()
+        dispatcher.scheduler.advanceUntilIdle()
+        awaitRestRunning()
+        assertEquals(fixture.session.id, deps.restTimerStore.current().sessionId)
+    }
+
+    @Test
     fun advanceNowTakesTheStandingNextLift() = runBlocking {
         val fixture = seedTwoLifts(targetSets = 1)
         val vm = createViewModel(fixture.session.id)
@@ -1130,7 +1189,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
 
         val rest = deps.restTimerStore.current()
         assertEquals(fixture.session.id, rest.sessionId)
@@ -1177,7 +1236,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.selectRestDuration(105)
         vm.startSelectedRest()
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         assertEquals(105, deps.restTimerStore.current().totalSeconds)
 
         vm.skipRest()
@@ -1192,7 +1251,7 @@ class ActiveWorkoutViewModelTest {
 
         assertFalse(deps.preferencesRepository.restAlarmEligible.first())
         vm.startSelectedRest()
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         withTimeout(TestWaits.FLOW_MS) { deps.preferencesRepository.restAlarmEligible.first { it } }
         Unit
     }
@@ -1205,7 +1264,7 @@ class ActiveWorkoutViewModelTest {
 
         assertFalse(deps.preferencesRepository.restBatteryHintShown.first())
         vm.startSelectedRest()
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         withTimeout(TestWaits.FLOW_MS) { vm.restTimerState.first { it.batteryHint } }
         assertTrue(vm.restTimerState.value.batteryHint)
 
@@ -1251,7 +1310,7 @@ class ActiveWorkoutViewModelTest {
         vm.logSetAndSettle()
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
         vm.awaitState { state -> state.session?.sets?.any { it.id == logged.id } == true }
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
 
         vm.deleteSet(logged.id)
         checkNotNull(vm.deletedSet.awaitFirst { it != null })
@@ -1944,6 +2003,13 @@ class ActiveWorkoutViewModelTest {
     private suspend fun ActiveWorkoutViewModel.logSetAndSettle() {
         logSet()
         awaitState { !it.logging }
+        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+        dispatcher.scheduler.runCurrent()
+        dispatcher.scheduler.advanceUntilIdle()
+    }
+
+    private suspend fun awaitRestRunning() {
+        withTimeout(TestWaits.FLOW_MS) { deps.restTimerStore.snapshot.first { it.running } }
     }
 
     /**

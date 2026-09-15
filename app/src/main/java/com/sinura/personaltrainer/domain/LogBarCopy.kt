@@ -10,6 +10,7 @@ package com.sinura.personaltrainer.domain
 object LogBarCopy {
     const val NEXT = "Next lift"
     const val ANOTHER_SET = "Another set"
+    const val FINISH_WORKOUT = "Finish workout"
     const val LOG_SET = "Log set"
     const val LOG_WARMUP = "Log warm-up"
     const val SAVE_SET = "Save set"
@@ -23,6 +24,8 @@ object LogBarCopy {
      * @param editing a logged row is open for repair; Save, not Log.
      * @param next the lift is done and the button advances; Next wins
      *   unless a repair is open.
+     * @param finish last lift is done; Finish workout is the Volt.
+     * @param nextName named Next payload (`Next lift · Seated row`).
      * @param warmup the Warm-up chip is on, or the row being saved was
      *   a warm-up.
      * @param draftLabel the load × reps about to be written, already
@@ -36,9 +39,12 @@ object LogBarCopy {
         hold: Boolean = false,
         holdRunning: Boolean = false,
         logging: Boolean = false,
+        finish: Boolean = false,
+        nextName: String? = null,
     ): String {
-        if (logging && !next && !editing) return LOGGING
-        if (next && !editing) return NEXT
+        if (logging && !next && !finish && !editing) return LOGGING
+        if (finish && !editing) return FINISH_WORKOUT
+        if (next && !editing) return nextLift(nextName)
         val verb = when {
             editing && warmup -> SAVE_WARMUP
             editing -> SAVE_SET
@@ -49,5 +55,10 @@ object LogBarCopy {
         }
         val payload = draftLabel.trim()
         return if (payload.isEmpty()) verb else "$verb · $payload"
+    }
+
+    fun nextLift(name: String?): String {
+        val trimmed = name?.trim().orEmpty()
+        return if (trimmed.isEmpty()) NEXT else "$NEXT · $trimmed"
     }
 }

@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
+import com.sinura.personaltrainer.ui.theme.Motion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -87,7 +88,7 @@ class RestTimerViewModelTest {
         // is the 90 s default.
         vm.awaitState { it.rest.totalSeconds == 150 }
         vm.startSelectedRest()
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         val rest = deps.restTimerStore.current()
         assertEquals(fixture.session.id, rest.sessionId)
         assertEquals(150, rest.totalSeconds)
@@ -102,8 +103,12 @@ class RestTimerViewModelTest {
         val workout = createWorkoutViewModel(fixture.session.id)
         workout.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         workout.logSet()
+        workout.awaitState { !it.logging }
+        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+        dispatcher.scheduler.runCurrent()
+        dispatcher.scheduler.advanceUntilIdle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
 
         val floor = createViewModel(fixture.session.id)
         val state = floor.awaitState {
@@ -143,7 +148,7 @@ class RestTimerViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND }
         vm.startSelectedRest()
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         vm.adjustRest(15)
         assertTrue(deps.restTimerStore.current().totalSeconds >= 90)
         vm.skipRest()
@@ -208,6 +213,10 @@ class RestTimerViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("sessionId" to sessionId)),
             container = deps,
         ).also(workoutViewModels::add)
+
+    private suspend fun awaitRestRunning() {
+        withTimeout(TestWaits.FLOW_MS) { deps.restTimerStore.snapshot.first { it.running } }
+    }
 
     private suspend fun RestTimerViewModel.awaitState(
         predicate: (RestTimerScreenState) -> Boolean,

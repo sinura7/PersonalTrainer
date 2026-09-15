@@ -15,7 +15,31 @@ object RuleTraceCopy {
         trace.thresholds.forEach { threshold ->
             add("${thresholdLabel(threshold.name)}: ${threshold.value}")
         }
+        if (trace.alternatives.isNotEmpty()) {
+            add("Alternatives considered: ${trace.alternatives.joinToString(", ")}")
+        }
     }
+
+    /**
+     * Why sheet order (report §5.12): Call, Evidence, Rule, Threshold, Rest,
+     * Alternatives. Actions live on the dialog, not in these lines.
+     */
+    fun whySheet(trace: RuleTrace): List<String> = buildList {
+        factValue(trace, "call")?.let { add("Call: $it") }
+        factValue(trace, "lastSet")?.let { add("Evidence: Last set: $it") }
+        val rule = factValue(trace, "rule") ?: reasonLabel(trace.reasonCodes.firstOrNull().orEmpty())
+        if (rule.isNotBlank()) add("Rule: $rule")
+        trace.thresholds.firstOrNull()?.let { threshold ->
+            add("Threshold: ${thresholdLabel(threshold.name)}: ${threshold.value}")
+        }
+        factValue(trace, "rest")?.let { add("Rest: $it") }
+        if (trace.alternatives.isNotEmpty()) {
+            add("Alternatives considered: ${trace.alternatives.joinToString(", ")}")
+        }
+    }
+
+    private fun factValue(trace: RuleTrace, name: String): String? =
+        trace.facts.firstOrNull { it.name == name }?.value?.takeIf { it.isNotBlank() }
 
     fun reasonLabel(code: String): String = when (code) {
         RecommendationEngine.KICKER_BALANCE -> "Balance"
@@ -62,6 +86,12 @@ object RuleTraceCopy {
         "nextWeightKg" -> "Next weight (kg)"
         "nextReps" -> "Next reps"
         "nextRpe" -> "Next RPE"
+        "lastRpe" -> "Last RPE"
+        "lastSet" -> "Last set"
+        "increment" -> "Increment"
+        "rest" -> "Rest"
+        "call" -> "Call"
+        "rule" -> "Rule"
         else -> humanizeKey(name)
     }
 
@@ -71,6 +101,9 @@ object RuleTraceCopy {
         "rpeCeiling" -> "RPE ceiling"
         "addSets" -> "Add sets"
         "highMinSets" -> "High band"
+        "targetSets" -> "Target sets"
+        "increment" -> "Increment"
+        "rpeHold" -> "Hold at average RPE"
         else -> humanizeKey(name)
     }
 

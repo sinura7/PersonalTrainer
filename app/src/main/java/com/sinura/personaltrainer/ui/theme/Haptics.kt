@@ -63,14 +63,20 @@ object Haptics {
     }
 
     /**
-     * A record broke. Three beats. A refused entry is two ([reject]); this
-     * is the only three-beat event.
+     * A record broke (HA-24): Log success already fired [commit]; this is the
+     * one gold accent 120 ms later. Not a triple beat.
+     */
+    fun recordAccent(view: View) {
+        view.performHapticFeedback(confirmConstant())
+    }
+
+    /**
+     * Kept for summary surfaces. The gym floor uses [commit] plus [recordAccent].
      */
     suspend fun celebrate(view: View) {
-        repeat(3) { index ->
-            view.performHapticFeedback(confirmConstant())
-            if (index < 2) delay(PR_BEAT_GAP_MS)
-        }
+        recordAccent(view)
+        delay(Motion.PR_ACCENT_DELAY_MS.toLong())
+        recordAccent(view)
     }
 
     /** CONFIRM is API 30; below that the heaviest thing available is a long press. */
@@ -90,6 +96,5 @@ object Haptics {
         }
 }
 
-private const val PR_BEAT_GAP_MS = 90L
 private const val ERROR_BEAT_GAP_MS = 90L
 private const val HOLD_DONE_GAP_MS = 90L

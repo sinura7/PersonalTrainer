@@ -242,15 +242,8 @@ data class WorkoutSession(
      * only one — and the caller must then leave the selection alone. Advancing to a lift that
      * is already done would be worse than not advancing at all.
      */
-    fun nextUnfinishedExerciseAfter(exerciseId: String): String? {
-        val ids = exercises.map { it.exercise.id }
-        val from = ids.indexOf(exerciseId)
-        if (from < 0) return null
-        // Search forward from the next lift, then wrap: a lift skipped earlier in the session
-        // is still owed, and the alternative is stranding it with no way back but a manual tap.
-        val order = (1 until ids.size).map { step -> ids[(from + step) % ids.size] }
-        return order.firstOrNull { !isTargetMet(it) }
-    }
+    fun nextUnfinishedExerciseAfter(exerciseId: String): String? =
+        WorkoutAdvance.nextUnfinishedExerciseId(this, exerciseId)
 
     fun resolveSelectedExerciseId(preferredId: String?): String? {
         val exerciseIds = exercises.map { it.exercise.id }

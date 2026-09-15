@@ -111,6 +111,7 @@ internal data class WorkoutLiftCardEvents(
     val onEditSet: (String) -> Unit,
     val onDeleteSet: (String) -> Unit,
     val onAddSet: () -> Unit,
+    val onApplyMicroRec: () -> Unit = {},
 )
 
 /**
@@ -185,13 +186,14 @@ internal fun WorkoutLiftCard(
         loggedWarmupKg = loggedSets.filter { it.isWarmup }.map { it.weightKg },
     )
     val entryRequester = remember { BringIntoViewRequester() }
+    val rowRequester = remember { BringIntoViewRequester() }
     var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
     LaunchedEffect(lift.id, loggedSets.size) {
         val count = loggedSets.size
         val grew = LogLoopBringIntoView.shouldBringIntoView(previousSetCount, count)
         previousSetCount = count
         if (grew) {
-            entryRequester.bringIntoView()
+            rowRequester.bringIntoView()
         }
     }
     Column(
@@ -204,6 +206,14 @@ internal fun WorkoutLiftCard(
             text = setContext,
             modifier = Modifier.testTag(WorkoutTestTags.SET_CONTEXT),
         )
+        card.microRec?.let { rec ->
+            MicroRecLine(
+                rec = rec,
+                loadClass = LoadClass.of(lift.exercise.loadType),
+                unit = unit,
+                onApply = events.onApplyMicroRec,
+            )
+        }
         lastPerformance?.let { last ->
             LastTimeStrip(
                 summary = last,
@@ -271,6 +281,7 @@ internal fun WorkoutLiftCard(
                     onDelete = onDeleteSet,
                     onAddSet = onAddSet,
                     addSetCaption = card.microRec?.let { SetMicroRecCopy.anotherSetLine(it) },
+                    modifier = Modifier.bringIntoViewRequester(rowRequester),
                 )
             }
         }

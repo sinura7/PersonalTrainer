@@ -1,11 +1,15 @@
 package com.sinura.personaltrainer.domain
 
 /**
- * When the live log should stop being Log and start being Next, and which
- * lift Next opens.
+ * When the live log should stop being Log and start being Next / Finish,
+ * and which lift Next opens.
  *
  * Extra sets are a UI ask ([wantAnother]), not a database flag. While that
  * ask is live the lift is not complete, so Log stays the Volt.
+ *
+ * Next is always the next *unfinished* lift in session order, wrapping to
+ * a lift skipped earlier. Post-log and resume share [nextUnfinishedExerciseId]
+ * so they cannot disagree.
  */
 object WorkoutAdvance {
     /**
@@ -25,9 +29,8 @@ object WorkoutAdvance {
     /**
      * The next lift in session order, or null on the last lift / unknown id.
      *
-     * [exerciseIds] must already be session order. This does not skip lifts
-     * that still have remaining sets — Next is "this lift is done", not a hunt
-     * for unfinished work.
+     * Prefer [nextUnfinishedExerciseId] on the gym floor. This sequential
+     * helper remains for callers that already hold a bare id list.
      */
     fun nextExerciseId(exerciseIds: List<String>, currentId: String?): String? {
         if (currentId == null) return null
@@ -37,13 +40,23 @@ object WorkoutAdvance {
     }
 
     /**
-     * Everything the log dock needs to decide Log-or-Next, from the session itself.
+     * The lift Next should open: the next one in session order that has not
+     * met its own target, wrapping to earlier skipped lifts.
      *
-     * The screen used to work this out in its own composition body: count the selected lift's
-     * working sets, call [liftComplete], map every lift to its id, call [nextExerciseId], then
-     * `&&` the two against whether a set was being edited. Four rule decisions in a function
-     * whose job is to draw, re-run on every recomposition — and the header above it redraws once
-     * a second as the elapsed clock ticks.
+     * Null means there is nowhere useful to go — every other lift is finished,
+     * or this is the only one — and the dock becomes Finish workout.
+     */
+    fun nextUnfinishedExerciseId(session: WorkoutSession?, currentId: String?): String? {
+        if (session == null || currentId == null) return null
+        val ids = session.exercises.map { it.exercise.id }
+        val from = ids.indexOf(currentId)
+        if (from < 0) return null
+        val order = (1 until ids.size).map { step -> ids[(from + step) % ids.size] }
+        return order.firstOrNull { !session.isTargetMet(it) }
+    }
+
+    /**
+     * Everything the log dock needs to decide Log, Next, or Finish.
      */
     fun forSelection(
         session: WorkoutSession?,
@@ -60,15 +73,17 @@ object WorkoutAdvance {
             targetSets = selected?.targetSets ?: 0,
             wantAnother = wantAnother,
         )
-        val next = nextExerciseId(
-            session?.exercises.orEmpty().map { it.exercise.id },
-            selectedExerciseId,
-        )
+        val next = nextUnfinishedExerciseId(session, selectedExerciseId)
+        val nextLift = next?.let { id -> session?.exercises?.firstOrNull { it.exercise.id == id } }
         return WorkoutAdvanceState(
             workingLogged = workingLogged,
             liftComplete = complete,
             nextExerciseId = next,
+            nextName = nextLift?.exercise?.name,
+            nextLift = nextLift,
             showNext = complete && next != null && !editing,
+            showFinish = complete && next == null && !editing,
+            showAnother = complete && !editing,
         )
     }
 
@@ -82,12 +97,19 @@ object WorkoutAdvance {
     /** The most recently completed set, which the card rules and marks as the latest. */
     fun latestSetId(loggedSets: List<SetLog>): String? =
         loggedSets.maxByOrNull { it.completedAt }?.id
+
+    fun plannedWork(targetSets: Int, targetReps: Int): String =
+        if (targetSets > 0) "$targetSets × $targetReps" else ""
 }
 
-/** The Log-or-Next decision for the selected lift. See [WorkoutAdvance.forSelection]. */
+/** The Log / Next / Finish decision for the selected lift. See [WorkoutAdvance.forSelection]. */
 data class WorkoutAdvanceState(
     val workingLogged: Int,
     val liftComplete: Boolean,
     val nextExerciseId: String?,
+    val nextName: String? = null,
+    val nextLift: SessionExercise? = null,
     val showNext: Boolean,
+    val showFinish: Boolean = false,
+    val showAnother: Boolean = false,
 )

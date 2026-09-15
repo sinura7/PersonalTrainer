@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -284,14 +285,50 @@ fun PersonalRecordBanner(
             InstrumentBanner(
                 accent = PrGold,
                 container = GoldContainer,
-                title = headline,
-                body = detail,
+                title = PersonalRecordCopy.BANNER,
+                body = "$headline · $detail",
                 icon = {
-                    Icon(OutlinedMarks.EmojiEvents, contentDescription = null, tint = PrGold)
+                    Icon(
+                        OutlinedMarks.EmojiEvents,
+                        contentDescription = PersonalRecordCopy.BANNER,
+                        tint = PrGold,
+                    )
                 },
                 onDismiss = onDismiss,
             )
         }
+    }
+}
+
+/**
+ * Packet F: durable Log success. Polite live region once. Rest is not.
+ */
+@Composable
+fun GymReceiptBanner(
+    message: String,
+    onDismissed: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var visible by remember(message) { mutableStateOf(true) }
+    LaunchedEffect(message) {
+        delay(Motion.STATUS_DWELL_MS)
+        visible = false
+        onDismissed()
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(instrumentTween(Motion.ROW_SETTLE_MS)),
+        exit = fadeOut(instrumentTween(Motion.FAST)),
+        modifier = modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+        },
+    ) {
+        InstrumentBanner(
+            accent = Volt,
+            container = Surface2,
+            title = message,
+            body = null,
+        )
     }
 }
 

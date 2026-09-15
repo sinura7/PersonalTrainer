@@ -3,16 +3,17 @@ package com.sinura.personaltrainer.ui.workout
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.sinura.personaltrainer.domain.Coach
+import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoggedSetView
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetMicroRec
-import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
-import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
+import com.sinura.personaltrainer.domain.toMicroRec
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 
@@ -36,7 +37,7 @@ internal fun ProgressionKickerMark(
     )
 }
 
-/** Same `suggest()` inputs on the log and the rest floor. */
+/** Same Coach.decide inputs on the log and the rest floor. */
 internal fun workoutMicroRec(
     session: WorkoutSession?,
     selectedExerciseId: String?,
@@ -65,7 +66,7 @@ internal fun workoutMicroRec(
     val lastAny = sets.maxByOrNull { it.completedAt }
     // Warm-up drafts are not a preview of the next working set.
     val draftRpe = draft.rpe.takeUnless { draft.isWarmup }
-    return SetMicroRecCalculator.suggest(
+    val decision = Coach.decide(
         setMicroRecInputs(
             editing = editingSetId != null,
             loadType = planned?.exercise?.loadType,
@@ -95,4 +96,5 @@ internal fun workoutMicroRec(
             },
         ),
     )
+    return decision?.toMicroRec()
 }

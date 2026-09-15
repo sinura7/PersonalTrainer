@@ -64,7 +64,10 @@ data class SetTableLine(
                 unit,
                 durationSeconds = set.durationSeconds,
             ),
-            extras = SetCopy.tableExtras(ordinal ?: "Set ${set.setNumber}", set.rpe),
+            extras = buildString {
+                append(SetCopy.tableExtras(ordinal ?: "Set ${set.setNumber}", set.rpe))
+                if (isLatest) append(" · Latest")
+            },
             isWarmup = set.isWarmup,
             isLatest = isLatest,
         )
@@ -124,6 +127,7 @@ private fun SetTableRow(
                 contentDescription = when {
                     onSelect == null -> "${row.extras}, ${row.line}"
                     isSelected -> "${row.extras}, ${row.line}, selected. Revise or Remove."
+                    row.isLatest -> "${row.extras}, ${row.line}, Latest. Tap to revise or remove."
                     else -> "${row.extras}, ${row.line}. Tap to revise or remove."
                 }
             }

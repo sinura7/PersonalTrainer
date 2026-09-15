@@ -64,4 +64,12 @@ class FloorCompactChromeTest {
         assertTrue(FloorCompactChrome.notesLeaveTheLogLoop())
         assertTrue(FloorCompactChrome.headerShowsMinuteTelemetryOnly())
     }
+
+    @Test
+    fun packetFHidesAddSetAndReplacesTheClockOnLiftComplete() {
+        assertTrue(FloorCompactChrome.addSetHiddenOnFloor())
+        assertTrue(FloorCompactChrome.liftCompleteReplacesClock())
+        assertTrue(FloorCompactChrome.progressionKickerInline())
+        assertFalse(FloorCompactChrome.showIdleStartNext())
+    }
 }

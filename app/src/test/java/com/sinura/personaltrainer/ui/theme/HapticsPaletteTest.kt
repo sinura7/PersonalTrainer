@@ -22,6 +22,7 @@ class HapticsPaletteTest {
         assertTrue(haptics.contains("postDelayed"))
         assertTrue(haptics.contains("ERROR_BEAT_GAP_MS"))
         assertTrue(haptics.contains("fun holdDone("))
+        assertTrue(haptics.contains("fun recordAccent("))
         assertTrue(haptics.contains("performHapticFeedback"))
         assertTrue(haptics.contains("LocalView.current"))
     }
@@ -55,6 +56,9 @@ class HapticsPaletteTest {
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertTrue(workout.contains("Haptics.commit(view)"))
         assertTrue(workout.contains("Haptics.reject(view)"))
+        assertTrue(workout.contains("Haptics.recordAccent(view)"))
+        assertTrue(workout.contains("Motion.PR_ACCENT_DELAY_MS"))
+        assertFalse(workout.contains("Haptics.celebrate"))
         assertTrue(workout.contains("logFeedback"))
         val onLogStart = workout.indexOf("onLog = {")
         val onLogEnd = workout.indexOf("onNext = {")

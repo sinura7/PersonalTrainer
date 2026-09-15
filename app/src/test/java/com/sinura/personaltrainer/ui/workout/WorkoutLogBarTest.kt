@@ -60,25 +60,35 @@ class WorkoutLogBarTest {
     @Test
     fun advanceIsAStandingDockChoiceNotADwellAutoMove() {
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("advanceChoice: Boolean"))
+        assertTrue(bar.contains("showNext: Boolean"))
+        assertTrue(bar.contains("showFinish: Boolean"))
+        assertTrue(bar.contains("showAnother: Boolean"))
         assertTrue(bar.contains("LogBarCopy.ANOTHER_SET"))
         assertTrue(bar.contains("WorkoutTestTags.ANOTHER_SET"))
         assertTrue(bar.contains("onAnotherSet"))
+        assertTrue(bar.contains("finishAct"))
+        assertTrue(bar.contains("WorkoutTestTags.DOCK_FINISH"))
+        assertTrue(bar.contains("NextLiftPreview("))
 
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("advanceChoice = pendingAdvance != null"))
-        assertTrue(screen.contains("onAnotherSet = viewModel::stayOnCurrentExercise"))
+        assertTrue(screen.contains("showNext = advance.showNext"))
+        assertTrue(screen.contains("showFinish = advance.showFinish"))
+        assertTrue(screen.contains("viewModel.requestExtraSet()"))
         assertTrue(screen.contains("viewModel.advanceNow()"))
+        assertTrue(screen.contains("onFinish = { confirmEnd = true }"))
         assertFalse(
             "dwell must not call advanceNow",
             screen.contains("onDismissed = { viewModel.advanceNow() }"),
         )
         assertFalse(screen.contains("Stay here"))
-        assertTrue(screen.contains("Motion.STATUS_DWELL_MS"))
+        assertFalse(screen.contains("onStartNextLift"))
+        assertTrue(screen.contains("Haptics.recordAccent(view)"))
+        assertFalse(screen.contains("Haptics.celebrate"))
 
         val copy = readOwned("domain/LogBarCopy.kt")
         assertTrue(copy.contains("const val NEXT = \"Next lift\""))
         assertTrue(copy.contains("const val ANOTHER_SET = \"Another set\""))
+        assertTrue(copy.contains("const val FINISH_WORKOUT = \"Finish workout\""))
         assertTrue(copy.contains("const val LOGGING"))
         assertTrue(bar.contains("canLog"))
         assertTrue(bar.contains("LogCommitCopy.disabledReason"))

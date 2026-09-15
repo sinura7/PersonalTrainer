@@ -362,6 +362,19 @@ object SetMicroRecCalculator {
         return working.all { (it.rpe ?: 99) <= ANOTHER_SET_RPE_CEILING }
     }
 
+    internal fun alternativesFor(reason: String): List<String> {
+        val addRep = SetMicroRecCopy.ALT_ADD_REP
+        val addWeight = SetMicroRecCopy.ALT_ADD_WEIGHT
+        val backOff = SetMicroRecCopy.ALT_BACK_OFF
+        return when (reason) {
+            CLIMB_REPS, BW_ADD_REP -> listOf(addWeight, backOff)
+            IN_TANK -> listOf(addRep, backOff)
+            FAILED_DROP, SKIP_RPE_DROP, BW_DROP_REP -> listOf(addRep, addWeight)
+            LIFT_DONE, EDITING, FIRST_SET, WARMUP_DONE, NO_HISTORY -> emptyList()
+            else -> listOf(addRep, addWeight, backOff)
+        }
+    }
+
     private fun rec(
         inputs: SetMicroRecInputs,
         weight: Double,
@@ -373,6 +386,22 @@ object SetMicroRecCalculator {
         extraCodes: List<String> = emptyList(),
     ): SetMicroRec {
         val codes = listOf(reason) + extraCodes.filter { it != reason }
+        val restSeconds = RestPrescription.seconds(
+            reasonCode = reason,
+            loadType = inputs.loadType,
+            reps = reps,
+        )
+        val loadClass = LoadClass.of(inputs.loadType)
+        val last = inputs.thisSessionWorking.lastOrNull()
+        val lastLine = last?.let { set ->
+            buildString {
+                append(SetCopy.setLine(set.weightKg, set.reps, loadClass, inputs.unit))
+                set.rpe?.let { append(" at RPE $it") }
+            }
+        }
+        val increment = inputs.loadType?.let { load ->
+            IncrementTable.stepLabel(load, inputs.unit, inputs.equipment)
+        }
         val trace = RuleTrace.forMicroRec(
             reasonCodes = codes,
             nextWeightKg = weight,
@@ -380,6 +409,17 @@ object SetMicroRecCalculator {
             nextRpe = rpe,
             nowMs = inputs.nowMs,
             todayEpochDay = inputs.todayEpochDay,
+            lastWeightKg = last?.weightKg,
+            lastReps = last?.reps,
+            lastRpe = last?.rpe,
+            lastSetLine = lastLine,
+            incrementLabel = increment,
+            targetReps = inputs.targetReps.takeIf { it > 0 },
+            targetSets = inputs.targetSets.takeIf { it > 0 },
+            restSeconds = restSeconds,
+            call = SetMicroRecCopy.callLine(reason, weight, reps, loadClass, inputs.unit),
+            rule = SetMicroRecCopy.ruleLine(reason),
+            alternatives = alternativesFor(reason),
         )
         return SetMicroRec(
             nextWeightKg = weight,
@@ -389,11 +429,7 @@ object SetMicroRecCalculator {
             showApply = showApply && !previewOnly,
             reasonCode = reason,
             trace = trace,
-            restSeconds = RestPrescription.seconds(
-                reasonCode = reason,
-                loadType = inputs.loadType,
-                reps = reps,
-            ),
+            restSeconds = restSeconds,
             anotherSetAdvised = reason == LIFT_DONE && adviseAnother(inputs),
             warmupSets = warmupSetsFor(inputs, reason, weight),
             equipment = inputs.equipment,
@@ -460,11 +496,78 @@ fun setMicroRecInputs(
 )
 
 object SetMicroRecCopy {
+    const val USE_SUGGESTION = "Use suggestion"
+    const val KEEP_MY_NUMBERS = "Keep my numbers"
+    const val ALT_ADD_REP = "Add a rep"
+    const val ALT_ADD_WEIGHT = "Add weight"
+    const val ALT_BACK_OFF = "Back off"
+
     fun payload(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String {
         return buildString {
             append(SetCopy.setLine(rec.nextWeightKg, rec.nextReps, loadClass, unit))
             rec.nextRpe?.let { append(" · RPE $it") }
         }
+    }
+
+    fun numbers(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String =
+        SetCopy.setLine(rec.nextWeightKg, rec.nextReps, loadClass, unit)
+
+    /**
+     * Collapsed strip: `HOLD · 100 kg × 6`. Kicker never travels alone.
+     */
+    fun collapsed(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String {
+        val numbers = numbers(rec, loadClass, unit)
+        val kicker = kicker(rec, loadClass, unit)
+        return if (kicker != null) "$kicker · $numbers" else line(rec, loadClass, unit)
+    }
+
+    fun visibleOnEntry(rec: SetMicroRec): Boolean =
+        rec.reasonCode != SetMicroRecCalculator.LIFT_DONE &&
+            rec.reasonCode != SetMicroRecCalculator.EDITING
+
+    fun callLine(
+        reason: String,
+        weightKg: Double,
+        reps: Int,
+        loadClass: LoadClass,
+        unit: WeightUnit,
+    ): String {
+        val numbers = SetCopy.setLine(weightKg, reps, loadClass, unit)
+        return when (reason) {
+            SetMicroRecCalculator.RPE_HOLD,
+            SetMicroRecCalculator.CLOSE_HOLD,
+            SetMicroRecCalculator.LIGHTER_HOLD,
+            SetMicroRecCalculator.BW_HOLD,
+            SetMicroRecCalculator.SKIP_RPE_HOLD,
+            SetMicroRecCalculator.QUALITY,
+            SetMicroRecCalculator.TOP_SET,
+            -> "Hold $numbers"
+            SetMicroRecCalculator.CLIMB_REPS,
+            SetMicroRecCalculator.BW_ADD_REP,
+            -> "Add a rep · $numbers"
+            SetMicroRecCalculator.FAILED_DROP,
+            SetMicroRecCalculator.SKIP_RPE_DROP,
+            SetMicroRecCalculator.BW_DROP_REP,
+            -> "Back off to $numbers"
+            else -> numbers
+        }
+    }
+
+    fun ruleLine(reason: String): String = when (reason) {
+        SetMicroRecCalculator.TOP_SET,
+        SetMicroRecCalculator.RPE_HOLD,
+        -> "High effort holds the load"
+        SetMicroRecCalculator.QUALITY -> "Quality set holds the load"
+        SetMicroRecCalculator.IN_TANK -> "In the tank — add weight"
+        SetMicroRecCalculator.CLIMB_REPS,
+        SetMicroRecCalculator.BW_ADD_REP,
+        -> "Close. Add a rep"
+        SetMicroRecCalculator.FAILED_DROP,
+        SetMicroRecCalculator.SKIP_RPE_DROP,
+        SetMicroRecCalculator.BW_DROP_REP,
+        -> "Missed target — back off"
+        SetMicroRecCalculator.CLOSE_HOLD -> "Close. Hold."
+        else -> RuleTraceCopy.reasonLabel(reason)
     }
 
     fun line(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String {
@@ -482,7 +585,8 @@ object SetMicroRecCopy {
     fun caption(rec: SetMicroRec): String? =
         if (rec.previewOnly) "If you log this: …" else null
 
-    fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.lines(rec.trace)
+    fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.whySheet(rec.trace)
+        .ifEmpty { RuleTraceCopy.lines(rec.trace) }
 
     fun anotherSetLine(rec: SetMicroRec): String? =
         if (rec.anotherSetAdvised) ANOTHER_IN_YOU else null

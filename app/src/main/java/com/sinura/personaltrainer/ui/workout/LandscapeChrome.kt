@@ -36,7 +36,8 @@ object LandscapeChrome {
         return landscape || !FloorCompactChrome.showSelectedLiftDock()
     }
 
-    fun foldMicroRecIntoCard(landscape: Boolean): Boolean = landscape
+    fun foldMicroRecIntoCard(landscape: Boolean): Boolean =
+        landscape || FloorCompactChrome.progressionKickerInline()
 
     fun logBudgetDp(
         heightDp: Int,
