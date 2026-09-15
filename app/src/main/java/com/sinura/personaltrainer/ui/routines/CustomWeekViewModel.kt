@@ -237,11 +237,10 @@ class CustomWeekViewModel @JvmOverloads constructor(
             existing.filterNot { it.id == stored.id }
         } else {
             CustomWeekPolicy.addLifts(
-                existing,
-                listOf(exercise),
-                { UUID.randomUUID().toString() },
+                existing = existing,
+                incoming = listOf(exercise),
                 goal = guidedAnswers?.goal ?: trainingGoal.value,
-            )
+            ) { UUID.randomUUID().toString() }
         }
         days.value = days.value + (day to next)
         error.clearFrom(source = ERR_ADD_LIFT)
