@@ -7,6 +7,12 @@ package com.sinura.personaltrainer.domain
  * pages, a component gallery, and the three ThemeGallery previews. Recording
  * those PNGs stays an owner emulator gate on `temper-tests-api29`.
  *
+ * Packet H names the six 360×800 populated floor states the gate must record
+ * for `active-strength`: entry, rest-running, hold-running, lift-complete,
+ * error, and the font-2.0 entry variant. Until the emulator records them they
+ * stay in [missingFloorStateGoldens]; no caller may add a `GoldenImageAssert`
+ * `assertMatches` on a name that is not in [committed].
+ *
  * Asset path: `app/src/androidTest/assets/goldens/{name}.png`.
  */
 object GoldenPageCatalog {
@@ -16,6 +22,10 @@ object GoldenPageCatalog {
     const val THEME_COLOUR_ROLES = "theme-colour-roles-api29"
     const val THEME_INSTRUMENT_TOKENS = "theme-instrument-tokens-api29"
     const val THEME_TYPE_RAMP = "theme-type-ramp-api29"
+
+    /** Recording profile for every floor state below: 360×800, populated. */
+    const val FLOOR_WIDTH_DP = 360
+    const val FLOOR_HEIGHT_DP = 800
 
     val gymFloorPageIds: List<String> = listOf(
         "home",
@@ -39,6 +49,25 @@ object GoldenPageCatalog {
     )
 
     /**
+     * Packet H floor states: the six 360×800 populated captures that close the
+     * visual evidence gap for `active-strength`. Recorded on
+     * `temper-tests-api29`, populated session, one state per PNG.
+     */
+    val floorStateIds: List<String> = listOf(
+        "entry",
+        "rest",
+        "hold",
+        "completion",
+        "error",
+        "entry-font20",
+    )
+
+    fun floorAssetName(state: String): String = "active-strength-$state-$PROFILE_SUFFIX"
+
+    val requiredFloorStateGoldens: List<String> =
+        floorStateIds.map { floorAssetName(it) }
+
+    /**
      * Goldens that are committed today. The substrate gallery is not a page
      * golden — it proves the harness, not Home or Settings.
      */
@@ -49,6 +78,9 @@ object GoldenPageCatalog {
 
     val missingSupportingGoldens: List<String>
         get() = requiredSupportingGoldens.filterNot { it in committed }
+
+    val missingFloorStateGoldens: List<String>
+        get() = requiredFloorStateGoldens.filterNot { it in committed }
 
     fun isCommitted(name: String): Boolean = name in committed
 }

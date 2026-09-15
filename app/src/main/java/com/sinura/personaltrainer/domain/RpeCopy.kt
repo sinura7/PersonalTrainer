@@ -39,15 +39,19 @@ object RpeCopy {
 
     /**
      * TalkBack for one chip: `RPE 8, about two reps left, not selected`.
+     *
+     * Packet H: a recommendation outlines the chip without selecting it, so the
+     * outline needs the word `recommended` — the non-colour channel (ADR-023).
      */
-    fun spoken(value: Int, selected: Boolean): String {
+    fun spoken(value: Int, selected: Boolean, recommended: Boolean = false): String {
         val effort = when (val body = meaning(value)) {
             null -> ""
             "max" -> ", max"
             else -> ", about $body"
         }
         val state = if (selected) "selected" else "not selected"
-        return "RPE $value$effort, $state"
+        val outline = if (recommended && !selected) ", recommended" else ""
+        return "RPE $value$effort, $state$outline"
     }
 
     fun helperSpoken(): String = "$HELPER. $HELPER_DISMISS."
