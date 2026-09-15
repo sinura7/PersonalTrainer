@@ -51,32 +51,33 @@ class LandscapeChromeTest {
 
     @Test
     fun sessionPrimaryActionsSitInTheLowerDock() {
-        // G-02: Rest Start/Skip and Log set share Scaffold.bottomBar, with
-        // RestDock immediately above LogBar so a one-handed thumb reaches
-        // both. Finish stays in the header (not a mid-set act).
+        // G-02 / Packet 2: timer slot and Log set share LogBar in
+        // Scaffold.bottomBar. Finish stays in the header (not a mid-set act).
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
+        val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         val bottomBar = workout.indexOf("bottomBar")
-        val restDock = workout.indexOf("RestDock(")
         val selectedDock = workout.indexOf("SelectedLiftDock(")
         val logBar = workout.indexOf("LogBar(")
         val lazy = workout.indexOf("LazyColumn(")
         assertTrue("bottomBar missing", bottomBar >= 0)
-        assertTrue("RestDock missing", restDock >= 0)
         assertTrue("SelectedLiftDock missing", selectedDock >= 0)
         assertTrue("LogBar missing", logBar >= 0)
         assertTrue("LazyColumn missing", lazy >= 0)
-        assertTrue("RestDock must live in bottomBar, not above the list", restDock > bottomBar)
         assertTrue("SelectedLiftDock must sit in the lower dock", selectedDock > bottomBar)
-        assertTrue("SelectedLiftDock must sit above RestDock", selectedDock < restDock)
-        assertTrue("LogBar must sit under RestDock in the lower dock", logBar > restDock)
-        assertTrue("the lift list must not contain RestDock or LogBar", lazy > logBar)
+        assertTrue("LogBar must sit in the lower dock", logBar > bottomBar)
+        assertTrue("the lift list must not contain LogBar", lazy > logBar)
+        assertTrue("LogBar owns the timer slot", bar.contains("FloorTimerSlot("))
         assertFalse(
-            "RestDock must not be composed in the scrolling column",
-            workout.substring(lazy).contains("RestDock("),
+            "FloorTimerSlot must not be composed in the scrolling column",
+            workout.substring(lazy).contains("FloorTimerSlot("),
         )
         assertFalse(
             "SelectedLiftDock must not be composed in the scrolling column",
             workout.substring(lazy).contains("SelectedLiftDock("),
+        )
+        assertFalse(
+            "RestDock is owned through FloorTimerSlot inside LogBar",
+            workout.contains("RestDock("),
         )
     }
 

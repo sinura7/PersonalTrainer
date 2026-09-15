@@ -2,11 +2,13 @@ package com.sinura.personaltrainer.ui.workout
 
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
@@ -21,7 +23,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.FloorTimerSurface
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
@@ -31,21 +37,19 @@ import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import kotlinx.coroutines.delay
 
 /**
- * The session's own chrome, carrying the session's own telemetry.
+ * Read-only session instrument strip (Packet 2).
  *
- * This used to be a stock app bar spending its entire width on a routine name and a close
- * icon: the most data-driven screen in the product had less live information in its header
- * than a notes app, and the duration of a workout was computed for the first time only
- * after it had ended.
- *
- * Finish moved up here too. It was the last item of the scrolling content, so ending a
- * session meant scrolling to the bottom of a layout designed for mid-set logging. Finish
- * opens the explicit end (save as is / leave without saving). X is go-Home.
+ * Elapsed · sets · volume plus a quiet rest/hold state. The whole strip
+ * is one tap target that opens the rest timer page. Start / Skip / rest
+ * length / Log set live in [LogBar] — nothing here is a control except
+ * Finish / Exit on the session chrome row (not mid-set acts).
  */
 @Composable
 internal fun WorkoutHeader(
@@ -58,6 +62,12 @@ internal fun WorkoutHeader(
     compact: Boolean,
     onExit: () -> Unit,
     onFinish: () -> Unit,
+    onOpenTimer: () -> Unit = {},
+    restRunning: Boolean = false,
+    restRemainingSeconds: Int = 0,
+    plannedRestSeconds: Int = 0,
+    holdRunning: Boolean = false,
+    holdElapsedSeconds: Int = 0,
 ) {
     var elapsedSeconds by remember { mutableIntStateOf(0) }
     LaunchedEffect(startedAt) {
@@ -69,6 +79,15 @@ internal fun WorkoutHeader(
             delay(1_000L)
         }
     }
+
+    val timerState = FloorTimerSurface.instrumentState(
+        holdRunning = holdRunning,
+        holdElapsedSeconds = holdElapsedSeconds,
+        restRunning = restRunning,
+        restRemainingSeconds = restRemainingSeconds,
+        plannedRestSeconds = plannedRestSeconds,
+    )
+    val timerLive = holdRunning || restRunning
 
     Column(
         modifier = Modifier
@@ -90,41 +109,70 @@ internal fun WorkoutHeader(
                     enabled = canFinish,
                     modifier = Modifier.testTag(WorkoutTestTags.FINISH),
                 ) {
-                Text(
-                    "Finish",
-                    style = InstrumentType.bodyStrong,
-                    color = if (canFinish) TextPrimary else TextTertiary,
-                )
-            }
-        },
+                    Text(
+                        "Finish",
+                        style = InstrumentType.bodyStrong,
+                        color = if (canFinish) TextPrimary else TextTertiary,
+                    )
+                }
+            },
         )
-        if (!compact) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = Metrics.space2),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+                .heightIn(min = Metrics.touchMin)
+                .padding(start = Metrics.space2)
+                .testTag(WorkoutTestTags.INSTRUMENT_STRIP)
+                .clickable(role = Role.Button, onClick = onOpenTimer)
+                .semantics {
+                    contentDescription =
+                        "Session instruments. $timerState. Open rest timer."
+                },
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            MetricCluster(
-                value = RestTimer.formatClock(elapsedSeconds),
-                label = "elapsed",
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier.weight(1f),
-            )
-            MetricCluster(
-                value = workingSets.toString(),
-                label = "sets",
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier.weight(1f),
-            )
-            val column = SetCopy.workColumn(work, unit)
-            MetricCluster(
-                value = column.value,
-                label = column.label,
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier.weight(1f),
-            )
-        }
+            if (compact) {
+                Text(
+                    RestTimer.formatClock(elapsedSeconds),
+                    style = InstrumentType.numeralSm,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    timerState,
+                    style = InstrumentType.bodyStrong,
+                    color = if (timerLive) RestCyan else TextSecondary,
+                    maxLines = 1,
+                )
+            } else {
+                MetricCluster(
+                    value = RestTimer.formatClock(elapsedSeconds),
+                    label = "elapsed",
+                    horizontalAlignment = Alignment.Start,
+                    modifier = Modifier.weight(1f),
+                )
+                MetricCluster(
+                    value = workingSets.toString(),
+                    label = "sets",
+                    horizontalAlignment = Alignment.Start,
+                    modifier = Modifier.weight(1f),
+                )
+                val column = SetCopy.workColumn(work, unit)
+                MetricCluster(
+                    value = column.value,
+                    label = column.label,
+                    horizontalAlignment = Alignment.Start,
+                    modifier = Modifier.weight(1f),
+                )
+                MetricCluster(
+                    value = timerState.substringAfter(' ', timerState),
+                    label = if (holdRunning) FloorTimerSurface.SET_STATE else FloorTimerSurface.REST_STATE,
+                    horizontalAlignment = Alignment.Start,
+                    valueColor = if (timerLive) RestCyan else TextPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
     }
 }

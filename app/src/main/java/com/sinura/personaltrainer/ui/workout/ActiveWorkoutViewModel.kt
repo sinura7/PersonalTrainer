@@ -1243,6 +1243,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun startSelectedRest() {
+        stopHoldTimer()
         val seconds = restTotal.value.coerceIn(
             RestTimerPreferences.MIN_SECONDS,
             RestTimerPreferences.MAX_SECONDS,

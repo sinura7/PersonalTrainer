@@ -34,4 +34,16 @@ object FloorCompactChrome {
 
     /** RPE 6–10 share one non-scrolling row (360 dp / font 2.0). */
     fun rpeTrackFitsWithoutScroll(): Boolean = true
+
+    /**
+     * Packet 2: header is a read-only instrument strip; the dock owns
+     * the timer, advance choice, and the one Volt Log set.
+     */
+    fun headerIsReadOnlyInstrumentStrip(): Boolean = true
+
+    /** Rest and set clocks share one dock slot; modes never stack. */
+    fun oneClockTwoModes(): Boolean = true
+
+    /** Planned rest length edits inline with SnapValueWheel in the dock. */
+    fun restLengthIsInlineWheel(): Boolean = true
 }

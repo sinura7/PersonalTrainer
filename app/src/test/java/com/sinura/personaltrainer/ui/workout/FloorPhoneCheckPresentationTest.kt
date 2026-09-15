@@ -28,9 +28,12 @@ class FloorPhoneCheckPresentationTest {
         assertTrue(dock.contains("onStartNext"))
         assertTrue(dock.contains("RestIdleCopy.START_NEXT"))
         assertTrue(dock.contains("RestIdleCopy.START"))
+        val bar = readOwned("ui/workout/WorkoutLogBar.kt")
+        assertTrue(bar.contains("onStartNextLift"))
+        assertTrue(bar.contains("onStartRest"))
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(workout.contains("onStartNext = viewModel::startNextLift"))
-        assertTrue(workout.contains("onStart = viewModel::startSelectedRest"))
+        assertTrue(workout.contains("onStartNextLift = viewModel::startNextLift"))
+        assertTrue(workout.contains("onStartRest = viewModel::startSelectedRest"))
     }
 
     private fun readOwned(relative: String): String {

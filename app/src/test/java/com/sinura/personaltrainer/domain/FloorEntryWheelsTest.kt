@@ -50,6 +50,21 @@ class FloorEntryWheelsTest {
     }
 
     @Test
+    fun restSwipeStepsByFifteenLikeTheFloorAdjust() {
+        assertEquals(FloorEntryWheels.REST_STEP_SECONDS, 15)
+        assertEquals(105, FloorEntryWheels.swipeRestSeconds(90, 1))
+        assertEquals(75, FloorEntryWheels.swipeRestSeconds(90, -1))
+        assertEquals(
+            RestTimerPreferences.MIN_SECONDS,
+            FloorEntryWheels.swipeRestSeconds(RestTimerPreferences.MIN_SECONDS, -1),
+        )
+        val values = FloorEntryWheels.restSecondsValues(90)
+        assertTrue(values.contains(90))
+        assertTrue(values.contains(RestTimerPreferences.MIN_SECONDS))
+        assertEquals(90, FloorEntryWheels.restSecondsAt(FloorEntryWheels.restPage(90), 90))
+    }
+
+    @Test
     fun offStepWeightLandsOnTheNextPlateAfterAFlick() {
         assertEquals(
             102.5,
