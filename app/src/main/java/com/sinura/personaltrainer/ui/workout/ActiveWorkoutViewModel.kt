@@ -44,14 +44,21 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.UndoDwell
+import com.sinura.personaltrainer.domain.UndoQueue
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.workout.SavedStateFloorTimer
+import com.sinura.personaltrainer.workout.SavedStateFloorUndo
+import com.sinura.personaltrainer.workout.FloorUndo
+import com.sinura.personaltrainer.workout.UndoEntry
+import com.sinura.personaltrainer.workout.toOffer
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.FinishOutcome
@@ -84,6 +91,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val TAG = "PT/ActiveWorkoutVM"
 private const val TIMED_TICK_MS = 250L
@@ -98,6 +107,7 @@ private const val ERR_UNDO_DELETE = "undoDelete"
 private const val ERR_UNDO_REMOVE = "undoRemove"
 private const val ERR_FINISH = "finish"
 private const val ERR_DISCARD = "discard"
+private const val ERR_SKIP = "skip"
 
 /** A typing pause, not a keystroke, is what commits notes to the database. */
 private const val NOTES_WRITE_DEBOUNCE_MS = 400L
@@ -248,11 +258,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     application: Application,
     savedStateHandle: SavedStateHandle,
     container: AppDependencies = application.appContainer(),
+    private val undoTimeout: UndoTimeoutProvider = systemUndoTimeout(application),
 ) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
     private val savedDraft = SavedStateWorkoutDraft(savedStateHandle)
     private val savedTimer = SavedStateFloorTimer(savedStateHandle)
+    private val savedUndo = SavedStateFloorUndo(savedStateHandle)
 
     private val selectedExerciseId = MutableStateFlow<String?>(null)
     private val draft = MutableStateFlow(ActiveExerciseDraft())
@@ -284,12 +296,50 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private var cachedWeightUnit = WeightUnit.KG
 
     /**
-     * The last deleted set, held only long enough for the snackbar to offer it back. One-shot
-     * state rather than a captured callback, so an Activity recreation mid-offer cannot leave
-     * an Undo button wired to a dead composition.
+     * Packet G: cheap destructives form a short LIFO queue, newest last.
+     *
+     * The floor used to hold one deleted set xor one removed lift, so a second delete silently
+     * expired the first offer. Undoing (or timing out) the top token now reveals the next one
+     * underneath. One-shot state rather than captured callbacks, so an Activity recreation
+     * mid-offer cannot leave an Undo button wired to a dead composition.
      */
-    private val undoableDelete = MutableStateFlow<WorkoutRepository.DeletedSet?>(null)
-    private val undoableRemove = MutableStateFlow<WorkoutRepository.RemovedLift?>(null)
+    private val _undoEntries = MutableStateFlow<List<UndoEntry>>(emptyList())
+    private var undoSequence = 0L
+    private val _undoDwellMs = MutableStateFlow(
+        savedUndo.readDwellMs() ?: UndoDwell.dwellMs(Motion.STATUS_DWELL_MS, null),
+    )
+
+    /** Every live undo offer, oldest first. The banner shows the last one. */
+    val undoEntries: StateFlow<List<UndoEntry>> = _undoEntries.asStateFlow()
+
+    /** How long the current top offer stays readable; extends under TalkBack. */
+    val undoDwellMs: StateFlow<Long> = _undoDwellMs.asStateFlow()
+
+    /** What the banner offers, or null when there is nothing to put back. */
+    val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> =
+        _undoEntries.map { entries ->
+            (entries.lastOrNull()?.token as? FloorUndo.DeletedSet)?.deleted
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** A lift just taken out of the plan, held only for the same undo host. */
+    val removedLift: StateFlow<WorkoutRepository.RemovedLift?> =
+        _undoEntries.map { entries ->
+            (entries.lastOrNull()?.token as? FloorUndo.RemovedLift)?.removed
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val _deleteFeedback = MutableSharedFlow<DeleteFeedback>(
+        extraBufferCapacity = 16,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val deleteFeedback: SharedFlow<DeleteFeedback> = _deleteFeedback.asSharedFlow()
+
+    /**
+     * Packet G: cheap mutations serialize on one mutex.
+     *
+     * A delete landing while an undo restores (or two deletes racing) must not interleave the
+     * repository write and the queue push — the offer has to name exactly what was written.
+     */
+    private val undoMutex = Mutex()
 
     /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
     private var lastPersistedNotes: String? = null
@@ -376,6 +426,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             if (savedNotes.isNotEmpty()) notes.value = savedNotes
         }
         savedDraft.editingSetId()?.let { editingSetId.value = it }
+        // Packet G: the undo queue survives process death; the dwell promised with it does too.
+        val restoredUndo = savedUndo.read()
+        _undoEntries.value = restoredUndo
+        undoSequence = restoredUndo.size.toLong()
+        if (savedUndo.readDwellMs() == null) refreshUndoDwell()
         restoreTimedWork(selectedExerciseId.value)
         viewModelScope.launch {
             // The flow is guarded at the repository, but the body below is not — a failure
@@ -1345,12 +1400,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val item = session.value?.exercises?.firstOrNull { it.exercise.id == selectedId } ?: return
         viewModelScope.launch {
             try {
-                val removed = container.workoutRepository.removeExerciseFromSession(
-                    sessionId = sessionId,
-                    itemId = item.id,
-                )
-                undoableDelete.value = null
-                undoableRemove.value = removed
+                val removed = undoMutex.withLock {
+                    container.workoutRepository.removeExerciseFromSession(
+                        sessionId = sessionId,
+                        itemId = item.id,
+                    ).also { pushUndo(FloorUndo.RemovedLift(it)) }
+                }
+                _deleteFeedback.tryEmit(DeleteFeedback.REMOVED)
                 draftCache.removeLift(sessionId, selectedId)
                 savedDraft.removeLift(selectedId)
                 clearLiftSelection()
@@ -1367,6 +1423,27 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 )
             }
         }
+    }
+
+    /**
+     * Packet G: park the current lift and move to the next unfinished one.
+     *
+     * Nothing is deleted and the plan is untouched — the lift stays in the switcher with its
+     * draft, so coming back later resumes exactly where it left. Distinct from Remove, which
+     * takes the lift out of the session and offers it back through undo.
+     */
+    fun skipForNow() {
+        val started = error.mark()
+        val current = session.value ?: return
+        val selectedId = selectedExerciseId.value ?: return
+        val next = WorkoutAdvance.nextUnfinishedExerciseId(current, selectedId)
+        if (next == null) {
+            error.fail(source = ERR_SKIP, message = CurrentLiftCopy.SKIP_NOWHERE)
+            return
+        }
+        error.clearFrom(source = ERR_SKIP, before = started)
+        // The stopwatch-running confirm path is the same one a manual switch takes.
+        selectExercise(next)
     }
 
     private suspend fun addExerciseInternal(exercise: Exercise) {
@@ -1435,12 +1512,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      */
     private val _personalRecord = MutableStateFlow<PersonalRecordMoment?>(null)
     val personalRecord: StateFlow<PersonalRecordMoment?> = _personalRecord.asStateFlow()
-
-    /** What the Undo snackbar is offering, or null when there is nothing to put back. */
-    val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> = undoableDelete.asStateFlow()
-
-    /** A lift just taken out of the plan, held only for the same undo host. */
-    val removedLift: StateFlow<WorkoutRepository.RemovedLift?> = undoableRemove.asStateFlow()
 
     /** True while the lifter asked to log past the prescription. Cleared on log, Next, or switch. */
     val extraSetRequested: StateFlow<Boolean> = wantAnotherSet.asStateFlow()
@@ -1725,6 +1796,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * one, a set logged against the wrong lift ten seconds ago — to protect against a delete
      * nobody makes by accident on a row that only the latest set even exposes. The undo
      * charges nothing until you were actually wrong.
+     *
+     * Packet G: the token stacks. A second delete reveals its own offer without expiring the
+     * first, and the write plus the push serialize on [undoMutex] so the offer always names
+     * exactly what landed. Never starts or restarts rest.
      */
     fun deleteSet(setId: String) {
         val started = error.mark()
@@ -1737,13 +1812,16 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 editingSetId.value = null
             }
             try {
-                val removed = container.workoutRepository.deleteSet(setId)
-                if (wasLatest) {
-                    cancelPendingRest()
-                    restTimer.stop()
+                val removed = undoMutex.withLock {
+                    val snapshot = container.workoutRepository.deleteSet(setId)
+                    if (snapshot != null) pushUndo(FloorUndo.DeletedSet(snapshot))
+                    if (wasLatest) {
+                        cancelPendingRest()
+                        restTimer.stop()
+                    }
+                    snapshot
                 }
-                undoableRemove.value = null
-                undoableDelete.value = removed
+                if (removed != null) _deleteFeedback.tryEmit(DeleteFeedback.DELETED)
                 error.clearFrom(source = ERR_DELETE_SET, before = started)
             } catch (thrown: CancellationException) {
                 throw thrown
@@ -1761,36 +1839,38 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * Puts the set back exactly as it was, and deliberately does NOT restart the rest timer:
      * the rest that followed that set has already been taken, and re-arming a countdown
      * minutes later would be the app inventing a state the lifter is not in.
+     *
+     * Packet G: undoes the top token when it is a deleted set, revealing whatever is
+     * underneath. A failed restore keeps the offer rather than expiring it.
      */
     fun undoDeleteSet() {
         val started = error.mark()
-        val pending = undoableDelete.value ?: return
-        undoableDelete.value = null
         viewModelScope.launch {
-            try {
-                container.workoutRepository.restoreSet(pending)
-                error.clearFrom(source = ERR_UNDO_DELETE, before = started)
-            } catch (thrown: CancellationException) {
-                throw thrown
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "restoreSet failed", thrown)
-                error.fail(
-                    source = ERR_UNDO_DELETE,
-                    message = "Could not restore that set. Try again.",
-                )
-            }
+            undoMutex.withLock {
+                val top = _undoEntries.value.lastOrNull()?.token as? FloorUndo.DeletedSet
+                    ?: return@withLock null
+                container.workoutRepository.restoreSet(top.deleted)
+                popUndo()
+            } ?: return@launch
+            _deleteFeedback.tryEmit(DeleteFeedback.UNDO)
+            error.clearFrom(source = ERR_UNDO_DELETE, before = started)
         }
     }
 
     fun undoRemoveLift() {
         val started = error.mark()
-        val pending = undoableRemove.value ?: return
-        undoableRemove.value = null
         viewModelScope.launch {
+            val pending = undoMutex.withLock {
+                val top = _undoEntries.value.lastOrNull()?.token as? FloorUndo.RemovedLift
+                    ?: return@withLock null
+                container.workoutRepository.restoreExerciseToSession(removed = top.removed)
+                popUndo()
+                top
+            } ?: return@launch
             try {
-                container.workoutRepository.restoreExerciseToSession(removed = pending)
-                applySelection(pending.item.exerciseId)
+                applySelection(pending.removed.item.exerciseId)
                 persistDraft()
+                _deleteFeedback.tryEmit(DeleteFeedback.UNDO)
                 error.clearFrom(source = ERR_UNDO_REMOVE, before = started)
             } catch (thrown: CancellationException) {
                 throw thrown
@@ -1804,10 +1884,55 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
-    /** The snackbar was dismissed or timed out; the offer expires with it. */
-    fun onUndoOfferHandled() {
-        undoableDelete.value = null
-        undoableRemove.value = null
+    /** The banner's Undo: reverses whatever the top offer names. */
+    fun undoTopOffer() {
+        when (_undoEntries.value.lastOrNull()?.token) {
+            is FloorUndo.DeletedSet -> undoDeleteSet()
+            is FloorUndo.RemovedLift -> undoRemoveLift()
+            null -> Unit
+        }
+    }
+
+    /**
+     * The banner timed out. The top offer expires silently — no saved cue, no rest change —
+     * and the next offer underneath is revealed with a fresh dwell.
+     */
+    fun onUndoOfferExpired() {
+        popUndo()
+    }
+
+    private fun liftLoadType(exerciseId: String): LoadType? =
+        session.value?.exercises?.firstOrNull { it.exercise.id == exerciseId }?.exercise?.loadType
+
+    private fun pushUndo(token: FloorUndo) {
+        val offer = token.toOffer(
+            sequence = undoSequence++,
+            unit = cachedWeightUnit,
+            loadTypeOf = ::liftLoadType,
+        )
+        _undoEntries.value = UndoQueue.push(_undoEntries.value, UndoEntry(token, offer))
+        refreshUndoDwell()
+        persistUndo()
+    }
+
+    private fun popUndo(): UndoEntry? {
+        val entries = _undoEntries.value
+        if (entries.isEmpty()) return null
+        val top = entries.last()
+        _undoEntries.value = UndoQueue.pop(entries)
+        persistUndo()
+        return top
+    }
+
+    private fun persistUndo() {
+        savedUndo.write(_undoEntries.value, _undoDwellMs.value)
+    }
+
+    private fun refreshUndoDwell() {
+        _undoDwellMs.value = UndoDwell.dwellMs(
+            Motion.STATUS_DWELL_MS,
+            undoTimeout.recommendedTimeoutMs(Motion.STATUS_DWELL_MS.toInt()),
+        )
     }
 
     fun skipRest() {

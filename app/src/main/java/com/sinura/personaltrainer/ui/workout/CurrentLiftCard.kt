@@ -67,6 +67,7 @@ internal fun CurrentLiftCard(
     onRemove: () -> Unit,
     onNotes: () -> Unit,
     modifier: Modifier = Modifier,
+    onSkip: () -> Unit = {},
 ) {
     val fontScale = LocalDensity.current.fontScale
     val maxHeight = if (fontScale >= 2f) Metrics.currentLiftMaxLargeType else Metrics.currentLiftMax
@@ -150,6 +151,7 @@ internal fun CurrentLiftCard(
         LiftOverflowMenu(
             liftId = lift.id,
             canEdit = canEdit,
+            onSkip = onSkip,
             onSwap = onSwap,
             onRemove = onRemove,
             onNotes = onNotes,
@@ -157,6 +159,11 @@ internal fun CurrentLiftCard(
     }
 }
 
+/**
+ * Packet G: every row stays visible. Skip parks the lift and moves on without deleting;
+ * Swap and Remove on a logged lift are disabled with the reason, never silently gone —
+ * the lift is part of what happened, and vanishing the control would read as permission.
+ */
 @Composable
 internal fun LiftOverflowMenu(
     liftId: String,
@@ -164,6 +171,7 @@ internal fun LiftOverflowMenu(
     onSwap: () -> Unit,
     onRemove: () -> Unit,
     onNotes: () -> Unit,
+    onSkip: () -> Unit = {},
 ) {
     var menuOpen by rememberSaveable(liftId) { mutableStateOf(false) }
     Box {
@@ -193,34 +201,65 @@ internal fun LiftOverflowMenu(
                     onNotes()
                 },
             )
-            if (canEdit) {
-                DropdownMenuItem(
-                    text = {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        CurrentLiftCopy.SKIP,
+                        style = InstrumentType.bodyStrong,
+                        color = TextPrimary,
+                    )
+                },
+                onClick = {
+                    menuOpen = false
+                    onSkip()
+                },
+            )
+            DropdownMenuItem(
+                text = {
+                    Column {
                         Text(
                             CurrentLiftCopy.SWAP,
                             style = InstrumentType.bodyStrong,
                             color = TextPrimary,
                         )
-                    },
-                    onClick = {
-                        menuOpen = false
-                        onSwap()
-                    },
-                )
-                DropdownMenuItem(
-                    text = {
+                        if (!canEdit) {
+                            Text(
+                                CurrentLiftCopy.EDIT_BLOCKED_REASON,
+                                style = InstrumentType.caption,
+                                color = TextSecondary,
+                            )
+                        }
+                    }
+                },
+                enabled = canEdit,
+                onClick = {
+                    menuOpen = false
+                    onSwap()
+                },
+            )
+            DropdownMenuItem(
+                text = {
+                    Column {
                         Text(
                             CurrentLiftCopy.REMOVE,
                             style = InstrumentType.bodyStrong,
                             color = Danger,
                         )
-                    },
-                    onClick = {
-                        menuOpen = false
-                        onRemove()
-                    },
-                )
-            }
+                        if (!canEdit) {
+                            Text(
+                                CurrentLiftCopy.EDIT_BLOCKED_REASON,
+                                style = InstrumentType.caption,
+                                color = TextSecondary,
+                            )
+                        }
+                    }
+                },
+                enabled = canEdit,
+                onClick = {
+                    menuOpen = false
+                    onRemove()
+                },
+            )
         }
     }
 }

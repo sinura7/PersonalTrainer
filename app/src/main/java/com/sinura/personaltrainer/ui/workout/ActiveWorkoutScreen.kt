@@ -50,7 +50,6 @@ import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.FloorTimerSurface
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
-import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -124,6 +123,7 @@ object WorkoutTestTags {
     fun liftRest(exerciseId: String) = "workout-lift-rest-$exerciseId"
     fun liftSwitcherRow(exerciseId: String) = "workout-lift-switcher-$exerciseId"
     fun lastTimeChip(setId: String) = "workout-last-time-$setId"
+    fun setOptions(setId: String) = "workout-set-options-$setId"
 }
 
 @Composable
@@ -147,8 +147,8 @@ fun ActiveWorkoutScreen(
     )
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
-    val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
-    val removedLift by viewModel.removedLift.collectAsStateWithLifecycle()
+    val undoEntries by viewModel.undoEntries.collectAsStateWithLifecycle()
+    val undoDwellMs by viewModel.undoDwellMs.collectAsStateWithLifecycle()
     val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
     val logReceipt by viewModel.logReceipt.collectAsStateWithLifecycle()
     val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
@@ -243,6 +243,17 @@ fun ActiveWorkoutScreen(
         }
     }
 
+    // Packet G (HA-22/HA-23): a destructive landing warns lightly *after* the write;
+    // a landed undo confirms. Failures and expiries stay silent.
+    LaunchedEffect(viewModel) {
+        viewModel.deleteFeedback.collect { feedback ->
+            when (feedback) {
+                DeleteFeedback.DELETED, DeleteFeedback.REMOVED -> Haptics.warn(view)
+                DeleteFeedback.UNDO -> Haptics.commit(view)
+            }
+        }
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.floorTimerCue.collect { cue ->
             when (cue) {
@@ -260,7 +271,8 @@ fun ActiveWorkoutScreen(
     Scaffold(
         snackbarHost = {
             val errorBanner = state.error != null && !logBarVisible
-            if (errorBanner || deletedSet != null || removedLift != null) {
+            val undoTop = undoEntries.lastOrNull()?.offer
+            if (errorBanner || undoTop != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -270,31 +282,15 @@ fun ActiveWorkoutScreen(
                     if (errorBanner) {
                         GymErrorBanner(message = state.error!!)
                     }
-                    // Undo dwell uses Motion.STATUS_DWELL_MS (~6s). Advance is not a
+                    // Undo dwell honours the accessibility timeout. Advance is not a
                     // banner: Next lift / Another set stand in the dock until chosen.
-                    val undoMessage = removedLift?.let { UndoHostCopy.liftRemoved(it.name) }
-                        ?: deletedSet?.let { removed ->
-                            UndoHostCopy.setDeleted(
-                                SetCopy.setLine(
-                                    removed.weightKg,
-                                    removed.reps,
-                                    LoadClass.of(selected?.exercise?.loadType),
-                                    unit,
-                                    durationSeconds = removed.durationSeconds,
-                                ),
-                            )
-                        }
-                    undoMessage?.let { message ->
+                    undoTop?.let { offer ->
                         GymUndoHost(
-                            message = message,
-                            onUndo = {
-                                if (removedLift != null) {
-                                    viewModel.undoRemoveLift()
-                                } else {
-                                    viewModel.undoDeleteSet()
-                                }
-                            },
-                            onDismissed = { viewModel.onUndoOfferHandled() },
+                            message = offer.message,
+                            onUndo = viewModel::undoTopOffer,
+                            onDismissed = viewModel::onUndoOfferExpired,
+                            offerKey = offer.key,
+                            dwellMs = undoDwellMs,
                         )
                     }
                 }
@@ -535,6 +531,7 @@ fun ActiveWorkoutScreen(
                                         canEdit = logged.isEmpty(),
                                         onOpenSwitcher = { liftSwitcherOpen = true },
                                         onSwap = viewModel::requestSwap,
+                                        onSkip = viewModel::skipForNow,
                                         onRemove = viewModel::removeSelectedLift,
                                         onNotes = { notesOpen = true },
                                     )

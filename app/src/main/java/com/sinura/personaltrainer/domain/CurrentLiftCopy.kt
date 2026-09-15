@@ -12,6 +12,16 @@ object CurrentLiftCopy {
     const val SESSION_NOTES = "Session notes"
     const val SWAP = "Swap lift…"
     const val REMOVE = "Remove lift"
+    const val SKIP = "Skip for now"
+
+    /**
+     * Packet G: swap/remove stay visible on a logged lift, disabled with this reason.
+     * The lift is part of what happened — take its sets out first, or skip it for now.
+     */
+    const val EDIT_BLOCKED_REASON = "Delete its sets first"
+
+    /** Skip asked to go nowhere: every other lift already met its target. */
+    const val SKIP_NOWHERE = "Every other lift is already finished."
 
     fun liftOrdinal(number: Int, total: Int): String = "Lift $number/$total"
 
