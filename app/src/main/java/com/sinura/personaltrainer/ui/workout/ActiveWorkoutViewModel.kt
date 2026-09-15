@@ -971,7 +971,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             return
         }
         try {
-            val defaults = AddDefaults.forExercise(exercise)
+            val goal = container.preferencesRepository.coachPreferences.first().goal
+            val defaults = AddDefaults.forExercise(exercise, goal = goal)
             container.workoutRepository.addExerciseToSession(
                 sessionId = sessionId,
                 exercise = exercise,

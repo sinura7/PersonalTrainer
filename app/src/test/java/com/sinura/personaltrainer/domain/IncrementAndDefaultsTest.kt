@@ -149,7 +149,34 @@ class AddDefaultsTest {
     }
 
     @Test
-    fun anUnknownLoadTypeTakesTheIsolationFallback() {
+    fun muscleAndStrengthMoveTheLandingRowAndNothingElse() {
+        val general = AddDefaults.forExercise(LoadType.EXTERNAL, isCompound = true)
+        val muscle = AddDefaults.forExercise(
+            LoadType.EXTERNAL,
+            isCompound = true,
+            goal = TrainingGoal.HYPERTROPHY,
+        )
+        val strength = AddDefaults.forExercise(
+            LoadType.EXTERNAL,
+            isCompound = true,
+            goal = TrainingGoal.STRENGTH,
+        )
+        assertEquals(TargetDefaults(3, 5, 150), general)
+        assertEquals(3, muscle.sets)
+        assertEquals(3, strength.sets)
+        assertTrue(muscle.reps > general.reps)
+        assertTrue(muscle.restSeconds < general.restSeconds)
+        assertTrue(strength.reps < general.reps)
+        assertTrue(strength.restSeconds > general.restSeconds)
+        assertEquals(
+            general,
+            AddDefaults.forExercise(
+                LoadType.EXTERNAL,
+                isCompound = true,
+                goal = TrainingGoal.GENERAL,
+            ),
+        )
+    }
         // A custom the user typed in. Too many reps at too little rest is a bad set; too few
         // reps at too much rest is a wasted afternoon — so the fallback errs toward isolation.
         assertEquals(TargetDefaults(3, 10, 90), AddDefaults.forExercise(loadType = null, isCompound = false))

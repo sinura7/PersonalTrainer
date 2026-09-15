@@ -59,6 +59,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-022](ADR-022-keyed-catalog-stills.md) | Keyed catalog stills | One WebP per built-in lift; `imageKey` written at catalog v7 |
 | [ADR-023](ADR-023-palette-and-reduced-motion.md) | Palette collisions stay; reduced motion finishes the gate | F14 / G6; amends ADR-005 §5 |
 | [ADR-024](ADR-024-hosted-jvm-check.md) | The deterministic hosted job may gate `trunk`; the emulator may not | Amends ADR-002 §6 for one named job; the local gate is unchanged |
+| [ADR-025](ADR-025-goal-thresholds.md) | Goal may move AddDefaults thresholds, never rules | Progression engine packet 5 |
 
 ## Supporting records
 
