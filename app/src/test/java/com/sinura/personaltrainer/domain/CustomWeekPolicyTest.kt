@@ -35,8 +35,16 @@ class CustomWeekPolicyTest {
     @Test
     fun addingSkipsDuplicatesAndKeepsOrder() {
         val ids = AtomicInteger(0)
-        val first = CustomWeekPolicy.addLifts(emptyList(), listOf(squat, bench)) { ids.incrementAndGet().toString() }
-        val second = CustomWeekPolicy.addLifts(first, listOf(squat, bench)) { ids.incrementAndGet().toString() }
+        val first = CustomWeekPolicy.addLifts(
+            existing = emptyList(),
+            incoming = listOf(squat, bench),
+            idFactory = { ids.incrementAndGet().toString() },
+        )
+        val second = CustomWeekPolicy.addLifts(
+            existing = first,
+            incoming = listOf(squat, bench),
+            idFactory = { ids.incrementAndGet().toString() },
+        )
         assertEquals(listOf("squat", "bench"), first.map { it.exercise.id })
         assertEquals(first, second)
     }
