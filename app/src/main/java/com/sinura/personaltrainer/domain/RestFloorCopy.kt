@@ -11,6 +11,7 @@ data class RestFloorContext(
     val lastSetLine: String?,
     val sessionTargetLine: String?,
     val afterWarmup: Boolean = false,
+    val prescribedRestLine: String? = null,
 )
 
 object RestFloorCopy {
@@ -19,6 +20,7 @@ object RestFloorCopy {
         selectedExerciseId: String?,
         unit: WeightUnit,
         nextLine: String? = null,
+        prescribedSeconds: Int? = null,
     ): RestFloorContext {
         if (session == null) {
             return RestFloorContext(
@@ -39,8 +41,12 @@ object RestFloorCopy {
             lastSetLine = last?.let { lastSetLine(it.weightKg, it.reps, loadClass, unit) },
             sessionTargetLine = nextLine,
             afterWarmup = last?.isWarmup == true,
+            prescribedRestLine = prescribedSeconds?.let { prescribedLine(it) },
         )
     }
+
+    fun prescribedLine(seconds: Int): String =
+        "Start at ${RestTimer.formatClock(seconds)}."
 
     fun lastSetLine(
         weightKg: Double,

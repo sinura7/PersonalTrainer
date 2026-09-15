@@ -85,8 +85,9 @@ class RestTimerTest {
     }
 
     @Test
-    fun autoStartPrefersExerciseThenLastPresetThenDefault() {
+    fun autoStartPrefersPrescribedThenExerciseThenLastPresetThenDefault() {
         val prefs = RestTimerPreferences(defaultRestSeconds = 120, lastPresetSeconds = 60)
+        assertEquals(150, RestTimer.secondsToStart(90, prefs, prescribedSeconds = 150))
         assertEquals(90, RestTimer.secondsToStart(90, prefs))
         assertEquals(60, RestTimer.secondsToStart(null, prefs))
         assertEquals(120, RestTimer.secondsToStart(0, RestTimerPreferences(defaultRestSeconds = 120)))

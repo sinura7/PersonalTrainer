@@ -246,6 +246,15 @@ private fun RestFloorBody(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        floor.prescribedRestLine?.let { line ->
+            Text(
+                line,
+                style = InstrumentType.body,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         if (!rest.running && !justFinished && floor.afterWarmup) {
             Text(
                 RestIdleCopy.afterWarmupHint(),

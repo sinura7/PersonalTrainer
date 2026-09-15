@@ -91,6 +91,12 @@ class RestFloorCopyTest {
     }
 
     @Test
+    fun prescribedRestLineNamesTheClock() {
+        assertEquals("Start at 2:30.", RestFloorCopy.prescribedLine(150))
+        assertEquals("Start at 1:00.", RestFloorCopy.prescribedLine(60))
+    }
+
+    @Test
     fun missingSessionHasNoFloorCopy() {
         val floor = RestFloorCopy.context(null, null, WeightUnit.KG)
         assertNull(floor.exerciseName)

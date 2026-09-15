@@ -76,10 +76,32 @@ class RestTimerViewModel @JvmOverloads constructor(
                 val prefs = container.preferencesRepository.restTimerPreferences.first()
                 val exerciseId = resolveExerciseId(current)
                 val planned = current?.exercises?.firstOrNull { it.exercise.id == exerciseId }
-                restTotal.value = RestTimer.secondsToStart(planned?.restSeconds, prefs)
                 if (current != null && exerciseId != null && !current.isFinished) {
                     hint.value = loadHint(current, exerciseId)
                 }
+                val unit = container.preferencesRepository.weightUnit.first()
+                val cached = container.workoutDraftCache.get(sessionId)
+                val rec = workoutMicroRec(
+                    session = current,
+                    selectedExerciseId = exerciseId,
+                    draft = ActiveExerciseDraft(
+                        weightKg = cached?.weightKg ?: 0.0,
+                        reps = (cached?.reps ?: 5).coerceAtLeast(1),
+                        rpe = cached?.rpe,
+                        isWarmup = cached?.isWarmup ?: false,
+                    ),
+                    hint = hint.value,
+                    editingSetId = null,
+                    lighterWeek = lighterWeek.value,
+                    unit = unit,
+                    nowMs = time.nowMillis(),
+                    todayEpochDay = todayEpochDay(),
+                )
+                restTotal.value = RestTimer.secondsToStart(
+                    planned?.restSeconds,
+                    prefs,
+                    prescribedSeconds = rec?.restSeconds,
+                )
             }.onFailure { AppLog.w(TAG, "Loading rest floor context failed", it) }
         }
         viewModelScope.launch {
@@ -158,6 +180,7 @@ class RestTimerViewModel @JvmOverloads constructor(
                     selectedExerciseId = exerciseId,
                     unit = unit,
                     nextLine = rec?.let { SetMicroRecCopy.line(it, loadClass, unit) },
+                    prescribedSeconds = rec?.restSeconds,
                 )
             },
         )

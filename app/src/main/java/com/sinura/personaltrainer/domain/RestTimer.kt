@@ -164,11 +164,13 @@ object RestTimer {
     fun secondsToStart(
         exerciseRestSeconds: Int?,
         preferences: RestTimerPreferences,
+        prescribedSeconds: Int? = null,
     ): Int {
+        val prescribed = prescribedSeconds?.takeIf { it > 0 }
         val fromExercise = exerciseRestSeconds?.takeIf { it > 0 }
         val fromLast = preferences.lastPresetSeconds
         val fromDefault = preferences.defaultRestSeconds
-        return (fromExercise ?: fromLast ?: fromDefault)
+        return (prescribed ?: fromExercise ?: fromLast ?: fromDefault)
             .coerceIn(RestTimerPreferences.MIN_SECONDS, RestTimerPreferences.MAX_SECONDS)
     }
 
