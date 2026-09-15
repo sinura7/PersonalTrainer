@@ -94,5 +94,6 @@ class ProgressionKickerCopyTest {
             nowMs = 0L,
             todayEpochDay = 0L,
         ),
+        restSeconds = 90,
     )
 }
