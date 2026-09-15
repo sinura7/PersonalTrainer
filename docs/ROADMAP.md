@@ -15,10 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Live 66: floor packet A gym-floor entry state on `trunk`.
+> `debugLiveCode` 66; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 15 Sep 2026 — Floor packet A: gym-floor entry state (committed wheels,
 > lift ready/dirty, re-tap no-op, empty dock, hide Start next, Log haptic
 > after save, Finish needs a set). Appearance waits for packet B.
-> Gym-floor `appVersionCode` stays 1.
+> Live 66 is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Workout-entry experience report is a recommendation
 > only (not law): [workout-entry-experience-report.md](workout-entry-experience-report.md).
