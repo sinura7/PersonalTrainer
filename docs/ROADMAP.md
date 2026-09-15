@@ -15,9 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Live 71: floor packet F receipt, named Next / Finish,
+> Coach.decide on `trunk`.
+> `debugLiveCode` 71; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 15 Sep 2026 — Floor packet F: receipt, named Next / Finish, Coach.decide
-> in the entry, Why + Keep my numbers. Next Kotlin is Packet G. Gym-floor
-> `appVersionCode` stays 1.
+> in the entry, Why + Keep my numbers. Next Kotlin is Packet G. Live 71
+> is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Live 70: floor packet E one dock clock, rest presets,
 > hold and stopwatch on `trunk`.
