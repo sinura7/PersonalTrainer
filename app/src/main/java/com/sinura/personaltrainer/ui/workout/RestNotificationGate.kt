@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.ui.workout
 
-
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -115,21 +114,7 @@ internal fun RestNotificationRecoveryRow(modifier: Modifier = Modifier) {
     InstrumentRow(
         title = RestNotificationCopy.RECOVERY_TITLE,
         modifier = modifier.testTag(WorkoutTestTags.NOTIF_RECOVERY),
-        onClick = {
-            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            try {
-                context.startActivity(intent)
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "App notification settings unavailable; falling back", thrown)
-                context.startActivity(
-                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                        .setData(android.net.Uri.fromParts("package", context.packageName, null))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                )
-            }
-        },
+        onClick = { openRestNotificationSettings(context) },
         trailing = {
             Text(
                 RestNotificationCopy.RECOVERY_ACTION,
@@ -139,6 +124,22 @@ internal fun RestNotificationRecoveryRow(modifier: Modifier = Modifier) {
             )
         },
     )
+}
+
+internal fun openRestNotificationSettings(context: android.content.Context) {
+    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        context.startActivity(intent)
+    } catch (thrown: Exception) {
+        AppLog.w(TAG, "App notification settings unavailable; falling back", thrown)
+        context.startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(android.net.Uri.fromParts("package", context.packageName, null))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
 }
 
 private const val TAG = "PT/RestNotificationGate"

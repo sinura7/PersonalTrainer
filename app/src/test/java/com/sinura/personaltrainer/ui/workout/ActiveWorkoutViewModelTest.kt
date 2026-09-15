@@ -15,6 +15,9 @@ import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.FloorStepper
+import com.sinura.personaltrainer.domain.FloorTimedMode
+import com.sinura.personaltrainer.domain.FloorTimedModeResolver
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LogCommitCopy
@@ -24,6 +27,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
+import com.sinura.personaltrainer.testutil.ControllableTimePort
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import kotlinx.coroutines.CompletableDeferred
@@ -34,6 +38,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -61,12 +66,13 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class)
 class ActiveWorkoutViewModelTest {
-    private val dispatcher = UnconfinedTestDispatcher()
+    private lateinit var dispatcher: TestDispatcher
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<ActiveWorkoutViewModel>()
 
     @Before
     fun setUp() {
+        dispatcher = UnconfinedTestDispatcher()
         Dispatchers.setMain(dispatcher)
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),
@@ -80,8 +86,9 @@ class ActiveWorkoutViewModelTest {
         runBlocking {
             viewModels.forEach { it.clearAndJoinForTest() }
         }
+        viewModels.clear()
         if (::deps.isInitialized) deps.restTimerController.stop()
-        dispatcher.scheduler.advanceUntilIdle()
+        if (::dispatcher.isInitialized) dispatcher.scheduler.advanceUntilIdle()
         if (::deps.isInitialized) deps.close()
         Dispatchers.resetMain()
     }
@@ -425,7 +432,7 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun startingTheStopwatchDoesNotCancelARunningRestAlarm() = runBlocking {
+    fun startingTheStopwatchCancelsARunningRestAlarm() = runBlocking {
         val fixture = seedWorkout(targetSets = 3, restSeconds = 75)
         val vm = createViewModel(fixture.session.id)
         vm.awaitPrefilled()
@@ -433,9 +440,149 @@ class ActiveWorkoutViewModelTest {
         deps.restTimerStore.snapshot.first { it.running }
         vm.startSetStopwatch()
         assertTrue(vm.setStopwatch.value.running)
-        assertTrue(deps.restTimerStore.current().running)
-        // Stored routine rest is 75; the starting clock is the prescribed heavy rest.
-        assertEquals(150, deps.restTimerStore.current().totalSeconds)
+        assertFalse(deps.restTimerStore.current().running)
+    }
+
+    @Test
+    fun holdClockFollowsElapsedRealtimeAndDoesNotAutoLog() = runBlocking {
+        val clock = ControllableTimePort()
+        val fixture = seedHangWorkout()
+        val vm = createViewModel(fixture.session.id, container = withClock(clock))
+        vm.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
+        }
+        vm.startHoldSet()
+        assertTrue(vm.holdTimer.value.running)
+        assertEquals(0, vm.holdTimer.value.elapsedSeconds)
+        assertEquals(30, vm.holdTimer.value.remainingSeconds)
+        clock.advance(5_000)
+        tickTimedWork()
+        assertEquals(5, vm.holdTimer.value.elapsedSeconds)
+        assertEquals(25, vm.holdTimer.value.remainingSeconds)
+        clock.advance(25_000)
+        tickTimedWork()
+        assertTrue(vm.holdTimer.value.targetReached)
+        assertFalse(vm.holdTimer.value.running)
+        assertEquals(HoldWork.DONE, vm.holdTimer.value.clock)
+        assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty())
+        vm.logSetAndSettle()
+        val row = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
+        assertEquals(30, row.durationSeconds)
+        assertEquals(0, row.reps)
+    }
+
+    @Test
+    fun stopwatchClockFollowsElapsedRealtime() = runBlocking {
+        val clock = ControllableTimePort()
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id, container = withClock(clock))
+        vm.awaitPrefilled()
+        vm.startSetStopwatch()
+        assertEquals(0, vm.setStopwatch.value.elapsedSeconds)
+        clock.advance(3_000)
+        tickTimedWork()
+        assertEquals(3, vm.setStopwatch.value.elapsedSeconds)
+        assertTrue(vm.setStopwatch.value.running)
+        vm.stopSetStopwatch()
+        assertFalse(vm.setStopwatch.value.running)
+        assertEquals(3, vm.setStopwatch.value.elapsedSeconds)
+        clock.advance(10_000)
+        tickTimedWork()
+        assertEquals(3, vm.setStopwatch.value.elapsedSeconds)
+    }
+
+    @Test
+    fun startHoldCancelsRestAndBlocksTheStopwatch() = runBlocking {
+        val fixture = seedHangWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
+        }
+        vm.startSelectedRest()
+        deps.restTimerStore.snapshot.first { it.running }
+        vm.startHoldSet()
+        assertTrue(vm.holdTimer.value.running)
+        assertFalse(deps.restTimerStore.current().running)
+        vm.startSetStopwatch()
+        assertTrue(vm.holdTimer.value.running)
+        assertFalse(vm.setStopwatch.value.running)
+        val mode = FloorTimedModeResolver.resolve(
+            hasLifts = true,
+            holdActive = vm.holdTimer.value.active,
+            stopwatchRunning = vm.setStopwatch.value.running,
+            restRunning = deps.restTimerStore.current().running,
+            restComplete = false,
+        )
+        assertEquals(FloorTimedMode.HOLD_RUNNING, mode)
+    }
+
+    @Test
+    fun switchingLiftWhileTheStopwatchRunsAsksFirst() = runBlocking {
+        val fixture = seedTwoLifts(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.startSetStopwatch()
+        vm.selectExercise(ROW)
+        assertEquals(ROW, vm.pendingLiftSwitch.value?.exerciseId)
+        assertEquals(SQUAT, vm.uiState.value.selectedExerciseId)
+        assertTrue(vm.setStopwatch.value.running)
+        vm.cancelPendingLiftSwitch()
+        assertNull(vm.pendingLiftSwitch.value)
+        assertTrue(vm.setStopwatch.value.running)
+        vm.selectExercise(ROW)
+        vm.confirmStopTimingAndSwitch()
+        assertNull(vm.pendingLiftSwitch.value)
+        assertEquals(ROW, vm.uiState.value.selectedExerciseId)
+        assertFalse(vm.setStopwatch.value.running)
+    }
+
+    @Test
+    fun processDeathRestoresARunningHoldFromSavedState() = runBlocking {
+        val clock = ControllableTimePort()
+        val fixture = seedHangWorkout()
+        val handle = handleFor(fixture.session.id)
+        val container = withClock(clock)
+        val first = createViewModel(fixture.session.id, handle, container)
+        first.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
+        }
+        first.startHoldSet()
+        clock.advance(8_000)
+        first.clearAndJoinForTest()
+        val recreated = createViewModel(fixture.session.id, handle, container)
+        recreated.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
+        }
+        assertTrue(recreated.holdTimer.value.running)
+        assertEquals(8, recreated.holdTimer.value.elapsedSeconds)
+        assertEquals(22, recreated.holdTimer.value.remainingSeconds)
+        assertFalse(deps.restTimerStore.current().running)
+    }
+
+    @Test
+    fun rebootClearsAHoldWhenElapsedRealtimeWentBackwards() = runBlocking {
+        val clock = ControllableTimePort()
+        clock.advance(10_000)
+        val fixture = seedHangWorkout()
+        val handle = handleFor(fixture.session.id)
+        val first = createViewModel(fixture.session.id, handle, container = withClock(clock))
+        first.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
+        }
+        first.startHoldSet()
+        assertTrue(first.holdTimer.value.running)
+        first.clearAndJoinForTest()
+        val rebooted = ControllableTimePort()
+        val recreated = createViewModel(
+            fixture.session.id,
+            handle,
+            container = withClock(rebooted),
+        )
+        recreated.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
+        }
+        assertFalse(recreated.holdTimer.value.running)
+        assertEquals(0, recreated.holdTimer.value.totalSeconds)
     }
 
     @Test
@@ -1688,6 +1835,16 @@ class ActiveWorkoutViewModelTest {
             savedStateHandle = handle,
             container = container,
         ).also(viewModels::add)
+
+    private fun withClock(clock: ControllableTimePort): AppDependencies =
+        object : AppDependencies by deps {
+            override val time = clock
+        }
+
+    private fun tickTimedWork() {
+        dispatcher.scheduler.advanceTimeBy(250)
+        dispatcher.scheduler.runCurrent()
+    }
 
     /**
      * A copy of the graph whose set insert parks until the gate opens, so a test can act in

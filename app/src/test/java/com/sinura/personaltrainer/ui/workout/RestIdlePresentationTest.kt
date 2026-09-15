@@ -23,7 +23,8 @@ class RestIdlePresentationTest {
         )
         assertTrue(idle.contains("RestIdleCopy.START"))
         assertTrue(idle.contains("TextButton("))
-        assertTrue(idle.contains("SnapValueWheel("))
+        assertFalse(idle.contains("SnapValueWheel("))
+        assertTrue(idle.contains("RestPresetChips("))
         assertFalse("idle rest must not use a filled Volt", idle.contains("PrimaryGymButton"))
     }
 
@@ -35,6 +36,9 @@ class RestIdlePresentationTest {
         val floor = readOwned("ui/workout/RestTimerScreen.kt")
         assertTrue(floor.contains("RestBatteryHintRow"))
         assertTrue(floor.contains("RestFloorTags.BATTERY"))
+        assertTrue(floor.contains("RestHonestyCopy.EXACT_DENIED"))
+        assertTrue(floor.contains("RestFloorTags.EXACT"))
+        assertFalse(floor.contains("precise", ignoreCase = true))
     }
 
     @Test

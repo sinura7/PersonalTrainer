@@ -83,7 +83,15 @@ class RestTimerClaimLedger {
 }
 
 object RestTimer {
-    val PRESETS_SECONDS: List<Int> = listOf(60, 90, 120)
+    val PRESETS_SECONDS: List<Int> = listOf(30, 60, 90, 120, 180)
+
+    const val NUDGE_SECONDS = 15
+
+    fun nudgeSeconds(currentSeconds: Int, deltaSeconds: Int): Int =
+        (currentSeconds + deltaSeconds).coerceIn(
+            RestTimerPreferences.MIN_SECONDS,
+            RestTimerPreferences.MAX_SECONDS,
+        )
 
     /**
      * Whole seconds left, rounded UP, never negative.

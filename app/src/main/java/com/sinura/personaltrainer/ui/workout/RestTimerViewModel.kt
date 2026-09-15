@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.flow.SharingStarted
@@ -137,8 +138,12 @@ class RestTimerViewModel @JvmOverloads constructor(
                 )
             },
             container.preferencesRepository.restBatteryHintShown,
-        ) { rest, shown ->
-            rest.copy(batteryHint = rest.running && !shown)
+            restTimer.exactAlarmAttempt,
+        ) { rest, shown, attempt ->
+            rest.copy(
+                batteryHint = rest.running && !shown,
+                exactAlarmBestEffort = attempt == ExactAlarmAttempt.BEST_EFFORT,
+            )
         },
         combine(hint, lighterWeek, container.preferencesRepository.weightUnit) { currentHint, lighter, unit ->
             Triple(currentHint, lighter, unit)

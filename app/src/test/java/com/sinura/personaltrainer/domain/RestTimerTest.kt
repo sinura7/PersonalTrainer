@@ -110,6 +110,20 @@ class RestTimerTest {
     }
 
     @Test
+    fun presetsAreTheFiveGymLengths() {
+        assertEquals(listOf(30, 60, 90, 120, 180), RestTimer.PRESETS_SECONDS)
+        assertEquals(15, RestTimer.NUDGE_SECONDS)
+    }
+
+    @Test
+    fun nudgeStepsFifteenSecondsInsideTheRestRange() {
+        assertEquals(75, RestTimer.nudgeSeconds(90, -15))
+        assertEquals(105, RestTimer.nudgeSeconds(90, 15))
+        assertEquals(RestTimerPreferences.MIN_SECONDS, RestTimer.nudgeSeconds(15, -15))
+        assertEquals(RestTimerPreferences.MAX_SECONDS, RestTimer.nudgeSeconds(30 * 60, 15))
+    }
+
+    @Test
     fun extraSetPastThePlanStartsRest() {
         assertTrue(RestTimer.shouldStartAfterExtra(isWarmup = false, workingSetsAfterLog = 4, targetSets = 3))
         assertFalse(RestTimer.shouldStartAfterExtra(isWarmup = false, workingSetsAfterLog = 3, targetSets = 3))

@@ -6,6 +6,6 @@ package com.sinura.personaltrainer.domain
  * this is the one mention on the gym floor, not a Settings essay.
  */
 object RestBatteryCopy {
-    const val SENTENCE = "Allow unrestricted battery or the clock dies."
+    const val SENTENCE = RestHonestyCopy.FIRST_REST
     const val GOT_IT = "Got it"
 }

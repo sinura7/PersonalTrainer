@@ -13,7 +13,7 @@ object RestIdleCopy {
     const val START_NEXT = "Start next"
     const val START = "Start"
 
-    fun planned(clock: String): String = "$clock planned"
+    fun planned(clock: String): String = "Rest $clock"
 
     fun dockDuration(clock: String, afterWarmup: Boolean): String =
         if (afterWarmup) "Warm-up · $clock" else planned(clock)
@@ -22,9 +22,9 @@ object RestIdleCopy {
 
     fun spoken(clock: String, afterWarmup: Boolean): String =
         if (afterWarmup) {
-            "Rest is not running. Warm-ups do not start rest. $clock planned. " +
+            "Rest is not running. Warm-ups do not start rest. Rest $clock. " +
                 "Start starts rest only."
         } else {
-            "Rest is not running. $clock planned. Start starts rest only."
+            "Rest is not running. Rest $clock. Start starts rest only."
         }
 }

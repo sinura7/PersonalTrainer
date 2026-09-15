@@ -85,6 +85,38 @@ object HoldWork {
         return (total - remaining).coerceIn(1, total)
     }
 
+    /**
+     * Displayed elapsed from [SystemClock.elapsedRealtime], not a `delay`
+     * tick counter. Floor so a stall or a process restore cannot jump
+     * backwards; cap at the prescribed total.
+     */
+    fun elapsedFromRealtime(
+        startElapsedRealtime: Long,
+        nowElapsedRealtime: Long,
+        totalSeconds: Int,
+    ): Int {
+        if (nowElapsedRealtime < startElapsedRealtime) return 0
+        val elapsed = ((nowElapsedRealtime - startElapsedRealtime) / 1_000L).toInt()
+        return elapsed.coerceIn(0, totalSeconds.coerceAtLeast(0))
+    }
+
+    fun remainingFromDeadline(
+        deadlineElapsedRealtime: Long,
+        nowElapsedRealtime: Long,
+        totalSeconds: Int,
+    ): Int = RestTimer.remainingSeconds(deadlineElapsedRealtime, nowElapsedRealtime)
+        .coerceAtMost(totalSeconds.coerceAtLeast(0))
+
+    fun deadlineElapsedRealtime(startElapsedRealtime: Long, totalSeconds: Int): Long =
+        startElapsedRealtime + totalSeconds.coerceAtLeast(0) * 1_000L
+
+    const val DONE = "HOLD DONE"
+
+    fun dockClock(elapsedSeconds: Int, targetReached: Boolean): String =
+        if (targetReached) DONE else "$HOLD_KICKER ${clock(elapsedSeconds.coerceAtLeast(0))}"
+
+    const val HOLD_KICKER = "HOLD"
+
     fun nextSeconds(current: Int, direction: Int): Int =
         (current + direction * STEP_SECONDS).coerceIn(MIN_SECONDS, MAX_SECONDS)
 
@@ -133,6 +165,10 @@ data class HoldTimerUiState(
     val remainingSeconds: Int = 0,
     val totalSeconds: Int = 0,
     val elapsedSeconds: Int = 0,
+    val startElapsedRealtime: Long = 0L,
+    val deadlineElapsedRealtime: Long = 0L,
+    val targetReached: Boolean = false,
 ) {
-    val clock: String get() = HoldWork.clock(if (running) remainingSeconds else totalSeconds)
+    val active: Boolean get() = running || totalSeconds > 0
+    val clock: String get() = HoldWork.dockClock(elapsedSeconds, targetReached)
 }

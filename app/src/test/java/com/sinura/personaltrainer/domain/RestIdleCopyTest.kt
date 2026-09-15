@@ -9,11 +9,11 @@ class RestIdleCopyTest {
     @Test
     fun idleCopyNeverSoundsLikeACountdown() {
         assertEquals("Not running", RestIdleCopy.KICKER)
-        assertEquals("1:30 planned", RestIdleCopy.planned("1:30"))
-        assertEquals("1:00 planned", RestIdleCopy.dockDuration("1:00", afterWarmup = false))
+        assertEquals("Rest 1:30", RestIdleCopy.planned("1:30"))
+        assertEquals("Rest 1:00", RestIdleCopy.dockDuration("1:00", afterWarmup = false))
         val spoken = RestIdleCopy.spoken("1:30", afterWarmup = false)
         assertTrue(spoken, spoken.startsWith("Rest is not running."))
-        assertTrue(spoken, spoken.contains("1:30 planned"))
+        assertTrue(spoken, spoken.contains("Rest 1:30"))
         assertFalse(spoken, spoken.contains("Start next"))
         assertTrue(spoken, spoken.contains("Start starts rest only"))
         assertFalse(spoken, spoken.contains("remaining"))

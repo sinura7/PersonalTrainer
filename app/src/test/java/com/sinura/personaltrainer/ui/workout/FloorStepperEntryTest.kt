@@ -61,15 +61,15 @@ class FloorStepperEntryTest {
     }
 
     @Test
-    fun reminderAndOnboardingWheelsStayAndRestWheelStays() {
+    fun reminderAndOnboardingWheelsStayAndFloorRestWheelIsGone() {
         val reminder = readOwned("ui/reminders/ReminderTimeWheel.kt")
         assertTrue(reminder.contains("SnapWheelColumn("))
         val onboarding = readOwned("ui/onboarding/BodyweightWheel.kt")
         assertTrue(onboarding.contains("VerticalPager("))
         assertTrue(onboarding.contains("NumberEntryDialog("))
         val dock = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(dock.contains("SnapValueWheel("))
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.restLengthIsInlineWheel())
+        assertFalse(dock.contains("SnapValueWheel("))
+        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.restLengthIsInlineWheel())
     }
 
     @Test
