@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Floor packet B: gym-floor weight / reps / hold draft are
+> plates + tap-to-type. Live wheels stay on Extra/paste, reminder,
+> onboarding, and rest length. Next Kotlin is Packet C.
+> Gym-floor `appVersionCode` stays 1.
+>
 > 15 Sep 2026 — Live 66: floor packet A gym-floor entry state on `trunk`.
 > `debugLiveCode` 66; suffix from
 > `python3 tools/debug-drop-plan.py`.
@@ -29,7 +34,7 @@
 >
 > 15 Sep 2026 — Workout-entry implementation plan (Packets A–H, docs only,
 > no drop): [workout-entry-implementation-plan.md](workout-entry-implementation-plan.md).
-> Packet A is on `trunk`. Next Kotlin is Packet B.
+> Packet B is on `trunk`. Next Kotlin is Packet C.
 > Gym-floor `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Live 65: floor packet 5 undo host plus progression

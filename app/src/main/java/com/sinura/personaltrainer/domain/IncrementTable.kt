@@ -79,6 +79,25 @@ object IncrementTable {
             "${WeightConverter.formatDisplayNumber(it)} ${unit.suffix}"
         }
 
+    /**
+     * One plate on the gym-floor stepper. Bodyweight has no step, so the
+     * current kilograms come back unchanged rather than inventing 2.5.
+     */
+    fun nextKg(
+        currentKg: Double,
+        unit: WeightUnit,
+        direction: Int,
+        loadType: LoadType,
+        equipment: EquipmentType? = null,
+    ): Double {
+        val step = displayStep(loadType, unit, equipment)
+            ?: return WeightConverter.sanitizeKg(currentKg)
+        val nextDisplay = (
+            WeightConverter.toDisplayValue(currentKg, unit) + direction * step
+            ).coerceAtLeast(0.0)
+        return WeightConverter.toKg(nextDisplay, unit)
+    }
+
     private fun stepsFor(loadType: LoadType, equipment: EquipmentType?): Pair<Double, Double> {
         if (loadType == LoadType.STACK) return STACK_STEP_KG to STACK_STEP_LBS
         if (equipment == EquipmentType.DUMBBELL || equipment == EquipmentType.KETTLEBELL) {

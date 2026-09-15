@@ -64,6 +64,16 @@ class HapticsPaletteTest {
         assertFalse(onLog.contains("Haptics.reject"))
     }
 
+    @Test
+    fun stepperTapTicksAndHoldRepeatIsTickLight() {
+        val stepper = readOwned("ui/components/StepperButton.kt")
+        assertTrue(stepper.contains("Haptics.tick(view)"))
+        assertTrue(stepper.contains("Haptics.tickLight(view)"))
+        assertTrue(stepper.contains("StepperRepeat.HOLD_BEFORE_REPEAT_MS"))
+        assertTrue(stepper.contains("StepperRepeat.REPEAT_MS"))
+        assertFalse(stepper.contains("FAST_REPEAT_MS"))
+    }
+
     private fun readOwned(relative: String): String {
         val roots = listOf(
             File("app/src/main/java/com/sinura/personaltrainer"),

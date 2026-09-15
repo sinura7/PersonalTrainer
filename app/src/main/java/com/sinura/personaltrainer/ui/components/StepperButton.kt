@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -26,6 +27,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import com.sinura.personaltrainer.domain.StepperRepeat
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -45,7 +48,8 @@ import kotlinx.coroutines.delay
  * "20 kg to 140 kg is 48 taps at the 2.5 kg step" — and then made all 48 taps identical
  * and silent. A physical weight selector clicks per detent and accelerates when held; this
  * one now does both, which turns the weakest part of the app's strongest control into
- * something that feels like equipment.
+ * something that feels like equipment. Hold waits 450 ms, then
+ * repeats at most five times a second — not the old 60 ms buzz.
  */
 @Composable
 fun StepperButton(
@@ -53,6 +57,8 @@ fun StepperButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    plateWidth: Dp? = null,
+    plateHeight: Dp? = null,
 ) {
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -74,14 +80,12 @@ fun StepperButton(
         // — dragged off the plate, or stolen by a parent scroll — never reaches the click
         // handler, and a flag left set would silently swallow the next genuine tap.
         repeatedThisPress = false
-        delay(HOLD_BEFORE_REPEAT_MS)
+        delay(StepperRepeat.HOLD_BEFORE_REPEAT_MS)
         repeatedThisPress = true
-        var repeats = 0
         while (true) {
             currentOnClick()
             Haptics.tickLight(view)
-            repeats++
-            delay(if (repeats >= REPEATS_BEFORE_FAST) FAST_REPEAT_MS else REPEAT_MS)
+            delay(StepperRepeat.REPEAT_MS)
         }
     }
 
@@ -91,10 +95,15 @@ fun StepperButton(
         label = "stepper-press",
     )
 
-    Box(
-        modifier = modifier
+    val sized = when {
+        plateWidth != null && plateHeight != null ->
+            modifier.size(width = plateWidth, height = plateHeight)
+        else -> modifier
             .heightIn(min = if (compact) Metrics.touchMin else Metrics.commit)
             .then(if (compact) Modifier.widthIn(min = Metrics.touchMin) else Modifier)
+    }
+    Box(
+        modifier = sized
             .clip(RoundedCornerShape(Radius.sm))
             .background(background)
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
@@ -123,8 +132,3 @@ fun StepperButton(
         )
     }
 }
-
-private const val HOLD_BEFORE_REPEAT_MS = 400L
-private const val REPEAT_MS = 150L
-private const val FAST_REPEAT_MS = 60L
-private const val REPEATS_BEFORE_FAST = 8

@@ -10,9 +10,10 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
 /**
- * Packet 4 floor field mark. The drawn path *is* the label — it does not
- * sit beside a kicker that already said "weight". TalkBack still hears
- * [spoken] when the neighbouring control does not already name the field.
+ * Floor field mark. Packet B: a supporting glyph beside a word label
+ * (WEIGHT / REPS / ASSISTANCE), not a replacement for that label.
+ * TalkBack still hears [spoken] when the neighbouring control does not
+ * already name the field.
  */
 @Composable
 fun FloorFieldGlyph(

@@ -5,10 +5,9 @@ package com.sinura.personaltrainer.domain
  *
  * Phone height is the scarce resource. The expanded lift card is the
  * one current-lift copy (still, number, name, 0/4, overflow ⋮). Weight
- * and reps are stacked snap-scroll wheels, not one cramped pair and not
- * a typing well. The THIS LIFT dock strip stays off. Warm-up / RPE stay
- * collapsed while rest is idle. Log set is the one filled Volt; Start
- * next stays reachable without becoming a second Volt bar.
+ * and reps are stacked stepper plates with tap-to-type, not live wheels
+ * and not a side-by-side pair. The THIS LIFT dock strip stays off. Warm-up
+ * / RPE stay collapsed while rest is idle. Log set is the one filled Volt.
  */
 object FloorCompactChrome {
     /** The expanded card is the identity. Do not pin a second THIS LIFT strip. */
@@ -39,8 +38,8 @@ object FloorCompactChrome {
     /** Compact floor: a weight row, then a reps (or time) row. */
     fun stackWeightAboveReps(): Boolean = true
 
-    /** Compact floor: swipe a live scroller, do not type the number. */
-    fun weightAndRepsAreWheels(): Boolean = true
+    /** Packet B: gym-floor weight / reps / hold draft are plates + keypad. */
+    fun weightAndRepsAreWheels(): Boolean = false
 
     /** Warm-up is not an RPE value; it sits outside the 6–10 track. */
     fun warmupOutsideRpeTrack(): Boolean = true
@@ -73,10 +72,11 @@ object FloorCompactChrome {
     fun progressionKickerInline(): Boolean = true
 
     /**
-     * Packet 4: weight, reps/time, RPE, and rest marks replace those
-     * text labels on the floor. TalkBack still hears the words.
+     * Packet B: weight, reps, and hold draft need word labels.
+     * Glyphs may sit beside them as supporting marks. RPE / rest
+     * marks stay until D / E.
      */
-    fun floorFieldGlyphsReplaceLabels(): Boolean = true
+    fun floorFieldGlyphsReplaceLabels(): Boolean = false
 
     /**
      * Packet 5: cheap destructives (delete set, remove lift, skip day)
