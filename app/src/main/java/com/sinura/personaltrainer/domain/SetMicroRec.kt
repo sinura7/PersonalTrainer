@@ -65,6 +65,11 @@ data class SetMicroRec(
      * Stop-early ("that's enough") is not this field.
      */
     val anotherSetAdvised: Boolean = false,
+    /**
+     * Percentage ladder off the working weight. Empty once working sets
+     * start. Never counted toward [targetSets].
+     */
+    val warmupSets: List<WarmupSet> = emptyList(),
 )
 
 object SetMicroRecCalculator {
@@ -384,6 +389,21 @@ object SetMicroRecCalculator {
                 reps = reps,
             ),
             anotherSetAdvised = reason == LIFT_DONE && adviseAnother(inputs),
+            warmupSets = warmupSetsFor(inputs, reason, weight),
+        )
+    }
+
+    private fun warmupSetsFor(
+        inputs: SetMicroRecInputs,
+        reason: String,
+        workingWeightKg: Double,
+    ): List<WarmupSet> {
+        if (reason != FIRST_SET && reason != WARMUP_DONE) return emptyList()
+        return WarmupRamp.sets(
+            workingWeightKg = workingWeightKg,
+            loadType = inputs.loadType,
+            unit = inputs.unit,
+            equipment = inputs.equipment,
         )
     }
 }
@@ -447,6 +467,16 @@ object SetMicroRecCopy {
 
     fun anotherSetLine(rec: SetMicroRec): String? =
         if (rec.anotherSetAdvised) ANOTHER_IN_YOU else null
+
+    fun warmupLine(rec: SetMicroRec, unit: WeightUnit): String? {
+        if (rec.warmupSets.isEmpty()) return null
+        val numbers = rec.warmupSets.joinToString(" · ") { set ->
+            WeightConverter.formatDisplayNumber(
+                WeightConverter.toDisplayValue(set.weightKg, unit),
+            )
+        }
+        return "Warm up $numbers ${unit.suffix}"
+    }
 
     const val ANOTHER_IN_YOU = "You have another in you"
 }
