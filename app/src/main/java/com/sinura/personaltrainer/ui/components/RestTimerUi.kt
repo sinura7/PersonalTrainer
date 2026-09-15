@@ -117,7 +117,6 @@ fun FloorTimerSlot(
     afterWarmup: Boolean = false,
     batteryHint: Boolean = false,
     onDismissBatteryHint: () -> Unit = {},
-    onStartNext: () -> Unit = {},
     onOpenRest: () -> Unit = {},
     holdRunning: Boolean = false,
     holdElapsedSeconds: Int = 0,
@@ -153,7 +152,6 @@ fun FloorTimerSlot(
             afterWarmup = afterWarmup,
             batteryHint = batteryHint,
             onDismissBatteryHint = onDismissBatteryHint,
-            onStartNext = onStartNext,
             onOpenRest = onOpenRest,
             offerSetClock = offerSetClock,
             onStartSetClock = onStartSetClock,
@@ -234,7 +232,6 @@ fun RestDock(
     afterWarmup: Boolean = false,
     batteryHint: Boolean = false,
     onDismissBatteryHint: () -> Unit = {},
-    onStartNext: () -> Unit = {},
     /** @deprecated Packet 2: full page opens from the instrument strip. */
     onOpenRest: () -> Unit = {},
     offerSetClock: Boolean = false,
@@ -296,7 +293,6 @@ fun RestDock(
             totalSeconds = totalSeconds,
             afterWarmup = afterWarmup,
             onStart = onStart,
-            onStartNext = onStartNext,
             onSelectRestDuration = onSelectRestDuration,
             offerSetClock = offerSetClock,
             onStartSetClock = onStartSetClock,
@@ -429,9 +425,9 @@ fun RestBatteryHintRow(
 
 /**
  * Idle rest on the log: not a countdown. Planned duration is a label
- * that expands an inline [SnapValueWheel] on tap. Start next is
- * keep-going, not a Volt bar. Log set, pinned under this dock, is the
- * filled act. The instrument strip opens the full rest page.
+ * that expands an inline [SnapValueWheel] on tap. Start next is not
+ * composed (Packet A). Log set, pinned under this dock, is the filled
+ * act. The instrument strip opens the full rest page.
  */
 @Composable
 fun RestIdleRow(
@@ -440,7 +436,6 @@ fun RestIdleRow(
     onSelectRestDuration: (Int) -> Unit,
     modifier: Modifier = Modifier,
     afterWarmup: Boolean = false,
-    onStartNext: () -> Unit = {},
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
 ) {
@@ -487,19 +482,6 @@ fun RestIdleRow(
                 )
             }
             if (!editing) {
-                TextButton(
-                    onClick = onStartNext,
-                    modifier = Modifier
-                        .heightIn(min = Metrics.touchMin)
-                        .testTag("workout-start-next"),
-                ) {
-                    Text(
-                        RestIdleCopy.START_NEXT,
-                        style = InstrumentType.bodyStrong,
-                        color = TextPrimary,
-                        maxLines = 1,
-                    )
-                }
                 RestControl(
                     label = RestIdleCopy.START,
                     onClick = onStart,

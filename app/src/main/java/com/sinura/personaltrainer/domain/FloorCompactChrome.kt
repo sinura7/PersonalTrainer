@@ -20,6 +20,19 @@ object FloorCompactChrome {
     /** Start next is a quiet keep-going, not a second filled Volt. */
     fun idleStartNextIsVolt(): Boolean = false
 
+    /**
+     * Packet A: do not compose idle Start next. It is a no-op when Next
+     * lift is not valid, and a duplicate when Next lift is already the Volt.
+     * Packet F removes the leftover idle-row callback.
+     */
+    fun showIdleStartNext(): Boolean = false
+
+    /**
+     * Packet A: an empty free workout has no rest, stopwatch, or Start next.
+     * The dock Volt is Add a lift.
+     */
+    fun emptySessionHidesTimerDock(): Boolean = true
+
     /** Swap / remove live on the identity row, not a row of their own. */
     fun overflowOnHeaderRow(): Boolean = true
 

@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
@@ -13,6 +14,9 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.FloorEntryWheels
+import com.sinura.personaltrainer.domain.LiftEntryReadiness
+import com.sinura.personaltrainer.domain.LogCommitCopy
+import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -26,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -159,17 +164,26 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun reselectingTheSameLiftRunsPrefillAgain() = runBlocking {
+    fun selectingSelectedLiftDoesNotPrefillOrClearDraft() = runBlocking {
         val fixture = seedWorkout(targetWeightKg = 100.0)
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg == 100.0 }
 
         vm.setWeight(155.0)
-        vm.awaitState { it.draft.weightKg == 155.0 }
+        vm.setReps(8)
+        vm.setRpe(8)
+        vm.setWarmup(true)
+        vm.awaitState {
+            it.draft.weightKg == 155.0 && it.draft.reps == 8 && it.draft.rpe == 8 && it.draft.isWarmup
+        }
         vm.selectExercise(SQUAT)
 
-        val state = vm.awaitState { it.draft.weightKg == 100.0 }
-        assertEquals(5, state.draft.reps)
+        val state = vm.awaitState { it.draft.weightKg == 155.0 }
+        assertEquals(155.0, state.draft.weightKg, 0.0001)
+        assertEquals(8, state.draft.reps)
+        assertEquals(8, state.draft.rpe)
+        assertTrue(state.draft.isWarmup)
+        assertTrue(state.draftDirty)
     }
 
     @Test
@@ -184,6 +198,9 @@ class ActiveWorkoutViewModelTest {
         val state = vm.awaitState { it.error != null }
         assertTrue(state.error.orEmpty().contains("weight", ignoreCase = true))
         assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty())
+        assertFalse(state.logging)
+        assertNull(vm.personalRecord.value)
+        assertFalse(deps.restTimerStore.current().running)
     }
 
     @Test
@@ -227,11 +244,14 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(wheeledKg)
         vm.setReps(wheeledReps)
         vm.awaitState { it.draft.weightKg == wheeledKg && it.draft.reps == wheeledReps }
+        vm.setWeight(start.weightKg)
+        vm.setReps(start.reps)
+        vm.awaitState { it.draft.weightKg == start.weightKg && it.draft.reps == start.reps }
         vm.logSetAndSettle()
 
         val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
-        assertEquals(wheeledKg, persisted.sets.single().weightKg, 0.0001)
-        assertEquals(wheeledReps, persisted.sets.single().reps)
+        assertEquals(start.weightKg, persisted.sets.single().weightKg, 0.0001)
+        assertEquals(start.reps, persisted.sets.single().reps)
     }
 
     @Test
@@ -438,7 +458,11 @@ class ActiveWorkoutViewModelTest {
         vm.logSetAndSettle()
 
         val state = vm.awaitState { it.error != null }
-        assertTrue(state.error.orEmpty().contains("no longer available", ignoreCase = true))
+        assertEquals(LogCommitCopy.WRITE_FAILED, state.error)
+        assertEquals(100.0, state.draft.weightKg, 0.0001)
+        assertFalse(state.logging)
+        assertFalse(deps.restTimerStore.current().running)
+        assertNull(vm.personalRecord.value)
         assertNull(deps.workoutRepository.getSession(fixture.session.id))
     }
 
@@ -1264,6 +1288,243 @@ class ActiveWorkoutViewModelTest {
         assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.exercises.size)
     }
 
+    @Test
+    fun sessionReadyDoesNotImplyLiftReady() = runBlocking {
+        val fixture = seedWorkout()
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedHistory(gate))
+        try {
+            val found = vm.awaitFound()
+            assertEquals(SessionLoadState.FOUND, found.loadState)
+            assertTrue(
+                found.liftReadiness == LiftEntryReadiness.RESOLVING ||
+                    found.liftReadiness == LiftEntryReadiness.NONE,
+            )
+            assertFalse(found.canLog)
+            assertFalse(found.liftReadiness.allowsCommit())
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun logDisabledUntilLiftReady() = runBlocking {
+        val fixture = seedWorkout()
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedHistory(gate))
+        try {
+            vm.awaitFound()
+            assertFalse(vm.uiState.value.canLog)
+            vm.logSet()
+            assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty())
+            gate.complete(Unit)
+            val ready = vm.awaitState {
+                it.liftReadiness == LiftEntryReadiness.READY && it.draft.weightKg == 100.0
+            }
+            assertTrue(ready.canLog)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun prefillDoesNotOverwriteDirtyDraft() = runBlocking {
+        val fixture = seedWorkout(targetWeightKg = 100.0)
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedHistory(gate))
+        try {
+            vm.awaitFound()
+            vm.setWeight(155.0)
+            vm.setReps(7)
+            vm.awaitState { it.draftDirty && it.draft.weightKg == 155.0 }
+            gate.complete(Unit)
+            val state = vm.awaitState {
+                it.liftReadiness.allowsCommit() && it.draft.weightKg == 155.0
+            }
+            assertEquals(155.0, state.draft.weightKg, 0.0001)
+            assertEquals(7, state.draft.reps)
+            assertTrue(state.draftDirty)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun stalePrefillForPreviousLiftIsIgnored() = runBlocking {
+        val fixture = seedTwoLifts()
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedHistory(gate))
+        try {
+            vm.awaitFound()
+            vm.selectExercise(ROW)
+            vm.awaitState { it.selectedExerciseId == ROW }
+            gate.complete(Unit)
+            val state = vm.awaitState {
+                it.selectedExerciseId == ROW &&
+                    it.liftReadiness.allowsCommit() &&
+                    it.draft.weightKg == 80.0
+            }
+            assertEquals(ROW, state.selectedExerciseId)
+            assertEquals(80.0, state.draft.weightKg, 0.0001)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun prefillFailureDegradesAndLogStillWorks() = runBlocking {
+        val fixture = seedWorkout(targetWeightKg = 100.0)
+        assertEquals(
+            100.0,
+            fixture.session.exercises.single().targetWeightKg ?: -1.0,
+            0.0001,
+        )
+        val vm = createViewModel(fixture.session.id, container = failingHistory())
+        val state = vm.awaitState {
+            it.loadState == SessionLoadState.FOUND &&
+                it.liftReadiness == LiftEntryReadiness.DEGRADED &&
+                it.draft.weightKg == 100.0
+        }
+        assertTrue(state.suggestionUnavailable)
+        assertTrue(state.canLog)
+        assertEquals(100.0, state.draft.weightKg, 0.0001)
+        vm.logSetAndSettle()
+        val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
+        assertEquals(100.0, persisted.sets.single().weightKg, 0.0001)
+        assertFalse(vm.uiState.value.logging)
+    }
+
+    @Test
+    fun emptySessionHidesRestAndOffersDiscard() = runBlocking {
+        val session = deps.workoutRepository.startFreeWorkout()
+        val vm = createViewModel(session.id)
+        val state = vm.awaitFound()
+        assertFalse(state.showRest)
+        assertFalse(state.offerSetClock)
+        assertFalse(state.canFinish)
+        assertTrue(state.showDiscard)
+        assertEquals(LiftEntryReadiness.NONE, state.liftReadiness)
+        assertFalse(state.canLog)
+        assertTrue(state.session?.sets.isNullOrEmpty())
+    }
+
+    @Test
+    fun finishIsDisabledWithZeroSetsAndWhileLogging() = runBlocking {
+        val fixture = seedWorkout()
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
+        try {
+            vm.awaitPrefilled()
+            assertFalse(vm.uiState.value.canFinish)
+            assertTrue(vm.uiState.value.showDiscard)
+            vm.logSet()
+            assertTrue(vm.uiState.value.logging)
+            assertFalse(vm.uiState.value.canFinish)
+            assertFalse(vm.uiState.value.showDiscard)
+            assertFalse(vm.uiState.value.canLog)
+            vm.logSet()
+            gate.complete(Unit)
+            val settled = vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
+            assertTrue(settled.canFinish)
+            assertFalse(settled.showDiscard)
+            assertEquals(
+                1,
+                checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size,
+            )
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun loggingFlagDisablesButtonAndAbsorbsSecondTap() = runBlocking {
+        val fixture = seedWorkout()
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
+        try {
+            vm.awaitPrefilled()
+            vm.logSet()
+            val busy = vm.awaitState { it.logging }
+            assertFalse(busy.canLog)
+            assertFalse(busy.canFinish)
+            vm.logSet()
+            vm.logSet()
+            gate.complete(Unit)
+            val settled = vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
+            assertEquals(
+                1,
+                checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size,
+            )
+            assertTrue(settled.canFinish)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun rapidLogTapsEmitOneSuccessHapticEvent() = runBlocking {
+        val fixture = seedWorkout()
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
+        val seen = mutableListOf<LogCommitFeedback>()
+        val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
+        try {
+            vm.awaitPrefilled()
+            vm.logSet()
+            vm.logSet()
+            assertTrue(vm.uiState.value.logging)
+            gate.complete(Unit)
+            vm.awaitState { !it.logging }
+            assertEquals(
+                1,
+                checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size,
+            )
+            assertEquals(listOf(LogCommitFeedback.SUCCESS), seen.toList())
+        } finally {
+            job.cancel()
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun writeFailureRetainsDraftAndEmitsReject() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.setWeight(100.0)
+        val seen = mutableListOf<LogCommitFeedback>()
+        val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
+        try {
+            deps.database.workoutDao().deleteSession(fixture.session.id)
+            vm.logSetAndSettle()
+            val state = vm.awaitState { it.error != null }
+            assertEquals(LogCommitCopy.WRITE_FAILED, state.error)
+            assertEquals(100.0, state.draft.weightKg, 0.0001)
+            assertEquals(listOf(LogCommitFeedback.REJECT), seen.toList())
+            assertFalse(deps.restTimerStore.current().running)
+        } finally {
+            job.cancel()
+        }
+    }
+
+    @Test
+    fun logSetRejectsZeroWeightWithoutSuccessHaptic() = runBlocking {
+        val fixture = seedWorkout(targetWeightKg = 0.0)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        val seen = mutableListOf<LogCommitFeedback>()
+        val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
+        try {
+            vm.setWeight(0.0)
+            vm.logSetAndSettle()
+            vm.awaitState { it.error != null }
+            assertEquals(listOf(LogCommitFeedback.REJECT), seen.toList())
+            assertFalse(seen.contains(LogCommitFeedback.SUCCESS))
+        } finally {
+            job.cancel()
+        }
+    }
+
     private fun createViewModel(
         sessionId: String,
         handle: SavedStateHandle = handleFor(sessionId),
@@ -1286,6 +1547,35 @@ class ActiveWorkoutViewModelTest {
         }
     }
 
+    private fun gatedHistory(
+        gate: CompletableDeferred<Unit>,
+        fail: Boolean = false,
+    ): AppDependencies {
+        val repo = WorkoutRepository(
+            deps.database,
+            GatedHistoryDao(deps.database.workoutDao(), gate, fail),
+        )
+        return object : AppDependencies by deps {
+            override val workoutRepository: WorkoutRepository = repo
+        }
+    }
+
+    private fun failingHistory(): AppDependencies {
+        val repo = WorkoutRepository(
+            deps.database,
+            object : WorkoutDao by deps.database.workoutDao() {
+                override suspend fun finishedWorkingSetsForExercises(
+                    exerciseIds: List<String>,
+                ): List<FinishedWorkingSetRow> {
+                    error("history unavailable")
+                }
+            },
+        )
+        return object : AppDependencies by deps {
+            override val workoutRepository: WorkoutRepository = repo
+        }
+    }
+
     private class GatedInsertDao(
         private val delegate: WorkoutDao,
         private val gate: CompletableDeferred<Unit>,
@@ -1293,6 +1583,20 @@ class ActiveWorkoutViewModelTest {
         override suspend fun insertSet(set: SetLogEntity) {
             gate.await()
             delegate.insertSet(set)
+        }
+    }
+
+    private class GatedHistoryDao(
+        private val delegate: WorkoutDao,
+        private val gate: CompletableDeferred<Unit>,
+        private val fail: Boolean,
+    ) : WorkoutDao by delegate {
+        override suspend fun finishedWorkingSetsForExercises(
+            exerciseIds: List<String>,
+        ): List<FinishedWorkingSetRow> {
+            gate.await()
+            if (fail) error("history unavailable")
+            return delegate.finishedWorkingSetsForExercises(exerciseIds)
         }
     }
 

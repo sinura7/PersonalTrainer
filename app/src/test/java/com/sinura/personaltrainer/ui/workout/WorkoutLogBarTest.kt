@@ -70,6 +70,10 @@ class WorkoutLogBarTest {
         val copy = readOwned("domain/LogBarCopy.kt")
         assertTrue(copy.contains("const val NEXT = \"Next lift\""))
         assertTrue(copy.contains("const val ANOTHER_SET = \"Another set\""))
+        assertTrue(copy.contains("const val LOGGING"))
+        assertTrue(bar.contains("canLog"))
+        assertTrue(bar.contains("LogCommitCopy.disabledReason"))
+        assertTrue(bar.contains("logging = logging && !nextAct"))
     }
 
     private fun readOwned(relative: String): String {

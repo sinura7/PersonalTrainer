@@ -48,10 +48,13 @@ object SetLogRules {
         LoadType.BODYWEIGHT, LoadType.BODYWEIGHT_PLUS, LoadType.ASSISTED -> false
     }
 
-    fun isUserMessage(message: String): Boolean =
+    fun isFieldMessage(message: String): Boolean =
         message == ZERO_WORKING_WEIGHT ||
             message == INVALID_WEIGHT ||
             message == INVALID_REPS ||
-            message == INVALID_HOLD ||
+            message == INVALID_HOLD
+
+    fun isUserMessage(message: String): Boolean =
+        isFieldMessage(message) ||
             message.startsWith("This workout")
 }

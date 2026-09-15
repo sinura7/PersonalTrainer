@@ -32,7 +32,11 @@ class FloorCompactPresentationTest {
         assertTrue(idleStart >= 0 && idleEnd > idleStart)
         val idle = dock.substring(idleStart, idleEnd)
         assertFalse("idle Start next must not be a filled Volt", idle.contains("PrimaryGymButton"))
-        assertTrue(idle.contains("RestIdleCopy.START_NEXT"))
+        assertFalse(
+            "idle Start next must not be composed",
+            idle.contains("RestIdleCopy.START_NEXT"),
+        )
+        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.showIdleStartNext())
         assertTrue(idle.contains("RestIdleCopy.START"))
         assertTrue(idle.contains("TextButton("))
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.idleStartNextIsVolt())
@@ -43,6 +47,9 @@ class FloorCompactPresentationTest {
         assertTrue(bar.contains("showRpe: Boolean"))
         assertTrue(bar.contains("advanceChoice: Boolean"))
         assertTrue(bar.contains("LogBarCopy.ANOTHER_SET"))
+        assertTrue(bar.contains("canLog: Boolean"))
+        assertTrue(bar.contains("LogCommitCopy.disabledReason"))
+        assertTrue(bar.contains("logging = logging && !nextAct"))
         assertFalse(bar.contains("RpeCopy.blurb"))
         assertFalse(bar.contains("LazyRow("))
     }
@@ -139,6 +146,23 @@ class FloorCompactPresentationTest {
         assertFalse(homeCards.contains("compact = true"))
         val leftover = readOwned("ui/home/ThisWeekCard.kt")
         assertFalse(leftover.contains("SetEntryPanel("))
+    }
+
+    @Test
+    fun emptySessionDockIsAddALiftWithoutATimer() {
+        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.emptySessionHidesTimerDock())
+        val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
+        assertTrue(workout.contains("LogBarCopy.ADD_LIFT"))
+        assertTrue(workout.contains("WorkoutTestTags.DOCK_ADD_LIFT"))
+        assertTrue(workout.contains("emptySession"))
+        assertTrue(workout.contains("showDiscard = state.showDiscard"))
+        assertTrue(workout.contains("canFinish = state.canFinish"))
+        val bottom = workout.substring(workout.indexOf("bottomBar"))
+        val emptyDock = bottom.substring(0, bottom.indexOf("LazyColumn("))
+        assertFalse(
+            "empty free workout must not mount FloorTimerSlot",
+            emptyDock.contains("FloorTimerSlot("),
+        )
     }
 
     private fun readOwned(relative: String): String {

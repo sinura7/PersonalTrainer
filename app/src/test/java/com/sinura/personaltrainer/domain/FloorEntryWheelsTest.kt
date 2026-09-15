@@ -80,8 +80,40 @@ class FloorEntryWheelsTest {
 
     @Test
     fun firstSettleOnTheParkedPageIsNotAChoice() {
-        assertFalse(FloorEntryWheels.shouldCommitSettledPage(40, 40))
-        assertTrue(FloorEntryWheels.shouldCommitSettledPage(41, 40))
+        val fresh = FloorEntryWheels.WheelSettleMemory()
+        assertFalse(
+            FloorEntryWheels.shouldCommitSettledPage(
+                settledPage = 40,
+                initialPage = 40,
+                memory = fresh,
+                selectedIndex = 40,
+            ),
+        )
+        assertFalse(
+            FloorEntryWheels.shouldCommitSettledPage(
+                settledPage = 41,
+                initialPage = 40,
+                memory = fresh,
+                selectedIndex = 40,
+            ),
+        )
+    }
+
+    @Test
+    fun returnToTheParkedPageAfterLeavingIsAChoice() {
+        var memory = FloorEntryWheels.WheelSettleMemory()
+        assertFalse(
+            FloorEntryWheels.shouldCommitSettledPage(40, 40, memory, selectedIndex = 40),
+        )
+        memory = FloorEntryWheels.afterWheelSettle(40, 40, memory)
+        assertTrue(
+            FloorEntryWheels.shouldCommitSettledPage(41, 40, memory, selectedIndex = 40),
+        )
+        memory = FloorEntryWheels.afterWheelSettle(41, 40, memory)
+        assertTrue(memory.hasLeftInitialPage)
+        assertTrue(
+            FloorEntryWheels.shouldCommitSettledPage(40, 40, memory, selectedIndex = 41),
+        )
     }
 
     @Test

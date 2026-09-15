@@ -17,7 +17,10 @@ class RestIdlePresentationTest {
         assertFalse("idle rest label must not use numeralMd", idle.contains("numeralMd"))
         assertTrue(idle.contains("RestIdleCopy"))
         assertTrue(idle.contains("bodyStrong"))
-        assertTrue(idle.contains("RestIdleCopy.START_NEXT"))
+        assertFalse(
+            "idle Start next must not be composed",
+            idle.contains("RestIdleCopy.START_NEXT"),
+        )
         assertTrue(idle.contains("RestIdleCopy.START"))
         assertTrue(idle.contains("TextButton("))
         assertTrue(idle.contains("SnapValueWheel("))

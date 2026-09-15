@@ -31,6 +31,9 @@ import androidx.compose.ui.semantics.selected
 import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sinura.personaltrainer.domain.FloorCompactChrome
+import com.sinura.personaltrainer.domain.LogBarCopy
+import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.EmptyScene
@@ -48,11 +51,12 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
-import com.sinura.personaltrainer.ui.components.FloorTimerSlot
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
+import com.sinura.personaltrainer.ui.components.PinnedDock
+import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.Haptics
@@ -93,6 +97,8 @@ object WorkoutTestTags {
     const val SELECTED_LIFT = "workout-selected-lift"
     const val START_NEXT = "workout-start-next"
     const val START_REST = "workout-start-rest"
+    const val DISCARD = "workout-discard"
+    const val DOCK_ADD_LIFT = "workout-dock-add-lift"
     const val LIFT_OPTIONS = "workout-lift-options"
     const val WEIGHT_WHEEL = "workout-weight-wheel"
     const val REPS_WHEEL = "workout-reps-wheel"
@@ -198,6 +204,15 @@ fun ActiveWorkoutScreen(
         viewModel.onPersonalRecordShown()
     }
 
+    LaunchedEffect(viewModel) {
+        viewModel.logFeedback.collect { feedback ->
+            when (feedback) {
+                LogCommitFeedback.SUCCESS -> Haptics.commit(view)
+                LogCommitFeedback.REJECT -> Haptics.reject(view)
+            }
+        }
+    }
+
     Scaffold(
         snackbarHost = {
             val errorBanner = state.error != null && !logBarVisible
@@ -248,10 +263,12 @@ fun ActiveWorkoutScreen(
                 workingSets = session?.sets?.count { !it.isWarmup } ?: 0,
                 work = sessionWork,
                 unit = unit,
-                canFinish = session != null,
+                canFinish = state.canFinish,
+                showDiscard = state.showDiscard,
                 compact = LandscapeChrome.compactHeader(landscape),
                 onExit = { keepAndExit() },
                 onFinish = { confirmEnd = true },
+                onDiscard = { confirmDiscard = true },
                 onOpenTimer = { session?.id?.let(onOpenRest) },
                 restRunning = rest.running,
                 restRemainingSeconds = rest.remainingSeconds,
@@ -267,13 +284,16 @@ fun ActiveWorkoutScreen(
             // G-02 / Packet 2: timer slot, advance choice, and Log set share
             // the LogBar dock so a one-handed thumb reaches every control.
             // Finish stays in the header — it is not a mid-set act.
-            val showRest = session != null
-            if (showRest || logBarVisible) {
+            val emptySession = session != null &&
+                !session.hasLifts() &&
+                FloorCompactChrome.emptySessionHidesTimerDock()
+            val showRest = state.showRest
+            if (emptySession || showRest || logBarVisible) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
-                            if (logBarVisible) Modifier
+                            if (logBarVisible || emptySession) Modifier
                             else Modifier.navigationBarsPadding(),
                         ),
                 ) {
@@ -289,12 +309,25 @@ fun ActiveWorkoutScreen(
                             restRemainingSeconds = rest.remainingSeconds,
                         )
                     }
-                    if (logBarVisible) {
+                    if (emptySession) {
+                        PinnedDock(
+                            volt = {
+                                PrimaryGymButton(
+                                    text = LogBarCopy.ADD_LIFT,
+                                    onClick = { viewModel.setPickerVisible(true) },
+                                    modifier = Modifier.testTag(WorkoutTestTags.DOCK_ADD_LIFT),
+                                    height = Metrics.commit,
+                                )
+                            },
+                        )
+                    } else if (logBarVisible) {
                         val hold = selected?.exercise?.let { HoldWork.isHold(it) } == true
                         val holdArmed = holdTimer.running || holdTimer.totalSeconds > 0
                         LogBar(
                             editing = state.editingSetId != null,
                             logging = state.logging,
+                            canLog = state.canLog,
+                            suggestionUnavailable = state.suggestionUnavailable,
                             error = state.error,
                             draftLabel = SetCopy.setLine(
                                 state.draft.weightKg,
@@ -338,17 +371,15 @@ fun ActiveWorkoutScreen(
                             holdElapsedSeconds = holdTimer.elapsedSeconds,
                             stopwatchRunning = setStopwatch.running,
                             stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
-                            offerSetClock = !hold,
+                            offerSetClock = state.offerSetClock,
                             onStartSetClock = viewModel::startSetStopwatch,
                             onStopSetClock = viewModel::stopSetStopwatch,
                             onSkipRest = viewModel::skipRest,
                             onStartRest = viewModel::startSelectedRest,
                             onSelectRestDuration = viewModel::selectRestDuration,
                             onDismissRestBatteryHint = viewModel::acknowledgeRestBatteryHint,
-                            onStartNextLift = viewModel::startNextLift,
                             onOpenRest = { session?.id?.let(onOpenRest) },
                             onLog = {
-                                Haptics.commit(view)
                                 if (hold && !holdArmed && state.editingSetId == null) {
                                     viewModel.startHoldSet()
                                 } else {
@@ -365,27 +396,6 @@ fun ActiveWorkoutScreen(
                             onAnotherSet = viewModel::stayOnCurrentExercise,
                             onCancelEdit = viewModel::cancelEdit,
                             onApplyMicroRec = viewModel::applyMicroRec,
-                        )
-                    } else if (showRest) {
-                        // Empty free workout: timer alone until a lift is selected.
-                        FloorTimerSlot(
-                            remainingSeconds = rest.remainingSeconds,
-                            totalSeconds = rest.totalSeconds,
-                            restRunning = rest.running,
-                            completedTimerId = rest.completedTimerId,
-                            hideWhenIdle = LandscapeChrome.hideIdleRest(landscape),
-                            afterWarmup = afterWarmup,
-                            batteryHint = rest.batteryHint,
-                            holdRunning = holdTimer.running,
-                            holdElapsedSeconds = holdTimer.elapsedSeconds,
-                            stopwatchRunning = setStopwatch.running,
-                            stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
-                            onSkip = viewModel::skipRest,
-                            onStart = viewModel::startSelectedRest,
-                            onSelectRestDuration = viewModel::selectRestDuration,
-                            onDismissBatteryHint = viewModel::acknowledgeRestBatteryHint,
-                            onStartNext = viewModel::startNextLift,
-                            onOpenRest = { session.id.let(onOpenRest) },
                         )
                     }
                 }

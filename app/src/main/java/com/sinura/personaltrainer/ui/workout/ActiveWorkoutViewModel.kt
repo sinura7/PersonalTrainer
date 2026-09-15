@@ -15,9 +15,11 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.FloorTimerSurface
 import com.sinura.personaltrainer.domain.HoldTimerUiState
 import com.sinura.personaltrainer.domain.HoldWork
+import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.SetStopwatchUiState
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
@@ -25,6 +27,8 @@ import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.LogCommitCopy
+import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -57,11 +61,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -144,6 +149,9 @@ data class ActiveWorkoutUiState(
      * double tap cannot write two sets.
      */
     val logging: Boolean = false,
+    val liftReadiness: LiftEntryReadiness = LiftEntryReadiness.NONE,
+    val suggestionUnavailable: Boolean = false,
+    val draftDirty: Boolean = false,
     /** True while the picker is exchanging a lift rather than adding one. */
     val swapping: Boolean = false,
     /**
@@ -159,6 +167,36 @@ data class ActiveWorkoutUiState(
     val suggestionReason: String? = null,
 ) {
     val isLoading: Boolean get() = loadState == SessionLoadState.LOADING
+
+    val canLog: Boolean
+        get() = session != null &&
+            selectedExerciseId != null &&
+            !logging &&
+            (liftReadiness.allowsCommit() || draftDirty)
+
+    val canFinish: Boolean
+        get() = session?.sets?.isNotEmpty() == true && !logging
+
+    val showDiscard: Boolean
+        get() = session != null && session.sets.isEmpty() && !logging
+
+    val showRest: Boolean
+        get() {
+            val current = session ?: return false
+            return if (FloorCompactChrome.emptySessionHidesTimerDock()) {
+                current.hasLifts()
+            } else {
+                true
+            }
+        }
+
+    val offerSetClock: Boolean
+        get() {
+            if (!showRest) return false
+            val lift = session?.exercises?.firstOrNull { it.exercise.id == selectedExerciseId }
+                ?: return false
+            return !HoldWork.isHold(lift.exercise)
+        }
 }
 
 /** A record broken by the set just logged, for the in-workout moment. */
@@ -225,7 +263,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
     private val logging = MutableStateFlow(false)
+    private val liftReadiness = MutableStateFlow(LiftEntryReadiness.NONE)
+    private val suggestionUnavailable = MutableStateFlow(false)
+    private val draftDirty = MutableStateFlow(false)
+    private var prefillGeneration = 0
     private val wantAnotherSet = MutableStateFlow(false)
+    private val _pendingAdvance = MutableStateFlow<PendingAdvance?>(null)
     private var cachedWeightUnit = WeightUnit.KG
 
     /**
@@ -244,14 +287,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private var terminalExit = false
 
     /**
-     * Tapping the lift that is already selected must still refill the draft from the
-     * suggestion. [selectedExerciseId] cannot carry that: a StateFlow conflates a write of the
-     * value it already holds into no emission at all.
+     * Tapping the lift that is already selected must not refill the draft.
+     * Packet C will hang the switcher on that same non-mutating tap.
      */
-    private val reselections = MutableSharedFlow<String>(
-        extraBufferCapacity = 4,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
     private val restTimer = container.restTimerController
     private val _holdTimer = MutableStateFlow(HoldTimerUiState())
     val holdTimer: StateFlow<HoldTimerUiState> = _holdTimer.asStateFlow()
@@ -304,6 +342,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 isWarmup = cached.isWarmup,
             )
             notes.value = cached.notes
+            liftReadiness.value = LiftEntryReadiness.READY
         }
         savedDraft.editingSetId()?.let { editingSetId.value = it }
         viewModelScope.launch {
@@ -314,7 +353,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     if (current == null) return@collect
                     val resolved = current.resolveSelectedExerciseId(selectedExerciseId.value)
                     if (resolved != selectedExerciseId.value) {
-                        selectedExerciseId.value = resolved
+                        if (resolved == null) {
+                            clearLiftSelection()
+                        } else {
+                            applySelection(resolved)
+                        }
                     }
                     lastPersistedNotes = current.notes
                     // Hydrate once. "Field is empty" cannot tell not-yet-seeded from
@@ -340,13 +383,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         //
         // It is now driven by the selection alone, which is what it actually depends on.
         viewModelScope.launch {
-            merge(
-                selectedExerciseId.filterNotNull().distinctUntilChanged(),
-                reselections,
-            ).collectLatest { exerciseId ->
-                runCatchingCancellable { prefill(exerciseId) }
-                    .onFailure { AppLog.w(TAG, "Prefilling the next set failed", it) }
-            }
+            selectedExerciseId.filterNotNull().distinctUntilChanged()
+                .collectLatest { exerciseId ->
+                    runCatchingCancellable { prefill(exerciseId) }
+                        .onFailure { AppLog.w(TAG, "Prefilling the next set failed", it) }
+                }
         }
         // Notes used to launch an independent write per keystroke. Room's writes are not
         // ordered against each other, so a shorter earlier string could land after a longer
@@ -574,6 +615,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         )
     }.combine(logging) { state, busy ->
         state.copy(logging = busy)
+    }.combine(liftReadiness) { state, readiness ->
+        state.copy(liftReadiness = readiness)
+    }.combine(suggestionUnavailable) { state, missing ->
+        state.copy(suggestionUnavailable = missing)
+    }.combine(draftDirty) { state, dirty ->
+        state.copy(draftDirty = dirty)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -587,12 +634,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * The two halves are separate on purpose. The reference half (last session, progression
      * hint, planned rest) is always safe to load and is exactly what someone resuming a
      * workout or editing a logged set wants to see. The draft half overwrites what they typed,
-     * so it is skipped in both those cases.
+     * so it is skipped when they already edited, recovered a draft, or are revising a row.
+     * Stale answers for a previous lift or an older generation are discarded.
      */
     private suspend fun prefill(exerciseId: String) {
-        // Decided before the first suspension point, so a cancelled prefill cannot half-consume
-        // it: a recovered draft is the user's own unfinished entry, but a draft recovered for
-        // some other lift is simply spent.
+        val generation = prefillGeneration
         val resume = pendingResumeDraft
         val resumingThisLift = if (resume == null) {
             false
@@ -601,89 +647,148 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             resume.exerciseId == null || resume.exerciseId == exerciseId
         }
         val keepDraft = resumingThisLift || editingSetId.value != null
-        // Cleared before the query so the previous lift's numbers never sit under the new
-        // lift's name; a stale "last time" is worse than none.
+        if (!keepDraft) {
+            liftReadiness.value = LiftEntryReadiness.RESOLVING
+            suggestionUnavailable.value = false
+        } else if (liftReadiness.value == LiftEntryReadiness.NONE) {
+            liftReadiness.value = LiftEntryReadiness.READY
+        }
         lastPerformance.value = null
         hint.value = null
-        // Wait for the row rather than giving up: a selection restored from a saved draft can
-        // arrive before the query answers, and bailing there left that lift with no suggestion
-        // at all. sessionResolved bounds the wait — once the query has answered, null is final.
         val current = session.value ?: run {
             sessionResolved.first { it }
             session.value ?: return
         }
+        if (!isCurrentPrefill(exerciseId, generation)) return
         val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
         val hold = planned?.exercise?.let { HoldWork.isHold(it) } == true
         val targetReps = planned?.targetReps ?: 5
-        val restPrefs = container.preferencesRepository.restTimerPreferences.first()
-        val schedule = container.preferencesRepository.schedulePreferences.first()
-        val thisWeek = LighterWeek.weekStartEpochDay(
-            civilToday(),
-            schedule.weekStart,
-        )
-        val lighter = LighterWeek.isCurrent(
-            container.preferencesRepository.lighterWeekStartEpochDay.first(),
-            thisWeek,
-        )
-        lighterWeek.value = lighter
-        val progression = container.workoutRepository.progressionFor(
-            exerciseId = exerciseId,
-            exerciseName = planned?.exercise?.name ?: "",
-            targetReps = targetReps,
-            excludeSessionId = sessionId,
-            loadType = planned?.exercise?.loadType,
-            // Read once here rather than collected: the hint is computed at the moment a lift
-            // opens, and a unit change mid-set recomputes it on the next open anyway.
-            unit = container.preferencesRepository.weightUnit.first(),
-            lighterWeek = lighter,
-            equipment = planned?.exercise?.equipment,
-        )
-        hint.value = progression
-        lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
-        restTotal.value = RestTimer.secondsToStart(
-            planned?.restSeconds,
-            restPrefs,
-            prescribedSeconds = workoutMicroRec(
-                session = current,
-                selectedExerciseId = exerciseId,
-                draft = draft.value,
-                hint = progression,
-                editingSetId = editingSetId.value,
-                lighterWeek = lighter,
+        try {
+            val restPrefs = container.preferencesRepository.restTimerPreferences.first()
+            if (!isCurrentPrefill(exerciseId, generation)) return
+            val schedule = container.preferencesRepository.schedulePreferences.first()
+            if (!isCurrentPrefill(exerciseId, generation)) return
+            val thisWeek = LighterWeek.weekStartEpochDay(
+                civilToday(),
+                schedule.weekStart,
+            )
+            val lighter = LighterWeek.isCurrent(
+                container.preferencesRepository.lighterWeekStartEpochDay.first(),
+                thisWeek,
+            )
+            if (!isCurrentPrefill(exerciseId, generation)) return
+            lighterWeek.value = lighter
+            val progression = container.workoutRepository.progressionFor(
+                exerciseId = exerciseId,
+                exerciseName = planned?.exercise?.name ?: "",
+                targetReps = targetReps,
+                excludeSessionId = sessionId,
+                loadType = planned?.exercise?.loadType,
                 unit = container.preferencesRepository.weightUnit.first(),
-                nowMs = time.nowMillis(),
-                todayEpochDay = todayEpochDay(),
-                historySets = lastPerformance.value?.sets.orEmpty(),
-            )?.restSeconds,
-        )
-        if (keepDraft) return
-        val lastWeight = progression?.suggestedWeightKg
-            ?: planned?.targetWeightKg
-            ?: 0.0
-        draft.value = ActiveExerciseDraft(
-            weightKg = lastWeight,
-            reps = if (hold) 0 else targetReps.coerceAtLeast(1),
-            rpe = null,
-            isWarmup = false,
-            durationSeconds = if (hold) HoldWork.countdownSeconds(planned?.targetSeconds) else null,
-        )
-        persistDraft()
+                lighterWeek = lighter,
+                equipment = planned?.exercise?.equipment,
+            )
+            if (!isCurrentPrefill(exerciseId, generation)) return
+            hint.value = progression
+            lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
+            if (!isCurrentPrefill(exerciseId, generation)) return
+            restTotal.value = RestTimer.secondsToStart(
+                planned?.restSeconds,
+                restPrefs,
+                prescribedSeconds = workoutMicroRec(
+                    session = current,
+                    selectedExerciseId = exerciseId,
+                    draft = draft.value,
+                    hint = progression,
+                    editingSetId = editingSetId.value,
+                    lighterWeek = lighter,
+                    unit = container.preferencesRepository.weightUnit.first(),
+                    nowMs = time.nowMillis(),
+                    todayEpochDay = todayEpochDay(),
+                    historySets = lastPerformance.value?.sets.orEmpty(),
+                )?.restSeconds,
+            )
+            if (!isCurrentPrefill(exerciseId, generation)) return
+            if (keepDraft || draftDirty.value) {
+                liftReadiness.value = LiftEntryReadiness.READY
+                suggestionUnavailable.value = false
+                persistDraft()
+                return
+            }
+            val lastWeight = progression?.suggestedWeightKg
+                ?: planned?.targetWeightKg
+                ?: 0.0
+            draft.value = ActiveExerciseDraft(
+                weightKg = lastWeight,
+                reps = if (hold) 0 else targetReps.coerceAtLeast(1),
+                rpe = null,
+                isWarmup = false,
+                durationSeconds = if (hold) HoldWork.countdownSeconds(planned?.targetSeconds) else null,
+            )
+            liftReadiness.value = LiftEntryReadiness.READY
+            suggestionUnavailable.value = false
+            persistDraft()
+        } catch (thrown: CancellationException) {
+            throw thrown
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "Prefilling the next set failed", thrown)
+            if (!isCurrentPrefill(exerciseId, generation)) return
+            val livePlanned = session.value?.exercises
+                ?.firstOrNull { it.exercise.id == exerciseId }
+                ?: planned
+            if (!draftDirty.value && (!keepDraft || draft.value.weightKg <= 0.0)) {
+                draft.value = ActiveExerciseDraft(
+                    weightKg = livePlanned?.targetWeightKg ?: 0.0,
+                    reps = if (hold) 0 else targetReps.coerceAtLeast(1),
+                    rpe = null,
+                    isWarmup = false,
+                    durationSeconds = if (hold) {
+                        HoldWork.countdownSeconds(livePlanned?.targetSeconds)
+                    } else {
+                        null
+                    },
+                )
+                persistDraft()
+            }
+            liftReadiness.value = LiftEntryReadiness.DEGRADED
+            suggestionUnavailable.value = true
+        }
+    }
+
+    private fun isCurrentPrefill(exerciseId: String, generation: Int): Boolean =
+        selectedExerciseId.value == exerciseId && prefillGeneration == generation
+
+    private fun applySelection(exerciseId: String) {
+        if (selectedExerciseId.value == exerciseId) return
+        _pendingAdvance.value = null
+        wantAnotherSet.value = false
+        stopHoldTimer()
+        clearSetStopwatch()
+        draftDirty.value = false
+        suggestionUnavailable.value = false
+        liftReadiness.value = LiftEntryReadiness.RESOLVING
+        prefillGeneration++
+        selectedExerciseId.value = exerciseId
+    }
+
+    private fun clearLiftSelection() {
+        stopHoldTimer()
+        clearSetStopwatch()
+        draftDirty.value = false
+        suggestionUnavailable.value = false
+        liftReadiness.value = LiftEntryReadiness.NONE
+        prefillGeneration++
+        selectedExerciseId.value = null
+    }
+
+    private fun markDraftDirty() {
+        if (draftDirty.value) return
+        draftDirty.value = true
     }
 
     fun selectExercise(exerciseId: String) {
-        // Any deliberate move settles a standing offer: the lifter has already answered
-        // by choosing another lift.
-        _pendingAdvance.value = null
-        wantAnotherSet.value = false
-        if (selectedExerciseId.value != exerciseId) {
-            stopHoldTimer()
-            clearSetStopwatch()
-        }
-        if (selectedExerciseId.value == exerciseId) {
-            reselections.tryEmit(exerciseId)
-        } else {
-            selectedExerciseId.value = exerciseId
-        }
+        if (selectedExerciseId.value == exerciseId) return
+        applySelection(exerciseId)
         persistDraft()
     }
 
@@ -701,12 +806,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     fun adjustWeight(deltaKg: Double) {
         val next = if (deltaKg.isFinite()) draft.value.weightKg + deltaKg else draft.value.weightKg
         draft.value = draft.value.copy(weightKg = next.coerceAtLeast(0.0))
+        markDraftDirty()
         persistDraft()
     }
 
     fun setWeight(weightKg: Double) {
         if (!weightKg.isFinite()) return
         draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
+        markDraftDirty()
         persistDraft()
     }
 
@@ -726,6 +833,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      */
     fun setReps(reps: Int) {
         draft.value = draft.value.copy(reps = reps.coerceAtLeast(1))
+        markDraftDirty()
         persistDraft()
     }
 
@@ -739,6 +847,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             durationSeconds = HoldWork.countdownSeconds(seconds),
             reps = 0,
         )
+        markDraftDirty()
         persistDraft()
     }
 
@@ -847,11 +956,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      */
     fun setRpe(rpe: Int?) {
         draft.value = draft.value.copy(rpe = rpe)
+        markDraftDirty()
         persistDraft()
     }
 
     fun setWarmup(isWarmup: Boolean) {
         draft.value = draft.value.copy(isWarmup = isWarmup)
+        markDraftDirty()
         persistDraft()
     }
 
@@ -928,8 +1039,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 )
                 undoableDelete.value = null
                 undoableRemove.value = removed
-                // Let the session's own rule pick what to show next rather than guessing here.
-                selectedExerciseId.value = null
+                clearLiftSelection()
                 error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
             } catch (thrown: CancellationException) {
                 throw thrown
@@ -1030,21 +1140,30 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * and a loop that jumps the moment the third lands puts the lifter on the wrong card
      * with a bar in their hands.
      */
-    private val _pendingAdvance = MutableStateFlow<PendingAdvance?>(null)
     val pendingAdvance: StateFlow<PendingAdvance?> = _pendingAdvance.asStateFlow()
+
+    private val _logFeedback = MutableSharedFlow<LogCommitFeedback>(
+        extraBufferCapacity = 16,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val logFeedback: SharedFlow<LogCommitFeedback> = _logFeedback.asSharedFlow()
 
     fun onPersonalRecordShown() {
         _personalRecord.value = null
     }
 
     fun logSet() {
-        val started = error.mark()
         if (logging.value) return
+        val started = error.mark()
         val exerciseId = selectedExerciseId.value
         if (exerciseId == null) {
             error.fail(source = ERR_LOG_SET, message = "Add a lift before logging a set.")
+            _logFeedback.tryEmit(LogCommitFeedback.REJECT)
             return
         }
+        val ready = liftReadiness.value.allowsCommit() || draftDirty.value
+        if (!ready) return
+        logging.value = true
         val current = draft.value
         val selectedLift = session.value?.exercises
             ?.firstOrNull { it.exercise.id == exerciseId }
@@ -1052,6 +1171,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val holdState = _holdTimer.value
         val editingId = editingSetId.value
         if (hold && editingId == null && holdState.totalSeconds == 0 && !holdState.running) {
+            logging.value = false
             startHoldSet()
             return
         }
@@ -1065,8 +1185,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             existingDurationSeconds = current.durationSeconds.takeUnless { hold },
         )
         val reps = if (hold) 0 else current.reps
-        // The same rule the repository enforces, run early so the refusal lands on the field
-        // the user is looking at rather than as a thrown error after the tap.
         val loadType = selectedLift?.exercise?.loadType
         val invalid = SetLogRules.validate(
             weightKg = current.weightKg,
@@ -1077,10 +1195,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             isHold = hold,
         )
         if (invalid != null) {
+            logging.value = false
             error.fail(source = ERR_LOG_SET, message = invalid)
+            _logFeedback.tryEmit(LogCommitFeedback.REJECT)
             return
         }
-        logging.value = true
         viewModelScope.launch {
             try {
                 if (editingId != null) {
@@ -1096,10 +1215,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     stopHoldTimer()
                     clearSetStopwatch()
                 } else {
-                    // Snapshot the count before the insert. The session Flow may publish the
-                    // new row as soon as Room commits; reading it after logSet() and then
-                    // adding one double-counted the set under a fast collector. A final
-                    // prescribed set could therefore look like target + 1 and start a rest.
                     val previousWorking = session.value
                         ?.sets
                         ?.count { it.exerciseId == exerciseId && !it.isWarmup }
@@ -1116,6 +1231,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     )
                     stopHoldTimer()
                     clearSetStopwatch()
+                    _logFeedback.tryEmit(LogCommitFeedback.SUCCESS)
                     if (logged.records.isNotEmpty()) {
                         _personalRecord.value = PersonalRecordMoment(
                             exerciseName = session.value
@@ -1131,9 +1247,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     }
                     val workingAfter = previousWorking + if (current.isWarmup) 0 else 1
                     wantAnotherSet.value = false
-                    // Standing dock offer when the target is met. Warm-ups never offer, and
-                    // neither does a lift with no prescription. Cleared only by Next lift,
-                    // Another set, or a later log/edit/switch — never by a dwell timer.
                     _pendingAdvance.value = null
                     if (!current.isWarmup && targetSets > 0 && workingAfter == targetSets) {
                         val after = session.value
@@ -1176,25 +1289,21 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         )
                     }
                 }
+                if (editingId != null) {
+                    _logFeedback.tryEmit(LogCommitFeedback.SUCCESS)
+                }
                 error.clearFrom(source = ERR_LOG_SET, before = started)
-                // Clear the two per-set flags on whatever is in the wells NOW — not on the
-                // snapshot taken at the tap. Room's write is tens of milliseconds and a finger
-                // is faster: a weight nudged or a rep count typed for the next set, in the
-                // moment between the tap and the row landing, used to be taken back by this
-                // line. The lifter saw the number they had just chosen revert to the one they
-                // had already logged, and only sometimes, which is what made it so hard to
-                // pin down. The set that was written is `current`; the wells belong to the
-                // next one.
                 draft.value = draft.value.copy(isWarmup = false, rpe = null)
                 persistDraft()
             } catch (thrown: CancellationException) {
                 throw thrown
             } catch (thrown: Exception) {
+                _logFeedback.tryEmit(LogCommitFeedback.REJECT)
                 error.fail(
                     source = ERR_LOG_SET,
                     message = thrown.message?.takeIf { message ->
-                        SetLogRules.isUserMessage(message)
-                    } ?: "Could not save that set. Try again.",
+                        SetLogRules.isFieldMessage(message)
+                    } ?: LogCommitCopy.WRITE_FAILED,
                 )
             } finally {
                 logging.value = false
@@ -1206,7 +1315,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     fun advanceNow() {
         val pending = _pendingAdvance.value ?: return
         _pendingAdvance.value = null
-        selectedExerciseId.value = pending.nextExerciseId
+        applySelection(pending.nextExerciseId)
         wantAnotherSet.value = false
         persistDraft()
     }
@@ -1324,7 +1433,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             try {
                 container.workoutRepository.restoreExerciseToSession(removed = pending)
-                selectedExerciseId.value = pending.item.exerciseId
+                applySelection(pending.item.exerciseId)
+                persistDraft()
                 error.clearFrom(source = ERR_UNDO_REMOVE, before = started)
             } catch (thrown: CancellationException) {
                 throw thrown
@@ -1417,6 +1527,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     fun applySuggestedWeight() {
         val suggested = hint.value?.suggestedWeightKg ?: return
         draft.value = draft.value.copy(weightKg = suggested)
+        markDraftDirty()
         persistDraft()
     }
 
@@ -1427,6 +1538,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             weightKg = weightKg.coerceAtLeast(0.0),
             reps = reps.coerceAtLeast(1),
         )
+        markDraftDirty()
         persistDraft()
     }
 
@@ -1442,6 +1554,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             reps = rec.nextReps.coerceAtLeast(1),
             rpe = rec.nextRpe,
         )
+        markDraftDirty()
         persistDraft()
     }
 
@@ -1466,6 +1579,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * one-shot exit event.
      */
     fun finishWorkout() {
+        if (logging.value) return
         val started = error.mark()
         viewModelScope.launch {
             when (val outcome = container.finishWorkout(sessionId, notes.value)) {

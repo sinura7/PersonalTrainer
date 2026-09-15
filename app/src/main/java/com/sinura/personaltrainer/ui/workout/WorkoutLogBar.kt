@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LogBarCopy
+import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -81,15 +82,17 @@ internal fun LogBar(
     onStartRest: () -> Unit = {},
     onSelectRestDuration: (Int) -> Unit = {},
     onDismissRestBatteryHint: () -> Unit = {},
-    onStartNextLift: () -> Unit = {},
     onOpenRest: () -> Unit = {},
     stopwatchRunning: Boolean = false,
     stopwatchElapsedSeconds: Int = 0,
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
     onStopSetClock: () -> Unit = {},
+    canLog: Boolean = true,
+    suggestionUnavailable: Boolean = false,
 ) {
     val nextAct = (showNext || advanceChoice) && !editing
+    val logEnabled = if (nextAct) !logging else canLog
     Column(modifier = Modifier.fillMaxWidth()) {
         if (showTimer) {
             FloorTimerSlot(
@@ -111,7 +114,6 @@ internal fun LogBar(
                 onStart = onStartRest,
                 onSelectRestDuration = onSelectRestDuration,
                 onDismissBatteryHint = onDismissRestBatteryHint,
-                onStartNext = onStartNextLift,
                 onOpenRest = onOpenRest,
             )
         }
@@ -119,6 +121,13 @@ internal fun LogBar(
             prelude = {
                 error?.let {
                     Text(it, style = InstrumentType.body, color = Danger)
+                }
+                if (suggestionUnavailable && error == null) {
+                    Text(
+                        LogCommitCopy.SUGGESTION_UNAVAILABLE,
+                        style = InstrumentType.caption,
+                        color = TextTertiary,
+                    )
                 }
                 if (editing) {
                     TextButton(
@@ -148,14 +157,19 @@ internal fun LogBar(
                         draftLabel = draftLabel,
                         hold = hold,
                         holdRunning = holdRunning,
+                        logging = logging && !nextAct,
                     ),
                     onClick = if (nextAct) onNext else onLog,
-                    enabled = !logging,
+                    enabled = logEnabled,
+                    disabledReason = LogCommitCopy.disabledReason(
+                        logging = logging && !nextAct,
+                        liftReady = nextAct || canLog || logging,
+                    ),
                     modifier = Modifier.testTag(
                         if (nextAct) WorkoutTestTags.NEXT else WorkoutTestTags.LOG_SET,
                     ),
                     height = Metrics.commit,
-                    hapticFeedback = nextAct || editing,
+                    hapticFeedback = true,
                 )
             },
             secondary = if (advanceChoice && !editing && onAnotherSet != null) {

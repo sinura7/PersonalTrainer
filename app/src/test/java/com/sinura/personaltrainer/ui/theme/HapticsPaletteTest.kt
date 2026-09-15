@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.theme
 
 import java.io.File
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -50,6 +51,17 @@ class HapticsPaletteTest {
         assertTrue(restUi.contains("Haptics.reject(view)"))
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertTrue(workout.contains("Haptics.commit(view)"))
+        assertTrue(workout.contains("Haptics.reject(view)"))
+        assertTrue(workout.contains("logFeedback"))
+        val onLogStart = workout.indexOf("onLog = {")
+        val onLogEnd = workout.indexOf("onNext = {")
+        assertTrue(onLogStart >= 0 && onLogEnd > onLogStart)
+        val onLog = workout.substring(onLogStart, onLogEnd)
+        assertFalse(
+            "Log press must not commit before the write",
+            onLog.contains("Haptics.commit"),
+        )
+        assertFalse(onLog.contains("Haptics.reject"))
     }
 
     private fun readOwned(relative: String): String {

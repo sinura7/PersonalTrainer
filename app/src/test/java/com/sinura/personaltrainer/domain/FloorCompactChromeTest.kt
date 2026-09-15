@@ -17,7 +17,9 @@ class FloorCompactChromeTest {
     }
 
     @Test
-    fun idleStartNextIsNotASecondVolt() {
+    fun packetAHidesEmptyTimerDockAndIdleStartNext() {
+        assertTrue(FloorCompactChrome.emptySessionHidesTimerDock())
+        assertFalse(FloorCompactChrome.showIdleStartNext())
         assertFalse(FloorCompactChrome.idleStartNextIsVolt())
     }
 

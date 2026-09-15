@@ -7,7 +7,7 @@ import org.junit.Test
 
 /**
  * Phone-check 12 Sep 2026: X is go-Home, Finish owns save/discard.
- * Start next stays on the idle rest line; Log set is the Volt.
+ * Start next is gone from the idle rest line; Log set is the Volt.
  */
 class FloorPhoneCheckPresentationTest {
     @Test
@@ -23,16 +23,23 @@ class FloorPhoneCheckPresentationTest {
     }
 
     @Test
-    fun idleDockSplitsStartNextFromStartRest() {
+    fun idleDockKeepsStartRestWithoutStartNext() {
         val dock = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(dock.contains("onStartNext"))
-        assertTrue(dock.contains("RestIdleCopy.START_NEXT"))
-        assertTrue(dock.contains("RestIdleCopy.START"))
+        val idleStart = dock.indexOf("fun RestIdleRow")
+        val idleEnd = dock.indexOf("fun RestLinearTrack")
+        val idle = dock.substring(idleStart, idleEnd)
+        assertFalse(dock.contains("onStartNext"))
+        assertFalse(
+            "idle Start next must not be composed",
+            idle.contains("RestIdleCopy.START_NEXT"),
+        )
+        assertTrue(idle.contains("RestIdleCopy.START"))
+        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.showIdleStartNext())
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("onStartNextLift"))
+        assertFalse(bar.contains("onStartNextLift"))
         assertTrue(bar.contains("onStartRest"))
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(workout.contains("onStartNextLift = viewModel::startNextLift"))
+        assertFalse(workout.contains("onStartNextLift = viewModel::startNextLift"))
         assertTrue(workout.contains("onStartRest = viewModel::startSelectedRest"))
     }
 
