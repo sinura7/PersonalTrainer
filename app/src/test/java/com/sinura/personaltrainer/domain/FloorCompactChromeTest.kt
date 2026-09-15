@@ -48,4 +48,9 @@ class FloorCompactChromeTest {
         assertTrue(FloorCompactChrome.oneClockTwoModes())
         assertTrue(FloorCompactChrome.restLengthIsInlineWheel())
     }
+
+    @Test
+    fun packet3OffersAManualSetStopwatch() {
+        assertTrue(FloorCompactChrome.manualSetStopwatch())
+    }
 }

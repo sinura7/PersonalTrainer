@@ -110,10 +110,18 @@ class SetCopyTest {
 
     @Test
     fun aHoldReadsAsSecondsNotAFakeRep() {
-        assertEquals("30s", SetCopy.setLine(0.0, 1, LoadClass.BODYWEIGHT, WeightUnit.KG, durationSeconds = 30))
+        assertEquals("30s", SetCopy.setLine(0.0, 0, LoadClass.BODYWEIGHT, WeightUnit.KG, durationSeconds = 30))
         assertEquals(
             "20 kg × 40s",
             SetCopy.setLine(20.0, 0, LoadClass.LOADED, WeightUnit.KG, durationSeconds = 40),
+        )
+    }
+
+    @Test
+    fun aTimedStrengthSetKeepsRepsAndAppendsTheClock() {
+        assertEquals(
+            "100 kg × 5 · 12s",
+            SetCopy.setLine(100.0, 5, LoadClass.LOADED, WeightUnit.KG, durationSeconds = 12),
         )
     }
 }

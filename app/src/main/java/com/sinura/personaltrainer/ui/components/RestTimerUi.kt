@@ -73,6 +73,7 @@ import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTick
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -120,12 +121,19 @@ fun FloorTimerSlot(
     onOpenRest: () -> Unit = {},
     holdRunning: Boolean = false,
     holdElapsedSeconds: Int = 0,
+    stopwatchRunning: Boolean = false,
+    stopwatchElapsedSeconds: Int = 0,
+    offerSetClock: Boolean = false,
+    onStartSetClock: () -> Unit = {},
+    onStopSetClock: () -> Unit = {},
 ) {
-    when (FloorTimerSurface.mode(holdRunning)) {
+    when (FloorTimerSurface.mode(holdRunning, stopwatchRunning)) {
         FloorTimerSurface.Mode.SET -> {
             HairlineDivider(startIndent = 0.dp)
             SetWorkDock(
-                elapsedSeconds = holdElapsedSeconds,
+                elapsedSeconds = if (holdRunning) holdElapsedSeconds else stopwatchElapsedSeconds,
+                hold = holdRunning,
+                onStop = onStopSetClock.takeIf { stopwatchRunning && !holdRunning },
                 modifier = modifier
                     .fillMaxWidth()
                     .background(Surface1)
@@ -147,6 +155,8 @@ fun FloorTimerSlot(
             onDismissBatteryHint = onDismissBatteryHint,
             onStartNext = onStartNext,
             onOpenRest = onOpenRest,
+            offerSetClock = offerSetClock,
+            onStartSetClock = onStartSetClock,
         )
     }
 }
@@ -158,26 +168,45 @@ fun FloorTimerSlot(
 fun SetWorkDock(
     elapsedSeconds: Int,
     modifier: Modifier = Modifier,
+    hold: Boolean = true,
+    onStop: (() -> Unit)? = null,
 ) {
     val clock = HoldWork.clock(FloorTimerSurface.setClockSeconds(elapsedSeconds))
+    val kicker = if (hold) FloorTimerSurface.HOLD_KICKER else FloorTimerSurface.SET_KICKER
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
             .testTag("workout-hold-clock")
             .semantics {
-                contentDescription = "${FloorTimerSurface.SET_KICKER} $clock elapsed"
+                contentDescription = "$kicker $clock elapsed"
             },
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Kicker(FloorTimerSurface.HOLD_KICKER, color = RestCyan, asHeading = false)
+        Kicker(kicker, color = RestCyan, asHeading = false)
         Text(
             clock,
+            modifier = Modifier.weight(1f),
             style = InstrumentType.numeralMd,
             color = TextPrimary,
             maxLines = 1,
         )
+        if (onStop != null) {
+            TextButton(
+                onClick = onStop,
+                modifier = Modifier
+                    .heightIn(min = Metrics.touchMin)
+                    .testTag("workout-stop-set-clock"),
+            ) {
+                Text(
+                    SetStopwatchCopy.STOP,
+                    style = InstrumentType.bodyStrong,
+                    color = TextPrimary,
+                    maxLines = 1,
+                )
+            }
+        }
     }
 }
 
@@ -208,6 +237,8 @@ fun RestDock(
     onStartNext: () -> Unit = {},
     /** @deprecated Packet 2: full page opens from the instrument strip. */
     onOpenRest: () -> Unit = {},
+    offerSetClock: Boolean = false,
+    onStartSetClock: () -> Unit = {},
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
@@ -267,6 +298,8 @@ fun RestDock(
             onStart = onStart,
             onStartNext = onStartNext,
             onSelectRestDuration = onSelectRestDuration,
+            offerSetClock = offerSetClock,
+            onStartSetClock = onStartSetClock,
             modifier = modifier
                 .fillMaxWidth()
                 .background(Surface1)
@@ -400,6 +433,8 @@ fun RestIdleRow(
     modifier: Modifier = Modifier,
     afterWarmup: Boolean = false,
     onStartNext: () -> Unit = {},
+    offerSetClock: Boolean = false,
+    onStartSetClock: () -> Unit = {},
 ) {
     var editing by rememberSaveable { mutableStateOf(false) }
     val safeTotal = totalSeconds.coerceAtLeast(0)
@@ -474,6 +509,22 @@ fun RestIdleRow(
                 parkKey = "rest-$safeTotal",
                 modifier = Modifier.fillMaxWidth(),
             )
+        }
+        if (offerSetClock && !editing) {
+            TextButton(
+                onClick = onStartSetClock,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Metrics.touchMin)
+                    .testTag("workout-start-set-clock"),
+            ) {
+                Text(
+                    SetStopwatchCopy.START,
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

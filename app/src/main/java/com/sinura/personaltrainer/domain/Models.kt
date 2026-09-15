@@ -114,7 +114,9 @@ data class WorkoutSession(
         sets.forEach { set ->
             if (set.isWarmup) return@forEach
             val duration = set.durationSeconds
-            if (duration != null && duration > 0) return@forEach
+            // Holds are time, not kilograms. A strength set that also
+            // carried a stopwatch still moved the bar — count it.
+            if (duration != null && duration > 0 && set.reps < 1) return@forEach
             val work = SetWork.of(
                 weightKg = set.weightKg,
                 reps = set.reps,

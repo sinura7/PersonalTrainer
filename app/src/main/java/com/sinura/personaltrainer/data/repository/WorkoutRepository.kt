@@ -573,26 +573,25 @@ class WorkoutRepository(
             if (current.session.finishedAt != null) {
                 error("This workout is already finished.")
             }
-            val holdSeconds = durationSeconds?.takeIf { it > 0 }
-            if (holdSeconds == null && reps < 1) error("Reps must be at least 1.")
+            val timedSeconds = durationSeconds?.takeIf { it > 0 }
+            val holdLift = current.exercises.any {
+                it.exercise.id == exerciseId &&
+                    HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
+            }
+            if (timedSeconds == null && reps < 1) error("Reps must be at least 1.")
             val loadType = loadTypeOf(current, exerciseId)
-            val isHold = holdSeconds != null ||
-                current.exercises.any {
-                    it.exercise.id == exerciseId &&
-                        HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
-                }
             val violation = SetLogRules.validate(
                 weightKg = weightKg,
                 reps = reps,
                 isWarmup = isWarmup,
                 loadType = loadType,
-                durationSeconds = holdSeconds,
-                isHold = isHold,
+                durationSeconds = timedSeconds,
+                isHold = holdLift,
             )
             if (violation != null) error(violation)
             val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
             val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
-            val safeReps = if (holdSeconds != null) 0 else reps.coerceAtLeast(1)
+            val safeReps = if (holdLift) 0 else reps.coerceAtLeast(1)
             val completedAt = time.nowMillis()
             val row = SetLogEntity(
                 id = ids.newId(),
@@ -604,14 +603,14 @@ class WorkoutRepository(
                 rpe = rpe,
                 isWarmup = isWarmup,
                 completedAt = completedAt,
-                durationSeconds = holdSeconds,
+                durationSeconds = timedSeconds,
             )
             workoutDao.insertSet(row)
             row
         }
         return LoggedSet(
             setId = entity.id,
-            records = if (entity.isWarmup || entity.durationSeconds != null) {
+            records = if (entity.isWarmup || entity.reps < 1) {
                 emptySet()
             } else {
                 recordsBrokenBy(
@@ -639,26 +638,30 @@ class WorkoutRepository(
         // session is the point. The copy below touches neither completedAt nor setNumber,
         // so the set keeps the day it happened on and its place in the exercise — which is
         // what stops an edit from re-dating a personal record or heating the wrong week.
-        val holdSeconds = durationSeconds?.takeIf { it > 0 } ?: current.durationSeconds
-        val isHold = holdSeconds != null
-        if (!isHold && reps < 1) error("Reps must be at least 1.")
+        val timedSeconds = durationSeconds?.takeIf { it > 0 } ?: current.durationSeconds
+        val session = workoutDao.getSession(current.sessionId)
+        val holdLift = session?.exercises?.any {
+            it.exercise.id == current.exerciseId &&
+                HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
+        } == true
+        if (!holdLift && reps < 1) error("Reps must be at least 1.")
         val violation = SetLogRules.validate(
             weightKg,
             reps,
             isWarmup,
-            loadTypeOf(workoutDao.getSession(current.sessionId), current.exerciseId),
-            durationSeconds = holdSeconds,
-            isHold = isHold,
+            loadTypeOf(session, current.exerciseId),
+            durationSeconds = timedSeconds,
+            isHold = holdLift,
         )
         if (violation != null) error(violation)
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else current.weightKg
         workoutDao.updateSet(
             current.copy(
                 weightKg = safeWeight,
-                reps = if (isHold) 0 else reps.coerceAtLeast(1),
+                reps = if (holdLift) 0 else reps.coerceAtLeast(1),
                 rpe = rpe,
                 isWarmup = isWarmup,
-                durationSeconds = holdSeconds,
+                durationSeconds = timedSeconds,
             ),
         )
     }

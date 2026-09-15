@@ -46,4 +46,10 @@ object FloorCompactChrome {
 
     /** Planned rest length edits inline with SnapValueWheel in the dock. */
     fun restLengthIsInlineWheel(): Boolean = true
+
+    /**
+     * Packet 3: optional count-up in the dock timer slot. Untimed
+     * sets stay untimed. Not a second Volt.
+     */
+    fun manualSetStopwatch(): Boolean = true
 }
