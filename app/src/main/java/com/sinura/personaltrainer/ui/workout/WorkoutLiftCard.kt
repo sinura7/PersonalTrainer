@@ -55,7 +55,6 @@ import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.FloorCompactChrome
-import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
