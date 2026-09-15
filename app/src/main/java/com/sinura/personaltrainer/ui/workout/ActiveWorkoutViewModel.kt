@@ -80,6 +80,7 @@ private const val ERR_REMOVE_LIFT = "removeLift"
 private const val ERR_LOG_SET = "logSet"
 private const val ERR_DELETE_SET = "deleteSet"
 private const val ERR_UNDO_DELETE = "undoDelete"
+private const val ERR_UNDO_REMOVE = "undoRemove"
 private const val ERR_FINISH = "finish"
 private const val ERR_DISCARD = "discard"
 
@@ -233,6 +234,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * an Undo button wired to a dead composition.
      */
     private val undoableDelete = MutableStateFlow<WorkoutRepository.DeletedSet?>(null)
+    private val undoableRemove = MutableStateFlow<WorkoutRepository.RemovedLift?>(null)
 
     /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
     private var lastPersistedNotes: String? = null
@@ -920,7 +922,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val item = session.value?.exercises?.firstOrNull { it.exercise.id == selectedId } ?: return
         viewModelScope.launch {
             try {
-                container.workoutRepository.removeExerciseFromSession(sessionId, item.id)
+                val removed = container.workoutRepository.removeExerciseFromSession(
+                    sessionId = sessionId,
+                    itemId = item.id,
+                )
+                undoableDelete.value = null
+                undoableRemove.value = removed
                 // Let the session's own rule pick what to show next rather than guessing here.
                 selectedExerciseId.value = null
                 error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
@@ -1007,6 +1014,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     /** What the Undo snackbar is offering, or null when there is nothing to put back. */
     val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> = undoableDelete.asStateFlow()
+
+    /** A lift just taken out of the plan, held only for the same undo host. */
+    val removedLift: StateFlow<WorkoutRepository.RemovedLift?> = undoableRemove.asStateFlow()
 
     /** True while the lifter asked to log past the prescription. Cleared on log, Next, or switch. */
     val extraSetRequested: StateFlow<Boolean> = wantAnotherSet.asStateFlow()
@@ -1267,6 +1277,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 if (wasLatest) {
                     restTimer.stop()
                 }
+                undoableRemove.value = null
                 undoableDelete.value = removed
                 error.clearFrom(source = ERR_DELETE_SET, before = started)
             } catch (thrown: CancellationException) {
@@ -1306,9 +1317,31 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
+    fun undoRemoveLift() {
+        val started = error.mark()
+        val pending = undoableRemove.value ?: return
+        undoableRemove.value = null
+        viewModelScope.launch {
+            try {
+                container.workoutRepository.restoreExerciseToSession(removed = pending)
+                selectedExerciseId.value = pending.item.exerciseId
+                error.clearFrom(source = ERR_UNDO_REMOVE, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "restoreExerciseToSession failed", thrown)
+                error.fail(
+                    source = ERR_UNDO_REMOVE,
+                    message = "Could not restore that lift. Try again.",
+                )
+            }
+        }
+    }
+
     /** The snackbar was dismissed or timed out; the offer expires with it. */
     fun onUndoOfferHandled() {
         undoableDelete.value = null
+        undoableRemove.value = null
     }
 
     fun skipRest() {

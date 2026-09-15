@@ -1047,6 +1047,37 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun removeUnloggedLiftUndoRestoresSamePosition() = runBlocking {
+        val fixture = seedTwoLifts()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW }
+        val before = checkNotNull(deps.workoutRepository.getSession(fixture.session.id))
+        val rowLift = before.exercises.single { it.exercise.id == ROW }
+        val rowItemId = rowLift.id
+        val rowOrder = rowLift.sortOrder
+
+        vm.removeSelectedLift()
+        awaitSession(fixture.session.id) { session ->
+            session.exercises.none { it.exercise.id == ROW }
+        }
+        checkNotNull(vm.removedLift.awaitFirst { it != null })
+        assertEquals(
+            SQUAT,
+            deps.workoutRepository.getSession(fixture.session.id)!!.exercises.single().exercise.id,
+        )
+
+        vm.undoRemoveLift()
+        val restored = awaitSession(fixture.session.id) { it.exercises.size == 2 }
+        val restoredRow = restored.exercises.single { it.exercise.id == ROW }
+        assertEquals(rowItemId, restoredRow.id)
+        assertEquals(rowOrder, restoredRow.sortOrder)
+        assertEquals(ROW, vm.awaitState { it.selectedExerciseId == ROW }.selectedExerciseId)
+        assertNull(vm.removedLift.value)
+    }
+
+    @Test
     fun finishWithNoSetsStaysLiveAndShowsGuard() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)

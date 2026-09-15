@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.domain.ExtraEquipment
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
+import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SessionOrderCopy
@@ -78,11 +79,20 @@ data class HomeUiState(
     val sessionLive: Boolean get() = inProgress != null || liveActivity != null
 }
 
+/** A leftover Skip, held only long enough for the undo host to offer it back. */
+data class SkippedDayOffer(
+    val occurrenceId: String,
+    val previousStatus: OccurrenceStatus,
+    val title: String,
+)
+
 class HomeViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
     private val actionError = MutableStateFlow<String?>(null)
+    private val undoableSkip = MutableStateFlow<SkippedDayOffer?>(null)
+    val skippedDay: StateFlow<SkippedDayOffer?> = undoableSkip.asStateFlow()
 
     val uiState: StateFlow<HomeUiState> = combine(
         container.trainingInsights.observeShared(),
@@ -510,10 +520,39 @@ class HomeViewModel @JvmOverloads constructor(
                 val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
                     ?: return@runCatching
                 if (!MoveToToday.isLeftover(occurrence, todayEpochDay())) return@runCatching
-                container.plannerRepository.skipOccurrence(occurrenceId)
+                val previous = container.plannerRepository.skipOccurrence(occurrenceId)
+                    ?: return@runCatching
+                val title = DailyAgenda.forDay(
+                    epochDay = occurrence.localEpochDay,
+                    occurrences = listOf(occurrence),
+                    rules = container.plannerRepository.rules(),
+                    routineNames = uiState.value.routines.associate { it.id to it.name },
+                ).first().title
+                undoableSkip.value = SkippedDayOffer(
+                    occurrenceId = occurrenceId,
+                    previousStatus = previous,
+                    title = title,
+                )
             }.onSuccess { actionError.value = null }
                 .onFailure { actionError.value = "Could not skip that session. Try again." }
         }
+    }
+
+    fun undoSkipOccurrence() {
+        val pending = undoableSkip.value ?: return
+        undoableSkip.value = null
+        viewModelScope.launch {
+            runCatching {
+                container.plannerRepository.restoreSkippedOccurrence(
+                    occurrenceId = pending.occurrenceId,
+                    previousStatus = pending.previousStatus,
+                )
+            }.onFailure { actionError.value = "Could not restore that session. Try again." }
+        }
+    }
+
+    fun onUndoOfferHandled() {
+        undoableSkip.value = null
     }
 
     fun addDaySession(epochDay: Long, add: HomeDayAdd, once: Boolean) {

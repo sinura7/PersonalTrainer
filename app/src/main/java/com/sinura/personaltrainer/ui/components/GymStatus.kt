@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.TalkBackPolicy
+import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.DangerContainer
 import com.sinura.personaltrainer.ui.theme.GoldContainer
@@ -183,6 +184,28 @@ fun GymStatusBanner(
             },
         )
     }
+}
+
+/**
+ * Packet 5: the one undo host. Dwells ~6s ([Motion.STATUS_DWELL_MS]) and
+ * always labels the reversal [UndoHostCopy.ACTION]. Cheap destructives
+ * (delete set, remove lift, skip day) offer this; finish, discard, and
+ * leaving a live workout still ask first.
+ */
+@Composable
+fun GymUndoHost(
+    message: String,
+    onUndo: () -> Unit,
+    onDismissed: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    GymStatusBanner(
+        message = message,
+        modifier = modifier,
+        actionLabel = UndoHostCopy.ACTION,
+        onAction = onUndo,
+        onDismissed = onDismissed,
+    )
 }
 
 /**
