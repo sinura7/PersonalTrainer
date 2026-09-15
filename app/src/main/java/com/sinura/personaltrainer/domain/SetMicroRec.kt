@@ -437,23 +437,30 @@ object ProgressionKickerCopy {
             ProgressionAction.INCREASE -> plusLabel(LoadClass.of(hint.loadType), unit)
         }
 
-    fun fromMicroRec(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? =
-        when (rec.reasonCode) {
-            SetMicroRecCalculator.EDITING,
-            SetMicroRecCalculator.LIFT_DONE,
-            -> null
-            SetMicroRecCalculator.RPE_HOLD,
-            SetMicroRecCalculator.CLOSE_HOLD,
-            SetMicroRecCalculator.LIGHTER_HOLD,
-            SetMicroRecCalculator.BW_HOLD,
-            SetMicroRecCalculator.SKIP_RPE_HOLD,
-            -> HOLD
-            SetMicroRecCalculator.FAILED_DROP,
-            SetMicroRecCalculator.SKIP_RPE_DROP,
-            SetMicroRecCalculator.BW_DROP_REP,
-            -> BACK_OFF
-            else -> plusLabel(loadClass, unit)
+    private val HOLD_CODES = setOf(
+        SetMicroRecCalculator.RPE_HOLD,
+        SetMicroRecCalculator.CLOSE_HOLD,
+        SetMicroRecCalculator.LIGHTER_HOLD,
+        SetMicroRecCalculator.BW_HOLD,
+        SetMicroRecCalculator.SKIP_RPE_HOLD,
+    )
+
+    private val BACK_OFF_CODES = setOf(
+        SetMicroRecCalculator.FAILED_DROP,
+        SetMicroRecCalculator.SKIP_RPE_DROP,
+        SetMicroRecCalculator.BW_DROP_REP,
+    )
+
+    fun fromMicroRec(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? {
+        if (rec.reasonCode == SetMicroRecCalculator.EDITING ||
+            rec.reasonCode == SetMicroRecCalculator.LIFT_DONE
+        ) {
+            return null
         }
+        if (rec.reasonCode in HOLD_CODES) return HOLD
+        if (rec.reasonCode in BACK_OFF_CODES) return BACK_OFF
+        return plusLabel(loadClass, unit)
+    }
 
     fun plusLabel(loadClass: LoadClass, unit: WeightUnit): String {
         val loadType = when (loadClass) {
