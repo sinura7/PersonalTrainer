@@ -15,6 +15,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Workout-entry experience report is a recommendation
+> only (not law): [workout-entry-experience-report.md](workout-entry-experience-report.md).
+>
 > 15 Sep 2026 — Live 65: floor packet 5 undo host plus progression
 > engine (`Coach.decide` ladder) on `trunk`.
 > `debugLiveCode` 65; suffix from
