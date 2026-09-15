@@ -25,4 +25,19 @@ class LogLoopBringIntoViewTest {
         assertFalse(LogLoopBringIntoView.shouldBringIntoView(3, 3))
         assertFalse(LogLoopBringIntoView.shouldBringIntoView(4, 3))
     }
+
+    @Test
+    fun resumeAndLiftSwitchFocusTheEntryNotAVanishedListOffset() {
+        assertEquals(0, LogLoopBringIntoView.entryListIndex())
+        assertTrue(LogLoopBringIntoView.shouldScrollEntryToTop(null, "squat"))
+        assertTrue(LogLoopBringIntoView.shouldScrollEntryToTop("squat", "row"))
+        assertFalse(LogLoopBringIntoView.shouldScrollEntryToTop("squat", "squat"))
+        val screen = java.io.File("app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutScreen.kt")
+            .takeIf { it.isFile }
+            ?: java.io.File("../app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutScreen.kt")
+        val text = screen.readText()
+        assertTrue(text.contains("LogLoopBringIntoView.entryListIndex()"))
+        assertTrue(text.contains("scrollToItem"))
+        assertFalse(text.contains("itemsIndexed("))
+    }
 }

@@ -17,20 +17,13 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,8 +38,6 @@ import java.text.DateFormat
 import java.util.Date
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
-import com.sinura.personaltrainer.domain.LiftChipCopy
-import com.sinura.personaltrainer.domain.LiftChipMarks
 import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetCopy
@@ -59,11 +50,8 @@ import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
-import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.LiftCard
 import com.sinura.personaltrainer.ui.components.SetEntryPanel
-import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -71,7 +59,6 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
-import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
@@ -105,9 +92,6 @@ internal data class WorkoutLiftCardState(
 )
 
 internal data class WorkoutLiftCardEvents(
-    val onSelect: () -> Unit,
-    val onSwap: () -> Unit,
-    val onRemove: () -> Unit,
     val onWeightKgChange: (Double) -> Unit,
     val onRepsAdjust: (Int) -> Unit,
     val onRepsChange: (Int) -> Unit,
@@ -122,6 +106,12 @@ internal data class WorkoutLiftCardEvents(
     val onAddSet: () -> Unit,
 )
 
+/**
+ * Packet C: entry surface for the current lift only.
+ *
+ * Identity lives on [CurrentLiftCard]. This column is weight, reps, optional
+ * RPE, and logged sets — the wells [LogLoopBringIntoView] keeps on screen.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun WorkoutLiftCard(
@@ -129,8 +119,6 @@ internal fun WorkoutLiftCard(
     events: WorkoutLiftCardEvents,
 ) {
     val lift = card.lift
-    val number = card.number
-    val selected = card.selected
     val loggedSets = card.loggedSets
     val latestSetId = card.latestSetId
     val editingSetId = card.editingSetId
@@ -140,18 +128,12 @@ internal fun WorkoutLiftCard(
     val draftWarmup = card.draftWarmup
     val draftRpe = card.draftRpe
     val unit = card.unit
-    val canEdit = card.canEdit
     val showAddSet = card.showAddSet
-    val restSeconds = card.restSeconds
     val restRunning = card.restRunning
-    val restRemainingSeconds = card.restRemainingSeconds
     val hold = card.hold
     val holdSeconds = card.holdSeconds
     val holdRunning = card.holdRunning
     val holdRemainingSeconds = card.holdRemainingSeconds
-    val onSelect = events.onSelect
-    val onSwap = events.onSwap
-    val onRemove = events.onRemove
     val onWeightKgChange = events.onWeightKgChange
     val onRepsAdjust = events.onRepsAdjust
     val onRepsChange = events.onRepsChange
@@ -163,26 +145,8 @@ internal fun WorkoutLiftCard(
     val onEditSet = events.onEditSet
     val onDeleteSet = events.onDeleteSet
     val onAddSet = events.onAddSet
-    val workingLogged = loggedSets.count { !it.isWarmup }
-    val targetSets = lift.targetSets
-    val chipMarks = LiftChipCopy.marks(
-        workingLogged = workingLogged,
-        targetSets = targetSets,
-        restSeconds = restSeconds,
-        restRunningOnThisLift = restRunning,
-        remainingSeconds = restRemainingSeconds,
-    )
-    val chipSpoken = LiftChipCopy.spoken(
-        name = lift.exercise.name,
-        setProgress = chipMarks.setProgress,
-        restClock = chipMarks.restClock,
-        restLive = chipMarks.restLive,
-    )
     val entryRequester = remember { BringIntoViewRequester() }
     var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
-    // After a log, keep the wells on screen. Do not scroll the selected
-    // card under the dock — that hid identity, rest time, and the
-    // session list (phone check 04).
     LaunchedEffect(lift.id, loggedSets.size) {
         val count = loggedSets.size
         val grew = LogLoopBringIntoView.shouldBringIntoView(previousSetCount, count)
@@ -191,189 +155,70 @@ internal fun WorkoutLiftCard(
             entryRequester.bringIntoView()
         }
     }
-    val headerTrailing = @Composable {
-        LiftChipBadges(
-            marks = chipMarks,
-            exerciseId = lift.exercise.id,
-        )
-    }
-    LiftCard(
-        exercise = lift.exercise,
-        selected = selected,
-        number = number,
-        spoken = chipSpoken,
-        onClick = onSelect,
-        cardTag = WorkoutTestTags.liftCard(lift.exercise.id),
-        trailing = headerTrailing,
-        menu = {
-            if (selected && canEdit) {
-                LiftOverflowMenu(
-                    liftId = lift.id,
-                    onSwap = onSwap,
-                    onRemove = onRemove,
-                )
-            }
-        },
-    ) {
-        if (!selected) return@LiftCard
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(WorkoutTestTags.CURRENT_LIFT)
-                .padding(
-                    start = Metrics.space2,
-                    end = Metrics.space2,
-                    bottom = Metrics.space2,
-                ),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-        ) {
-            lastPerformance?.let { last ->
-                LastTimeStrip(
-                    summary = last,
-                    unit = unit,
-                    loadClass = LoadClass.of(lift.exercise.loadType),
-                    onApplySet = onApplyLastTime,
-                )
-            }
-            // Packet 2: running set clock lives in LogBar's FloorTimerSlot
-            // (count-up). No second countdown on the live card.
-            SetEntryPanel(
-                weightKg = draftWeightKg,
-                reps = draftReps,
-                onWeightKgChange = onWeightKgChange,
-                onRepsAdjust = onRepsAdjust,
-                onRepsChange = onRepsChange,
-                unit = unit,
-                loadClass = LoadClass.of(lift.exercise.loadType),
-                plated = lift.exercise.equipment == EquipmentType.BARBELL,
-                hold = hold,
-                durationSeconds = holdSeconds,
-                holdRunning = holdRunning,
-                remainingSeconds = holdRemainingSeconds,
-                onSecondsAdjust = onSecondsAdjust,
-                onSecondsChange = onSecondsChange,
-                compact = true,
-                loadType = lift.exercise.loadType,
-                equipment = lift.exercise.equipment,
-                plannedKg = lift.targetWeightKg,
-                lastKg = card.hint?.lastWeightKg ?: lastPerformance?.topSet?.weightKg,
-                suggestedKg = card.hint?.suggestedWeightKg,
-                modifier = Modifier
-                    .testTag(LogLoopBringIntoView.ANCHOR_TAG)
-                    .bringIntoViewRequester(entryRequester),
-            )
-            SecondaryLogOptions(
-                warmup = draftWarmup,
-                rpe = draftRpe,
-                recommendedRpe = card.recommendedRpe,
-                showRpe = FloorCompactChrome.showOptionalLogOptions(restRunning),
-                onWarmup = onWarmup,
-                onRpe = onRpe,
-            )
-            if (loggedSets.isNotEmpty()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                ) {
-                    Kicker("Sets")
-                    LoggedSetsPanel(
-                        sets = loggedSets,
-                        latestSetId = latestSetId,
-                        editingSetId = editingSetId,
-                        loadClassOf = { LoadClass.of(lift.exercise.loadType) },
-                        showAddSet = showAddSet,
-                        onEdit = onEditSet,
-                        onDelete = onDeleteSet,
-                        onAddSet = onAddSet,
-                        addSetCaption = card.microRec?.let { SetMicroRecCopy.anotherSetLine(it) },
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * Trailing marks on a live lift chip: `2/5` and the rest clock.
- *
- * Idle rest is caption, not a countdown numeral (G-05). Running rest
- * is RestCyan plus the word Rest, so colour is never the only channel
- * (ADR-023).
- */
-@Composable
-private fun LiftChipBadges(
-    marks: LiftChipMarks,
-    exerciseId: String,
-) {
     Column(
-        horizontalAlignment = Alignment.End,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = Metrics.space2),
         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
-        Text(
-            marks.setProgress,
-            modifier = Modifier.testTag(WorkoutTestTags.liftSets(exerciseId)),
-            style = InstrumentType.numeralSm,
-            color = TextPrimary,
-            maxLines = 1,
+        lastPerformance?.let { last ->
+            LastTimeStrip(
+                summary = last,
+                unit = unit,
+                loadClass = LoadClass.of(lift.exercise.loadType),
+                onApplySet = onApplyLastTime,
+            )
+        }
+        SetEntryPanel(
+            weightKg = draftWeightKg,
+            reps = draftReps,
+            onWeightKgChange = onWeightKgChange,
+            onRepsAdjust = onRepsAdjust,
+            onRepsChange = onRepsChange,
+            unit = unit,
+            loadClass = LoadClass.of(lift.exercise.loadType),
+            plated = lift.exercise.equipment == EquipmentType.BARBELL,
+            hold = hold,
+            durationSeconds = holdSeconds,
+            holdRunning = holdRunning,
+            remainingSeconds = holdRemainingSeconds,
+            onSecondsAdjust = onSecondsAdjust,
+            onSecondsChange = onSecondsChange,
+            compact = true,
+            loadType = lift.exercise.loadType,
+            equipment = lift.exercise.equipment,
+            plannedKg = lift.targetWeightKg,
+            lastKg = card.hint?.lastWeightKg ?: lastPerformance?.topSet?.weightKg,
+            suggestedKg = card.hint?.suggestedWeightKg,
+            modifier = Modifier
+                .testTag(LogLoopBringIntoView.ANCHOR_TAG)
+                .bringIntoViewRequester(entryRequester),
         )
-        marks.restClock?.let { clock ->
-            Row(
-                modifier = Modifier.testTag(WorkoutTestTags.liftRest(exerciseId)),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+        SecondaryLogOptions(
+            warmup = draftWarmup,
+            rpe = draftRpe,
+            recommendedRpe = card.recommendedRpe,
+            showRpe = FloorCompactChrome.showOptionalLogOptions(restRunning),
+            onWarmup = onWarmup,
+            onRpe = onRpe,
+        )
+        if (loggedSets.isNotEmpty()) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                Kicker(
-                    text = LiftChipCopy.REST,
-                    color = if (marks.restLive) RestCyan else TextSecondary,
-                    asHeading = false,
-                )
-                Text(
-                    clock,
-                    style = if (marks.restLive) InstrumentType.numeralSm else InstrumentType.caption,
-                    color = if (marks.restLive) RestCyan else TextSecondary,
-                    maxLines = 1,
+                Kicker("Sets")
+                LoggedSetsPanel(
+                    sets = loggedSets,
+                    latestSetId = latestSetId,
+                    editingSetId = editingSetId,
+                    loadClassOf = { LoadClass.of(lift.exercise.loadType) },
+                    showAddSet = showAddSet,
+                    onEdit = onEditSet,
+                    onDelete = onDeleteSet,
+                    onAddSet = onAddSet,
+                    addSetCaption = card.microRec?.let { SetMicroRecCopy.anotherSetLine(it) },
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun LiftOverflowMenu(
-    liftId: String,
-    onSwap: () -> Unit,
-    onRemove: () -> Unit,
-) {
-    var menuOpen by rememberSaveable(liftId) { mutableStateOf(false) }
-    Box {
-        IconButton(
-            onClick = { menuOpen = true },
-            modifier = Modifier.testTag(WorkoutTestTags.LIFT_OPTIONS),
-        ) {
-            Icon(
-                Icons.Outlined.MoreVert,
-                contentDescription = "Lift options",
-                tint = TextSecondary,
-            )
-        }
-        InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            DropdownMenuItem(
-                text = {
-                    Text("Swap lift…", style = InstrumentType.bodyStrong, color = TextPrimary)
-                },
-                onClick = {
-                    menuOpen = false
-                    onSwap()
-                },
-            )
-            DropdownMenuItem(
-                text = {
-                    Text("Remove lift", style = InstrumentType.bodyStrong, color = Danger)
-                },
-                onClick = {
-                    menuOpen = false
-                    onRemove()
-                },
-            )
         }
     }
 }

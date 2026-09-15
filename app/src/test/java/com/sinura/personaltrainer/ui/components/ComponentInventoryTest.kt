@@ -39,8 +39,10 @@ class ComponentInventoryTest {
     @Test
     fun workoutAndHistoryShareLiftCardAndSetTable() {
         val workout = readUi("workout/WorkoutLiftCard.kt")
-        assertTrue(workout.contains("LiftCard("))
         assertTrue(workout.contains("LoggedSetsPanel("))
+        val current = readUi("workout/CurrentLiftCard.kt")
+        assertTrue(current.contains("ExerciseThumb("))
+        assertTrue(current.contains("LiftOverflowMenu("))
         val logged = readUi("workout/LoggedSetsPanel.kt")
         assertTrue(logged.contains("SetTable("))
         assertTrue(logged.contains("SetTableLine.fromLog"))

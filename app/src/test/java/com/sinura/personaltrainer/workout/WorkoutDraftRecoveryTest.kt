@@ -113,4 +113,27 @@ class WorkoutDraftRecoveryTest {
         val restored = WorkoutDraftRecovery.resolve(sessionId, null, draft(reps = 100_000))!!
         assertEquals(500, restored.reps)
     }
+
+    @Test
+    fun resolveMapKeepsBothLiftsAndPrefersInMemory() {
+        val squat = draft(exerciseId = "squat", weightKg = 100.0)
+        val rowSaved = draft(exerciseId = "row", weightKg = 80.0)
+        val rowLive = draft(exerciseId = "row", weightKg = 87.5)
+        val recovered = WorkoutDraftRecovery.resolveMap(
+            sessionId = sessionId,
+            inMemory = mapOf("row" to rowLive),
+            persisted = mapOf("squat" to squat, "row" to rowSaved),
+        )
+        assertEquals(100.0, recovered.getValue("squat").weightKg, 0.001)
+        assertEquals(87.5, recovered.getValue("row").weightKg, 0.001)
+        assertEquals(
+            "row",
+            WorkoutDraftRecovery.resolveSelectedId(
+                sessionId = sessionId,
+                inMemorySelected = "row",
+                persistedSelected = "squat",
+                recovered = recovered,
+            ),
+        )
+    }
 }

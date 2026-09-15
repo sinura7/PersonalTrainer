@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Floor packet C: one current lift, lift switcher, per-lift
+> drafts in SavedStateHandle, minute telemetry, notes off the log loop.
+> Next Kotlin is Packet D. Gym-floor `appVersionCode` stays 1.
+>
 > 15 Sep 2026 — Live 67: floor packet B gym-floor steppers on `trunk`.
 > `debugLiveCode` 67; suffix from
 > `python3 tools/debug-drop-plan.py`.

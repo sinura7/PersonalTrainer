@@ -17,7 +17,7 @@ object LandscapeChrome {
     const val RING_MAX_DP = 280
     const val RING_RESERVE_DP = 120
     const val HEADER_ROW_DP = 56
-    const val METRICS_ROW_DP = 72
+    const val METRICS_ROW_DP = 40
     const val REST_IDLE_DP = 56
     const val LOG_MIN_DP = 96
 
@@ -43,8 +43,7 @@ object LandscapeChrome {
         landscape: Boolean,
         restRunning: Boolean,
     ): Int {
-        var chrome = HEADER_ROW_DP
-        if (!compactHeader(landscape)) chrome += METRICS_ROW_DP
+        var chrome = HEADER_ROW_DP + METRICS_ROW_DP
         if (!(hideIdleRest(landscape) && !restRunning)) chrome += REST_IDLE_DP
         return heightDp - chrome
     }
