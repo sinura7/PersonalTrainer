@@ -278,6 +278,46 @@ class SetMicroRecCalculatorTest {
         )
     }
 
+    @Test
+    fun easySetsInviteAnother() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    targetSets = 3,
+                    workingLogged = 3,
+                    working = listOf(
+                        set(100.0, 5, rpe = 6),
+                        set(100.0, 5, rpe = 7),
+                        set(100.0, 5, rpe = 7),
+                    ),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.LIFT_DONE, rec.reasonCode)
+        assertTrue(rec.anotherSetAdvised)
+        assertEquals(SetMicroRecCopy.ANOTHER_IN_YOU, SetMicroRecCopy.anotherSetLine(rec))
+    }
+
+    @Test
+    fun grindingSetsDoNotInviteAnother() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    targetSets = 3,
+                    workingLogged = 3,
+                    working = listOf(
+                        set(100.0, 5, rpe = 8),
+                        set(100.0, 5, rpe = 8),
+                        set(100.0, 5, rpe = 8),
+                    ),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.LIFT_DONE, rec.reasonCode)
+        assertEquals(false, rec.anotherSetAdvised)
+        assertEquals(null, SetMicroRecCopy.anotherSetLine(rec))
+    }
+
     data class V1Case(
         val name: String,
         val inputs: SetMicroRecInputs,

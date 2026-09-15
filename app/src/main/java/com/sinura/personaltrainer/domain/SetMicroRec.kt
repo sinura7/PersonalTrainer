@@ -59,6 +59,11 @@ data class SetMicroRec(
     val trace: RuleTrace,
     /** Starting rest for the next clock. Not written onto the stored routine. */
     val restSeconds: Int,
+    /**
+     * The Add-set row may invite one more. Never a change to [targetSets].
+     * Stop-early ("that's enough") is not this field.
+     */
+    val anotherSetAdvised: Boolean = false,
 )
 
 object SetMicroRecCalculator {
@@ -327,6 +332,20 @@ object SetMicroRecCalculator {
         return lastWeightKg to lastReps
     }
 
+    /**
+     * Last working sets all came in at or under [ANOTHER_SET_RPE_CEILING].
+     * Missing RPE is not evidence of an easy set.
+     */
+    internal fun adviseAnother(inputs: SetMicroRecInputs): Boolean {
+        if (inputs.lighterWeek) return false
+        val working = inputs.thisSessionWorking
+        if (working.isEmpty()) return false
+        if (working.any { it.rpe == null }) return false
+        return working.all { (it.rpe ?: 99) <= ANOTHER_SET_RPE_CEILING }
+    }
+
+    const val ANOTHER_SET_RPE_CEILING = 7
+
     private fun rec(
         inputs: SetMicroRecInputs,
         weight: Double,
@@ -359,6 +378,7 @@ object SetMicroRecCalculator {
                 loadType = inputs.loadType,
                 reps = reps,
             ),
+            anotherSetAdvised = reason == LIFT_DONE && adviseAnother(inputs),
         )
     }
 }
@@ -417,4 +437,9 @@ object SetMicroRecCopy {
         if (rec.previewOnly) "If you log this: …" else null
 
     fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.lines(rec.trace)
+
+    fun anotherSetLine(rec: SetMicroRec): String? =
+        if (rec.anotherSetAdvised) ANOTHER_IN_YOU else null
+
+    const val ANOTHER_IN_YOU = "You have another in you"
 }

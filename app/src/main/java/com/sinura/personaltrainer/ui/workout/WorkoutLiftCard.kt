@@ -51,6 +51,7 @@ import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
@@ -278,6 +279,7 @@ internal fun WorkoutLiftCard(
                         onEdit = onEditSet,
                         onDelete = onDeleteSet,
                         onAddSet = onAddSet,
+                        addSetCaption = card.microRec?.let { SetMicroRecCopy.anotherSetLine(it) },
                     )
                 }
             }
