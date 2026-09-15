@@ -636,6 +636,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             // opens, and a unit change mid-set recomputes it on the next open anyway.
             unit = container.preferencesRepository.weightUnit.first(),
             lighterWeek = lighter,
+            equipment = planned?.exercise?.equipment,
         )
         hint.value = progression
         lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)

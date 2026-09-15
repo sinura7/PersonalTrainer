@@ -255,6 +255,7 @@ class RestTimerViewModel @JvmOverloads constructor(
             loadType = planned?.exercise?.loadType,
             unit = unit,
             lighterWeek = lighter,
+            equipment = planned?.exercise?.equipment,
         )
     }
 }

@@ -47,6 +47,7 @@ object Coach {
         unit: WeightUnit,
         rpeEvidenceNewestFirst: List<Int?>,
         lighterWeek: Boolean,
+        equipment: EquipmentType? = null,
     ): ProgressionHint = ProgressionCalculator.adjusted(
         exerciseId = exerciseId,
         exerciseName = exerciseName,
@@ -57,6 +58,7 @@ object Coach {
         unit = unit,
         rpeEvidenceNewestFirst = rpeEvidenceNewestFirst,
         lighterWeek = lighterWeek,
+        equipment = equipment,
     )
 }
 

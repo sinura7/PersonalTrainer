@@ -925,6 +925,7 @@ class WorkoutRepository(
         loadType: LoadType?,
         unit: WeightUnit,
         lighterWeek: Boolean = false,
+        equipment: EquipmentType? = null,
     ): ProgressionHint? {
         val sessions = lastFinishedWork(exerciseId, excludeSessionId)
         val lastSessionSets = sessions.firstOrNull() ?: return null
@@ -948,6 +949,7 @@ class WorkoutRepository(
             unit = unit,
             rpeEvidenceNewestFirst = sessions.map { sets -> rpeOfTopSet(sets, loadClass) },
             lighterWeek = lighterWeek,
+            equipment = equipment,
         )
     }
 
@@ -1129,6 +1131,7 @@ class WorkoutRepository(
                 rpeEvidenceNewestFirst = sessionsNewestFirst.take(RpeModifier.RPE_HOLD_SESSIONS)
                     .map { (_, sets) -> rpeOfTopSet(sets, loadClass) },
                 lighterWeek = lighterWeek,
+                equipment = item.exercise.equipment,
             )
             if (adjusted.action == ProgressionAction.INCREASE) {
                 hints += adjusted

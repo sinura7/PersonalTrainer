@@ -80,6 +80,7 @@ object ProgressionCalculator {
         displayStep: Double?,
         loadType: LoadType?,
         unit: WeightUnit,
+        equipment: EquipmentType? = null,
     ): ProgressionHint {
         val decided = action(lastWorkingReps, targetReps)
         // Loaded hold: one more rep at the same weight, capped at the target. Bodyweight
@@ -106,6 +107,7 @@ object ProgressionCalculator {
             action = decided,
             loadType = loadType,
             suggestedReps = suggestedReps,
+            equipment = equipment,
         )
     }
 
@@ -129,6 +131,7 @@ object ProgressionCalculator {
         unit: WeightUnit,
         rpeEvidenceNewestFirst: List<Int?>,
         lighterWeek: Boolean,
+        equipment: EquipmentType? = null,
     ): ProgressionHint {
         val hint = hint(
             exerciseId = exerciseId,
@@ -136,9 +139,14 @@ object ProgressionCalculator {
             lastWeightKg = lastWeightKg,
             lastWorkingReps = lastWorkingReps,
             targetReps = targetReps,
-            displayStep = IncrementTable.displayStep(loadType ?: LoadType.EXTERNAL, unit),
+            displayStep = IncrementTable.displayStep(
+                loadType ?: LoadType.EXTERNAL,
+                unit,
+                equipment,
+            ),
             loadType = loadType,
             unit = unit,
+            equipment = equipment,
         )
         return LighterWeekModifier.apply(
             RpeModifier.apply(hint, rpeEvidenceNewestFirst),

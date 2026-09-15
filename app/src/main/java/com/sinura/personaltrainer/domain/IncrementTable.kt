@@ -15,6 +15,9 @@ package com.sinura.personaltrainer.domain
  * side and gets exactly "+5 lbs"; the 2.26796 kg that lands in the database is an
  * implementation detail they never see.
  *
+ * A pin stack and a dumbbell rack do not share the barbell's jump. This table still
+ * does not model a gym's actual plates — that is inventory, and it is refused here.
+ *
  * [LoadType.BODYWEIGHT] returns null everywhere. There is no weight to add to a push-up, and a
  * "+2.5 kg" suggestion on one is not a small inaccuracy — it is advice that cannot be followed.
  * Callers must render rep progression instead, which is why the null is not defaulted away.
@@ -29,29 +32,60 @@ object IncrementTable {
     /** [STEP_LBS] in kilograms, so a pound user's history stores what they actually lifted. */
     const val STEP_LBS_IN_KG = STEP_LBS / WeightConverter.LBS_PER_KG
 
+    /** Typical selectorized pin. */
+    const val STACK_STEP_KG = 5.0
+
+    const val STACK_STEP_LBS = 10.0
+
+    /** Common dumbbell / kettlebell jump. Metric racks are often 2 kg, not 2.5. */
+    const val DUMBBELL_STEP_KG = 2.0
+
+    const val DUMBBELL_STEP_LBS = 5.0
+
     /** The number the lifter sees, in their own unit. Null when there is nothing to add. */
-    fun displayStep(loadType: LoadType, unit: WeightUnit): Double? = when (loadType) {
-        LoadType.BODYWEIGHT -> null
-        LoadType.EXTERNAL, LoadType.STACK, LoadType.BODYWEIGHT_PLUS, LoadType.ASSISTED ->
-            when (unit) {
-                WeightUnit.KG -> STEP_KG
-                WeightUnit.LBS -> STEP_LBS
-            }
+    fun displayStep(
+        loadType: LoadType,
+        unit: WeightUnit,
+        equipment: EquipmentType? = null,
+    ): Double? {
+        if (loadType == LoadType.BODYWEIGHT) return null
+        val (kg, lbs) = stepsFor(loadType, equipment)
+        return when (unit) {
+            WeightUnit.KG -> kg
+            WeightUnit.LBS -> lbs
+        }
     }
 
     /** The same step in kilograms, for the arithmetic and for storage. */
-    fun stepKg(loadType: LoadType, unit: WeightUnit): Double? = when (loadType) {
-        LoadType.BODYWEIGHT -> null
-        LoadType.EXTERNAL, LoadType.STACK, LoadType.BODYWEIGHT_PLUS, LoadType.ASSISTED ->
-            when (unit) {
-                WeightUnit.KG -> STEP_KG
-                WeightUnit.LBS -> STEP_LBS_IN_KG
-            }
+    fun stepKg(
+        loadType: LoadType,
+        unit: WeightUnit,
+        equipment: EquipmentType? = null,
+    ): Double? {
+        val display = displayStep(loadType, unit, equipment) ?: return null
+        return when (unit) {
+            WeightUnit.KG -> display
+            WeightUnit.LBS -> display / WeightConverter.LBS_PER_KG
+        }
     }
 
     /** "2.5 kg" or "5 lbs", for coach copy. Null for bodyweight, where the copy differs. */
-    fun stepLabel(loadType: LoadType, unit: WeightUnit): String? =
-        displayStep(loadType, unit)?.let { "${WeightConverter.formatDisplayNumber(it)} ${unit.suffix}" }
+    fun stepLabel(
+        loadType: LoadType,
+        unit: WeightUnit,
+        equipment: EquipmentType? = null,
+    ): String? =
+        displayStep(loadType, unit, equipment)?.let {
+            "${WeightConverter.formatDisplayNumber(it)} ${unit.suffix}"
+        }
+
+    private fun stepsFor(loadType: LoadType, equipment: EquipmentType?): Pair<Double, Double> {
+        if (loadType == LoadType.STACK) return STACK_STEP_KG to STACK_STEP_LBS
+        if (equipment == EquipmentType.DUMBBELL || equipment == EquipmentType.KETTLEBELL) {
+            return DUMBBELL_STEP_KG to DUMBBELL_STEP_LBS
+        }
+        return STEP_KG to STEP_LBS
+    }
 
     /**
      * What a lifter with nothing to add should be told instead.
