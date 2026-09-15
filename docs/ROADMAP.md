@@ -15,10 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Live 67: floor packet B gym-floor steppers on `trunk`.
+> `debugLiveCode` 67; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 15 Sep 2026 — Floor packet B: gym-floor weight / reps / hold draft are
 > plates + tap-to-type. Live wheels stay on Extra/paste, reminder,
 > onboarding, and rest length. Next Kotlin is Packet C.
-> Gym-floor `appVersionCode` stays 1.
+> Live 67 is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Live 66: floor packet A gym-floor entry state on `trunk`.
 > `debugLiveCode` 66; suffix from
