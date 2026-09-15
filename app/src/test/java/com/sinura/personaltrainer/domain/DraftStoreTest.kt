@@ -59,7 +59,7 @@ class DraftStoreTest {
     fun workoutHandleKeepsAMapPerLift() {
         val handle = SavedStateHandle()
         val store = SavedStateWorkoutDraft(handle)
-        store.write(WorkoutDraft("s1", "squat", 155.0, 8, 8, false, "n", dirty = true))
+        store.write(WorkoutDraft("s1", "squat", 155.0, 8, 8, false, "n", null, true))
         store.write(WorkoutDraft("s1", "row", 87.5, 6, null, false, "n"))
         val all = store.readAll("s1")
         assertEquals(155.0, all.getValue("squat").weightKg, 0.001)

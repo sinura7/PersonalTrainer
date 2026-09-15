@@ -29,7 +29,7 @@ class WorkoutDraftCacheTest {
     @Test
     fun storesPerLiftWithoutClobberingTheOther() {
         val cache = WorkoutDraftCache()
-        val squat = WorkoutDraft("s1", "squat", 155.0, 8, 8, false, "", dirty = true)
+        val squat = WorkoutDraft("s1", "squat", 155.0, 8, 8, false, "", null, true)
         val row = WorkoutDraft("s1", "row", 87.5, 6, null, false, "")
         cache.put(squat)
         cache.put(row)
