@@ -63,6 +63,49 @@ class ProgressionKickerCopyTest {
                 WeightUnit.KG,
             ),
         )
+        assertEquals(
+            ProgressionKickerCopy.PLUS_REP,
+            ProgressionKickerCopy.fromMicroRec(
+                rec(SetMicroRecCalculator.CLIMB_REPS),
+                LoadClass.LOADED,
+                WeightUnit.KG,
+            ),
+        )
+    }
+
+    @Test
+    fun aClimbOnTheHintIsPlusOneNotHold() {
+        assertEquals(
+            ProgressionKickerCopy.PLUS_REP,
+            ProgressionKickerCopy.fromHint(
+                hint(ProgressionAction.HOLD).copy(suggestedReps = 6),
+                WeightUnit.KG,
+            ),
+        )
+    }
+
+    @Test
+    fun aPinStackIncreaseIsFiveKgNotTheBarStep() {
+        assertEquals(
+            "+5",
+            ProgressionKickerCopy.fromHint(
+                hint(
+                    action = ProgressionAction.INCREASE,
+                    loadType = LoadType.STACK,
+                ),
+                WeightUnit.KG,
+            ),
+        )
+        assertEquals(
+            "+2",
+            ProgressionKickerCopy.fromHint(
+                hint(
+                    action = ProgressionAction.INCREASE,
+                    loadType = LoadType.EXTERNAL,
+                ).copy(equipment = EquipmentType.DUMBBELL),
+                WeightUnit.KG,
+            ),
+        )
     }
 
     private fun hint(

@@ -29,12 +29,55 @@ class IncrementTableTest {
     }
 
     @Test
-    fun everyLoadableClassStepsTheSameWay() {
+    fun everyLoadableClassHasAStep() {
         listOf(LoadType.EXTERNAL, LoadType.STACK, LoadType.BODYWEIGHT_PLUS, LoadType.ASSISTED)
             .forEach { loadType ->
                 assertNotNull("$loadType must have a step", IncrementTable.displayStep(loadType, WeightUnit.KG))
-                assertEquals(2.5, IncrementTable.displayStep(loadType, WeightUnit.KG)!!, 0.001)
             }
+    }
+
+    @Test
+    fun aPinStackDoesNotShareTheBarbellJump() {
+        assertEquals(5.0, IncrementTable.displayStep(LoadType.STACK, WeightUnit.KG)!!, 0.001)
+        assertEquals(10.0, IncrementTable.displayStep(LoadType.STACK, WeightUnit.LBS)!!, 0.001)
+        assertEquals("5 kg", IncrementTable.stepLabel(LoadType.STACK, WeightUnit.KG))
+        assertEquals("10 lbs", IncrementTable.stepLabel(LoadType.STACK, WeightUnit.LBS))
+    }
+
+    @Test
+    fun aDumbbellRackDoesNotShareTheBarbellJump() {
+        assertEquals(
+            2.0,
+            IncrementTable.displayStep(
+                LoadType.EXTERNAL,
+                WeightUnit.KG,
+                equipment = EquipmentType.DUMBBELL,
+            )!!,
+            0.001,
+        )
+        assertEquals(
+            2.5,
+            IncrementTable.displayStep(LoadType.EXTERNAL, WeightUnit.KG)!!,
+            0.001,
+        )
+        assertEquals(
+            2.0,
+            IncrementTable.displayStep(
+                LoadType.EXTERNAL,
+                WeightUnit.KG,
+                equipment = EquipmentType.KETTLEBELL,
+            )!!,
+            0.001,
+        )
+        assertEquals(
+            5.0,
+            IncrementTable.displayStep(
+                LoadType.EXTERNAL,
+                WeightUnit.LBS,
+                equipment = EquipmentType.DUMBBELL,
+            )!!,
+            0.001,
+        )
     }
 
     @Test
@@ -149,7 +192,37 @@ class AddDefaultsTest {
     }
 
     @Test
-    fun anUnknownLoadTypeTakesTheIsolationFallback() {
+    fun muscleAndStrengthMoveTheLandingRowAndNothingElse() {
+        val general = AddDefaults.forExercise(LoadType.EXTERNAL, isCompound = true)
+        val muscle = AddDefaults.forExercise(
+            LoadType.EXTERNAL,
+            isCompound = true,
+            goal = TrainingGoal.HYPERTROPHY,
+        )
+        val strength = AddDefaults.forExercise(
+            LoadType.EXTERNAL,
+            isCompound = true,
+            goal = TrainingGoal.STRENGTH,
+        )
+        assertEquals(TargetDefaults(3, 5, 150), general)
+        assertEquals(3, muscle.sets)
+        assertEquals(3, strength.sets)
+        assertTrue(muscle.reps > general.reps)
+        assertTrue(muscle.restSeconds < general.restSeconds)
+        assertTrue(strength.reps < general.reps)
+        assertTrue(strength.restSeconds > general.restSeconds)
+        assertEquals(
+            general,
+            AddDefaults.forExercise(
+                LoadType.EXTERNAL,
+                isCompound = true,
+                goal = TrainingGoal.GENERAL,
+            ),
+        )
+    }
+
+    @Test
+    fun anUnknownLoadTypeLandsOnTheIsolationRow() {
         // A custom the user typed in. Too many reps at too little rest is a bad set; too few
         // reps at too much rest is a wasted afternoon — so the fallback errs toward isolation.
         assertEquals(TargetDefaults(3, 10, 90), AddDefaults.forExercise(loadType = null, isCompound = false))
@@ -246,8 +319,39 @@ class ProgressionCopyTest {
     }
 
     @Test
+    fun aLoadedHoldIsToldToTryOneMoreRep() {
+        val strip = ProgressionCopy.stripReason(
+            hint(LoadType.EXTERNAL, ProgressionAction.HOLD).copy(
+                lastReps = 4,
+                targetReps = 5,
+                suggestedWeightKg = 100.0,
+                suggestedReps = 5,
+            ),
+            WeightUnit.KG,
+        )
+        assertEquals("Close. Keep 100 kg. Try 5 reps.", strip)
+    }
+
+    @Test
     fun anUnknownLoadTypeIsTreatedAsLoadable() {
         // Refusing to suggest anything for a custom is worse than suggesting the common step.
         assertEquals("Hit target. Add 2.5 kg.", ProgressionCopy.stripReason(hint(null), WeightUnit.KG))
+    }
+
+    @Test
+    fun aPinStackIsToldToAddItsOwnJump() {
+        assertEquals(
+            "Hit target. Add 5 kg.",
+            ProgressionCopy.stripReason(hint(LoadType.STACK), WeightUnit.KG),
+        )
+    }
+
+    @Test
+    fun aDumbbellIsToldToAddItsOwnJump() {
+        val strip = ProgressionCopy.stripReason(
+            hint(LoadType.EXTERNAL).copy(equipment = EquipmentType.DUMBBELL),
+            WeightUnit.KG,
+        )
+        assertEquals("Hit target. Add 2 kg.", strip)
     }
 }

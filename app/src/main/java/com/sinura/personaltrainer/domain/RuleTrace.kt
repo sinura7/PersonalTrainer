@@ -29,6 +29,8 @@ data class RuleTrace(
 ) {
     companion object {
         const val VERSION = 1
+        const val STALL = "STALL"
+        const val VOLUME_RAMP = "VOLUME_RAMP"
 
         fun forRecommendation(
             recommendation: TrainingRecommendation,
@@ -100,11 +102,60 @@ data class RuleTrace(
                     TraceFact("lastWeightKg", hint.lastWeightKg.toString()),
                     TraceFact("suggestedWeightKg", hint.suggestedWeightKg.toString()),
                     TraceFact("lastReps", hint.lastReps.toString()),
+                    TraceFact("suggestedReps", hint.suggestedReps.toString()),
                 ),
                 thresholds = listOf(TraceThreshold("targetReps", hint.targetReps.toString())),
                 alternatives = emptyList(),
                 generatedAtMs = nowMs,
             )
+
+        fun forStall(finding: StallFinding, nowMs: Long): RuleTrace = RuleTrace(
+            ruleId = "stall-${finding.exerciseId}",
+            version = VERSION,
+            action = RecommendationAction.MARK_LIGHTER_WEEK.name,
+            reasonCodes = listOf(RecommendationEngine.KICKER_PROGRESSION, STALL),
+            evidenceStartEpochDay = 1L,
+            evidenceEndEpochDay = 0L,
+            facts = listOf(
+                TraceFact("exercise", finding.exerciseName),
+                TraceFact("sessionsHeld", finding.sessionsHeld.toString()),
+            ),
+            thresholds = listOf(
+                TraceThreshold("stallSessions", StallSignal.STALL_SESSIONS.toString()),
+            ),
+            alternatives = listOf(
+                "swap the lift",
+                "cut the load",
+                "change the rep target",
+            ),
+            generatedAtMs = nowMs,
+        )
+
+        fun forVolumeRamp(
+            finding: VolumeRampFinding,
+            nowMs: Long,
+            evidenceStartEpochDay: Long,
+            evidenceEndEpochDay: Long,
+        ): RuleTrace = RuleTrace(
+            ruleId = "volume-ramp-${finding.muscle.name}",
+            version = VERSION,
+            action = RecommendationAction.OPEN_BODY_MAP.name,
+            reasonCodes = listOf(RecommendationEngine.KICKER_LOAD, VOLUME_RAMP),
+            evidenceStartEpochDay = evidenceStartEpochDay,
+            evidenceEndEpochDay = evidenceEndEpochDay,
+            facts = listOf(
+                TraceFact("muscle", finding.muscle.displayName),
+                TraceFact("lastWeekSets", finding.lastWeekSets.toString()),
+                TraceFact("suggestedSets", finding.suggestedSets.toString()),
+            ),
+            thresholds = listOf(
+                TraceThreshold("rpeCeiling", VolumeRamp.RPE_CEILING.toString()),
+                TraceThreshold("addSets", VolumeRamp.ADD_SETS.toString()),
+                TraceThreshold("highMinSets", HeatBand.HIGH_MIN_SETS.toInt().toString()),
+            ),
+            alternatives = listOf("write the extra sets into the plan"),
+            generatedAtMs = nowMs,
+        )
 
         fun forMicroRec(
             reasonCodes: List<String>,

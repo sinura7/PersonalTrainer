@@ -22,6 +22,7 @@ import com.sinura.personaltrainer.domain.AddToRoutineDestination
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LoadTypeCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Surface3
@@ -47,6 +48,7 @@ fun AddToRoutineSheet(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
     onCreateRoutine: (() -> Unit)? = null,
+    goal: TrainingGoal = TrainingGoal.GENERAL,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3) {
         AddToRoutineBody(
@@ -55,6 +57,7 @@ fun AddToRoutineSheet(
             emptyBody = emptyBody,
             onSelect = onSelect,
             onCreateRoutine = onCreateRoutine,
+            goal = goal,
         )
     }
 }
@@ -66,6 +69,7 @@ internal fun AddToRoutineBody(
     emptyBody: String,
     onSelect: (String) -> Unit,
     onCreateRoutine: (() -> Unit)?,
+    goal: TrainingGoal = TrainingGoal.GENERAL,
 ) {
     Column(
         modifier = Modifier
@@ -81,7 +85,7 @@ internal fun AddToRoutineBody(
             style = InstrumentType.title,
             color = TextPrimary,
         )
-        LandingCard(exercise)
+            LandingCard(exercise, goal)
         if (destinations.isEmpty()) {
             Text(emptyBody, style = InstrumentType.body, color = TextSecondary)
             if (onCreateRoutine != null) {
@@ -103,9 +107,9 @@ internal fun AddToRoutineBody(
 }
 
 @Composable
-private fun LandingCard(exercise: Exercise) {
-    val defaults = AddToRoutineCopy.landing(exercise)
-    val spoken = AddToRoutineCopy.spokenLanding(exercise)
+private fun LandingCard(exercise: Exercise, goal: TrainingGoal) {
+    val defaults = AddToRoutineCopy.landing(exercise, goal)
+    val spoken = AddToRoutineCopy.spokenLanding(exercise, goal)
     GymCard(
         modifier = Modifier
             .testTag(AddToRoutineTags.LANDING)

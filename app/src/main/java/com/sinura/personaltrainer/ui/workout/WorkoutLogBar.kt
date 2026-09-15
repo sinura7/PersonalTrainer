@@ -248,6 +248,15 @@ internal fun MicroRecLine(
                 }
             }
         }
+        SetMicroRecCopy.warmupLine(rec, unit)?.let { warmup ->
+            Text(
+                text = warmup,
+                style = InstrumentType.caption,
+                color = TextTertiary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
     if (showWhy) {
         ConfirmActionDialog(

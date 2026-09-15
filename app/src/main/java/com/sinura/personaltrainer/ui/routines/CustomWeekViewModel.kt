@@ -18,6 +18,7 @@ import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
@@ -102,6 +103,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private var guidedAnswers: OnboardingAnswers? = null
     private var pendingWeightUnit: WeightUnit? = null
     private var userPickedDay = savedDraft.userPickedDay()
+    private val trainingGoal = MutableStateFlow(TrainingGoal.GENERAL)
 
     private val resultsFlow = combine(
         searchQuery.flatMapLatest { query ->
@@ -159,6 +161,13 @@ class CustomWeekViewModel @JvmOverloads constructor(
                     emit(emptyList())
                 }
                 .collect { catalog.value = it }
+        }
+        viewModelScope.launch {
+            container.preferencesRepository.coachPreferences
+                .catch { thrown ->
+                    AppLog.w(TAG, "Reading training goal failed", thrown)
+                }
+                .collect { trainingGoal.value = it.goal }
         }
         viewModelScope.launch {
             container.preferencesRepository.schedulePreferences
@@ -227,7 +236,11 @@ class CustomWeekViewModel @JvmOverloads constructor(
             forgetTargetRule(stored.id)
             existing.filterNot { it.id == stored.id }
         } else {
-            CustomWeekPolicy.addLifts(existing, listOf(exercise)) { UUID.randomUUID().toString() }
+            CustomWeekPolicy.addLifts(
+                existing = existing,
+                incoming = listOf(exercise),
+                goal = guidedAnswers?.goal ?: trainingGoal.value,
+            ) { UUID.randomUUID().toString() }
         }
         days.value = days.value + (day to next)
         error.clearFrom(source = ERR_ADD_LIFT)

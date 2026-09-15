@@ -27,7 +27,8 @@ object AddToRoutineCopy {
 
     fun title(exerciseName: String): String = "Add $exerciseName"
 
-    fun landing(exercise: Exercise): TargetDefaults = AddDefaults.forExercise(exercise)
+    fun landing(exercise: Exercise, goal: TrainingGoal = TrainingGoal.GENERAL): TargetDefaults =
+        AddDefaults.forExercise(exercise, goal = goal)
 
     fun workValue(defaults: TargetDefaults): String =
         SessionOrderCopy.workValue(defaults.sets, defaults.reps)
@@ -65,8 +66,8 @@ object AddToRoutineCopy {
             alreadyHolds = alreadyHolds,
         )
 
-    fun spokenLanding(exercise: Exercise): String {
-        val defaults = landing(exercise)
+    fun spokenLanding(exercise: Exercise, goal: TrainingGoal = TrainingGoal.GENERAL): String {
+        val defaults = landing(exercise, goal)
         return "${exercise.name}, ${workValue(defaults)}, rest ${restClock(defaults)}"
     }
 

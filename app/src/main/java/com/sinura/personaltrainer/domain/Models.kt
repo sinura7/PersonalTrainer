@@ -300,6 +300,17 @@ data class ProgressionHint(
      */
     val loadType: LoadType? = null,
     val trace: RuleTrace? = null,
+    /**
+     * Next session's reps. On a loaded lift inside the 1–2-rep hold window this is one more
+     * than [lastReps], capped at [targetReps]. [RpeModifier] and [LighterWeekModifier] reset it
+     * to [lastReps] so a grind or a deload does not add a rep.
+     */
+    val suggestedReps: Int = lastReps,
+    /**
+     * Kit in hand, so [IncrementTable] can give a dumbbell its own jump
+     * rather than the barbell's. Null means the table keys off [loadType] only.
+     */
+    val equipment: EquipmentType? = null,
 )
 
 enum class ProgressionAction {

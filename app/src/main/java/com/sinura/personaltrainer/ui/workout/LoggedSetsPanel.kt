@@ -42,6 +42,7 @@ internal fun LoggedSetsPanel(
     onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
     onAddSet: () -> Unit,
+    addSetCaption: String? = null,
 ) {
     if (sets.isEmpty()) return
     // Which row is showing its actions. The actions used to hang off `isLatest`, so the
@@ -97,23 +98,32 @@ internal fun LoggedSetsPanel(
             }
         }
         if (showAddSet) {
-            TextButton(
-                onClick = onAddSet,
-                modifier = Modifier
-                    .heightIn(min = Metrics.touchMin)
-                    .testTag(WorkoutTestTags.ADD_SET),
-            ) {
-                Icon(
-                    Icons.Outlined.Add,
-                    contentDescription = null,
-                    tint = TextSecondary,
-                    modifier = Modifier.size(Metrics.space4),
-                )
-                Text(
-                    "Add set",
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                )
+            Column {
+                TextButton(
+                    onClick = onAddSet,
+                    modifier = Modifier
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.ADD_SET),
+                ) {
+                    Icon(
+                        Icons.Outlined.Add,
+                        contentDescription = null,
+                        tint = TextSecondary,
+                        modifier = Modifier.size(Metrics.space4),
+                    )
+                    Text(
+                        "Add set",
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                    )
+                }
+                if (addSetCaption != null) {
+                    Text(
+                        addSetCaption,
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                    )
+                }
             }
         }
     }

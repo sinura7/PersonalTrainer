@@ -4,7 +4,8 @@ package com.sinura.personaltrainer.domain
  * In-set next-load / next-reps. Local and deterministic (ADR-008).
  *
  * [ProgressionCalculator] +step is next *session*. A hit this session repeats
- * the load, except RPE 6–7 in-tank (loaded) and bodyweight +1. Never an LLM.
+ * the load, except RPE 6–7 in-tank (loaded), a loaded 1–2-rep hold (add a
+ * rep), and bodyweight +1. Never an LLM.
  */
 data class LoggedSetView(
     val weightKg: Double,
@@ -46,6 +47,7 @@ data class SetMicroRecInputs(
      * First-set Next / RPE chips read this instead of inventing 6–9.
      */
     val historyWorking: List<LoggedSetView> = emptyList(),
+    val equipment: EquipmentType? = null,
 )
 
 data class SetMicroRec(
@@ -56,6 +58,24 @@ data class SetMicroRec(
     val showApply: Boolean,
     val reasonCode: String,
     val trace: RuleTrace,
+    /** Starting rest for the next clock. Not written onto the stored routine. */
+    val restSeconds: Int = RestPrescription.STANDARD_SECONDS,
+    /**
+     * The Add-set row may invite one more. Never a change to [targetSets].
+     * Stop-early ("that's enough") is not this field.
+     */
+    val anotherSetAdvised: Boolean = false,
+    /**
+     * Percentage ladder off the working weight. Empty once working sets
+     * start. Never counted toward [targetSets].
+     */
+    val warmupSets: List<WarmupSet> = emptyList(),
+    /**
+     * Kit in hand, so the HOLD / +N kicker can use a pin stack's jump
+     * rather than the barbell's. Null means the table keys off load class.
+     */
+    val equipment: EquipmentType? = null,
+    val loadType: LoadType? = null,
 )
 
 object SetMicroRecCalculator {
@@ -73,11 +93,13 @@ object SetMicroRecCalculator {
     const val TOP_SET = "TOP_SET"
     const val RPE_HOLD = "RPE_HOLD"
     const val CLOSE_HOLD = "CLOSE_HOLD"
+    const val CLIMB_REPS = "CLIMB_REPS"
     const val FAILED_DROP = "FAILED_DROP"
     const val LIGHTER_HOLD = "LIGHTER_HOLD"
     const val BW_ADD_REP = "BW_ADD_REP"
     const val BW_HOLD = "BW_HOLD"
     const val BW_DROP_REP = "BW_DROP_REP"
+    const val ANOTHER_SET_RPE_CEILING = 7
 
     fun suggest(inputs: SetMicroRecInputs): SetMicroRec? {
         if (inputs.editing) return null
@@ -104,7 +126,11 @@ object SetMicroRecCalculator {
             )
         }
         val loadClass = LoadClass.of(inputs.loadType)
-        val displayStep = IncrementTable.displayStep(inputs.loadType ?: LoadType.EXTERNAL, inputs.unit)
+        val displayStep = IncrementTable.displayStep(
+            inputs.loadType ?: LoadType.EXTERNAL,
+            inputs.unit,
+            inputs.equipment,
+        )
             .takeUnless { loadClass == LoadClass.BODYWEIGHT }
         val meaning = loadClass.weightMeaning
         val bodyweight = displayStep == null || meaning == WeightMeaning.NONE
@@ -214,28 +240,27 @@ object SetMicroRecCalculator {
         }
         val targetReps = inputs.targetReps.coerceAtLeast(1)
         val action = ProgressionCalculator.action(basis.reps, targetReps)
-        val probe = ProgressionCalculator.hint(
+        val rpes = buildList {
+            addAll(inputs.thisSessionWorking.map { it.rpe })
+            if (previewOnly) add(basis.rpe)
+        }
+        val afterLight = ProgressionCalculator.adjusted(
             exerciseId = inputs.hint?.exerciseId.orEmpty(),
             exerciseName = inputs.hint?.exerciseName.orEmpty(),
             lastWeightKg = basis.weightKg,
             lastWorkingReps = basis.reps,
             targetReps = targetReps,
-            displayStep = displayStep,
             loadType = inputs.loadType,
             unit = inputs.unit,
+            rpeEvidenceNewestFirst = rpes.takeLast(RpeModifier.RPE_HOLD_SESSIONS).asReversed(),
+            lighterWeek = inputs.lighterWeek,
+            equipment = inputs.equipment,
         )
-        val rpes = buildList {
-            addAll(inputs.thisSessionWorking.map { it.rpe })
-            if (previewOnly) add(basis.rpe)
-        }
-        val recent = rpes.takeLast(RpeModifier.RPE_HOLD_SESSIONS).asReversed()
-        val afterRpe = RpeModifier.apply(probe, recent)
-        val afterLight = LighterWeekModifier.apply(afterRpe, inputs.lighterWeek)
         val effortRpe = basis.rpe
         val reason = reasonCode(
             action = action,
             rpe = effortRpe,
-            rpeHold = afterRpe.rpeHold,
+            rpeHold = afterLight.rpeHold,
             lighterHold = afterLight.lighterHold,
             bodyweight = bodyweight,
         )
@@ -259,7 +284,7 @@ object SetMicroRecCalculator {
             showApply = showApply,
             reason = reason,
             extraCodes = buildList {
-                if (afterRpe.rpeHold) add(RPE_HOLD)
+                if (afterLight.rpeHold) add(RPE_HOLD)
                 if (afterLight.lighterHold) add(LIGHTER_HOLD)
             },
         )
@@ -278,7 +303,7 @@ object SetMicroRecCalculator {
             return if (rpe == null) SKIP_RPE_DROP else if (bodyweight) BW_DROP_REP else FAILED_DROP
         }
         if (action == ProgressionAction.HOLD) {
-            return if (bodyweight) BW_HOLD else CLOSE_HOLD
+            return if (bodyweight) BW_HOLD else CLIMB_REPS
         }
         // INCREASE: in-session loaded is repeat unless in-tank.
         if (rpe != null && rpe >= 9) return TOP_SET
@@ -300,6 +325,9 @@ object SetMicroRecCalculator {
     ): Pair<Double, Int> {
         val climb = reason == IN_TANK || reason == BW_ADD_REP
         val drop = reason == FAILED_DROP || reason == SKIP_RPE_DROP || reason == BW_DROP_REP
+        if (reason == CLIMB_REPS) {
+            return lastWeightKg to (lastReps + 1).coerceAtMost(targetReps.coerceAtLeast(1))
+        }
         if (bodyweight) {
             val reps = when {
                 climb -> lastReps + 1
@@ -320,6 +348,18 @@ object SetMicroRecCalculator {
             return nextWeight to lastReps
         }
         return lastWeightKg to lastReps
+    }
+
+    /**
+     * Last working sets all came in at or under [ANOTHER_SET_RPE_CEILING].
+     * Missing RPE is not evidence of an easy set.
+     */
+    internal fun adviseAnother(inputs: SetMicroRecInputs): Boolean {
+        if (inputs.lighterWeek) return false
+        val working = inputs.thisSessionWorking
+        if (working.isEmpty()) return false
+        if (working.any { it.rpe == null }) return false
+        return working.all { (it.rpe ?: 99) <= ANOTHER_SET_RPE_CEILING }
     }
 
     private fun rec(
@@ -349,6 +389,29 @@ object SetMicroRecCalculator {
             showApply = showApply && !previewOnly,
             reasonCode = reason,
             trace = trace,
+            restSeconds = RestPrescription.seconds(
+                reasonCode = reason,
+                loadType = inputs.loadType,
+                reps = reps,
+            ),
+            anotherSetAdvised = reason == LIFT_DONE && adviseAnother(inputs),
+            warmupSets = warmupSetsFor(inputs, reason, weight),
+            equipment = inputs.equipment,
+            loadType = inputs.loadType,
+        )
+    }
+
+    private fun warmupSetsFor(
+        inputs: SetMicroRecInputs,
+        reason: String,
+        workingWeightKg: Double,
+    ): List<WarmupSet> {
+        if (reason != FIRST_SET && reason != WARMUP_DONE) return emptyList()
+        return WarmupRamp.sets(
+            workingWeightKg = workingWeightKg,
+            loadType = inputs.loadType,
+            unit = inputs.unit,
+            equipment = inputs.equipment,
         )
     }
 }
@@ -372,6 +435,7 @@ fun setMicroRecInputs(
     allowExtra: Boolean = false,
     rpeIntent: Boolean = false,
     historyWorking: List<LoggedSetView> = emptyList(),
+    equipment: EquipmentType? = null,
 ): SetMicroRecInputs = SetMicroRecInputs(
     editing = editing,
     loadType = loadType,
@@ -392,6 +456,7 @@ fun setMicroRecInputs(
     allowExtra = allowExtra,
     rpeIntent = rpeIntent,
     historyWorking = historyWorking,
+    equipment = equipment,
 )
 
 object SetMicroRecCopy {
@@ -418,6 +483,21 @@ object SetMicroRecCopy {
         if (rec.previewOnly) "If you log this: …" else null
 
     fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.lines(rec.trace)
+
+    fun anotherSetLine(rec: SetMicroRec): String? =
+        if (rec.anotherSetAdvised) ANOTHER_IN_YOU else null
+
+    fun warmupLine(rec: SetMicroRec, unit: WeightUnit): String? {
+        if (rec.warmupSets.isEmpty()) return null
+        val numbers = rec.warmupSets.joinToString(" · ") { set ->
+            WeightConverter.formatDisplayNumber(
+                WeightConverter.toDisplayValue(set.weightKg, unit),
+            )
+        }
+        return "Warm up $numbers ${unit.suffix}"
+    }
+
+    const val ANOTHER_IN_YOU = "You have another in you"
 }
 
 /**
@@ -432,9 +512,15 @@ object ProgressionKickerCopy {
 
     fun fromHint(hint: ProgressionHint, unit: WeightUnit): String =
         when (hint.action) {
-            ProgressionAction.HOLD -> HOLD
+            ProgressionAction.HOLD ->
+                if (hint.suggestedReps > hint.lastReps) PLUS_REP else HOLD
             ProgressionAction.DECREASE -> BACK_OFF
-            ProgressionAction.INCREASE -> plusLabel(LoadClass.of(hint.loadType), unit)
+            ProgressionAction.INCREASE -> plusLabel(
+                loadClass = LoadClass.of(hint.loadType),
+                unit = unit,
+                equipment = hint.equipment,
+                loadType = hint.loadType,
+            )
         }
 
     private val HOLD_CODES = setOf(
@@ -457,19 +543,34 @@ object ProgressionKickerCopy {
         ) {
             return null
         }
+        if (rec.reasonCode == SetMicroRecCalculator.CLIMB_REPS ||
+            rec.reasonCode == SetMicroRecCalculator.BW_ADD_REP
+        ) {
+            return PLUS_REP
+        }
         if (rec.reasonCode in HOLD_CODES) return HOLD
         if (rec.reasonCode in BACK_OFF_CODES) return BACK_OFF
-        return plusLabel(loadClass, unit)
+        return plusLabel(
+            loadClass = loadClass,
+            unit = unit,
+            equipment = rec.equipment,
+            loadType = rec.loadType,
+        )
     }
 
-    fun plusLabel(loadClass: LoadClass, unit: WeightUnit): String {
-        val loadType = when (loadClass) {
+    fun plusLabel(
+        loadClass: LoadClass,
+        unit: WeightUnit,
+        equipment: EquipmentType? = null,
+        loadType: LoadType? = null,
+    ): String {
+        val resolved = loadType ?: when (loadClass) {
             LoadClass.LOADED -> LoadType.EXTERNAL
             LoadClass.BODYWEIGHT -> LoadType.BODYWEIGHT
             LoadClass.BODYWEIGHT_ADDED -> LoadType.BODYWEIGHT_PLUS
             LoadClass.BODYWEIGHT_ASSISTED -> LoadType.ASSISTED
         }
-        val step = IncrementTable.displayStep(loadType, unit) ?: return PLUS_REP
+        val step = IncrementTable.displayStep(resolved, unit, equipment) ?: return PLUS_REP
         return "+${WeightConverter.formatDisplayNumber(step)}"
     }
 }
