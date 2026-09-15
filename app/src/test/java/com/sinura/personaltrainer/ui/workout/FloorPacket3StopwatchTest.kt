@@ -25,7 +25,7 @@ class FloorPacket3StopwatchTest {
     }
 
     @Test
-    fun logBarWiresTheStopwatchAndScreenDoesNotStopRestToStartIt() {
+    fun logBarWiresTheStopwatchAndStartingItStopsRest() {
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertTrue(bar.contains("onStartSetClock"))
         assertTrue(bar.contains("onStopSetClock"))
@@ -34,13 +34,14 @@ class FloorPacket3StopwatchTest {
         assertTrue(screen.contains("onStartSetClock = viewModel::startSetStopwatch"))
         assertTrue(screen.contains("offerSetClock ="))
         assertTrue(screen.contains("state.offerSetClock"))
+        assertTrue(screen.contains("SetStopwatchCopy.SWITCH_TITLE"))
         val vm = readOwned("ui/workout/ActiveWorkoutViewModel.kt")
         val start = vm.indexOf("fun startSetStopwatch")
         val stop = vm.indexOf("fun stopSetStopwatch")
         assertTrue(start >= 0 && stop > start)
         val body = vm.substring(start, stop)
-        assertFalse(
-            "starting the set clock must not cancel a pending rest alarm",
+        assertTrue(
+            "starting the set clock must cancel a pending rest alarm",
             body.contains("restTimer.stop()"),
         )
     }

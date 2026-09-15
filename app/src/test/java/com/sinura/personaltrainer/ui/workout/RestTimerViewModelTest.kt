@@ -8,6 +8,8 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.domain.ExactAlarmAttempt
+import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
@@ -179,6 +181,18 @@ class RestTimerViewModelTest {
             workout.restTimerState.first { it.totalSeconds == 105 && !it.running }
         }
         assertEquals(105, floor.uiState.value.rest.totalSeconds)
+    }
+
+    @Test
+    fun exactDeniedSurfacesBestEffortNeverPrecise() = runBlocking {
+        val fixture = seedWorkout(restSeconds = 90)
+        deps.setExactAlarmAttempt(ExactAlarmAttempt.BEST_EFFORT)
+        val vm = createViewModel(fixture.session.id)
+        val state = vm.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.rest.exactAlarmBestEffort
+        }
+        assertTrue(state.rest.exactAlarmBestEffort)
+        assertFalse(RestHonestyCopy.EXACT_DENIED.contains("precise", ignoreCase = true))
     }
 
     private fun createViewModel(sessionId: String): RestTimerViewModel =

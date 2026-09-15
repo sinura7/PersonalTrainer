@@ -88,6 +88,30 @@ object RestTimerAlerts {
         return true
     }
 
+    /**
+     * Hold target reached: one short alarm-stream beep, never the rest-done
+     * two-note cue (HA-18 / HA-27).
+     */
+    fun holdTargetTone(
+        context: Context,
+        soundEnabled: Boolean,
+    ) {
+        if (!soundEnabled) return
+        try {
+            val tone = android.media.ToneGenerator(AudioManager.STREAM_ALARM, 80)
+            tone.startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 80)
+            android.os.Handler(context.mainLooper).postDelayed({
+                try {
+                    tone.release()
+                } catch (_: Exception) {
+                    // Already gone.
+                }
+            }, 120L)
+        } catch (_: Exception) {
+            // Sound is optional. Never fail the hold clock.
+        }
+    }
+
     private fun playSound(
         context: Context,
         createPlayer: (Context, Int, AudioAttributes) -> MediaPlayer?,

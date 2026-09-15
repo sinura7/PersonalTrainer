@@ -115,6 +115,12 @@ object Motion {
     /** Gold flash on a finished rest before the dock returns to idle. */
     const val FINISHED_DWELL_MS = 3_500L
 
+    /** Clock row swap after a mode change. Reduced motion snaps this to 0. */
+    const val CLOCK_SWAP_MS = 180
+
+    /** 0:00 → Back to the bar. Reduced motion snaps this to 0. */
+    const val REST_DONE_MS = 240
+
     fun durationMs(reduced: Boolean, fullMs: Int): Int = if (reduced) 0 else fullMs
 
     val Standard: Easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)

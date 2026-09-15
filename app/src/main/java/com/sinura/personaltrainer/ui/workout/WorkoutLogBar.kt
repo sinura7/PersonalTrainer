@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.ui.workout
 
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -95,6 +94,13 @@ internal fun LogBar(
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
     onStopSetClock: () -> Unit = {},
+    onNudgeRest: (Int) -> Unit = {},
+    onCustomRest: (String) -> Boolean = { false },
+    restPersistenceHealthy: Boolean = true,
+    restExactBestEffort: Boolean = false,
+    notificationsEnabled: Boolean = true,
+    holdTargetReached: Boolean = false,
+    onOpenNotifications: () -> Unit = {},
     canLog: Boolean = true,
     suggestionUnavailable: Boolean = false,
 ) {
@@ -112,6 +118,7 @@ internal fun LogBar(
                 batteryHint = restBatteryHint,
                 holdRunning = holdRunning,
                 holdElapsedSeconds = holdElapsedSeconds,
+                holdTargetReached = holdTargetReached,
                 stopwatchRunning = stopwatchRunning,
                 stopwatchElapsedSeconds = stopwatchElapsedSeconds,
                 offerSetClock = offerSetClock,
@@ -120,8 +127,14 @@ internal fun LogBar(
                 onSkip = onSkipRest,
                 onStart = onStartRest,
                 onSelectRestDuration = onSelectRestDuration,
+                onNudgeRest = onNudgeRest,
+                onCustomRest = onCustomRest,
                 onDismissBatteryHint = onDismissRestBatteryHint,
                 onOpenRest = onOpenRest,
+                persistenceHealthy = restPersistenceHealthy,
+                notificationsEnabled = notificationsEnabled,
+                exactAlarmBestEffort = restExactBestEffort,
+                onOpenNotifications = onOpenNotifications,
             )
         }
         PinnedDock(

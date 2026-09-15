@@ -20,6 +20,10 @@
 > `debugLiveCode` 69; suffix from
 > `python3 tools/debug-drop-plan.py`.
 >
+> 15 Sep 2026 — Floor packet E: one dock clock, rest presets / ±15 /
+> Custom, hold and stopwatch recover from elapsed realtime. Next Kotlin
+> is Packet F. Gym-floor `appVersionCode` stays 1.
+>
 > 15 Sep 2026 — Floor packet D: RPE always on working drafts, warm-up
 > ramp chips, visible WU / Set n of target / Extra ordinals. Next Kotlin
 > is Packet E. Live 69 is the Obtainium drop. Gym-floor

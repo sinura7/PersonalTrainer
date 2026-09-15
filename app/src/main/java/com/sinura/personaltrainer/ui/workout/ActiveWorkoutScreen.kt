@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
@@ -32,6 +33,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
+import com.sinura.personaltrainer.domain.FloorTimedModeResolver
+import com.sinura.personaltrainer.domain.FloorTimerCue
 import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.SetCopy
@@ -46,7 +49,9 @@ import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.FloorTimerSurface
+import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.UndoHostCopy
+import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
@@ -142,6 +147,7 @@ fun ActiveWorkoutScreen(
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
     val removedLift by viewModel.removedLift.collectAsStateWithLifecycle()
     val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
+    val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
     val rpeHelperVisible by viewModel.rpeHelperVisible.collectAsStateWithLifecycle()
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
@@ -169,6 +175,7 @@ fun ActiveWorkoutScreen(
     val sessionWork = remember(session) { session?.work() ?: SetWork.NONE }
     val unit = LocalWeightUnit.current
     val view = LocalView.current
+    val context = LocalContext.current
     val listState = rememberLazyListState()
     LaunchedEffect(state.loadState, state.selectedExerciseId) {
         if (state.loadState != SessionLoadState.FOUND) return@LaunchedEffect
@@ -225,6 +232,20 @@ fun ActiveWorkoutScreen(
             when (feedback) {
                 LogCommitFeedback.SUCCESS -> Haptics.commit(view)
                 LogCommitFeedback.REJECT -> Haptics.reject(view)
+            }
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.floorTimerCue.collect { cue ->
+            when (cue) {
+                FloorTimerCue.HoldStarted -> Haptics.warn(view)
+                is FloorTimerCue.HoldTarget -> {
+                    Haptics.holdDone(view)
+                    RestTimerAlerts.holdTargetTone(context, cue.soundEnabled)
+                }
+                FloorTimerCue.StopwatchStarted -> Haptics.tickLight(view)
+                FloorTimerCue.StopwatchStopped -> Haptics.warn(view)
             }
         }
     }
@@ -377,14 +398,31 @@ fun ActiveWorkoutScreen(
                             afterWarmup = afterWarmup,
                             restBatteryHint = rest.batteryHint,
                             holdElapsedSeconds = holdTimer.elapsedSeconds,
+                            holdTargetReached = holdTimer.targetReached,
                             stopwatchRunning = setStopwatch.running,
                             stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
-                            offerSetClock = state.offerSetClock,
+                            offerSetClock = FloorTimedModeResolver.offerSetClock(
+                                mode = FloorTimerSurface.mode(
+                                    holdRunning = holdTimer.running,
+                                    stopwatchRunning = setStopwatch.running,
+                                    hasLifts = session?.hasLifts() == true,
+                                    restRunning = rest.running,
+                                    restComplete = rest.completedTimerId != null && !rest.running,
+                                    holdActive = holdArmed,
+                                ),
+                                isHoldLift = hold,
+                            ) && state.offerSetClock,
                             onStartSetClock = viewModel::startSetStopwatch,
                             onStopSetClock = viewModel::stopSetStopwatch,
                             onSkipRest = viewModel::skipRest,
                             onStartRest = viewModel::startSelectedRest,
                             onSelectRestDuration = viewModel::selectRestDuration,
+                            onNudgeRest = viewModel::nudgeRest,
+                            onCustomRest = viewModel::selectCustomRest,
+                            restPersistenceHealthy = rest.persistenceHealthy,
+                            restExactBestEffort = rest.exactAlarmBestEffort,
+                            notificationsEnabled = restNotificationsEnabled,
+                            onOpenNotifications = { openRestNotificationSettings(context) },
                             onDismissRestBatteryHint = viewModel::acknowledgeRestBatteryHint,
                             onOpenRest = { session?.id?.let(onOpenRest) },
                             onLog = {
@@ -438,11 +476,8 @@ fun ActiveWorkoutScreen(
                         .fillMaxSize()
                         .padding(padding),
                 ) {
-                    // Notification recovery stays above the list: it is a
-                    // banner, not a gym-floor act. Rest sits in the lower dock.
-                    if (!restNotificationsEnabled) {
-                        RestNotificationRecoveryRow()
-                    }
+                    // Notification recovery is the dock honesty row (Packet E),
+                    // never a banner covering Log.
 
                     LazyColumn(
                         state = listState,
@@ -587,6 +622,16 @@ fun ActiveWorkoutScreen(
                 viewModel.selectExercise(exerciseId)
             },
             onDismiss = { liftSwitcherOpen = false },
+        )
+    }
+
+    pendingLiftSwitch?.let {
+        ConfirmActionDialog(
+            title = SetStopwatchCopy.SWITCH_TITLE,
+            body = SetStopwatchCopy.SWITCH_BODY,
+            confirmLabel = SetStopwatchCopy.SWITCH_CONFIRM,
+            onConfirm = viewModel::confirmStopTimingAndSwitch,
+            onDismiss = viewModel::cancelPendingLiftSwitch,
         )
     }
 

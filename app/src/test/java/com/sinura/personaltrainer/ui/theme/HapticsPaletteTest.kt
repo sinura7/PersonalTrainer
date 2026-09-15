@@ -21,22 +21,25 @@ class HapticsPaletteTest {
         assertTrue(haptics.contains("fun reject("))
         assertTrue(haptics.contains("postDelayed"))
         assertTrue(haptics.contains("ERROR_BEAT_GAP_MS"))
-        assertTrue(haptics.contains("fun celebrate("))
+        assertTrue(haptics.contains("fun holdDone("))
         assertTrue(haptics.contains("performHapticFeedback"))
         assertTrue(haptics.contains("LocalView.current"))
     }
 
     @Test
-    fun restLastThreeSecondsUseTheWarnPulse() {
+    fun restLastFiveSecondsLiveOnTheServiceNotCompose() {
         val rest = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(rest.contains("RestTick.isWarn(safeRemaining)"))
-        assertTrue(rest.contains("Haptics.warn(view)"))
-        assertTrue(rest.contains("Haptics.tick(view)"))
+        assertFalse(rest.contains("RestTick.isWarn(safeRemaining)"))
+        assertFalse(
+            "Compose must not fire RestTick haptics",
+            rest.contains("if (RestTick.isWarn"),
+        )
 
         val alerts = readOwned("timer/RestTimerAlerts.kt")
         assertTrue(alerts.contains("RestTick.pulseMs(second)"))
         assertTrue(alerts.contains("COMPLETE_PATTERN"))
         assertTrue(alerts.contains("createWaveform(COMPLETE_PATTERN"))
+        assertTrue(alerts.contains("fun holdDone") || alerts.contains("holdTargetTone"))
 
         val service = readOwned("timer/RestTimerService.kt")
         assertTrue(service.contains("second = second"))

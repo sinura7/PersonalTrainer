@@ -7,7 +7,7 @@ import org.junit.Test
 
 /**
  * Packet 2: read-only instrument strip; LogBar owns timer + advance + Log set;
- * rest length is an inline SnapValueWheel; one clock, two modes.
+ * rest length is presets / ±15; one clock, two modes.
  */
 class FloorPacket2ToolbarTest {
     @Test
@@ -60,20 +60,19 @@ class FloorPacket2ToolbarTest {
     }
 
     @Test
-    fun restLengthEditsInlineAndModesDoNotStack() {
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.restLengthIsInlineWheel())
+    fun restLengthEditsWithPresetsAndModesDoNotStack() {
+        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.restLengthIsInlineWheel())
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.oneClockTwoModes())
         val dock = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(dock.contains("fun FloorTimerSlot"))
         assertTrue(dock.contains("fun SetWorkDock"))
-        assertTrue(dock.contains("SnapValueWheel("))
-        assertTrue(dock.contains("FloorEntryWheels.restSecondsValues"))
-        assertTrue(dock.contains("workout-rest-wheel"))
-        assertTrue(dock.contains("FloorTimerSurface.mode(holdRunning, stopwatchRunning)"))
+        assertFalse(dock.contains("SnapValueWheel("))
+        assertTrue(dock.contains("RestPresetChips("))
+        assertTrue(dock.contains("FloorTimerSurface.mode("))
         val idleStart = dock.indexOf("fun RestIdleRow")
         val idle = dock.substring(idleStart)
-        assertTrue(idle.contains("editing"))
-        assertTrue(idle.contains("SnapValueWheel("))
+        assertTrue(idle.contains("picking"))
+        assertTrue(idle.contains("RestPresetChips("))
         assertFalse(
             "idle duration must not push the rest page",
             idle.substring(0, idle.indexOf("fun RestLinearTrack")).contains("onOpenRest"),

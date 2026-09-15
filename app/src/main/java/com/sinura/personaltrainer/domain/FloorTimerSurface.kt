@@ -1,33 +1,35 @@
 package com.sinura.personaltrainer.domain
 
 /**
- * One clock on the gym floor, two modes.
+ * One clock on the gym floor.
  *
  * Rest counts down with the signed [elapsedRealtime] alarm path.
  * A running set (hold countdown or a manual stopwatch) counts up in
  * the same dock slot. Switching modes hides the other surface — no
  * second countdown on the live log, and no overlay rest clock
- * (ADR-012 / ADR-013). Starting the manual stopwatch does not cancel
- * a rest alarm that is already pending.
+ * (ADR-012 / ADR-013). Starting hold or the manual stopwatch cancels
+ * a pending rest generation so a hidden alarm cannot ring mid-set.
  */
 object FloorTimerSurface {
-    enum class Mode {
-        /** Planned or running rest. */
-        REST,
-
-        /** In-set work clock (hold or manual stopwatch). */
-        SET,
-    }
-
     const val SET_KICKER = "SET"
-    const val HOLD_KICKER = "HOLD"
+    const val HOLD_KICKER = HoldWork.HOLD_KICKER
     const val REST_STATE = "rest"
     const val SET_STATE = "set"
 
     fun mode(
         holdRunning: Boolean,
         stopwatchRunning: Boolean = false,
-    ): Mode = if (holdRunning || stopwatchRunning) Mode.SET else Mode.REST
+        hasLifts: Boolean = true,
+        restRunning: Boolean = false,
+        restComplete: Boolean = false,
+        holdActive: Boolean = holdRunning,
+    ): FloorTimedMode = FloorTimedModeResolver.resolve(
+        hasLifts = hasLifts,
+        holdActive = holdActive || holdRunning,
+        stopwatchRunning = stopwatchRunning,
+        restRunning = restRunning,
+        restComplete = restComplete,
+    )
 
     /**
      * Quiet instrument readout for the header strip.
@@ -93,10 +95,36 @@ data class SetStopwatchUiState(
     val running: Boolean = false,
     val elapsedSeconds: Int = 0,
     val used: Boolean = false,
+    val startElapsedRealtime: Long = 0L,
+    val frozenElapsedSeconds: Int = 0,
+    val exerciseId: String? = null,
 )
+
+object SetStopwatchWork {
+    fun elapsedFromRealtime(
+        startElapsedRealtime: Long,
+        frozenElapsedSeconds: Int,
+        nowElapsedRealtime: Long,
+    ): Int {
+        if (!runningClock(startElapsedRealtime, nowElapsedRealtime)) {
+            return frozenElapsedSeconds.coerceIn(0, HoldWork.MAX_SECONDS)
+        }
+        val live = ((nowElapsedRealtime - startElapsedRealtime) / 1_000L).toInt()
+        return (frozenElapsedSeconds + live).coerceIn(0, HoldWork.MAX_SECONDS)
+    }
+
+    /** A start of 0 is a real boot-time timestamp, not a stopped sentinel. */
+    fun runningClock(startElapsedRealtime: Long, nowElapsedRealtime: Long): Boolean =
+        nowElapsedRealtime >= startElapsedRealtime
+}
 
 /** Quiet dock copy. Not a Volt. Log set stays the filled act. */
 object SetStopwatchCopy {
     const val START = "Time set"
     const val STOP = "Stop"
+    const val SWITCH_TITLE = "Stop timing and switch?"
+    const val SWITCH_BODY =
+        "This set clock is still running. Stop it to change lifts. " +
+            "The time already counted stays with this lift."
+    const val SWITCH_CONFIRM = "Stop and switch"
 }

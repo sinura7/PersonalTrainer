@@ -38,6 +38,15 @@ object Haptics {
         view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK)
     }
 
+    /**
+     * Hold target reached (HA-18): medium double pulse, not rest-complete.
+     * The timer service still owns rest 5–1 and rest done.
+     */
+    fun holdDone(view: View) {
+        warn(view)
+        view.postDelayed({ warn(view) }, HOLD_DONE_GAP_MS)
+    }
+
     /** A set landed, a workout finished: the weightiest confirmation available. */
     fun commit(view: View) {
         view.performHapticFeedback(confirmConstant())
@@ -83,3 +92,4 @@ object Haptics {
 
 private const val PR_BEAT_GAP_MS = 90L
 private const val ERROR_BEAT_GAP_MS = 90L
+private const val HOLD_DONE_GAP_MS = 90L

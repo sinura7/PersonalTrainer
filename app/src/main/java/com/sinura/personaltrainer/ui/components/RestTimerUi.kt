@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.ui.components
 
-
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -64,14 +63,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.sinura.personaltrainer.domain.FloorEntryWheels
+import com.sinura.personaltrainer.domain.FloorTimedMode
+import com.sinura.personaltrainer.domain.FloorTimedModeResolver
 import com.sinura.personaltrainer.domain.FloorTimerSurface
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestBatteryCopy
 import com.sinura.personaltrainer.domain.RestFinishFlash
+import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.RestIdleCopy
-import com.sinura.personaltrainer.domain.RestTick
+import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.TalkBackPolicy
@@ -97,11 +98,11 @@ import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import kotlinx.coroutines.delay
 
 /**
- * One clock slot in the lower dock (Packet 2 / G-02).
+ * One clock slot in the lower dock (Packet E).
  *
  * Rest counts down; a running set counts up. Modes never stack. Planned
- * rest length edits inline with [SnapValueWheel]; the full rest page keeps
- * presets and ±15. Overlay rest on the live log stays forbidden.
+ * rest is presets / ±15 / Custom. Overlay rest on the live log stays
+ * forbidden (ADR-012).
  */
 @Composable
 fun FloorTimerSlot(
@@ -120,26 +121,52 @@ fun FloorTimerSlot(
     onOpenRest: () -> Unit = {},
     holdRunning: Boolean = false,
     holdElapsedSeconds: Int = 0,
+    holdTargetReached: Boolean = false,
     stopwatchRunning: Boolean = false,
     stopwatchElapsedSeconds: Int = 0,
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
     onStopSetClock: () -> Unit = {},
+    onNudgeRest: (Int) -> Unit = {},
+    onCustomRest: (String) -> Boolean = { false },
+    persistenceHealthy: Boolean = true,
+    notificationsEnabled: Boolean = true,
+    exactAlarmBestEffort: Boolean = false,
+    hasLifts: Boolean = true,
+    onOpenNotifications: () -> Unit = {},
 ) {
-    when (FloorTimerSurface.mode(holdRunning, stopwatchRunning)) {
-        FloorTimerSurface.Mode.SET -> {
+    val holdActive = holdRunning || holdTargetReached
+    val mode = FloorTimerSurface.mode(
+        holdRunning = holdRunning,
+        stopwatchRunning = stopwatchRunning,
+        hasLifts = hasLifts,
+        restRunning = restRunning,
+        restComplete = !completedTimerId.isNullOrBlank() && !restRunning,
+        holdActive = holdActive,
+    )
+    val showSetClock = offerSetClock &&
+        FloorTimedModeResolver.offerSetClock(mode, isHoldLift = holdActive)
+    when (mode) {
+        FloorTimedMode.NONE -> Unit
+        FloorTimedMode.HOLD_RUNNING,
+        FloorTimedMode.STOPWATCH_RUNNING,
+        -> {
             HairlineDivider(startIndent = 0.dp)
             SetWorkDock(
-                elapsedSeconds = if (holdRunning) holdElapsedSeconds else stopwatchElapsedSeconds,
-                hold = holdRunning,
-                onStop = onStopSetClock.takeIf { stopwatchRunning && !holdRunning },
+                elapsedSeconds = if (holdActive) holdElapsedSeconds else stopwatchElapsedSeconds,
+                hold = holdActive,
+                targetReached = holdTargetReached,
+                onStop = onStopSetClock.takeIf { stopwatchRunning && !holdActive },
                 modifier = modifier
                     .fillMaxWidth()
                     .background(Surface1)
                     .padding(horizontal = Metrics.space4, vertical = Metrics.space2),
             )
         }
-        FloorTimerSurface.Mode.REST -> RestDock(
+        FloorTimedMode.REST_IDLE,
+        FloorTimedMode.REST_RUNNING,
+        FloorTimedMode.REST_COMPLETE,
+        -> RestDock(
             remainingSeconds = remainingSeconds,
             totalSeconds = totalSeconds,
             running = restRunning,
@@ -153,8 +180,14 @@ fun FloorTimerSlot(
             batteryHint = batteryHint,
             onDismissBatteryHint = onDismissBatteryHint,
             onOpenRest = onOpenRest,
-            offerSetClock = offerSetClock,
+            offerSetClock = showSetClock,
             onStartSetClock = onStartSetClock,
+            onNudgeRest = onNudgeRest,
+            onCustomRest = onCustomRest,
+            persistenceHealthy = persistenceHealthy,
+            notificationsEnabled = notificationsEnabled,
+            exactAlarmBestEffort = exactAlarmBestEffort,
+            onOpenNotifications = onOpenNotifications,
         )
     }
 }
@@ -167,17 +200,28 @@ fun SetWorkDock(
     elapsedSeconds: Int,
     modifier: Modifier = Modifier,
     hold: Boolean = true,
+    targetReached: Boolean = false,
     onStop: (() -> Unit)? = null,
 ) {
-    val clock = HoldWork.clock(FloorTimerSurface.setClockSeconds(elapsedSeconds))
-    val kicker = if (hold) FloorTimerSurface.HOLD_KICKER else FloorTimerSurface.SET_KICKER
+    val seconds = FloorTimerSurface.setClockSeconds(elapsedSeconds)
+    val clock = HoldWork.clock(seconds)
+    val kicker = when {
+        hold && targetReached -> HoldWork.DONE
+        hold -> FloorTimerSurface.HOLD_KICKER
+        else -> FloorTimerSurface.SET_KICKER
+    }
+    val spoken = if (hold && targetReached) {
+        "${HoldWork.DONE}. Log hold with elapsed time."
+    } else {
+        "$kicker ${HoldWork.clock(FloorTimerSurface.setClockSeconds(elapsedSeconds))} elapsed"
+    }
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
             .testTag("workout-hold-clock")
             .semantics {
-                contentDescription = "$kicker $clock elapsed"
+                contentDescription = spoken
             },
         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         verticalAlignment = Alignment.CenterVertically,
@@ -232,14 +276,18 @@ fun RestDock(
     afterWarmup: Boolean = false,
     batteryHint: Boolean = false,
     onDismissBatteryHint: () -> Unit = {},
-    /** @deprecated Packet 2: full page opens from the instrument strip. */
     onOpenRest: () -> Unit = {},
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
+    onNudgeRest: (Int) -> Unit = {},
+    onCustomRest: (String) -> Boolean = { false },
+    persistenceHealthy: Boolean = true,
+    notificationsEnabled: Boolean = true,
+    exactAlarmBestEffort: Boolean = false,
+    onOpenNotifications: () -> Unit = {},
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
-    val view = LocalView.current
 
     LaunchedEffect(completedTimerId) {
         if (RestFinishFlash.shouldFlash(completedTimerId, flashedTimerId)) {
@@ -277,14 +325,14 @@ fun RestDock(
         remember { mutableFloatStateOf(1f) }
     }
 
-    // One pulse per second through the final stretch, so the end of the rest
-    // can be felt with the phone face-down on a bench. 5–4 stay a detent;
-    // 3–1 are heavier so stand-up is in the hand, not only the clock.
-    LaunchedEffect(urgent, safeRemaining) {
-        if (urgent && safeRemaining > 0) {
-            if (RestTick.isWarn(safeRemaining)) Haptics.warn(view) else Haptics.tick(view)
-        }
-    }
+    val honesty = RestHonestyCopy.pick(
+        persistenceHealthy = persistenceHealthy,
+        restRunning = running,
+        notificationsEnabled = notificationsEnabled,
+        batteryHint = batteryHint,
+        exactBestEffort = exactAlarmBestEffort,
+        onRestPage = false,
+    )
 
     if (!running && !justFinished) {
         if (hideWhenIdle) return
@@ -296,6 +344,11 @@ fun RestDock(
             onSelectRestDuration = onSelectRestDuration,
             offerSetClock = offerSetClock,
             onStartSetClock = onStartSetClock,
+            onNudgeRest = onNudgeRest,
+            onCustomRest = onCustomRest,
+            honesty = honesty,
+            onDismissBatteryHint = onDismissBatteryHint,
+            onOpenNotifications = onOpenNotifications,
             modifier = modifier
                 .fillMaxWidth()
                 .background(Surface1)
@@ -347,15 +400,7 @@ fun RestDock(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (justFinished) {
-                    Kicker(kicker, color = accent, asHeading = false)
-                } else {
-                    FloorFieldGlyph(
-                        icon = TemperIcons.FloorRest,
-                        modifier = Modifier.testTag("workout-rest-glyph"),
-                        tint = accent,
-                    )
-                }
+                Kicker(kicker, color = accent, asHeading = false)
                 Text(
                     clock,
                     modifier = Modifier.graphicsLayer {
@@ -373,18 +418,47 @@ fun RestDock(
                 accent = accent,
                 finished = justFinished,
             )
+            if (urgent) {
+                Text(
+                    "10 seconds",
+                    style = InstrumentType.caption,
+                    color = Warn,
+                    maxLines = 1,
+                )
+            }
         }
         if (running) {
             RestControl(
+                label = "−15",
+                spoken = "Minus 15 seconds",
+                onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
+                modifier = Modifier
+                    .widthIn(min = Metrics.touchMin)
+                    .testTag("workout-rest-minus"),
+            )
+            RestControl(
+                label = "+15",
+                spoken = "Plus 15 seconds",
+                onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
+                modifier = Modifier
+                    .widthIn(min = Metrics.touchMin)
+                    .testTag("workout-rest-plus"),
+            )
+            RestControl(
                 label = "Skip",
                 onClick = onSkip,
-                modifier = Modifier.widthIn(min = 72.dp),
+                confirm = true,
+                modifier = Modifier
+                    .widthIn(min = Metrics.touchMin)
+                    .testTag("workout-rest-skip"),
             )
         }
     }
-        if (running && batteryHint) {
-            RestBatteryHintRow(onDismiss = onDismissBatteryHint)
-        }
+        RestHonestyRow(
+            honesty = honesty,
+            onDismissBatteryHint = onDismissBatteryHint,
+            onOpenNotifications = onOpenNotifications,
+        )
     }
 }
 
@@ -423,11 +497,69 @@ fun RestBatteryHintRow(
     }
 }
 
+@Composable
+fun RestHonestyRow(
+    honesty: RestHonestyCopy.Honesty?,
+    onDismissBatteryHint: () -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenNotifications: () -> Unit = {},
+) {
+    if (honesty == null) return
+    when (honesty.kind) {
+        RestHonestyCopy.Kind.NOTIFICATION -> {
+            Row(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Metrics.touchMin)
+                    .testTag("workout-notif-recovery")
+                    .clickable(role = Role.Button, onClick = onOpenNotifications),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    honesty.sentence,
+                    modifier = Modifier.weight(1f),
+                    style = InstrumentType.bodyStrong,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    honesty.action ?: RestNotificationCopy.RECOVERY_ACTION,
+                    style = InstrumentType.bodyStrong,
+                    color = Volt,
+                    maxLines = 1,
+                )
+            }
+        }
+        RestHonestyCopy.Kind.FIRST_REST -> {
+            RestBatteryHintRow(
+                onDismiss = onDismissBatteryHint,
+                modifier = modifier,
+            )
+        }
+        RestHonestyCopy.Kind.PERSISTENCE,
+        RestHonestyCopy.Kind.EXACT,
+        -> {
+            Text(
+                honesty.sentence,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .testTag("workout-rest-honesty"),
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
 /**
- * Idle rest on the log: not a countdown. Planned duration is a label
- * that expands an inline [SnapValueWheel] on tap. Start next is not
+ * Idle rest on the log: not a countdown. Planned duration is Rest 1:30
+ * with quiet −15/+15, presets on tap, and Start. Start next is not
  * composed (Packet A). Log set, pinned under this dock, is the filled
- * act. The instrument strip opens the full rest page.
+ * act.
  */
 @Composable
 fun RestIdleRow(
@@ -438,72 +570,83 @@ fun RestIdleRow(
     afterWarmup: Boolean = false,
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
+    onNudgeRest: (Int) -> Unit = {},
+    onCustomRest: (String) -> Boolean = { false },
+    honesty: RestHonestyCopy.Honesty? = null,
+    onDismissBatteryHint: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
 ) {
-    var editing by rememberSaveable { mutableStateOf(false) }
+    var picking by rememberSaveable { mutableStateOf(false) }
+    var showCustom by rememberSaveable { mutableStateOf(false) }
     val safeTotal = totalSeconds.coerceAtLeast(0)
     val clock = RestTimer.formatClock(safeTotal)
     val duration = RestIdleCopy.dockDuration(clock, afterWarmup)
-    val values = remember(safeTotal) { FloorEntryWheels.restSecondsValues(safeTotal) }
-    val labels = remember(values) { values.map { RestTimer.formatClock(it) } }
-    val page = FloorEntryWheels.restPage(safeTotal)
 
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
+        RestHonestyRow(
+            honesty = honesty,
+            onDismissBatteryHint = onDismissBatteryHint,
+            onOpenNotifications = onOpenNotifications,
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
+            Text(
+                duration,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = Metrics.touchMin)
                     .testTag("workout-rest-idle")
-                    .clickable(role = Role.Button) { editing = !editing }
+                    .clickable(role = Role.Button) { picking = !picking }
                     .semantics {
                         contentDescription = RestIdleCopy.spoken(clock, afterWarmup) +
-                            " Tap to edit rest length."
+                            " Tap for rest presets."
                     },
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                FloorFieldGlyph(
-                    icon = TemperIcons.FloorRest,
-                    modifier = Modifier.testTag("workout-rest-glyph"),
-                )
-                Text(
-                    duration,
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (!editing) {
-                RestControl(
-                    label = RestIdleCopy.START,
-                    onClick = onStart,
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-start-rest"),
-                )
-            }
-        }
-        if (editing) {
-            SnapValueWheel(
-                values = labels,
-                selectedIndex = page,
-                onSettledIndex = { next ->
-                    onSelectRestDuration(FloorEntryWheels.restSecondsAt(next, safeTotal))
-                },
-                tag = "workout-rest-wheel",
-                parkKey = "rest-$safeTotal",
-                modifier = Modifier.fillMaxWidth(),
+                style = InstrumentType.bodyStrong,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            RestControl(
+                label = "−15",
+                spoken = "Minus 15 seconds",
+                onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
+                modifier = Modifier
+                    .widthIn(min = Metrics.touchMin)
+                    .testTag("workout-rest-minus"),
+            )
+            RestControl(
+                label = "+15",
+                spoken = "Plus 15 seconds",
+                onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
+                modifier = Modifier
+                    .widthIn(min = Metrics.touchMin)
+                    .testTag("workout-rest-plus"),
+            )
+            RestControl(
+                label = RestIdleCopy.START,
+                onClick = onStart,
+                modifier = Modifier
+                    .widthIn(min = Metrics.touchMin)
+                    .testTag("workout-start-rest"),
             )
         }
-        if (offerSetClock && !editing) {
+        if (picking) {
+            RestPresetChips(
+                selectedSeconds = safeTotal,
+                onSelect = { seconds ->
+                    onSelectRestDuration(seconds)
+                    picking = false
+                },
+                onCustom = { showCustom = true },
+            )
+        }
+        if (offerSetClock && !picking) {
             TextButton(
                 onClick = onStartSetClock,
                 modifier = Modifier
@@ -519,6 +662,21 @@ fun RestIdleRow(
                 )
             }
         }
+    }
+    if (showCustom) {
+        CustomRestDialog(
+            title = "Custom rest",
+            confirmLabel = "Set",
+            onConfirm = { input ->
+                val ok = onCustomRest(input)
+                if (ok) {
+                    showCustom = false
+                    picking = false
+                }
+                ok
+            },
+            onDismiss = { showCustom = false },
+        )
     }
 }
 
@@ -669,23 +827,36 @@ fun RestSweepRing(
     }
 }
 
+/**
+ * Dock rest control. ±15 ticks (HA-12). Skip uses [Haptics.commit]
+ * (HA-13 medium click). Rest 5–1 stays on the service (HA-14/15/25).
+ */
 @Composable
 fun RestControl(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    spoken: String? = null,
+    confirm: Boolean = false,
 ) {
     val view = LocalView.current
     Box(
         modifier = modifier
-            .heightIn(min = Metrics.control)
+            .heightIn(min = Metrics.touchMin)
             .clip(RoundedCornerShape(Radius.sm))
             .background(Surface2)
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
             .clickable(role = Role.Button) {
-                Haptics.tick(view)
+                if (confirm) Haptics.commit(view) else Haptics.tick(view)
                 onClick()
-            },
+            }
+            .then(
+                if (spoken != null) {
+                    Modifier.semantics { contentDescription = spoken }
+                } else {
+                    Modifier
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Text(

@@ -85,6 +85,24 @@ class HoldWorkTest {
     }
 
     @Test
+    fun elapsedFromRealtimeFloorsAndARebootIsZero() {
+        assertEquals(0, HoldWork.elapsedFromRealtime(1_000, 500, 30))
+        assertEquals(0, HoldWork.elapsedFromRealtime(0, 999, 30))
+        assertEquals(5, HoldWork.elapsedFromRealtime(0, 5_000, 30))
+        assertEquals(30, HoldWork.elapsedFromRealtime(0, 40_000, 30))
+        assertEquals(30, HoldWork.remainingFromDeadline(30_000, 0, 30))
+        assertEquals(0, HoldWork.remainingFromDeadline(30_000, 30_000, 30))
+        assertEquals(30_000L, HoldWork.deadlineElapsedRealtime(0, 30))
+    }
+
+    @Test
+    fun dockClockIsHoldThenDone() {
+        assertEquals("HOLD 0:18", HoldWork.dockClock(18, targetReached = false))
+        assertEquals(HoldWork.DONE, HoldWork.dockClock(30, targetReached = true))
+        assertEquals("HOLD DONE", HoldWork.DONE)
+    }
+
+    @Test
     fun catalogHoldsUseTheHoldDefaults() {
         val hang = WorkoutPaste.catalogExercises().first { it.id == "ex-dead-hang" }
         val defaults = AddDefaults.forExercise(hang)

@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -9,16 +10,24 @@ class FloorTimerSurfaceTest {
     @Test
     fun holdOrStopwatchIsSetModeOtherwiseRest() {
         assertEquals(
-            FloorTimerSurface.Mode.SET,
+            FloorTimedMode.HOLD_RUNNING,
             FloorTimerSurface.mode(holdRunning = true),
         )
         assertEquals(
-            FloorTimerSurface.Mode.SET,
+            FloorTimedMode.STOPWATCH_RUNNING,
             FloorTimerSurface.mode(holdRunning = false, stopwatchRunning = true),
         )
         assertEquals(
-            FloorTimerSurface.Mode.REST,
+            FloorTimedMode.REST_IDLE,
             FloorTimerSurface.mode(holdRunning = false, stopwatchRunning = false),
+        )
+        assertEquals(
+            FloorTimedMode.NONE,
+            FloorTimerSurface.mode(
+                holdRunning = false,
+                hasLifts = false,
+                restRunning = true,
+            ),
         )
     }
 
@@ -114,5 +123,15 @@ class FloorTimerSurfaceTest {
                 stopwatch = paused,
             ),
         )
+    }
+
+    @Test
+    fun stopwatchElapsedAddsFrozenAndLiveSeconds() {
+        assertEquals(12, SetStopwatchWork.elapsedFromRealtime(1_000, 10, 3_000))
+        assertEquals(13, SetStopwatchWork.elapsedFromRealtime(0, 10, 3_000))
+        assertEquals(10, SetStopwatchWork.elapsedFromRealtime(5_000, 10, 1_000))
+        assertTrue(SetStopwatchWork.runningClock(0, 0))
+        assertTrue(SetStopwatchWork.runningClock(1_000, 1_000))
+        assertFalse(SetStopwatchWork.runningClock(5_000, 1_000))
     }
 }

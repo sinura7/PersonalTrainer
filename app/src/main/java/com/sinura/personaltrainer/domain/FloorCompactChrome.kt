@@ -59,8 +59,8 @@ object FloorCompactChrome {
     /** Rest and set clocks share one dock slot; modes never stack. */
     fun oneClockTwoModes(): Boolean = true
 
-    /** Planned rest length edits inline with SnapValueWheel in the dock. */
-    fun restLengthIsInlineWheel(): Boolean = true
+    /** Packet E: planned rest is presets / ±15 / Custom, not a 15 s wheel. */
+    fun restLengthIsInlineWheel(): Boolean = false
 
     /**
      * Packet 3: optional count-up in the dock timer slot. Untimed

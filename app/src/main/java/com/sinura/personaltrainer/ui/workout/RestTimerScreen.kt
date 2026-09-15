@@ -36,6 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestFloorContext
+import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
@@ -70,6 +71,7 @@ object RestFloorTags {
     const val BACK_TO_BAR = "rest-floor-back"
     const val NEXT = "rest-floor-next"
     const val UNSAVED = "rest-floor-unsaved"
+    const val EXACT = "rest-floor-exact"
     const val BATTERY = "rest-floor-battery"
 }
 
@@ -263,22 +265,35 @@ private fun RestFloorBody(
                 maxLines = 2,
             )
         }
-        // Same honesty as the Settings best-effort notice: the row did not
-        // reach disk, so the wakeup is not armed and a process kill ends this
-        // rest in silence. One line, not a banner — the countdown still runs.
-        if (rest.running && rest.batteryHint) {
-            RestBatteryHintRow(
-                onDismiss = onAcknowledgeBattery,
-                testTag = RestFloorTags.BATTERY,
-            )
-        }
-        if (rest.running && !rest.persistenceHealthy) {
-            Text(
-                "Rest may not survive leaving the app.",
-                modifier = Modifier.testTag(RestFloorTags.UNSAVED),
-                style = InstrumentType.caption,
-                color = TextSecondary,
-            )
+        val honesty = RestHonestyCopy.pick(
+            persistenceHealthy = rest.persistenceHealthy,
+            restRunning = rest.running,
+            notificationsEnabled = true,
+            batteryHint = rest.batteryHint,
+            exactBestEffort = rest.exactAlarmBestEffort,
+            onRestPage = true,
+        )
+        honesty?.let { row ->
+            when (row.kind) {
+                RestHonestyCopy.Kind.FIRST_REST -> RestBatteryHintRow(
+                    onDismiss = onAcknowledgeBattery,
+                    testTag = RestFloorTags.BATTERY,
+                )
+                RestHonestyCopy.Kind.PERSISTENCE -> Text(
+                    RestHonestyCopy.PERSISTENCE,
+                    modifier = Modifier.testTag(RestFloorTags.UNSAVED),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
+                RestHonestyCopy.Kind.EXACT -> Text(
+                    RestHonestyCopy.EXACT_DENIED,
+                    modifier = Modifier.testTag(RestFloorTags.EXACT),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    maxLines = 2,
+                )
+                RestHonestyCopy.Kind.NOTIFICATION -> Unit
+            }
         }
 
         when {
@@ -297,6 +312,7 @@ private fun RestFloorBody(
                     RestControl(
                         label = "Skip",
                         onClick = onSkip,
+                        confirm = true,
                         modifier = Modifier
                             .weight(1f)
                             .testTag(RestFloorTags.SKIP),
