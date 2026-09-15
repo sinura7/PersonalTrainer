@@ -11,4 +11,12 @@ object LogLoopBringIntoView {
 
     fun shouldBringIntoView(previousSetCount: Int, nextSetCount: Int): Boolean =
         previousSetCount in 0 until nextSetCount
+
+    /** Packet C: after resume or a lift switch, the one card is at list offset 0. */
+    fun entryListIndex(): Int = 0
+
+    fun shouldScrollEntryToTop(
+        previousLiftId: String?,
+        nextLiftId: String?,
+    ): Boolean = nextLiftId != null && previousLiftId != nextLiftId
 }

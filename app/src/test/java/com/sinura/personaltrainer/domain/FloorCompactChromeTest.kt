@@ -56,4 +56,11 @@ class FloorCompactChromeTest {
     fun packet3OffersAManualSetStopwatch() {
         assertTrue(FloorCompactChrome.manualSetStopwatch())
     }
+
+    @Test
+    fun packetCShowsOneLiftMinuteTelemetryAndNotesOffLoop() {
+        assertTrue(FloorCompactChrome.oneCurrentLiftOnFloor())
+        assertTrue(FloorCompactChrome.notesLeaveTheLogLoop())
+        assertTrue(FloorCompactChrome.headerShowsMinuteTelemetryOnly())
+    }
 }

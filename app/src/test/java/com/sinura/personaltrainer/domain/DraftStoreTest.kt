@@ -56,6 +56,22 @@ class DraftStoreTest {
     }
 
     @Test
+    fun workoutHandleKeepsAMapPerLift() {
+        val handle = SavedStateHandle()
+        val store = SavedStateWorkoutDraft(handle)
+        store.write(WorkoutDraft("s1", "squat", 155.0, 8, 8, false, "n", null, true))
+        store.write(WorkoutDraft("s1", "row", 87.5, 6, null, false, "n"))
+        val all = store.readAll("s1")
+        assertEquals(155.0, all.getValue("squat").weightKg, 0.001)
+        assertEquals(87.5, all.getValue("row").weightKg, 0.001)
+        assertEquals("row", store.selectedExerciseId())
+        store.removeLift("row")
+        assertNull(store.readLift("s1", "row"))
+        assertEquals(155.0, store.readLift("s1", "squat")?.weightKg)
+        assertEquals("squat", store.selectedExerciseId())
+    }
+
+    @Test
     fun cacheSliceClearsOnlyThatSession() {
         val cache = WorkoutDraftCache()
         cache.put(WorkoutDraft("a", "ex", 100.0, 5, null, false, ""))

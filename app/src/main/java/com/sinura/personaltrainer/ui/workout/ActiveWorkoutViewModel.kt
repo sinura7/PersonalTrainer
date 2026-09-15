@@ -286,10 +286,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /** Blocks a late Room emission from recreating a draft after finish/discard cleared it. */
     private var terminalExit = false
 
-    /**
-     * Tapping the lift that is already selected must not refill the draft.
-     * Packet C will hang the switcher on that same non-mutating tap.
-     */
     private val restTimer = container.restTimerController
     private val _holdTimer = MutableStateFlow(HoldTimerUiState())
     val holdTimer: StateFlow<HoldTimerUiState> = _holdTimer.asStateFlow()
@@ -327,22 +323,36 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             sessionResolved.value = true
         }
         // Survives process death; the in-memory cache does not. See WorkoutDraftRecovery.
-        val recovered = WorkoutDraftRecovery.resolve(
+        // Packet C: one draft per lift, restored as a map.
+        val recovered = WorkoutDraftRecovery.resolveMap(
             sessionId = sessionId,
-            inMemory = draftCache.get(sessionId),
-            persisted = savedDraft.read(sessionId),
+            inMemory = draftCache.all(sessionId),
+            persisted = savedDraft.readAll(sessionId),
         )
-        recovered?.let { cached ->
-            pendingResumeDraft = cached
-            selectedExerciseId.value = cached.exerciseId
-            draft.value = ActiveExerciseDraft(
-                weightKg = cached.weightKg,
-                reps = cached.reps.coerceAtLeast(1),
-                rpe = cached.rpe,
-                isWarmup = cached.isWarmup,
+        val selectedId = WorkoutDraftRecovery.resolveSelectedId(
+            sessionId = sessionId,
+            inMemorySelected = draftCache.selectedExerciseId(sessionId),
+            persistedSelected = savedDraft.selectedExerciseId(),
+            recovered = recovered,
+        )
+        if (recovered.isNotEmpty()) {
+            draftCache.replaceAll(sessionId, recovered, selectedId)
+        }
+        selectedId?.let { selectedExerciseId.value = it }
+        val selectedDraft = selectedId?.let { recovered[it] }
+            ?: WorkoutDraftRecovery.resolve(
+                sessionId = sessionId,
+                inMemory = draftCache.get(sessionId),
+                persisted = savedDraft.read(sessionId),
             )
-            notes.value = cached.notes
+        selectedDraft?.let { cached ->
+            pendingResumeDraft = cached
+            applyRecoveredDraft(cached)
+            notes.value = cached.notes.ifEmpty { savedDraft.sessionNotes() }
             liftReadiness.value = LiftEntryReadiness.READY
+        } ?: run {
+            val savedNotes = savedDraft.sessionNotes()
+            if (savedNotes.isNotEmpty()) notes.value = savedNotes
         }
         savedDraft.editingSetId()?.let { editingSetId.value = it }
         viewModelScope.launch {
@@ -760,15 +770,54 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     private fun applySelection(exerciseId: String) {
         if (selectedExerciseId.value == exerciseId) return
+        persistDraft()
         _pendingAdvance.value = null
         wantAnotherSet.value = false
         stopHoldTimer()
         clearSetStopwatch()
-        draftDirty.value = false
         suggestionUnavailable.value = false
-        liftReadiness.value = LiftEntryReadiness.RESOLVING
+        val stored = liftDraft(exerciseId)
+        if (stored != null) {
+            pendingResumeDraft = stored
+            applyRecoveredDraft(stored)
+            liftReadiness.value = LiftEntryReadiness.READY
+        } else {
+            pendingResumeDraft = null
+            draftDirty.value = false
+            draft.value = ActiveExerciseDraft()
+            liftReadiness.value = LiftEntryReadiness.RESOLVING
+        }
         prefillGeneration++
         selectedExerciseId.value = exerciseId
+        draftCache.select(sessionId, exerciseId)
+        savedDraft.writeSelection(
+            sessionId = sessionId,
+            exerciseId = exerciseId,
+            notes = notes.value,
+            editingSetId = editingSetId.value,
+        )
+    }
+
+    private fun liftDraft(exerciseId: String): WorkoutDraft? =
+        WorkoutDraftRecovery.resolve(
+            sessionId = sessionId,
+            inMemory = draftCache.getLift(sessionId, exerciseId),
+            persisted = savedDraft.readLift(sessionId, exerciseId),
+        )
+
+    private fun applyRecoveredDraft(cached: WorkoutDraft) {
+        draft.value = ActiveExerciseDraft(
+            weightKg = cached.weightKg,
+            reps = if (cached.durationSeconds != null) {
+                cached.reps.coerceAtLeast(0)
+            } else {
+                cached.reps.coerceAtLeast(1)
+            },
+            rpe = cached.rpe,
+            isWarmup = cached.isWarmup,
+            durationSeconds = cached.durationSeconds,
+        )
+        draftDirty.value = cached.dirty
     }
 
     private fun clearLiftSelection() {
@@ -1039,6 +1088,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 )
                 undoableDelete.value = null
                 undoableRemove.value = removed
+                draftCache.removeLift(sessionId, selectedId)
+                savedDraft.removeLift(selectedId)
                 clearLiftSelection()
                 error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
             } catch (thrown: CancellationException) {
@@ -1675,18 +1726,36 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     private fun persistDraft() {
         if (sessionId.isBlank() || terminalExit || finished.value || session.value?.isFinished == true) return
+        val exerciseId = selectedExerciseId.value
+        val canSeed = draftDirty.value ||
+            liftReadiness.value.allowsCommit() ||
+            editingSetId.value != null ||
+            (exerciseId != null && draftCache.getLift(sessionId, exerciseId) != null)
+        if (!canSeed) {
+            draftCache.select(sessionId, exerciseId)
+            savedDraft.writeSelection(
+                sessionId = sessionId,
+                exerciseId = exerciseId,
+                notes = notes.value,
+                editingSetId = editingSetId.value,
+            )
+            return
+        }
         val current = WorkoutDraft(
             sessionId = sessionId,
-            exerciseId = selectedExerciseId.value,
+            exerciseId = exerciseId,
             weightKg = draft.value.weightKg,
             reps = draft.value.reps,
             rpe = draft.value.rpe,
             isWarmup = draft.value.isWarmup,
             notes = notes.value,
+            durationSeconds = draft.value.durationSeconds,
+            dirty = draftDirty.value,
         )
         draftCache.put(current)
         // Written through to saved state so the numbers dialed in before a rest survive the
-        // process being killed while the phone sits in a pocket.
+        // process being killed while the phone sits in a pocket. Packet C upserts this
+        // lift without dropping the others.
         savedDraft.write(current, editingSetId.value)
     }
 

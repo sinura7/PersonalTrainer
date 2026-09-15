@@ -79,6 +79,21 @@ object FloorCompactChrome {
     fun floorFieldGlyphsReplaceLabels(): Boolean = false
 
     /**
+     * Packet C: the log loop shows one current lift. Other lifts live in
+     * the switcher sheet, not a vertical stack of cards.
+     */
+    fun oneCurrentLiftOnFloor(): Boolean = true
+
+    /** Packet C: session notes are overflow / Finish, not a block in the set loop. */
+    fun notesLeaveTheLogLoop(): Boolean = true
+
+    /**
+     * Packet C: header telemetry is minutes · sets · volume. No rest/hold
+     * / stopwatch numeral. The dock is the only seconds clock.
+     */
+    fun headerShowsMinuteTelemetryOnly(): Boolean = true
+
+    /**
      * Packet 5: cheap destructives (delete set, remove lift, skip day)
      * run immediately and offer Undo for ~6s. Finish, discard, and leave
      * a live workout still ask first.

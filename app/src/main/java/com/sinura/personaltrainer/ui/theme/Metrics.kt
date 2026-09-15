@@ -84,6 +84,13 @@ object Metrics {
     /** Buttons and controls that get used mid-session. */
     val control: Dp = 56.dp
 
+    /** Packet C: Finish / Discard in the workout header. Plan ≥ 64 × 48. */
+    val headerActMin: Dp = 64.dp
+
+    /** Packet C current-lift card. 88 dp default, 104 dp at font 2.0. */
+    val currentLiftMax: Dp = 88.dp
+    val currentLiftMaxLargeType: Dp = 104.dp
+
     /** The one action worth a bigger target than anything else: logging a set. */
     val commit: Dp = 72.dp
 

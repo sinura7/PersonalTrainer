@@ -188,6 +188,61 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun switchingLiftsRestoresEachDraftAndNeverResets() = runBlocking {
+        val fixture = seedTwoLifts()
+        val handle = handleFor(fixture.session.id)
+        val vm = createViewModel(fixture.session.id, handle)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg == 100.0 }
+
+        vm.setWeight(155.0)
+        vm.setReps(8)
+        vm.setRpe(8)
+        vm.awaitState { it.draftDirty && it.draft.weightKg == 155.0 }
+
+        vm.selectExercise(ROW)
+        val row = vm.awaitState {
+            it.selectedExerciseId == ROW && it.liftReadiness.allowsCommit() && it.draft.weightKg == 80.0
+        }
+        assertEquals(80.0, row.draft.weightKg, 0.0001)
+        assertFalse(row.draftDirty)
+
+        vm.setWeight(87.5)
+        vm.setReps(6)
+        vm.awaitState { it.selectedExerciseId == ROW && it.draft.weightKg == 87.5 }
+
+        vm.selectExercise(SQUAT)
+        val back = vm.awaitState {
+            it.selectedExerciseId == SQUAT && it.draft.weightKg == 155.0
+        }
+        assertEquals(155.0, back.draft.weightKg, 0.0001)
+        assertEquals(8, back.draft.reps)
+        assertEquals(8, back.draft.rpe)
+        assertTrue(back.draftDirty)
+
+        vm.selectExercise(SQUAT)
+        val same = vm.awaitState { it.selectedExerciseId == SQUAT }
+        assertEquals(155.0, same.draft.weightKg, 0.0001)
+
+        assertEquals(155.0, SavedStateWorkoutDraft(handle).readLift(fixture.session.id, SQUAT)?.weightKg)
+        assertEquals(87.5, SavedStateWorkoutDraft(handle).readLift(fixture.session.id, ROW)?.weightKg)
+
+        vm.clearAndJoinForTest()
+        viewModels.remove(vm)
+        deps.workoutDraftCache.clearAll()
+
+        val recreated = createViewModel(fixture.session.id, handle)
+        val restored = recreated.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT && it.draft.weightKg == 155.0
+        }
+        assertEquals(8, restored.draft.reps)
+        recreated.selectExercise(ROW)
+        val restoredRow = recreated.awaitState {
+            it.selectedExerciseId == ROW && it.draft.weightKg == 87.5
+        }
+        assertEquals(6, restoredRow.draft.reps)
+    }
+
+    @Test
     fun logSetRejectsZeroWeightWorkingSetBeforeWriting() = runBlocking {
         val fixture = seedWorkout(targetWeightKg = 0.0)
         val vm = createViewModel(fixture.session.id)

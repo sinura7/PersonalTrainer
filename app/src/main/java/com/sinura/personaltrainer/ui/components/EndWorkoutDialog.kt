@@ -26,17 +26,29 @@ fun EndWorkoutDialog(
     onSave: () -> Unit,
     onDiscardInstead: () -> Unit,
     onDismiss: () -> Unit,
+    notes: String = "",
+    notesExpanded: Boolean = false,
+    onToggleNotes: () -> Unit = {},
+    onNotesChange: (String) -> Unit = {},
 ) {
     val canSave = EndWorkoutCopy.canSave(loggedSets)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(EndWorkoutCopy.TITLE, style = InstrumentType.title) },
         text = {
-            Text(
-                EndWorkoutCopy.body(loggedSets),
-                style = InstrumentType.body,
-                color = TextSecondary,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                Text(
+                    EndWorkoutCopy.body(loggedSets),
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
+                NotesBlock(
+                    notes = notes,
+                    expanded = notesExpanded,
+                    onToggle = onToggleNotes,
+                    onChange = onNotesChange,
+                )
+            }
         },
         confirmButton = {
             Column(
