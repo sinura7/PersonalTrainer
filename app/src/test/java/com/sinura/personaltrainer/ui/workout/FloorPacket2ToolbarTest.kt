@@ -58,7 +58,7 @@ class FloorPacket2ToolbarTest {
         assertTrue(dock.contains("SnapValueWheel("))
         assertTrue(dock.contains("FloorEntryWheels.restSecondsValues"))
         assertTrue(dock.contains("workout-rest-wheel"))
-        assertTrue(dock.contains("FloorTimerSurface.mode(holdRunning)"))
+        assertTrue(dock.contains("FloorTimerSurface.mode(holdRunning, stopwatchRunning)"))
         val idleStart = dock.indexOf("fun RestIdleRow")
         val idle = dock.substring(idleStart)
         assertTrue(idle.contains("editing"))
