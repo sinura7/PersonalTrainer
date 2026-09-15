@@ -64,7 +64,9 @@ class ForeignControlsTest {
             assertFalse(path, src.contains("SnackbarHost("))
             assertTrue(
                 path,
-                src.contains("GymStatusBanner(") || src.contains("GymErrorBanner("),
+                src.contains("GymStatusBanner(") ||
+                    src.contains("GymErrorBanner(") ||
+                    src.contains("GymUndoHost("),
             )
         }
         assertEquals(2, switchSites.size)

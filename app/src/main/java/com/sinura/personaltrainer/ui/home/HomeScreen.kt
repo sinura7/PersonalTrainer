@@ -28,6 +28,7 @@ import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.PlanDayCopy
+import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -36,6 +37,7 @@ import com.sinura.personaltrainer.domain.leftoverLiftNames
 import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
@@ -102,6 +104,7 @@ fun HomeScreen(
         onPendingOccurrenceReviewConsumed()
     }
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
+    val skippedDay by viewModel.skippedDay.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val sessionLive = state.sessionLive
     var weighingIn by rememberSaveable { mutableStateOf(false) }
@@ -285,6 +288,15 @@ fun HomeScreen(
                 // Dismissable: the flow only cleared this on a later SUCCESSFUL
                 // action, so a one-off failure pinned a red card to Home forever.
                 GymErrorBanner(message, onDismiss = viewModel::dismissError)
+            }
+        }
+        skippedDay?.let { skipped ->
+            item {
+                GymUndoHost(
+                    message = UndoHostCopy.daySkipped(skipped.title),
+                    onUndo = viewModel::undoSkipOccurrence,
+                    onDismissed = viewModel::onUndoOfferHandled,
+                )
             }
         }
         if (state.missedWorkPrompt) {

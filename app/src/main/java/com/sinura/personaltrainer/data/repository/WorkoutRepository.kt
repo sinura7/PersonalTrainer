@@ -488,22 +488,43 @@ class WorkoutRepository(
     /**
      * Takes a lift out of a live session, provided nothing has been logged against it.
      *
-     * This method existed with no guards and no callers at all — a one-liner that would happily
-     * delete a lift out from under sets that were already recorded against it. The guards are
-     * in [SessionEditRules] so they are testable, and the whole thing runs in a transaction so
-     * the check and the delete cannot be separated by a set landing between them.
+     * Returns the row that left so the caller can offer Undo for ~6s. The
+     * guards are in [SessionEditRules], and the check and the delete run in
+     * one transaction so a set cannot land between them.
      */
-    suspend fun removeExerciseFromSession(sessionId: String, itemId: String) {
-        database.withTransaction {
+    suspend fun removeExerciseFromSession(sessionId: String, itemId: String): RemovedLift {
+        return database.withTransaction {
             val current = workoutDao.getSession(sessionId) ?: error(SessionEditRules.ITEM_MISSING)
-            val item = current.exercises.firstOrNull { it.item.id == itemId }
+            val row = current.exercises.firstOrNull { it.item.id == itemId }
             val refusal = SessionEditRules.refusalForRemove(
                 sessionFinished = current.session.finishedAt != null,
-                itemExists = item != null,
-                loggedSetCount = current.sets.count { it.set.exerciseId == item?.item?.exerciseId },
+                itemExists = row != null,
+                loggedSetCount = current.sets.count { it.set.exerciseId == row?.item?.exerciseId },
             )
             if (refusal != null) error(refusal)
+            val existing = row!!.item
+            val name = row.exercise.name
             workoutDao.deleteSessionExercise(itemId)
+            RemovedLift(item = existing, name = name)
+        }
+    }
+
+    /**
+     * Puts a removed lift back with the same id and sort order.
+     *
+     * No-ops if the session has since finished or gone, if this row is
+     * already there, or if that lift is already on the session under a
+     * new row (the lifter added it again during the undo window).
+     */
+    suspend fun restoreExerciseToSession(removed: RemovedLift) {
+        database.withTransaction {
+            val current = workoutDao.getSession(removed.item.sessionId) ?: return@withTransaction
+            if (current.session.finishedAt != null) return@withTransaction
+            if (current.exercises.any { it.item.id == removed.item.id }) return@withTransaction
+            if (current.exercises.any { it.item.exerciseId == removed.item.exerciseId }) {
+                return@withTransaction
+            }
+            workoutDao.upsertSessionExercise(removed.item)
         }
     }
 
@@ -1050,6 +1071,12 @@ class WorkoutRepository(
     data class LoggedSet(
         val setId: String,
         val records: Set<PersonalRecordKind>,
+    )
+
+    /** Everything needed to put a removed lift back in the same slot. */
+    data class RemovedLift(
+        val item: SessionExerciseEntity,
+        val name: String,
     )
 
     /** Everything needed to put a deleted set back exactly as it was. */

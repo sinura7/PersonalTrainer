@@ -38,12 +38,13 @@ import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.GymStatusBanner
+import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -275,13 +276,14 @@ fun SessionDetailScreen(
             )
         }
         deletedSet?.let { removed ->
-            GymStatusBanner(
-                message = "Set deleted · ${removed.weightKg.toWeightLabel(unit)} × ${removed.reps}",
+            GymUndoHost(
+                message = UndoHostCopy.setDeleted(
+                    "${removed.weightKg.toWeightLabel(unit)} × ${removed.reps}",
+                ),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(Metrics.gutter),
-                actionLabel = "Undo",
-                onAction = { viewModel.undoDeleteSet() },
+                onUndo = { viewModel.undoDeleteSet() },
                 onDismissed = { viewModel.onUndoOfferHandled() },
             )
         }
