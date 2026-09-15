@@ -306,6 +306,11 @@ data class ProgressionHint(
      * to [lastReps] so a grind or a deload does not add a rep.
      */
     val suggestedReps: Int = lastReps,
+    /**
+     * Kit in hand, so [IncrementTable] can give a dumbbell its own jump
+     * rather than the barbell's. Null means the table keys off [loadType] only.
+     */
+    val equipment: EquipmentType? = null,
 )
 
 enum class ProgressionAction {

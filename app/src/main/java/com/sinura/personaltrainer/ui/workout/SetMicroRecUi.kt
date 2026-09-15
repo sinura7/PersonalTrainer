@@ -43,6 +43,7 @@ internal fun workoutMicroRec(
             editing = editingSetId != null,
             loadType = planned?.exercise?.loadType,
             unit = unit,
+            equipment = planned?.exercise?.equipment,
             targetSets = planned?.targetSets ?: 0,
             targetReps = planned?.targetReps ?: 5,
             targetWeightKg = planned?.targetWeightKg,

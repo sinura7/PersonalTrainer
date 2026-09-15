@@ -47,6 +47,7 @@ data class SetMicroRecInputs(
      * First-set Next / RPE chips read this instead of inventing 6–9.
      */
     val historyWorking: List<LoggedSetView> = emptyList(),
+    val equipment: EquipmentType? = null,
 )
 
 data class SetMicroRec(
@@ -114,7 +115,11 @@ object SetMicroRecCalculator {
             )
         }
         val loadClass = LoadClass.of(inputs.loadType)
-        val displayStep = IncrementTable.displayStep(inputs.loadType ?: LoadType.EXTERNAL, inputs.unit)
+        val displayStep = IncrementTable.displayStep(
+            inputs.loadType ?: LoadType.EXTERNAL,
+            inputs.unit,
+            inputs.equipment,
+        )
             .takeUnless { loadClass == LoadClass.BODYWEIGHT }
         val meaning = loadClass.weightMeaning
         val bodyweight = displayStep == null || meaning == WeightMeaning.NONE
@@ -238,6 +243,7 @@ object SetMicroRecCalculator {
             unit = inputs.unit,
             rpeEvidenceNewestFirst = rpes.takeLast(RpeModifier.RPE_HOLD_SESSIONS).asReversed(),
             lighterWeek = inputs.lighterWeek,
+            equipment = inputs.equipment,
         )
         val effortRpe = basis.rpe
         val reason = reasonCode(
@@ -401,6 +407,7 @@ fun setMicroRecInputs(
     allowExtra: Boolean = false,
     rpeIntent: Boolean = false,
     historyWorking: List<LoggedSetView> = emptyList(),
+    equipment: EquipmentType? = null,
 ): SetMicroRecInputs = SetMicroRecInputs(
     editing = editing,
     loadType = loadType,
@@ -421,6 +428,7 @@ fun setMicroRecInputs(
     allowExtra = allowExtra,
     rpeIntent = rpeIntent,
     historyWorking = historyWorking,
+    equipment = equipment,
 )
 
 object SetMicroRecCopy {

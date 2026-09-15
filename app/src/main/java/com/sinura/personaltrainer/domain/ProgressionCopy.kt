@@ -14,7 +14,11 @@ package com.sinura.personaltrainer.domain
 object ProgressionCopy {
     /** The in-workout strip: what to do with this lift, right now. */
     fun stripReason(hint: ProgressionHint, unit: WeightUnit): String {
-        val step = IncrementTable.stepLabel(hint.loadType ?: LoadType.EXTERNAL, unit)
+        val step = IncrementTable.stepLabel(
+            hint.loadType ?: LoadType.EXTERNAL,
+            unit,
+            hint.equipment,
+        )
         val assisted = hint.isAssisted
         return when {
             // Lighter week is why they opened the session this way. Prefer it over RPE.
@@ -45,7 +49,11 @@ object ProgressionCopy {
     /** The coach card: why this lift is being named, read away from the gym floor. */
     fun coachReason(hint: ProgressionHint, unit: WeightUnit): String {
         val topSet = "Top set ${hint.weightLabel(unit)}×${hint.lastReps} hit target."
-        val step = IncrementTable.stepLabel(hint.loadType ?: LoadType.EXTERNAL, unit)
+        val step = IncrementTable.stepLabel(
+            hint.loadType ?: LoadType.EXTERNAL,
+            unit,
+            hint.equipment,
+        )
         return when {
             step == null -> "$topSet ${IncrementTable.REP_PROGRESSION_COPY}"
             hint.isAssisted -> "$topSet Next session drop $step of assist."

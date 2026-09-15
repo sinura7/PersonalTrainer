@@ -307,6 +307,53 @@ class ProgressionCalculatorTest {
         assertTrue(climbing.lighterHold)
         assertEquals(100.0, climbing.suggestedWeightKg, 0.001)
     }
+
+    @Test
+    fun aPinStackIncreaseMovesFiveKilograms() {
+        val hint = ProgressionCalculator.adjusted(
+            exerciseId = "ex-stack",
+            exerciseName = "Chest Press",
+            lastWeightKg = 50.0,
+            lastWorkingReps = 12,
+            targetReps = 12,
+            loadType = LoadType.STACK,
+            unit = WeightUnit.KG,
+            rpeEvidenceNewestFirst = listOf(7),
+            lighterWeek = false,
+        )
+        assertEquals(ProgressionAction.INCREASE, hint.action)
+        assertEquals(55.0, hint.suggestedWeightKg, 0.001)
+    }
+
+    @Test
+    fun aDumbbellIncreaseMovesTwoKilograms() {
+        val hint = ProgressionCalculator.adjusted(
+            exerciseId = "ex-db",
+            exerciseName = "Dumbbell Bench",
+            lastWeightKg = 20.0,
+            lastWorkingReps = 10,
+            targetReps = 10,
+            loadType = LoadType.EXTERNAL,
+            unit = WeightUnit.KG,
+            rpeEvidenceNewestFirst = listOf(7),
+            lighterWeek = false,
+            equipment = EquipmentType.DUMBBELL,
+        )
+        assertEquals(ProgressionAction.INCREASE, hint.action)
+        assertEquals(22.0, hint.suggestedWeightKg, 0.001)
+        val bar = ProgressionCalculator.adjusted(
+            exerciseId = "ex-bar",
+            exerciseName = "Bench",
+            lastWeightKg = 20.0,
+            lastWorkingReps = 10,
+            targetReps = 10,
+            loadType = LoadType.EXTERNAL,
+            unit = WeightUnit.KG,
+            rpeEvidenceNewestFirst = listOf(7),
+            lighterWeek = false,
+        )
+        assertEquals(22.5, bar.suggestedWeightKg, 0.001)
+    }
 }
 
 class WeightFormatTest {
