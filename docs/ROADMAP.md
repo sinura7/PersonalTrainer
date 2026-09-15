@@ -15,10 +15,15 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Live 64: floor packet 4 (HOLD / +N / BACK OFF kicker
+> with Why; weight, reps/time, RPE, rest glyphs) on `trunk`.
+> `debugLiveCode` 64; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 15 Sep 2026 — Floor packet 4: HOLD / +N / BACK OFF kicker sits on the
 > Next line with Why still opening the trace. Weight, reps/time, RPE,
-> and rest glyphs replace those floor labels. Does not bump live 63.
-> Gym-floor `appVersionCode` stays 1.
+> and rest glyphs replace those floor labels. Live 64 is the Obtainium
+> drop. Gym-floor `appVersionCode` stays 1.
 >
 > 15 Sep 2026 — Live 63: floor packet 3 (optional set stopwatch in the
 > dock timer slot) on `trunk`. `debugLiveCode` 63; suffix from
