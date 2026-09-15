@@ -27,7 +27,6 @@ import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.FinishedSessionEdits
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.HoldWork
-import com.sinura.personaltrainer.domain.IncrementTable
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.PersonalRecordKind
@@ -41,7 +40,6 @@ import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RepeatSessionPlan
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
-import com.sinura.personaltrainer.domain.LighterWeekModifier
 import com.sinura.personaltrainer.domain.RpeModifier
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.DataHealthCopy
@@ -935,26 +933,19 @@ class WorkoutRepository(
         val resolvedTarget = targetReps.takeIf { it > 0 }
             ?: workoutDao.lastTargetReps(exerciseId)
             ?: topSet.reps
-        val hint = ProgressionCalculator.hint(
+        // Hitting the target reps at RPE 9 and hitting them at RPE 6 are the same event to the
+        // calculator, and only one of them means "ready for more".
+        return ProgressionCalculator.adjusted(
             exerciseId = exerciseId,
             exerciseName = exerciseName,
             lastWeightKg = topSet.weightKg,
             lastWorkingReps = topSet.reps,
             targetReps = resolvedTarget,
-            // The lift decides the size of the jump and the unit decides its shape. An unknown
-            // load type — a custom, or a row from a backup this build predates — is treated as
-            // loadable, because refusing to suggest anything is worse than suggesting 2.5 kg.
-            displayStep = IncrementTable.displayStep(loadType ?: LoadType.EXTERNAL, unit),
             loadType = loadType,
             unit = unit,
+            rpeEvidenceNewestFirst = sessions.map { sets -> rpeOfTopSet(sets, loadClass) },
+            lighterWeek = lighterWeek,
         )
-        // Hitting the target reps at RPE 9 and hitting them at RPE 6 are the same event to the
-        // calculator, and only one of them means "ready for more".
-        val afterRpe = RpeModifier.apply(
-            hint,
-            sessions.map { sets -> rpeOfTopSet(sets, loadClass) },
-        )
-        return LighterWeekModifier.apply(afterRpe, lighterWeek)
     }
 
     /**
@@ -1121,25 +1112,20 @@ class WorkoutRepository(
                 lastSessionSets.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
                 loadClass.weightMeaning,
             ) ?: return@forEach
-            val hint = ProgressionCalculator.hint(
+            // The RPE rule downgrades a grinding lift to HOLD, which drops it out of
+            // this list automatically — "ready to progress" must not name a lift the
+            // in-workout strip is simultaneously telling you to hold.
+            val adjusted = ProgressionCalculator.adjusted(
                 exerciseId = item.exercise.id,
                 exerciseName = item.exercise.name,
                 lastWeightKg = topSet.weightKg,
                 lastWorkingReps = topSet.reps,
                 targetReps = item.targetReps,
-                displayStep = IncrementTable.displayStep(item.exercise.loadType, unit),
                 loadType = item.exercise.loadType,
                 unit = unit,
-            )
-            val recentRpes = sessionsNewestFirst.take(RpeModifier.RPE_HOLD_SESSIONS).map { (_, sets) ->
-                rpeOfTopSet(sets, loadClass)
-            }
-            // The RPE rule downgrades a grinding lift to HOLD, which drops it out of
-            // this list automatically — "ready to progress" must not name a lift the
-            // in-workout strip is simultaneously telling you to hold.
-            val adjusted = LighterWeekModifier.apply(
-                RpeModifier.apply(hint, recentRpes),
-                lighterWeek,
+                rpeEvidenceNewestFirst = sessionsNewestFirst.take(RpeModifier.RPE_HOLD_SESSIONS)
+                    .map { (_, sets) -> rpeOfTopSet(sets, loadClass) },
+                lighterWeek = lighterWeek,
             )
             if (adjusted.action == ProgressionAction.INCREASE) {
                 hints += adjusted
