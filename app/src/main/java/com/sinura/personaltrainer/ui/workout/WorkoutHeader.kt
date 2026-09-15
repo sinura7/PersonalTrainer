@@ -123,7 +123,7 @@ internal fun WorkoutHeader(
                     TextButton(
                         onClick = onDiscard,
                         modifier = Modifier
-                            .widthIn(min = 64.dp)
+                            .widthIn(min = Metrics.headerActMin)
                             .heightIn(min = Metrics.touchMin)
                             .testTag(WorkoutTestTags.DISCARD),
                     ) {
@@ -138,7 +138,7 @@ internal fun WorkoutHeader(
                         onClick = onFinish,
                         enabled = canFinish,
                         modifier = Modifier
-                            .widthIn(min = 64.dp)
+                            .widthIn(min = Metrics.headerActMin)
                             .heightIn(min = Metrics.touchMin)
                             .testTag(WorkoutTestTags.FINISH)
                             .semantics {

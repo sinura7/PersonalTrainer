@@ -33,7 +33,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SessionExercise
@@ -71,7 +70,7 @@ internal fun CurrentLiftCard(
     modifier: Modifier = Modifier,
 ) {
     val fontScale = LocalDensity.current.fontScale
-    val maxHeight = if (fontScale >= 2f) 104.dp else 88.dp
+    val maxHeight = if (fontScale >= 2f) Metrics.currentLiftMaxLargeType else Metrics.currentLiftMax
     val meaning = LoadClass.of(lift.exercise.loadType).weightMeaning
     val spoken = CurrentLiftCopy.cardSpoken(
         name = lift.exercise.name,
