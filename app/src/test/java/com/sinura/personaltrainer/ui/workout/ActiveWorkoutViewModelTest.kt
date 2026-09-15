@@ -577,7 +577,9 @@ class ActiveWorkoutViewModelTest {
 
         vm.dismissRpeHelper()
         assertTrue(deps.preferencesRepository.rpeHelperDismissed.first { it })
-        assertFalse(vm.rpeHelperVisible.first { !it })
+        assertFalse(
+            withTimeout(TestWaits.FLOW_MS) { vm.rpeHelperVisible.first { !it } },
+        )
     }
 
     @Test

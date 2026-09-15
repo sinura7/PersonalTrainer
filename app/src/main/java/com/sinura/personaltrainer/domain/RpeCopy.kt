@@ -13,7 +13,7 @@ object RpeCopy {
     const val HELPER = "6 = four reps left · 10 = max"
     const val HELPER_DISMISS = "Got it"
     const val WARMUP_REASON = "Warm-up"
-    const val VALUES: IntRange = 6..10
+    val VALUES: IntRange = 6..10
 
     fun blurb(lastRpe: Int?): String {
         val history = lastRpe?.let { "Last time RPE $it. " }.orEmpty()
