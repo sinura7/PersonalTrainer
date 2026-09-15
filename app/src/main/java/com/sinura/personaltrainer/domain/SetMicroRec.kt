@@ -59,7 +59,7 @@ data class SetMicroRec(
     val reasonCode: String,
     val trace: RuleTrace,
     /** Starting rest for the next clock. Not written onto the stored routine. */
-    val restSeconds: Int,
+    val restSeconds: Int = RestPrescription.STANDARD_SECONDS,
     /**
      * The Add-set row may invite one more. Never a change to [targetSets].
      * Stop-early ("that's enough") is not this field.
@@ -70,6 +70,12 @@ data class SetMicroRec(
      * start. Never counted toward [targetSets].
      */
     val warmupSets: List<WarmupSet> = emptyList(),
+    /**
+     * Kit in hand, so the HOLD / +N kicker can use a pin stack's jump
+     * rather than the barbell's. Null means the table keys off load class.
+     */
+    val equipment: EquipmentType? = null,
+    val loadType: LoadType? = null,
 )
 
 object SetMicroRecCalculator {
@@ -390,6 +396,8 @@ object SetMicroRecCalculator {
             ),
             anotherSetAdvised = reason == LIFT_DONE && adviseAnother(inputs),
             warmupSets = warmupSetsFor(inputs, reason, weight),
+            equipment = inputs.equipment,
+            loadType = inputs.loadType,
         )
     }
 
@@ -504,9 +512,15 @@ object ProgressionKickerCopy {
 
     fun fromHint(hint: ProgressionHint, unit: WeightUnit): String =
         when (hint.action) {
-            ProgressionAction.HOLD -> HOLD
+            ProgressionAction.HOLD ->
+                if (hint.suggestedReps > hint.lastReps) PLUS_REP else HOLD
             ProgressionAction.DECREASE -> BACK_OFF
-            ProgressionAction.INCREASE -> plusLabel(LoadClass.of(hint.loadType), unit)
+            ProgressionAction.INCREASE -> plusLabel(
+                loadClass = LoadClass.of(hint.loadType),
+                unit = unit,
+                equipment = hint.equipment,
+                loadType = hint.loadType,
+            )
         }
 
     private val HOLD_CODES = setOf(
@@ -529,19 +543,34 @@ object ProgressionKickerCopy {
         ) {
             return null
         }
+        if (rec.reasonCode == SetMicroRecCalculator.CLIMB_REPS ||
+            rec.reasonCode == SetMicroRecCalculator.BW_ADD_REP
+        ) {
+            return PLUS_REP
+        }
         if (rec.reasonCode in HOLD_CODES) return HOLD
         if (rec.reasonCode in BACK_OFF_CODES) return BACK_OFF
-        return plusLabel(loadClass, unit)
+        return plusLabel(
+            loadClass = loadClass,
+            unit = unit,
+            equipment = rec.equipment,
+            loadType = rec.loadType,
+        )
     }
 
-    fun plusLabel(loadClass: LoadClass, unit: WeightUnit): String {
-        val loadType = when (loadClass) {
+    fun plusLabel(
+        loadClass: LoadClass,
+        unit: WeightUnit,
+        equipment: EquipmentType? = null,
+        loadType: LoadType? = null,
+    ): String {
+        val resolved = loadType ?: when (loadClass) {
             LoadClass.LOADED -> LoadType.EXTERNAL
             LoadClass.BODYWEIGHT -> LoadType.BODYWEIGHT
             LoadClass.BODYWEIGHT_ADDED -> LoadType.BODYWEIGHT_PLUS
             LoadClass.BODYWEIGHT_ASSISTED -> LoadType.ASSISTED
         }
-        val step = IncrementTable.displayStep(loadType, unit) ?: return PLUS_REP
+        val step = IncrementTable.displayStep(resolved, unit, equipment) ?: return PLUS_REP
         return "+${WeightConverter.formatDisplayNumber(step)}"
     }
 }

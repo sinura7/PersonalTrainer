@@ -19,8 +19,8 @@ import com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration
 import com.sinura.personaltrainer.domain.RecordSet
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
-import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.ExerciseSetEntry

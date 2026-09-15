@@ -644,4 +644,72 @@ class SetMicroRecCopyTest {
         )
         assertEquals("100 kg × 5 · RPE 8", SetMicroRecCopy.payload(rec, LoadClass.LOADED, WeightUnit.KG))
     }
+
+    @Test
+    fun climbRepsKickerIsPlusOneNotThePlate() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                SetMicroRecInputs(
+                    editing = false,
+                    loadType = LoadType.EXTERNAL,
+                    unit = WeightUnit.KG,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = 100.0,
+                    workingLogged = 1,
+                    thisSessionWorking = listOf(
+                        LoggedSetView(
+                            weightKg = 100.0,
+                            reps = 3,
+                            rpe = 8,
+                            isWarmup = false,
+                        ),
+                    ),
+                    lastAnySetWasWarmup = false,
+                    hint = null,
+                    lighterWeek = false,
+                    draftWeightKg = 100.0,
+                    draftReps = 5,
+                    draftRpe = null,
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.CLIMB_REPS, rec.reasonCode)
+        assertEquals(
+            ProgressionKickerCopy.PLUS_REP,
+            SetMicroRecCopy.kicker(rec, LoadClass.LOADED, WeightUnit.KG),
+        )
+    }
+
+    @Test
+    fun stackQualityKickerIsThePinStep() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                SetMicroRecInputs(
+                    editing = false,
+                    loadType = LoadType.STACK,
+                    unit = WeightUnit.KG,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = 50.0,
+                    workingLogged = 1,
+                    thisSessionWorking = listOf(
+                        LoggedSetView(
+                            weightKg = 50.0,
+                            reps = 5,
+                            rpe = 8,
+                            isWarmup = false,
+                        ),
+                    ),
+                    lastAnySetWasWarmup = false,
+                    hint = null,
+                    lighterWeek = false,
+                    draftWeightKg = 50.0,
+                    draftReps = 5,
+                    draftRpe = null,
+                ),
+            ),
+        )
+        assertEquals("+5", SetMicroRecCopy.kicker(rec, LoadClass.LOADED, WeightUnit.KG))
+    }
 }
