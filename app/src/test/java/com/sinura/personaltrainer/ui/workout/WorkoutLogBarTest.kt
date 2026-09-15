@@ -35,7 +35,8 @@ class WorkoutLogBarTest {
             secondary.contains("LazyRow("),
         )
         assertTrue("Warm-up chip", secondary.contains("label = \"Warm-up\""))
-        assertTrue("RPE kicker", secondary.contains("Kicker(\"RPE\")"))
+        assertTrue("RPE glyph", secondary.contains("TemperIcons.FloorRpe"))
+        assertFalse("RPE text kicker is replaced", secondary.contains("Kicker(\"RPE\")"))
         assertTrue("RPE track tag", secondary.contains("WorkoutTestTags.RPE_TRACK"))
         assertTrue("RPE values", secondary.contains("(6..10)"))
         assertTrue("compact chips", secondary.contains("compact = true"))
