@@ -449,7 +449,11 @@ internal fun SecondaryLogOptions(
                         onClick = { onRpe(if (selected) null else value) },
                         compact = true,
                         role = Role.RadioButton,
-                        spoken = RpeCopy.spoken(value, selected),
+                        spoken = RpeCopy.spoken(
+                            value,
+                            selected,
+                            recommended = recommendedRpe == value,
+                        ),
                         modifier = Modifier.weight(1f),
                     )
                 }

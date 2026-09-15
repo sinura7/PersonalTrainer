@@ -64,7 +64,50 @@ class GoldenPageCatalogTest {
     }
 
     @Test
+    fun floorStatesNameTheSixPopulatedCapturesForActiveStrength() {
+        assertEquals(
+            listOf("entry", "rest", "hold", "completion", "error", "entry-font20"),
+            GoldenPageCatalog.floorStateIds,
+        )
+        assertEquals(
+            listOf(
+                "active-strength-entry-api29",
+                "active-strength-rest-api29",
+                "active-strength-hold-api29",
+                "active-strength-completion-api29",
+                "active-strength-error-api29",
+                "active-strength-entry-font20-api29",
+            ),
+            GoldenPageCatalog.requiredFloorStateGoldens,
+        )
+        GoldenPageCatalog.requiredFloorStateGoldens.forEach { name ->
+            assertTrue(name, name.endsWith("-${GoldenPageCatalog.PROFILE_SUFFIX}"))
+        }
+        assertEquals(
+            GoldenPageCatalog.requiredFloorStateGoldens.toSet().size,
+            GoldenPageCatalog.requiredFloorStateGoldens.size,
+        )
+        assertEquals(360, GoldenPageCatalog.FLOOR_WIDTH_DP)
+        assertEquals(800, GoldenPageCatalog.FLOOR_HEIGHT_DP)
+    }
+
+    @Test
+    fun unrecordedFloorStatesStayMissingNeverFaked() {
+        assertEquals(
+            GoldenPageCatalog.requiredFloorStateGoldens,
+            GoldenPageCatalog.missingFloorStateGoldens,
+        )
+        GoldenPageCatalog.requiredFloorStateGoldens.forEach { name ->
+            assertFalse(name, GoldenPageCatalog.isCommitted(name))
+        }
+    }
+
+    @Test
     fun namingIsStableAcrossRepeatedReads() {
         assertEquals(GoldenPageCatalog.requiredPageGoldens, GoldenPageCatalog.requiredPageGoldens)
+        assertEquals(
+            GoldenPageCatalog.requiredFloorStateGoldens,
+            GoldenPageCatalog.requiredFloorStateGoldens,
+        )
     }
 }
