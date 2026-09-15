@@ -57,7 +57,7 @@ internal data class LiftSwitcherRow(
 /**
  * Packet C: every session lift, with progress and rest state.
  *
- * Not Library. Not a tab. Selecting a row restores that lift's draft and
+ * Not the exercise catalog. Not a tab. Selecting a row restores that lift's draft and
  * never resets the numbers already staged.
  */
 @OptIn(ExperimentalMaterial3Api::class)

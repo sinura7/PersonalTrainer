@@ -20,8 +20,8 @@ class LiftSwitcherPresentationTest {
         assertTrue(switcher.contains("CurrentLiftCopy.SWITCHER_TITLE"))
         assertTrue(switcher.contains("WorkoutTestTags.LIFT_SWITCHER"))
         assertFalse(switcher.contains("ExercisePickerSheet"))
-        assertFalse(switcher.contains("Library"))
-        assertTrue(readOwned("ui/workout/CurrentLiftCard.kt").contains("CurrentLiftCopy.CURRENT"))
+        assertFalse(switcher.contains("ExerciseLibraryScreen"))
+        assertTrue(readOwned("ui/workout/CurrentLiftCard.kt").contains("CurrentLiftCopy.cardSpoken"))
     }
 
     @Test
