@@ -112,7 +112,7 @@ class WarmupRampTest {
                     targetWeightKg = 100.0,
                     workingLogged = 1,
                     thisSessionWorking = listOf(
-                        LoggedSetView(100.0, 5, rpe = 8, isWarmup = false),
+                        LoggedSetView(weightKg = 100.0, reps = 5, rpe = 8, isWarmup = false),
                     ),
                     lastAnySetWasWarmup = false,
                     hint = first.let {
