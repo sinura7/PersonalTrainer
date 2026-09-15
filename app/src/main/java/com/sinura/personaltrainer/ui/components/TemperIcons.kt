@@ -58,6 +58,22 @@ object TemperIcons {
     val Rest: ImageVector
         get() = rest ?: glyph("Rest", TemperGlyphPaths.REST).also { rest = it }
 
+    /** Floor weight well — barbell plates. Replaces the "weight" kicker. */
+    val FloorWeight: ImageVector
+        get() = floorWeight ?: glyph("FloorWeight", TemperGlyphPaths.FLOOR_WEIGHT).also { floorWeight = it }
+
+    /** Floor reps or hold-time well — tally with a crown. */
+    val FloorRepsTime: ImageVector
+        get() = floorRepsTime ?: glyph("FloorRepsTime", TemperGlyphPaths.FLOOR_REPS_TIME).also { floorRepsTime = it }
+
+    /** Floor RPE track — rising effort bars. */
+    val FloorRpe: ImageVector
+        get() = floorRpe ?: glyph("FloorRpe", TemperGlyphPaths.FLOOR_RPE).also { floorRpe = it }
+
+    /** Floor rest dock — clock frame. Settings still uses [Rest]. */
+    val FloorRest: ImageVector
+        get() = floorRest ?: glyph("FloorRest", TemperGlyphPaths.FLOOR_REST).also { floorRest = it }
+
     val Bodyweight: ImageVector
         get() = bodyweight ?: glyph("Bodyweight", TemperGlyphPaths.BODYWEIGHT).also { bodyweight = it }
 
@@ -97,6 +113,10 @@ object TemperIcons {
     private var reminders: ImageVector? = null
     private var generator: ImageVector? = null
     private var rest: ImageVector? = null
+    private var floorWeight: ImageVector? = null
+    private var floorRepsTime: ImageVector? = null
+    private var floorRpe: ImageVector? = null
+    private var floorRest: ImageVector? = null
     private var bodyweight: ImageVector? = null
     private var backup: ImageVector? = null
     private var yourPlan: ImageVector? = null

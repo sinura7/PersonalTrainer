@@ -23,10 +23,11 @@ import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
+import com.sinura.personaltrainer.ui.components.FloorFieldGlyph
 import com.sinura.personaltrainer.ui.components.FloorTimerSlot
 import com.sinura.personaltrainer.ui.components.InstrumentChip
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -205,8 +206,17 @@ internal fun MicroRecLine(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
+            ProgressionKickerMark(
+                rec = rec,
+                loadClass = loadClass,
+                unit = unit,
+            )
             Text(
-                SetMicroRecCopy.line(rec, loadClass, unit),
+                if (SetMicroRecCopy.kicker(rec, loadClass, unit) != null) {
+                    SetMicroRecCopy.payload(rec, loadClass, unit)
+                } else {
+                    SetMicroRecCopy.line(rec, loadClass, unit)
+                },
                 modifier = Modifier
                     .weight(1f)
                     .testTag(WorkoutTestTags.MICRO_REC),
@@ -285,7 +295,11 @@ internal fun SecondaryLogOptions(
             onClick = { onWarmup(!warmup) },
         )
         if (showRpe) {
-            Kicker("RPE")
+            FloorFieldGlyph(
+                icon = TemperIcons.FloorRpe,
+                spoken = "RPE",
+                modifier = Modifier.testTag(WorkoutTestTags.RPE_GLYPH),
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -52,4 +52,16 @@ object FloorCompactChrome {
      * sets stay untimed. Not a second Volt.
      */
     fun manualSetStopwatch(): Boolean = true
+
+    /**
+     * Packet 4: HOLD / +N / BACK OFF sits in the Next row, not a
+     * watermark behind the wheels. Why still opens the trace.
+     */
+    fun progressionKickerInline(): Boolean = true
+
+    /**
+     * Packet 4: weight, reps/time, RPE, and rest marks replace those
+     * text labels on the floor. TalkBack still hears the words.
+     */
+    fun floorFieldGlyphsReplaceLabels(): Boolean = true
 }

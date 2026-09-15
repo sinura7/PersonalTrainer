@@ -606,5 +606,42 @@ class SetMicroRecCopyTest {
         )
         assertEquals(SetMicroRecCalculator.FAILED_DROP, rec.reasonCode)
         assertEquals(22.5, rec.nextWeightKg, 0.0001)
+        assertEquals(
+            ProgressionKickerCopy.BACK_OFF,
+            SetMicroRecCopy.kicker(rec, LoadClass.BODYWEIGHT_ASSISTED, WeightUnit.KG),
+        )
+    }
+
+    @Test
+    fun qualitySetKickerIsThePlateStep() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                SetMicroRecInputs(
+                    editing = false,
+                    loadType = LoadType.EXTERNAL,
+                    unit = WeightUnit.KG,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = 100.0,
+                    workingLogged = 1,
+                    thisSessionWorking = listOf(
+                        LoggedSetView(100.0, 5, 8, false),
+                    ),
+                    lastAnySetWasWarmup = false,
+                    hint = null,
+                    lighterWeek = false,
+                    draftWeightKg = 100.0,
+                    draftReps = 5,
+                    draftRpe = null,
+                ),
+            ),
+        )
+        assertEquals("+2.5", SetMicroRecCopy.kicker(rec, LoadClass.LOADED, WeightUnit.KG))
+        assertEquals("+5", ProgressionKickerCopy.plusLabel(LoadClass.LOADED, WeightUnit.LBS))
+        assertEquals(
+            ProgressionKickerCopy.PLUS_REP,
+            ProgressionKickerCopy.plusLabel(LoadClass.BODYWEIGHT, WeightUnit.KG),
+        )
+        assertEquals("100 kg × 5 · RPE 8", SetMicroRecCopy.payload(rec, LoadClass.LOADED, WeightUnit.KG))
     }
 }
