@@ -146,6 +146,9 @@ fun GymErrorBanner(
  * Status used to be an unstyled string in the accent colour dropped into the middle of a
  * scrolling form — it shifted the layout when it appeared and then stayed there forever,
  * because nothing ever cleared it.
+ *
+ * Packet G: the dwell is a parameter. The undo host passes the accessibility-extended dwell;
+ * every other banner keeps the 6 s base.
  */
 @Composable
 fun GymStatusBanner(
@@ -154,11 +157,13 @@ fun GymStatusBanner(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
     onDismissed: (() -> Unit)? = null,
+    bannerKey: Any? = message,
+    dwellMs: Long = Motion.STATUS_DWELL_MS,
 ) {
-    var visible by remember(message) { mutableStateOf(true) }
-    var acted by remember(message) { mutableStateOf(false) }
-    LaunchedEffect(message) {
-        delay(Motion.STATUS_DWELL_MS)
+    var visible by remember(bannerKey) { mutableStateOf(true) }
+    var acted by remember(bannerKey) { mutableStateOf(false) }
+    LaunchedEffect(bannerKey) {
+        delay(dwellMs)
         visible = false
         if (!acted) onDismissed?.invoke()
     }
@@ -192,6 +197,10 @@ fun GymStatusBanner(
  * always labels the reversal [UndoHostCopy.ACTION]. Cheap destructives
  * (delete set, remove lift, skip day) offer this; finish, discard, and
  * leaving a live workout still ask first.
+ *
+ * Packet G: the host shows the top of a LIFO queue. [offerKey] restarts the dwell per
+ * offer so undoing — or timing out — reveals the next one underneath, and [dwellMs] carries
+ * the accessibility-extended timeout.
  */
 @Composable
 fun GymUndoHost(
@@ -199,13 +208,19 @@ fun GymUndoHost(
     onUndo: () -> Unit,
     onDismissed: () -> Unit,
     modifier: Modifier = Modifier,
+    offerKey: Any = message,
+    dwellMs: Long = Motion.STATUS_DWELL_MS,
 ) {
     GymStatusBanner(
         message = message,
-        modifier = modifier,
+        modifier = modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+        },
         actionLabel = UndoHostCopy.ACTION,
         onAction = onUndo,
         onDismissed = onDismissed,
+        bannerKey = offerKey,
+        dwellMs = dwellMs,
     )
 }
 

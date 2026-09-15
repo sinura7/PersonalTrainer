@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 15 Sep 2026 — Floor packet G: set-row overflow, Skip for now, LIFO undo
+> with TalkBack dwell and process restore on `trunk`. Next Kotlin is
+> Packet H (goldens/a11y evidence only).
+>
 > 15 Sep 2026 — Live 71: floor packet F receipt, named Next / Finish,
 > Coach.decide on `trunk`.
 > `debugLiveCode` 71; suffix from

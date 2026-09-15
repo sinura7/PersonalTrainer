@@ -93,6 +93,21 @@ class HapticsPaletteTest {
         assertTrue(bar.contains("Role.RadioButton"))
     }
 
+    @Test
+    fun deleteWarnsAfterTheWriteAndUndoConfirms() {
+        // HA-22: delete/remove land with a light warning *after* the write, never before.
+        // HA-23: a landed undo confirms. Failures and expiries stay silent.
+        val vm = readOwned("ui/workout/ActiveWorkoutViewModel.kt")
+        assertTrue(vm.contains("_deleteFeedback.tryEmit(DeleteFeedback.DELETED)"))
+        assertTrue(vm.contains("_deleteFeedback.tryEmit(DeleteFeedback.REMOVED)"))
+        assertTrue(vm.contains("_deleteFeedback.tryEmit(DeleteFeedback.UNDO)"))
+
+        val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
+        assertTrue(workout.contains("deleteFeedback.collect"))
+        assertTrue(workout.contains("DeleteFeedback.DELETED, DeleteFeedback.REMOVED -> Haptics.warn(view)"))
+        assertTrue(workout.contains("DeleteFeedback.UNDO -> Haptics.commit(view)"))
+    }
+
     private fun readOwned(relative: String): String {
         val roots = listOf(
             File("app/src/main/java/com/sinura/personaltrainer"),

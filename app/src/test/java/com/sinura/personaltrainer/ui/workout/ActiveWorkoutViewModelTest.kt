@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.FloorCompactChrome
+import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.FloorStepper
 import com.sinura.personaltrainer.domain.FloorTimedMode
 import com.sinura.personaltrainer.domain.FloorTimedModeResolver
@@ -23,6 +24,7 @@ import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
+import com.sinura.personaltrainer.domain.UndoKind
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -1463,6 +1465,179 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun twoRapidDeletesStackLifoAndBothUndo() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        vm.setWeight(100.0)
+        vm.logSetAndSettle()
+        vm.logSetAndSettle()
+        val sets = awaitSession(fixture.session.id) { it.sets.size == 2 }
+            .sets.sortedBy { it.completedAt }
+        val (first, second) = sets
+
+        vm.deleteSet(first.id)
+        checkNotNull(vm.deletedSet.awaitFirst { it != null })
+        vm.deleteSet(second.id)
+        awaitSession(fixture.session.id) { it.sets.isEmpty() }
+
+        // The second delete offers on top without expiring the first.
+        assertEquals(2, vm.undoEntries.value.size)
+        assertEquals(UndoKind.DELETED_SET, vm.undoEntries.value.last().offer.kind)
+
+        vm.undoTopOffer()
+        val oneBack = awaitSession(fixture.session.id) { it.sets.size == 1 }
+        assertEquals(second.id, oneBack.sets.single().id)
+        assertEquals(1, vm.undoEntries.value.size)
+
+        vm.undoTopOffer()
+        val bothBack = awaitSession(fixture.session.id) { it.sets.size == 2 }
+        assertEquals(setOf(first.id, second.id), bothBack.sets.map { it.id }.toSet())
+        assertTrue(vm.undoEntries.value.isEmpty())
+        assertNull(vm.deletedSet.value)
+    }
+
+    @Test
+    fun deleteThenRemoveKeepsBothOffersAndUndoesInOrder() = runBlocking {
+        val fixture = seedTwoLifts()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        vm.selectExercise(SQUAT)
+        vm.awaitState { it.selectedExerciseId == SQUAT }
+        vm.setWeight(100.0)
+        vm.logSetAndSettle()
+        val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
+
+        vm.deleteSet(logged.id)
+        checkNotNull(vm.deletedSet.awaitFirst { it != null })
+        vm.selectExercise(ROW)
+        vm.awaitState { it.selectedExerciseId == ROW }
+        vm.removeSelectedLift()
+        checkNotNull(vm.removedLift.awaitFirst { it != null })
+
+        assertEquals(2, vm.undoEntries.value.size)
+        assertEquals(UndoKind.REMOVED_LIFT, vm.undoEntries.value.last().offer.kind)
+
+        // Latest first: the lift comes back, then the set.
+        vm.undoTopOffer()
+        awaitSession(fixture.session.id) { it.exercises.size == 2 }
+        assertEquals(1, vm.undoEntries.value.size)
+        assertEquals(UndoKind.DELETED_SET, vm.undoEntries.value.last().offer.kind)
+
+        vm.undoTopOffer()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        assertTrue(vm.undoEntries.value.isEmpty())
+    }
+
+    @Test
+    fun expiredTopOfferRevealsTheNextOneWithoutARestChange() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        vm.setWeight(100.0)
+        vm.logSetAndSettle()
+        vm.logSetAndSettle()
+        val sets = awaitSession(fixture.session.id) { it.sets.size == 2 }
+            .sets.sortedBy { it.completedAt }
+
+        vm.deleteSet(sets[0].id)
+        checkNotNull(vm.deletedSet.awaitFirst { it != null })
+        vm.deleteSet(sets[1].id)
+        awaitSession(fixture.session.id) { it.sets.isEmpty() }
+        assertEquals(2, vm.undoEntries.value.size)
+
+        // Timeout expires the top offer silently: nothing restored, next revealed.
+        vm.onUndoOfferExpired()
+        assertEquals(1, vm.undoEntries.value.size)
+        assertEquals(UndoKind.DELETED_SET, vm.undoEntries.value.last().offer.kind)
+        assertTrue(
+            deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty(),
+        )
+
+        vm.onUndoOfferExpired()
+        assertTrue(vm.undoEntries.value.isEmpty())
+    }
+
+    @Test
+    fun undoQueueSurvivesProcessDeath() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val handle = handleFor(fixture.session.id)
+        val vm = createViewModel(fixture.session.id, handle)
+        vm.awaitFound()
+        vm.setWeight(100.0)
+        vm.logSetAndSettle()
+        val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
+        vm.deleteSet(logged.id)
+        checkNotNull(vm.deletedSet.awaitFirst { it != null })
+        awaitSession(fixture.session.id) { it.sets.isEmpty() }
+
+        // A new process over the same saved state still offers the delete back.
+        val revived = createViewModel(fixture.session.id, handle)
+        revived.awaitFound()
+        assertEquals(1, revived.undoEntries.value.size)
+        assertEquals(UndoKind.DELETED_SET, revived.undoEntries.value.last().offer.kind)
+
+        revived.undoDeleteSet()
+        val restored = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
+        assertEquals(logged.id, restored.id)
+        assertTrue(revived.undoEntries.value.isEmpty())
+    }
+
+    @Test
+    fun skipForNowMovesToNextUnfinishedLiftWithoutDeleting() = runBlocking {
+        val fixture = seedTwoLifts()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        vm.selectExercise(SQUAT)
+        vm.awaitState { it.selectedExerciseId == SQUAT }
+
+        vm.skipForNow()
+        vm.awaitState { it.selectedExerciseId == ROW }
+
+        // Nothing deleted, plan untouched, no undo offered: skip is not a destructive.
+        val session = checkNotNull(deps.workoutRepository.getSession(fixture.session.id))
+        assertEquals(2, session.exercises.size)
+        assertTrue(session.sets.isEmpty())
+        assertTrue(vm.undoEntries.value.isEmpty())
+    }
+
+    @Test
+    fun skipForNowOnTheOnlyUnfinishedLiftStaysAndExplains() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        val selected = vm.awaitFound().selectedExerciseId
+
+        vm.skipForNow()
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(selected, vm.awaitState { it.selectedExerciseId == selected }.selectedExerciseId)
+        assertEquals(CurrentLiftCopy.SKIP_NOWHERE, vm.awaitState { it.error != null }.error)
+        assertTrue(vm.undoEntries.value.isEmpty())
+    }
+
+    @Test
+    fun undoDwellExtendsUnderAccessibilityTimeout() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(
+            fixture.session.id,
+            undoTimeout = UndoTimeoutProvider { 20_000L },
+        )
+        vm.awaitFound()
+        assertEquals(20_000L, vm.undoDwellMs.value)
+    }
+
+    @Test
+    fun undoDwellNeverDropsBelowTheSixSecondBase() = runBlocking {
+        val fixture = seedWorkout()
+        val vm = createViewModel(
+            fixture.session.id,
+            undoTimeout = UndoTimeoutProvider { 1_000L },
+        )
+        vm.awaitFound()
+        assertEquals(Motion.STATUS_DWELL_MS, vm.undoDwellMs.value)
+    }
+
+    @Test
     fun finishWithNoSetsStaysLiveAndShowsGuard() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
@@ -1888,11 +2063,13 @@ class ActiveWorkoutViewModelTest {
         sessionId: String,
         handle: SavedStateHandle = handleFor(sessionId),
         container: AppDependencies = deps,
+        undoTimeout: UndoTimeoutProvider = UndoTimeoutProvider { it.toLong() },
     ): ActiveWorkoutViewModel =
         ActiveWorkoutViewModel(
             application = ApplicationProvider.getApplicationContext(),
             savedStateHandle = handle,
             container = container,
+            undoTimeout = undoTimeout,
         ).also(viewModels::add)
 
     private fun withClock(clock: ControllableTimePort): AppDependencies =
