@@ -75,4 +75,19 @@ class RuleTraceCopyTest {
         assertFalse(lines.joinToString().contains("QUALITY"))
         assertFalse(lines.joinToString().contains("nextWeightKg"))
     }
+
+    @Test
+    fun climbRepsSpeaksAddARep() {
+        val trace = RuleTrace.forMicroRec(
+            reasonCodes = listOf(SetMicroRecCalculator.CLIMB_REPS),
+            nextWeightKg = 100.0,
+            nextReps = 5,
+            nextRpe = 8,
+            nowMs = 3L,
+            todayEpochDay = 20,
+        )
+        val lines = RuleTraceCopy.lines(trace)
+        assertTrue(lines.any { it == "Add a rep" })
+        assertFalse(lines.joinToString().contains("CLIMB_REPS"))
+    }
 }

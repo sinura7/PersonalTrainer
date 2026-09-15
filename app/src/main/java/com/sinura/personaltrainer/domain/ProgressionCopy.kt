@@ -31,7 +31,12 @@ object ProgressionCopy {
             // lift easier as a reward for succeeding at it.
             hint.action == ProgressionAction.INCREASE ->
                 if (assisted) "Hit target. Drop $step of assist." else "Hit target. Add $step."
-            hint.action == ProgressionAction.HOLD -> "Close. Keep ${hint.weightLabel(unit)}."
+            hint.action == ProgressionAction.HOLD ->
+                if (hint.suggestedReps > hint.lastReps) {
+                    "Close. Keep ${hint.weightLabel(unit)}. Try ${hint.suggestedReps} reps."
+                } else {
+                    "Close. Keep ${hint.weightLabel(unit)}."
+                }
             else ->
                 if (assisted) "Missed target. Add $step of assist." else "Missed target. Drop $step."
         }

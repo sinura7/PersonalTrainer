@@ -32,6 +32,7 @@ object RpeModifier {
         return hint.copy(
             action = ProgressionAction.HOLD,
             suggestedWeightKg = hint.lastWeightKg,
+            suggestedReps = hint.lastReps,
             rpeHold = true,
         )
     }
