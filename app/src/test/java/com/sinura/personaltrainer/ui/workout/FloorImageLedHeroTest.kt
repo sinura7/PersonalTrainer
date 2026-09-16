@@ -108,7 +108,7 @@ class FloorImageLedHeroTest {
             "reduced-motion",
         ).forEach { id ->
             assertTrue(id, id in GoldenPageCatalog.floorStateIds)
-            assertFalse(GoldenPageCatalog.floorAssetName(id), GoldenPageCatalog.isCommitted(GoldenPageCatalog.floorAssetName(id)))
+            assertTrue(GoldenPageCatalog.floorAssetName(id), GoldenPageCatalog.isCommitted(GoldenPageCatalog.floorAssetName(id)))
         }
     }
 
