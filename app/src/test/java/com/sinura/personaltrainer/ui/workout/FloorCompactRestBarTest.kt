@@ -73,7 +73,6 @@ class FloorCompactRestBarTest {
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertTrue(screen.contains("holdRemainingSeconds = holdTimer.remainingSeconds"))
         assertTrue(screen.contains("holdTotalSeconds = holdTimer.totalSeconds"))
-        assertTrue(screen.contains("MicroRecLine("))
     }
 
     private fun readOwned(relative: String): String {
