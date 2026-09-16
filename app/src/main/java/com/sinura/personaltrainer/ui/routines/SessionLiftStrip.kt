@@ -38,11 +38,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HoldWork
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LoadTypeCopy
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TargetStepper
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
@@ -651,6 +653,11 @@ internal fun CompactTargetFields(
                 persist(setsValue, repsValue, restValue, next, secondsValue, secondsMaxValue)
             },
             modifier = modifier.testTag(CompactLiftTags.TARGET_WEIGHT),
+            spoken = SetCopy.weightWellSpoken(
+                LoadClass.of(loadType).weightMeaning,
+                weightValue,
+                unit,
+            ),
         )
     }
     Column(

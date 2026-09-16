@@ -55,6 +55,42 @@ class FloorStepperTest {
     }
 
     @Test
+    fun aDumbbellStepperReachesZeroAndWillNotGoNegative() {
+        val fiveLbs = WeightConverter.toKg(5.0, WeightUnit.LBS)
+        val atZero = FloorStepper.nextWeightKg(
+            fiveLbs,
+            WeightUnit.LBS,
+            -1,
+            LoadType.BODYWEIGHT_PLUS,
+            EquipmentType.DUMBBELL,
+        )
+        assertEquals(0.0, WeightConverter.toDisplayValue(atZero, WeightUnit.LBS), 0.001)
+        val stillZero = FloorStepper.nextWeightKg(
+            0.0,
+            WeightUnit.LBS,
+            -1,
+            LoadType.BODYWEIGHT_PLUS,
+            EquipmentType.DUMBBELL,
+        )
+        assertEquals(0.0, stillZero, 0.0001)
+        val barbellZero = FloorStepper.nextWeightKg(
+            WeightConverter.toKg(2.5, WeightUnit.KG),
+            WeightUnit.KG,
+            -1,
+            LoadType.EXTERNAL,
+        )
+        assertEquals(0.0, barbellZero, 0.0001)
+        val upFromZero = FloorStepper.nextWeightKg(
+            0.0,
+            WeightUnit.LBS,
+            1,
+            LoadType.EXTERNAL,
+            EquipmentType.DUMBBELL,
+        )
+        assertEquals(5.0, WeightConverter.toDisplayValue(upFromZero, WeightUnit.LBS), 0.001)
+    }
+
+    @Test
     fun bodyweightHasNoWeightStep() {
         assertEquals(
             0.0,

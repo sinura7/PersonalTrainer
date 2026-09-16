@@ -426,12 +426,24 @@ class BodyweightLoggingTest {
 
     @Test
     fun everyBodyweightLiftInTheCatalogCanBeLogged() {
-        // 18 of the 98 are loaded by bodyweight. Not one of them may be unrecordable.
         val blocked = DefaultExercises.catalog()
-            .filter { SetLogRules.requiresWeight(it.loadType) }
-            .filter { it.equipment == EquipmentType.BODYWEIGHT }
+            .filter { seed ->
+                SetLogRules.requiresWeight(seed.loadType, seed.equipment, seed.movementKey)
+            }
+            .filter { UnloadedLoad.allowsZeroWorkingWeight(it) }
             .map { it.id }
         assertEquals(emptyList<String>(), blocked)
+        val walking = DefaultExercises.catalog().first { it.id == "ex-walking-lunge" }
+        assertNull(
+            SetLogRules.validate(
+                0.0,
+                13,
+                isWarmup = false,
+                loadType = walking.loadType,
+                equipment = walking.equipment,
+                movementKey = walking.movementKey,
+            ),
+        )
     }
 
     @Test

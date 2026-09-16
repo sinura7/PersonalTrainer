@@ -1585,6 +1585,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             loadType = loadType,
             durationSeconds = duration,
             isHold = hold,
+            equipment = selectedLift?.exercise?.equipment,
+            movementKey = selectedLift?.exercise?.movementKey,
         )
         if (invalid != null) {
             logging.value = false

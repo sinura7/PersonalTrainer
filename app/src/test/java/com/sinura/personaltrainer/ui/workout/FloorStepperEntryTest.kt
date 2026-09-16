@@ -24,6 +24,8 @@ class FloorStepperEntryTest {
         assertTrue(floor.contains("Metrics.stepperNumeralMinWidth"))
         assertTrue(floor.contains("NumberEntryDialog("))
         assertTrue(floor.contains("NumericEntry.parseWeightKg"))
+        assertTrue(floor.contains("SetCopy.weightWellSpoken"))
+        assertTrue(floor.contains("UnloadedLoad.allowsZeroWorkingWeight"))
         assertTrue(floor.contains("NumericEntry.parseReps"))
         assertTrue(floor.contains("NumericEntry.parseHoldSeconds"))
         assertTrue(floor.contains("IncrementTable.displayStep"))
@@ -38,6 +40,7 @@ class FloorStepperEntryTest {
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
         assertTrue(card.contains("loadType = lift.exercise.loadType"))
         assertTrue(card.contains("equipment = lift.exercise.equipment"))
+        assertTrue(card.contains("movementKey = lift.exercise.movementKey"))
         assertTrue(card.contains("plannedKg = lift.targetWeightKg"))
     }
 

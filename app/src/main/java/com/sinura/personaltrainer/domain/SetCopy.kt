@@ -27,7 +27,7 @@ object SetCopy {
             val clock = HoldWork.formatRange(held)
             val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
             return when (loadClass) {
-                LoadClass.LOADED -> "${(load ?: 0.0).toWeightLabel(unit)} × $clock"
+                LoadClass.LOADED -> "${load?.toWeightLabel(unit) ?: NO_WEIGHT} × $clock"
                 LoadClass.BODYWEIGHT -> clock
                 LoadClass.BODYWEIGHT_ADDED ->
                     if (load == null) clock else "$clock +${load.toWeightLabel(unit)}"
@@ -37,7 +37,7 @@ object SetCopy {
         }
         val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
         val repsLine = when (loadClass) {
-            LoadClass.LOADED -> "${(load ?: 0.0).toWeightLabel(unit)} × $safeReps"
+            LoadClass.LOADED -> "${load?.toWeightLabel(unit) ?: NO_WEIGHT} × $safeReps"
             LoadClass.BODYWEIGHT -> repsLabel(safeReps)
             LoadClass.BODYWEIGHT_ADDED ->
                 if (load == null) repsLabel(safeReps)
@@ -76,6 +76,33 @@ object SetCopy {
         WeightMeaning.NONE -> null
         WeightMeaning.ADDED -> "Vest, belt or plate. Leave empty for bodyweight only."
         WeightMeaning.ASSISTANCE -> "How much the machine took off. More assist is an easier set."
+    }
+
+    /**
+     * TalkBack for the weight well. 0 is a chosen value, not a missing 5 lb plate.
+     */
+    fun weightWellSpoken(
+        meaning: WeightMeaning,
+        weightKg: Double,
+        unit: WeightUnit,
+    ): String {
+        if (!weightKg.isFinite() || weightKg <= 0.0) {
+            return when (meaning) {
+                WeightMeaning.ASSISTANCE -> "${meaning.fieldLabel}, no assistance"
+                else -> "${meaning.fieldLabel}, $NO_WEIGHT, $BODYWEIGHT_LOAD"
+            }
+        }
+        val shown = WeightConverter.formatDisplayNumber(
+            WeightConverter.toDisplayValue(weightKg, unit),
+        )
+        return "${meaning.fieldLabel} $shown ${unit.suffix}"
+    }
+
+    fun weightKeypadHelper(loadClass: LoadClass, allowsZero: Boolean): String {
+        val base = weightFieldHint(loadClass)
+            ?: "A number, up to two decimals. 87.5 or 87,5."
+        if (!allowsZero) return base
+        return "0 is $NO_WEIGHT ($BODYWEIGHT_LOAD). $base"
     }
 
     /**
@@ -136,6 +163,8 @@ object SetCopy {
     private fun repsLabel(reps: Int): String = if (reps == 1) "1 rep" else "$reps reps"
 
     const val NOTHING_YET = "—"
+    const val NO_WEIGHT = "no weight"
+    const val BODYWEIGHT_LOAD = "bodyweight"
 }
 
 /** One number and its unit, for a fixed-width readout. */

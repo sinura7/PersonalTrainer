@@ -54,6 +54,19 @@ class NumericEntryTest {
         assertEquals(NumericEntry.WEIGHT_NEGATIVE, typed.messageOrNull)
         assertNull(typed.valueOrNull)
         assertEquals(50.0, NumericEntry.typedWeightKg("50", WeightUnit.KG).valueOrNull!!, 0.0001)
+        assertNull(NumericEntry.parseWeightKg("-1", WeightUnit.LBS))
+        assertNull(NumericEntry.parseWeightKg("-0.5", WeightUnit.KG))
+    }
+
+    @Test
+    fun keypadAcceptsZeroAsAWeight() {
+        assertEquals(0.0, NumericEntry.parseWeightKg("0", WeightUnit.KG)!!, 0.0001)
+        assertEquals(0.0, NumericEntry.parseWeightKg("0", WeightUnit.LBS)!!, 0.0001)
+        assertEquals(0.0, NumericEntry.parseWeightKg("0.0", WeightUnit.LBS)!!, 0.0001)
+        assertEquals(0.0, NumericEntry.parseWeightKg("0,0", WeightUnit.KG)!!, 0.0001)
+        val typed = NumericEntry.typedWeightKg("0", WeightUnit.LBS)
+        assertTrue(typed is NumericEntry.Typed.Valid)
+        assertEquals(0.0, typed.valueOrNull!!, 0.0001)
     }
 
     // UX06-AC02: text with two separators or an exponent never becomes some other number.

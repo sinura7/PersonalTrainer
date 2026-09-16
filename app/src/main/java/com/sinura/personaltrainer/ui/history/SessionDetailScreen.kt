@@ -34,10 +34,10 @@ import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WorkoutSession
-import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -278,7 +278,12 @@ fun SessionDetailScreen(
         deletedSet?.let { removed ->
             GymUndoHost(
                 message = UndoHostCopy.setDeleted(
-                    "${removed.weightKg.toWeightLabel(unit)} × ${removed.reps}",
+                    SetCopy.setLine(
+                        removed.weightKg,
+                        removed.reps,
+                        session?.loadClassOf(removed.exerciseId) ?: LoadClass.LOADED,
+                        unit,
+                    ),
                 ),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

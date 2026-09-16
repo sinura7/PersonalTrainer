@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -34,6 +35,45 @@ class SetCopyTest {
     @Test
     fun aWeightedLiftWithNoWeightOnIsJustReps() {
         assertEquals("8 reps", SetCopy.setLine(0.0, 8, LoadClass.BODYWEIGHT_ADDED, WeightUnit.KG))
+    }
+
+    @Test
+    fun aLoadedZeroReadsAsNoWeightNotZeroPounds() {
+        assertEquals(
+            "no weight × 13",
+            SetCopy.setLine(0.0, 13, LoadClass.LOADED, WeightUnit.LBS),
+        )
+        assertEquals(
+            "no weight × 13",
+            SetCopy.setLine(0.0, 13, LoadClass.LOADED, WeightUnit.KG),
+        )
+    }
+
+    @Test
+    fun aWalkingLungeAtZeroReadsAsRepsNotFivePounds() {
+        assertEquals(
+            "13 reps",
+            SetCopy.setLine(0.0, 13, LoadClass.BODYWEIGHT_ADDED, WeightUnit.LBS),
+        )
+        assertEquals(
+            "Added, no weight, bodyweight",
+            SetCopy.weightWellSpoken(WeightMeaning.ADDED, 0.0, WeightUnit.LBS),
+        )
+        assertEquals(
+            "Weight 5 lbs",
+            SetCopy.weightWellSpoken(WeightMeaning.LIFTED, WeightConverter.toKg(5.0, WeightUnit.LBS), WeightUnit.LBS),
+        )
+        assertFalse(
+            SetCopy.weightWellSpoken(WeightMeaning.ADDED, 0.0, WeightUnit.LBS).contains("5 lbs"),
+        )
+        assertEquals(
+            "0 is no weight (bodyweight). Vest, belt or plate. Leave empty for bodyweight only.",
+            SetCopy.weightKeypadHelper(LoadClass.BODYWEIGHT_ADDED, allowsZero = true),
+        )
+        assertEquals(
+            "A number, up to two decimals. 87.5 or 87,5.",
+            SetCopy.weightKeypadHelper(LoadClass.LOADED, allowsZero = false),
+        )
     }
 
     @Test

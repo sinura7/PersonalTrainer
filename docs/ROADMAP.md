@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 16 Sep 2026 — Working weight 0 is a first-class value for bodyweight
+> and empty-hands dumbbell lifts (Walking Lunge and the rest of that
+> catalog set). Loaded barbell / dumbbell still default as before.
+> Gym-floor `appVersionCode` stays 1. No Obtainium drop.
+>
 > 15 Sep 2026 — Live 73: floor packet H goldens / accessibility final pass
 > on `trunk`. Final drop of the workout-entry plan.
 > `debugLiveCode` 73; suffix from

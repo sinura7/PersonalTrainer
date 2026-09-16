@@ -170,6 +170,9 @@ internal fun WorkoutLiftCard(
         targetKg = lift.targetWeightKg,
         suggestedKg = card.hint?.suggestedWeightKg,
         lastKg = card.hint?.lastWeightKg ?: lastPerformance?.topSet?.weightKg,
+        loadType = lift.exercise.loadType,
+        equipment = lift.exercise.equipment,
+        movementKey = lift.exercise.movementKey,
     )
     val ramp = if (workingLogged == 0) {
         WarmupRamp.sets(
@@ -249,6 +252,7 @@ internal fun WorkoutLiftCard(
             compact = true,
             loadType = lift.exercise.loadType,
             equipment = lift.exercise.equipment,
+            movementKey = lift.exercise.movementKey,
             plannedKg = lift.targetWeightKg,
             lastKg = card.hint?.lastWeightKg ?: lastPerformance?.topSet?.weightKg,
             suggestedKg = card.hint?.suggestedWeightKg,
