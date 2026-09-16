@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -86,7 +87,6 @@ import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.RestCyan
-import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -121,6 +121,8 @@ fun FloorTimerSlot(
     onOpenRest: () -> Unit = {},
     holdRunning: Boolean = false,
     holdElapsedSeconds: Int = 0,
+    holdRemainingSeconds: Int = 0,
+    holdTotalSeconds: Int = 0,
     holdTargetReached: Boolean = false,
     stopwatchRunning: Boolean = false,
     stopwatchElapsedSeconds: Int = 0,
@@ -151,16 +153,15 @@ fun FloorTimerSlot(
         FloorTimedMode.HOLD_RUNNING,
         FloorTimedMode.STOPWATCH_RUNNING,
         -> {
-            HairlineDivider(startIndent = 0.dp)
             SetWorkDock(
                 elapsedSeconds = if (holdActive) holdElapsedSeconds else stopwatchElapsedSeconds,
+                remainingSeconds = if (holdActive) holdRemainingSeconds else 0,
+                totalSeconds = if (holdActive) holdTotalSeconds else 0,
                 hold = holdActive,
                 targetReached = holdTargetReached,
+                running = holdRunning || stopwatchRunning,
                 onStop = onStopSetClock.takeIf { stopwatchRunning && !holdActive },
-                modifier = modifier
-                    .fillMaxWidth()
-                    .background(Surface1)
-                    .padding(horizontal = Metrics.space4, vertical = Metrics.space2),
+                modifier = modifier.fillMaxWidth(),
             )
         }
         FloorTimedMode.REST_IDLE,
@@ -177,90 +178,180 @@ fun FloorTimerSlot(
             completedTimerId = completedTimerId,
             hideWhenIdle = hideWhenIdle,
             afterWarmup = afterWarmup,
-            batteryHint = batteryHint,
-            onDismissBatteryHint = onDismissBatteryHint,
             onOpenRest = onOpenRest,
             offerSetClock = showSetClock,
             onStartSetClock = onStartSetClock,
             onNudgeRest = onNudgeRest,
             onCustomRest = onCustomRest,
-            persistenceHealthy = persistenceHealthy,
-            notificationsEnabled = notificationsEnabled,
-            exactAlarmBestEffort = exactAlarmBestEffort,
-            onOpenNotifications = onOpenNotifications,
         )
     }
 }
 
 /**
- * In-set work clock: count-up only. Rest UI is hidden while this runs.
+ * One compact dock instrument: countdown fill behind kicker, time, and
+ * mode controls. REST, HOLD, and SET share this geometry. Reserved
+ * height is [Metrics.logTimerRow]; font scale may grow the row, extra
+ * tracks and honesty captions may not.
  */
 @Composable
-fun SetWorkDock(
-    elapsedSeconds: Int,
+fun FloorInstrumentBar(
+    kicker: String,
+    clock: String,
+    progress: Float,
+    accent: Color,
+    spoken: String,
+    testTag: String,
     modifier: Modifier = Modifier,
-    hold: Boolean = true,
-    targetReached: Boolean = false,
-    onStop: (() -> Unit)? = null,
+    pulseScale: Float = 1f,
+    onClockClick: (() -> Unit)? = null,
+    liveRegion: Boolean = false,
+    trailing: @Composable RowScope.() -> Unit = {},
 ) {
-    val seconds = FloorTimerSurface.setClockSeconds(elapsedSeconds)
-    val clock = HoldWork.clock(seconds)
-    val kicker = when {
-        hold && targetReached -> HoldWork.DONE
-        hold -> FloorTimerSurface.HOLD_KICKER
-        else -> FloorTimerSurface.SET_KICKER
-    }
-    val spoken = if (hold && targetReached) {
-        "${HoldWork.DONE}. Log hold with elapsed time."
-    } else {
-        "$kicker ${HoldWork.clock(FloorTimerSurface.setClockSeconds(elapsedSeconds))} elapsed"
-    }
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = Metrics.rowMin)
-            .testTag("workout-hold-clock")
-            .semantics {
-                contentDescription = spoken
-            },
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
+            .heightIn(min = Metrics.logTimerRow)
+            .clip(RoundedCornerShape(Radius.sm))
+            .background(Surface2)
+            .testTag(testTag),
     ) {
-        Kicker(kicker, color = RestCyan, asHeading = false)
-        Text(
-            clock,
-            modifier = Modifier.weight(1f),
-            style = InstrumentType.numeralMd,
-            color = TextPrimary,
-            maxLines = 1,
-        )
-        if (onStop != null) {
-            TextButton(
-                onClick = onStop,
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(Radius.sm)),
+        ) {
+            Box(
                 modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(progress.coerceIn(0f, 1f))
+                    .background(accent.copy(alpha = 0.28f)),
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Metrics.logTimerRow)
+                .padding(start = Metrics.space2, end = Metrics.space1),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
                     .heightIn(min = Metrics.touchMin)
-                    .testTag("workout-stop-set-clock"),
+                    .then(
+                        if (onClockClick != null) {
+                            Modifier.clickable(role = Role.Button, onClick = onClockClick)
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .semantics {
+                        contentDescription = spoken
+                        if (liveRegion) {
+                            this.liveRegion = LiveRegionMode.Polite
+                        }
+                    },
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                Kicker(kicker, color = accent, asHeading = false)
                 Text(
-                    SetStopwatchCopy.STOP,
-                    style = InstrumentType.bodyStrong,
+                    clock,
+                    modifier = Modifier
+                        .weight(1f)
+                        .graphicsLayer {
+                            scaleX = pulseScale
+                            scaleY = pulseScale
+                        },
+                    style = InstrumentType.numeralMd,
                     color = TextPrimary,
                     maxLines = 1,
                 )
             }
+            trailing()
         }
     }
 }
 
 /**
+ * In-set work clock. Holds count remaining on the same bar as REST.
+ * Stopwatch counts up. Rest UI is hidden while this runs.
+ */
+@Composable
+fun SetWorkDock(
+    elapsedSeconds: Int,
+    modifier: Modifier = Modifier,
+    remainingSeconds: Int = 0,
+    totalSeconds: Int = 0,
+    hold: Boolean = true,
+    targetReached: Boolean = false,
+    running: Boolean = true,
+    onStop: (() -> Unit)? = null,
+) {
+    val kicker = when {
+        hold && targetReached -> HoldWork.DONE
+        hold -> FloorTimerSurface.HOLD_KICKER
+        else -> FloorTimerSurface.SET_KICKER
+    }
+    val displayClock = HoldWork.clock(
+        if (hold && !targetReached) {
+            HoldWork.liveDockSeconds(
+                remainingSeconds = remainingSeconds,
+                targetReached = false,
+                running = running && hold,
+                totalSeconds = totalSeconds,
+            )
+        } else {
+            FloorTimerSurface.setClockSeconds(elapsedSeconds)
+        },
+    )
+    val spoken = if (hold && targetReached) {
+        "${HoldWork.DONE}. Log hold with elapsed time."
+    } else if (hold) {
+        "$kicker $displayClock remaining"
+    } else {
+        "$kicker $displayClock elapsed"
+    }
+    val accent = if (hold && targetReached) PrGold else RestCyan
+    val progress = if (hold) {
+        FloorTimerSurface.holdBarProgress(
+            remainingSeconds = remainingSeconds,
+            totalSeconds = totalSeconds,
+            targetReached = targetReached,
+        )
+    } else {
+        1f
+    }
+    FloorInstrumentBar(
+        kicker = kicker,
+        clock = displayClock,
+        progress = progress,
+        accent = accent,
+        spoken = spoken,
+        testTag = "workout-hold-clock",
+        modifier = modifier,
+        trailing = {
+            if (onStop != null) {
+                RestControl(
+                    label = SetStopwatchCopy.STOP,
+                    onClick = onStop,
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-stop-set-clock"),
+                )
+            }
+        },
+    )
+}
+
+/**
  * The rest clock, pinned in the lower dock above Log set (G-02).
  *
- * The log used to hold an 88 dp ring and a −15 / Skip / +15 stack. That is the floor page
- * now. Here the running state is a ~56 dp row: REST, a [InstrumentType.numeralMd] clock, a
- * 4 dp track, and trailing Skip. Idle is Not running + planned duration + Start.
- * Preset chips live on the floor. Planned duration is tap-to-edit inline.
- * The hairline sits above the row so the list and the dock stay visually split when
- * rest lives at the bottom.
+ * Running rest is one [FloorInstrumentBar]: countdown fill, REST + time,
+ * and −15 / +15 / Skip. Honesty lives in the context rail so this row
+ * cannot collide with the coach line at 360×800. Idle is one matching
+ * bar plus optional presets. The rest page still owns the 280 dp ring.
  */
 @Composable
 fun RestDock(
@@ -274,17 +365,11 @@ fun RestDock(
     completedTimerId: String? = null,
     hideWhenIdle: Boolean = false,
     afterWarmup: Boolean = false,
-    batteryHint: Boolean = false,
-    onDismissBatteryHint: () -> Unit = {},
     onOpenRest: () -> Unit = {},
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
     onNudgeRest: (Int) -> Unit = {},
     onCustomRest: (String) -> Boolean = { false },
-    persistenceHealthy: Boolean = true,
-    notificationsEnabled: Boolean = true,
-    exactAlarmBestEffort: Boolean = false,
-    onOpenNotifications: () -> Unit = {},
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
@@ -325,18 +410,8 @@ fun RestDock(
         remember { mutableFloatStateOf(1f) }
     }
 
-    val honesty = RestHonestyCopy.pick(
-        persistenceHealthy = persistenceHealthy,
-        restRunning = running,
-        notificationsEnabled = notificationsEnabled,
-        batteryHint = batteryHint,
-        exactBestEffort = exactAlarmBestEffort,
-        onRestPage = false,
-    )
-
     if (!running && !justFinished) {
         if (hideWhenIdle) return
-        HairlineDivider(startIndent = 0.dp)
         RestIdleRow(
             totalSeconds = totalSeconds,
             afterWarmup = afterWarmup,
@@ -346,13 +421,7 @@ fun RestDock(
             onStartSetClock = onStartSetClock,
             onNudgeRest = onNudgeRest,
             onCustomRest = onCustomRest,
-            honesty = honesty,
-            onDismissBatteryHint = onDismissBatteryHint,
-            onOpenNotifications = onOpenNotifications,
-            modifier = modifier
-                .fillMaxWidth()
-                .background(Surface1)
-                .padding(horizontal = Metrics.space4, vertical = Metrics.space2),
+            modifier = modifier.fillMaxWidth(),
         )
         return
     }
@@ -366,100 +435,55 @@ fun RestDock(
     }
     val clock = RestTimer.formatClock(if (justFinished) 0 else safeRemaining)
     val kicker = TalkBackPolicy.restKicker(justFinished)
+    val spoken = buildString {
+        append("$kicker $clock remaining.")
+        if (urgent) append(" Last ten seconds.")
+        append(" Open rest timer.")
+    }
 
-    HairlineDivider(startIndent = 0.dp)
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Surface1)
-            .padding(horizontal = Metrics.space4, vertical = Metrics.space2),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = Metrics.rowMin),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .testTag("workout-rest-bar")
-                .clickable(role = Role.Button, onClick = onOpenRest)
-                .semantics {
-                    contentDescription = "$kicker $clock remaining. Open rest timer."
-                    if (TalkBackPolicy.announceRestKicker(justFinished)) {
-                        liveRegion = LiveRegionMode.Polite
-                    }
-                },
-            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Kicker(kicker, color = accent, asHeading = false)
-                Text(
-                    clock,
-                    modifier = Modifier.graphicsLayer {
-                        scaleX = pulseScale
-                        scaleY = pulseScale
-                    },
-                    style = InstrumentType.numeralMd,
-                    color = TextPrimary,
-                    maxLines = 1,
+    FloorInstrumentBar(
+        kicker = kicker,
+        clock = clock,
+        progress = RestTimer.sweepFraction(
+            remainingSeconds = if (justFinished) 0 else safeRemaining,
+            totalSeconds = totalSeconds,
+        ),
+        accent = accent,
+        spoken = spoken,
+        testTag = "workout-rest-bar",
+        modifier = modifier.fillMaxWidth(),
+        pulseScale = pulseScale,
+        onClockClick = onOpenRest,
+        liveRegion = TalkBackPolicy.announceRestKicker(justFinished),
+        trailing = {
+            if (running) {
+                RestControl(
+                    label = "−15",
+                    spoken = "Minus 15 seconds",
+                    onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-rest-minus"),
+                )
+                RestControl(
+                    label = "+15",
+                    spoken = "Plus 15 seconds",
+                    onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-rest-plus"),
+                )
+                RestControl(
+                    label = "Skip",
+                    onClick = onSkip,
+                    confirm = true,
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-rest-skip"),
                 )
             }
-            RestLinearTrack(
-                remainingSeconds = if (justFinished) 0 else safeRemaining,
-                totalSeconds = totalSeconds,
-                accent = accent,
-                finished = justFinished,
-            )
-            if (urgent) {
-                Text(
-                    "10 seconds",
-                    style = InstrumentType.caption,
-                    color = Warn,
-                    maxLines = 1,
-                )
-            }
-        }
-        if (running) {
-            RestControl(
-                label = "−15",
-                spoken = "Minus 15 seconds",
-                onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
-                modifier = Modifier
-                    .widthIn(min = Metrics.touchMin)
-                    .testTag("workout-rest-minus"),
-            )
-            RestControl(
-                label = "+15",
-                spoken = "Plus 15 seconds",
-                onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
-                modifier = Modifier
-                    .widthIn(min = Metrics.touchMin)
-                    .testTag("workout-rest-plus"),
-            )
-            RestControl(
-                label = "Skip",
-                onClick = onSkip,
-                confirm = true,
-                modifier = Modifier
-                    .widthIn(min = Metrics.touchMin)
-                    .testTag("workout-rest-skip"),
-            )
-        }
-    }
-        RestHonestyRow(
-            honesty = honesty,
-            onDismissBatteryHint = onDismissBatteryHint,
-            onOpenNotifications = onOpenNotifications,
-        )
-    }
+        },
+    )
 }
 
 @Composable
@@ -572,9 +596,6 @@ fun RestIdleRow(
     onStartSetClock: () -> Unit = {},
     onNudgeRest: (Int) -> Unit = {},
     onCustomRest: (String) -> Boolean = { false },
-    honesty: RestHonestyCopy.Honesty? = null,
-    onDismissBatteryHint: () -> Unit = {},
-    onOpenNotifications: () -> Unit = {},
 ) {
     var picking by rememberSaveable { mutableStateOf(false) }
     var showCustom by rememberSaveable { mutableStateOf(false) }
@@ -586,13 +607,13 @@ fun RestIdleRow(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        RestHonestyRow(
-            honesty = honesty,
-            onDismissBatteryHint = onDismissBatteryHint,
-            onOpenNotifications = onOpenNotifications,
-        )
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Metrics.logTimerRow)
+                .clip(RoundedCornerShape(Radius.sm))
+                .background(Surface2)
+                .padding(horizontal = Metrics.space2),
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             verticalAlignment = Alignment.CenterVertically,
         ) {

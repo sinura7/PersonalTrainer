@@ -69,6 +69,13 @@ object FloorCompactChrome {
     /** Rest and set clocks share one dock slot; modes never stack. */
     fun oneClockTwoModes(): Boolean = true
 
+    /**
+     * REST / HOLD / SET share one compact instrument bar: countdown
+     * fill, time, and mode controls. Not a tall card, not a second
+     * clock, not a wheel. Reserved height is the 56 dp timer row.
+     */
+    fun timerIsCompactInstrumentBar(): Boolean = true
+
     /** Packet E: planned rest is presets / ±15 / Custom, not a 15 s wheel. */
     fun restLengthIsInlineWheel(): Boolean = false
 

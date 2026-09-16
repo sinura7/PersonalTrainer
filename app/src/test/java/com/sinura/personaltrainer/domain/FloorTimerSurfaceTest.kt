@@ -77,6 +77,25 @@ class FloorTimerSurfaceTest {
                 plannedRestSeconds = 90,
             ),
         )
+        assertEquals(
+            "HOLD 0:30",
+            FloorTimerSurface.holdBarClock(
+                remainingSeconds = 30,
+                targetReached = false,
+                running = true,
+                totalSeconds = 30,
+            ),
+        )
+        assertFalse(
+            FloorTimerSurface.holdBarClock(
+                remainingSeconds = 0,
+                targetReached = false,
+                running = true,
+                totalSeconds = 30,
+            ).contains("0:00"),
+        )
+        assertEquals(1f, FloorTimerSurface.holdBarProgress(30, 30, targetReached = false))
+        assertEquals(0f, FloorTimerSurface.holdBarProgress(0, 30, targetReached = true))
     }
 
     @Test
