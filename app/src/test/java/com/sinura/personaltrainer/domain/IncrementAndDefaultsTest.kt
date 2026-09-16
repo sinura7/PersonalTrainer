@@ -282,6 +282,20 @@ class AddDefaultsTest {
         assertEquals(TargetDefaults(3, 10, 90), defaultsFor("ex-machine-chest-press"))
         assertEquals(TargetDefaults(3, 6, 120), defaultsFor("ex-dip"))
         assertEquals(TargetDefaults(3, 5, 150), defaultsFor("ex-barbell-back-squat"))
+        // Empty-hands dumbbell families log 0 as BODYWEIGHT_PLUS; dose stays
+        // the EXTERNAL compound row so generated Lower days keep 3 × 8.
+        listOf(
+            "ex-walking-lunge",
+            "ex-reverse-lunge",
+            "ex-bulgarian-split-squat",
+            "ex-dumbbell-step-up",
+        ).forEach { id ->
+            assertEquals(id, TargetDefaults(3, 5, 150), defaultsFor(id))
+        }
+        assertEquals(
+            TargetDefaults(3, 6, 120),
+            defaultsFor("ex-hyper-pro-bulgarian-split-squat"),
+        )
     }
 }
 

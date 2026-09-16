@@ -70,7 +70,15 @@ object AddDefaults {
                 seconds = HoldWork.DEFAULT_SECONDS,
             )
         }
-        return forExercise(exercise.loadType, isCompound(exercise), role, goal)
+        // Empty-hands dumbbell lunges / step-ups log as BODYWEIGHT_PLUS so 0 kg
+        // is a complete set. Their session dose stays the EXTERNAL compound
+        // row they had before that recategorization — 3 × 5 / 150 as a
+        // primary, 3 × 8 / 90 as an accessory — so generated Lower days do not
+        // quietly move from 8 to 9 reps.
+        val loadForDose =
+            if (UnloadedLoad.sizesLikeExternalCompound(exercise)) LoadType.EXTERNAL
+            else exercise.loadType
+        return forExercise(loadForDose, isCompound(exercise), role, goal)
     }
 
     /**

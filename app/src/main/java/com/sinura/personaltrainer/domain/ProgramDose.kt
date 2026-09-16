@@ -42,7 +42,8 @@ object ProgramDose {
         dose: SessionDose,
     ): TargetDefaults = apply(
         table = AddDefaults.forExercise(
-            exercise.loadType,
+            if (UnloadedLoad.sizesLikeExternalCompound(exercise)) LoadType.EXTERNAL
+            else exercise.loadType,
             AddDefaults.isCompound(exercise),
             role,
         ),

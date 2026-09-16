@@ -73,7 +73,10 @@ class UnloadedLoadTest {
             assertEquals(seed.name, EquipmentType.DUMBBELL, seed.equipment)
             assertEquals(seed.name, LoadType.BODYWEIGHT_PLUS, seed.loadType)
             assertEquals(LoadClass.BODYWEIGHT_ADDED, LoadClass.of(seed.loadType))
+            assertTrue(seed.name, UnloadedLoad.sizesLikeExternalCompound(seed))
         }
+        val hyper = DefaultExercises.catalog().first { it.id == "ex-hyper-pro-bulgarian-split-squat" }
+        assertFalse(UnloadedLoad.sizesLikeExternalCompound(hyper))
         val lunge = DefaultExercises.catalog().first { it.id == "ex-walking-lunge" }
         assertEquals(
             "13 reps",

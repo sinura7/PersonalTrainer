@@ -43,6 +43,20 @@ object UnloadedLoad {
         allowsZeroWorkingWeight(exercise.loadType, exercise.equipment, exercise.movementKey)
 
     /**
+     * Session dose for empty-hands dumbbell lunges and step-ups.
+     *
+     * Logging is [LoadType.BODYWEIGHT_PLUS]; the set/rep/rest table they
+     * already had is the EXTERNAL compound row. Hyper Pro siblings stay on
+     * the BODYWEIGHT_PLUS table — they were never EXTERNAL.
+     */
+    fun sizesLikeExternalCompound(exercise: Exercise): Boolean =
+        exercise.equipment == EquipmentType.DUMBBELL &&
+            exercise.movementKey in EMPTY_HANDS_FAMILIES
+
+    fun sizesLikeExternalCompound(seed: SeedExercise): Boolean =
+        seed.equipment == EquipmentType.DUMBBELL && seed.movementKey in EMPTY_HANDS_FAMILIES
+
+    /**
      * Every built-in that may log 0, in catalog order.
      *
      * Tests pin the names so a later catalog row cannot quietly inherit — or
