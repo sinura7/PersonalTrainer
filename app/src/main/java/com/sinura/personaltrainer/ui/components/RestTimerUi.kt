@@ -87,6 +87,7 @@ import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.RestCyan
+import com.sinura.personaltrainer.ui.theme.RestCyanDim
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -224,7 +225,7 @@ fun FloorInstrumentBar(
                 modifier = Modifier
                     .fillMaxHeight()
                     .fillMaxWidth(progress.coerceIn(0f, 1f))
-                    .background(accent.copy(alpha = 0.28f)),
+                    .background(RestCyanDim),
             )
         }
         Row(
