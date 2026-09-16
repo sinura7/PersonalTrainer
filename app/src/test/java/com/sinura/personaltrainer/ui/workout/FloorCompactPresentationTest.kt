@@ -28,7 +28,7 @@ class FloorCompactPresentationTest {
     fun logSetStaysTheOnlyVoltAndIdleRestIsOneLine() {
         val dock = readOwned("ui/components/RestTimerUi.kt")
         val idleStart = dock.indexOf("fun RestIdleRow")
-        val idleEnd = dock.indexOf("fun RestLinearTrack")
+        val idleEnd = dock.indexOf("fun RestDurationSheet")
         assertTrue(idleStart >= 0 && idleEnd > idleStart)
         val idle = dock.substring(idleStart, idleEnd)
         assertFalse("idle Start next must not be a filled Volt", idle.contains("PrimaryGymButton"))
@@ -37,9 +37,11 @@ class FloorCompactPresentationTest {
             idle.contains("RestIdleCopy.START_NEXT"),
         )
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.showIdleStartNext())
-        assertTrue(idle.contains("RestIdleCopy.START"))
-        assertTrue(idle.contains("TextButton("))
+        assertTrue(idle.contains("RestIdleCopy.startSpoken") || idle.contains("RestIdleCopy.START"))
+        assertFalse("Time set must not be a full-width idle row", idle.contains("TextButton("))
+        assertTrue(idle.contains("FloorInstrumentBar("))
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.idleStartNextIsVolt())
+        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.idleRestIsInstrumentBar())
 
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertTrue(bar.contains("PrimaryGymButton("))

@@ -19,9 +19,12 @@ class FloorPacket3StopwatchTest {
         assertTrue(dock.contains("workout-stop-set-clock"))
         assertTrue(dock.contains("offerSetClock"))
         val idleStart = dock.indexOf("fun RestIdleRow")
-        val idleEnd = dock.indexOf("fun RestLinearTrack")
+        val idleEnd = dock.indexOf("fun RestDurationSheet")
         val idle = dock.substring(idleStart, idleEnd)
         assertFalse("Time set must not be a filled Volt", idle.contains("PrimaryGymButton"))
+        assertTrue(idle.contains("offerSetClock"))
+        assertTrue(dock.contains("RestIconControl("))
+        assertTrue(dock.contains("SetStopwatchCopy.START_SPOKEN"))
     }
 
     @Test

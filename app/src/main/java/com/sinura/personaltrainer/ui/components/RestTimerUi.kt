@@ -26,13 +26,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -88,6 +95,7 @@ import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.RestCyanDim
 import com.sinura.personaltrainer.ui.theme.Surface2
+import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
@@ -101,8 +109,8 @@ import kotlinx.coroutines.delay
  * One clock slot in the lower dock (Packet E).
  *
  * Rest counts down; a running set counts up. Modes never stack. Planned
- * rest is presets / ±15 / Custom. Overlay rest on the live log stays
- * forbidden (ADR-012).
+ * rest is the same instrument at rest; duration editing is a sheet.
+ * Overlay rest on the live log stays forbidden (ADR-012).
  */
 @Composable
 fun FloorTimerSlot(
@@ -111,7 +119,6 @@ fun FloorTimerSlot(
     restRunning: Boolean,
     onSkip: () -> Unit,
     onStart: () -> Unit,
-    onSelectRestDuration: (Int) -> Unit,
     modifier: Modifier = Modifier,
     completedTimerId: String? = null,
     hideWhenIdle: Boolean = false,
@@ -119,6 +126,7 @@ fun FloorTimerSlot(
     batteryHint: Boolean = false,
     onDismissBatteryHint: () -> Unit = {},
     onOpenRest: () -> Unit = {},
+    onEditRestDuration: () -> Unit = {},
     holdRunning: Boolean = false,
     holdElapsedSeconds: Int = 0,
     holdRemainingSeconds: Int = 0,
@@ -130,7 +138,6 @@ fun FloorTimerSlot(
     onStartSetClock: () -> Unit = {},
     onStopSetClock: () -> Unit = {},
     onNudgeRest: (Int) -> Unit = {},
-    onCustomRest: (String) -> Boolean = { false },
     persistenceHealthy: Boolean = true,
     notificationsEnabled: Boolean = true,
     exactAlarmBestEffort: Boolean = false,
@@ -173,16 +180,15 @@ fun FloorTimerSlot(
             running = restRunning,
             onSkip = onSkip,
             onStart = onStart,
-            onSelectRestDuration = onSelectRestDuration,
             modifier = modifier,
             completedTimerId = completedTimerId,
             hideWhenIdle = hideWhenIdle,
             afterWarmup = afterWarmup,
             onOpenRest = onOpenRest,
+            onEditRestDuration = onEditRestDuration,
             offerSetClock = showSetClock,
             onStartSetClock = onStartSetClock,
             onNudgeRest = onNudgeRest,
-            onCustomRest = onCustomRest,
         )
     }
 }
@@ -209,6 +215,15 @@ fun FloorInstrumentBar(
     onNudgeRest: (Int) -> Unit = {},
     onSkip: () -> Unit = {},
     onStop: (() -> Unit)? = null,
+    clockColor: Color = TextPrimary,
+    showChevron: Boolean = false,
+    leadingGlyph: ImageVector? = null,
+    glyphTint: Color = TextSecondary,
+    showIdleStart: Boolean = false,
+    onStart: () -> Unit = {},
+    startSpoken: String? = null,
+    offerSetClock: Boolean = false,
+    onStartSetClock: () -> Unit = {},
 ) {
     Box(
         modifier = modifier
@@ -258,6 +273,9 @@ fun FloorInstrumentBar(
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                leadingGlyph?.let { glyph ->
+                    FloorFieldGlyph(icon = glyph, tint = glyphTint)
+                }
                 Kicker(kicker, color = accent, asHeading = false)
                 Text(
                     clock,
@@ -268,9 +286,18 @@ fun FloorInstrumentBar(
                             scaleY = pulseScale
                         },
                     style = InstrumentType.numeralMd,
-                    color = TextPrimary,
+                    color = clockColor,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                if (showChevron) {
+                    Icon(
+                        imageVector = TemperIcons.Chevron,
+                        contentDescription = null,
+                        tint = TextSecondary,
+                        modifier = Modifier.size(Metrics.chevron),
+                    )
+                }
             }
             if (showRestControls) {
                 RestControl(
@@ -296,6 +323,24 @@ fun FloorInstrumentBar(
                     modifier = Modifier
                         .widthIn(min = Metrics.touchMin)
                         .testTag("workout-rest-skip"),
+                )
+            }
+            if (showIdleStart) {
+                if (offerSetClock) {
+                    RestIconControl(
+                        icon = TemperIcons.Stopwatch,
+                        spoken = SetStopwatchCopy.START_SPOKEN,
+                        onClick = onStartSetClock,
+                        modifier = Modifier.testTag("workout-start-set-clock"),
+                    )
+                }
+                RestControl(
+                    label = RestIdleCopy.START,
+                    spoken = startSpoken,
+                    onClick = onStart,
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-start-rest"),
                 )
             }
             if (onStop != null) {
@@ -377,8 +422,8 @@ fun SetWorkDock(
  *
  * Running rest is one [FloorInstrumentBar]: countdown fill, REST + time,
  * and −15 / +15 / Skip. Honesty lives in the context rail so this row
- * cannot collide with the coach line at 360×800. Idle is one matching
- * bar plus optional presets. The rest page still owns the 280 dp ring.
+ * cannot collide with the coach line at 360×800. Idle is the same bar at
+ * rest. The rest page still owns the 280 dp ring.
  */
 @Composable
 fun RestDock(
@@ -387,16 +432,15 @@ fun RestDock(
     running: Boolean,
     onSkip: () -> Unit,
     onStart: () -> Unit,
-    onSelectRestDuration: (Int) -> Unit,
     modifier: Modifier = Modifier,
     completedTimerId: String? = null,
     hideWhenIdle: Boolean = false,
     afterWarmup: Boolean = false,
     onOpenRest: () -> Unit = {},
+    onEditRestDuration: () -> Unit = {},
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
     onNudgeRest: (Int) -> Unit = {},
-    onCustomRest: (String) -> Boolean = { false },
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
@@ -443,11 +487,9 @@ fun RestDock(
             totalSeconds = totalSeconds,
             afterWarmup = afterWarmup,
             onStart = onStart,
-            onSelectRestDuration = onSelectRestDuration,
+            onEditDuration = onEditRestDuration,
             offerSetClock = offerSetClock,
             onStartSetClock = onStartSetClock,
-            onNudgeRest = onNudgeRest,
-            onCustomRest = onCustomRest,
             modifier = modifier.fillMaxWidth(),
         )
         return
@@ -582,108 +624,147 @@ fun RestHonestyRow(
 }
 
 /**
- * Idle rest on the log: not a countdown. Planned duration is Rest 1:30
- * with quiet −15/+15, presets on tap, and Start. Start next is not
- * composed (Packet A). Log set, pinned under this dock, is the filled
- * act.
+ * Idle rest on the log: the same instrument as running rest, at rest.
+ * Dim REST kicker, dim planned clock, empty track, chevron, Start, and
+ * an optional Time-set mark. Presets and ±15 live in [RestDurationSheet].
  */
 @Composable
 fun RestIdleRow(
     totalSeconds: Int,
     onStart: () -> Unit,
-    onSelectRestDuration: (Int) -> Unit,
+    onEditDuration: () -> Unit,
     modifier: Modifier = Modifier,
     afterWarmup: Boolean = false,
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
-    onNudgeRest: (Int) -> Unit = {},
-    onCustomRest: (String) -> Boolean = { false },
 ) {
-    var picking by rememberSaveable { mutableStateOf(false) }
-    var showCustom by rememberSaveable { mutableStateOf(false) }
     val safeTotal = totalSeconds.coerceAtLeast(0)
     val clock = RestTimer.formatClock(safeTotal)
-    val duration = RestIdleCopy.dockDuration(clock, afterWarmup)
-
-    Column(
+    FloorInstrumentBar(
+        kicker = if (afterWarmup) RestIdleCopy.WARMUP_KICKER else TalkBackPolicy.REST_RUNNING_KICKER,
+        clock = clock,
+        progress = 0f,
+        accent = TextSecondary,
+        spoken = RestIdleCopy.dockSpoken(clock, afterWarmup),
+        testTag = "workout-rest-idle",
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        onClockClick = onEditDuration,
+        clockColor = TextSecondary,
+        showChevron = true,
+        leadingGlyph = TemperIcons.FloorRest,
+        glyphTint = TextSecondary,
+        showIdleStart = true,
+        onStart = onStart,
+        startSpoken = RestIdleCopy.startSpoken(safeTotal),
+        offerSetClock = offerSetClock,
+        onStartSetClock = onStartSetClock,
+    )
+}
+
+/**
+ * Quick duration editor. Overlay: the dock stays 56 dp. Presets apply and
+ * dismiss. Custom opens [CustomRestDialog]. Planned ±15 ticks here; running
+ * ±15 stay on the live bar.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RestDurationSheet(
+    selectedSeconds: Int,
+    onSelect: (Int) -> Unit,
+    onNudge: (Int) -> Unit,
+    onCustomRest: (String) -> Boolean,
+    onDismiss: () -> Unit,
+    offerSetClock: Boolean = false,
+    onTimeSet: () -> Unit = {},
+) {
+    var showCustom by rememberSaveable { mutableStateOf(false) }
+    val reduceMotion = LocalReducedMotion.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val clock = RestTimer.formatClock(selectedSeconds.coerceAtLeast(0))
+    LaunchedEffect(reduceMotion, sheetState) {
+        if (reduceMotion && sheetState.currentValue != SheetValue.Expanded) {
+            sheetState.snapTo(SheetValue.Expanded)
+        }
+    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Surface3,
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = Metrics.logTimerRow)
-                .clip(RoundedCornerShape(Radius.sm))
-                .background(Surface2)
-                .padding(horizontal = Metrics.space2),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            verticalAlignment = Alignment.CenterVertically,
+                .verticalScroll(rememberScrollState())
+                .testTag("workout-rest-duration-sheet")
+                .padding(horizontal = Metrics.gutter)
+                .padding(bottom = Metrics.space4),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space3),
         ) {
-            FloorFieldGlyph(icon = TemperIcons.FloorRest)
-            Text(
-                duration,
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = Metrics.touchMin)
-                    .testTag("workout-rest-idle")
-                    .clickable(role = Role.Button) { picking = !picking }
-                    .semantics {
-                        contentDescription = RestIdleCopy.spoken(clock, afterWarmup) +
-                            " Tap for rest presets."
-                    },
-                style = InstrumentType.bodyStrong,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            RestControl(
-                label = "−15",
-                spoken = "Minus 15 seconds",
-                onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
-                modifier = Modifier
-                    .widthIn(min = Metrics.touchMin)
-                    .testTag("workout-rest-minus"),
-            )
-            RestControl(
-                label = "+15",
-                spoken = "Plus 15 seconds",
-                onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
-                modifier = Modifier
-                    .widthIn(min = Metrics.touchMin)
-                    .testTag("workout-rest-plus"),
-            )
-            RestControl(
-                label = RestIdleCopy.START,
-                onClick = onStart,
-                modifier = Modifier
-                    .widthIn(min = Metrics.touchMin)
-                    .testTag("workout-start-rest"),
-            )
-        }
-        if (picking) {
-            RestPresetChips(
-                selectedSeconds = safeTotal,
-                onSelect = { seconds ->
-                    onSelectRestDuration(seconds)
-                    picking = false
-                },
-                onCustom = { showCustom = true },
-            )
-        }
-        if (offerSetClock && !picking) {
-            TextButton(
-                onClick = onStartSetClock,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = Metrics.touchMin)
-                    .testTag("workout-start-set-clock"),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    SetStopwatchCopy.START,
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
+                    RestIdleCopy.SHEET_TITLE,
+                    style = InstrumentType.title,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    clock,
+                    style = InstrumentType.numeralMd,
+                    color = TextPrimary,
                     maxLines = 1,
                 )
+            }
+            RestPresetChips(
+                selectedSeconds = selectedSeconds,
+                onSelect = onSelect,
+                onCustom = { showCustom = true },
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                RestControl(
+                    label = "−15",
+                    spoken = "Minus 15 seconds",
+                    onClick = { onNudge(-RestTimer.NUDGE_SECONDS) },
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-rest-sheet-minus"),
+                )
+                RestControl(
+                    label = "+15",
+                    spoken = "Plus 15 seconds",
+                    onClick = { onNudge(RestTimer.NUDGE_SECONDS) },
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-rest-sheet-plus"),
+                )
+                if (offerSetClock) {
+                    TextButton(
+                        onClick = onTimeSet,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = Metrics.touchMin)
+                            .testTag("workout-sheet-start-set-clock")
+                            .semantics {
+                                contentDescription = SetStopwatchCopy.START_SPOKEN
+                            },
+                    ) {
+                        Text(
+                            SetStopwatchCopy.START,
+                            style = InstrumentType.bodyStrong,
+                            color = TextSecondary,
+                            maxLines = 1,
+                        )
+                    }
+                }
             }
         }
     }
@@ -695,11 +776,42 @@ fun RestIdleRow(
                 val ok = onCustomRest(input)
                 if (ok) {
                     showCustom = false
-                    picking = false
+                    onDismiss()
                 }
                 ok
             },
             onDismiss = { showCustom = false },
+        )
+    }
+}
+
+@Composable
+fun RestIconControl(
+    icon: ImageVector,
+    spoken: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val view = LocalView.current
+    Box(
+        modifier = modifier
+            .widthIn(min = Metrics.touchMin)
+            .heightIn(min = Metrics.touchMin)
+            .clip(RoundedCornerShape(Radius.sm))
+            .background(Surface2)
+            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
+            .clickable(role = Role.Button) {
+                Haptics.tick(view)
+                onClick()
+            }
+            .semantics { contentDescription = spoken },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = TextPrimary,
+            modifier = Modifier.size(Metrics.icon),
         )
     }
 }

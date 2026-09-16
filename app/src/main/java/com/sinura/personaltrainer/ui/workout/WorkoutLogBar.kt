@@ -11,6 +11,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,6 +46,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.RestDurationSheet
 import com.sinura.personaltrainer.ui.components.RestHonestyRow
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.ThumbSize
@@ -121,6 +123,10 @@ internal fun LogBar(
     onUndo: () -> Unit = {},
     onUndoDismissed: () -> Unit = {},
 ) {
+    var durationSheet by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(showTimer, restRunning, hideIdleRest) {
+        if (!showTimer || restRunning || hideIdleRest) durationSheet = false
+    }
     val nextAct = showNext && !editing
     val finishAct = showFinish && !editing
     val timedActive = restRunning || holdRunning || stopwatchRunning
@@ -165,11 +171,10 @@ internal fun LogBar(
                     onStopSetClock = onStopSetClock,
                     onSkip = onSkipRest,
                     onStart = onStartRest,
-                    onSelectRestDuration = onSelectRestDuration,
                     onNudgeRest = onNudgeRest,
-                    onCustomRest = onCustomRest,
                     onDismissBatteryHint = onDismissRestBatteryHint,
                     onOpenRest = onOpenRest,
+                    onEditRestDuration = { durationSheet = true },
                     persistenceHealthy = restPersistenceHealthy,
                     notificationsEnabled = notificationsEnabled,
                     exactAlarmBestEffort = restExactBestEffort,
@@ -257,6 +262,23 @@ internal fun LogBar(
                     height = Metrics.commit,
                     hapticFeedback = true,
                 )
+            },
+        )
+    }
+    if (durationSheet) {
+        RestDurationSheet(
+            selectedSeconds = restTotalSeconds,
+            onSelect = { seconds ->
+                onSelectRestDuration(seconds)
+                durationSheet = false
+            },
+            onNudge = onNudgeRest,
+            onCustomRest = onCustomRest,
+            onDismiss = { durationSheet = false },
+            offerSetClock = offerSetClock,
+            onTimeSet = {
+                durationSheet = false
+                onStartSetClock()
             },
         )
     }

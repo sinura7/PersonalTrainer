@@ -116,6 +116,8 @@ object WorkoutTestTags {
     const val SWITCHER_ADD_LIFT = "workout-switcher-add-lift"
     const val CONTEXT_RAIL = "workout-context-rail"
     const val TIMER_ROW = "workout-timer-row"
+    const val REST_DURATION_SHEET = "workout-rest-duration-sheet"
+    const val SHEET_START_SET_CLOCK = "workout-sheet-start-set-clock"
     const val SESSION_NOTES = "workout-session-notes"
     const val WEIGHT_STEPPER = "workout-weight-stepper"
     const val REPS_STEPPER = "workout-reps-stepper"
@@ -167,6 +169,18 @@ fun ActiveWorkoutScreen(
     val afterWarmup = selected?.let { lift ->
         session?.setsFor(lift.exercise.id)?.maxByOrNull { it.completedAt }?.isWarmup == true
     } == true
+    val holdLift = selected?.exercise?.let { HoldWork.isHold(it) } == true
+    val offerSetClock = FloorTimedModeResolver.offerSetClock(
+        mode = FloorTimerSurface.mode(
+            holdRunning = holdTimer.running,
+            stopwatchRunning = setStopwatch.running,
+            hasLifts = session?.hasLifts() == true,
+            restRunning = rest.running,
+            restComplete = rest.completedTimerId != null && !rest.running,
+            holdActive = holdTimer.running || holdTimer.targetReached,
+        ),
+        isHoldLift = holdLift,
+    ) && state.offerSetClock
     val advance = remember(session, state.selectedExerciseId, extraSetRequested, state.editingSetId) {
         WorkoutAdvance.forSelection(
             session = session,
@@ -401,17 +415,7 @@ fun ActiveWorkoutScreen(
                             holdTargetReached = holdTimer.targetReached,
                             stopwatchRunning = setStopwatch.running,
                             stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
-                            offerSetClock = FloorTimedModeResolver.offerSetClock(
-                                mode = FloorTimerSurface.mode(
-                                    holdRunning = holdTimer.running,
-                                    stopwatchRunning = setStopwatch.running,
-                                    hasLifts = session?.hasLifts() == true,
-                                    restRunning = rest.running,
-                                    restComplete = rest.completedTimerId != null && !rest.running,
-                                    holdActive = holdArmed,
-                                ),
-                                isHoldLift = hold,
-                            ) && state.offerSetClock,
+                            offerSetClock = offerSetClock,
                             onStartSetClock = viewModel::startSetStopwatch,
                             onStopSetClock = viewModel::stopSetStopwatch,
                             onSkipRest = viewModel::skipRest,

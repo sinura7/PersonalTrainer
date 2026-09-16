@@ -102,6 +102,10 @@ object TemperIcons {
     val Chevron: ImageVector
         get() = chevron ?: chevronMark().also { chevron = it }
 
+    /** Idle Time-set mark. Floor rest keeps [FloorRest]; this adds a crown. */
+    val Stopwatch: ImageVector
+        get() = stopwatch ?: stopwatchMark().also { stopwatch = it }
+
     private var home: ImageVector? = null
     private var body: ImageVector? = null
     private var plan: ImageVector? = null
@@ -126,6 +130,7 @@ object TemperIcons {
     private var foundation: ImageVector? = null
     private var check: ImageVector? = null
     private var chevron: ImageVector? = null
+    private var stopwatch: ImageVector? = null
 }
 
 /** One black fill so the named-colour ratchet does not count every path. */
@@ -208,4 +213,14 @@ private fun checkMark(): ImageVector = vector("Check") {
 
 private fun chevronMark(): ImageVector = vector("Chevron") {
     plate(8.8f, 4.8f, 11.4f, 4.8f, 17.4f, 12.0f, 11.4f, 19.2f, 8.8f, 19.2f, 14.4f, 12.0f)
+}
+
+/** Rectangular clock in the floor-rest language, plus a crown for Time set. */
+private fun stopwatchMark(): ImageVector = vector("Stopwatch") {
+    plate(10.0f, 1.6f, 14.0f, 1.6f, 14.0f, 4.4f, 10.0f, 4.4f)
+    plate(4.0f, 5.0f, 20.0f, 5.0f, 20.0f, 7.0f, 4.0f, 7.0f)
+    plate(4.0f, 7.0f, 6.0f, 7.0f, 6.0f, 18.0f, 4.0f, 18.0f)
+    plate(18.0f, 7.0f, 20.0f, 7.0f, 20.0f, 18.0f, 18.0f, 18.0f)
+    plate(4.0f, 18.0f, 20.0f, 18.0f, 20.0f, 20.4f, 4.0f, 20.4f)
+    plate(11.0f, 8.2f, 13.0f, 8.2f, 13.0f, 13.4f, 16.2f, 13.4f, 16.2f, 15.4f, 11.0f, 15.4f)
 }

@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 16 Sep 2026 — Idle rest is the same 56 dp instrument bar as running rest
+> (dim numeral, empty track, Start). Duration presets, Custom, and
+> planned ±15 live in a sheet. Time set is a 48 dp mark in the idle bar.
+> Gym-floor `appVersionCode` stays 1. No Obtainium drop in this packet.
+>
 > 16 Sep 2026 — Live 76: compact gym-floor rest / hold / set instrument bar on
 > `trunk`.
 > `debugLiveCode` 76; suffix from
