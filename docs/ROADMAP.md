@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 16 Sep 2026 — Live 76: compact gym-floor rest / hold / set instrument bar on
+> `trunk`.
+> `debugLiveCode` 76; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 16 Sep 2026 — Compact gym-floor rest / hold / set instrument bar on
 > `trunk`. One 56 dp countdown-fill row; REST no longer collides with
 > the coach line at 360×800. Gym-floor `appVersionCode` stays 1.
