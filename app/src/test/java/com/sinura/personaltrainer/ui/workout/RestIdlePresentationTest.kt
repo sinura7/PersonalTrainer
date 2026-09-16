@@ -64,7 +64,7 @@ class RestIdlePresentationTest {
         assertTrue(bar.contains("onSelectRestDuration"))
         assertTrue(bar.contains("durationSheet"))
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("WorkoutTestTags.REST_DURATION_SHEET"))
+        assertTrue(screen.contains("const val REST_DURATION_SHEET"))
         assertTrue(screen.contains("onSelectRestDuration = viewModel::selectRestDuration"))
     }
 
