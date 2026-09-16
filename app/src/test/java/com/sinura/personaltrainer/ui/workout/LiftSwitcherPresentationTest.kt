@@ -10,7 +10,7 @@ class LiftSwitcherPresentationTest {
     fun oneCurrentLiftOpensSessionSwitcherNotLibrary() {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.oneCurrentLiftOnFloor())
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("CurrentLiftCard("))
+        assertTrue(screen.contains("CurrentLiftCard(") || screen.contains("ExerciseHero("))
         assertTrue(screen.contains("onOpenSwitcher = { liftSwitcherOpen = true }"))
         assertTrue(screen.contains("LiftSwitcherSheet("))
         assertFalse(screen.contains("itemsIndexed("))
@@ -19,9 +19,21 @@ class LiftSwitcherPresentationTest {
         assertTrue(switcher.contains("ModalBottomSheet("))
         assertTrue(switcher.contains("CurrentLiftCopy.SWITCHER_TITLE"))
         assertTrue(switcher.contains("WorkoutTestTags.LIFT_SWITCHER"))
-        assertFalse(switcher.contains("ExercisePickerSheet"))
-        assertFalse(switcher.contains("ExerciseLibraryScreen"))
-        assertTrue(readOwned("ui/workout/CurrentLiftCard.kt").contains("CurrentLiftCopy.cardSpoken"))
+        assertTrue(switcher.contains("WorkoutTestTags.SWITCHER_ADD_LIFT"))
+        assertTrue(switcher.contains("LogBarCopy.ADD_LIFT"))
+        assertTrue(screen.contains("onAddLift"))
+        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.addLiftLivesInSwitcher())
+        val lazy = screen.indexOf("LazyColumn(")
+        val switcherAt = screen.indexOf("if (liftSwitcherOpen")
+        assertTrue(lazy >= 0 && switcherAt > lazy)
+        assertFalse(
+            "Add a lift must not sit in the set loop once a lift exists",
+            screen.substring(lazy, switcherAt).contains("SecondaryGymButton"),
+        )
+        assertTrue(
+            readOwned("ui/workout/CurrentLiftCard.kt").contains("CurrentLiftCopy.cardSpoken") ||
+                readOwned("ui/workout/CurrentLiftCard.kt").contains("CurrentLiftCopy.heroSpoken"),
+        )
     }
 
     @Test

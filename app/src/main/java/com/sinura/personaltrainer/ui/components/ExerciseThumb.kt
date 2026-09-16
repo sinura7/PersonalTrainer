@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
@@ -52,6 +53,9 @@ object ThumbSize {
     val row = 40.dp
     val header = 56.dp
     val chipGlyph = 20.dp
+    /** Gym-floor exercise hero. Four times the 56 dp header area. */
+    val hero = Metrics.exerciseHeroImage
+    val heroLandscape = Metrics.exerciseHeroImageLandscape
     /** Extra picker rows — image-forward, still a thumb not a hero. */
     val picker = 72.dp
     /** Cardio picker still inside a horizontal card. */
@@ -149,6 +153,8 @@ fun ExerciseThumb(
     exercise: Exercise,
     modifier: Modifier = Modifier,
     size: Dp = ThumbSize.row,
+    showBadge: Boolean = true,
+    artPadding: Dp = Metrics.space1,
 ) {
     val (primary, _) = thumbMuscles(exercise)
     val view = thumbViewFor(primary)
@@ -162,6 +168,7 @@ fun ExerciseThumb(
         value = ThumbCache.load(resources, art, ThumbCache.THUMB_SAMPLE)
     }
     val shape = RoundedCornerShape(Radius.xs)
+    val badgeSize = min(size * BADGE_SHARE, Metrics.equipmentGlyph)
     Box(
         modifier = modifier
             .size(size)
@@ -177,15 +184,17 @@ fun ExerciseThumb(
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(Metrics.space1),
+                    .padding(artPadding),
                 contentScale = ContentScale.Fit,
             )
         }
-        EquipmentBadge(
-            glyph = glyphFor(exercise.equipment),
-            size = size * BADGE_SHARE,
-            modifier = Modifier.align(Alignment.BottomEnd),
-        )
+        if (showBadge) {
+            EquipmentBadge(
+                glyph = glyphFor(exercise.equipment),
+                size = badgeSize,
+                modifier = Modifier.align(Alignment.BottomEnd),
+            )
+        }
     }
 }
 

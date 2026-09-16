@@ -62,7 +62,6 @@ import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
-import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -114,6 +113,9 @@ object WorkoutTestTags {
     const val DOCK_ADD_LIFT = "workout-dock-add-lift"
     const val LIFT_OPTIONS = "workout-lift-options"
     const val LIFT_SWITCHER = "workout-lift-switcher"
+    const val SWITCHER_ADD_LIFT = "workout-switcher-add-lift"
+    const val CONTEXT_RAIL = "workout-context-rail"
+    const val TIMER_ROW = "workout-timer-row"
     const val SESSION_NOTES = "workout-session-notes"
     const val WEIGHT_STEPPER = "workout-weight-stepper"
     const val REPS_STEPPER = "workout-reps-stepper"
@@ -271,7 +273,7 @@ fun ActiveWorkoutScreen(
     Scaffold(
         snackbarHost = {
             val errorBanner = state.error != null && !logBarVisible
-            val undoTop = undoEntries.lastOrNull()?.offer
+            val undoTop = undoEntries.lastOrNull()?.offer.takeIf { !logBarVisible }
             if (errorBanner || undoTop != null) {
                 Column(
                     modifier = Modifier
@@ -299,17 +301,12 @@ fun ActiveWorkoutScreen(
         topBar = {
             WorkoutHeader(
                 routineName = session?.routineName ?: "Workout",
-                startedAt = session?.startedAt,
-                workingSets = session?.sets?.count { !it.isWarmup } ?: 0,
-                work = sessionWork,
-                unit = unit,
                 canFinish = state.canFinish,
                 showDiscard = state.showDiscard,
                 compact = LandscapeChrome.compactHeader(landscape),
                 onExit = { keepAndExit() },
                 onFinish = { confirmEnd = true },
                 onDiscard = { confirmDiscard = true },
-                onOpenTimer = { session?.id?.let(onOpenRest) },
             )
         },
         bottomBar = {
@@ -445,6 +442,12 @@ fun ActiveWorkoutScreen(
                                 viewModel.requestExtraSet()
                             },
                             onCancelEdit = viewModel::cancelEdit,
+                            onDismissError = viewModel::dismissError,
+                            undoMessage = undoEntries.lastOrNull()?.offer?.message,
+                            undoKey = undoEntries.lastOrNull()?.offer?.key,
+                            undoDwellMs = undoDwellMs,
+                            onUndo = viewModel::undoTopOffer,
+                            onUndoDismissed = viewModel::onUndoOfferExpired,
                         )
                     }
                 }
@@ -534,6 +537,11 @@ fun ActiveWorkoutScreen(
                                         onSkip = viewModel::skipForNow,
                                         onRemove = viewModel::removeSelectedLift,
                                         onNotes = { notesOpen = true },
+                                        startedAt = session.startedAt,
+                                        workingSets = session.sets.count { !it.isWarmup },
+                                        work = sessionWork,
+                                        unit = unit,
+                                        landscape = landscape,
                                     )
                                 }
                                 item(key = "current-entry") {
@@ -593,13 +601,6 @@ fun ActiveWorkoutScreen(
                                     )
                                 }
                             }
-                            item(key = "add-lift") {
-                                SecondaryGymButton(
-                                    text = "Add a lift",
-                                    onClick = { viewModel.setPickerVisible(true) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
-                            }
                         }
                     }
                 }
@@ -630,6 +631,10 @@ fun ActiveWorkoutScreen(
                 viewModel.selectExercise(exerciseId)
             },
             onDismiss = { liftSwitcherOpen = false },
+            onAddLift = {
+                liftSwitcherOpen = false
+                viewModel.setPickerVisible(true)
+            },
         )
     }
 

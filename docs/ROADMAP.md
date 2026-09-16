@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 16 Sep 2026 — Image-led gym floor: 112 dp exercise hero, compact
+> Warm-up row, stable timer / context / Log dock. Zero-weight copy
+> stays “no weight”. Gym-floor `appVersionCode` stays 1.
+>
 > 16 Sep 2026 — Live 74: working weight 0 for Walking Lunge and 63 other
 > catalog lifts on `trunk`.
 > `debugLiveCode` 74; suffix from

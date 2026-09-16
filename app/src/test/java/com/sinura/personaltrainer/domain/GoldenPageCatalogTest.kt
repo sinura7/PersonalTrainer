@@ -6,7 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * H3: six gym-floor populated goldens, not the 108-name matrix fan-out.
+ * H3: gym-floor populated goldens, not the 108-name matrix fan-out.
  * PNGs remain an owner emulator gate; this catalog is the JVM contract.
  */
 class GoldenPageCatalogTest {
@@ -64,19 +64,32 @@ class GoldenPageCatalogTest {
     }
 
     @Test
-    fun floorStatesNameTheSixPopulatedCapturesForActiveStrength() {
+    fun floorStatesNameTheNinePopulatedCapturesForActiveStrength() {
         assertEquals(
-            listOf("entry", "rest", "hold", "completion", "error", "entry-font20"),
+            listOf(
+                "working",
+                "warmup",
+                "rest",
+                "hold",
+                "success",
+                "error",
+                "completion",
+                "font20",
+                "reduced-motion",
+            ),
             GoldenPageCatalog.floorStateIds,
         )
         assertEquals(
             listOf(
-                "active-strength-entry-api29",
+                "active-strength-working-api29",
+                "active-strength-warmup-api29",
                 "active-strength-rest-api29",
                 "active-strength-hold-api29",
-                "active-strength-completion-api29",
+                "active-strength-success-api29",
                 "active-strength-error-api29",
-                "active-strength-entry-font20-api29",
+                "active-strength-completion-api29",
+                "active-strength-font20-api29",
+                "active-strength-reduced-motion-api29",
             ),
             GoldenPageCatalog.requiredFloorStateGoldens,
         )

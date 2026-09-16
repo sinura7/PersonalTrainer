@@ -29,9 +29,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.LiftChipCopy
+import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -66,6 +68,7 @@ internal fun LiftSwitcherSheet(
     lifts: List<LiftSwitcherRow>,
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit,
+    onAddLift: () -> Unit = {},
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -86,6 +89,7 @@ internal fun LiftSwitcherSheet(
                 modifier = Modifier.padding(bottom = Metrics.space3),
             )
             LazyColumn(
+                modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
                 itemsIndexed(
@@ -96,6 +100,13 @@ internal fun LiftSwitcherSheet(
                         row = row,
                         total = lifts.size,
                         onSelect = { onSelect(row.lift.exercise.id) },
+                    )
+                }
+                item(key = "add-lift") {
+                    SecondaryGymButton(
+                        text = LogBarCopy.ADD_LIFT,
+                        onClick = onAddLift,
+                        modifier = Modifier.testTag(WorkoutTestTags.SWITCHER_ADD_LIFT),
                     )
                 }
             }

@@ -11,18 +11,16 @@ import org.junit.Test
  */
 class FloorPacket2ToolbarTest {
     @Test
-    fun headerStripIsReadOnlyAndOpensTheTimer() {
+    fun headerStripIsReadOnlyAndTelemetryLivesOnTheHero() {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.headerIsReadOnlyInstrumentStrip())
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.headerShowsMinuteTelemetryOnly())
         val header = readOwned("ui/workout/WorkoutHeader.kt")
-        assertTrue(header.contains("onOpenTimer"))
-        assertTrue(header.contains("WorkoutTestTags.INSTRUMENT_STRIP"))
-        assertTrue(header.contains("SessionTelemetryCopy.line"))
-        assertTrue(header.contains("SessionTelemetryCopy.OPEN_DETAILS") || header.contains("spoken"))
         assertFalse("Start rest must not live in the header", header.contains("onStart"))
         assertFalse("Skip must not live in the header", header.contains("onSkip"))
         assertFalse(header.contains("PrimaryGymButton"))
         assertFalse(header.contains("SnapValueWheel"))
+        assertFalse(header.contains("WorkoutTestTags.INSTRUMENT_STRIP"))
+        assertFalse(header.contains("SessionTelemetryCopy.line"))
         assertFalse(
             "header must not format a seconds clock for session elapsed",
             header.contains("RestTimer.formatClock"),
@@ -32,6 +30,9 @@ class FloorPacket2ToolbarTest {
             header.contains("FloorTimerSurface.instrumentState"),
         )
         assertFalse(header.contains("delay(1_000L)"))
+        val hero = readOwned("ui/workout/CurrentLiftCard.kt")
+        assertTrue(hero.contains("SessionTelemetryCopy.line"))
+        assertTrue(hero.contains("WorkoutTestTags.INSTRUMENT_STRIP"))
     }
 
     @Test
@@ -47,7 +48,7 @@ class FloorPacket2ToolbarTest {
 
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertTrue(screen.contains("showTimer = showRest"))
-        assertTrue(screen.contains("onOpenTimer = { session?.id?.let(onOpenRest) }"))
+        assertTrue(screen.contains("onOpenRest = { session?.id?.let(onOpenRest) }"))
         assertFalse(
             "RestDock must not be a sibling of LogBar in the screen",
             screen.contains("RestDock("),

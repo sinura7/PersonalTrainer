@@ -51,10 +51,20 @@ object FloorCompactChrome {
     fun rpeTrackFitsWithoutScroll(): Boolean = true
 
     /**
-     * Packet 2: header is a read-only instrument strip; the dock owns
-     * the timer, advance choice, and the one Volt Log set.
+     * Header is Close / title / Finish only. Minute telemetry sits on
+     * the exercise hero. The dock owns the timer, context rail, and the
+     * one Volt Log set.
      */
     fun headerIsReadOnlyInstrumentStrip(): Boolean = true
+
+    /** 112 dp still, no neon outline, no overlay badge. */
+    fun imageLedHero(): Boolean = true
+
+    /** Add a lift lives in the switcher once a session lift exists. */
+    fun addLiftLivesInSwitcher(): Boolean = true
+
+    /** Log stays 72 dp filled Volt; Next / Finish are rail text. */
+    fun logButtonStaysAnchored(): Boolean = true
 
     /** Rest and set clocks share one dock slot; modes never stack. */
     fun oneClockTwoModes(): Boolean = true
@@ -78,8 +88,11 @@ object FloorCompactChrome {
     /** Packet F: Add set under the table is gone; Another set lives in the dock. */
     fun addSetHiddenOnFloor(): Boolean = true
 
-    /** Packet F: lift-complete dock replaces the clock with Next / Finish. */
-    fun liftCompleteReplacesClock(): Boolean = true
+    /**
+     * Completion uses the context rail. The timer row stays reserved so
+     * Log does not jump.
+     */
+    fun liftCompleteReplacesClock(): Boolean = false
 
     /**
      * Packet B: weight, reps, and hold draft need word labels.

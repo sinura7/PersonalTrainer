@@ -47,7 +47,7 @@ class WorkoutLogBarTest {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.warmupOutsideRpeTrack())
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.rpeTrackFitsWithoutScroll())
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
-        val warmupAt = card.indexOf("WarmupControls(")
+        val warmupAt = card.indexOf("WARMUP_CHIP")
         val weightAt = card.indexOf("SetEntryPanel(")
         val rpeAt = card.indexOf("SecondaryLogOptions(")
         assertTrue("Warm-up chip must sit above the weight well", warmupAt in 0 until weightAt)
@@ -92,7 +92,8 @@ class WorkoutLogBarTest {
         assertTrue(copy.contains("const val LOGGING"))
         assertTrue(bar.contains("canLog"))
         assertTrue(bar.contains("LogCommitCopy.disabledReason"))
-        assertTrue(bar.contains("logging = logging && !nextAct"))
+        assertTrue(bar.contains("testTag(WorkoutTestTags.LOG_SET)"))
+        assertTrue(bar.contains("next = false"))
     }
 
     private fun readOwned(relative: String): String {

@@ -12,10 +12,10 @@ class WorkoutLiftChipTest {
     @Test
     fun liveLiftCardsCarrySetProgressAndARestBadge() {
         val card = readOwned("ui/workout/CurrentLiftCard.kt")
-        assertTrue(card.contains("CurrentLiftCopy.liftOrdinal"))
-        assertTrue(card.contains("CurrentLiftCopy.workingProgress"))
+        assertTrue(card.contains("CurrentLiftCopy.heroOrdinal") || card.contains("CurrentLiftCopy.liftOrdinal"))
+        assertTrue(card.contains("CurrentLiftCopy.heroProgress") || card.contains("CurrentLiftCopy.workingProgress"))
         assertTrue(card.contains("WorkoutTestTags.liftSets"))
-        assertTrue(card.contains("ThumbSize.header"))
+        assertTrue(card.contains("ThumbSize.hero"))
         assertFalse(card.contains("numeralMd"))
 
         val switcher = readOwned("ui/workout/LiftSwitcherSheet.kt")

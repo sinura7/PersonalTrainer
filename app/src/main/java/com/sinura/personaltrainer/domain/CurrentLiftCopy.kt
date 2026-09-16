@@ -25,8 +25,18 @@ object CurrentLiftCopy {
 
     fun liftOrdinal(number: Int, total: Int): String = "Lift $number/$total"
 
+    /** Hero kicker. [Kicker] uppercases it to `LIFT 3 OF 7`. */
+    fun heroOrdinal(number: Int, total: Int): String =
+        SessionOrderCopy.liftIndex(number, total)
+
     fun workingProgress(workingLogged: Int, targetSets: Int): String =
         SessionOrderCopy.filledCount(workingLogged.coerceAtLeast(0), targetSets)
+
+    fun heroProgress(workingLogged: Int, targetSets: Int): String {
+        val done = workingLogged.coerceAtLeast(0)
+        val target = targetSets.coerceAtLeast(0)
+        return if (target > 0) "$done of $target done" else "$done done"
+    }
 
     fun secondaryLine(equipmentLabel: String, meaning: WeightMeaning): String {
         val kit = equipmentLabel.trim()
@@ -52,13 +62,36 @@ object CurrentLiftCopy {
         append(name)
         append(". ")
         append(SessionOrderCopy.liftIndex(number, total))
-        append(". Working ")
-        append(workingProgress(workingLogged, targetSets))
+        append(". ")
+        append(heroProgress(workingLogged, targetSets))
         val secondary = secondaryLine(equipmentLabel, meaning)
         if (secondary.isNotBlank()) {
             append(". ")
             append(secondary)
         }
+    }
+
+    fun heroSpoken(
+        name: String,
+        number: Int,
+        total: Int,
+        workingLogged: Int,
+        targetSets: Int,
+        equipmentLabel: String,
+        meaning: WeightMeaning,
+        telemetry: String? = null,
+    ): String {
+        val identity = cardSpoken(
+            name = name,
+            number = number,
+            total = total,
+            workingLogged = workingLogged,
+            targetSets = targetSets,
+            equipmentLabel = equipmentLabel,
+            meaning = meaning,
+        )
+        val extra = telemetry?.trim().orEmpty()
+        return if (extra.isEmpty()) identity else "$identity. $extra"
     }
 
     fun switcherSpoken(
