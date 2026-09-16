@@ -15,10 +15,15 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 16 Sep 2026 — Live 74: working weight 0 for Walking Lunge and 63 other
+> catalog lifts on `trunk`.
+> `debugLiveCode` 74; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 16 Sep 2026 — Working weight 0 is a first-class value for bodyweight
 > and empty-hands dumbbell lifts (Walking Lunge and the rest of that
 > catalog set). Loaded barbell / dumbbell still default as before.
-> Gym-floor `appVersionCode` stays 1. No Obtainium drop.
+> Gym-floor `appVersionCode` stays 1. Live 74 is the Obtainium drop.
 >
 > 15 Sep 2026 — Live 73: floor packet H goldens / accessibility final pass
 > on `trunk`. Final drop of the workout-entry plan.
