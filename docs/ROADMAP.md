@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 16 Sep 2026 — Live 75: image-led gym floor (112 dp exercise hero) on
+> `trunk`.
+> `debugLiveCode` 75; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 16 Sep 2026 — Image-led gym floor: 112 dp exercise hero, compact
 > Warm-up row, stable timer / context / Log dock. Zero-weight copy
 > stays “no weight”. Gym-floor `appVersionCode` stays 1.
