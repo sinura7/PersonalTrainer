@@ -60,6 +60,7 @@ class BodyPassInstrumentedTest {
             )
             MuscleHeatRow(
                 load = CHEST,
+                window = HeatWindow.CURRENT_WEEK,
                 selected = true,
                 onClick = {},
                 unit = WeightUnit.KG,
@@ -69,7 +70,9 @@ class BodyPassInstrumentedTest {
         compose.onNodeWithContentDescription(BodyTags.MAP_SPOKEN).assertIsDisplayed()
         compose.onNodeWithTag(BodyTags.muscle(CanonicalMuscle.CHEST)).assertIsDisplayed()
         compose.onNodeWithTag(BodyTags.muscle(CanonicalMuscle.CHEST))
-            .assertContentDescriptionEquals("Chest, 2 days ago, Low load, 8 sets, 3200 kg")
+            .assertContentDescriptionEquals(
+                "Chest, This week: low load, 8 credited sets, 3200 kg, 2 days ago",
+            )
         compose.onNodeWithTag(BodyTags.VIEW_FRONT).assertIsDisplayed()
         compose.onNodeWithTag(BodyTags.WINDOW_WEEK).assertDoesNotExist()
     }

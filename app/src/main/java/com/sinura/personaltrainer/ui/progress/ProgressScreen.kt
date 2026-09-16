@@ -201,6 +201,7 @@ fun ProgressScreen(
                                 if (index > 0) HairlineDivider()
                                 MuscleHeatRow(
                                     load = load,
+                                    window = snap.window,
                                     selected = selected == load.muscle,
                                     onClick = { selectedName = load.muscle.name },
                                     unit = unit,
@@ -400,6 +401,11 @@ private fun MuscleDetailSheet(
                 }
             }
             if (load.exercises.isNotEmpty()) {
+                Text(
+                    text = BodyHeatCopy.ATTRIBUTION_NOTE,
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                )
                 GymSectionHeader("Contributors")
                 GroupedList {
                     load.exercises.forEachIndexed { index, exercise ->

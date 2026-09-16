@@ -40,4 +40,16 @@ class BodyHeatCopyTest {
             BodyHeatCopy.findLiftsInLibrary(CanonicalMuscle.CHEST),
         )
     }
+
+    @Test
+    fun mapCopyDoesNotClaimRecoveryAndExplainsCreditedSets() {
+        assertEquals("No work", HeatBand.UNTRAINED.legendLabel)
+        assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("Completed-set muscle load"))
+        assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("not calendar"))
+        assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("recovery"))
+        assertTrue(BodyHeatCopy.WINDOW_CAPTION.contains("No colour"))
+        assertTrue(BodyHeatCopy.WINDOW_CAPTION.contains("not recovered"))
+        assertTrue(BodyHeatCopy.ATTRIBUTION_NOTE.contains("Secondary muscles"))
+        assertTrue(BodyHeatCopy.ATTRIBUTION_NOTE.contains("exceed unique sets"))
+    }
 }

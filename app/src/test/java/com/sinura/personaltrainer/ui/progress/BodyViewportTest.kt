@@ -9,10 +9,10 @@ import org.junit.Test
 class BodyViewportTest {
     @Test
     fun firstMuscleRowIsInsideTheFirstViewportAt360x640() {
-        assertEquals(300, BodyViewport.figureHeightDp(640))
-        assertEquals(300, BodyViewport.figureHeightDp(500))
+        assertEquals(281, BodyViewport.figureHeightDp(640))
+        assertEquals(280, BodyViewport.figureHeightDp(500))
         assertEquals(440, BodyViewport.figureHeightDp(1_000))
-        assertEquals(360, (800 * BodyViewport.FIGURE_FRACTION).toInt())
+        assertEquals(352, (800 * BodyViewport.FIGURE_FRACTION).toInt())
         assertTrue(
             "first muscle row must land in 360×640 above the tab bar",
             BodyViewport.firstMuscleRowFits(
@@ -39,6 +39,12 @@ class BodyViewportTest {
         assertTrue(bodyMap.contains("figureHeightDp("))
         assertTrue(!bodyMap.contains("440.dp"))
         assertTrue(!bodyMap.contains("PANEL_HEIGHT"))
+        assertTrue("legend explanation must not be ellipsized", bodyMap.contains("maxLines = 2"))
+        assertTrue(bodyMap.contains("MuscleLoadCalculator.FRACTION_TOUCHED"))
+        assertTrue(bodyMap.contains("MuscleLoadCalculator.FRACTION_PRODUCTIVE"))
+        assertTrue(bodyMap.contains("MuscleLoadCalculator.FRACTION_HIGH"))
+        assertTrue("legend and load bands must use the same names", !bodyMap.contains("Moderate"))
+        assertTrue("empty colour must not claim recovery", !bodyMap.contains("LegendSwatch(\"Rest\""))
     }
 
     @Test

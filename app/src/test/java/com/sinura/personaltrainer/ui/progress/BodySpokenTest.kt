@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.progress
 
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.WeightUnit
 import org.junit.Assert.assertEquals
@@ -10,15 +11,24 @@ import org.junit.Test
 class BodySpokenTest {
     @Test
     fun muscleRowMergesIdentityRecencyAndWork() {
-        val spoken = muscleRowSpoken(CHEST, WeightUnit.KG)
-        assertEquals("Chest, 2 days ago, Low load, 8 sets, 3200 kg", spoken)
+        val spoken = muscleRowSpoken(CHEST, HeatWindow.CURRENT_WEEK, WeightUnit.KG)
+        assertEquals(
+            "Chest, This week: low load, 8 credited sets, 3200 kg, 2 days ago",
+            spoken,
+        )
+        assertEquals("Week: low · 2 days ago", muscleRowSubtitle(CHEST, HeatWindow.CURRENT_WEEK))
     }
 
     @Test
     fun doorwayRowNamesTheTapNotZeroWork() {
-        val spoken = muscleRowSpoken(UNTRAINED, WeightUnit.KG, doorway = true)
+        val spoken = muscleRowSpoken(
+            UNTRAINED,
+            HeatWindow.DAY,
+            WeightUnit.KG,
+            doorway = true,
+        )
         assertEquals(
-            "Chest, Not trained yet. Tap to see the lifts that train it.",
+            "Chest, Today: no work, Not trained yet. Tap to see the lifts that train it.",
             spoken,
         )
     }

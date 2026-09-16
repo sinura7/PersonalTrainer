@@ -78,7 +78,8 @@ enum class HeatBand {
 
     val legendLabel: String
         get() = when (this) {
-            UNTRAINED -> "Untrained"
+            // This is a windowed workload state, not a recovery/readiness claim.
+            UNTRAINED -> "No work"
             LOW -> "Low"
             PRODUCTIVE -> "Productive"
             HIGH -> "High"
@@ -101,7 +102,7 @@ enum class HeatBand {
         }
 
         /**
-         * Map readout: any work in the window is Low, not Rest. Rest is
+         * Map readout: any work in the window is Low, not No work. No work is
          * reserved for a muscle the window never touched.
          */
         fun fromWindowSets(sets: Double): HeatBand = when {

@@ -39,6 +39,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.MuscleLoadCalculator
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
@@ -181,8 +182,8 @@ fun BodyMapCard(
 
 /**
  * Colour is never the only channel here: each swatch carries its band as a kicker, and the
- * rows below state the volume as a numeral. "Rest" is on the scale rather than off it, so a
- * muscle with no work in the window still has a name for what it is showing.
+ * rows below state the volume as a numeral. "No work" is explicit because the empty colour
+ * says nothing about recovery or readiness.
  */
 @Composable
 fun HeatLegend(modifier: Modifier = Modifier) {
@@ -195,23 +196,19 @@ fun HeatLegend(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Kicker("Load")
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LegendSwatch("Rest", heatColor(0f))
-                LegendSwatch("Low", heatColor(0.22f))
-                LegendSwatch("Moderate", heatColor(0.5f))
-                LegendSwatch("High", heatColor(0.95f))
-            }
+            LegendSwatch("No work", heatColor(0f))
+            LegendSwatch("Low", heatColor(MuscleLoadCalculator.FRACTION_TOUCHED))
+            LegendSwatch(
+                "Productive",
+                heatColor(MuscleLoadCalculator.FRACTION_PRODUCTIVE),
+            )
+            LegendSwatch("High", heatColor(MuscleLoadCalculator.FRACTION_HIGH))
         }
         Text(
             BodyHeatCopy.LEGEND_CAPTION,
             style = InstrumentType.caption,
             color = TextTertiary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            maxLines = 2,
         )
     }
 }
@@ -241,6 +238,7 @@ private fun LegendSwatch(label: String, color: Color) {
 @Composable
 fun MuscleHeatRow(
     load: MuscleLoadSummary,
+    window: HeatWindow,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -251,14 +249,14 @@ fun MuscleHeatRow(
      */
     doorway: Boolean = false,
 ) {
-    val spoken = muscleRowSpoken(load, unit, doorway)
+    val spoken = muscleRowSpoken(load, window, unit, doorway)
     InstrumentRow(
         title = load.muscle.displayName,
         modifier = modifier
             .background(if (selected) SurfacePressed else Color.Transparent)
             .testTag(BodyTags.muscle(load.muscle))
             .semantics(mergeDescendants = true) { contentDescription = spoken },
-        subtitle = recencyLabel(load),
+        subtitle = muscleRowSubtitle(load, window),
         onClick = onClick,
         leading = {
             MuscleStill(muscle = load.muscle)
@@ -289,20 +287,25 @@ fun recencyLabel(load: MuscleLoadSummary): String = when (val days = load.daysSi
     else -> "$days days ago"
 }
 
+/** Keeps period load and lifetime recency visibly separate in the same compact row. */
+fun muscleRowSubtitle(load: MuscleLoadSummary, window: HeatWindow): String =
+    "${window.shortLabel}: ${load.band.legendLabel.lowercase()} · ${recencyLabel(load)}"
+
 /** One TalkBack name for the reliable 48 dp muscle row (FND-023). */
 fun muscleRowSpoken(
     load: MuscleLoadSummary,
+    window: HeatWindow,
     unit: WeightUnit,
     doorway: Boolean = false,
 ): String {
     if (doorway) {
-        return "${load.muscle.displayName}, ${recencyLabel(load)}. " +
+        return "${load.muscle.displayName}, ${window.label}: no work, ${recencyLabel(load)}. " +
             "Tap to see the lifts that train it."
     }
     val column = SetCopy.workColumn(load.work, unit)
-    return "${load.muscle.displayName}, ${recencyLabel(load)}, " +
-        "${load.band.legendLabel} load, ${load.workingSets} sets, " +
-        "${column.value} ${column.label}"
+    return "${load.muscle.displayName}, ${window.label}: " +
+        "${load.band.legendLabel.lowercase()} load, ${load.workingSets} credited sets, " +
+        "${column.value} ${column.label}, ${recencyLabel(load)}"
 }
 
 object BodyTags {

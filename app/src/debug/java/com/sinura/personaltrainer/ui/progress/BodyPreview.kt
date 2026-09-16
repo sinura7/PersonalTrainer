@@ -39,6 +39,7 @@ private fun BodyPopulatedPreview() {
             )
             MuscleHeatRow(
                 load = BodyPreviewFixtures.chest,
+                window = HeatWindow.CURRENT_WEEK,
                 selected = true,
                 onClick = {},
                 unit = WeightUnit.KG,
@@ -61,6 +62,7 @@ private fun BodyEmptyPreview() {
             )
             MuscleHeatRow(
                 load = BodyPreviewFixtures.untrainedChest,
+                window = HeatWindow.CURRENT_WEEK,
                 selected = false,
                 onClick = {},
                 unit = WeightUnit.KG,
@@ -81,6 +83,7 @@ private fun BodyReducedMotionPreview() {
         BodyPreviewColumn {
             MuscleHeatRow(
                 load = BodyPreviewFixtures.chest,
+                window = HeatWindow.CURRENT_WEEK,
                 selected = false,
                 onClick = {},
                 unit = WeightUnit.KG,
