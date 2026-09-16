@@ -156,9 +156,11 @@ class FloorImageLedHeroTest {
         assertEquals("no weight", SetCopy.NO_WEIGHT)
         assertEquals(
             "Weight, no weight, bodyweight",
-            SetCopy.weightWellSpoken(WeightMeaning.LIFTED, 0.0, WeightUnit.LB),
+            SetCopy.weightWellSpoken(WeightMeaning.LIFTED, 0.0, WeightUnit.LBS),
         )
-        assertFalse(SetCopy.weightWellSpoken(WeightMeaning.LIFTED, 0.0, WeightUnit.LB).contains("0 lb"))
+        assertFalse(
+            SetCopy.weightWellSpoken(WeightMeaning.LIFTED, 0.0, WeightUnit.LBS).contains("0 lb"),
+        )
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertTrue(bar.contains("maxLines = 2"))
         assertTrue(bar.contains("fontScale >= 2f") || bar.contains("largeType"))
