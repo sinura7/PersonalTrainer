@@ -9,9 +9,9 @@ package com.sinura.personaltrainer.domain
  *
  * Packet H named six 360×800 floor states. The image-led redesign
  * records working, warmup, rest, hold, success, error, completion,
- * font-2.0, and reduced-motion. Until the emulator records them they
- * stay in [missingFloorStateGoldens]; no caller may add a `GoldenImageAssert`
- * `assertMatches` on a name that is not in [committed].
+ * font-2.0, and reduced-motion on `temper-tests-api29` (112 dp hero).
+ * Those nine names are in [committed]. No caller may add a
+ * `GoldenImageAssert` `assertMatches` on a name that is not.
  *
  * Asset path: `app/src/androidTest/assets/goldens/{name}.png`.
  */
@@ -51,7 +51,7 @@ object GoldenPageCatalog {
     /**
      * Image-led floor states at 360×800: working, warmup, rest, hold,
      * success, error, completion, plus font-2.0 and reduced-motion
-     * variants. PNGs stay an emulator gate until recorded.
+     * variants. Recorded on `temper-tests-api29` against the 112 dp hero.
      */
     val floorStateIds: List<String> = listOf(
         "working",
@@ -72,9 +72,10 @@ object GoldenPageCatalog {
 
     /**
      * Goldens that are committed today. The substrate gallery is not a page
-     * golden — it proves the harness, not Home or Settings.
+     * golden — it proves the harness, not Home or Settings. Floor states are
+     * the 112 dp image-led captures, not the old 56 dp card.
      */
-    val committed: Set<String> = setOf(SUBSTRATE_GALLERY)
+    val committed: Set<String> = setOf(SUBSTRATE_GALLERY) + requiredFloorStateGoldens.toSet()
 
     val missingPageGoldens: List<String>
         get() = requiredPageGoldens.filterNot { it in committed }

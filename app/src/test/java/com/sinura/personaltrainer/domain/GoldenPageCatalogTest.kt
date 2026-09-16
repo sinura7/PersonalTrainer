@@ -51,8 +51,12 @@ class GoldenPageCatalogTest {
     }
 
     @Test
-    fun onlyTheSubstrateGalleryIsCommitted() {
-        assertEquals(setOf(GoldenPageCatalog.SUBSTRATE_GALLERY), GoldenPageCatalog.committed)
+    fun substrateGalleryAndFloorStatesAreCommitted() {
+        assertEquals(
+            setOf(GoldenPageCatalog.SUBSTRATE_GALLERY) +
+                GoldenPageCatalog.requiredFloorStateGoldens.toSet(),
+            GoldenPageCatalog.committed,
+        )
         assertFalse(GoldenPageCatalog.isCommitted("home-populated-api29"))
         assertEquals(
             GoldenPageCatalog.requiredPageGoldens,
@@ -105,13 +109,15 @@ class GoldenPageCatalogTest {
     }
 
     @Test
-    fun unrecordedFloorStatesStayMissingNeverFaked() {
-        assertEquals(
-            GoldenPageCatalog.requiredFloorStateGoldens,
-            GoldenPageCatalog.missingFloorStateGoldens,
-        )
+    fun recordedFloorStatesAreCommittedAndPresentOnDisk() {
+        assertTrue(GoldenPageCatalog.missingFloorStateGoldens.isEmpty())
         GoldenPageCatalog.requiredFloorStateGoldens.forEach { name ->
-            assertFalse(name, GoldenPageCatalog.isCommitted(name))
+            assertTrue(name, GoldenPageCatalog.isCommitted(name))
+            val file = listOf(
+                java.io.File("src/androidTest/assets/goldens/$name.png"),
+                java.io.File("app/src/androidTest/assets/goldens/$name.png"),
+            ).firstOrNull { it.exists() && it.length() > 10_000L }
+            assertTrue("$name.png missing or empty", file != null)
         }
     }
 
