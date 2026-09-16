@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 16 Sep 2026 — Live 77: idle rest on the 56 dp instrument bar (duration
+> sheet, Time-set in-bar) on `trunk`.
+> `debugLiveCode` 77; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 16 Sep 2026 — Idle rest is the same 56 dp instrument bar as running rest
 > (dim numeral, empty track, Start). Duration presets, Custom, and
 > planned ±15 live in a sheet. Time set is a 48 dp mark in the idle bar.
