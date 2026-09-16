@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.domain.LogCommitCopy
+import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetMicroRec
@@ -44,6 +45,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.RestHonestyRow
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.Haptics
@@ -91,6 +93,8 @@ internal fun LogBar(
     afterWarmup: Boolean = false,
     restBatteryHint: Boolean = false,
     holdElapsedSeconds: Int = 0,
+    holdRemainingSeconds: Int = 0,
+    holdTotalSeconds: Int = 0,
     onSkipRest: () -> Unit = {},
     onStartRest: () -> Unit = {},
     onSelectRestDuration: (Int) -> Unit = {},
@@ -121,6 +125,18 @@ internal fun LogBar(
     val finishAct = showFinish && !editing
     val timedActive = restRunning || holdRunning || stopwatchRunning
     val completeDock = (nextAct || finishAct) && !editing && !timedActive
+    val honesty = if (showTimer) {
+        RestHonestyCopy.pick(
+            persistenceHealthy = restPersistenceHealthy,
+            restRunning = restRunning,
+            notificationsEnabled = notificationsEnabled,
+            batteryHint = restBatteryHint,
+            exactBestEffort = restExactBestEffort,
+            onRestPage = false,
+        )
+    } else {
+        null
+    }
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
@@ -139,6 +155,8 @@ internal fun LogBar(
                     batteryHint = restBatteryHint,
                     holdRunning = holdRunning,
                     holdElapsedSeconds = holdElapsedSeconds,
+                    holdRemainingSeconds = holdRemainingSeconds,
+                    holdTotalSeconds = holdTotalSeconds,
                     holdTargetReached = holdTargetReached,
                     stopwatchRunning = stopwatchRunning,
                     stopwatchElapsedSeconds = stopwatchElapsedSeconds,
@@ -194,6 +212,11 @@ internal fun LogBar(
                             onNext = onNext,
                             onFinish = onFinish,
                             onAnotherSet = onAnotherSet ?: {},
+                        )
+                        honesty != null -> RestHonestyRow(
+                            honesty = honesty,
+                            onDismissBatteryHint = onDismissRestBatteryHint,
+                            onOpenNotifications = onOpenNotifications,
                         )
                         editing -> TextButton(
                             onClick = onCancelEdit,

@@ -112,8 +112,41 @@ object HoldWork {
 
     const val DONE = "HOLD DONE"
 
+    /**
+     * Elapsed readout for persistence and [HoldTimerUiState.clock].
+     * The dock bar uses [liveDockClock] so a live hold never paints as
+     * idle `HOLD 0:00`.
+     */
     fun dockClock(elapsedSeconds: Int, targetReached: Boolean): String =
         if (targetReached) DONE else "$HOLD_KICKER ${clock(elapsedSeconds.coerceAtLeast(0))}"
+
+    fun liveDockSeconds(
+        remainingSeconds: Int,
+        targetReached: Boolean,
+        running: Boolean = false,
+        totalSeconds: Int = 0,
+    ): Int {
+        if (targetReached) return remainingSeconds.coerceAtLeast(0)
+        return when {
+            running && totalSeconds > 0 -> remainingSeconds.coerceIn(1, totalSeconds)
+            running -> remainingSeconds.coerceAtLeast(1)
+            else -> remainingSeconds.coerceAtLeast(0)
+        }
+    }
+
+    /**
+     * Live hold instrument: remaining countdown, same geometry as REST.
+     * A running hold with a target shows at least `0:01`, never `0:00`.
+     */
+    fun liveDockClock(
+        remainingSeconds: Int,
+        targetReached: Boolean,
+        running: Boolean = false,
+        totalSeconds: Int = 0,
+    ): String {
+        if (targetReached) return DONE
+        return "$HOLD_KICKER ${clock(liveDockSeconds(remainingSeconds, false, running, totalSeconds))}"
+    }
 
     const val HOLD_KICKER = "HOLD"
 

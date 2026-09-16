@@ -50,6 +50,7 @@ class FloorCompactChromeTest {
     fun packet2SplitsInstrumentStripFromDockControls() {
         assertTrue(FloorCompactChrome.headerIsReadOnlyInstrumentStrip())
         assertTrue(FloorCompactChrome.oneClockTwoModes())
+        assertTrue(FloorCompactChrome.timerIsCompactInstrumentBar())
         assertFalse(FloorCompactChrome.restLengthIsInlineWheel())
     }
 

@@ -396,6 +396,8 @@ fun ActiveWorkoutScreen(
                             afterWarmup = afterWarmup,
                             restBatteryHint = rest.batteryHint,
                             holdElapsedSeconds = holdTimer.elapsedSeconds,
+                            holdRemainingSeconds = holdTimer.remainingSeconds,
+                            holdTotalSeconds = holdTimer.totalSeconds,
                             holdTargetReached = holdTimer.targetReached,
                             stopwatchRunning = setStopwatch.running,
                             stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,

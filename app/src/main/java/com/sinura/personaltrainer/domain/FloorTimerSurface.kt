@@ -59,6 +59,31 @@ object FloorTimerSurface {
     fun setClockSeconds(elapsedSeconds: Int): Int = elapsedSeconds.coerceAtLeast(0)
 
     /**
+     * Dock hold clock. Remaining, not elapsed, so the first live frame
+     * is `HOLD 0:30` rather than idle-looking `HOLD 0:00`.
+     */
+    fun holdBarClock(
+        remainingSeconds: Int,
+        targetReached: Boolean,
+        running: Boolean,
+        totalSeconds: Int,
+    ): String = HoldWork.liveDockClock(
+        remainingSeconds = remainingSeconds,
+        targetReached = targetReached,
+        running = running,
+        totalSeconds = totalSeconds,
+    )
+
+    fun holdBarProgress(
+        remainingSeconds: Int,
+        totalSeconds: Int,
+        targetReached: Boolean,
+    ): Float {
+        if (targetReached || totalSeconds <= 0) return 0f
+        return RestTimer.sweepFraction(remainingSeconds.coerceAtLeast(1), totalSeconds)
+    }
+
+    /**
      * Seconds to persist on a logged set. Holds always write time.
      * A strength set writes time only when the manual clock was used.
      */

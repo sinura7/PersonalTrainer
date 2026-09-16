@@ -103,6 +103,42 @@ class HoldWorkTest {
     }
 
     @Test
+    fun liveHoldClockIsNeverIdleZero() {
+        assertEquals(
+            "HOLD 0:30",
+            HoldWork.liveDockClock(
+                remainingSeconds = 30,
+                targetReached = false,
+                running = true,
+                totalSeconds = 30,
+            ),
+        )
+        assertEquals(
+            "HOLD 0:01",
+            HoldWork.liveDockClock(
+                remainingSeconds = 0,
+                targetReached = false,
+                running = true,
+                totalSeconds = 30,
+            ),
+        )
+        assertEquals(
+            HoldWork.DONE,
+            HoldWork.liveDockClock(
+                remainingSeconds = 0,
+                targetReached = true,
+                running = false,
+                totalSeconds = 30,
+            ),
+        )
+        assertEquals(30, HoldWork.liveDockSeconds(30, false, running = true, totalSeconds = 30))
+        assertEquals(1, HoldWork.liveDockSeconds(0, false, running = true, totalSeconds = 30))
+        assertFalse(
+            HoldWork.liveDockClock(0, false, running = true, totalSeconds = 30).contains("0:00"),
+        )
+    }
+
+    @Test
     fun catalogHoldsUseTheHoldDefaults() {
         val hang = WorkoutPaste.catalogExercises().first { it.id == "ex-dead-hang" }
         val defaults = AddDefaults.forExercise(hang)

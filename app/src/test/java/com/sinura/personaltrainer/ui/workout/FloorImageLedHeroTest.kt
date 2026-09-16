@@ -73,6 +73,7 @@ class FloorImageLedHeroTest {
         assertEquals(56, Metrics.logTimerRow.value.toInt())
         assertEquals(56, Metrics.logContextRail.value.toInt())
         assertEquals(72, Metrics.commit.value.toInt())
+        assertTrue(FloorCompactChrome.timerIsCompactInstrumentBar())
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertTrue(bar.contains("TIMER_ROW"))
         assertTrue(bar.contains("CONTEXT_RAIL"))
