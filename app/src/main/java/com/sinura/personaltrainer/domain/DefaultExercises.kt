@@ -50,9 +50,16 @@ data class SeedExercise(
  * (couch, pigeon, calf, 90/90, ankle rocks, joint circles, floor
  * woodchop, hamstring stretch). Additive upsert. Dedicated stills for
  * those eight rows landed with the Extra ChatGPT pack (no catalog bump).
+ *
+ * v10 recategorizes walking lunges, reverse lunges, Bulgarian split
+ * squats, and dumbbell step-ups as BODYWEIGHT_PLUS. They were EXTERNAL,
+ * so a working set at 0 kg was refused as a typo and the floor landed
+ * on a 5 lb plate. Empty hands is a complete set on those lifts; added
+ * dumbbells stay optional, same as Russian Twist. No new lifts. No
+ * Room bump.
  */
 object DefaultExercises {
-    const val CATALOG_VERSION = 9
+    const val CATALOG_VERSION = 10
 
     /**
      * The family vocabulary. Batch 1 shipped 23 families and batch 2 adds three; a later batch
@@ -98,12 +105,12 @@ object DefaultExercises {
         ),
         seed(
             id = "ex-bulgarian-split-squat", name = "Bulgarian Split Squat", muscleGroup = "Quads",
-            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "lunge",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "lunge",
             primary = "quadriceps", secondaries = listOf("glutes" to 0.50, "hamstrings" to 0.25),
         ),
         seed(
             id = "ex-walking-lunge", name = "Walking Lunge", muscleGroup = "Quads",
-            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "lunge",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "lunge",
             primary = "quadriceps", secondaries = listOf("glutes" to 0.50, "hamstrings" to 0.25),
         ),
         seed(
@@ -451,12 +458,12 @@ object DefaultExercises {
         ),
         seed(
             id = "ex-reverse-lunge", name = "Reverse Lunge", muscleGroup = "Quads",
-            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "lunge",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "lunge",
             primary = "quadriceps", secondaries = listOf("glutes" to 0.50, "hamstrings" to 0.25),
         ),
         seed(
             id = "ex-dumbbell-step-up", name = "Dumbbell Step-Up", muscleGroup = "Quads",
-            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "step-up",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "step-up",
             primary = "quadriceps", secondaries = listOf("glutes" to 0.50),
         ),
         seed(

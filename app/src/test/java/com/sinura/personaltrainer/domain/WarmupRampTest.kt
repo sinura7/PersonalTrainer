@@ -53,6 +53,17 @@ class WarmupRampTest {
         assertTrue(
             WarmupRamp.sets(0.0, LoadType.EXTERNAL, WeightUnit.KG).isEmpty(),
         )
+        assertTrue(
+            WarmupRamp.sets(
+                0.0,
+                LoadType.BODYWEIGHT_PLUS,
+                WeightUnit.LBS,
+                EquipmentType.DUMBBELL,
+            ).isEmpty(),
+        )
+        WarmupRamp.PERCENTS.forEach { percent ->
+            assertEquals(0.0, 0.0 * percent / 100.0, 0.0001)
+        }
     }
 
     @Test
@@ -151,6 +162,47 @@ class WarmupRampTest {
         assertEquals(1, WarmupRamp.nextUnusedIndex(ramp, listOf(40.0)))
         assertEquals(2, WarmupRamp.nextUnusedIndex(ramp, listOf(40.0, 60.0)))
         assertEquals(-1, WarmupRamp.nextUnusedIndex(ramp, listOf(40.0, 60.0, 80.0)))
+    }
+
+    @Test
+    fun chosenZeroOnAnUnloadedLiftDoesNotRampFromALeftoverPlan() {
+        val fiveLbs = WeightConverter.toKg(5.0, WeightUnit.LBS)
+        assertEquals(
+            0.0,
+            WarmupRamp.workingWeightKg(
+                draftKg = 0.0,
+                draftIsWarmup = false,
+                workingLogged = 0,
+                targetKg = fiveLbs,
+                suggestedKg = fiveLbs,
+                lastKg = fiveLbs,
+                loadType = LoadType.BODYWEIGHT_PLUS,
+                equipment = EquipmentType.DUMBBELL,
+                movementKey = "lunge",
+            ),
+            0.0001,
+        )
+        assertTrue(
+            WarmupRamp.sets(
+                workingWeightKg = 0.0,
+                loadType = LoadType.BODYWEIGHT_PLUS,
+                unit = WeightUnit.LBS,
+                equipment = EquipmentType.DUMBBELL,
+            ).isEmpty(),
+        )
+        assertEquals(
+            100.0,
+            WarmupRamp.workingWeightKg(
+                draftKg = 0.0,
+                draftIsWarmup = false,
+                workingLogged = 0,
+                targetKg = 100.0,
+                suggestedKg = null,
+                lastKg = null,
+                loadType = LoadType.EXTERNAL,
+            ),
+            0.0001,
+        )
     }
 
     @Test

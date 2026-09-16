@@ -45,6 +45,7 @@ import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.PlateMath
 import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.UnloadedLoad
 import com.sinura.personaltrainer.domain.WeightContextAction
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightMeaning
@@ -104,6 +105,7 @@ fun SetEntryPanel(
     compact: Boolean = false,
     loadType: LoadType? = null,
     equipment: EquipmentType? = null,
+    movementKey: String? = null,
     plannedKg: Double? = null,
     lastKg: Double? = null,
     suggestedKg: Double? = null,
@@ -124,6 +126,7 @@ fun SetEntryPanel(
             onSecondsChange = onSecondsChange,
             loadType = loadType,
             equipment = equipment,
+            movementKey = movementKey,
             plannedKg = plannedKg,
             lastKg = lastKg,
             suggestedKg = suggestedKg,
@@ -210,6 +213,7 @@ private fun CompactFloorEntry(
     onSecondsChange: (Int) -> Unit,
     loadType: LoadType?,
     equipment: EquipmentType?,
+    movementKey: String?,
     plannedKg: Double?,
     lastKg: Double?,
     suggestedKg: Double?,
@@ -255,7 +259,7 @@ private fun CompactFloorEntry(
                 label = meaning.fieldLabel,
                 value = displayNumber,
                 unit = unit.suffix,
-                spoken = "${meaning.fieldLabel} $displayNumber ${unit.suffix}",
+                spoken = SetCopy.weightWellSpoken(meaning, weightKg, unit),
                 typeLabel = "Type ${if (meaning == WeightMeaning.LIFTED) "a weight" else meaning.fieldLabel.lowercase()}",
                 decrementLabel = "−$stepShown",
                 incrementLabel = "+$stepShown",
@@ -282,18 +286,20 @@ private fun CompactFloorEntry(
                 unitForChips = unit,
             )
             if (typingWeight) {
+                val keypadClass = when (meaning) {
+                    WeightMeaning.ADDED -> LoadClass.BODYWEIGHT_ADDED
+                    WeightMeaning.ASSISTANCE -> LoadClass.BODYWEIGHT_ASSISTED
+                    WeightMeaning.LIFTED, WeightMeaning.NONE -> LoadClass.LOADED
+                }
                 NumberEntryDialog(
                     title = meaning.fieldLabel,
                     unitLabel = unit.suffix,
                     initial = displayNumber,
                     decimal = true,
-                    helper = SetCopy.weightFieldHint(
-                        when (meaning) {
-                            WeightMeaning.ADDED -> LoadClass.BODYWEIGHT_ADDED
-                            WeightMeaning.ASSISTANCE -> LoadClass.BODYWEIGHT_ASSISTED
-                            WeightMeaning.LIFTED, WeightMeaning.NONE -> LoadClass.LOADED
-                        },
-                    ) ?: "A number, up to two decimals. 87.5 or 87,5.",
+                    helper = SetCopy.weightKeypadHelper(
+                        keypadClass,
+                        UnloadedLoad.allowsZeroWorkingWeight(resolvedLoad, equipment, movementKey),
+                    ),
                     parse = { NumericEntry.parseWeightKg(it, unit) },
                     onConfirm = { onWeightKgChange(it) },
                     onDismiss = { typingWeight = false },
@@ -547,6 +553,7 @@ fun WeightStepper(
         onDecrement = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, -1)) },
         onIncrement = { onWeightKgChange(WeightConverter.incrementKg(valueKg, unit, 1)) },
         plateCaption = plates,
+        spoken = SetCopy.weightWellSpoken(meaning, valueKg, unit),
         modifier = modifier,
         compact = compact,
     )
@@ -557,13 +564,14 @@ fun WeightStepper(
             unitLabel = unit.suffix,
             initial = displayNumber,
             decimal = true,
-            helper = SetCopy.weightFieldHint(
+            helper = SetCopy.weightKeypadHelper(
                 when (meaning) {
                     WeightMeaning.ADDED -> LoadClass.BODYWEIGHT_ADDED
                     WeightMeaning.ASSISTANCE -> LoadClass.BODYWEIGHT_ASSISTED
                     WeightMeaning.LIFTED, WeightMeaning.NONE -> LoadClass.LOADED
                 },
-            ) ?: "A number, up to two decimals.",
+                allowsZero = meaning != WeightMeaning.LIFTED,
+            ),
             parse = { NumericEntry.parseWeightKg(it, unit) },
             onConfirm = { onWeightKgChange(it) },
             onDismiss = { typing = false },
@@ -669,8 +677,9 @@ internal fun NumeralWell(
     typeHint: String? = null,
     plateCaption: String? = null,
     compact: Boolean = false,
+    spoken: String? = null,
 ) {
-    val spoken = buildString {
+    val resolvedSpoken = spoken ?: buildString {
         append(label)
         append(' ')
         append(value)
@@ -701,7 +710,7 @@ internal fun NumeralWell(
                         .weight(1f)
                         .testTag(typeLabel)
                         .clickable(onClick = onType, onClickLabel = typeLabel)
-                        .semantics { contentDescription = spoken },
+                        .semantics { contentDescription = resolvedSpoken },
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.End,
                 ) {
@@ -763,6 +772,7 @@ internal fun NumeralWell(
                 .clip(RoundedCornerShape(Radius.sm))
                 .testTag(typeLabel)
                 .clickable(onClick = onType, onClickLabel = typeLabel)
+                .semantics { contentDescription = resolvedSpoken }
                 .drawBehind {
                     val inset = size.width * 0.18f
                     drawLine(

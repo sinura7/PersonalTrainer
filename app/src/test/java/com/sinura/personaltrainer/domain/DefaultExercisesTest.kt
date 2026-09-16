@@ -16,11 +16,11 @@ import org.junit.Test
 class DefaultExercisesTest {
 
     @Test
-    fun catalogHasExactly143EntriesAtVersion9() {
+    fun catalogHasExactly143EntriesAtVersion10() {
         // Batch 1 (37) + batch 2 (33) + batch 3 (28) + batch 4 (3) + batch 5 (28 Hyper Pro)
         // + batch 6 (6 paste-corpus holds) + batch 7 (8 floor Extra stretches).
         assertEquals(143, DefaultExercises.catalog().size)
-        assertEquals(9, DefaultExercises.CATALOG_VERSION)
+        assertEquals(10, DefaultExercises.CATALOG_VERSION)
     }
 
     @Test

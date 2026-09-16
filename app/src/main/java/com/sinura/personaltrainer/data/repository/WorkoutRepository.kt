@@ -599,14 +599,16 @@ class WorkoutRepository(
                     HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
             }
             if (timedSeconds == null && reps < 1) error("Reps must be at least 1.")
-            val loadType = loadTypeOf(current, exerciseId)
+            val load = liftLoadOf(current, exerciseId)
             val violation = SetLogRules.validate(
                 weightKg = weightKg,
                 reps = reps,
                 isWarmup = isWarmup,
-                loadType = loadType,
+                loadType = load.loadType,
                 durationSeconds = timedSeconds,
                 isHold = holdLift,
+                equipment = load.equipment,
+                movementKey = load.movementKey,
             )
             if (violation != null) error(violation)
             val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
@@ -665,13 +667,16 @@ class WorkoutRepository(
                 HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
         } == true
         if (!holdLift && reps < 1) error("Reps must be at least 1.")
+        val load = liftLoadOf(session, current.exerciseId)
         val violation = SetLogRules.validate(
             weightKg,
             reps,
             isWarmup,
-            loadTypeOf(session, current.exerciseId),
+            load.loadType,
             durationSeconds = timedSeconds,
             isHold = holdLift,
+            equipment = load.equipment,
+            movementKey = load.movementKey,
         )
         if (violation != null) error(violation)
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else current.weightKg
@@ -773,7 +778,15 @@ class WorkoutRepository(
             val session = current.session
             val finishedAt = session.finishedAt ?: error("This workout is still in progress.")
             if (reps < 1) error("Reps must be at least 1.")
-            val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
+            val load = liftLoadOf(current, exerciseId)
+            val violation = SetLogRules.validate(
+                weightKg,
+                reps,
+                isWarmup,
+                load.loadType,
+                equipment = load.equipment,
+                movementKey = load.movementKey,
+            )
             if (violation != null) error(violation)
             val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
             val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
@@ -855,10 +868,23 @@ class WorkoutRepository(
      * validation check becomes a reason not to validate. Null when the session or the lift is
      * gone, which [SetLogRules] treats as externally loaded — the stricter reading.
      */
-    private fun loadTypeOf(session: SessionWithDetails?, exerciseId: String): LoadType? =
-        session?.exercises
+    private fun liftLoadOf(session: SessionWithDetails?, exerciseId: String): LiftLoad {
+        val row = session?.exercises
             ?.firstOrNull { it.item.exerciseId == exerciseId }
-            ?.let { LoadType.fromStorage(it.exercise.loadType) }
+            ?.exercise
+            ?: return LiftLoad(null, null, null)
+        return LiftLoad(
+            loadType = LoadType.fromStorage(row.loadType),
+            equipment = EquipmentType.fromStorage(row.equipment),
+            movementKey = row.movementKey,
+        )
+    }
+
+    private data class LiftLoad(
+        val loadType: LoadType?,
+        val equipment: EquipmentType?,
+        val movementKey: String?,
+    )
 
     private val loadClassByExercise = mutableMapOf<String, LoadClass>()
 

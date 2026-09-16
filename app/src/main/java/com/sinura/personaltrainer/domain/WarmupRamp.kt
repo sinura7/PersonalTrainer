@@ -27,7 +27,10 @@ object WarmupRamp {
         unit: WeightUnit,
         equipment: EquipmentType? = null,
     ): List<WarmupSet> {
-        if (workingWeightKg <= 0.0) return emptyList()
+        if (workingWeightKg <= 0.0) {
+            // 40/60/80 of 0 is 0. Empty, not a 2.5/5 plate, and never an auto-log.
+            return emptyList()
+        }
         val resolved = loadType ?: LoadType.EXTERNAL
         if (resolved == LoadType.BODYWEIGHT || resolved == LoadType.ASSISTED) return emptyList()
         val step = IncrementTable.displayStep(resolved, unit, equipment) ?: return emptyList()
@@ -59,12 +62,24 @@ object WarmupRamp {
         targetKg: Double?,
         suggestedKg: Double?,
         lastKg: Double?,
+        loadType: LoadType? = null,
+        equipment: EquipmentType? = null,
+        movementKey: String? = null,
     ): Double {
         val planned = sequenceOf(targetKg, suggestedKg, lastKg)
             .mapNotNull { it }
             .firstOrNull { it.isFinite() && it > 0.0 }
             ?: 0.0
         val draft = if (draftKg.isFinite()) draftKg.coerceAtLeast(0.0) else 0.0
+        // An empty-hands lunge at 0 is a chosen working weight, not an unfilled well.
+        // Falling back to a leftover 5 lb plan would invent 40/60/80 chips of that 5.
+        if (
+            !draftIsWarmup &&
+            draft <= 0.0 &&
+            UnloadedLoad.allowsZeroWorkingWeight(loadType, equipment, movementKey)
+        ) {
+            return 0.0
+        }
         if (workingLogged <= 0 && planned > 0.0) {
             if (draftIsWarmup || draft + 1e-6 < planned) return planned
         }
