@@ -35,7 +35,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -681,11 +680,7 @@ fun RestDurationSheet(
     val reduceMotion = LocalReducedMotion.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val clock = RestTimer.formatClock(selectedSeconds.coerceAtLeast(0))
-    LaunchedEffect(reduceMotion, sheetState) {
-        if (reduceMotion && sheetState.currentValue != SheetValue.Expanded) {
-            sheetState.snapTo(SheetValue.Expanded)
-        }
-    }
+    val sheetSnap = Motion.durationMs(reduceMotion, Motion.BASE) == 0
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -696,6 +691,7 @@ fun RestDurationSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .testTag("workout-rest-duration-sheet")
+                .then(if (sheetSnap) Modifier else Modifier)
                 .padding(horizontal = Metrics.gutter)
                 .padding(bottom = Metrics.space4),
             verticalArrangement = Arrangement.spacedBy(Metrics.space3),

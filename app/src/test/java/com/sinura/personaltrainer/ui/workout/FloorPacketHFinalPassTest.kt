@@ -139,7 +139,7 @@ class FloorPacketHFinalPassTest {
         val dock = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(dock.contains("!reduceMotion"))
         assertTrue(dock.contains("LocalReducedMotion.current"))
-        assertTrue(dock.substring(dock.indexOf("fun RestDurationSheet")).contains("snapTo"))
+        assertTrue(dock.substring(dock.indexOf("fun RestDurationSheet")).contains("Motion.durationMs"))
     }
 
     @Test

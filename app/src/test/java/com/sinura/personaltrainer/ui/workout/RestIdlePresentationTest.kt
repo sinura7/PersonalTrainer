@@ -54,7 +54,7 @@ class RestIdlePresentationTest {
         assertTrue(sheet.contains("SetStopwatchCopy.START"))
         assertTrue(sheet.contains("workout-sheet-start-set-clock"))
         assertTrue(sheet.contains("LocalReducedMotion.current"))
-        assertTrue(sheet.contains("sheetState.snapTo"))
+        assertTrue(sheet.contains("Motion.durationMs"))
         assertTrue(sheet.contains("verticalScroll"))
         assertTrue(sheet.contains("workout-rest-duration-sheet"))
         assertFalse(sheet.contains("PrimaryGymButton"))
