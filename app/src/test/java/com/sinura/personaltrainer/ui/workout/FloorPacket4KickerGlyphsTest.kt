@@ -78,10 +78,13 @@ class FloorPacket4KickerGlyphsTest {
         val dock = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(dock.contains("TemperIcons.FloorRest"))
         val idleStart = dock.indexOf("fun RestIdleRow")
-        val idleEnd = dock.indexOf("fun RestLinearTrack")
+        val idleEnd = dock.indexOf("fun RestDurationSheet")
         val idle = dock.substring(idleStart, idleEnd)
-        assertTrue(idle.contains("FloorFieldGlyph("))
+        assertTrue(idle.contains("TemperIcons.FloorRest"))
+        assertTrue(idle.contains("leadingGlyph"))
         assertFalse(idle.contains("Kicker(RestIdleCopy.KICKER)"))
+        val instrument = dock.substring(dock.indexOf("fun FloorInstrumentBar"), dock.indexOf("fun SetWorkDock"))
+        assertTrue(instrument.contains("FloorFieldGlyph("))
     }
 
     private fun readOwned(relative: String): String {

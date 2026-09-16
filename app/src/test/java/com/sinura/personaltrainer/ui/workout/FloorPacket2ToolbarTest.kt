@@ -72,13 +72,14 @@ class FloorPacket2ToolbarTest {
         assertTrue(dock.contains("RestPresetChips("))
         assertTrue(dock.contains("FloorTimerSurface.mode("))
         val idleStart = dock.indexOf("fun RestIdleRow")
-        val idle = dock.substring(idleStart)
-        assertTrue(idle.contains("picking"))
-        assertTrue(idle.contains("RestPresetChips("))
-        assertFalse(
-            "idle duration must not push the rest page",
-            idle.substring(0, idle.indexOf("fun RestLinearTrack")).contains("onOpenRest"),
-        )
+        val idleEnd = dock.indexOf("fun RestDurationSheet")
+        val idle = dock.substring(idleStart, idleEnd)
+        assertFalse("idle must not expand presets inline", idle.contains("picking"))
+        assertFalse("idle duration must not push the rest page", idle.contains("onOpenRest"))
+        assertTrue(idle.contains("onEditDuration"))
+        val sheet = dock.substring(dock.indexOf("fun RestDurationSheet"))
+        assertTrue(sheet.contains("RestPresetChips("))
+        assertTrue(sheet.contains("ModalBottomSheet("))
     }
 
     @Test

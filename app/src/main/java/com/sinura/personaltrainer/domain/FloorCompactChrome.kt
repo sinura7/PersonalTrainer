@@ -76,6 +76,13 @@ object FloorCompactChrome {
      */
     fun timerIsCompactInstrumentBar(): Boolean = true
 
+    /**
+     * Idle rest is the same 56 dp instrument at rest: dim numeral,
+     * empty track, Start. Duration editing lives in a sheet, not a
+     * second dock row.
+     */
+    fun idleRestIsInstrumentBar(): Boolean = true
+
     /** Packet E: planned rest is presets / ±15 / Custom, not a 15 s wheel. */
     fun restLengthIsInlineWheel(): Boolean = false
 

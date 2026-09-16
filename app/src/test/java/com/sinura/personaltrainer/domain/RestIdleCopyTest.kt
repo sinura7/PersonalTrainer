@@ -19,6 +19,14 @@ class RestIdleCopyTest {
         assertFalse(spoken, spoken.contains("remaining"))
         assertEquals("Start next", RestIdleCopy.START_NEXT)
         assertEquals("Start", RestIdleCopy.START)
+        assertEquals("Rest length", RestIdleCopy.SHEET_TITLE)
+        assertEquals(
+            "Rest is not running. Rest 1:30. Tap to change duration.",
+            RestIdleCopy.dockSpoken("1:30", afterWarmup = false),
+        )
+        assertEquals("Start rest, 2 minutes 30 seconds", RestIdleCopy.startSpoken(150))
+        assertEquals("Start rest, 1 minute", RestIdleCopy.startSpoken(60))
+        assertEquals("Start rest, 30 seconds", RestIdleCopy.startSpoken(30))
     }
 
     @Test
@@ -29,5 +37,9 @@ class RestIdleCopyTest {
         assertTrue(spoken, spoken.contains("Warm-ups do not start rest"))
         assertFalse(spoken, spoken.contains("Start next"))
         assertTrue(spoken, spoken.contains("Start starts rest only"))
+        val dockSpoken = RestIdleCopy.dockSpoken("1:00", afterWarmup = true)
+        assertTrue(dockSpoken, dockSpoken.contains("Warm-ups do not start rest"))
+        assertTrue(dockSpoken, dockSpoken.contains("Tap to change duration"))
+        assertFalse(dockSpoken, dockSpoken.contains("Start next"))
     }
 }

@@ -146,6 +146,7 @@ object SetStopwatchWork {
 /** Quiet dock copy. Not a Volt. Log set stays the filled act. */
 object SetStopwatchCopy {
     const val START = "Time set"
+    const val START_SPOKEN = "Time this set"
     const val STOP = "Stop"
     const val SWITCH_TITLE = "Stop timing and switch?"
     const val SWITCH_BODY =

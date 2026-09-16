@@ -51,6 +51,7 @@ class FloorCompactChromeTest {
         assertTrue(FloorCompactChrome.headerIsReadOnlyInstrumentStrip())
         assertTrue(FloorCompactChrome.oneClockTwoModes())
         assertTrue(FloorCompactChrome.timerIsCompactInstrumentBar())
+        assertTrue(FloorCompactChrome.idleRestIsInstrumentBar())
         assertFalse(FloorCompactChrome.restLengthIsInlineWheel())
     }
 

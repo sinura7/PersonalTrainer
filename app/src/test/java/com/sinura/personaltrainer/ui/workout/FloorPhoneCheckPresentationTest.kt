@@ -26,14 +26,14 @@ class FloorPhoneCheckPresentationTest {
     fun idleDockKeepsStartRestWithoutStartNext() {
         val dock = readOwned("ui/components/RestTimerUi.kt")
         val idleStart = dock.indexOf("fun RestIdleRow")
-        val idleEnd = dock.indexOf("fun RestLinearTrack")
+        val idleEnd = dock.indexOf("fun RestDurationSheet")
         val idle = dock.substring(idleStart, idleEnd)
         assertFalse(dock.contains("onStartNext"))
         assertFalse(
             "idle Start next must not be composed",
             idle.contains("RestIdleCopy.START_NEXT"),
         )
-        assertTrue(idle.contains("RestIdleCopy.START"))
+        assertTrue(idle.contains("RestIdleCopy.startSpoken"))
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.showIdleStartNext())
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertFalse(bar.contains("onStartNextLift"))
