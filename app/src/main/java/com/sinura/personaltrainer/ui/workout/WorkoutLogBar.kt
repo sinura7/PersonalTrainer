@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.workout
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -34,34 +37,29 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.FloorFieldGlyph
 import com.sinura.personaltrainer.ui.components.FloorTimerSlot
+import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymReceiptBanner
+import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
-import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.ThumbSize
-import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
-import androidx.compose.ui.platform.LocalView
 
 /**
- * Every gym-floor control in one dock (Packet 2).
- *
- * Owns the timer slot (rest countdown or set count-up), the Packet 1
- * advance choice (Next lift / Another set), and the single Volt
- * [LogBarCopy.commit]. The header strip is read-only instruments.
- *
- * Scaffold's bottomBar draws edge-to-edge. The tab bar is gone on this
- * route, so this dock owns the system-nav inset the same way the tab
- * bar and live bar already do — otherwise Log sits under the three-
- * button nav / gesture pill.
+ * Gym-floor dock: one reserved timer row, one context rail, one 72 dp
+ * filled Volt Log. REST / HOLD / SET share the timer row. Receipt,
+ * error, undo, and Next / Finish / Another replace each other in the
+ * rail so Log never moves.
  */
 @Composable
 internal fun LogBar(
@@ -112,133 +110,206 @@ internal fun LogBar(
     onOpenNotifications: () -> Unit = {},
     canLog: Boolean = true,
     suggestionUnavailable: Boolean = false,
+    onDismissError: () -> Unit = {},
+    undoMessage: String? = null,
+    undoKey: String? = null,
+    undoDwellMs: Long = Motion.STATUS_DWELL_MS,
+    onUndo: () -> Unit = {},
+    onUndoDismissed: () -> Unit = {},
 ) {
     val nextAct = showNext && !editing
     val finishAct = showFinish && !editing
     val timedActive = restRunning || holdRunning || stopwatchRunning
     val completeDock = (nextAct || finishAct) && !editing && !timedActive
-    val logEnabled = if (nextAct || finishAct) !logging else canLog
     Column(modifier = Modifier.fillMaxWidth()) {
-        if (showTimer && !completeDock) {
-            FloorTimerSlot(
-                remainingSeconds = restRemainingSeconds,
-                totalSeconds = restTotalSeconds,
-                restRunning = restRunning,
-                completedTimerId = restCompletedTimerId,
-                hideWhenIdle = hideIdleRest,
-                afterWarmup = afterWarmup,
-                batteryHint = restBatteryHint,
-                holdRunning = holdRunning,
-                holdElapsedSeconds = holdElapsedSeconds,
-                holdTargetReached = holdTargetReached,
-                stopwatchRunning = stopwatchRunning,
-                stopwatchElapsedSeconds = stopwatchElapsedSeconds,
-                offerSetClock = offerSetClock,
-                onStartSetClock = onStartSetClock,
-                onStopSetClock = onStopSetClock,
-                onSkip = onSkipRest,
-                onStart = onStartRest,
-                onSelectRestDuration = onSelectRestDuration,
-                onNudgeRest = onNudgeRest,
-                onCustomRest = onCustomRest,
-                onDismissBatteryHint = onDismissRestBatteryHint,
-                onOpenRest = onOpenRest,
-                persistenceHealthy = restPersistenceHealthy,
-                notificationsEnabled = notificationsEnabled,
-                exactAlarmBestEffort = restExactBestEffort,
-                onOpenNotifications = onOpenNotifications,
-            )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Metrics.logTimerRow)
+                .testTag(WorkoutTestTags.TIMER_ROW),
+        ) {
+            if (showTimer) {
+                FloorTimerSlot(
+                    remainingSeconds = restRemainingSeconds,
+                    totalSeconds = restTotalSeconds,
+                    restRunning = restRunning,
+                    completedTimerId = restCompletedTimerId,
+                    hideWhenIdle = hideIdleRest,
+                    afterWarmup = afterWarmup,
+                    batteryHint = restBatteryHint,
+                    holdRunning = holdRunning,
+                    holdElapsedSeconds = holdElapsedSeconds,
+                    holdTargetReached = holdTargetReached,
+                    stopwatchRunning = stopwatchRunning,
+                    stopwatchElapsedSeconds = stopwatchElapsedSeconds,
+                    offerSetClock = offerSetClock,
+                    onStartSetClock = onStartSetClock,
+                    onStopSetClock = onStopSetClock,
+                    onSkip = onSkipRest,
+                    onStart = onStartRest,
+                    onSelectRestDuration = onSelectRestDuration,
+                    onNudgeRest = onNudgeRest,
+                    onCustomRest = onCustomRest,
+                    onDismissBatteryHint = onDismissRestBatteryHint,
+                    onOpenRest = onOpenRest,
+                    persistenceHealthy = restPersistenceHealthy,
+                    notificationsEnabled = notificationsEnabled,
+                    exactAlarmBestEffort = restExactBestEffort,
+                    onOpenNotifications = onOpenNotifications,
+                )
+            }
         }
         PinnedDock(
             prelude = {
-                error?.let {
-                    Text(it, style = InstrumentType.body, color = Danger)
-                }
-                if (suggestionUnavailable && error == null) {
-                    Text(
-                        LogCommitCopy.SUGGESTION_UNAVAILABLE,
-                        style = InstrumentType.caption,
-                        color = TextTertiary,
-                    )
-                }
-                if (editing) {
-                    TextButton(
-                        onClick = onCancelEdit,
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .heightIn(min = Metrics.touchMin),
-                    ) {
-                        Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Metrics.logContextRail)
+                        .testTag(WorkoutTestTags.CONTEXT_RAIL),
+                ) {
+                    when {
+                        error != null -> GymErrorBanner(
+                            message = error,
+                            onRetry = onLog,
+                            onDismiss = onDismissError,
+                        )
+                        !undoMessage.isNullOrBlank() -> GymUndoHost(
+                            message = undoMessage,
+                            onUndo = onUndo,
+                            onDismissed = onUndoDismissed,
+                            offerKey = undoKey ?: undoMessage,
+                            dwellMs = undoDwellMs,
+                        )
+                        receiptLine != null -> GymReceiptBanner(
+                            message = receiptLine,
+                            onDismissed = onReceiptDismissed,
+                            modifier = Modifier.testTag(WorkoutTestTags.LOG_RECEIPT),
+                        )
+                        completeDock -> CompletionRail(
+                            nextAct = nextAct,
+                            finishAct = finishAct,
+                            showAnother = showAnother && onAnotherSet != null,
+                            nextName = nextName,
+                            nextLift = nextLift,
+                            onNext = onNext,
+                            onFinish = onFinish,
+                            onAnotherSet = onAnotherSet ?: {},
+                        )
+                        editing -> TextButton(
+                            onClick = onCancelEdit,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .heightIn(min = Metrics.touchMin),
+                        ) {
+                            Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
+                        }
+                        suggestionUnavailable -> Text(
+                            LogCommitCopy.SUGGESTION_UNAVAILABLE,
+                            style = InstrumentType.caption,
+                            color = TextTertiary,
+                        )
                     }
-                }
-                receiptLine?.let { line ->
-                    GymReceiptBanner(
-                        message = line,
-                        onDismissed = onReceiptDismissed,
-                        modifier = Modifier.testTag(WorkoutTestTags.LOG_RECEIPT),
-                    )
-                }
-                if (completeDock) {
-                    NextLiftPreview(
-                        lift = nextLift,
-                        nextName = nextName,
-                    )
                 }
             },
             volt = {
                 PrimaryGymButton(
                     text = LogBarCopy.commit(
                         editing = editing,
-                        next = nextAct,
-                        finish = finishAct,
+                        next = false,
+                        finish = false,
                         nextName = nextName,
                         warmup = warmup,
                         draftLabel = draftLabel,
                         hold = hold,
                         holdRunning = holdRunning,
-                        logging = logging && !nextAct && !finishAct,
+                        logging = logging,
                     ),
-                    onClick = when {
-                        finishAct -> onFinish
-                        nextAct -> onNext
-                        else -> onLog
-                    },
-                    enabled = logEnabled,
+                    onClick = onLog,
+                    enabled = canLog,
                     disabledReason = LogCommitCopy.disabledReason(
-                        logging = logging && !nextAct && !finishAct,
-                        liftReady = nextAct || finishAct || canLog || logging,
+                        logging = logging,
+                        liftReady = canLog || logging,
                     ),
-                    modifier = Modifier.testTag(
-                        when {
-                            finishAct -> WorkoutTestTags.DOCK_FINISH
-                            nextAct -> WorkoutTestTags.NEXT
-                            else -> WorkoutTestTags.LOG_SET
-                        },
-                    ),
+                    modifier = Modifier.testTag(WorkoutTestTags.LOG_SET),
                     height = Metrics.commit,
                     hapticFeedback = true,
                 )
             },
-            secondary = if (showAnother && !editing && onAnotherSet != null) {
-                {
-                    TextButton(
-                        onClick = onAnotherSet,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = Metrics.touchMin)
-                            .testTag(WorkoutTestTags.ANOTHER_SET),
-                    ) {
-                        Text(
-                            LogBarCopy.ANOTHER_SET,
-                            style = InstrumentType.bodyStrong,
-                            color = TextSecondary,
-                        )
-                    }
-                }
-            } else {
-                null
-            },
         )
+    }
+}
+
+@Composable
+private fun CompletionRail(
+    nextAct: Boolean,
+    finishAct: Boolean,
+    showAnother: Boolean,
+    nextName: String?,
+    nextLift: SessionExercise?,
+    onNext: () -> Unit,
+    onFinish: () -> Unit,
+    onAnotherSet: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+    ) {
+        NextLiftPreview(lift = nextLift, nextName = nextName)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (nextAct) {
+                TextButton(
+                    onClick = onNext,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.NEXT),
+                ) {
+                    Text(
+                        LogBarCopy.nextLift(nextName),
+                        style = InstrumentType.bodyStrong,
+                        color = Volt,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (finishAct) {
+                TextButton(
+                    onClick = onFinish,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.DOCK_FINISH),
+                ) {
+                    Text(
+                        LogBarCopy.FINISH_WORKOUT,
+                        style = InstrumentType.bodyStrong,
+                        color = Volt,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (showAnother) {
+                TextButton(
+                    onClick = onAnotherSet,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.ANOTHER_SET),
+                ) {
+                    Text(
+                        LogBarCopy.ANOTHER_SET,
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -251,7 +322,7 @@ private fun NextLiftPreview(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = Metrics.commit)
+            .heightIn(min = Metrics.touchMin)
             .testTag(WorkoutTestTags.NEXT_PREVIEW),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
@@ -262,7 +333,7 @@ private fun NextLiftPreview(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 nextName?.takeIf { it.isNotBlank() } ?: lift?.exercise?.name.orEmpty(),
-                style = InstrumentType.title,
+                style = InstrumentType.bodyStrong,
                 color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -316,7 +387,7 @@ internal fun MicroRecLine(
                     .testTag(WorkoutTestTags.MICRO_REC),
                 style = InstrumentType.bodyStrong,
                 color = TextPrimary,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             TextButton(
@@ -379,6 +450,8 @@ internal fun SecondaryLogOptions(
     showHelper: Boolean = false,
     onDismissHelper: () -> Unit = {},
 ) {
+    val fontScale = LocalDensity.current.fontScale
+    val largeType = fontScale >= 2f
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
@@ -392,10 +465,21 @@ internal fun SecondaryLogOptions(
                 spoken = null,
                 modifier = Modifier.testTag(WorkoutTestTags.RPE_GLYPH),
             )
-            Kicker(
-                text = RpeCopy.LABEL,
-                asHeading = false,
-            )
+            if (largeType) {
+                Text(
+                    RpeCopy.LABEL,
+                    modifier = Modifier.weight(1f),
+                    style = InstrumentType.bodyStrong,
+                    color = TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else {
+                Kicker(
+                    text = RpeCopy.LABEL,
+                    asHeading = false,
+                )
+            }
         }
         if (warmup && !showRpe) {
             Text(
@@ -435,6 +519,7 @@ internal fun SecondaryLogOptions(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(min = Metrics.touchMin)
                     .selectableGroup()
                     .testTag(WorkoutTestTags.RPE_TRACK),
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space1),

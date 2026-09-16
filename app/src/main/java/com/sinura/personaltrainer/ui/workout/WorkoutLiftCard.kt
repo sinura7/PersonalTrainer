@@ -117,9 +117,10 @@ internal data class WorkoutLiftCardEvents(
 /**
  * Packet C: entry surface for the current lift only.
  *
- * Identity lives on [CurrentLiftCard]. This column is set context, warm-up,
- * weight, reps, RPE, and logged sets — the wells [LogLoopBringIntoView]
- * keeps on screen.
+ * Identity lives on [ExerciseHero]. This column is set context + Warm-up
+ * on one 48 dp row, coach Why/Use above the wells, weight, reps, RPE,
+ * and the latest logged sets — the wells [LogLoopBringIntoView] keeps
+ * on screen.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -205,9 +206,34 @@ internal fun WorkoutLiftCard(
             .padding(bottom = Metrics.space2),
         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
-        Kicker(
-            text = setContext,
-            modifier = Modifier.testTag(WorkoutTestTags.SET_CONTEXT),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Metrics.touchMin),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            Kicker(
+                text = setContext,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(WorkoutTestTags.SET_CONTEXT),
+            )
+            InstrumentChip(
+                label = "Warm-up",
+                selected = draftWarmup,
+                onClick = { onWarmup(!draftWarmup) },
+                spoken = if (draftWarmup) "Warm-up, selected" else "Warm-up, not selected",
+                modifier = Modifier.testTag(WorkoutTestTags.WARMUP_CHIP),
+            )
+        }
+        WarmupRampRow(
+            selected = draftWarmup,
+            draftWeightKg = draftWeightKg,
+            ramp = ramp,
+            emphasisIndex = rampEmphasis,
+            unit = unit,
+            onApplyRamp = events.onApplyWarmupRamp,
         )
         card.microRec?.let { rec ->
             MicroRecLine(
@@ -217,23 +243,6 @@ internal fun WorkoutLiftCard(
                 onApply = events.onApplyMicroRec,
             )
         }
-        lastPerformance?.let { last ->
-            LastTimeStrip(
-                summary = last,
-                unit = unit,
-                loadClass = LoadClass.of(lift.exercise.loadType),
-                onApplySet = onApplyLastTime,
-            )
-        }
-        WarmupControls(
-            selected = draftWarmup,
-            draftWeightKg = draftWeightKg,
-            ramp = ramp,
-            emphasisIndex = rampEmphasis,
-            unit = unit,
-            onWarmup = onWarmup,
-            onApplyRamp = events.onApplyWarmupRamp,
-        )
         SetEntryPanel(
             weightKg = draftWeightKg,
             reps = draftReps,
@@ -269,11 +278,19 @@ internal fun WorkoutLiftCard(
             onRpe = onRpe,
             onDismissHelper = events.onDismissRpeHelper,
         )
+        lastPerformance?.let { last ->
+            LastTimeStrip(
+                summary = last,
+                unit = unit,
+                loadClass = LoadClass.of(lift.exercise.loadType),
+                onApplySet = onApplyLastTime,
+            )
+        }
         if (loggedSets.isNotEmpty()) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                Kicker("Sets")
+                Kicker("Latest sets")
                 LoggedSetsPanel(
                     sets = loggedSets,
                     latestSetId = latestSetId,
@@ -293,47 +310,33 @@ internal fun WorkoutLiftCard(
 }
 
 @Composable
-private fun WarmupControls(
+private fun WarmupRampRow(
     selected: Boolean,
     draftWeightKg: Double,
     ramp: List<WarmupSet>,
     emphasisIndex: Int,
     unit: WeightUnit,
-    onWarmup: (Boolean) -> Unit,
     onApplyRamp: (Double) -> Unit,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    if (ramp.isEmpty()) return
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(WorkoutTestTags.WARMUP_RAMP),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
-        InstrumentChip(
-            label = "Warm-up",
-            selected = selected,
-            onClick = { onWarmup(!selected) },
-            spoken = if (selected) "Warm-up, selected" else "Warm-up, not selected",
-            modifier = Modifier.testTag(WorkoutTestTags.WARMUP_CHIP),
-        )
-        if (ramp.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(WorkoutTestTags.WARMUP_RAMP),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-            ) {
-                ramp.forEachIndexed { index, step ->
-                    val label = WarmupRamp.chipLabel(step, unit)
-                    val applied = selected && kotlin.math.abs(draftWeightKg - step.weightKg) < 1e-6
-                    InstrumentChip(
-                        label = label,
-                        selected = applied,
-                        recommended = !applied && index == emphasisIndex,
-                        onClick = { onApplyRamp(step.weightKg) },
-                        compact = true,
-                        spoken = "$label. Warm-up.",
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
+        ramp.forEachIndexed { index, step ->
+            val label = WarmupRamp.chipLabel(step, unit)
+            val applied = selected && kotlin.math.abs(draftWeightKg - step.weightKg) < 1e-6
+            InstrumentChip(
+                label = label,
+                selected = applied,
+                recommended = !applied && index == emphasisIndex,
+                onClick = { onApplyRamp(step.weightKg) },
+                compact = true,
+                spoken = "$label. Warm-up.",
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

@@ -87,9 +87,24 @@ object Metrics {
     /** Packet C: Finish / Discard in the workout header. Plan ≥ 64 × 48. */
     val headerActMin: Dp = 64.dp
 
-    /** Packet C current-lift card. 88 dp default, 104 dp at font 2.0. */
-    val currentLiftMax: Dp = 88.dp
-    val currentLiftMaxLargeType: Dp = 104.dp
+    /**
+     * Image-led exercise hero. 112 dp is four times the previous 56 dp
+     * still area, not 224 dp (sixteen times). Landscape uses a shorter
+     * still so the wells stay on a 360 dp-tall bench phone.
+     */
+    val exerciseHeroImage: Dp = 112.dp
+    val exerciseHeroImageLandscape: Dp = 88.dp
+    val exerciseHeroMin: Dp = 128.dp
+
+    /**
+     * Equipment glyph beside hero copy. Never a percentage of the still,
+     * and never larger than this when it does overlay a smaller thumb.
+     */
+    val equipmentGlyph: Dp = 24.dp
+
+    /** Reserved dock rows so Log's bottom edge does not jump. */
+    val logTimerRow: Dp = control
+    val logContextRail: Dp = control
 
     /** The one action worth a bigger target than anything else: logging a set. */
     val commit: Dp = 72.dp

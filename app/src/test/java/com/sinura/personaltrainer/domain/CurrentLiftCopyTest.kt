@@ -8,7 +8,9 @@ class CurrentLiftCopyTest {
     @Test
     fun ordinalAndTalkBackNameTheCurrentLift() {
         assertEquals("Lift 1/6", CurrentLiftCopy.liftOrdinal(1, 6))
+        assertEquals("Lift 1 of 6", CurrentLiftCopy.heroOrdinal(1, 6))
         assertEquals("2/4", CurrentLiftCopy.workingProgress(2, 4))
+        assertEquals("2 of 4 done", CurrentLiftCopy.heroProgress(2, 4))
         val spoken = CurrentLiftCopy.cardSpoken(
             name = "Back Squat",
             number = 1,
@@ -21,7 +23,7 @@ class CurrentLiftCopyTest {
         assertTrue(spoken.startsWith(CurrentLiftCopy.CURRENT))
         assertTrue(spoken.contains("Back Squat"))
         assertTrue(spoken.contains("Lift 1 of 6"))
-        assertTrue(spoken.contains("Working 2/4"))
+        assertTrue(spoken.contains("2 of 4 done"))
     }
 
     @Test

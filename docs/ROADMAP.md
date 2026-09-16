@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 16 Sep 2026 — Image-led gym floor: 112 dp exercise hero, compact
+> Warm-up row, stable timer / context / Log dock. Zero-weight copy
+> stays “no weight”. Gym-floor `appVersionCode` stays 1.
+>
 > 16 Sep 2026 — Working weight 0 is a first-class value for bodyweight
 > and empty-hands dumbbell lifts (Walking Lunge and the rest of that
 > catalog set). Loaded barbell / dumbbell still default as before.

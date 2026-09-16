@@ -66,9 +66,12 @@ class FloorCompactChromeTest {
     }
 
     @Test
-    fun packetFHidesAddSetAndReplacesTheClockOnLiftComplete() {
+    fun packetFHidesAddSetAndKeepsTheClockOnLiftComplete() {
         assertTrue(FloorCompactChrome.addSetHiddenOnFloor())
-        assertTrue(FloorCompactChrome.liftCompleteReplacesClock())
+        assertFalse(FloorCompactChrome.liftCompleteReplacesClock())
+        assertTrue(FloorCompactChrome.logButtonStaysAnchored())
+        assertTrue(FloorCompactChrome.imageLedHero())
+        assertTrue(FloorCompactChrome.addLiftLivesInSwitcher())
         assertTrue(FloorCompactChrome.progressionKickerInline())
         assertFalse(FloorCompactChrome.showIdleStartNext())
     }

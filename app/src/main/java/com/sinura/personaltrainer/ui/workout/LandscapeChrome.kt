@@ -44,7 +44,7 @@ object LandscapeChrome {
         landscape: Boolean,
         restRunning: Boolean,
     ): Int {
-        var chrome = HEADER_ROW_DP + METRICS_ROW_DP
+        var chrome = HEADER_ROW_DP
         if (!(hideIdleRest(landscape) && !restRunning)) chrome += REST_IDLE_DP
         return heightDp - chrome
     }

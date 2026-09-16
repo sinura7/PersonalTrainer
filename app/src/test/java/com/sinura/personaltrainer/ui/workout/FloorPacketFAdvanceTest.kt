@@ -34,7 +34,7 @@ class FloorPacketFAdvanceTest {
 
     @Test
     fun receiptAndLiftCompleteDockAreNamed() {
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.liftCompleteReplacesClock())
+        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.liftCompleteReplacesClock())
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertTrue(bar.contains("GymReceiptBanner("))
         assertTrue(bar.contains("WorkoutTestTags.LOG_RECEIPT"))

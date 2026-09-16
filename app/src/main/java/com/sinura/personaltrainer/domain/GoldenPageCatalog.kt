@@ -7,9 +7,9 @@ package com.sinura.personaltrainer.domain
  * pages, a component gallery, and the three ThemeGallery previews. Recording
  * those PNGs stays an owner emulator gate on `temper-tests-api29`.
  *
- * Packet H names the six 360×800 populated floor states the gate must record
- * for `active-strength`: entry, rest-running, hold-running, lift-complete,
- * error, and the font-2.0 entry variant. Until the emulator records them they
+ * Packet H named six 360×800 floor states. The image-led redesign
+ * records working, warmup, rest, hold, success, error, completion,
+ * font-2.0, and reduced-motion. Until the emulator records them they
  * stay in [missingFloorStateGoldens]; no caller may add a `GoldenImageAssert`
  * `assertMatches` on a name that is not in [committed].
  *
@@ -49,17 +49,20 @@ object GoldenPageCatalog {
     )
 
     /**
-     * Packet H floor states: the six 360×800 populated captures that close the
-     * visual evidence gap for `active-strength`. Recorded on
-     * `temper-tests-api29`, populated session, one state per PNG.
+     * Image-led floor states at 360×800: working, warmup, rest, hold,
+     * success, error, completion, plus font-2.0 and reduced-motion
+     * variants. PNGs stay an emulator gate until recorded.
      */
     val floorStateIds: List<String> = listOf(
-        "entry",
+        "working",
+        "warmup",
         "rest",
         "hold",
-        "completion",
+        "success",
         "error",
-        "entry-font20",
+        "completion",
+        "font20",
+        "reduced-motion",
     )
 
     fun floorAssetName(state: String): String = "active-strength-$state-$PROFILE_SUFFIX"
