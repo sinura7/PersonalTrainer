@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -206,7 +205,10 @@ fun FloorInstrumentBar(
     pulseScale: Float = 1f,
     onClockClick: (() -> Unit)? = null,
     liveRegion: Boolean = false,
-    trailing: @Composable RowScope.() -> Unit = {},
+    showRestControls: Boolean = false,
+    onNudgeRest: (Int) -> Unit = {},
+    onSkip: () -> Unit = {},
+    onStop: (() -> Unit)? = null,
 ) {
     Box(
         modifier = modifier
@@ -270,7 +272,41 @@ fun FloorInstrumentBar(
                     maxLines = 1,
                 )
             }
-            trailing()
+            if (showRestControls) {
+                RestControl(
+                    label = "−15",
+                    spoken = "Minus 15 seconds",
+                    onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-rest-minus"),
+                )
+                RestControl(
+                    label = "+15",
+                    spoken = "Plus 15 seconds",
+                    onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-rest-plus"),
+                )
+                RestControl(
+                    label = "Skip",
+                    onClick = onSkip,
+                    confirm = true,
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-rest-skip"),
+                )
+            }
+            if (onStop != null) {
+                RestControl(
+                    label = SetStopwatchCopy.STOP,
+                    onClick = onStop,
+                    modifier = Modifier
+                        .widthIn(min = Metrics.touchMin)
+                        .testTag("workout-stop-set-clock"),
+                )
+            }
         }
     }
 }
@@ -332,17 +368,7 @@ fun SetWorkDock(
         spoken = spoken,
         testTag = "workout-hold-clock",
         modifier = modifier,
-        trailing = {
-            if (onStop != null) {
-                RestControl(
-                    label = SetStopwatchCopy.STOP,
-                    onClick = onStop,
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-stop-set-clock"),
-                )
-            }
-        },
+        onStop = onStop,
     )
 }
 
@@ -456,34 +482,9 @@ fun RestDock(
         pulseScale = pulseScale,
         onClockClick = onOpenRest,
         liveRegion = TalkBackPolicy.announceRestKicker(justFinished),
-        trailing = {
-            if (running) {
-                RestControl(
-                    label = "−15",
-                    spoken = "Minus 15 seconds",
-                    onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-rest-minus"),
-                )
-                RestControl(
-                    label = "+15",
-                    spoken = "Plus 15 seconds",
-                    onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-rest-plus"),
-                )
-                RestControl(
-                    label = "Skip",
-                    onClick = onSkip,
-                    confirm = true,
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-rest-skip"),
-                )
-            }
-        },
+        showRestControls = running,
+        onNudgeRest = onNudgeRest,
+        onSkip = onSkip,
     )
 }
 
