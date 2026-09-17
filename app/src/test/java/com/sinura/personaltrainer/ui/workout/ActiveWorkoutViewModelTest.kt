@@ -2324,14 +2324,23 @@ class ActiveWorkoutViewModelTest {
     }
 
     /**
-     * An undo offer that never appears is most often a delete or remove that the entry lock
-     * refused — silently, by design, because a queued tap must not act after the screen has
-     * moved on. The generic wait can only say "last value was null"; the screen state says
-     * whether a save was still outstanding, which is the whole diagnosis when it happens on a
-     * hosted runner and nowhere else.
+     * The undo offer for a delete or remove, once the mutation that made it has released.
+     *
+     * The offer is pushed inside the mutation, while `mutating` is still true, so a test
+     * that issues its next delete the instant the offer appears is racing the tail of the
+     * first one — and the entry lock refuses that second tap silently, by design, because a
+     * queued tap must not act while another operation is outstanding. That is what
+     * `expiredTopOfferRevealsTheNextOneWithoutARestChange` lost locally: the second row was
+     * never deleted and the wait for an empty session ran out. Waiting for `mutating` to
+     * clear after the offer is deterministic; `mutating` is live in `uiState`.
+     *
+     * An offer that never appears is the same refusal one step earlier. The generic wait can
+     * only say "last value was null"; the screen state says which lock was still held.
      */
     private suspend fun <T : Any> ActiveWorkoutViewModel.awaitOffer(offer: StateFlow<T?>): T = try {
-        checkNotNull(offer.awaitFirst { it != null })
+        val value = checkNotNull(offer.awaitFirst { it != null })
+        awaitState { !it.mutating }
+        value
     } catch (gaveUp: AssertionError) {
         throw AssertionError("${gaveUp.message}\nuiState was ${uiState.value}", gaveUp)
     }
