@@ -3,10 +3,13 @@ package com.sinura.personaltrainer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,17 +18,16 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -35,6 +37,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface2
+import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.Volt
@@ -55,20 +58,25 @@ fun PrimaryGymButton(
     height: Dp = Metrics.control,
     hapticFeedback: Boolean = true,
     disabledReason: String? = null,
+    interactionSource: MutableInteractionSource? = null,
 ) {
     val view = LocalView.current
+    val interactions = interactionSource ?: remember { MutableInteractionSource() }
+    val focused by interactions.collectIsFocusedAsState()
     Button(
         onClick = {
             if (hapticFeedback) Haptics.tickLight(view)
             onClick()
         },
         enabled = enabled,
+        interactionSource = interactions,
+        border = if (focused) BorderStroke(Metrics.emphasisBorder, Pit) else null,
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = height)
+            .heightIn(min = height.coerceAtLeast(Metrics.touchMin))
             .then(
                 if (!enabled && !disabledReason.isNullOrBlank()) {
-                    Modifier.semantics { contentDescription = disabledReason }
+                    Modifier.semantics { stateDescription = disabledReason }
                 } else {
                     Modifier
                 },
@@ -85,8 +93,6 @@ fun PrimaryGymButton(
             text,
             style = InstrumentType.title,
             color = if (enabled) Pit else TextDisabled,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
         )
     }
@@ -101,16 +107,29 @@ fun SecondaryGymButton(
     height: Dp = Metrics.control,
     /** Lets a destructive alternative wear [Danger] as ink without becoming a solid red slab. */
     contentColor: Color = TextPrimary,
+    interactionSource: MutableInteractionSource? = null,
 ) {
     val view = LocalView.current
+    val interactions = interactionSource ?: remember { MutableInteractionSource() }
+    val pressed by interactions.collectIsPressedAsState()
+    val focused by interactions.collectIsFocusedAsState()
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = height)
+            .heightIn(min = height.coerceAtLeast(Metrics.touchMin))
             .clip(RoundedCornerShape(Radius.md))
-            .background(Surface2)
-            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.md))
-            .clickable(enabled = enabled, role = Role.Button) {
+            .background(if (pressed && enabled) SurfacePressed else Surface2)
+            .border(
+                if (focused) Metrics.emphasisBorder else Metrics.hairline,
+                if (focused) Volt else Hairline,
+                RoundedCornerShape(Radius.md),
+            )
+            .clickable(
+                enabled = enabled,
+                role = Role.Button,
+                interactionSource = interactions,
+                indication = null,
+            ) {
                 Haptics.tickLight(view)
                 onClick()
             },
@@ -121,8 +140,6 @@ fun SecondaryGymButton(
             modifier = Modifier.padding(horizontal = Metrics.space3, vertical = Metrics.space2),
             style = InstrumentType.title,
             color = if (enabled) contentColor else TextDisabled,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
         )
     }

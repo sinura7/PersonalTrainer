@@ -29,10 +29,12 @@
     },
     {
       "name": "active-strength-font20-api29.png",
-      "sha256": "c8fd1a9db40358c6fc765b5bc978223bd1f52ad6232a3988c71019c3e8bc0f9a",
+      "sha256": "4a6927909413a2d532bb3de9297236ec534333158fb17afe2871de3338286da5",
       "pixels": "945x1731",
       "contentDp": "360x659.43",
-      "requestedDp": "360x800"
+      "requestedDp": "360x800",
+      "previousSha256": "c8fd1a9db40358c6fc765b5bc978223bd1f52ad6232a3988c71019c3e8bc0f9a",
+      "updatedBy": "F1, run 20260917-042534632: warm-up chip labels wrap rather than ellipsize; obsolete hero/dock composition still assigned to F2/F3"
     },
     {
       "name": "active-strength-hold-api29.png",

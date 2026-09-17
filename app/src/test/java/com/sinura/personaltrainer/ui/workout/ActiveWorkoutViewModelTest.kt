@@ -36,6 +36,7 @@ import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import kotlinx.coroutines.CompletableDeferred
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -1017,6 +1018,30 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun restWaitAdvancesAReceiptDelayScheduledAfterTheInitialClockAdvance() = runBlocking {
+        val fixture = seedWorkout()
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
+        vm.awaitPrefilled()
+
+        vm.logSet()
+        vm.awaitState { it.logging }
+        // Room has not returned yet. Advancing here cannot run a rest job that
+        // the ViewModel will only schedule after the insert completes.
+        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+        dispatcher.scheduler.runCurrent()
+        assertFalse(deps.restTimerStore.current().running)
+        gate.complete(Unit)
+        vm.awaitState { !it.logging && vm.logReceipt.value != null }
+        assertFalse(deps.restTimerStore.current().running)
+
+        awaitRestRunning()
+
+        assertEquals(1, awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.size)
+        assertTrue(deps.restTimerStore.current().running)
+    }
+
+    @Test
     fun advancingSelectsTheNextLiftAndClearsTheExtraAsk() = runBlocking {
         val fixture = seedTwoLifts(targetSets = 1)
         val vm = createViewModel(fixture.session.id)
@@ -1298,6 +1323,8 @@ class ActiveWorkoutViewModelTest {
         }.sets.single()
         assertEquals(logged.id, updated.id)
         assertEquals(6, updated.reps)
+        // Room can publish the updated row before the presentation flow clears edit mode.
+        vm.awaitState { !it.logging && it.editingSetId == null }
         assertNull(vm.personalRecord.value)
         assertFalse(deps.restTimerStore.current().running)
         assertNull(vm.uiState.value.editingSetId)
@@ -2186,7 +2213,25 @@ class ActiveWorkoutViewModelTest {
     }
 
     private suspend fun awaitRestRunning() {
-        withTimeout(TestWaits.FLOW_MS) { deps.restTimerStore.snapshot.first { it.running } }
+        try {
+            withTimeout(TestWaits.FLOW_MS) {
+                while (!deps.restTimerStore.current().running) {
+                    // Room uses real threads; its completion may schedule the receipt
+                    // delay after logSetAndSettle's last virtual-clock advance. Drive
+                    // that delay while yielding to Room, retaining the actual rest
+                    // state as the success condition and the wall-clock failure bound.
+                    dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+                    dispatcher.scheduler.runCurrent()
+                    if (!deps.restTimerStore.current().running) delay(10)
+                }
+            }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw AssertionError(
+                "Rest did not start; snapshot=${deps.restTimerStore.current()}, " +
+                    "virtualTime=${dispatcher.scheduler.currentTime}",
+                timedOut,
+            )
+        }
     }
 
     /**

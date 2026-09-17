@@ -27,11 +27,28 @@ fun Strip(
     onSuspend: suspend (Int, Int) -> Unit,
     onReceiver: Scope.(Int) -> Unit,
     content: @Composable () -> Unit,
+    nullableContent: (@Composable (Int, Int) -> Unit)? = null,
+    receiverContent: @Composable Scope.(Int) -> Unit,
 ) = Unit
 """
 
 # Each case: (name, kotlin, expected finding count)
 CASES = [
+    ("composable slot has no implicit parameters", """
+fun a() = Strip(content = { x, y -> use(x) })
+""", 1),
+    ("composable slot accepts a body", """
+fun a() = Strip(content = { use(1) })
+""", 0),
+    ("nullable composable slot is checked", """
+fun a() = Strip(nullableContent = { x -> use(x) })
+""", 1),
+    ("nullable composable slot accepts the declared parameters", """
+fun a() = Strip(nullableContent = { x, y -> use(x) })
+""", 0),
+    ("composable receiver remains out of scope", """
+fun a() = Strip(receiverContent = { use(1) })
+""", 0),
     ("the real defect: five for six", """
 fun a() = Strip(label = "x", onStage = { id, s, r, t, kg -> use(id) })
 """, 1),

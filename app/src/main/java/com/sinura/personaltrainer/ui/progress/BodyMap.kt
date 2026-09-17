@@ -44,7 +44,8 @@ import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
 import com.sinura.personaltrainer.ui.components.FIGURE_ASPECT
-import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceGroup
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
@@ -150,30 +151,31 @@ fun BodyMapCard(
         // The view switch used to float over the figure's top-left corner and read as part
         // of the drawing (DESIGN_AUDIT B-05). A control that changes the whole picture gets
         // its own strip under the panel, beside what the picture was built from.
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
-            BodyView.entries.forEach { option ->
-                InstrumentChip(
-                    label = option.label,
-                    selected = view == option,
-                    onClick = { onViewChange(option) },
-                    modifier = Modifier.testTag(
-                        if (option == BodyView.FRONT) BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK,
-                    ),
-                )
+            InstrumentChoiceGroup {
+                BodyView.entries.forEach { option ->
+                    InstrumentChoiceChip(
+                        label = option.label,
+                        selected = view == option,
+                        onClick = { onViewChange(option) },
+                        modifier = Modifier.testTag(
+                            if (option == BodyView.FRONT) BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK,
+                        ),
+                    )
+                }
             }
             if (facts != null) {
                 Text(
                     facts,
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .testTag(BodyTags.FACTS),
                     style = InstrumentType.caption,
                     color = TextSecondary,
-                    textAlign = TextAlign.End,
+                    textAlign = TextAlign.Start,
                 )
             }
         }

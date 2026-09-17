@@ -113,3 +113,13 @@ Completed successfully in 2m 36s. API 26 run: `20260917-033142108`;
 API 36 full run: `20260917-031801721`. The committed API 29 captures have
 their own matching `native/api29/captures.json` and `profile.json`.
 Both reviewers cleared the final bounded-fixture and timezone changes.
+
+## Closure
+
+Merged as `d77fc432` through PR #348 after both hosted deterministic jobs passed.
+The hosted emulator executed 101 tests: 92 passed, nine stale legacy workout
+golden comparisons failed. Those references are explicitly owned by F2/F3;
+their differences are not renderer rounding and the lane remains nonblocking.
+From clean merged trunk, the complete local gate passed (cached unit results,
+fresh static checks) and three native full-tab/workout/resume/correction journeys
+passed in run `20260917-034709656`. F0 is complete; no production UI changed.

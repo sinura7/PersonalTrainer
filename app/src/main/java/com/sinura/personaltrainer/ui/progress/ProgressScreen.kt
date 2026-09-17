@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,7 +49,8 @@ import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceGroup
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
@@ -303,12 +303,9 @@ internal fun BodyWindowPicker(
                 modifier = Modifier.testTag(BodyTags.START_SHEET),
             )
         }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
+        InstrumentChoiceGroup {
             HeatWindow.entries.forEach { entry ->
-                InstrumentChip(
+                InstrumentChoiceChip(
                     label = entry.shortLabel,
                     selected = window == entry,
                     onClick = { onSelectWindow(entry) },

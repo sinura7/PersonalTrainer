@@ -186,6 +186,19 @@ foreach ($setting in @('window_animation_scale', 'transition_animation_scale', '
 }
 Invoke-Checked $adb @('-s', $serial, 'shell', 'settings', 'put', 'system', 'font_scale', '1.0')
 Invoke-Checked $adb @('-s', $serial, 'shell', 'input', 'keyevent', '82')
+# sys.boot_completed can precede a usable launcher window on a cold AOSP image.
+# An unfocused/ANR launcher later intercepts instrumentation taps. Fail the
+# environment check before tests instead of mistaking that for an app failure.
+Invoke-Checked $adb @('-s', $serial, 'shell', 'input', 'keyevent', 'KEYCODE_HOME')
+$focusDeadline = [DateTime]::UtcNow.AddSeconds(30)
+do {
+    $windowState = (& $adb -s $serial shell dumpsys window) -join "`n"
+    $launcherFocused = $windowState -match 'mCurrentFocus=Window\{[^\r\n]*com\.android\.launcher3/'
+    if (-not $launcherFocused) { Start-Sleep -Milliseconds 500 }
+} while (-not $launcherFocused -and [DateTime]::UtcNow -lt $focusDeadline)
+if (-not $launcherFocused) {
+    throw 'The owned AVD booted without a focused launcher window. Inspect adb logcat for a system ANR and restart the profile before testing.'
+}
 $manifest = [ordered]@{
     profile = $avdName; serial = $serial; systemImage = $image; imageRevision = $imageRevision
     fingerprint = ((& $adb -s $serial shell getprop ro.build.fingerprint) -join '').Trim()
@@ -197,6 +210,7 @@ $manifest = [ordered]@{
     timeZone = $timeZone
     clockPolicy = 'Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)'
     goldenProfile = 'windows-swiftshader37'
+    startupCheck = 'Repository launcher owns a focused window after boot and display configuration'
     capturedUtc = [DateTime]::UtcNow.ToString('o')
 }
 $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtimeRoot "$avdName.json") -Encoding utf8

@@ -155,6 +155,11 @@ class FrontendBaselineCaptureTest {
 
     private fun capture(page: String) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
+        // Semantics can be ready before the Android window presents that frame.
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
+        instrumentation.waitForIdleSync()
+        instrumentation.uiAutomation.waitForIdle(200, 5_000)
         val name = "frontend-baseline-$page-api${Build.VERSION.SDK_INT}"
         val bitmap = checkNotNull(instrumentation.uiAutomation.takeScreenshot())
         try {

@@ -27,8 +27,6 @@ object LogLoopScale {
 
     fun stackTiles(fontScale: Float): Boolean = stackEntryWells(fontScale)
 
-    fun hideLiveBarCluster(fontScale: Float): Boolean = stackEntryWells(fontScale)
-
     fun headlineLines(fontScale: Float): Int = if (stackEntryWells(fontScale)) 3 else 2
 
     fun tileNumeral(fontScale: Float): TextStyle {

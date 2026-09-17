@@ -1,0 +1,61 @@
+{
+  "goldenManifest": "../../../../../app/src/androidTest/assets/goldens/windows-swiftshader37/frontend-manifest.json",
+  "observations": [
+    {
+      "name": "frontend-number-entry-valid.png",
+      "sha256": "73a477c38d8317e0fe197ab8489e7e17f31f7245da309ab5cb74f005b4161c59",
+      "runId": "20260917-050534591",
+      "fontScale": 1
+    },
+    {
+      "name": "frontend-confirmation-font20.png",
+      "sha256": "f462a62c7bc57977f07e473cc10ab841bc55bb4b152d6cec2522abf1a6b902e2",
+      "runId": "20260917-050534591",
+      "fontScale": 2
+    },
+    {
+      "name": "frontend-rest-sheet-font20.png",
+      "sha256": "fb346d385d8edb02144b9e8b6a45d73969aff97df546494a0c3e5ff22aef721d",
+      "runId": "20260917-050534591",
+      "fontScale": 2
+    },
+    {
+      "name": "frontend-long-confirmation-font20.png",
+      "sha256": "ba1d25ba2732af423a6dc4228cd1aa429472298f58345503911238aa572ebed8",
+      "runId": "20260917-050534591",
+      "fontScale": 2
+    },
+    {
+      "name": "frontend-baseline-home-api29.png",
+      "sha256": "a0cd0d8c6c9a545de86e385ee845924a3b328df845cd43f5d0c0a6e4bb8af152",
+      "runId": "20260917-043013541",
+      "fontScale": 1
+    },
+    {
+      "name": "frontend-baseline-body-api29.png",
+      "sha256": "6de7b07d1e125ef6ecc0b81061c2173dea92fee456702b892fc6f993c23609a7",
+      "runId": "20260917-043013541",
+      "fontScale": 1
+    },
+    {
+      "name": "frontend-baseline-plan-api29.png",
+      "sha256": "80b2fa002d441477fc81fa43f63685154081507942f6e3ae7b5d607a082ea46e",
+      "runId": "20260917-043013541",
+      "fontScale": 1
+    },
+    {
+      "name": "frontend-baseline-history-api29.png",
+      "sha256": "500e31f2c78196343f1afe4696310caea895fbfabb56cfa19a9412af08acd994",
+      "runId": "20260917-043013541",
+      "fontScale": 1
+    },
+    {
+      "name": "frontend-baseline-settings-api29.png",
+      "sha256": "f18fa09125f2bc4cd8083c2e8b1b27121b5e18576029aa5747ae1d22587b0712",
+      "runId": "20260917-043013541",
+      "fontScale": 1
+    }
+  ],
+  "clock": "Real civil clock; these whole-device captures are observations, not golden comparisons",
+  "note": "Dialog font20 uses OS font_scale 2.0 before Activity launch; settings restored afterward. MainActivity capture waits for semantic and rendered idle."
+}

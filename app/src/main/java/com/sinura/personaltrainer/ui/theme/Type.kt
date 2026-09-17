@@ -5,6 +5,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.sinura.personaltrainer.R
@@ -58,6 +59,8 @@ private fun style(
     lineHeight = lineHeight,
     letterSpacing = letterSpacing,
     fontFeatureSettings = TABULAR,
+    // Mirror layout independently from the language of a value/label pair.
+    textDirection = TextDirection.Content,
 )
 
 /**

@@ -35,13 +35,16 @@ class ExactAlarmCapabilityInstrumentedTest {
             //
             // Wait on THIS start's own row rather than on the flow leaving FAILED: a value
             // left over from an earlier test in the same process would satisfy that and
-            // report an arm that never happened. saveRow immediately precedes
-            // scheduleAlarmForCurrent inside the same coroutine, so the row on disk carrying
-            // this timer id proves the arm has run.
+            // report an arm that never happened. A persisted row precedes the
+            // arm; it does not prove that the following scheduling call finished.
             val timerId = app.container.restTimerStore.current().timerId
             awaitTrue("rest row for $timerId reached disk") {
                 app.container.restTimerStatePersistence.load()?.timerId == timerId
             }
+            // This is a platform-capability check. Reschedule this persisted,
+            // current timer synchronously so a prior outcome cannot satisfy it.
+            // Controller persist-then-arm sequencing has separate unit coverage.
+            timer.rescheduleCurrent()
             assertEquals(AlarmScheduleResult.EXACT, timer.lastAlarmSchedule.value)
             assertEquals(ExactAlarmAttempt.EXACT, timer.exactAlarmAttempt.value)
         } finally {

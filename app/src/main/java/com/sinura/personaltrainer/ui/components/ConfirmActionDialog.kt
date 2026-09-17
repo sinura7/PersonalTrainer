@@ -2,7 +2,7 @@ package com.sinura.personaltrainer.ui.components
 
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -12,11 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
 
@@ -34,27 +34,22 @@ fun GymDialog(
     val dismiss = dismissLabel
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                title,
-                style = InstrumentType.title,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
         text = {
+            // Material's text slot is bounded before the actions. Keep dynamic
+            // identity and explanation in the same scroll area so neither can
+            // push confirmation/cancellation outside the dialog.
             Column(
-                modifier = Modifier
-                    .heightIn(max = 360.dp)
-                    .verticalScroll(rememberScrollState()),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space4),
             ) {
+                Text(title, style = InstrumentType.title, color = TextPrimary)
                 Text(body, style = InstrumentType.body, color = TextSecondary)
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    if (destructive) Haptics.commit(view)
+                    Haptics.tickLight(view)
                     onConfirm()
                 },
                 modifier = Modifier.testTag(ConfirmActionTags.CONFIRM),
@@ -63,8 +58,6 @@ fun GymDialog(
                     confirmLabel,
                     style = InstrumentType.bodyStrong,
                     color = if (destructive) Danger else Volt,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         },
@@ -77,8 +70,6 @@ fun GymDialog(
                         dismiss,
                         style = InstrumentType.bodyStrong,
                         color = TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
