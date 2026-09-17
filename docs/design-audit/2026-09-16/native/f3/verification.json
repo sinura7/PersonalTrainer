@@ -135,9 +135,42 @@
       },
       "captures": 82,
       "purpose": "API 26 workout layout/interaction compatibility; before final terminal-rest guard; no API 29 pixel comparison"
+    },
+    {
+      "runId": "20260917-135849036",
+      "counts": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "017a996e05920a78e50c57665607809f1ed77b06a1cb66b338031cc553b811bc"
+      ],
+      "profile": {
+        "profile": "temper-tests-api26",
+        "serial": "emulator-5558",
+        "systemImage": "system-images;android-26;default;x86_64",
+        "imageRevision": "1",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:8.0.0/OSR1.180418.004/4931640:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T13:58:49.0179518Z"
+      },
+      "captures": 8,
+      "purpose": "Final source 5b598e34 native journeys after terminal-rest guard: log, completion, correction, timing, IME and restoration"
     }
   ],
-  "localGate": "Full gate 9 passed 2,579 tests, zero failures/errors/skips; debug, lint, static checks and Android test build passed, including final terminal-rest regressions",
+  "localGate": "Full gate 10 passed all 2,579 tests plus debug/lint/static/Android test compilation after initial draft-readiness fixture correction",
   "outstanding": [
     "Hosted gate and renderer-specific baseline review",
     "Merge and clean integrated verification",
@@ -180,5 +213,14 @@
       "sha256": "8e2c4038d2c491d39199a41c20890dac8d40b6436bb59f4dc5dac751e36e1639",
       "api": 36
     }
-  ]
+  ],
+  "hostedReferenceReview": {
+    "runs": [
+      "https://github.com/sinura7/PersonalTrainer/actions/runs/35230444274",
+      "https://github.com/sinura7/PersonalTrainer/actions/runs/35230416832"
+    ],
+    "references": 81,
+    "comparison": "independent runs within unchanged allowance",
+    "freshComparison": "pending"
+  }
 }

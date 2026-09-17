@@ -310,7 +310,11 @@ class WorkoutSaveRecoveryTest {
             targetWeightKg = 40.0, restSeconds = 90,
         )
         val vm = active(handle(fixture.session.id))
-        val log = vm.primaryAction.awaitFirst { it.enabled && it.kind == WorkoutPrimaryKind.LOG_SET }
+        val log = vm.primaryAction.awaitFirst {
+            it.enabled && it.kind == WorkoutPrimaryKind.LOG_SET &&
+                it.identity.exerciseId == fixture.exercise.id &&
+                it.identity.draft.weightKg == 100.0 && it.identity.draft.reps == 5
+        }
         assertTrue(vm.performPrimary(log))
         val next = vm.primaryAction.awaitFirst { it.enabled && it.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         assertFalse(vm.performPrimary(log))

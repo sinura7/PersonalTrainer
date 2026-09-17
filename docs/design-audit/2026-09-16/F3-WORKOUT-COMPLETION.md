@@ -166,3 +166,20 @@ Final local gate 9 passed all 2,579 tests, zero skipped, plus static checks,
 debug build, lint and Android test build. Both terminal-timer regressions passed.
 Independent and adversarial source reviews are clear. Hosted renderer reference
 review, required hosted gate and clean post-merge verification remain pending.
+
+PR #351 opened at `5b598e34`. Final-source API 26 native journeys passed
+12/12 with zero skips (`20260917-135849036`), including the terminal-rest guards.
+Hosted checks are running; no merge or debug drop yet.
+
+Initial hosted required job 105232837129 failed one of 2,579 tests: the
+queued-tap regression observed an enabled initial Log action before its planned
+draft finished prefilling. Its first action now waits for the same selected
+exercise and prescribed weight/reps as the second action already did. Identity,
+double-tap and saved-row assertions are unchanged. Full local gate 10 and a fresh
+hosted run must pass before acceptance.
+Full local gate 10 passed 2,579 tests and all build/static/lint checks. Hosted
+native runs 35230444274 and 35230416832 each produced 81 expected image-reference
+failures; all other native checks passed. All 81 actual captures were reviewed
+and independently matched across both hosted runs within the unchanged one-level,
+256-pixel rounding allowance. Accepted hosted references are separate from Windows
+references and have per-file hashes/rationale. Fresh hosted comparison pending.
