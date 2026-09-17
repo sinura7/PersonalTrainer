@@ -1396,11 +1396,13 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { state -> state.session?.sets?.any { it.id == logged.id } == true }
         awaitRestRunning()
 
+        vm.awaitEntryUnlocked()
         vm.deleteSet(logged.id)
         vm.awaitOffer(vm.deletedSet)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
         assertFalse(deps.restTimerStore.current().running)
 
+        vm.awaitEntryUnlocked()
         vm.undoDeleteSet()
         val restored = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
         assertEquals(logged.id, restored.id)
@@ -1468,6 +1470,7 @@ class ActiveWorkoutViewModelTest {
         assertEquals(2, deps.workoutRepository.getSession(fixture.session.id)!!.exercises.size)
 
         vm.setPickerVisible(false)
+        vm.awaitEntryUnlocked()
         vm.removeSelectedLift()
         session = awaitSession(fixture.session.id) { it.exercises.size == 1 }
         assertEquals(SQUAT, session.exercises.single().exercise.id)
@@ -1508,6 +1511,7 @@ class ActiveWorkoutViewModelTest {
         vm.skipRest()
         vm.awaitState { it.session?.sets?.size == 1 }
 
+        vm.awaitEntryUnlocked()
         vm.removeSelectedLift()
 
         val state = vm.awaitState { it.error != null }
@@ -1527,6 +1531,7 @@ class ActiveWorkoutViewModelTest {
         val rowItemId = rowLift.id
         val rowOrder = rowLift.sortOrder
 
+        vm.awaitEntryUnlocked()
         vm.removeSelectedLift()
         awaitSession(fixture.session.id) { session ->
             session.exercises.none { it.exercise.id == ROW }
@@ -1537,6 +1542,7 @@ class ActiveWorkoutViewModelTest {
             deps.workoutRepository.getSession(fixture.session.id)!!.exercises.single().exercise.id,
         )
 
+        vm.awaitEntryUnlocked()
         vm.undoRemoveLift()
         val restored = awaitSession(fixture.session.id) { it.exercises.size == 2 }
         val restoredRow = restored.exercises.single { it.exercise.id == ROW }
@@ -1560,6 +1566,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.deleteSet(first.id)
         vm.awaitOffer(vm.deletedSet)
+        vm.awaitEntryUnlocked()
         vm.deleteSet(second.id)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
 
@@ -1567,11 +1574,13 @@ class ActiveWorkoutViewModelTest {
         assertEquals(2, vm.undoEntries.value.size)
         assertEquals(UndoKind.DELETED_SET, vm.undoEntries.value.last().offer.kind)
 
+        vm.awaitEntryUnlocked()
         vm.undoTopOffer()
         val oneBack = awaitSession(fixture.session.id) { it.sets.size == 1 }
         assertEquals(second.id, oneBack.sets.single().id)
         assertEquals(1, vm.undoEntries.value.size)
 
+        vm.awaitEntryUnlocked()
         vm.undoTopOffer()
         val bothBack = awaitSession(fixture.session.id) { it.sets.size == 2 }
         assertEquals(setOf(first.id, second.id), bothBack.sets.map { it.id }.toSet())
@@ -1590,10 +1599,12 @@ class ActiveWorkoutViewModelTest {
         vm.logSetAndSettle()
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
 
+        vm.awaitEntryUnlocked()
         vm.deleteSet(logged.id)
         vm.awaitOffer(vm.deletedSet)
         vm.selectExercise(ROW)
         vm.awaitState { it.selectedExerciseId == ROW }
+        vm.awaitEntryUnlocked()
         vm.removeSelectedLift()
         vm.awaitOffer(vm.removedLift)
 
@@ -1601,11 +1612,13 @@ class ActiveWorkoutViewModelTest {
         assertEquals(UndoKind.REMOVED_LIFT, vm.undoEntries.value.last().offer.kind)
 
         // Latest first: the lift comes back, then the set.
+        vm.awaitEntryUnlocked()
         vm.undoTopOffer()
         awaitSession(fixture.session.id) { it.exercises.size == 2 }
         assertEquals(1, vm.undoEntries.value.size)
         assertEquals(UndoKind.DELETED_SET, vm.undoEntries.value.last().offer.kind)
 
+        vm.awaitEntryUnlocked()
         vm.undoTopOffer()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         assertTrue(vm.undoEntries.value.isEmpty())
@@ -1622,8 +1635,10 @@ class ActiveWorkoutViewModelTest {
         val sets = awaitSession(fixture.session.id) { it.sets.size == 2 }
             .sets.sortedBy { it.completedAt }
 
+        vm.awaitEntryUnlocked()
         vm.deleteSet(sets[0].id)
         vm.awaitOffer(vm.deletedSet)
+        vm.awaitEntryUnlocked()
         vm.deleteSet(sets[1].id)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
         assertEquals(2, vm.undoEntries.value.size)
@@ -1649,6 +1664,7 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(100.0)
         vm.logSetAndSettle()
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
+        vm.awaitEntryUnlocked()
         vm.deleteSet(logged.id)
         vm.awaitOffer(vm.deletedSet)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
@@ -1895,6 +1911,7 @@ class ActiveWorkoutViewModelTest {
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         vm.awaitState { it.session?.sets?.size == 1 && !it.logging && !it.save.pending }
 
+        vm.awaitEntryUnlocked()
         vm.removeSelectedLift()
 
         val state = vm.awaitState { it.error != null }
@@ -2247,6 +2264,22 @@ class ActiveWorkoutViewModelTest {
         awaitState { it.loadState == SessionLoadState.FOUND }
 
     /**
+     * The moment a delete, remove or undo may be issued and will be acted on.
+     *
+     * Every entry mutation begins `if (!canChangeEntry()) return`: while a save is
+     * outstanding, another mutation is in flight or the session is not FOUND, the tap is
+     * dropped without a word, by design — a queued tap must never act on a screen that has
+     * moved on. `entryLocked` projects those same flags, and `uiState` is collected for the
+     * ViewModel's whole life by `primaryAction`, so it is live, not a snapshot. A test that
+     * taps the instant a row or an offer appears is otherwise racing the tail of the
+     * operation that produced it: that is how `undoQueueSurvivesProcessDeath` lost trunk
+     * run 35239125454 and reproduced here, with the row still stored and nothing left
+     * running.
+     */
+    private suspend fun ActiveWorkoutViewModel.awaitEntryUnlocked(): ActiveWorkoutUiState =
+        awaitState { !it.entryLocked }
+
+    /**
      * FOUND is not settled. Prefill runs after the session resolves and replaces the whole
      * draft with the suggestion, so a test that types on FOUND is typing into a well that is
      * about to be overwritten — by the app, correctly, and not by the defect under test.
@@ -2339,7 +2372,7 @@ class ActiveWorkoutViewModelTest {
      */
     private suspend fun <T : Any> ActiveWorkoutViewModel.awaitOffer(offer: StateFlow<T?>): T = try {
         val value = checkNotNull(offer.awaitFirst { it != null })
-        awaitState { !it.mutating }
+        awaitEntryUnlocked()
         value
     } catch (gaveUp: AssertionError) {
         throw AssertionError("${gaveUp.message}\nuiState was ${uiState.value}", gaveUp)
