@@ -1,0 +1,28 @@
+{
+  "runId": "20260917-033333588",
+  "sourceCommit": "20789157e150b782486d596645e3733349fd94b5",
+  "profile": "profile.json",
+  "clock": "Real civil clock",
+  "images": [
+    {
+      "name": "frontend-baseline-body-api29.png",
+      "sha256": "7a7d0ed206446e799ce6d8824d5d8192c76f1308571e64a497f1b4961d76dc74"
+    },
+    {
+      "name": "frontend-baseline-history-api29.png",
+      "sha256": "92178a02c9a6699da4538e71f67cb3ce3ec6f28e1b802477450d80e1e902313b"
+    },
+    {
+      "name": "frontend-baseline-home-api29.png",
+      "sha256": "d22759708db3d61f41dcd2b19f15ef028680925c579ae87966977776bdfcaa03"
+    },
+    {
+      "name": "frontend-baseline-plan-api29.png",
+      "sha256": "cb4ef8967f51d19614360940b75768b0cb28ba3c4c16e9871fe8c217a1c90404"
+    },
+    {
+      "name": "frontend-baseline-settings-api29.png",
+      "sha256": "0bc90c7e0196052fb9cea2b3f759b7f8e06455e1062c59afed11ce6540971f1e"
+    }
+  ]
+}

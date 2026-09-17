@@ -6,6 +6,10 @@
 **Baseline audit:** [foundation-audit/README.md](foundation-audit/README.md)  
 **Audited revision this program starts from:** `trunk` at `508c4b8`
 
+**Active frontend work:** [Frontend redesign](FRONTEND_REDESIGN.md), approved
+16 September 2026 under [ADR-026](architecture/ADR-026-frontend-redesign.md).
+It retains this program's data and product guarantees and refines UI behavior.
+
 This file is the executable program. Accepted ADRs are the decisions it
 may not violate. Historical [ROADMAP.md](ROADMAP.md), Jobs 1–6, and
 `docs/archive/` explain how the strength logger was built. They are not
@@ -79,7 +83,7 @@ deload sets, overlay rest clock, subscription-gating the local core.
 
 ## 4. Universal packet protocol
 
-Every packet is one throwaway `cursor/<slug>-b87f` branch and one PR into
+Every packet is one throwaway `codex/<slug>` branch (ADR-026) and one PR into
 `trunk`, except the Phase 0 documentation train (this phase) and the
 uninterrupted Phase 5 cutover train ([ADR-002](architecture/ADR-002-execution-protocol.md)).
 

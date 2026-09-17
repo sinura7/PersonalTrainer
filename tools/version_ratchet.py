@@ -121,7 +121,7 @@ def resolve_floor(repo: Path, exclude_tag: str | None = None) -> Floor | None:
         return None
     file_floor = read_file_floor(repo)
     if file_floor is not None:
-        return Floor(code=file_floor, source=str(FALLBACK_FILE))
+        return Floor(code=file_floor, source=FALLBACK_FILE.as_posix())
     return None
 
 

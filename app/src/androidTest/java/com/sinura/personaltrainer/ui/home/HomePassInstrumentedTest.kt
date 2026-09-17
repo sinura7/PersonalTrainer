@@ -19,6 +19,9 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -276,16 +279,18 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
-        compose.onNodeWithText(ExtraEquipment.PICK).assertIsDisplayed()
-        compose.onNodeWithText(ExtraEquipment.NONE.label).assertIsDisplayed()
-        compose.onNodeWithText(ExtraEquipment.MACHINES.label).assertIsDisplayed()
-        compose.onNodeWithText(ExtraEquipment.MIXED.label).assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.PICK.uppercase()).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.NONE.label).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.MACHINES.label).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.MIXED.label).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Golf warm-up").assertDoesNotExist()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.MIXED)).performClick()
-        compose.onNodeWithText("Golf warm-up").assertIsDisplayed()
-        compose.onNodeWithText("Lower-body warm-up").assertIsDisplayed()
-        compose.onNodeWithText("Shoulder warm-up").assertIsDisplayed()
-        compose.onNodeWithText("Stretch").assertIsDisplayed()
+        // Expand the native sheet before traversing the longer pack list.
+        compose.onNodeWithTag(HomeStartTags.SHEET).performTouchInput { swipeUp() }
+        compose.onNodeWithText("Golf warm-up").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Lower-body warm-up").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Shoulder warm-up").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Stretch").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -302,7 +307,8 @@ class HomePassInstrumentedTest {
         }
         compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
         compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
-        compose.onNodeWithText("Floor brace. Dead bugs, planks. No machine.").assertIsDisplayed()
+        compose.onNodeWithText("Dead bugs, planks, an ab wheel. No machine.")
+            .performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Crunches and leg raises. Not a static hold.", substring = true)
             .assertDoesNotExist()
     }

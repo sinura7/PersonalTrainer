@@ -14,7 +14,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -132,9 +132,10 @@ class ActiveWorkoutJourneyInstrumentedTest {
             timer.running && timer.sessionId == fixture.sessionId
         }
         val timer = container.restTimerStore.current()
-        assertEquals(120, timer.totalSeconds)
+        // The saved five-rep working set uses the heavy-set rest prescription.
+        assertEquals(150, timer.totalSeconds)
         val remaining = timer.remainingSeconds(SystemClock.elapsedRealtime())
-        assertTrue("remaining=$remaining", remaining in 1..120)
+        assertTrue("remaining=$remaining", remaining in 1..150)
         // The rest track tweens every second and this emulator never catches
         // up, so Compose never goes idle while the clock runs. Skip through
         // the same controller the Skip button uses, then resume Espresso.
@@ -144,7 +145,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.MICRO_REC))
                 .fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed()
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
@@ -153,6 +154,8 @@ class ActiveWorkoutJourneyInstrumentedTest {
         assertFalse(container.restTimerStore.current().running)
 
         compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.onNodeWithText("End workout?").assertIsDisplayed()
+        compose.onNodeWithText("Save as is").performClick()
         compose.waitUntil(10_000) {
             runBlocking(Dispatchers.IO) {
                 container.workoutRepository.getSession(fixture.sessionId)?.finishedAt != null
