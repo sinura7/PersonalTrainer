@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 17 Sep 2026 — Live 80: Google Drive backup works again. Every backup
+> text ends in a newline, and the upload skipped the CRLF that must precede
+> the closing multipart boundary, so Drive refused every upload since Live 60
+> ("Missing end boundary in multipart body"). Manual and after-workout
+> backups both land now. `debugLiveCode` 80; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
 > 16 Sep 2026 — Live 77: idle rest on the 56 dp instrument bar (duration
 > sheet, Time-set in-bar) on `trunk`.
 > `debugLiveCode` 77; suffix from
