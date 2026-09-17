@@ -143,6 +143,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
         handle[liftKey(id, FIELD_WARMUP)] = draft.isWarmup
         handle[liftKey(id, FIELD_DURATION)] = draft.durationSeconds
         handle[liftKey(id, FIELD_DIRTY)] = draft.dirty
+        handle[liftKey(id, FIELD_EXTRA)] = draft.extraSetRequested
     }
 
     private fun readLiftFields(sessionId: String, exerciseId: String): WorkoutDraft? {
@@ -157,6 +158,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
             notes = sessionNotes(),
             durationSeconds = handle.get<Int>(liftKey(exerciseId, FIELD_DURATION)),
             dirty = handle.get<Boolean>(liftKey(exerciseId, FIELD_DIRTY)) ?: false,
+            extraSetRequested = handle.get<Boolean>(liftKey(exerciseId, FIELD_EXTRA)) ?: false,
         )
     }
 
@@ -197,7 +199,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
     }
 
     private fun removeLiftKeys(exerciseId: String) {
-        listOf(FIELD_WEIGHT, FIELD_REPS, FIELD_RPE, FIELD_WARMUP, FIELD_DURATION, FIELD_DIRTY)
+        listOf(FIELD_WEIGHT, FIELD_REPS, FIELD_RPE, FIELD_WARMUP, FIELD_DURATION, FIELD_DIRTY, FIELD_EXTRA)
             .forEach { handle.remove<Any>(liftKey(exerciseId, it)) }
     }
 
@@ -221,6 +223,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
         const val FIELD_WARMUP = "isWarmup"
         const val FIELD_DURATION = "durationSeconds"
         const val FIELD_DIRTY = "dirty"
+        const val FIELD_EXTRA = "extraSetRequested"
 
         fun liftKey(exerciseId: String, field: String): String = "draft.lift.$exerciseId.$field"
     }

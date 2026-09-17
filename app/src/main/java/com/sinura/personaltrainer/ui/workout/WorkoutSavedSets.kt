@@ -65,6 +65,7 @@ internal fun LatestWorkoutSet(
     unit: WeightUnit,
     receipt: LogReceipt?,
     onViewSets: () -> Unit,
+    enabled: Boolean = true,
 ) {
     val saved = sets.firstOrNull { it.id == receipt?.setId }
     val latest = saved ?: sets.firstOrNull { it.id == latestSetId } ?: sets.lastOrNull() ?: return
@@ -82,13 +83,14 @@ internal fun LatestWorkoutSet(
                 color = if (saved != null) Volt else TextSecondary,
             )
             Text(
-                SetCopy.setLine(latest.weightKg, latest.reps, loadClass, unit, durationSeconds = latest.durationSeconds) +
+                SetCopy.setLine(latest.weightKg, latest.reps, loadClass, unit, durationSeconds = latest.durationSeconds, entryPrecision = true) +
                     latest.rpe?.let { " · RPE $it" }.orEmpty(),
                 style = InstrumentType.bodyStrong,
                 color = TextPrimary,
             )
         }
         TextButton(
+            enabled = enabled,
             onClick = onViewSets,
             modifier = Modifier.heightIn(min = Metrics.touchMin).testTag("workout-view-sets"),
         ) { Text("View sets", style = InstrumentType.bodyStrong, color = TextPrimary) }
@@ -145,7 +147,7 @@ internal fun WorkoutSetsSheet(
                                 color = TextSecondary,
                             )
                             Text(
-                                SetCopy.setLine(set.weightKg, set.reps, loadClass, unit, durationSeconds = set.durationSeconds),
+                                SetCopy.setLine(set.weightKg, set.reps, loadClass, unit, durationSeconds = set.durationSeconds, entryPrecision = true),
                                 style = InstrumentType.bodyStrong,
                                 color = TextPrimary,
                             )

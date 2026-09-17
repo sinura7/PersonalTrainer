@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.workout
 
 import com.sinura.personaltrainer.domain.DraftStore
+import com.sinura.personaltrainer.domain.WorkoutSetSave
 
 data class WorkoutDraft(
     val sessionId: String,
@@ -12,6 +13,7 @@ data class WorkoutDraft(
     val notes: String,
     val durationSeconds: Int? = null,
     val dirty: Boolean = false,
+    val extraSetRequested: Boolean = false,
 )
 
 /**
@@ -22,6 +24,30 @@ data class WorkoutDraft(
 class WorkoutDraftCache {
     private val lock = Any()
     private val sessions = mutableMapOf<String, SessionDrafts>()
+
+    fun editingOriginal(sessionId: String): WorkoutSetSave? = synchronized(lock) {
+        sessions[sessionId]?.editingOriginal
+    }
+
+    fun putEditingOriginal(sessionId: String, value: WorkoutSetSave?) {
+        synchronized(lock) { sessions.getOrPut(sessionId) { SessionDrafts() }.editingOriginal = value }
+    }
+
+    fun pendingSave(sessionId: String): WorkoutSetSave? = synchronized(lock) {
+        sessions[sessionId]?.pendingSave
+    }
+
+    fun putPendingSave(command: WorkoutSetSave) {
+        synchronized(lock) {
+            sessions.getOrPut(command.sessionId) { SessionDrafts() }.pendingSave = command
+        }
+    }
+
+    fun clearPendingSave(command: WorkoutSetSave) {
+        synchronized(lock) {
+            sessions[command.sessionId]?.let { if (it.pendingSave == command) it.pendingSave = null }
+        }
+    }
 
     fun get(sessionId: String): WorkoutDraft? = synchronized(lock) {
         val session = sessions[sessionId] ?: return null
@@ -58,6 +84,8 @@ class WorkoutDraftCache {
     ) {
         synchronized(lock) {
             val session = SessionDrafts()
+            session.pendingSave = sessions[sessionId]?.pendingSave
+            session.editingOriginal = sessions[sessionId]?.editingOriginal
             session.selectedExerciseId = selectedExerciseId
             lifts.forEach { (id, draft) ->
                 if (id.isNotEmpty()) session.lifts[id] = draft.copy(sessionId = sessionId)
@@ -108,6 +136,8 @@ class WorkoutDraftCache {
         }
 
     private class SessionDrafts {
+        var pendingSave: WorkoutSetSave? = null
+        var editingOriginal: WorkoutSetSave? = null
         var selectedExerciseId: String? = null
         val lifts: MutableMap<String, WorkoutDraft> = mutableMapOf()
     }

@@ -74,19 +74,19 @@ class RestIdlePresentationTest {
         assertTrue(dock.contains("RestBatteryCopy.SENTENCE"))
         assertTrue(dock.contains("RestBatteryHintRow"))
         val floor = readOwned("ui/workout/RestTimerScreen.kt")
-        assertTrue(floor.contains("RestBatteryHintRow"))
-        assertTrue(floor.contains("RestFloorTags.BATTERY"))
-        assertTrue(floor.contains("RestHonestyCopy.EXACT_DENIED"))
-        assertTrue(floor.contains("RestFloorTags.EXACT"))
+        assertTrue(floor.contains("RestHonestyCopy.pick("))
+        assertTrue(floor.contains("RestHonestyRow("))
+        assertTrue(floor.contains("notificationsEnabled = notificationsEnabled"))
+        assertTrue(floor.contains("exactBestEffort = rest.exactAlarmBestEffort"))
         assertFalse(floor.contains("precise", ignoreCase = true))
     }
 
     @Test
-    fun idleFloorUsesEmptyRingAndNotRunningKicker() {
+    fun idleFloorNamesPlannedRestAndRingYieldsToLargeText() {
         val floor = readOwned("ui/workout/RestTimerScreen.kt")
-        assertTrue(floor.contains("RestIdleCopy.KICKER"))
-        assertTrue(floor.contains("idleRingSeconds"))
-        assertTrue(floor.contains("afterWarmupHint()"))
+        assertTrue(floor.contains("else -> \"Planned rest\""))
+        assertTrue(floor.contains("remainingSeconds = if (rest.running) safeRemaining else 0"))
+        assertTrue(floor.contains("if (showRing)"))
         assertFalse(floor.contains("\"Next rest\""))
     }
 

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Temper — complete workout experience</title>
+<style>
+:root{color-scheme:dark;font:16px/1.6 system-ui;background:#07090b;color:#f2f5f7}*{box-sizing:border-box}body{max-width:1240px;margin:auto;padding:32px 20px 64px}h1{font-size:clamp(32px,6vw,56px);line-height:1.05;letter-spacing:-1.5px;max-width:900px}h2{font-size:26px;margin:0 0 12px}p{max-width:900px;color:#a8b3ba}a{color:#c2ff44;text-underline-offset:4px}a:focus-visible{outline:3px solid #33d6e8;outline-offset:5px}.eyebrow{color:#c2ff44;text-transform:uppercase;letter-spacing:.12em;font-size:12px}.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:24px;margin-top:28px}.pair{grid-template-columns:repeat(2,minmax(0,1fr));max-width:840px}figure{margin:0;min-width:0}img{display:block;width:100%;height:auto;border-radius:12px;border:1px solid #354049}figcaption{margin:10px 0;color:#a8b3ba;font-size:14px}section{border-top:1px solid #354049;margin-top:40px;padding-top:28px}.status{padding:16px 20px;background:#151a1e;border-radius:16px}.status strong{color:#f2f5f7}nav{display:flex;gap:16px;flex-wrap:wrap}details{margin:24px 0}summary{cursor:pointer;min-height:48px;color:#c2ff44}@media(max-width:560px){.pair{grid-template-columns:1fr}}
+</style>
+<main>
+<div class="eyebrow">Temper · native redesign · packet 3</div>
+<h1>One clear next action.</h1>
+<p>Save the displayed set. Add another when you want one. Move to the next unfinished exercise with a deliberate tap. Finish when the planned workout is complete.</p>
+<nav aria-label="Evidence navigation"><a href="workout.html">Workout entry</a><a href="controls.html">Shared controls</a><a href="native.html">Native starting point</a><a href="F3-WORKOUT-COMPLETION.md">Verification record</a><a href="../../FRONTEND_REDESIGN.md">Full programme</a></nav>
+<p class="status"><strong>API 29 verification passed: 222 native tests, including fresh image comparisons.</strong> The local build, lint and all 2,579 unit tests also passed. API 36 and API 26 each passed 86 workout checks; source reviews are clear. Hosted verification and phone delivery remain pending. These references use synthetic workout data.</p>
+<section><h2>Finish the exercise, then choose what follows</h2><p>The primary action derives from saved working sets. Warm-ups, editing, explicit extra sets and active timing retain their own actions. Earlier skipped exercises remain in the unfinished order.</p>
+<div class="gallery pair">
+<figure><a href="native/f3/frontend-completion-360x800-font10-next-api29.png"><img src="native/f3/frontend-completion-360x800-font10-next-api29.png" alt="Native workout after planned sets, with Add another set and Next exercise actions"></a><figcaption>Actual workout route · completed exercise · next unfinished exercise.</figcaption></figure>
+<figure><a href="native/f3/frontend-completion-360x800-font10-finish-api29.png"><img src="native/f3/frontend-completion-360x800-font10-finish-api29.png" alt="Native completed workout with explicit Finish workout action"></a><figcaption>Actual workout route · all planned exercises complete · finishing still asks for confirmation.</figcaption></figure>
+</div></section>
+<section><h2>Timing belongs beside the work</h2><p>Rest, Hold and Set time have explicit labels. Starting or stopping timing does not silently save a result. Closing the full rest screen keeps the shared timer running.</p>
+<div class="gallery">
+<figure><a href="native/f3/active-strength-working-api29.png"><img loading="lazy" src="native/f3/active-strength-working-api29.png" alt="Working set with distinct Time set and Start rest controls"></a><figcaption>Shipping components · fixed clock fixture · distinct timer actions.</figcaption></figure>
+<figure><a href="native/f3/frontend-rest-360x800-font10-running-api29.png"><img loading="lazy" src="native/f3/frontend-rest-360x800-font10-running-api29.png" alt="Full rest screen with planned rest and lower adjustment and Skip controls"></a><figcaption>Shipping rest presentation · fixed 46-second clock.</figcaption></figure>
+<figure><a href="native/f3/frontend-rest-360x640-font20-complete-api29.png"><img loading="lazy" src="native/f3/frontend-rest-360x640-font20-complete-api29.png" alt="Completed rest at enlarged text with Return to workout action"></a><figcaption>360 × 640 dp · font scale 2.0 · completed rest.</figcaption></figure>
+</div></section>
+<section><h2>Recover the operation that failed</h2><p>A failed save retains its original exercise and values. Retry checks whether that exact operation already reached storage before attempting it again. A changed or removed original set is explained instead of silently overwritten.</p>
+<div class="gallery pair">
+<figure><a href="native/f3/frontend-completion-360x800-font10-removed-owner-api29.png"><img loading="lazy" src="native/f3/frontend-completion-360x800-font10-removed-owner-api29.png" alt="Recovery remains reachable when the pending save's exercise has been removed"></a><figcaption>Actual route · restored pending operation · removed exercise.</figcaption></figure>
+<figure><a href="native/f3/frontend-completion-360x640-font20-edit-denied-api29.png"><img loading="lazy" src="native/f3/frontend-completion-360x640-font20-edit-denied-api29.png" alt="Editing at enlarged text with notifications unavailable and Save changes still accessible"></a><figcaption>Actual route · edit draft · font scale 2.0 · notifications unavailable.</figcaption></figure>
+</div></section>
+<section><h2>Native overlays and constrained layouts</h2><p>Exercise names wrap. The switcher identifies Current, Complete and Remaining. Switching during set timing requests confirmation. Custom rest entry replaces its parent sheet; Cancel returns to that sheet.</p>
+<div class="gallery pair">
+<figure><a href="native/f3/frontend-workout-window-switcher-font20-api29.png"><img loading="lazy" src="native/f3/frontend-workout-window-switcher-font20-api29.png" alt="Actual Android exercise switcher with enlarged text and a long exercise name"></a><figcaption>Actual Android window · system font scale 2.0.</figcaption></figure>
+<figure><a href="native/f3/frontend-completion-360x640-font20-next-api29.png"><img loading="lazy" src="native/f3/frontend-completion-360x640-font20-next-api29.png" alt="Next exercise action wraps a long name on a short screen with enlarged text"></a><figcaption>360 × 640 dp · long next exercise name · font scale 2.0.</figcaption></figure>
+</div>
+<details><summary>Landscape custom rest entry</summary><figure><a href="native/f3/frontend-workout-window-custom-rest-landscape-font20-api29.png"><img loading="lazy" src="native/f3/frontend-workout-window-custom-rest-landscape-font20-api29.png" alt="Actual Android landscape window with a single custom-rest entry dialog"></a><figcaption>Actual landscape window · system font scale 2.0 · single foreground overlay.</figcaption></figure></details></section>
+<section><h2>Verification and phone acceptance</h2><p>The evidence record distinguishes actual workout routes, immutable component fixtures, native interaction checks and pixel comparisons. Physical TalkBack, upgrade retention, haptics, background timing and measured phone performance remain acceptance work until executed on the owner's device.</p><p><a href="F3-WORKOUT-COMPLETION.md">Executed checks and limitations</a> · <a href="native/f3/verification.json">Machine-readable evidence</a></p></section>
+</main>
+</html>

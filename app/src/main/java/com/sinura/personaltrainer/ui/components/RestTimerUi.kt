@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -30,14 +33,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -65,6 +69,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -72,6 +77,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.sinura.personaltrainer.domain.FloorTimedMode
 import com.sinura.personaltrainer.domain.FloorTimedModeResolver
 import com.sinura.personaltrainer.domain.FloorTimerSurface
@@ -227,7 +234,7 @@ fun FloorInstrumentBar(
     offerSetClock: Boolean = false,
     onStartSetClock: () -> Unit = {},
 ) {
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.logTimerRow)
@@ -235,6 +242,23 @@ fun FloorInstrumentBar(
             .background(Surface2)
             .testTag(testTag),
     ) {
+        val density = LocalDensity.current
+        val measurer = rememberTextMeasurer()
+        val clockWidth = measurer.measure(clock, style = InstrumentType.numeralMd, softWrap = false).size.width
+        val labels = when {
+            showRestControls -> listOf("−15", "+15", "Skip")
+            showIdleStart -> if (offerSetClock) listOf(SetStopwatchCopy.START, "Start rest") else listOf("Start rest")
+            onStop != null -> listOf(SetStopwatchCopy.STOP)
+            else -> emptyList()
+        }
+        val controlWidth = labels.sumOf { label ->
+            maxOf(with(density) { Metrics.touchMin.roundToPx() },
+                measurer.measure(label, style = InstrumentType.bodyStrong, softWrap = false).size.width +
+                    with(density) { (Metrics.space2 * 2).roundToPx() })
+        }
+        val wrapControls = clockWidth + controlWidth + with(density) { (Metrics.space4 * 2).roundToPx() } > constraints.maxWidth
+        val clockSpace = if (wrapControls) constraints.maxWidth else
+            constraints.maxWidth - controlWidth - with(density) { Metrics.space4.roundToPx() }
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -247,15 +271,17 @@ fun FloorInstrumentBar(
                     .background(RestCyanDim),
             )
         }
-        Row(
+        FlowRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = Metrics.logTimerRow)
                 .padding(start = Metrics.space2, end = Metrics.space1),
             horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-            verticalAlignment = Alignment.CenterVertically,
+            itemVerticalAlignment = Alignment.CenterVertically,
+            maxItemsInEachRow = if (wrapControls) 1 else 2,
         ) {
-            BoxWithConstraints(
+            Box(
+                contentAlignment = Alignment.CenterStart,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = Metrics.touchMin)
@@ -280,7 +306,7 @@ fun FloorInstrumentBar(
                 val decorations = Metrics.space2 * 2 +
                     (if (leadingGlyph != null) Metrics.icon + Metrics.space2 else 0.dp) +
                     (if (showChevron) Metrics.chevron else 0.dp)
-                val inline = clockWidth + labelWidth + with(density) { decorations.roundToPx() } <= constraints.maxWidth
+                val inline = clockWidth + labelWidth + with(density) { decorations.roundToPx() } <= clockSpace
                 val clockText: @Composable () -> Unit = {
                     Text(
                         clock,
@@ -306,58 +332,65 @@ fun FloorInstrumentBar(
                     }
                 }
             }
-            if (showRestControls) {
-                RestControl(
-                    label = "−15",
-                    spoken = "Minus 15 seconds",
-                    onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-rest-minus"),
-                )
-                RestControl(
-                    label = "+15",
-                    spoken = "Plus 15 seconds",
-                    onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-rest-plus"),
-                )
-                RestControl(
-                    label = "Skip",
-                    onClick = onSkip,
-                    confirm = true,
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-rest-skip"),
-                )
-            }
-            if (showIdleStart) {
-                if (offerSetClock) {
-                    RestIconControl(
-                        icon = TemperIcons.Stopwatch,
-                        spoken = SetStopwatchCopy.START_SPOKEN,
-                        onClick = onStartSetClock,
-                        modifier = Modifier.testTag("workout-start-set-clock"),
+            Row(
+                modifier = if (wrapControls) Modifier.fillMaxWidth().padding(bottom = Metrics.space1) else Modifier,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val controlModifier = if (wrapControls) Modifier.weight(1f) else Modifier
+                if (showRestControls) {
+                    RestControl(
+                        label = "−15",
+                        spoken = "Minus 15 seconds",
+                        onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
+                        modifier = controlModifier
+                            .widthIn(min = Metrics.touchMin)
+                            .testTag("workout-rest-minus"),
+                    )
+                    RestControl(
+                        label = "+15",
+                        spoken = "Plus 15 seconds",
+                        onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
+                        modifier = controlModifier
+                            .widthIn(min = Metrics.touchMin)
+                            .testTag("workout-rest-plus"),
+                    )
+                    RestControl(
+                        label = "Skip",
+                        onClick = onSkip,
+                        confirm = true,
+                        modifier = controlModifier
+                            .widthIn(min = Metrics.touchMin)
+                            .testTag("workout-rest-skip"),
                     )
                 }
-                RestControl(
-                    label = RestIdleCopy.START,
-                    spoken = startSpoken,
-                    onClick = onStart,
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-start-rest"),
-                )
-            }
-            if (onStop != null) {
-                RestControl(
-                    label = SetStopwatchCopy.STOP,
-                    onClick = onStop,
-                    modifier = Modifier
-                        .widthIn(min = Metrics.touchMin)
-                        .testTag("workout-stop-set-clock"),
-                )
+                if (showIdleStart) {
+                    if (offerSetClock) {
+                        RestControl(
+                            label = SetStopwatchCopy.START,
+                            spoken = SetStopwatchCopy.START_SPOKEN,
+                            onClick = onStartSetClock,
+                            modifier = controlModifier.widthIn(min = Metrics.touchMin).testTag("workout-start-set-clock"),
+                        )
+                    }
+                    RestControl(
+                        label = "Start rest",
+                        spoken = startSpoken,
+                        onClick = onStart,
+                        modifier = controlModifier
+                            .widthIn(min = Metrics.touchMin)
+                            .testTag("workout-start-rest"),
+                    )
+                }
+                if (onStop != null) {
+                    RestControl(
+                        label = SetStopwatchCopy.STOP,
+                        onClick = onStop,
+                        modifier = controlModifier
+                            .widthIn(min = Metrics.touchMin)
+                            .testTag("workout-stop-set-clock"),
+                    )
+                }
             }
         }
     }
@@ -690,7 +723,7 @@ fun RestDurationSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val clock = RestTimer.formatClock(selectedSeconds.coerceAtLeast(0))
     val sheetSnap = Motion.durationMs(reduceMotion, Motion.BASE) == 0
-    ModalBottomSheet(
+    if (!showCustom) ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = Surface3,
@@ -769,7 +802,6 @@ fun RestDurationSheet(
                             SetStopwatchCopy.START,
                             style = InstrumentType.bodyStrong,
                             color = TextSecondary,
-                            maxLines = 1,
                         )
                     }
                 }
@@ -1053,16 +1085,29 @@ fun CustomRestDialog(
     var input by rememberSaveable { mutableStateOf("") }
     var invalid by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
-    AlertDialog(
+    val submit = {
+        val ok = onConfirm(input)
+        invalid = !ok
+        if (!ok) Haptics.reject(view)
+    }
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, style = InstrumentType.title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                Text(
-                    "Seconds (90) or mm:ss (1:30). 15 seconds to 30 minutes.",
-                    style = InstrumentType.body,
-                    color = TextSecondary,
-                )
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(Metrics.gutter),
+            contentAlignment = Alignment.Center,
+        ) {
+            Surface(
+                modifier = Modifier.widthIn(max = Metrics.inputDialogMaxWidth).fillMaxWidth().heightIn(max = maxHeight)
+                    .semantics { paneTitle = title },
+                shape = RoundedCornerShape(Radius.lg), color = Surface2,
+            ) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()).padding(Metrics.cardPadding),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                Text(title, style = InstrumentType.title, color = TextPrimary)
                 OutlinedTextField(
                     value = input,
                     // As typed. The confirm button runs RestTimer.parseCustom and says "Use 90
@@ -1082,27 +1127,25 @@ fun CustomRestDialog(
                         keyboardType = KeyboardType.Number,
                         imeAction = NumericEntry.CUSTOM_REST.imeAction(),
                     ),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
                 )
+                Text("Seconds (90) or mm:ss (1:30). 15 seconds to 30 minutes.",
+                    style = InstrumentType.body, color = TextSecondary)
                 if (invalid) {
                     Text("Use 90 or 1:30.", style = InstrumentType.caption, color = Danger)
                 }
+                FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = Metrics.touchMin)) {
+                        Text("Cancel", style = InstrumentType.bodyStrong, color = TextSecondary)
+                    }
+                    TextButton(onClick = submit, modifier = Modifier.heightIn(min = Metrics.touchMin)) {
+                        Text(confirmLabel, style = InstrumentType.bodyStrong, color = Volt)
+                    }
+                }
             }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val ok = onConfirm(input)
-                    invalid = !ok
-                    if (!ok) Haptics.reject(view)
-                },
-            ) { Text(confirmLabel, style = InstrumentType.bodyStrong, color = Volt) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", style = InstrumentType.bodyStrong, color = TextSecondary)
             }
-        },
-    )
+        }
+    }
 }
 
 

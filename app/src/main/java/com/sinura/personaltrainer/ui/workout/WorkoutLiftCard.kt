@@ -98,12 +98,16 @@ internal data class WorkoutLiftCardState(
     val holdRunning: Boolean = false,
     val holdRemainingSeconds: Int = 0,
     val receipt: LogReceipt? = null,
+    val entryEnabled: Boolean = true,
+    val plannedComplete: Boolean = false,
+    val completionNextName: String? = null,
 )
 
 internal data class WorkoutLiftCardEvents(
     val onWeightKgChange: (Double) -> Unit,
     val onRepsAdjust: (Int) -> Unit,
     val onRepsChange: (Int) -> Unit,
+    val onCancelEdit: () -> Unit = {},
     val onSecondsAdjust: (Int) -> Unit = {},
     val onSecondsChange: (Int) -> Unit = {},
     val onApplyLastTime: (Double, Int) -> Unit,
@@ -192,6 +196,7 @@ internal fun WorkoutLiftCard(
     )
     val entryRequester = remember { BringIntoViewRequester() }
     var setsOpen by rememberSaveable(lift.id) { mutableStateOf(false) }
+    LaunchedEffect(card.entryEnabled) { if (!card.entryEnabled) setsOpen = false }
     LaunchedEffect(lift.id, editingSetId) {
         if (editingSetId != null) entryRequester.bringIntoView()
     }
@@ -202,19 +207,34 @@ internal fun WorkoutLiftCard(
         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
         Text(
-            text = if (editingSetId != null) "Editing saved set" else setContext,
+            text = when {
+                editingSetId != null -> "Editing saved set"
+                card.plannedComplete -> "Planned sets complete"
+                else -> setContext
+            },
             modifier = Modifier.testTag(WorkoutTestTags.SET_CONTEXT),
             style = InstrumentType.caption,
             color = TextSecondary,
         )
+        card.completionNextName?.let { name ->
+            Text("Next exercise · $name", style = InstrumentType.bodyStrong,
+                color = TextPrimary, modifier = Modifier.testTag("workout-next-exercise-name"))
+        }
+        if (editingSetId != null) TextButton(
+            onClick = events.onCancelEdit,
+            enabled = card.entryEnabled,
+            modifier = Modifier.heightIn(min = Metrics.touchMin).testTag("workout-cancel-edit"),
+        ) { Text("Cancel edit", style = InstrumentType.bodyStrong) }
         InstrumentChoiceGroup(modifier = Modifier.fillMaxWidth()) {
             InstrumentChoiceChip(
+                enabled = card.entryEnabled,
                 label = "Working",
                 selected = !draftWarmup,
                 onClick = { onWarmup(false) },
                 modifier = Modifier.testTag("workout-working-choice"),
             )
             InstrumentChoiceChip(
+                enabled = card.entryEnabled,
                 label = "Warm-up",
                 selected = draftWarmup,
                 onClick = { onWarmup(true) },
@@ -223,6 +243,7 @@ internal fun WorkoutLiftCard(
         }
         if (draftWarmup) {
             WarmupRampRow(
+                enabled = card.entryEnabled,
                 ramp = ramp,
                 emphasisIndex = rampEmphasis,
                 unit = unit,
@@ -230,6 +251,7 @@ internal fun WorkoutLiftCard(
             )
         }
         SetEntryPanel(
+            enabled = card.entryEnabled,
             weightKg = draftWeightKg,
             reps = draftReps,
             onWeightKgChange = onWeightKgChange,
@@ -256,13 +278,14 @@ internal fun WorkoutLiftCard(
                 .bringIntoViewRequester(entryRequester),
         )
         SecondaryLogOptions(
+            enabled = card.entryEnabled,
             warmup = draftWarmup,
             rpe = draftRpe,
             recommendedRpe = card.recommendedRpe,
             showRpe = showRpe,
             onRpe = onRpe,
         )
-        if (!draftWarmup) card.microRec?.let { rec ->
+        if (card.entryEnabled && !draftWarmup) card.microRec?.let { rec ->
             MicroRecLine(
                 rec = rec,
                 loadClass = LoadClass.of(lift.exercise.loadType),
@@ -272,16 +295,17 @@ internal fun WorkoutLiftCard(
         }
         if (loggedSets.isNotEmpty()) {
             LatestWorkoutSet(
+                enabled = card.entryEnabled,
                 sets = loggedSets,
                 latestSetId = latestSetId,
                 targetSets = targetSets,
                 loadClass = LoadClass.of(lift.exercise.loadType),
                 unit = unit,
                 receipt = card.receipt,
-                onViewSets = { setsOpen = true },
+                onViewSets = { if (card.entryEnabled) setsOpen = true },
             )
         }
-        lastPerformance?.let { last ->
+        lastPerformance?.takeIf { card.entryEnabled }?.let { last ->
             LastTimeStrip(summary = last, unit = unit, loadClass = LoadClass.of(lift.exercise.loadType), onApplySet = onApplyLastTime)
         }
     }
@@ -305,6 +329,7 @@ internal fun WorkoutLiftCard(
 
 @Composable
 private fun WarmupRampRow(
+    enabled: Boolean,
     ramp: List<WarmupSet>,
     emphasisIndex: Int,
     unit: WeightUnit,
@@ -327,6 +352,7 @@ private fun WarmupRampRow(
         ) {
             ramp.forEachIndexed { index, step ->
                 InstrumentPreset(
+                    enabled = enabled,
                     label = "Use ${step.weightKg.toWeightLabel(unit)}",
                     compact = true,
                     supporting = "${step.percent}%" + if (index == emphasisIndex) " · Suggested" else "",

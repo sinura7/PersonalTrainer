@@ -1,0 +1,1440 @@
+{
+  "packet": "F3",
+  "recordedUtc": "2026-09-17T11:47:14.668572+00:00",
+  "review": "Reviewed contact sheets and enlarged primary / overlay states; fresh comparison acceptance is recorded separately.",
+  "rendererProfile": {
+    "profile": "temper-tests-api29",
+    "serial": "emulator-5554",
+    "systemImage": "system-images;android-29;default;x86_64",
+    "imageRevision": "8",
+    "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+    "density": "Physical density: 420",
+    "size": "Physical size: 1080x1920",
+    "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+    "renderer": "swiftshader_indirect",
+    "fontScale": 1.0,
+    "animations": 0,
+    "locale": "en-US",
+    "timeZone": "America/Toronto",
+    "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+    "goldenProfile": "windows-swiftshader37",
+    "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+    "capturedUtc": "2026-09-17T11:38:01.1762461Z"
+  },
+  "artifacts": [
+    {
+      "file": "active-strength-completion-api29.png",
+      "sha256": "e5230ea423b52317a217a6c952184e60800c5df26802fe5c4aa9030f69ea783f",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "9dfd27324a73182e2320124ab043b3df5d024d87d7eed5d21596deab5fef0268",
+      "kind": "pixel-reference",
+      "rationale": "Replace obsolete live-clock frame with immutable shipping-component integration; compact entry, explicit completion/retry, readable timer actions, full measured viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "active-strength-error-api29.png",
+      "sha256": "28d7d50a0ead52f25bfdea639e18a377f74f87c05ebb9147640fb3e593319579",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "8d5941aaff96e7621130f38365100bf94f9abfbc7d5586a62566305f1eb5d512",
+      "kind": "pixel-reference",
+      "rationale": "Replace obsolete live-clock frame with immutable shipping-component integration; compact entry, explicit completion/retry, readable timer actions, full measured viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "active-strength-font20-api29.png",
+      "sha256": "ab9e7c92915f2279880caa1a5b551c21ac1d035835f5cf806380f802dc3f3d35",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "4a6927909413a2d532bb3de9297236ec534333158fb17afe2871de3338286da5",
+      "kind": "pixel-reference",
+      "rationale": "Replace obsolete live-clock frame with immutable shipping-component integration; compact entry, explicit completion/retry, readable timer actions, full measured viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "active-strength-hold-api29.png",
+      "sha256": "085a22c802d0be71d2252fc691b9a0b2ce78528a9a48522bed01e4a2c853b473",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "661d7f0fdad3ae17b814041d924cf104f9284a64ef478d36935c6235e3e93b21",
+      "kind": "pixel-reference",
+      "rationale": "Replace obsolete live-clock frame with immutable shipping-component integration; compact entry, explicit completion/retry, readable timer actions, full measured viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "active-strength-reduced-motion-api29.png",
+      "sha256": "0c01b2ee5d1ba424493d4f03614e27c68b398ee06c5403b48191812d442eb6ef",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "76f8751e52f918e1ddb108c8b7c81297cb69ef6dc1068ab20097cedb64d0b9aa",
+      "kind": "pixel-reference",
+      "rationale": "Replace obsolete live-clock frame with immutable shipping-component integration; compact entry, explicit completion/retry, readable timer actions, full measured viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "active-strength-rest-api29.png",
+      "sha256": "c34295817ea8bb64032b1dec494041c35f137fe2f796b49114dc9a40d7e10458",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "535e9bbc9df7b9bbc9563f7b2159efefe1f161f9f756f2090c4e7022c11718d8",
+      "kind": "pixel-reference",
+      "rationale": "Replace obsolete live-clock frame with immutable shipping-component integration; compact entry, explicit completion/retry, readable timer actions, full measured viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "active-strength-success-api29.png",
+      "sha256": "18b0ab1dfafec96d9b3703371bf1d4c87a5f9940e17a5c1c2eddf0e7fbaf7b57",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "59da4e4a18991e605124b3b4b242ea708dee3a936084d00f413a6cabfbde28a6",
+      "kind": "pixel-reference",
+      "rationale": "Replace obsolete live-clock frame with immutable shipping-component integration; compact entry, explicit completion/retry, readable timer actions, full measured viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "active-strength-warmup-api29.png",
+      "sha256": "8095405b93cf0ae2c0ae8e41b6b3e1d0d4c2c2617ecc4db0b7dcbe139bfc8863",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "0db7f230c7e0941c2e5cdd4c5e4fc3599932b200448a2dbbc18dfb9b46bb3d56",
+      "kind": "pixel-reference",
+      "rationale": "Replace obsolete live-clock frame with immutable shipping-component integration; compact entry, explicit completion/retry, readable timer actions, full measured viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "active-strength-working-api29.png",
+      "sha256": "0c01b2ee5d1ba424493d4f03614e27c68b398ee06c5403b48191812d442eb6ef",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "76f8751e52f918e1ddb108c8b7c81297cb69ef6dc1068ab20097cedb64d0b9aa",
+      "kind": "pixel-reference",
+      "rationale": "Replace obsolete live-clock frame with immutable shipping-component integration; compact entry, explicit completion/retry, readable timer actions, full measured viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x640-font20-edit-denied-api29.png",
+      "sha256": "6c6733735a96d509485bc86a2e5e90afbccbfc99992c637504b7e84977e05ccb",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x640-font20-extra-api29.png",
+      "sha256": "e5d4bf1a406095d869ab921326e59d02b86c248093a3911c218a50ba0dd3ed1b",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x640-font20-finish-api29.png",
+      "sha256": "a7d4761ad843a24e646902afc71d289015b5469d5dcd3bdbe31f45cf2e9a046e",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x640-font20-next-api29.png",
+      "sha256": "aeaa41c9e1459fae655aabc5178c70f105fd155bc44bd9efd4030db7a9d2cf8a",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x640-font20-removed-last-api29.png",
+      "sha256": "2e055872d20b54857d6b9eff9bc4551838fa29df8be79bdd66cca68b4a17f3c9",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x640-font20-removed-owner-api29.png",
+      "sha256": "1e46ab8817a2a9ab2871754a8a442229dc480c5117542672a9955278d8b4768a",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x800-font10-edit-denied-api29.png",
+      "sha256": "f81b36a11edd92f435e6ea31d3da77cfb3807072f093d4cb41c3d8730e824dc9",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x800-font10-extra-api29.png",
+      "sha256": "8e3cf1842f17bea39b7cfcfeeabefd5c6ecdd12c7646839313887df6091346ff",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x800-font10-finish-api29.png",
+      "sha256": "ae040c9a3319b1d7064a2fd8d708ab33886560b81184cb0ee4738b93f4bdf484",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x800-font10-next-api29.png",
+      "sha256": "5101e2389f441cd20c88f087b95e205a62b1f846b82f634a968958fa0b146179",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x800-font10-removed-last-api29.png",
+      "sha256": "abc8131f8ffa0923e23a0e2806c9f673ec2e38d6fc9a53a7d61d4bd8ff2095e2",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-360x800-font10-removed-owner-api29.png",
+      "sha256": "05d2b8a467343d768f555f10dcac4687d2439b6cd8f07e9b0b15e21d9b2f2d87",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-412x840-font16-next-api29.png",
+      "sha256": "59ac5244234f2c87b387b8de412d02eca69063fd31a532fa71bb4fa2def06bec",
+      "pixels": [
+        847,
+        1727
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        412,
+        840
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-600x840-font20-next-api29.png",
+      "sha256": "2fc75a125c9da069fdc1c9b20ab3cb761f0927ac1d9eae8e0abb5779f113aba4",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        600,
+        840
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-completion-640x360-font20-next-api29.png",
+      "sha256": "07907dd71ef2d1e4a906741766505db45b863283600d0aa1bfe68779cc122866",
+      "pixels": [
+        1080,
+        608
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New real-route completion, extra-set, edit and restored-save recovery references; landscape uses measured content space and a short action label with full target name in scrollable context.",
+      "viewportDp": [
+        640,
+        360
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x640-font10-running-api29.png",
+      "sha256": "fdd6ffaff164a0460ff3b2dc3efdfe998d84c478c71fceb03e6faa1373b6a018",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x640-font16-running-api29.png",
+      "sha256": "1e0021127e6edd6e9f27a001a5c75e8bf61b35e59e57fcaa99a0b6761451a366",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x640-font20-complete-api29.png",
+      "sha256": "75ec7e60784f565a7bc1b56e56566d94fce2e58461265c649e34050ebd0c156e",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x640-font20-denied-api29.png",
+      "sha256": "8d0ea4d82a2b214e360694b8e835139f6aecbf9eefaf5d2ecfbdf0418cf054a8",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x640-font20-idle-api29.png",
+      "sha256": "407b3d4ffa23da845b8b7ea961d8fffddb8435d9289461404bbf4cb1dbd791a8",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x640-font20-running-api29.png",
+      "sha256": "ec88c00d9d00c1b272fad7f593abf78936d5d3897f0e050c1676a7ccc1fbfbe9",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x800-font10-complete-api29.png",
+      "sha256": "b62d3a44fbc04a7284b6fdae6e32fc606afe3f80b22101dce4caf37c25a3c8dd",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x800-font10-denied-api29.png",
+      "sha256": "668a8fef5460e90623e9e1daca66cf54fbd3675e7b79da1e5b28006e0f3b4941",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x800-font10-idle-api29.png",
+      "sha256": "48783631ba3eaad9e2055753c1e6e9e9605dca4f97c5c701bad2e190e8f118d3",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x800-font10-running-api29.png",
+      "sha256": "4071dd1c0799369c1fc0182275a11601f97efdd8ada783f5f607a3cb33fcf21e",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x800-font16-running-api29.png",
+      "sha256": "4f424a0ee251d3353ade47ebc0ebc767344699d9bb78601f6aa77d0ecafd3003",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-360x800-font20-running-api29.png",
+      "sha256": "1fd86fa027067af85c29147cc3025764268f9fa5e69e005f329eee3eee754aa4",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-412x840-font10-running-api29.png",
+      "sha256": "d9232225e1150b639a7a40daeb1a4634c729e9595cba792b5a7759082b8c8b7f",
+      "pixels": [
+        847,
+        1727
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        412,
+        840
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-412x840-font16-running-api29.png",
+      "sha256": "21d2539394333a33513ca20f7abd9183ab92efc944e3b2a7d3f6a8ab13649966",
+      "pixels": [
+        847,
+        1727
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        412,
+        840
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-412x840-font20-running-api29.png",
+      "sha256": "6456f5b2f5a0e412b4b92abcad2966c5ce6845b1aa668d551e96989f5fc54020",
+      "pixels": [
+        847,
+        1727
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        412,
+        840
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-600x840-font10-running-api29.png",
+      "sha256": "4e15b01c0db6de9e52b129b283f24f946fb0f86c621159c8028ec26d11d902e1",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        600,
+        840
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-600x840-font16-running-api29.png",
+      "sha256": "c12b75ed9b0534561822185fadf0dafd8996646110fca8870e79f0afe437cf80",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        600,
+        840
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-600x840-font20-running-api29.png",
+      "sha256": "d033d0ab2f368cf8489979dedfbed5ba81145181296cc97af5cf42a6053820ff",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        600,
+        840
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-640x360-font10-running-api29.png",
+      "sha256": "e91e9a8b18c78e398736eb73ee7727155479faef94bc422047b0a996e5457779",
+      "pixels": [
+        1080,
+        608
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        640,
+        360
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-640x360-font16-running-api29.png",
+      "sha256": "b604bf24e519d4ca240917d81a5920ef90f9a2888570494599ee25c71681069d",
+      "pixels": [
+        1080,
+        608
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        640,
+        360
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-rest-640x360-font20-running-api29.png",
+      "sha256": "918aa235756fd1a7415e39936d8cba972cfa5f98401ebd2f1d8071022e2c5c56",
+      "pixels": [
+        1080,
+        608
+      ],
+      "previousSha256": null,
+      "kind": "pixel-reference",
+      "rationale": "New pinned-clock shipping rest presentation: responsive ring, anchored adjustment controls, completed and denied states.",
+      "viewportDp": [
+        640,
+        360
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x640-font10-working-api29.png",
+      "sha256": "7ccb782a9f0625a83a8258f053bf889fcbe900c2df2219d4967a5382e04320ba",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": "3eee28e08a7e998a8f6280bbcfc8b2bbf6879468378cadb4cded1d6fc1b7d03e",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x640-font16-working-api29.png",
+      "sha256": "fa4fe915b62c77dcbb3c4ebaece5eaac5e25253dc41e996a95943bf71b83a857",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": "5c0f9d8d24824f34dff1c9c2ff63817a0df6b777702ecf1d3e7a81166803876d",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x640-font20-large-api29.png",
+      "sha256": "fdb2df3a7c8fc7102fd411c34475c1baa9eba4a15b294520ef62470d300b9988",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": "6cd365c5c090d9aa35c69be7bd102a85e2c8f5f8ddf33792822ecf702cfa170d",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x640-font20-warmup-api29.png",
+      "sha256": "a2c682ae62edf79f91a05a115b5da3e15866cf5aa0de2dffe933f486265f0223",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": "0c424d1d9a94a050ec5c3a31095a559279daeeda97dd99a3b10d62fec4bbab24",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x640-font20-warmup-rtl-api29.png",
+      "sha256": "7571ccebdd858f42172d11c2adad679b19192fc341ebc4c7a8699baa466b8d70",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": "d0bf0f878543c094569a2a6c9d952857570dbd2399ca031fcefd7138952cefe9",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x640-font20-working-api29.png",
+      "sha256": "3d72fe79e24aca049e7e571ca6a2fb94d40764d8a86ff1e3d7c5e059da8353f4",
+      "pixels": [
+        945,
+        1680
+      ],
+      "previousSha256": "c17e25c4dd089ddd6a8b157b6612f295c9a8d74f620ac672372816cab0cd0d0f",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-added-api29.png",
+      "sha256": "0ba341628d68b9bc4f0a2bf227d0846a5d7bc3367400bf4774a025672867348a",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "fcf58871b3e2f1b4c59edfbddd7b07227abbebddaa9c1a47a3ee5eae458aa752",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-assisted-api29.png",
+      "sha256": "9dd602ddb2284ad19705b3eb81e4d706314cbd2d409e878b613383572b51d060",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "c40951fa6187c4ba624bf3418dcf399d4cbaf7dc9dbfa82e28d80a027d222332",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-bodyweight-api29.png",
+      "sha256": "d349556409946211b5e3ffbaf0f72118bbff9a575a1349a2e58468d532d73b57",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "e2a8e378520f818fd273a746dfb9e6cf02dfca1fb26e436f5b677e911090c38d",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-error-api29.png",
+      "sha256": "04c0a9ac9550dafbe1255efc219775aa47d8215b6a306af208279e6db76173d7",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "59626ce1ffb6d0096a9f7a425f19de05bd522b4e30994be1fcc436f20b611b65",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-hold-api29.png",
+      "sha256": "e126948de2e1445dde0b99c5be0438884cff9a535bef5e97ded27837255cc41e",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "4dc8a5adad37e462bb20624865fa36de4fe6a7324bac6a37bb05292feb916edd",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-latest-api29.png",
+      "sha256": "1a8ed82ab633341dc2cf594cd9264c7af93fa020be774418800c7d0a50fa6615",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "b8e1712ba7f7ac26a44c1b7a2247c5aa9dc6b681e94467e27d89bffac585b622",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-long-api29.png",
+      "sha256": "d63444577261b0e76f93386d1aaec0d06a8ae7a2fb1469a751489ba259c43183",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "4b809a7e8974d0047d5eb80dd4d13d6ea793d159be29dd134fc647fdcf2927a2",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-undo-api29.png",
+      "sha256": "90591843e0ddb6921c6c4505e06440818558001b1a5d2040e65c9e6e99e1fb23",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "90591843e0ddb6921c6c4505e06440818558001b1a5d2040e65c9e6e99e1fb23",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-warmup-api29.png",
+      "sha256": "c5f08b1af8ba3b7a09aa33eb713d95e43fb3a0092d28943f4b91dfbe13ae418a",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "b84b313cf36ccd89b327a0b7712c66b73a0f81f2e38464ab4b3ac3096a26aca5",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-working-api29.png",
+      "sha256": "272159cf3fec80e8b179b1e2645652f8f8993b5bc87e67ad21ea5be0e447e62c",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "956953e9f371d49f1dfaed6e60cfb92e815f416e87d9e01fe4aa666d2b7d801b",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-working-rtl-api29.png",
+      "sha256": "b73beaa067e2a61286d14c8085e5a90382048b7429a5d74bc62e3c6d3fa1507c",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "6de9118fae788d2ea28332f91cc3f9d2d4d54dd99a72de2175dfba1db258d2b6",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font10-zero-api29.png",
+      "sha256": "a8ee479f0f077ba483e6aadf6d2e7f99ba669d4671a167a3f0da0ae4abb7ca30",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "c468121682cfd2ed67260194bd9f2f9554214ee6e636e502c072a29075bbbef6",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font16-working-api29.png",
+      "sha256": "b852646dd5a1116fc2fcfe39418427524094dc796fd76affb4e05bac2e34a35d",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "f960bb180b36cc55599306a179e5caea4df70086459c649127de65b006300021",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-added-api29.png",
+      "sha256": "9ada9e5bb4f55e113b88814fa671ec9cbd83c1237f5266b98ed10db82f54a0a9",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "9a158f7a3e0d5b855807a7ed59d171deba6023aed867dd62bcafcde2df490dd0",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-assisted-api29.png",
+      "sha256": "406dcef9fc2a37a79e5b7642495cb7c38b7514deb261e97092f112ce3c3d070f",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "6c19868d7ceec613cf5b01a782887c543d407c0eaa2ed53b77b91dea0c67a57f",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-bodyweight-api29.png",
+      "sha256": "c09db66d61ac8e4bd1ac818b3c41426cf30f8337007335fb201954f65d184e58",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "b8f9c09ca8e767e7d539551b126b7e565e6f638063b97bfe09983379e4c502c0",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-error-api29.png",
+      "sha256": "3456d87beed442213b5a7d4c67e230ac33430b9e2fedfbaad01f3b08547bd48b",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "337cff0d22906a8d80c33cc61ca97a59276ef62edd22d12ba9cca3874e5278bc",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-hold-api29.png",
+      "sha256": "6d8c347a78b18ef2a137ae61de3eb5543c81e364002e20f3b4386fa51e329d04",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "b093dbbd629568c2c6f9fd79723dddcacd7af44fc94f1112fa6dab0bf39131db",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-latest-api29.png",
+      "sha256": "177e5595c1c8e34201e894abe3b50a4781e9a45050bbf8cbdcb58f372278848a",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "0059bdd82bc30284815fef3943effaea7c0d8d2eeed156b423149c2d6c78de7b",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-long-api29.png",
+      "sha256": "8ca7fd5dc47670d7dce74b78c546ff1ec9eb31352625a2c4c25fc3df668d4c83",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "568f0dfb8f8f815d8acb7fd0886353be6fea1004344dbc00c47931cd70d3ec6b",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-undo-api29.png",
+      "sha256": "12c8d560fed1bf8e54870761f202fcf78513f98ac87829a479eb29a33142efc0",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "12c8d560fed1bf8e54870761f202fcf78513f98ac87829a479eb29a33142efc0",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-working-api29.png",
+      "sha256": "b0a188fd47779dbb37348e5f3fbe855b4ca91ede1a3436291593924443642d8c",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "f9b856460f7d78d33ceeb07deca45cac6a3237925f5012a1d30c48fa6b5c819b",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-360x800-font20-zero-api29.png",
+      "sha256": "43de13ae1009ec38eccf6b5f9e9b0ed6c2d78f7835d26bbaf00fc130b6fa97d2",
+      "pixels": [
+        778,
+        1730
+      ],
+      "previousSha256": "7b78281ef1364e44e1c9b1492df5b359dc9f29aef4c8a699f0e4bcf56f397ef8",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-412x840-font10-working-api29.png",
+      "sha256": "0e2ed20c23b6fda1cc05496be6e8471b3d595e25e78a74b85f8a235d6e314854",
+      "pixels": [
+        847,
+        1727
+      ],
+      "previousSha256": "d5954117aec02b11dd89d87a61230dfbf56389a05a2486fc277f2d5578d6a266",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        412,
+        840
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-412x840-font16-working-api29.png",
+      "sha256": "56922a100d493a474d652a7cdafffb725625c6d3a39ee5fcf1d5b43ab043d085",
+      "pixels": [
+        847,
+        1727
+      ],
+      "previousSha256": "4178b1307978daf224950776a972150e2c319cbd409bebbdca3d8cfcd109531e",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        412,
+        840
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-412x840-font20-working-api29.png",
+      "sha256": "6c2b012aa04e742072b50700926eae56dfcd2f0c65caaa966247b61e8b1fbd1e",
+      "pixels": [
+        847,
+        1727
+      ],
+      "previousSha256": "f343cb980545930de1b125ba3fd8f3c720dbc178fa9134d0506c03308e861f9e",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        412,
+        840
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-600x840-font10-working-api29.png",
+      "sha256": "0a3df23d694841cc1567407d55576541992bc0e5cc7b13f04d96a7beecd651de",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "previousSha256": "012d1d983796f43c87bb322573a9b97657d0db224d3247d50fd83067e2a72707",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        600,
+        840
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-600x840-font16-working-api29.png",
+      "sha256": "339ce22ef6525b62e932c8be73ffacea8bf67fdf662f7ae180b8d53b7b2e6be1",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "previousSha256": "1de1ac0893afa7e4114662569634244589a2050e3029ef95b5bf6265ff1a2a2f",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        600,
+        840
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-600x840-font20-working-api29.png",
+      "sha256": "26f8f9e14b68af927b70b3ff212b329a96318d90460ba784c018df8711fa03f8",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "previousSha256": "fb6b5b811e426f67dd672110bd083fe3604283a110763f48ac6598ff34dce048",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        600,
+        840
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-640x360-font10-working-api29.png",
+      "sha256": "21a06c7ea5d48fbf726026143e5b12b7cef83355838ac63718b5b446c57fa8b9",
+      "pixels": [
+        1080,
+        608
+      ],
+      "previousSha256": "150c293d6e0117671551f682f59186c07ca39bc15e9f693e5bd0d5a3f30be9c6",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        640,
+        360
+      ],
+      "fontScale": 1.0,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-640x360-font16-working-api29.png",
+      "sha256": "59ecdd2df1478149878418f903c3ba884b14a30776de32acca1789ce2ad22915",
+      "pixels": [
+        1080,
+        608
+      ],
+      "previousSha256": "5285786a33b81686d918a247dfe89be9e36868b078ab2eb6d1c9f32638948ff8",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        640,
+        360
+      ],
+      "fontScale": 1.6,
+      "sourceRun": "20260917-113801193"
+    },
+    {
+      "file": "frontend-workout-640x360-font20-working-api29.png",
+      "sha256": "d9a956f4160c473f51ec1645b060d2f5a19c34da7ae47205a3b1d796cbaf0b7a",
+      "pixels": [
+        1080,
+        608
+      ],
+      "previousSha256": "3dc747f8d7f71996a435bc432a07bde3d0ffa181e791d1329853fdecab670307",
+      "kind": "pixel-reference",
+      "rationale": "F3 changes distinct Time set/Start rest controls and wrapping, error companion, precise imported draft labels; landscape now uses its assigned viewport.",
+      "viewportDp": [
+        640,
+        360
+      ],
+      "fontScale": 2.0,
+      "sourceRun": "20260917-113801193"
+    }
+  ],
+  "baseCommit": "579642b6d3737276510b6eab476c29ab71d9fcfc",
+  "baselinePolicy": "Missing references fail. One channel level at no more than 256 pixels remains the only rounding allowance.",
+  "supersedes": "F0 floor and F2 entry references with matching filenames. Earlier manifests remain historical recording evidence; original F2 images remain in docs/design-audit/2026-09-16/native/f2."
+}

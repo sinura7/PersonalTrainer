@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -111,6 +112,7 @@ fun SetEntryPanel(
     onSecondsAdjust: (Int) -> Unit = {},
     onSecondsChange: (Int) -> Unit = {},
     compact: Boolean = false,
+    enabled: Boolean = true,
     loadType: LoadType? = null,
     equipment: EquipmentType? = null,
     movementKey: String? = null,
@@ -120,7 +122,7 @@ fun SetEntryPanel(
 ) {
     if (compact) {
         CompactFloorEntry(
-            weightKg = weightKg,
+            enabled = enabled,            weightKg = weightKg,
             reps = reps,
             onWeightKgChange = onWeightKgChange,
             onRepsChange = onRepsChange,
@@ -207,7 +209,7 @@ fun SetEntryPanel(
 
 @Composable
 private fun CompactFloorEntry(
-    weightKg: Double,
+    enabled: Boolean,    weightKg: Double,
     reps: Int,
     onWeightKgChange: (Double) -> Unit,
     onRepsChange: (Int) -> Unit,
@@ -239,14 +241,15 @@ private fun CompactFloorEntry(
     var typingWeight by rememberSaveable { mutableStateOf(false) }
     var typingReps by rememberSaveable { mutableStateOf(false) }
     var typingHold by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(enabled) {
+        if (!enabled) { typingWeight = false; typingReps = false; typingHold = false }
+    }
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         if (showWeight) {
-            val displayNumber = WeightConverter.formatDisplayNumber(
-                WeightConverter.toDisplayValue(weightKg, unit),
-            )
+            val displayNumber = com.sinura.personaltrainer.domain.WorkoutWeightCopy.number(weightKg, unit)
             val meaning = loadClass.weightMeaning
             val plates = if (plated && meaning == WeightMeaning.LIFTED) {
                 PlateMath.load(weightKg, unit)?.caption()
@@ -264,10 +267,11 @@ private fun CompactFloorEntry(
                 lastKg = lastKg,
             ).filter { WeightConverter.toDisplayValue(it.weightKg, unit) != WeightConverter.toDisplayValue(weightKg, unit) }
             FloorNumeralRow(
+                enabled = enabled,
                 label = meaning.fieldLabel,
                 value = displayNumber,
                 unit = unit.suffix,
-                spoken = SetCopy.weightWellSpoken(meaning, weightKg, unit),
+                spoken = SetCopy.weightWellSpoken(meaning, weightKg, unit, entryPrecision = true),
                 typeLabel = "Type ${if (meaning == WeightMeaning.LIFTED) "a weight" else meaning.fieldLabel.lowercase()}",
                 decrementLabel = "−$stepShown",
                 incrementLabel = "+$stepShown",
@@ -309,6 +313,7 @@ private fun CompactFloorEntry(
                         UnloadedLoad.allowsZeroWorkingWeight(resolvedLoad, equipment, movementKey),
                     ),
                     parse = { NumericEntry.parseWeightKg(it, unit) },
+                    appliedValueLabel = { WeightConverter.formatLabel(it, unit) },
                     onConfirm = { onWeightKgChange(it) },
                     onDismiss = { typingWeight = false },
                 )
@@ -318,6 +323,7 @@ private fun CompactFloorEntry(
             if (!holdRunning) {
                 val seconds = durationSeconds ?: HoldWork.DEFAULT_SECONDS
                 FloorNumeralRow(
+                enabled = enabled,
                     label = "Time",
                     value = HoldWork.clock(seconds),
                     unit = null,
@@ -349,6 +355,7 @@ private fun CompactFloorEntry(
             }
         } else {
             FloorNumeralRow(
+                enabled = enabled,
                 label = "Reps",
                 value = reps.toString(),
                 unit = "reps",
@@ -383,6 +390,7 @@ private fun CompactFloorEntry(
 
 @Composable
 private fun FloorNumeralRow(
+    enabled: Boolean,
     label: String,
     value: String,
     unit: String?,
@@ -428,10 +436,10 @@ private fun FloorNumeralRow(
                 .clip(RoundedCornerShape(Radius.xs))
                 .background(Surface2)
                 .testTag(wellTag)
-                .clickable(role = Role.Button, onClick = onType, onClickLabel = typeLabel)
+                .clickable(enabled = enabled, role = Role.Button, onClick = onType, onClickLabel = typeLabel)
                 .semantics(mergeDescendants = true) {
                     contentDescription = spoken
-                    customActions = listOf(
+                    customActions = if (!enabled) emptyList() else listOf(
                         CustomAccessibilityAction("Decrease $label") { onDecrement(); true },
                         CustomAccessibilityAction("Increase $label") { onIncrement(); true },
                         CustomAccessibilityAction(typeLabel) { onType(); true },
@@ -467,9 +475,9 @@ private fun FloorNumeralRow(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                 ) {
-                    StepperButton(label = decrementLabel, onClick = onDecrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
+                    StepperButton(enabled = enabled, label = decrementLabel, onClick = onDecrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
                     editableValue(Modifier.weight(1f))
-                    StepperButton(label = incrementLabel, onClick = onIncrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
+                    StepperButton(enabled = enabled, label = incrementLabel, onClick = onIncrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
@@ -478,8 +486,8 @@ private fun FloorNumeralRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        StepperButton(label = decrementLabel, onClick = onDecrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
-                        StepperButton(label = incrementLabel, onClick = onIncrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
+                        StepperButton(enabled = enabled, label = decrementLabel, onClick = onDecrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
+                        StepperButton(enabled = enabled, label = incrementLabel, onClick = onIncrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
                     }
                 }
             }
@@ -498,6 +506,7 @@ private fun FloorNumeralRow(
             ) {
                 contextActions.forEach { action ->
                     TextButton(
+                        enabled = enabled,
                         onClick = {
                             Haptics.tick(view)
                             onContextAction(action)

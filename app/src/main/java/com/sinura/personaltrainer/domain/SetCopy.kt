@@ -20,31 +20,33 @@ object SetCopy {
         loadClass: LoadClass,
         unit: WeightUnit,
         durationSeconds: Int? = null,
+        entryPrecision: Boolean = false,
     ): String {
+        fun Double.loadLabel(): String = if (entryPrecision) WorkoutWeightCopy.label(this, unit) else toWeightLabel(unit)
         val held = durationSeconds?.takeIf { it > 0 }
         val safeReps = reps.coerceAtLeast(0)
         if (held != null && safeReps < 1) {
             val clock = HoldWork.formatRange(held)
             val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
             return when (loadClass) {
-                LoadClass.LOADED -> "${load?.toWeightLabel(unit) ?: NO_WEIGHT} × $clock"
+                LoadClass.LOADED -> "${load?.loadLabel() ?: NO_WEIGHT} × $clock"
                 LoadClass.BODYWEIGHT -> clock
                 LoadClass.BODYWEIGHT_ADDED ->
-                    if (load == null) clock else "$clock +${load.toWeightLabel(unit)}"
+                    if (load == null) clock else "$clock +${load.loadLabel()}"
                 LoadClass.BODYWEIGHT_ASSISTED ->
-                    if (load == null) clock else "$clock −${load.toWeightLabel(unit)}"
+                    if (load == null) clock else "$clock −${load.loadLabel()}"
             }
         }
         val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
         val repsLine = when (loadClass) {
-            LoadClass.LOADED -> "${load?.toWeightLabel(unit) ?: NO_WEIGHT} × $safeReps"
+            LoadClass.LOADED -> "${load?.loadLabel() ?: NO_WEIGHT} × $safeReps"
             LoadClass.BODYWEIGHT -> repsLabel(safeReps)
             LoadClass.BODYWEIGHT_ADDED ->
                 if (load == null) repsLabel(safeReps)
-                else "${repsLabel(safeReps)} +${load.toWeightLabel(unit)}"
+                else "${repsLabel(safeReps)} +${load.loadLabel()}"
             LoadClass.BODYWEIGHT_ASSISTED ->
                 if (load == null) repsLabel(safeReps)
-                else "${repsLabel(safeReps)} −${load.toWeightLabel(unit)}"
+                else "${repsLabel(safeReps)} −${load.loadLabel()}"
         }
         return if (held == null) repsLine else "$repsLine · ${HoldWork.formatRange(held)}"
     }
@@ -85,6 +87,7 @@ object SetCopy {
         meaning: WeightMeaning,
         weightKg: Double,
         unit: WeightUnit,
+        entryPrecision: Boolean = false,
     ): String {
         if (!weightKg.isFinite() || weightKg <= 0.0) {
             return when (meaning) {
@@ -93,7 +96,7 @@ object SetCopy {
                 WeightMeaning.ADDED, WeightMeaning.NONE -> "${meaning.fieldLabel}, $NO_WEIGHT, $BODYWEIGHT_LOAD"
             }
         }
-        val shown = WeightConverter.formatDisplayNumber(
+        val shown = if (entryPrecision) WorkoutWeightCopy.number(weightKg, unit) else WeightConverter.formatDisplayNumber(
             WeightConverter.toDisplayValue(weightKg, unit),
         )
         return "${meaning.fieldLabel} $shown ${unit.suffix}"

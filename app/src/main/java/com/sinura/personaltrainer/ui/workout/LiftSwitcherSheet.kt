@@ -26,13 +26,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.LiftChipCopy
-import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -44,7 +41,6 @@ import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
-import com.sinura.personaltrainer.ui.theme.VoltDim
 
 internal data class LiftSwitcherRow(
     val lift: SessionExercise,
@@ -89,7 +85,7 @@ internal fun LiftSwitcherSheet(
                 modifier = Modifier.padding(bottom = Metrics.space3),
             )
             LazyColumn(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).testTag("workout-switcher-list"),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
                 itemsIndexed(
@@ -104,7 +100,7 @@ internal fun LiftSwitcherSheet(
                 }
                 item(key = "add-lift") {
                     SecondaryGymButton(
-                        text = LogBarCopy.ADD_LIFT,
+                        text = "Add exercise",
                         onClick = onAddLift,
                         modifier = Modifier.testTag(WorkoutTestTags.SWITCHER_ADD_LIFT),
                     )
@@ -138,21 +134,26 @@ private fun LiftSwitcherItem(
         current = row.current,
     )
     val shape = RoundedCornerShape(Radius.sm)
+    val status = when {
+        row.current -> "Current"
+        row.lift.targetSets > 0 && row.workingLogged >= row.lift.targetSets -> "Complete"
+        else -> "Remaining"
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.control)
             .clip(shape)
-            .background(if (row.current) VoltDim else Surface2)
+            .background(Surface2)
             .border(
-                if (row.current) Metrics.emphasisBorder else Metrics.hairline,
+                Metrics.hairline,
                 if (row.current) Volt else Hairline,
                 shape,
             )
             .clickable(role = Role.Button, onClick = onSelect)
             .testTag(WorkoutTestTags.liftSwitcherRow(row.lift.exercise.id))
             .semantics(mergeDescendants = true) {
-                contentDescription = spoken
+                contentDescription = "$spoken. $status"
                 selected = row.current
             }
             .padding(Metrics.space3),
@@ -160,47 +161,19 @@ private fun LiftSwitcherItem(
         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         ExerciseThumb(exercise = row.lift.exercise, size = ThumbSize.header)
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
             Text(
                 row.lift.exercise.name,
                 style = InstrumentType.bodyStrong,
                 color = TextPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            Text("${marks.setProgress} working sets · $status", style = InstrumentType.caption,
+                color = if (row.current) Volt else TextSecondary)
+            marks.restClock?.let { clock ->
                 Text(
-                    CurrentLiftCopy.liftOrdinal(row.number, total),
-                    style = InstrumentType.caption,
-                    color = TextSecondary,
-                    maxLines = 1,
-                )
-                Text(
-                    marks.setProgress,
-                    style = InstrumentType.numeralSm,
-                    color = TextPrimary,
-                    maxLines = 1,
-                )
-            }
-        }
-        marks.restClock?.let { clock ->
-            Column(
-                modifier = Modifier.testTag(WorkoutTestTags.liftRest(row.lift.exercise.id)),
-                horizontalAlignment = Alignment.End,
-            ) {
-                Kicker(
-                    text = LiftChipCopy.REST,
-                    color = if (marks.restLive) RestCyan else TextSecondary,
-                    asHeading = false,
-                )
-                Text(
-                    clock,
-                    style = if (marks.restLive) InstrumentType.numeralSm else InstrumentType.caption,
-                    color = if (marks.restLive) RestCyan else TextSecondary,
-                    maxLines = 1,
+                    "${if (marks.restLive) "Rest remaining" else "Rest"}: $clock",
+                    modifier = Modifier.testTag(WorkoutTestTags.liftRest(row.lift.exercise.id)),
+                    style = InstrumentType.caption, color = if (marks.restLive) RestCyan else TextSecondary,
                 )
             }
         }

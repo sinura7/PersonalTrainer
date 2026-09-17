@@ -2,7 +2,7 @@
   "packet": "F2",
   "baseCommit": "97d08ca458a9823f4cd6b62bea78a84be9b14084",
   "recordedUtc": "2026-09-17T09:34:35.192336+00:00",
-  "status": "Pre-merge verification; hosted and integrated results pending",
+  "status": "F2 integrated; F3 and physical milestone acceptance remain outstanding",
   "goldenManifestSha256": "c271485e817bcb68ff7737612de4f4199fe72b4580e0058f55536735ab495f6b",
   "localGate": {
     "command": ".\\tools\\dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
@@ -227,13 +227,73 @@
     "referenceManifestSha256": "2f360655e5ca352ba7f3a2deacd92f01ad320a69b2639225614b6f03f88accee"
   },
   "reviews": {
-    "independent": "No actionable F2 blocker after final rereview; conditional on comparison/platform/hosted/integrated checks",
-    "adversarial": "No actionable F2 blocker after final rereview; conditional on comparison/platform/hosted/integrated checks"
+    "independent": "Approved source and platform; final comparison, hosted and integrated conditions satisfied",
+    "adversarial": "Approved source and platform; final comparison, hosted and integrated conditions satisfied"
   },
   "outstanding": [
-    "Required hosted deterministic check and inspected nonblocking native results",
-    "Clean trunk full gate and fresh relevant native journey after merge",
     "F3: derived primary action, operation-specific retry, completion/timing/switcher/resume, transparent conversion rounding and accurate draft/commit display, constrained error/timing context, replacement of legacy workout references",
     "Physical milestone acceptance: TalkBack, normal phone settings, haptics/notifications, release-equivalent performance and stable-signer upgrade"
-  ]
+  ],
+  "integration": {
+    "pullRequest": 350,
+    "commit": "579642b6d3737276510b6eab476c29ab71d9fcfc",
+    "cleanWorktreeBeforeGate": true,
+    "localGate": {
+      "exitCode": 0,
+      "duration": "1m 24s",
+      "unitTests": 2537,
+      "note": "Static checks reran; unchanged unit/build/lint results reused.",
+      "logSha256": "17667b24fa1507f50727655cd3f2184d97de3041f3690fb092bf82cca6c7c575"
+    },
+    "native": {
+      "runId": "20260917-095008398",
+      "counts": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "2c368b4a3784eae93c1b4a388e9a291bd0076a1b43b6ed1af02947a0e4b9fe60"
+      ],
+      "profile": {
+        "profile": "temper-tests-api29",
+        "serial": "emulator-5554",
+        "systemImage": "system-images;android-29;default;x86_64",
+        "imageRevision": "8",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T09:50:08.3838821Z"
+      },
+      "captures": 5
+    }
+  },
+  "hostedFinal": {
+    "run": "35205895682",
+    "sourceCommit": "fa56cce2dab59d51326dec887db261d3532544b3",
+    "requiredCheck": "Tests, lint, debug build passed",
+    "nativeTests": 180,
+    "nativeFailures": 9,
+    "skipped": 0,
+    "reportSha256": "849907c817d8090b74efd8b9cff7014c69bcf9151bc124c63a0ba5bba5da1dac",
+    "newWorkoutReferences": {
+      "tests": 38,
+      "failures": 0
+    },
+    "newWorkoutJourneys": {
+      "tests": 6,
+      "failures": 0
+    },
+    "onlyFailures": "Nine obsolete FloorGolden references assigned to F3; no F2 comparison or functional failure"
+  }
 }

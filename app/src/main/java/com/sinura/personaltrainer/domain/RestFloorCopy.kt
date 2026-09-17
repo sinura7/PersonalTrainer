@@ -46,7 +46,7 @@ object RestFloorCopy {
     }
 
     fun prescribedLine(seconds: Int): String =
-        "Start at ${RestTimer.formatClock(seconds)}."
+        "Planned rest: ${RestTimer.formatClock(seconds)}"
 
     fun lastSetLine(
         weightKg: Double,

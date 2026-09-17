@@ -26,7 +26,7 @@ object LogReceiptCopy {
         rpe: Int?,
         durationSeconds: Int? = null,
     ): String = buildString {
-        append(SetCopy.setLine(weightKg, reps, loadClass, unit, durationSeconds))
+        append(SetCopy.setLine(weightKg, reps, loadClass, unit, durationSeconds, true))
         rpe?.let { append(" · RPE $it") }
     }
 

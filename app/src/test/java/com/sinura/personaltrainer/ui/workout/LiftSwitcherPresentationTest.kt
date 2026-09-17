@@ -20,7 +20,7 @@ class LiftSwitcherPresentationTest {
         assertTrue(switcher.contains("CurrentLiftCopy.SWITCHER_TITLE"))
         assertTrue(switcher.contains("WorkoutTestTags.LIFT_SWITCHER"))
         assertTrue(switcher.contains("WorkoutTestTags.SWITCHER_ADD_LIFT"))
-        assertTrue(switcher.contains("LogBarCopy.ADD_LIFT"))
+        assertTrue(switcher.contains("Add exercise"))
         assertTrue(screen.contains("onAddLift"))
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.addLiftLivesInSwitcher())
         val lazy = screen.indexOf("LazyColumn(")

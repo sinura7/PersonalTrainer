@@ -46,7 +46,7 @@ class FloorTimerSurfaceTest {
             ),
         )
         assertEquals(
-            "SET 0:08",
+            "Set time 0:08",
             FloorTimerSurface.instrumentState(
                 holdRunning = false,
                 holdElapsedSeconds = 0,

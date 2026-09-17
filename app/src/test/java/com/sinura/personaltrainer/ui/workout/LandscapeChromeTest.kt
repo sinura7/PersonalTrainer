@@ -41,8 +41,8 @@ class LandscapeChromeTest {
         assertTrue(liftCard.contains("CountBadge("))
 
         val rest = readOwned("ui/workout/RestTimerScreen.kt")
-        assertTrue(rest.contains("LandscapeChrome.ringSizeDp"))
-        assertTrue(rest.contains("ringSize = LandscapeChrome.ringSizeDp"))
+        assertTrue(rest.contains("val showRing = !largeText && maxHeight >= 560.dp"))
+        assertTrue(rest.contains("verticalScroll(rememberScrollState())"))
 
         val dock = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(dock.contains("hideWhenIdle"))

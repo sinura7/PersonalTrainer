@@ -9,7 +9,9 @@ package com.sinura.personaltrainer.domain
  *
  * Packet H named six 360×800 floor states. The image-led redesign
  * records working, warmup, rest, hold, success, error, completion,
- * font-2.0, and reduced-motion on `temper-tests-api29` (112 dp hero).
+ * font-2.0, and reduced-motion on `temper-tests-api29`. F3 replaces the
+ * old live-clock renders with frozen integration frames of shipping components,
+ * measured at 360×800 dp. Native route/journey suites verify their wiring.
  * Those nine names are in [committed]. No caller may add a
  * `GoldenImageAssert` `assertMatches` on a name that is not.
  *
@@ -51,7 +53,7 @@ object GoldenPageCatalog {
     /**
      * Image-led floor states at 360×800: working, warmup, rest, hold,
      * success, error, completion, plus font-2.0 and reduced-motion
-     * variants. Recorded on `temper-tests-api29` against the 112 dp hero.
+     * variants. F3 records compact identity and derived actions with pinned clocks.
      */
     val floorStateIds: List<String> = listOf(
         "working",
@@ -72,8 +74,8 @@ object GoldenPageCatalog {
 
     /**
      * Goldens that are committed today. The substrate gallery is not a page
-     * golden — it proves the harness, not Home or Settings. Floor states are
-     * the 112 dp image-led captures, not the old 56 dp card.
+     * golden — it proves the harness, not Home or Settings. Floor states combine
+     * shipping components with immutable fixture state; they are not route tests.
      */
     val committed: Set<String> = setOf(SUBSTRATE_GALLERY) + requiredFloorStateGoldens.toSet()
 

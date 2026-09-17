@@ -64,7 +64,7 @@ class FloorImageLedHeroTest {
         val lazy = screen.indexOf("LazyColumn(")
         val afterLazy = screen.substring(lazy)
         assertFalse(afterLazy.contains("SecondaryGymButton"))
-        assertTrue(screen.contains("LogBarCopy.ADD_LIFT"))
+        assertTrue(screen.contains("WorkoutTestTags.DOCK_ADD_LIFT"))
     }
 
     @Test
@@ -79,16 +79,16 @@ class FloorImageLedHeroTest {
         assertTrue(bar.contains("TIMER_ROW"))
         assertFalse(bar.contains("CONTEXT_RAIL"))
         assertTrue(bar.contains("GymUndoHost("))
-        assertTrue(bar.contains("GymErrorBanner("))
+        assertTrue(bar.contains("workout-error-details"))
         assertFalse(bar.contains("GymReceiptBanner("))
-        assertTrue(bar.contains("CompletionRail("))
-        assertTrue(bar.contains("next = false"))
-        assertTrue(bar.contains("finish = false"))
-        assertTrue(bar.contains("testTag(WorkoutTestTags.LOG_SET)"))
+        assertTrue(bar.contains("Add another set"))
+        assertTrue(bar.contains("nextAct -> WorkoutTestTags.NEXT"))
+        assertTrue(bar.contains("finishAct -> WorkoutTestTags.DOCK_FINISH"))
+        assertTrue(bar.contains("else -> WorkoutTestTags.LOG_SET"))
         assertTrue(bar.contains("height = Metrics.commit"))
-        val volt = bar.substring(bar.indexOf("volt = {"), bar.indexOf("fun CompletionRail"))
-        assertFalse(volt.contains("WorkoutTestTags.NEXT"))
-        assertFalse(volt.contains("WorkoutTestTags.DOCK_FINISH"))
+        val volt = bar.substring(bar.indexOf("volt = {"), bar.indexOf("if (saveDetails"))
+        assertTrue(volt.contains("primaryAction?.identity"))
+        assertTrue(volt.contains("hapticFeedback = false"))
         assertTrue(bar.contains("if (showTimer)"))
         assertFalse(bar.contains("showTimer && !completeDock"))
     }

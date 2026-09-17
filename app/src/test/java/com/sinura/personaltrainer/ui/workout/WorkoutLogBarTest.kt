@@ -63,16 +63,16 @@ class WorkoutLogBarTest {
         assertTrue(bar.contains("showNext: Boolean"))
         assertTrue(bar.contains("showFinish: Boolean"))
         assertTrue(bar.contains("showAnother: Boolean"))
-        assertTrue(bar.contains("LogBarCopy.ANOTHER_SET"))
+        assertTrue(bar.contains("Add another set"))
         assertTrue(bar.contains("WorkoutTestTags.ANOTHER_SET"))
         assertTrue(bar.contains("onAnotherSet"))
         assertTrue(bar.contains("finishAct"))
         assertTrue(bar.contains("WorkoutTestTags.DOCK_FINISH"))
-        assertTrue(bar.contains("NextLiftPreview("))
+        assertTrue(bar.contains("primaryAction?.identity"))
 
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("showNext = advance.showNext"))
-        assertTrue(screen.contains("showFinish = advance.showFinish"))
+        assertTrue(screen.contains("primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE"))
+        assertTrue(screen.contains("primaryAction.kind == WorkoutPrimaryKind.FINISH"))
         assertTrue(screen.contains("viewModel.requestExtraSet()"))
         assertTrue(screen.contains("viewModel.advanceNow()"))
         assertTrue(screen.contains("onFinish = { confirmEnd = true }"))
@@ -92,8 +92,8 @@ class WorkoutLogBarTest {
         assertTrue(copy.contains("const val LOGGING"))
         assertTrue(bar.contains("canLog"))
         assertTrue(bar.contains("LogCommitCopy.disabledReason"))
-        assertTrue(bar.contains("testTag(WorkoutTestTags.LOG_SET)"))
-        assertTrue(bar.contains("next = false"))
+        assertTrue(bar.contains("else -> WorkoutTestTags.LOG_SET"))
+        assertTrue(bar.contains("hapticFeedback = false"))
     }
 
     private fun readOwned(relative: String): String {

@@ -56,6 +56,7 @@ fun <T> NumberEntryDialog(
     parse: (String) -> T?,
     onConfirm: (T) -> Unit,
     onDismiss: () -> Unit,
+    appliedValueLabel: ((T) -> String)? = null,
 ) {
     var text by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(
@@ -86,7 +87,10 @@ fun <T> NumberEntryDialog(
                 isError = text.text.isNotBlank() && parsed == null,
                 // Says why "Set" is greyed out. A disabled button with no reason beside it is
                 // just a dead end.
-                supportingText = { Text(helper, style = InstrumentType.caption) },
+                supportingText = {
+                    val applied = parsed?.let { appliedValueLabel?.invoke(it) }
+                    Text(if (applied == null) helper else "$helper\nWill use $applied", style = InstrumentType.caption)
+                },
                 suffix = suffixSlot,
                 textStyle = InstrumentType.numeralMd,
                 keyboardOptions = KeyboardOptions(
