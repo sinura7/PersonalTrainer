@@ -123,10 +123,9 @@ fun DayBlockHead(
         title,
         style = InstrumentType.title,
         color = ink,
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
     )
     if (lines.names.isNotEmpty()) {
+        Text("Planned exercises", style = InstrumentType.caption, color = meta)
         SessionLiftRows(
             labels = lines.names,
             exercises = exercises,
@@ -139,8 +138,6 @@ fun DayBlockHead(
             line,
             style = InstrumentType.caption,
             color = meta,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -205,8 +202,6 @@ private fun SessionLiftRow(
             modifier = Modifier.weight(1f),
             style = InstrumentType.body,
             color = color,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
     }
 }

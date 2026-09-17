@@ -1,0 +1,32 @@
+{
+  "runId": "20260917-160528051",
+  "counts": {
+    "tests": 25,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "reportSha256": [
+    "ad368fd9493b028595c964cdec1e55cdef93a7d7ed1306eb8a5a67ef0632ac0a"
+  ],
+  "profile": {
+    "profile": "temper-tests-api26",
+    "serial": "emulator-5558",
+    "systemImage": "system-images;android-26;default;x86_64",
+    "imageRevision": "1",
+    "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:8.0.0/OSR1.180418.004/4931640:userdebug/test-keys",
+    "density": "Physical density: 420",
+    "size": "Physical size: 1080x1920",
+    "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+    "renderer": "swiftshader_indirect",
+    "fontScale": 1.0,
+    "animations": 0,
+    "locale": "en-US",
+    "timeZone": "America/Toronto",
+    "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+    "goldenProfile": "windows-swiftshader37",
+    "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+    "capturedUtc": "2026-09-17T16:05:28.0314273Z"
+  },
+  "captures": 5
+}

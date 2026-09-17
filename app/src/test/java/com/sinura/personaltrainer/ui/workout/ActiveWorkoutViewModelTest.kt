@@ -906,9 +906,15 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { !it.logging && it.editingSetId == null }
         assertEquals(firstWorking.id, vm.logReceipt.value?.setId)
         assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Set 1 of 3 logged"))
+        // This test checks ordinal copy after another edit, not Room delivery latency.
+        // A write receipt precedes the separately observed session graph.
+        vm.awaitState {
+            it.session?.sets?.firstOrNull { set -> set.id == firstWorking.id }?.weightKg == 75.0
+        }
         vm.editSet(firstWorking.id)
         vm.awaitState { it.editingSetId == firstWorking.id }
         vm.setWarmup(true)
+        vm.awaitState { it.draft.isWarmup }
         vm.logSetAndSettle()
         withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWorking.id && it.isWarmup } }
         assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("WU 3 logged"))

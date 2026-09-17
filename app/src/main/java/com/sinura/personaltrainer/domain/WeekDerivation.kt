@@ -246,6 +246,7 @@ object WeekDerivation {
                     emphasisMuscles = emptyList(),
                     confidence = ScheduleConfidence.HIGH,
                     slotId = slot.id,
+                    satisfiedBySessionId = day.satisfiedBySessionId,
                 )
             }
         }

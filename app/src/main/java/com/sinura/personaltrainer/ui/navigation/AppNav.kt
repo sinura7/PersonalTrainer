@@ -478,6 +478,8 @@ fun PersonalTrainerNav(
                         },
                         onOpenPlan = { goToTab(Route.Routines.path) },
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
+                        onOpenSession = { navController.navigate(Route.SessionDetail.create(it)) },
+                        onOpenActivity = { navController.navigate(Route.ActivityDetail.create(it)) },
                     )
                 }
                 composable(Route.Progress.path) {

@@ -1,8 +1,16 @@
 # Milestone A — workout phone acceptance
 
-Status: prepared; signed drop and physical execution pending. This checklist
+Status: Debug 79 published; physical execution pending. This checklist
 does not claim phone acceptance from emulator results. Use the existing
 Obtainium **Temper Debug** entry; preserve its data and signing identity.
+
+[Debug 79 release](https://github.com/sinura7/PersonalTrainer/releases/tag/debug-live-2026-09-17)
+was built from `8840af7fb14fcf0ee159346c97c0ced55e970b28`. The downloaded
+APK reports `com.sinura.personaltrainer.debug`, versionCode `79`, versionName
+`1.0.0+debug.79`. Its SHA-256 signing certificate matches SETUP.md's stable
+distribution identity. APK SHA-256:
+`e4d5c23b9a5a35fb0bf0f21c16af2dd7ab2968f2ee5a2cf72e6895b50dcd9437`.
+The distribution workflow passed its unit/static/lint/build/signature gates.
 
 ## Record once
 

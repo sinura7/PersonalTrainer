@@ -1,0 +1,518 @@
+{
+  "runId": "20260917-160812385",
+  "counts": {
+    "tests": 27,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "reportSha256": [
+    "20a2a5aec9dd2e1ee967d7e6808b113bf223c8b83f58b10148a4bdfa12850298"
+  ],
+  "profile": {
+    "profile": "temper-tests-api29",
+    "serial": "emulator-5554",
+    "systemImage": "system-images;android-29;default;x86_64",
+    "imageRevision": "8",
+    "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+    "density": "Physical density: 420",
+    "size": "Physical size: 1080x1920",
+    "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+    "renderer": "swiftshader_indirect",
+    "fontScale": 1.0,
+    "animations": 0,
+    "locale": "en-US",
+    "timeZone": "America/Toronto",
+    "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+    "goldenProfile": "windows-swiftshader37",
+    "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+    "capturedUtc": "2026-09-17T16:08:12.3667487Z"
+  },
+  "captures": 56,
+  "status": "Local source review, API 26/29/36 behavior and fresh Windows API 29 reference comparison passed. Hosted and integrated verification pending.",
+  "rationale": "F4 introduces date-aware Home, compact actual records, populated plan previews, and accessible scrolling day cells. New references; no existing tolerance or baseline relaxed.",
+  "fixtureClock": "20002 epoch day (2024-10-06), UTC noon",
+  "fixtureSource": "HomeDayFixture and HomeDayLayoutInstrumentedTest; private Room and preferences; synthetic data",
+  "references": [
+    {
+      "name": "frontend-home-360x640-font10-normal-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "2e796dfbe6f86db66e5456700a21ca33feb4cea030c64270a42205d0b7f67a63"
+    },
+    {
+      "name": "frontend-home-360x640-font10-normal-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "4762a8ff7c00029a7388c856e1cdb8b61098c2075befc9d349edfdb5386f2c9d"
+    },
+    {
+      "name": "frontend-home-360x640-font16-normal-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "48d0301ead258e147cddd686bdcaca1e31a9049c2d0ecb7c1b179afc015b6cdf"
+    },
+    {
+      "name": "frontend-home-360x640-font16-normal-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "daa658b7f9f84a3c9436da0c6a3f96cb2d595806c528f0e9ffb294782bfb91b3"
+    },
+    {
+      "name": "frontend-home-360x640-font20-cross-date-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "efdbf2bb25510dfa534130f3c0eddc0a8a10f6230c4d5df129209bcc10f96e60"
+    },
+    {
+      "name": "frontend-home-360x640-font20-cross-date-linked-record-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "76c33157255ea83d0f52f916cc0e867ed19bf3a53770c9c6ec75116f30f41539"
+    },
+    {
+      "name": "frontend-home-360x640-font20-cross-date-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "36deefee708e01eab11534461ff8906b669b855372a3ab70913d84a1bc076e83"
+    },
+    {
+      "name": "frontend-home-360x640-font20-empty-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "b05482fcca64793475cadab46a8ccbadc9f6cb2d939bf609c00b1a3372345425"
+    },
+    {
+      "name": "frontend-home-360x640-font20-live-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "4b57d0e75557279daf4a7e8232729d36b81336e2d88d487cd7b0a47a82e0c0b2"
+    },
+    {
+      "name": "frontend-home-360x640-font20-live-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "dbac1a1497ba08b75c7f4c107e3d2be5838bdb78d730873a36ae7aaf4bace332"
+    },
+    {
+      "name": "frontend-home-360x640-font20-long-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "6a1e644e5a2b847841caf932826bd0923cacadd8c60968b6b7efe8ca08896633"
+    },
+    {
+      "name": "frontend-home-360x640-font20-long-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "3b9216cc1a122fb6fd495f5b9faf154739c9c44225c6eafec369ff1015c6e79e"
+    },
+    {
+      "name": "frontend-home-360x640-font20-missing-link-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "efdbf2bb25510dfa534130f3c0eddc0a8a10f6230c4d5df129209bcc10f96e60"
+    },
+    {
+      "name": "frontend-home-360x640-font20-missing-link-linked-record-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "5e2895116fc5b8bb7a7c1e4467d3dde185d96b4a0e96524eab110628246523cc"
+    },
+    {
+      "name": "frontend-home-360x640-font20-missing-link-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "a0b19ad474c8e2f32a1aacfc2468286397757003fd66827a491d0854ccee4841"
+    },
+    {
+      "name": "frontend-home-360x640-font20-normal-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "e1a3ddcadf66814287b79876927b4b086f50a6b21bbba7a97821314a501ff3b3"
+    },
+    {
+      "name": "frontend-home-360x640-font20-normal-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "023909a2f861cc720d663fb4290dbeb2a04bc5b7393c2081a1d8e2d998c88bf9"
+    },
+    {
+      "name": "frontend-home-360x640-font20-rtl-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "587267992bc31ad600f603586bae36478b7952713916d43af5f9122d356d11a2"
+    },
+    {
+      "name": "frontend-home-360x640-font20-rtl-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "52e691c59c340fa0c22b5f3caa5e1f6d4ceedfe743dd337271dc98befbf7f5cc"
+    },
+    {
+      "name": "frontend-home-360x800-font10-cross-date-historical-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "a7a85c116630fa13ae8b1f9958750ec628272190f72cc28c96d6970132a600d2"
+    },
+    {
+      "name": "frontend-home-360x800-font10-cross-date-linked-record-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "9040fd66a23969130f84f76d10e1883f58fd518c4483a29a160badc880dee467"
+    },
+    {
+      "name": "frontend-home-360x800-font10-cross-date-today-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "9040fd66a23969130f84f76d10e1883f58fd518c4483a29a160badc880dee467"
+    },
+    {
+      "name": "frontend-home-360x800-font10-empty-today-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "03cee12150915af778c66c4c5d92140d9f7b7df6bda4394ad706262923f73f47"
+    },
+    {
+      "name": "frontend-home-360x800-font10-live-historical-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "5e8f5d64fbc19249edabe1cc389692ed96c7dd9ac60977b9a2bf99c18b163ca9"
+    },
+    {
+      "name": "frontend-home-360x800-font10-live-today-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "8cb917d6db655c16443d9db92fa25fb941313a2c3428bd23dc12bcc11a72276f"
+    },
+    {
+      "name": "frontend-home-360x800-font10-long-historical-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "e36e12da63440ada9dd47c33693b52369e70000bfecdf869cab85593ed966f69"
+    },
+    {
+      "name": "frontend-home-360x800-font10-long-today-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "2da97cf920152a7e10f20b4f4ecb99f7f7de637a7fe44a08f91424585cf5fb39"
+    },
+    {
+      "name": "frontend-home-360x800-font10-missing-link-historical-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "a7a85c116630fa13ae8b1f9958750ec628272190f72cc28c96d6970132a600d2"
+    },
+    {
+      "name": "frontend-home-360x800-font10-missing-link-linked-record-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "ef90a6afbdd62b92d7e9e9850b5488bc3c8d0e113680e10c4232887bceb83f24"
+    },
+    {
+      "name": "frontend-home-360x800-font10-missing-link-today-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "ef90a6afbdd62b92d7e9e9850b5488bc3c8d0e113680e10c4232887bceb83f24"
+    },
+    {
+      "name": "frontend-home-360x800-font10-normal-historical-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "94f30a01e79a82b1d3485de8b75cba23396d65f1685c54e8261967f3e1011269"
+    },
+    {
+      "name": "frontend-home-360x800-font10-normal-today-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "54d70c4a899f921006d7d53bb33066645bb8f03508c89e959b64b77653738311"
+    },
+    {
+      "name": "frontend-home-360x800-font10-rtl-historical-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "2959fe283e2fc8a2b0982668139dab404de6a7d651f0a5c6772b99c27a5f5219"
+    },
+    {
+      "name": "frontend-home-360x800-font10-rtl-today-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "46ee32543ab8f75463993ed87e8b3a822087a3d08625fd3d6d01f589ecd4600a"
+    },
+    {
+      "name": "frontend-home-360x800-font16-normal-historical-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "3e68a8e1586aa1f7218e411dda0d026b61be15199c46ccd474b7473665093e6e"
+    },
+    {
+      "name": "frontend-home-360x800-font16-normal-today-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "482f337e906fb1d8344f187ea80122cc794e408359d078feeab40a4f88d16cff"
+    },
+    {
+      "name": "frontend-home-360x800-font20-normal-historical-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "b019904495d61697596581a67e09de289e2d448b726f735970e60a7063d26d8c"
+    },
+    {
+      "name": "frontend-home-360x800-font20-normal-today-api29.png",
+      "pixels": [
+        806,
+        1790
+      ],
+      "sha256": "e78e986ac4f981f375f088f83fd7e8443414c2609ab39be265249b9a9e065e46"
+    },
+    {
+      "name": "frontend-home-412x840-font10-normal-historical-api29.png",
+      "pixels": [
+        878,
+        1790
+      ],
+      "sha256": "a5f568f1425e2ba89f074d0efbc76f198f542f8708248e3172f82c3c51c7a43e"
+    },
+    {
+      "name": "frontend-home-412x840-font10-normal-today-api29.png",
+      "pixels": [
+        878,
+        1790
+      ],
+      "sha256": "ed975bb10e647ffd84641066bf8c1f532afe301faf1bc91b6a618b874d41cb5f"
+    },
+    {
+      "name": "frontend-home-412x840-font16-normal-historical-api29.png",
+      "pixels": [
+        878,
+        1790
+      ],
+      "sha256": "967e41e2b85958e6be6eec150ef7c65de4e4062e9379a1c9c16afcc3ef0c9a82"
+    },
+    {
+      "name": "frontend-home-412x840-font16-normal-today-api29.png",
+      "pixels": [
+        878,
+        1790
+      ],
+      "sha256": "fb8b22ab917b3005a576d8705c31528cae2dcf204dafe635b20f029195d63449"
+    },
+    {
+      "name": "frontend-home-412x840-font20-normal-historical-api29.png",
+      "pixels": [
+        878,
+        1790
+      ],
+      "sha256": "631a9c9f2acbd63e93890a744a95d12e26ce3ef331b385b34f3c8656b46b927f"
+    },
+    {
+      "name": "frontend-home-412x840-font20-normal-today-api29.png",
+      "pixels": [
+        878,
+        1790
+      ],
+      "sha256": "141a9ecb075a449c1aa8578e4e41bbd85fce9dcb2eb87923b429fea0913cb04b"
+    },
+    {
+      "name": "frontend-home-600x840-font10-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "a9dfbb4c52f8c001263a810ce12a2c63422c78130eaee1e4e580a15e8f0727ee"
+    },
+    {
+      "name": "frontend-home-600x840-font10-normal-today-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "31caa91d33b962068d9b7a5e2a797234546fdf3190a89aab9ab2bce6fbe75244"
+    },
+    {
+      "name": "frontend-home-600x840-font16-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "a087566f4bdab8d7d9622fb5446b0c88055d1b47c7a99abc4184722baed89592"
+    },
+    {
+      "name": "frontend-home-600x840-font16-normal-today-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "cfdb50a251b6323100b0683a913c47fbc5e29cf63636c878ac54a678689dabbc"
+    },
+    {
+      "name": "frontend-home-600x840-font20-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "84cb732c4212602b3a0f6f82dcf623a7c0870947948fad7ae0c7b925ec5ffc84"
+    },
+    {
+      "name": "frontend-home-600x840-font20-normal-today-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "9e69f75818777c87127e89acaabe7bb91df5728a4c8d3b692c38e7d969a6273d"
+    },
+    {
+      "name": "frontend-home-640x360-font10-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "81dc3ca6b1989042eb21f876dc5d3aefe54295e2545b5521cc0264d4ac8c8004"
+    },
+    {
+      "name": "frontend-home-640x360-font10-normal-today-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "5ed9ca83abe72cd32a1f62120d66d8637d6f3fa02a1e7ca7cea2bec3d01a4943"
+    },
+    {
+      "name": "frontend-home-640x360-font16-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "1c5a618855ad62ad8a8d985289779f3fad3500ad95225ba967ea72c4853836b0"
+    },
+    {
+      "name": "frontend-home-640x360-font16-normal-today-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "82fb8b92472cbbcd2138f0f7ebe0d5a9837f44f46a241c709839cccf8f4a255e"
+    },
+    {
+      "name": "frontend-home-640x360-font20-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "b3f0967b11e08a7b0b103ad79cdc494fbe2d3e77159f14c7a5c805a56fa30353"
+    },
+    {
+      "name": "frontend-home-640x360-font20-normal-today-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "6a83cf3485c10f8dd8ce4130c83daa97fd975e7f686a912a81fd947f5fa8424e"
+    }
+  ],
+  "freshComparison": {
+    "runId": "20260917-161215431",
+    "counts": {
+      "tests": 52,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "reportSha256": [
+      "b67659a79e624473da7449c6efa8165f72a9050636c583259db34a6bcbc38247"
+    ],
+    "profile": {
+      "profile": "temper-tests-api29",
+      "serial": "emulator-5554",
+      "systemImage": "system-images;android-29;default;x86_64",
+      "imageRevision": "8",
+      "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+      "density": "Physical density: 420",
+      "size": "Physical size: 1080x1920",
+      "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+      "renderer": "swiftshader_indirect",
+      "fontScale": 1.0,
+      "animations": 0,
+      "locale": "en-US",
+      "timeZone": "America/Toronto",
+      "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+      "goldenProfile": "windows-swiftshader37",
+      "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+      "capturedUtc": "2026-09-17T16:12:15.4125627Z"
+    },
+    "captures": 5
+  }
+}

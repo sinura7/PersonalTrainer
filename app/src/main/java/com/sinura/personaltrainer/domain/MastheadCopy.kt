@@ -30,9 +30,16 @@ object MastheadCopy {
         liftCount: Int?,
         hasPlan: Boolean = true,
         agenda: List<AgendaItem> = emptyList(),
+        isToday: Boolean = true,
+        hasRemainingPlannedWork: Boolean = false,
     ): String {
         startableHeadline(agenda, liftCount)?.let { return it }
-        if (loggedToday) return "TRAINED TODAY"
+        if (loggedToday && agenda.any { it.occurrence.status == OccurrenceStatus.MISSED }) {
+            return "TRAINING RECORDED"
+        }
+        if (loggedToday && !hasRemainingPlannedWork) {
+            return if (isToday) "TRAINED TODAY" else "TRAINING COMPLETE"
+        }
         // Before the plan question, because the week derivation ALWAYS returns seven days and
         // fills every unpinned one with a rest day. So a brand-new install — no slots, no
         // routines, nothing — produced a non-null day whose isRest was true, and the largest

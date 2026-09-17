@@ -1,0 +1,461 @@
+{
+  "sourceCommit": "f50491effe01c6560253d609e25da2432d52d248",
+  "hostedRun": 35246435024,
+  "runUrl": "https://github.com/sinura7/PersonalTrainer/actions/runs/35246435024",
+  "profile": "Legacy Linux API 29 Nexus 5X, 420 dpi, workflow-pinned emulator lane",
+  "fixtureClock": "20002 epoch day (2024-10-06), UTC noon",
+  "locale": "en-US",
+  "review": "All 56 captures reviewed across ten contact pages. New Home references only; no existing reference or comparator changed.",
+  "initialResult": "249 tests: 27 Home cases fail for missing references; one existing rest case differs at two pixels. Other 221 pass.",
+  "freshComparison": "Pending after committing the reviewed references",
+  "references": [
+    {
+      "name": "frontend-home-360x640-font10-normal-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "655c555f24f21656b9fe1ccbb126b2510022a6a299f357802f3412ff444d5bca"
+    },
+    {
+      "name": "frontend-home-360x640-font10-normal-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "902b8e51fa2177c2ea1370ae4f355707b5f51f3490e273a3b5ea14ea488f76e0"
+    },
+    {
+      "name": "frontend-home-360x640-font16-normal-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "c67007bdc83b5604cb77542b4b1c9afa6d5dbee1de25f46f1b44fea49e5300f8"
+    },
+    {
+      "name": "frontend-home-360x640-font16-normal-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "7e51e6de12c222333f283748195ee2d51b9b60faab7c8e6076b763733d6050ec"
+    },
+    {
+      "name": "frontend-home-360x640-font20-cross-date-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "fc5465c989d5aa1c392a3c0098db57ffabc3b5acfab93cf9778191be3989bd5d"
+    },
+    {
+      "name": "frontend-home-360x640-font20-cross-date-linked-record-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "64f99042d10f4b04edc52b0a314385263d75e9c321cbd8759981915178640b86"
+    },
+    {
+      "name": "frontend-home-360x640-font20-cross-date-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "b735209c4fffbf7d1ae89794af508c364547a53ef30d1a550986a9764e499ea5"
+    },
+    {
+      "name": "frontend-home-360x640-font20-empty-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "d5189e53f46bb0c43acddde6b5ba31215f2dd58fa6089ea7e30443b01cd0e51d"
+    },
+    {
+      "name": "frontend-home-360x640-font20-live-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "5e8e852d518425c6675969989b02705c8448821a1706fac6b22754942f8a0bcc"
+    },
+    {
+      "name": "frontend-home-360x640-font20-live-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "974a8410d2bce35818f1c39c06c363a7860925ee699487eb4d6efa8b6a63afe2"
+    },
+    {
+      "name": "frontend-home-360x640-font20-long-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "ede895bde49959792c476e53e848fa4c7cb75a526efef6199b34f5c0c2066228"
+    },
+    {
+      "name": "frontend-home-360x640-font20-long-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "24f161b077b69b7f4b56a833c2fd3c461719edec47f2f8da059c6b030b19eea4"
+    },
+    {
+      "name": "frontend-home-360x640-font20-missing-link-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "fc5465c989d5aa1c392a3c0098db57ffabc3b5acfab93cf9778191be3989bd5d"
+    },
+    {
+      "name": "frontend-home-360x640-font20-missing-link-linked-record-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "31fa2badd4a0e60a17d3f31b32852565a377e32986e140d6fbd35044cf6607b2"
+    },
+    {
+      "name": "frontend-home-360x640-font20-missing-link-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "0c1ab73ebb05e7acc6c600b5f90eea2204e32daa6950d6d49e88e33536e931bb"
+    },
+    {
+      "name": "frontend-home-360x640-font20-normal-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "e11db355d73a445e3634419ba11ecd708ea4dd2875f1a4af4ae8a619e68babaf"
+    },
+    {
+      "name": "frontend-home-360x640-font20-normal-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "c93542ac670ee770937d1c174f2fb0dff2c83cb56980161f3417c169b5f2e08b"
+    },
+    {
+      "name": "frontend-home-360x640-font20-rtl-historical-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "57ff9f6866c901fccd0ecad91ff93a7d37faf0c51c2648955432a3d8f5faa940"
+    },
+    {
+      "name": "frontend-home-360x640-font20-rtl-today-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "sha256": "261cf093ce0d1e686e04b42cb9da81f4e9b8c14fd6e35633d2d91c4f2308132e"
+    },
+    {
+      "name": "frontend-home-360x800-font10-cross-date-historical-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "b80155418c432583f9b1d9a5627042b2c6572276009962f2814950f9dcbbe503"
+    },
+    {
+      "name": "frontend-home-360x800-font10-cross-date-linked-record-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "5a985c7462c1b1904ef983b3622ba838a9d205be124964399a3cdec5d9c092b3"
+    },
+    {
+      "name": "frontend-home-360x800-font10-cross-date-today-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "5a985c7462c1b1904ef983b3622ba838a9d205be124964399a3cdec5d9c092b3"
+    },
+    {
+      "name": "frontend-home-360x800-font10-empty-today-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "10a38f40596c39493bda3c0e73df862a92964ea2cd2c62f8cff752b6c098daae"
+    },
+    {
+      "name": "frontend-home-360x800-font10-live-historical-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "2d6d3e69dba7922b2b05f6ac8cb535872f601f58d017935219f3e3c4e03071ad"
+    },
+    {
+      "name": "frontend-home-360x800-font10-live-today-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "f54607a58731e8e0636871e1031b92bd1605cce3492cfa795f7b50c3f6d06fb1"
+    },
+    {
+      "name": "frontend-home-360x800-font10-long-historical-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "c3e9b900d8e70c2a27f1595477c6fa33dab33587aee04d2375e60e2544c98d9d"
+    },
+    {
+      "name": "frontend-home-360x800-font10-long-today-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "c3bd96236bc85632402e58c50cf7c682f7567178c8fa88ed4deb105159b8a2c3"
+    },
+    {
+      "name": "frontend-home-360x800-font10-missing-link-historical-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "b80155418c432583f9b1d9a5627042b2c6572276009962f2814950f9dcbbe503"
+    },
+    {
+      "name": "frontend-home-360x800-font10-missing-link-linked-record-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "3881796cd3d5e8b49bd76a41b05b27b8b74bf88802c4aee76c3b4ce00c250c9b"
+    },
+    {
+      "name": "frontend-home-360x800-font10-missing-link-today-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "3881796cd3d5e8b49bd76a41b05b27b8b74bf88802c4aee76c3b4ce00c250c9b"
+    },
+    {
+      "name": "frontend-home-360x800-font10-normal-historical-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "1a878cefe96ae0bf1e85b75cd4f4e9716cd51411febd5616fb1134a41f370287"
+    },
+    {
+      "name": "frontend-home-360x800-font10-normal-today-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "a2f49cfec5a0328a3ff931321e5596414c593fb81c0cf17bf9dacd9717b330be"
+    },
+    {
+      "name": "frontend-home-360x800-font10-rtl-historical-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "e08f92ea956222d638353e7b6732bb58ef0f35d5394fcf8c2c0254796010c7fd"
+    },
+    {
+      "name": "frontend-home-360x800-font10-rtl-today-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "d22ddb4320d2f072ca4901a274741b6d22a4d0602ddd2e74e5371f110f3fa87b"
+    },
+    {
+      "name": "frontend-home-360x800-font16-normal-historical-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "dc8891996980cdcfe12158b36f6a00bebb65971d97744870cb7d517a115024a4"
+    },
+    {
+      "name": "frontend-home-360x800-font16-normal-today-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "b2df400c6dd4fc11cd66fbd58185876e4829f8c845caa3f5d9f6c6209bb3c7cd"
+    },
+    {
+      "name": "frontend-home-360x800-font20-normal-historical-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "d117c2b81fb8709492a13baec77bfc6097ac53d61bc6ebe6bcdd80386a7d811b"
+    },
+    {
+      "name": "frontend-home-360x800-font20-normal-today-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "sha256": "aeae7ff200d8ca7a345e06469d298f53e5f2090581bf7e4ee1bce1af0ccf699a"
+    },
+    {
+      "name": "frontend-home-412x840-font10-normal-historical-api29.png",
+      "pixels": [
+        847,
+        1727
+      ],
+      "sha256": "4a9389f02f462911f1bada45ed61094cf6ee1ea4a18492e0a27a0add29aa09c5"
+    },
+    {
+      "name": "frontend-home-412x840-font10-normal-today-api29.png",
+      "pixels": [
+        847,
+        1727
+      ],
+      "sha256": "93ddf7c641657b4cb11ad402707df55e66e08a306f1644331883420b28ad9125"
+    },
+    {
+      "name": "frontend-home-412x840-font16-normal-historical-api29.png",
+      "pixels": [
+        847,
+        1727
+      ],
+      "sha256": "86311c3e28c68a8a549338ff575c720d2d6024eb915bc4cee2205d39379e7fe1"
+    },
+    {
+      "name": "frontend-home-412x840-font16-normal-today-api29.png",
+      "pixels": [
+        847,
+        1727
+      ],
+      "sha256": "4df4cc0517da4a53902cd0deaf2f41e1fb57427e7d212ac9a4cf317e634b6b38"
+    },
+    {
+      "name": "frontend-home-412x840-font20-normal-historical-api29.png",
+      "pixels": [
+        847,
+        1727
+      ],
+      "sha256": "cf4709c3b04adb8f92489f369ae7b4860e715da39dfe26f2a33c6d6a9723d0c6"
+    },
+    {
+      "name": "frontend-home-412x840-font20-normal-today-api29.png",
+      "pixels": [
+        847,
+        1727
+      ],
+      "sha256": "0ebfd1ee09726c40ee5ad0fc573c7559f66ff25ab5d89e1296ba3efb3b8a4deb"
+    },
+    {
+      "name": "frontend-home-600x840-font10-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "36165cbff93826e44eac3993c7b08b78db630331dac7831a883f0e05abe15f5c"
+    },
+    {
+      "name": "frontend-home-600x840-font10-normal-today-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "4a01cc49894cedc261f749dfa1d0b34fb235a38ef7abd397af18fb47d7120918"
+    },
+    {
+      "name": "frontend-home-600x840-font16-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "2f80a77d0d25f545420aa020b628f82c250edf0e85ee16a83bee1121fca98926"
+    },
+    {
+      "name": "frontend-home-600x840-font16-normal-today-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "ec536f91eea3d0fa6b38499d6a76849828f592db87cd50dc0c837342bd96ed4b"
+    },
+    {
+      "name": "frontend-home-600x840-font20-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "10dbebde118312cd164363e9dbe2638be9fe775275275046d4d997e288a3c31a"
+    },
+    {
+      "name": "frontend-home-600x840-font20-normal-today-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "sha256": "6680bd349a5c5910a3c8e9e89a48bed4ecc8d5c5176e4237887b537fe118c81d"
+    },
+    {
+      "name": "frontend-home-640x360-font10-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "48fe0cf1f3c6826616e302689e896a233a36bac42016eaedd0f2d3af0ff58973"
+    },
+    {
+      "name": "frontend-home-640x360-font10-normal-today-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "1d686807ce181ec05edc838d70cb3c6ea98a417685dd284da872c38ffdf8f468"
+    },
+    {
+      "name": "frontend-home-640x360-font16-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "44c9c4c42439530b2d8556d9e4de041dfe1f9b7171c50ebb2aede1f30682b524"
+    },
+    {
+      "name": "frontend-home-640x360-font16-normal-today-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "d0b92ec0ef920c14be93114fe38381de854f27aac42c0726c3345cdc68e37d1f"
+    },
+    {
+      "name": "frontend-home-640x360-font20-normal-historical-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "6dddf2b7f3ff7807a06311013303649280c2bc011806c8648ca4b630aee81185"
+    },
+    {
+      "name": "frontend-home-640x360-font20-normal-today-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "sha256": "4bf8747ea229882c350ae77e7bdeda913c173da553be67856f109e441f962fe6"
+    }
+  ]
+}

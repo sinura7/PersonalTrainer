@@ -1,7 +1,7 @@
 {
   "packet": "F3",
   "baseCommit": "579642b6d3737276510b6eab476c29ab71d9fcfc",
-  "status": "Merged; local, hosted, integrated and native checks passed. Debug 79 preparation; physical acceptance pending.",
+  "status": "Merged; local, hosted, integrated and native checks passed. Debug 79 delivered with version and stable signer verified; physical acceptance pending.",
   "referenceManifestSha256": "2d4f65d94cb76cb17fe94986cb1cbd103b5923eaebafeca930709c1286ec6b0f",
   "native": [
     {
@@ -172,7 +172,6 @@
   ],
   "localGate": "Full gate 12 passed 2,579 tests, zero failures/errors/skips; clean merged gate passed, reusing unchanged unit/build outputs.",
   "outstanding": [
-    "Publish and verify stable-signer Debug 79",
     "Owner S26 Ultra phone trial, TalkBack, background timing and upgrade retention",
     "Physical performance traces and remaining whole-app acceptance in F11"
   ],
