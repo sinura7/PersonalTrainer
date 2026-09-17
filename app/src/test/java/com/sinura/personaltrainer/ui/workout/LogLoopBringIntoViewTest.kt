@@ -13,19 +13,12 @@ class LogLoopBringIntoViewTest {
     @Test
     fun afterLogAnchorIsTheEntryWellsNotTheLoggedSetsPanel() {
         assertEquals(WorkoutTestTags.SET_ENTRY, LogLoopBringIntoView.ANCHOR_TAG)
-        assertEquals(WorkoutTestTags.LOG_RECEIPT, LogLoopBringIntoView.AFTER_LOG_TAG)
         assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains("logged", ignoreCase = true))
         assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains("sets-panel", ignoreCase = true))
     }
 
-    @Test
-    fun bringIntoViewOnlyWhenTheSetListGrew() {
-        assertFalse(LogLoopBringIntoView.shouldBringIntoView(-1, 0))
-        assertTrue(LogLoopBringIntoView.shouldBringIntoView(0, 1))
-        assertTrue(LogLoopBringIntoView.shouldBringIntoView(2, 3))
-        assertFalse(LogLoopBringIntoView.shouldBringIntoView(3, 3))
-        assertFalse(LogLoopBringIntoView.shouldBringIntoView(4, 3))
-    }
+    // Growth-triggered scrolling is intentionally removed by ADR-026. The
+    // eight-save native journey now measures the actual entry/commit positions.
 
     @Test
     fun resumeAndLiftSwitchFocusTheEntryNotAVanishedListOffset() {

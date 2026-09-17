@@ -64,7 +64,7 @@ class FloorCompactChromeTest {
     fun packetCShowsOneLiftMinuteTelemetryAndNotesOffLoop() {
         assertTrue(FloorCompactChrome.oneCurrentLiftOnFloor())
         assertTrue(FloorCompactChrome.notesLeaveTheLogLoop())
-        assertTrue(FloorCompactChrome.headerShowsMinuteTelemetryOnly())
+        assertFalse(FloorCompactChrome.headerShowsMinuteTelemetryOnly())
     }
 
     @Test
@@ -72,7 +72,7 @@ class FloorCompactChromeTest {
         assertTrue(FloorCompactChrome.addSetHiddenOnFloor())
         assertFalse(FloorCompactChrome.liftCompleteReplacesClock())
         assertTrue(FloorCompactChrome.logButtonStaysAnchored())
-        assertTrue(FloorCompactChrome.imageLedHero())
+        assertFalse(FloorCompactChrome.imageLedHero())
         assertTrue(FloorCompactChrome.addLiftLivesInSwitcher())
         assertTrue(FloorCompactChrome.progressionKickerInline())
         assertFalse(FloorCompactChrome.showIdleStartNext())

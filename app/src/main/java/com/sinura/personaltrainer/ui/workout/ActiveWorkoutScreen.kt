@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import kotlin.math.roundToInt
@@ -156,11 +157,11 @@ fun ActiveWorkoutScreen(
     val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
     val logReceipt by viewModel.logReceipt.collectAsStateWithLifecycle()
     val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
-    val rpeHelperVisible by viewModel.rpeHelperVisible.collectAsStateWithLifecycle()
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
     var liftSwitcherOpen by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
+    var sessionSummaryOpen by rememberSaveable { mutableStateOf(false) }
     var finishNotesOpen by rememberSaveable { mutableStateOf(false) }
     val restNotificationsEnabled = restNotificationsEnabledOverride
         ?: rememberRestNotificationsEnabled()
@@ -197,6 +198,21 @@ fun ActiveWorkoutScreen(
     val sessionWork = remember(session) { session?.work() ?: SetWork.NONE }
     val unit = LocalWeightUnit.current
     val view = LocalView.current
+    val receiptDwell = LocalAccessibilityManager.current?.calculateRecommendedTimeoutMillis(
+        originalTimeoutMillis = Motion.STATUS_DWELL_MS,
+        containsIcons = false,
+        containsText = true,
+        containsControls = false,
+    ) ?: Motion.STATUS_DWELL_MS
+    LaunchedEffect(logReceipt, receiptDwell) {
+        val receipt = logReceipt ?: return@LaunchedEffect
+        // The latest row may be outside the lazy viewport. Announce the durable
+        // result once here, never from a timer tick or a row entering composition.
+        @Suppress("DEPRECATION")
+        view.announceForAccessibility(receipt.line)
+        delay(receiptDwell)
+        viewModel.onLogReceiptShown()
+    }
     val context = LocalContext.current
     val listState = rememberLazyListState()
     LaunchedEffect(state.loadState, state.selectedExerciseId) {
@@ -429,8 +445,6 @@ fun ActiveWorkoutScreen(
                             onOpenNotifications = { openRestNotificationSettings(context) },
                             onDismissRestBatteryHint = viewModel::acknowledgeRestBatteryHint,
                             onOpenRest = { session?.id?.let(onOpenRest) },
-                            receiptLine = logReceipt?.line,
-                            onReceiptDismissed = viewModel::onLogReceiptShown,
                             onLog = {
                                 if (hold && !holdArmed && state.editingSetId == null) {
                                     viewModel.startHoldSet()
@@ -504,16 +518,6 @@ fun ActiveWorkoutScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
-                        personalRecord?.let { moment ->
-                            item(key = "pr-moment") {
-                                PersonalRecordBanner(
-                                    headline = PersonalRecordCopy.headline(moment.kinds),
-                                    detail = "${moment.exerciseName.ifBlank { "This lift" }} · " +
-                                        SetCopy.setLine(moment.weightKg, moment.reps, LoadClass.of(selected?.exercise?.loadType), unit),
-                                    onDismiss = viewModel::onPersonalRecordShown,
-                                )
-                            }
-                        }
                         if (!session.hasLifts()) {
                             item(key = "empty-lifts") {
                                 EmptyState(
@@ -543,11 +547,7 @@ fun ActiveWorkoutScreen(
                                         onSkip = viewModel::skipForNow,
                                         onRemove = viewModel::removeSelectedLift,
                                         onNotes = { notesOpen = true },
-                                        startedAt = session.startedAt,
-                                        workingSets = session.sets.count { !it.isWarmup },
-                                        work = sessionWork,
-                                        unit = unit,
-                                        landscape = landscape,
+                                        onSummary = { sessionSummaryOpen = true },
                                     )
                                 }
                                 item(key = "current-entry") {
@@ -571,21 +571,16 @@ fun ActiveWorkoutScreen(
                                             recommendedRpe = microRec?.nextRpe,
                                             unit = unit,
                                             canEdit = logged.isEmpty(),
-                                            showAddSet = !FloorCompactChrome.addSetHiddenOnFloor() &&
-                                                WorkoutAdvance.cardOffersAnotherSet(
-                                                    logged,
-                                                    currentLift.targetSets,
-                                                ),
-                                            restRunning = rest.running,
-                                            restRemainingSeconds = rest.remainingSeconds,
-                                            restSeconds = currentLift.restSeconds.takeIf { it > 0 }
-                                                ?: rest.totalSeconds,
+                                            showAddSet = WorkoutAdvance.cardOffersAnotherSet(
+                                                logged,
+                                                currentLift.targetSets,
+                                            ),
                                             hold = HoldWork.isHold(currentLift.exercise),
                                             holdSeconds = state.draft.durationSeconds
                                                 ?: currentLift.targetSeconds,
                                             holdRunning = holdTimer.running,
                                             holdRemainingSeconds = holdTimer.remainingSeconds,
-                                            rpeHelperVisible = rpeHelperVisible,
+                                            receipt = logReceipt,
                                         ),
                                         events = WorkoutLiftCardEvents(
                                             onWeightKgChange = viewModel::setWeight,
@@ -597,7 +592,6 @@ fun ActiveWorkoutScreen(
                                             onWarmup = viewModel::setWarmup,
                                             onRpe = viewModel::setRpe,
                                             onApplyWarmupRamp = viewModel::applyWarmupRamp,
-                                            onDismissRpeHelper = viewModel::dismissRpeHelper,
                                             onApplySuggested = viewModel::applySuggestedWeight,
                                             onEditSet = viewModel::editSet,
                                             onDeleteSet = viewModel::deleteSet,
@@ -606,6 +600,16 @@ fun ActiveWorkoutScreen(
                                         ),
                                     )
                                 }
+                            }
+                        }
+                        personalRecord?.let { moment ->
+                            item(key = "pr-moment") {
+                                PersonalRecordBanner(
+                                    headline = PersonalRecordCopy.headline(moment.kinds),
+                                    detail = "${moment.exerciseName.ifBlank { "This lift" }} · " +
+                                        SetCopy.setLine(moment.weightKg, moment.reps, LoadClass.of(selected?.exercise?.loadType), unit),
+                                    onDismiss = viewModel::onPersonalRecordShown,
+                                )
                             }
                         }
                     }
@@ -651,6 +655,18 @@ fun ActiveWorkoutScreen(
             confirmLabel = SetStopwatchCopy.SWITCH_CONFIRM,
             onConfirm = viewModel::confirmStopTimingAndSwitch,
             onDismiss = viewModel::cancelPendingLiftSwitch,
+        )
+    }
+
+    if (sessionSummaryOpen && session != null) {
+        WorkoutSessionSummary(
+            routineName = session.routineName ?: "Workout",
+            startedAt = session.startedAt,
+            workingSets = session.sets.count { !it.isWarmup },
+            warmups = session.sets.count { it.isWarmup },
+            work = sessionWork,
+            unit = unit,
+            onDismiss = { sessionSummaryOpen = false },
         )
     }
 

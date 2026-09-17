@@ -47,23 +47,22 @@ object FloorCompactChrome {
     /** Warm-up is not an RPE value; it sits outside the 6–10 track. */
     fun warmupOutsideRpeTrack(): Boolean = true
 
-    /** RPE 6–10 share one non-scrolling row (360 dp / font 2.0). */
+    /** RPE choices reflow into rows without horizontal scrolling. */
     fun rpeTrackFitsWithoutScroll(): Boolean = true
 
     /**
-     * Header is Close / title / Finish only. Minute telemetry sits on
-     * the exercise hero. The dock owns the timer, context rail, and the
-     * one Volt Log set.
+     * Header is Close / title / Finish only. Session telemetry is in the
+     * named summary. The dock owns a companion and one primary action.
      */
     fun headerIsReadOnlyInstrumentStrip(): Boolean = true
 
-    /** 112 dp still, no neon outline, no overlay badge. */
-    fun imageLedHero(): Boolean = true
+    /** F2 replaces the oversized hero with a 64 dp exercise identity. */
+    fun imageLedHero(): Boolean = false
 
     /** Add a lift lives in the switcher once a session lift exists. */
     fun addLiftLivesInSwitcher(): Boolean = true
 
-    /** Log stays 72 dp filled Volt; Next / Finish are rail text. */
+    /** The primary action stays anchored at a 72 dp minimum. */
     fun logButtonStaysAnchored(): Boolean = true
 
     /** Rest and set clocks share one dock slot; modes never stack. */
@@ -93,13 +92,12 @@ object FloorCompactChrome {
     fun manualSetStopwatch(): Boolean = true
 
     /**
-     * Packet 4/F: HOLD / +N / BACK OFF sits in the entry surface above
-     * the fields, not a watermark and not above Log. Why still opens the
-     * trace.
+     * Recommendations are supporting context after entry and effort.
+     * Why still opens the trace; Use explicitly applies the suggestion.
      */
     fun progressionKickerInline(): Boolean = true
 
-    /** Packet F: Add set under the table is gone; Another set lives in the dock. */
+    /** No inline add row on the entry floor; extra sets remain in the dock and saved-set sheet. */
     fun addSetHiddenOnFloor(): Boolean = true
 
     /**
@@ -125,10 +123,9 @@ object FloorCompactChrome {
     fun notesLeaveTheLogLoop(): Boolean = true
 
     /**
-     * Packet C: header telemetry is minutes · sets · volume. No rest/hold
-     * / stopwatch numeral. The dock is the only seconds clock.
+     * F2 moves elapsed time and session totals into Session summary.
      */
-    fun headerShowsMinuteTelemetryOnly(): Boolean = true
+    fun headerShowsMinuteTelemetryOnly(): Boolean = false
 
     /**
      * Packet 5: cheap destructives (delete set, remove lift, skip day)

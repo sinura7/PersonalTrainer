@@ -21,7 +21,7 @@ class FloorStepperEntryTest {
         assertTrue(floor.contains("Metrics.stepperPlateWidth"))
         assertTrue(floor.contains("Metrics.stepperWeightHeight"))
         assertTrue(floor.contains("Metrics.stepperRepsHeight"))
-        assertTrue(floor.contains("Metrics.stepperNumeralMinWidth"))
+        assertTrue(floor.contains("valueFits") && floor.contains("rememberTextMeasurer"))
         assertTrue(floor.contains("NumberEntryDialog("))
         assertTrue(floor.contains("NumericEntry.parseWeightKg"))
         assertTrue(floor.contains("SetCopy.weightWellSpoken"))

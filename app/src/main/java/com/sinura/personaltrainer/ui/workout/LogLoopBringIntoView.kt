@@ -8,11 +8,6 @@ package com.sinura.personaltrainer.ui.workout
  */
 object LogLoopBringIntoView {
     const val ANCHOR_TAG = WorkoutTestTags.SET_ENTRY
-    const val AFTER_LOG_TAG = WorkoutTestTags.LOG_RECEIPT
-
-    fun shouldBringIntoView(previousSetCount: Int, nextSetCount: Int): Boolean =
-        previousSetCount in 0 until nextSetCount
-
     /** Packet C: after resume or a lift switch, the one card is at list offset 0. */
     fun entryListIndex(): Int = 0
 

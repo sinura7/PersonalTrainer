@@ -42,6 +42,7 @@ fun InstrumentChoiceChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    compact: Boolean = false,
 ) {
     InstrumentChip(
         label = label,
@@ -49,6 +50,7 @@ fun InstrumentChoiceChip(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
+        compact = compact,
         role = Role.RadioButton,
         leading = { SelectionMark(selected = selected, checkbox = false, enabled = enabled) },
     )
@@ -81,12 +83,19 @@ fun InstrumentPreset(
     modifier: Modifier = Modifier,
     supporting: String? = null,
     enabled: Boolean = true,
+    compact: Boolean = false,
 ) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
-        SecondaryGymButton(text = label, onClick = onClick, enabled = enabled)
+        SecondaryGymButton(
+            text = label,
+            onClick = onClick,
+            enabled = enabled,
+            height = if (compact) Metrics.touchMin else Metrics.control,
+            textStyle = if (compact) InstrumentType.bodyStrong else InstrumentType.title,
+        )
         supporting?.let {
             Text(text = it, style = InstrumentType.caption, color = TextSecondary)
         }

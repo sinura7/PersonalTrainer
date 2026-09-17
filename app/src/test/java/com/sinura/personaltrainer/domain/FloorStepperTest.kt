@@ -99,7 +99,7 @@ class FloorStepperTest {
         )
         assertEquals(WeightMeaning.NONE, LoadClass.BODYWEIGHT.weightMeaning)
         assertEquals("Assistance", WeightMeaning.ASSISTANCE.fieldLabel)
-        assertEquals("Added", WeightMeaning.ADDED.fieldLabel)
+        assertEquals("Added weight", WeightMeaning.ADDED.fieldLabel)
         assertEquals("Weight", WeightMeaning.LIFTED.fieldLabel)
     }
 

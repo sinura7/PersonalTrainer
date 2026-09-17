@@ -1562,6 +1562,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val hold = selectedLift?.let { HoldWork.isHold(it.exercise) } == true
         val holdState = _holdTimer.value
         val editingId = editingSetId.value
+        // Freeze the edited row's position before suspending for persistence. Total
+        // counts describe the latest row, not an earlier row being corrected.
+        val precedingSets = session.value?.setsFor(exerciseId).orEmpty()
+            .takeWhile { it.id != editingId }
         if (hold && editingId == null && holdState.totalSeconds == 0 && !holdState.running) {
             logging.value = false
             startHoldSet()
@@ -1616,14 +1620,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         isWarmup = current.isWarmup,
                         durationSeconds = duration,
                         loadType = loadType,
-                        warmupAfter = session.value
-                            ?.sets
-                            ?.count { it.exerciseId == exerciseId && it.isWarmup }
-                            ?: 0,
-                        workingAfter = session.value
-                            ?.sets
-                            ?.count { it.exerciseId == exerciseId && !it.isWarmup }
-                            ?: 0,
+                        warmupAfter = precedingSets.count { it.isWarmup } + if (current.isWarmup) 1 else 0,
+                        workingAfter = precedingSets.count { !it.isWarmup } + if (current.isWarmup) 0 else 1,
                         targetSets = selectedLift?.targetSets ?: 0,
                     )
                     _logFeedback.tryEmit(LogCommitFeedback.SUCCESS)

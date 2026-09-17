@@ -38,7 +38,7 @@ class FloorPacketHFinalPassTest {
     @Test
     fun weightWellIsNamedForWhatTheLiftMeasures() {
         assertEquals("Weight", WeightMeaning.LIFTED.fieldLabel)
-        assertEquals("Added", WeightMeaning.ADDED.fieldLabel)
+        assertEquals("Added weight", WeightMeaning.ADDED.fieldLabel)
         assertEquals("Assistance", WeightMeaning.ASSISTANCE.fieldLabel)
         assertTrue(
             setOf(
@@ -59,7 +59,7 @@ class FloorPacketHFinalPassTest {
     }
 
     @Test
-    fun recommendedRpeChipSpeaksItsOutline() {
+    fun recommendedRpeRemainsUnselectedSupportingText() {
         assertEquals(
             "RPE 8, about two reps left, not selected",
             RpeCopy.spoken(8, selected = false),
@@ -70,7 +70,8 @@ class FloorPacketHFinalPassTest {
         )
         assertEquals("RPE 10, max, selected", RpeCopy.spoken(10, selected = true, recommended = true))
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("recommended = recommendedRpe == value"))
+        assertFalse(bar.contains("recommended = recommendedRpe == value"))
+        assertTrue(bar.contains("InstrumentSuggestion(text = \"RPE \$recommendedRpe\")"))
     }
 
     @Test
@@ -166,7 +167,7 @@ class FloorPacketHFinalPassTest {
         assertTrue(notes.contains("disabled reason"))
         assertTrue(notes.contains("once"))
         assertTrue(notes.contains("decorative"))
-        assertTrue(notes.contains("Actions for set"))
+        assertTrue(notes.contains("edit/delete menus"))
         assertFalse(AccessibilityMatrix.page("active-strength").physicalTalkBack)
         assertFalse(AccessibilityMatrix.publicCandidateReady())
     }

@@ -89,7 +89,8 @@ object SetCopy {
         if (!weightKg.isFinite() || weightKg <= 0.0) {
             return when (meaning) {
                 WeightMeaning.ASSISTANCE -> "${meaning.fieldLabel}, no assistance"
-                else -> "${meaning.fieldLabel}, $NO_WEIGHT, $BODYWEIGHT_LOAD"
+                WeightMeaning.LIFTED -> "${meaning.fieldLabel}, $NO_WEIGHT"
+                WeightMeaning.ADDED, WeightMeaning.NONE -> "${meaning.fieldLabel}, $NO_WEIGHT, $BODYWEIGHT_LOAD"
             }
         }
         val shown = WeightConverter.formatDisplayNumber(
@@ -100,9 +101,14 @@ object SetCopy {
 
     fun weightKeypadHelper(loadClass: LoadClass, allowsZero: Boolean): String {
         val base = weightFieldHint(loadClass)
-            ?: "A number, up to two decimals. 87.5 or 87,5."
+            ?: "No negatives; up to two decimals. 87.5 or 87,5."
         if (!allowsZero) return base
-        return "0 is $NO_WEIGHT ($BODYWEIGHT_LOAD). $base"
+        val zero = when (loadClass.weightMeaning) {
+            WeightMeaning.LIFTED -> "0 means no external load."
+            WeightMeaning.ASSISTANCE -> "0 means no assistance."
+            WeightMeaning.ADDED, WeightMeaning.NONE -> "0 is $NO_WEIGHT ($BODYWEIGHT_LOAD)."
+        }
+        return "$zero $base"
     }
 
     /**

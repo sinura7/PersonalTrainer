@@ -113,6 +113,6 @@ class SetWorkTest {
         assertEquals(WeightMeaning.ADDED, LoadClass.BODYWEIGHT_ADDED.weightMeaning)
         assertEquals(WeightMeaning.ASSISTANCE, LoadClass.BODYWEIGHT_ASSISTED.weightMeaning)
         assertEquals("Assistance", WeightMeaning.ASSISTANCE.fieldLabel)
-        assertEquals("Added", WeightMeaning.ADDED.fieldLabel)
+        assertEquals("Added weight", WeightMeaning.ADDED.fieldLabel)
     }
 }

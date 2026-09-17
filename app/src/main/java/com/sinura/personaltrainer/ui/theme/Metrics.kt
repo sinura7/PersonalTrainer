@@ -96,6 +96,8 @@ object Metrics {
      * still so the wells stay on a 360 dp-tall bench phone.
      */
     val exerciseHeroImage: Dp = 112.dp
+    /** Compact identity on the active workout; artwork remains uncropped. */
+    val workoutIdentityImage: Dp = 64.dp
     val exerciseHeroImageLandscape: Dp = 88.dp
     val exerciseHeroMin: Dp = 128.dp
 

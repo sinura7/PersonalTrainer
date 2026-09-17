@@ -87,10 +87,10 @@ class HapticsPaletteTest {
         assertTrue(chip.contains("Haptics.tick(view)"))
         assertTrue(chip.contains("Motion.FIELD_MS"))
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
-        assertTrue(card.contains("InstrumentChip("))
+        assertTrue(card.contains("InstrumentChoiceChip("))
         assertTrue(card.contains("label = \"Warm-up\""))
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("Role.RadioButton"))
+        assertTrue(bar.contains("InstrumentChoiceChip("))
     }
 
     @Test

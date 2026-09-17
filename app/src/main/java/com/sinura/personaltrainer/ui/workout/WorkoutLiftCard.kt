@@ -7,8 +7,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -22,18 +24,21 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.rememberTextMeasurer
 import java.text.DateFormat
 import java.util.Date
 import com.sinura.personaltrainer.domain.DayLabel
@@ -43,17 +48,19 @@ import com.sinura.personaltrainer.domain.ProgressionCopy
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetMicroRec
-import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.LoadClass
+import com.sinura.personaltrainer.domain.LogReceipt
 import com.sinura.personaltrainer.domain.WarmupRamp
 import com.sinura.personaltrainer.domain.WarmupSet
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.toWeightLabel
-import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceGroup
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceChip
+import com.sinura.personaltrainer.ui.components.InstrumentPreset
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.SetEntryPanel
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -86,14 +93,11 @@ internal data class WorkoutLiftCardState(
     val unit: WeightUnit,
     val canEdit: Boolean,
     val showAddSet: Boolean,
-    val restSeconds: Int,
-    val restRunning: Boolean = false,
-    val restRemainingSeconds: Int = 0,
     val hold: Boolean = false,
     val holdSeconds: Int? = null,
     val holdRunning: Boolean = false,
     val holdRemainingSeconds: Int = 0,
-    val rpeHelperVisible: Boolean = false,
+    val receipt: LogReceipt? = null,
 )
 
 internal data class WorkoutLiftCardEvents(
@@ -106,7 +110,6 @@ internal data class WorkoutLiftCardEvents(
     val onWarmup: (Boolean) -> Unit,
     val onRpe: (Int?) -> Unit,
     val onApplyWarmupRamp: (Double) -> Unit = {},
-    val onDismissRpeHelper: () -> Unit = {},
     val onApplySuggested: () -> Unit,
     val onEditSet: (String) -> Unit,
     val onDeleteSet: (String) -> Unit,
@@ -117,10 +120,8 @@ internal data class WorkoutLiftCardEvents(
 /**
  * Packet C: entry surface for the current lift only.
  *
- * Identity lives on [ExerciseHero]. This column is set context + Warm-up
- * on one 48 dp row, coach Why/Use above the wells, weight, reps, RPE,
- * and the latest logged sets — the wells [LogLoopBringIntoView] keeps
- * on screen.
+ * Identity lives on [CurrentLiftCard]. Logging keeps its viewport; only an
+ * explicit edit brings the entry back into view. Complete history is a sheet.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -190,15 +191,9 @@ internal fun WorkoutLiftCard(
         loggedWarmupKg = loggedSets.filter { it.isWarmup }.map { it.weightKg },
     )
     val entryRequester = remember { BringIntoViewRequester() }
-    val rowRequester = remember { BringIntoViewRequester() }
-    var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
-    LaunchedEffect(lift.id, loggedSets.size) {
-        val count = loggedSets.size
-        val grew = LogLoopBringIntoView.shouldBringIntoView(previousSetCount, count)
-        previousSetCount = count
-        if (grew) {
-            rowRequester.bringIntoView()
-        }
+    var setsOpen by rememberSaveable(lift.id) { mutableStateOf(false) }
+    LaunchedEffect(lift.id, editingSetId) {
+        if (editingSetId != null) entryRequester.bringIntoView()
     }
     Column(
         modifier = Modifier
@@ -206,41 +201,32 @@ internal fun WorkoutLiftCard(
             .padding(bottom = Metrics.space2),
         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = Metrics.touchMin),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
-            Kicker(
-                text = setContext,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(WorkoutTestTags.SET_CONTEXT),
+        Text(
+            text = if (editingSetId != null) "Editing saved set" else setContext,
+            modifier = Modifier.testTag(WorkoutTestTags.SET_CONTEXT),
+            style = InstrumentType.caption,
+            color = TextSecondary,
+        )
+        InstrumentChoiceGroup(modifier = Modifier.fillMaxWidth()) {
+            InstrumentChoiceChip(
+                label = "Working",
+                selected = !draftWarmup,
+                onClick = { onWarmup(false) },
+                modifier = Modifier.testTag("workout-working-choice"),
             )
-            InstrumentChip(
+            InstrumentChoiceChip(
                 label = "Warm-up",
                 selected = draftWarmup,
-                onClick = { onWarmup(!draftWarmup) },
-                spoken = if (draftWarmup) "Warm-up, selected" else "Warm-up, not selected",
+                onClick = { onWarmup(true) },
                 modifier = Modifier.testTag(WorkoutTestTags.WARMUP_CHIP),
             )
         }
-        WarmupRampRow(
-            selected = draftWarmup,
-            draftWeightKg = draftWeightKg,
-            ramp = ramp,
-            emphasisIndex = rampEmphasis,
-            unit = unit,
-            onApplyRamp = events.onApplyWarmupRamp,
-        )
-        card.microRec?.let { rec ->
-            MicroRecLine(
-                rec = rec,
-                loadClass = LoadClass.of(lift.exercise.loadType),
+        if (draftWarmup) {
+            WarmupRampRow(
+                ramp = ramp,
+                emphasisIndex = rampEmphasis,
                 unit = unit,
-                onApply = events.onApplyMicroRec,
+                onApplyRamp = events.onApplyWarmupRamp,
             )
         }
         SetEntryPanel(
@@ -274,69 +260,80 @@ internal fun WorkoutLiftCard(
             rpe = draftRpe,
             recommendedRpe = card.recommendedRpe,
             showRpe = showRpe,
-            showHelper = showRpe && card.rpeHelperVisible,
             onRpe = onRpe,
-            onDismissHelper = events.onDismissRpeHelper,
         )
-        lastPerformance?.let { last ->
-            LastTimeStrip(
-                summary = last,
-                unit = unit,
+        if (!draftWarmup) card.microRec?.let { rec ->
+            MicroRecLine(
+                rec = rec,
                 loadClass = LoadClass.of(lift.exercise.loadType),
-                onApplySet = onApplyLastTime,
+                unit = unit,
+                onApply = events.onApplyMicroRec,
             )
         }
         if (loggedSets.isNotEmpty()) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
-                Kicker("Latest sets")
-                LoggedSetsPanel(
-                    sets = loggedSets,
-                    latestSetId = latestSetId,
-                    editingSetId = editingSetId,
-                    loadClassOf = { LoadClass.of(lift.exercise.loadType) },
-                    showAddSet = showAddSet,
-                    targetSets = targetSets,
-                    onEdit = onEditSet,
-                    onDelete = onDeleteSet,
-                    onAddSet = onAddSet,
-                    addSetCaption = card.microRec?.let { SetMicroRecCopy.anotherSetLine(it) },
-                    modifier = Modifier.bringIntoViewRequester(rowRequester),
-                )
-            }
+            LatestWorkoutSet(
+                sets = loggedSets,
+                latestSetId = latestSetId,
+                targetSets = targetSets,
+                loadClass = LoadClass.of(lift.exercise.loadType),
+                unit = unit,
+                receipt = card.receipt,
+                onViewSets = { setsOpen = true },
+            )
         }
+        lastPerformance?.let { last ->
+            LastTimeStrip(summary = last, unit = unit, loadClass = LoadClass.of(lift.exercise.loadType), onApplySet = onApplyLastTime)
+        }
+    }
+    if (setsOpen) {
+        WorkoutSetsSheet(
+            exerciseName = lift.exercise.name,
+            sets = loggedSets,
+            latestSetId = latestSetId,
+            editingSetId = editingSetId,
+            targetSets = targetSets,
+            loadClass = LoadClass.of(lift.exercise.loadType),
+            unit = unit,
+            showAddSet = showAddSet,
+            onEdit = { setsOpen = false; onEditSet(it) },
+            onDelete = { setsOpen = false; onDeleteSet(it) },
+            onAddSet = { setsOpen = false; onAddSet() },
+            onDismiss = { setsOpen = false },
+        )
     }
 }
 
 @Composable
 private fun WarmupRampRow(
-    selected: Boolean,
-    draftWeightKg: Double,
     ramp: List<WarmupSet>,
     emphasisIndex: Int,
     unit: WeightUnit,
     onApplyRamp: (Double) -> Unit,
 ) {
     if (ramp.isEmpty()) return
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(WorkoutTestTags.WARMUP_RAMP),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-    ) {
-        ramp.forEachIndexed { index, step ->
-            val label = WarmupRamp.chipLabel(step, unit)
-            val applied = selected && kotlin.math.abs(draftWeightKg - step.weightKg) < 1e-6
-            InstrumentChip(
-                label = label,
-                selected = applied,
-                recommended = !applied && index == emphasisIndex,
-                onClick = { onApplyRamp(step.weightKg) },
-                compact = true,
-                spoken = "$label. Warm-up.",
-                modifier = Modifier.weight(1f),
-            )
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val widest = ramp.maxOf {
+        measurer.measure("Use ${it.weightKg.toWeightLabel(unit)}", style = InstrumentType.bodyStrong, softWrap = false).size.width
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val minimum = with(density) { widest.toDp() } + Metrics.space3 * 2
+        val columns = ((maxWidth + Metrics.space2) / (minimum + Metrics.space2)).toInt().coerceIn(1, ramp.size)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.WARMUP_RAMP),
+            maxItemsInEachRow = columns,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
+            ramp.forEachIndexed { index, step ->
+                InstrumentPreset(
+                    label = "Use ${step.weightKg.toWeightLabel(unit)}",
+                    compact = true,
+                    supporting = "${step.percent}%" + if (index == emphasisIndex) " · Suggested" else "",
+                    onClick = { onApplyRamp(step.weightKg) },
+                    modifier = Modifier.weight(1f).testTag("workout-warmup-preset-$index"),
+                )
+            }
         }
     }
 }

@@ -1,6 +1,11 @@
 package com.sinura.personaltrainer.testutil
 
 import android.os.SystemClock
+import android.os.Build
+import android.graphics.Color
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,6 +28,8 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.Insets
 import androidx.core.view.WindowInsetsCompat
+import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
+import androidx.test.runner.lifecycle.Stage
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 
 /**
@@ -47,6 +54,7 @@ object GoldenCapture {
         fontScale: Float = 1f,
         content: @Composable () -> Unit,
     ) {
+        configureEnforcedEdgeToEdgeHost(compose)
         compose.setContent {
             DeviceConfigurationOverride(DeviceConfigurationOverride.FontScale(fontScale)) {
                 PersonalTrainerTheme {
@@ -69,6 +77,7 @@ object GoldenCapture {
         navigationBar: Dp = 0.dp,
         content: @Composable () -> Unit,
     ) {
+        configureEnforcedEdgeToEdgeHost(compose)
         compose.setContent {
             DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(width, height))) {
                 DeviceConfigurationOverride(DeviceConfigurationOverride.FontScale(fontScale)) {
@@ -89,6 +98,22 @@ object GoldenCapture {
             }
         }
         compose.waitForIdle()
+    }
+
+    private fun configureEnforcedEdgeToEdgeHost(compose: ComposeContentTestRule) {
+        if (Build.VERSION.SDK_INT < 35) return
+        // API 35+ makes the generic test Activity edge-to-edge but leaves its
+        // default light navigation contrast scrim. MainActivity explicitly uses
+        // these dark transparent styles. Match that policy before capture; the
+        // legacy API 29 reference window and logical inset fixture stay pinned.
+        compose.runOnUiThread {
+            val activity = ActivityLifecycleMonitorRegistry.getInstance()
+                .getActivitiesInStage(Stage.RESUMED).filterIsInstance<ComponentActivity>().single()
+            activity.enableEdgeToEdge(
+                statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+                navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            )
+        }
     }
 
     fun mount(

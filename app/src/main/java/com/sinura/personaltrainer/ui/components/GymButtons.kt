@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -108,6 +109,7 @@ fun SecondaryGymButton(
     /** Lets a destructive alternative wear [Danger] as ink without becoming a solid red slab. */
     contentColor: Color = TextPrimary,
     interactionSource: MutableInteractionSource? = null,
+    textStyle: TextStyle = InstrumentType.title,
 ) {
     val view = LocalView.current
     val interactions = interactionSource ?: remember { MutableInteractionSource() }
@@ -138,7 +140,7 @@ fun SecondaryGymButton(
         Text(
             text,
             modifier = Modifier.padding(horizontal = Metrics.space3, vertical = Metrics.space2),
-            style = InstrumentType.title,
+            style = textStyle,
             color = if (enabled) contentColor else TextDisabled,
             textAlign = TextAlign.Center,
         )

@@ -34,8 +34,8 @@ because source assertions or JVM tests alone pass.
 | Packet | Deliverable | Status |
 |---|---|---|
 | F0 | Reproducible emulator, fixture baseline, decision record and verification lane | Complete — PR #348; integrated gate passed |
-| F1 | Typed controls, component gallery, headers, navigation, insets and live bar | Locally verified and reviewed; PR #349 open, integration pending |
-| F2 | Compact workout identity, entry, warm-ups/RPE, latest sets and dock geometry | Pending |
+| F1 | Typed controls, component gallery, headers, navigation, insets and live bar | Complete — PR #349; integrated unit/native gates passed |
+| F2 | Compact workout identity, entry, warm-ups/RPE, latest sets and dock geometry | In progress |
 | F3 | Primary-action state, completion, timing, switcher, retry, undo and resume | Pending |
 | F4 | Truthful Home dates, day picker, planned/completed/live/empty states | Pending |
 | F5 | Registered Body heat geometry, viewport, selection and list equivalence | Pending |

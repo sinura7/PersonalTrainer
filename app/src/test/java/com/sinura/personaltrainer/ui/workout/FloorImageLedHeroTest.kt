@@ -15,23 +15,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Image-led floor: 112 dp hero, compact Warm-up row, stable Log dock,
- * 360×800 goldens, TalkBack order, uncropped stills. Zero-weight copy
- * stays “no weight”.
+ * F2 refines the former image-led floor: compact identity, explicit set
+ * type, entry before recommendations, and one companion above commit.
+ * Rendered geometry is exercised by WorkoutEntryLayoutInstrumentedTest.
  */
 class FloorImageLedHeroTest {
     @Test
-    fun heroIsFourTimesTheOldStillNotSixteen() {
-        assertEquals(112, Metrics.exerciseHeroImage.value.toInt())
-        assertEquals(88, Metrics.exerciseHeroImageLandscape.value.toInt())
-        assertEquals(128, Metrics.exerciseHeroMin.value.toInt())
+    fun compactIdentityPreservesUncroppedExerciseAndEquipmentArtwork() {
+        assertEquals(64, Metrics.workoutIdentityImage.value.toInt())
         assertEquals(24, Metrics.equipmentGlyph.value.toInt())
-        assertTrue(FloorCompactChrome.imageLedHero())
+        assertFalse(FloorCompactChrome.imageLedHero())
         val hero = readOwned("ui/workout/CurrentLiftCard.kt")
-        assertTrue(hero.contains("fun ExerciseHero("))
-        assertTrue(hero.contains("ThumbSize.hero"))
+        assertTrue(hero.contains("fun CurrentLiftCard("))
+        assertTrue(hero.contains("Metrics.workoutIdentityImage"))
         assertTrue(hero.contains("showBadge = false"))
-        assertTrue(hero.contains("artPadding = Metrics.space2"))
+        assertTrue(hero.contains("artPadding = Metrics.space1"))
         assertFalse(hero.contains("VoltDim"))
         assertFalse(hero.contains("emphasisBorder"))
         assertTrue(hero.contains("Surface2"))
@@ -44,17 +42,20 @@ class FloorImageLedHeroTest {
     }
 
     @Test
-    fun setContextAndWarmupShareOneRowAndAddLiftLivesInTheSwitcher() {
+    fun setTypePrecedesEntryAndRecommendationsFollowEffort() {
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
         val context = card.indexOf("SET_CONTEXT")
         val warmup = card.indexOf("WARMUP_CHIP")
         val coach = card.indexOf("MicroRecLine(")
         val fields = card.indexOf("SetEntryPanel(")
         assertTrue(context in 0 until warmup)
-        assertTrue(warmup in 0 until coach)
-        assertTrue(coach in 0 until fields)
+        assertTrue(warmup in 0 until fields)
+        assertTrue(fields in 0 until card.indexOf("SecondaryLogOptions("))
+        assertTrue(card.indexOf("SecondaryLogOptions(") in 0 until coach)
+        assertTrue(card.contains("InstrumentChoiceGroup("))
         assertTrue(card.contains("heightIn(min = Metrics.touchMin)"))
-        assertTrue(card.contains("Kicker(\"Latest sets\")"))
+        assertTrue(card.contains("LatestWorkoutSet("))
+        assertTrue(card.contains("WorkoutSetsSheet("))
         assertTrue(FloorCompactChrome.addLiftLivesInSwitcher())
         val switcher = readOwned("ui/workout/LiftSwitcherSheet.kt")
         assertTrue(switcher.contains("onAddLift"))
@@ -67,20 +68,19 @@ class FloorImageLedHeroTest {
     }
 
     @Test
-    fun dockReservesTimerRailAndKeepsLogFilledVolt() {
+    fun dockHasOneCompanionWithoutAnEmptyContextReservation() {
         assertTrue(FloorCompactChrome.logButtonStaysAnchored())
         assertFalse(FloorCompactChrome.liftCompleteReplacesClock())
         assertEquals(56, Metrics.logTimerRow.value.toInt())
-        assertEquals(56, Metrics.logContextRail.value.toInt())
         assertEquals(72, Metrics.commit.value.toInt())
         assertTrue(FloorCompactChrome.timerIsCompactInstrumentBar())
         assertTrue(FloorCompactChrome.idleRestIsInstrumentBar())
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertTrue(bar.contains("TIMER_ROW"))
-        assertTrue(bar.contains("CONTEXT_RAIL"))
+        assertFalse(bar.contains("CONTEXT_RAIL"))
         assertTrue(bar.contains("GymUndoHost("))
         assertTrue(bar.contains("GymErrorBanner("))
-        assertTrue(bar.contains("GymReceiptBanner("))
+        assertFalse(bar.contains("GymReceiptBanner("))
         assertTrue(bar.contains("CompletionRail("))
         assertTrue(bar.contains("next = false"))
         assertTrue(bar.contains("finish = false"))
@@ -139,7 +139,7 @@ class FloorImageLedHeroTest {
         assertTrue(spoken.contains("1 of 3 done"))
         assertTrue(spoken.contains("19 min · 5 sets"))
         val notes = com.sinura.personaltrainer.domain.AccessibilityMatrix.page("active-strength").talkBackNotes
-        assertTrue(notes.contains("header, hero identity, set context"))
+        assertTrue(notes.contains("header, compact exercise identity, set context"))
         assertTrue(notes.contains("decorative"))
     }
 
@@ -157,15 +157,16 @@ class FloorImageLedHeroTest {
         assertFalse(thumb.contains("ContentScale.Crop"))
         assertEquals("no weight", SetCopy.NO_WEIGHT)
         assertEquals(
-            "Weight, no weight, bodyweight",
+            "Weight, no weight",
             SetCopy.weightWellSpoken(WeightMeaning.LIFTED, 0.0, WeightUnit.LBS),
         )
         assertFalse(
             SetCopy.weightWellSpoken(WeightMeaning.LIFTED, 0.0, WeightUnit.LBS).contains("0 lb"),
         )
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("maxLines = 2"))
-        assertTrue(bar.contains("fontScale >= 2f") || bar.contains("largeType"))
+        assertTrue(bar.contains("Text(\"Suggested\""))
+        assertTrue(bar.contains("rememberTextMeasurer"))
+        assertTrue(bar.contains("FlowRow("))
     }
 
     private fun readOwned(relative: String): String {

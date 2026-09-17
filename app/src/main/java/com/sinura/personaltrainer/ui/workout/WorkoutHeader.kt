@@ -27,10 +27,8 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 /**
- * Fixed 56 dp session chrome: Close, routine title, Finish.
- *
- * Minute telemetry lives on the exercise hero. Rest / hold / stopwatch
- * numerals stay in the dock — this bar is not a second clock.
+ * Session chrome grows for text: Close, routine title, Finish / Discard.
+ * Session telemetry is available through the named Session summary.
  */
 @Composable
 internal fun WorkoutHeader(
