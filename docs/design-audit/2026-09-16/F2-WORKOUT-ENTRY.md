@@ -58,6 +58,7 @@ hosted and integrated results are recorded separately from baseline acceptance.
 | `20260917-091640157` | 44/44 passed | Corrected Android 16 run: all geometry checks and real-window journeys passed. All 43 captures visually reviewed; default test-host navigation scrim is gone and keyboard/sheet actions remain readable. |
 | `20260917-092014184` | 43/44 passed | Android 8: all 38 viewport checks and five journeys passed. The landscape journey stopped when the old platform UiAutomation screenshot API returned null. |
 | `20260917-092400978` | 6/6 passed | Android 8 real-window journeys with native shell screencap fallback. All five observations were retained, including both landscape sheet positions. |
+| `20260917-092751486` | 44/44 passed | Final API 29 comparison after all test-host corrections: 38 accepted images and six real-window journeys; zero failures, errors or skips. |
 
 The layout test includes the production navigation parent's Scaffold padding and
 consumed system insets. Geometry uses the measured root node's own density rather
@@ -124,12 +125,12 @@ The original phone screenshots are not part of public implementation evidence.
 
 ## Acceptance still required
 
-- Final API 29 comparison after the test-only corrections.
 - PR hosted deterministic check and clean integrated verification after merge.
 - F3: derived Next/Finish/extra-set action contract, operation-specific retry,
   complete timer/switcher/resume work and replacement of legacy workout goldens.
-  Commit agreement includes the pre-existing one-decimal display formatting for
-  two-decimal typed drafts. Extremely short-window error/timing combinations
+  Commit agreement includes exposing existing unit-conversion rounding when
+  applying typed values and accurately displaying finer imported values.
+  Stored measurement and calculation rules remain unchanged. Short-window error/timing combinations
   belong to the derived companion-state work, before the workout milestone.
 - Physical TalkBack, phone settings, release-equivalent performance, stable-signer
   upgrade and owner phone trial remain milestone acceptance, not emulator claims.

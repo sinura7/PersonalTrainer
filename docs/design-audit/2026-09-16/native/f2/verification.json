@@ -1,9 +1,9 @@
 {
   "packet": "F2",
   "baseCommit": "97d08ca458a9823f4cd6b62bea78a84be9b14084",
-  "recordedUtc": "2026-09-17T09:28:40.286498+00:00",
+  "recordedUtc": "2026-09-17T09:34:35.192336+00:00",
   "status": "Pre-merge verification; hosted and integrated results pending",
-  "goldenManifestSha256": "ad003c1c7cdda094ad6f1bf95e6cf89f542bd8ff562d8e726d971dabb18c480b",
+  "goldenManifestSha256": "c271485e817bcb68ff7737612de4f4199fe72b4580e0058f55536735ab495f6b",
   "localGate": {
     "command": ".\\tools\\dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
     "exitCode": 0,
@@ -157,6 +157,40 @@
       "captures": 5,
       "scope": "All six real-window journeys after native screencap fallback; no missing captures",
       "logSha256": "b450a915fd9d491510fa40b6c572277b4117b6c7de511a3ee4d23ab89688a8fd"
+    },
+    {
+      "runId": "20260917-092751486",
+      "counts": {
+        "tests": 44,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "50feebb58cc13a06451a5250999f57d52e5d9d4088d50c54ffbecad43f30bd78"
+      ],
+      "profile": {
+        "profile": "temper-tests-api29",
+        "serial": "emulator-5554",
+        "systemImage": "system-images;android-29;default;x86_64",
+        "imageRevision": "8",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T09:27:51.4842796Z"
+      },
+      "captures": 5,
+      "scope": "Final 38 Windows reference comparisons and six real-window journeys after test-only corrections",
+      "logSha256": "94b4c4ed2ee6c38e0685825f1051621228358eb3cbcd95c6e6b1a8f140aae252"
     }
   ],
   "postCaptureHarnessCorrection": {
@@ -190,7 +224,7 @@
     },
     "acceptedReferenceCount": 38,
     "reproducedWithinExistingAllowance": 38,
-    "referenceManifestSha256": "e9940d119b6150d8d3646078117f9b052b67cb084f6a99d43bf8cbd23b344d43"
+    "referenceManifestSha256": "2f360655e5ca352ba7f3a2deacd92f01ad320a69b2639225614b6f03f88accee"
   },
   "reviews": {
     "independent": "No actionable F2 blocker after final rereview; conditional on comparison/platform/hosted/integrated checks",
@@ -199,7 +233,7 @@
   "outstanding": [
     "Required hosted deterministic check and inspected nonblocking native results",
     "Clean trunk full gate and fresh relevant native journey after merge",
-    "F3: derived primary action, operation-specific retry, completion/timing/switcher/resume, exact two-decimal commit display, constrained error/timing context, replacement of legacy workout references",
+    "F3: derived primary action, operation-specific retry, completion/timing/switcher/resume, transparent conversion rounding and accurate draft/commit display, constrained error/timing context, replacement of legacy workout references",
     "Physical milestone acceptance: TalkBack, normal phone settings, haptics/notifications, release-equivalent performance and stable-signer upgrade"
   ]
 }
