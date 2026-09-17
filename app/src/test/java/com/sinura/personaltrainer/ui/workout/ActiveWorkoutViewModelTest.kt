@@ -35,11 +35,15 @@ import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import kotlinx.coroutines.CompletableDeferred
 import com.sinura.personaltrainer.workout.WorkoutDraft
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestDispatcher
@@ -74,10 +78,31 @@ class ActiveWorkoutViewModelTest {
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<ActiveWorkoutViewModel>()
 
+    /**
+     * Stands in for the composed screen: it collects every ViewModel's `uiState` for the
+     * whole test, the way `WorkoutScreen` does while it is on screen.
+     *
+     * `uiState` is shared `WhileSubscribed(5_000)`, and that five-second stop timeout runs on
+     * the test scheduler's virtual clock. Every `awaitState { }` used to be the only
+     * subscriber, so the moment it returned the timeout was armed, and the next
+     * `advanceUntilIdle()` — `logSetAndSettle` ends with one — fired it and froze `uiState`
+     * at its last emitted value. A later `awaitState { !it.logging }` then matched that
+     * frozen snapshot before `logSet()`'s own `logging = true` was ever projected, and the
+     * test carried on into a save that was still writing: `deleteSet`, `editSet` and a
+     * second `logSet` refuse silently while the operation is outstanding, so the row or
+     * receipt never appeared and the next wait ran out its 30 seconds. Trunk run
+     * 35239125454 and the draft's run 35246475560 each lost a wait of exactly that shape,
+     * on commits that changed no production Kotlin — a timing loss between Room's write
+     * thread and the test thread, never a defect. A permanently subscribed state keeps every
+     * projection live, so a wait can only pass on what the ViewModel is actually showing.
+     */
+    private lateinit var screen: CoroutineScope
+
     @Before
     fun setUp() {
         dispatcher = UnconfinedTestDispatcher()
         Dispatchers.setMain(dispatcher)
+        screen = CoroutineScope(SupervisorJob() + dispatcher)
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
@@ -87,6 +112,7 @@ class ActiveWorkoutViewModelTest {
 
     @After
     fun tearDown() {
+        if (::screen.isInitialized) screen.cancel()
         runBlocking {
             viewModels.forEach { it.clearAndJoinForTest() }
         }
@@ -753,23 +779,34 @@ class ActiveWorkoutViewModelTest {
         assertEquals(1, vm.awaitState { it.draft.reps == 1 }.draft.reps)
     }
 
+    /**
+     * The write fails at the row insert, with the session still present and FOUND.
+     *
+     * This used to delete the session row from under the ViewModel and log into the gap.
+     * That was two different tests depending on which thread won: if the Log tap landed
+     * first, Room refused the insert and the error surfaced as intended; if the session
+     * reader observed the deletion first, the screen was already MISSING and F3's entry
+     * lock refused the tap outright — correctly, and silently — so there was no error to
+     * wait for and the wait ran out its 30 seconds (trunk run 35239125454). A DAO whose
+     * insert throws is the failure this test is about, and it cannot lose that race.
+     */
     @Test
     fun logSetWriteFailureSurfacesErrorInsteadOfPretendingSuccess() = runBlocking {
         val fixture = seedWorkout()
-        val vm = createViewModel(fixture.session.id)
+        val vm = createViewModel(fixture.session.id, container = failingInsert())
         vm.awaitFound()
         vm.setWeight(100.0)
 
-        deps.database.workoutDao().deleteSession(fixture.session.id)
         vm.logSetAndSettle()
 
         val state = vm.awaitState { it.error != null }
         assertEquals(LogCommitCopy.WRITE_FAILED, state.error)
+        assertEquals(WorkoutSavePhase.FAILED, state.save.phase)
         assertEquals(100.0, state.draft.weightKg, 0.0001)
         assertFalse(state.logging)
         assertFalse(deps.restTimerStore.current().running)
         assertNull(vm.personalRecord.value)
-        assertNull(deps.workoutRepository.getSession(fixture.session.id))
+        assertTrue(checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.isEmpty())
     }
 
     /**
@@ -2139,12 +2176,31 @@ class ActiveWorkoutViewModelTest {
             savedStateHandle = handle,
             container = container,
             undoTimeout = undoTimeout,
-        ).also(viewModels::add)
+        ).also { vm ->
+            viewModels += vm
+            // The screen is on: see [screen].
+            vm.uiState.launchIn(screen)
+        }
 
     private fun withClock(clock: ControllableTimePort): AppDependencies =
         object : AppDependencies by deps {
             override val time = clock
         }
+
+    /** A copy of the graph whose set insert always throws; every read is the real thing. */
+    private fun failingInsert(): AppDependencies {
+        val repo = WorkoutRepository(
+            deps.database,
+            object : WorkoutDao by deps.database.workoutDao() {
+                override suspend fun insertSet(set: SetLogEntity) {
+                    error("Injected write failure")
+                }
+            },
+        )
+        return object : AppDependencies by deps {
+            override val workoutRepository: WorkoutRepository = repo
+        }
+    }
 
     private fun tickTimedWork() {
         dispatcher.scheduler.advanceTimeBy(250)
@@ -2248,7 +2304,11 @@ class ActiveWorkoutViewModelTest {
      */
     private suspend fun ActiveWorkoutViewModel.logSetAndSettle() {
         logSet()
-        awaitState { !it.logging }
+        // F3 owns the save as an operation: `logging` clears after the row is acknowledged,
+        // but the entry lock also holds while `save` is SAVING or CHECKING. A settled log is
+        // one whose operation has released — or has come to rest as FAILED / CONFLICT, which
+        // is what the write-failure tests go on to assert — with no entry mutation in flight.
+        awaitState { !it.logging && !it.mutating && !it.save.busy }
         dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
         dispatcher.scheduler.runCurrent()
         dispatcher.scheduler.advanceUntilIdle()

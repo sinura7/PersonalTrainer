@@ -215,3 +215,19 @@ APK identity verification and physical phone acceptance are separate steps.
 The owner reported Samsung S26 Ultra, regular text size; Android version and
 display-size setting are unconfirmed. Milestone A remains in phone acceptance
 until the focused checklist is executed. F4–F11 remain outstanding.
+
+## Post-merge trunk verification — 17 September 2026
+
+Trunk run 35239125454, on `8840af7` (the Debug 79 version bump and this
+document; no production Kotlin), failed the required deterministic job: two
+`ActiveWorkoutViewModelTest` waits ran out their 30 seconds. The draft F4
+branch lost a third wait of the same shape in run 35246475560. All three are
+timing losses inside the test class, not defects in the shipped build:
+`uiState` is shared `WhileSubscribed(5_000)` on the virtual clock, so once a
+test advanced time the state froze and a wait could pass on a stale snapshot
+while a save was still writing; the next mutation was then refused by F3's
+entry lock, silently and correctly. The class now keeps the screen subscribed
+for the life of every ViewModel, settles a log only when the save operation
+has released, and drives the write-failure case from a DAO whose insert throws
+rather than by deleting the session row under the reader. Production source is
+unchanged. Debug 79 on the phone is unaffected.
