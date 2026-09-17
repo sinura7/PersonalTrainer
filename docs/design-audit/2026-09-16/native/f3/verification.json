@@ -1,7 +1,7 @@
 {
   "packet": "F3",
   "baseCommit": "579642b6d3737276510b6eab476c29ab71d9fcfc",
-  "status": "Local gate, API 29 fresh comparisons, API 36/26 behavior and source reviews passed; hosted and integration pending",
+  "status": "Merged; local, hosted, integrated and native checks passed. Debug 79 preparation; physical acceptance pending.",
   "referenceManifestSha256": "2d4f65d94cb76cb17fe94986cb1cbd103b5923eaebafeca930709c1286ec6b0f",
   "native": [
     {
@@ -170,12 +170,11 @@
       "purpose": "Final source 5b598e34 native journeys after terminal-rest guard: log, completion, correction, timing, IME and restoration"
     }
   ],
-  "localGate": "Full gate 10 passed all 2,579 tests plus debug/lint/static/Android test compilation after initial draft-readiness fixture correction",
+  "localGate": "Full gate 12 passed 2,579 tests, zero failures/errors/skips; clean merged gate passed, reusing unchanged unit/build outputs.",
   "outstanding": [
-    "Hosted gate and renderer-specific baseline review",
-    "Merge and clean integrated verification",
-    "Stable-signer forward-version debug drop",
-    "Physical TalkBack, upgrade retention, background rest, haptics and performance"
+    "Publish and verify stable-signer Debug 79",
+    "Owner S26 Ultra phone trial, TalkBack, background timing and upgrade retention",
+    "Physical performance traces and remaining whole-app acceptance in F11"
   ],
   "visualReview": "API 36 all 82 captures reviewed; API 26 focused completion, small/enlarged, landscape, rest and all overlay captures reviewed. No new blocking layout defect. API 26 landscape system screenshots retain documented compositor letterboxing.",
   "reviews": {
@@ -221,6 +220,45 @@
     ],
     "references": 81,
     "comparison": "independent runs within unchanged allowance",
-    "freshComparison": "pending"
+    "freshComparison": "222/222 passed in run 35233146057 at exact PR head 53f5490b"
+  },
+  "mergeCommit": "db83acc29df4c8e983d6218618859b7bd18f4b47",
+  "integratedNative": {
+    "runId": "20260917-151011345",
+    "counts": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "reportSha256": [
+      "cf51840027710c6a5947a6c4424940492f53a10c8899617a4a8608a7b4dda1f0"
+    ],
+    "profile": {
+      "profile": "temper-tests-api26",
+      "serial": "emulator-5558",
+      "systemImage": "system-images;android-26;default;x86_64",
+      "imageRevision": "1",
+      "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:8.0.0/OSR1.180418.004/4931640:userdebug/test-keys",
+      "density": "Physical density: 420",
+      "size": "Physical size: 1080x1920",
+      "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+      "renderer": "swiftshader_indirect",
+      "fontScale": 1.0,
+      "animations": 0,
+      "locale": "en-US",
+      "timeZone": "America/Toronto",
+      "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+      "goldenProfile": "windows-swiftshader37",
+      "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+      "capturedUtc": "2026-09-17T15:10:11.3257271Z"
+    },
+    "captures": 8
+  },
+  "hostedFinal": {
+    "commit": "53f5490b06718b266007c170250b864b80a591e9",
+    "required": "Both runs 35233146057 and 35233138094 passed Tests, lint, debug build",
+    "nativePass": "35233146057: 222/222, zero failures/skips",
+    "nonblockingDifference": "35233138094: 221/222; only rest 360x640 font1 running golden differed at two text-edge pixels (425,398), (425,399), channel deltas 5 and 7. Eight other pixels within existing one-level allowance. Visually reviewed; unchanged fixture/geometry, no functional failure. Comparator and reference unchanged."
   }
 }

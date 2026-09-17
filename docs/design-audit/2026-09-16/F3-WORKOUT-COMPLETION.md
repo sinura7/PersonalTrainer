@@ -192,3 +192,26 @@ the gated pre-acknowledgement recovery test additionally verifies removal is
 blocked and preserves the pending command. Production source is unchanged.
 Full gate 12 verifies the corrected contract assertions before another push.
 Full gate 12 passed all 2,579 tests and required build/lint/static checks.
+
+## Merge and Milestone A delivery preparation — 17 September 2026
+
+PR #351 merged as `db83acc29df4c8e983d6218618859b7bd18f4b47`.
+Both exact-head hosted deterministic jobs passed. Run 35233146057 passed the
+complete native suite, 222/222. The second nonblocking run, 35233138094,
+passed 221/222: its sole difference was two text-edge pixels in the short-screen
+rest clock at (425,398) and (425,399), channel deltas 5 and 7. Eight additional
+pixels were within the existing rounding allowance. The actual image was
+visually inspected; no geometry or functional regression was found. Neither
+the comparator nor the accepted reference was changed for this isolated result.
+
+Clean merged verification passed static checks, unit/build/lint and Android test
+compilation; unchanged unit outputs reused the successful 2,579-test results.
+The integrated API 26 run passed all 12 entry/completion/overlay journeys with
+zero failures, errors or skips. Its profile and report hashes are in
+`native/f3/verification.json`. The implementation branch was deleted.
+
+Debug 79 is prepared for the stable-signer distribution workflow. Publication,
+APK identity verification and physical phone acceptance are separate steps.
+The owner reported Samsung S26 Ultra, regular text size; Android version and
+display-size setting are unconfirmed. Milestone A remains in phone acceptance
+until the focused checklist is executed. F4–F11 remain outstanding.
