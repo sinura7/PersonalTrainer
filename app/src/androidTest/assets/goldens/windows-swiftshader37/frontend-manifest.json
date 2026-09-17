@@ -2,12 +2,12 @@
   "packet": "F1",
   "baseCommit": "d77fc432",
   "sourceSha256": {
-    "app/src/androidTest/java/com/sinura/personaltrainer/testutil/GoldenCapture.kt": "2baa56a99e784337226469e17b78ed02fbf6d3aa98f579bd814eed8ba6423c3e",
+    "app/src/androidTest/java/com/sinura/personaltrainer/testutil/GoldenCapture.kt": "a38bf3650880bcff73a92f9d74fdc0efeef60000d0760c01fd25fe95fe566b26",
     "app/src/androidTest/java/com/sinura/personaltrainer/testutil/GoldenImageAssert.kt": "bf432c154febe6b35b3bedf381e02f10004737454673cd046ea0dcd0c8a0e6a7",
     "app/src/androidTest/java/com/sinura/personaltrainer/timer/ExactAlarmCapabilityInstrumentedTest.kt": "734890a88cd2bc09d8ecd872053beef078a04b8646e3627e2493e08bd651f8a9",
     "app/src/androidTest/java/com/sinura/personaltrainer/ui/ProductionScreensPassInstrumentedTest.kt": "4b18b5dcb7e9efdc3fba4e2a25f2aaa7e8f354f38b994a5eabec2244d973d57a",
     "app/src/androidTest/java/com/sinura/personaltrainer/ui/components/FrontendControlsInstrumentedTest.kt": "c17028c0df47597541589002d7a1da90fbaa9ba06f86287b0b90e800c67e816d",
-    "app/src/androidTest/java/com/sinura/personaltrainer/ui/navigation/FrontendShellInstrumentedTest.kt": "ae798826d46e3cff9af6798edff652bbb580e20e9bb6f89dcd7907b74be968f1",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/navigation/FrontendShellInstrumentedTest.kt": "de77ae9fc032ee5fc60e861c869ae48cd3103a503fef189da11288b2ec58b855",
     "app/src/androidTest/java/com/sinura/personaltrainer/ui/preview/FloorGoldenTest.kt": "e7d969e1a7b9bf1639f89975927c7e48033c1f880cad1d0c6432002f34cb1a85",
     "app/src/androidTest/java/com/sinura/personaltrainer/ui/preview/FrontendBaselineCaptureTest.kt": "99f4c5295d2e725cd0366f1a6667677a41afb005ff10af55ee75ab0565c9010f",
     "app/src/debug/java/com/sinura/personaltrainer/ui/preview/ComponentStateGallery.kt": "b969ff473c34f3c6d295d88dcbe6597517a0b8aba604166c331a816e7613dcba",
@@ -20,8 +20,8 @@
     "app/src/main/java/com/sinura/personaltrainer/ui/components/LoadTypeChips.kt": "1f76dc4480b0388b0b5dbbfd9f677ab3555eb1a4a98e0ca05755445717c83bcd",
     "app/src/main/java/com/sinura/personaltrainer/ui/components/ScreenHeader.kt": "da16304dbcbbc39e21d8f052c01e551be059fff449559c8d2dac3d2536f55a9b",
     "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt": "1e76f4b9fa83968693e791dd77c8ba4bc72e2aeaa958f197f11dfa03139b0c7b",
-    "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt": "597c0a5c7a5cd2658dafc4f48a12014dd81ec8df9d7c25f4391fdf691599bfd2",
-    "app/src/main/java/com/sinura/personaltrainer/ui/navigation/LiveSessionBar.kt": "cb9518890fcdadb417c4cecb44d34b506613c161cee19b7cb3121ec2e2397bab",
+    "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt": "888e57c61e2d68a11a404ac53edefc5f21371d86c346c4f6097dff08afe8a342",
+    "app/src/main/java/com/sinura/personaltrainer/ui/navigation/LiveSessionBar.kt": "c4bb57ecd4f6edf11fe471ef9e9d33d040fc2e9a3bdb8b739272b670845c9086",
     "app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt": "5315347639ae8944c83e8fbc49ba804b6135aac2d4b402c5303a22f740fdcf57",
     "app/src/main/java/com/sinura/personaltrainer/ui/progress/ProgressScreen.kt": "a35788cd76827e1d479758e58fce713284e9abb5da0385c4deaa1b514a3a65fe",
     "app/src/main/java/com/sinura/personaltrainer/ui/theme/LogLoopScale.kt": "e6792c74610f18114fee668c7926284ca52749abf76ffc3bf327b9e4ec5eaf91",
@@ -48,11 +48,12 @@
     "timeZone": "America/Toronto",
     "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
     "goldenProfile": "windows-swiftshader37",
-    "capturedUtc": "2026-09-17T05:02:10.2381315Z"
+    "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+    "capturedUtc": "2026-09-17T06:01:35.0258928Z"
   },
   "fixture": "FrontendShellInstrumentedTest (shipping shell in fixture Scaffold); FrontendControlsInstrumentedTest (native debug gallery)",
   "clock": "Fixed shell elapsed 12:34, rest 1:15; gallery has no running clock",
-  "viewport": "Compose ForcedSize rescales density to fit the native test canvas. Logical bounds are asserted. Separate Android dialog/IME windows use the real device configuration.",
+  "viewport": "Compose ForcedSize rescales density to fit the native test canvas. Explicit logical system-bar insets avoid inheriting host portrait pixels at a different density. Ordinary references use a content frame with zero system insets; four adverse cases include status/navigation insets listed per image. Separate Android dialog/IME windows use the real device configuration.",
   "fonts": "Bundled Inter and Space Grotesk",
   "images": [
     {
@@ -70,8 +71,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-controls-focused-api29.png",
@@ -88,8 +91,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-controls-pressed-api29.png",
@@ -106,8 +111,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-controls-ready-api29.png",
@@ -124,8 +131,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-controls-saving-api29.png",
@@ -142,8 +151,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-controls-selection-api29.png",
@@ -160,8 +171,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-controls-selection-font20-api29.png",
@@ -178,8 +191,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.625,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-360x640-font10-ltr-motion-api29.png",
@@ -196,8 +211,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.625,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-360x640-font16-ltr-motion-api29.png",
@@ -214,8 +231,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.625,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-360x640-font20-ltr-motion-api29.png",
@@ -232,12 +251,14 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.625,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
-      "name": "frontend-shell-360x640-font20-ltr-motion-long-error-api29.png",
-      "sha256": "66ebdbfff5d961bd854217a73d3c917944e8f4991ac1288e9c3632a8d3411422",
+      "name": "frontend-shell-360x640-font20-ltr-motion-gesture-api29.png",
+      "sha256": "d2b94164d414a131f79db286764d2e85ae978b38f61ea9736812b6d16211f826",
       "pixels": [
         945,
         1680
@@ -250,8 +271,56 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.625,
-      "runId": "20260917-050210256",
-      "scenario": "long-error"
+      "runId": "20260917-060135045",
+      "scenario": "gesture",
+      "statusBarDp": 24,
+      "navigationBarDp": 24,
+      "previousSha256": null,
+      "changeReason": "Add explicit logical status/navigation inset fixture at enlarged text."
+    },
+    {
+      "name": "frontend-shell-360x640-font20-ltr-motion-long-error-api29.png",
+      "sha256": "4ec7efab35ce23ae4ff4e0f306806c25142c7f23837e1d56265b8ed1d4116deb",
+      "pixels": [
+        945,
+        1680
+      ],
+      "logicalDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.625,
+      "runId": "20260917-060135045",
+      "scenario": "long-error",
+      "statusBarDp": 0,
+      "navigationBarDp": 0,
+      "previousSha256": "66ebdbfff5d961bd854217a73d3c917944e8f4991ac1288e9c3632a8d3411422",
+      "changeReason": "Short-window navigation centers complete icon/label groups and preserves a fitting five-item row. Compact live rows remove optional vertical padding while retaining the touch floor; adverse fixtures use actual production error copy."
+    },
+    {
+      "name": "frontend-shell-360x640-font20-ltr-motion-three-button-api29.png",
+      "sha256": "b45285a7f43548baa856be5935883ba6f3b01119b64156d4b4f17ec9e142bbe3",
+      "pixels": [
+        945,
+        1680
+      ],
+      "logicalDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.625,
+      "runId": "20260917-060135045",
+      "scenario": "three-button",
+      "statusBarDp": 24,
+      "navigationBarDp": 48,
+      "previousSha256": null,
+      "changeReason": "Add explicit logical status/navigation inset fixture at enlarged text."
     },
     {
       "name": "frontend-shell-360x800-font10-ltr-motion-api29.png",
@@ -268,8 +337,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-360x800-font10-ltr-still-api29.png",
@@ -286,8 +357,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": true,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-360x800-font10-rtl-motion-api29.png",
@@ -304,8 +377,10 @@
       "layoutDirection": "rtl",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-360x800-font16-ltr-motion-api29.png",
@@ -322,8 +397,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-360x800-font20-ltr-motion-api29.png",
@@ -340,8 +417,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-360x800-font20-rtl-motion-api29.png",
@@ -358,8 +437,10 @@
       "layoutDirection": "rtl",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.161111111111111,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-412x840-font10-ltr-motion-api29.png",
@@ -376,8 +457,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.0558252427184467,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-412x840-font16-ltr-motion-api29.png",
@@ -394,8 +477,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.0558252427184467,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-412x840-font20-ltr-motion-api29.png",
@@ -412,8 +497,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 2.0558252427184467,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-600x840-font10-ltr-motion-api29.png",
@@ -430,8 +517,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 1.8,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-600x840-font16-ltr-motion-api29.png",
@@ -448,8 +537,10 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 1.8,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-600x840-font20-ltr-motion-api29.png",
@@ -466,12 +557,14 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 1.8,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0
     },
     {
       "name": "frontend-shell-640x360-font10-ltr-motion-api29.png",
-      "sha256": "c940932f3104f34e967dfce19f2008aa2ae5d48f7973cf1d3c91e9cceba2d137",
+      "sha256": "130c71ffbf3faf37ff9980e56d850028d27cd1a3701c7f8103bb6d1c7db4d313",
       "pixels": [
         1080,
         608
@@ -484,12 +577,16 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 1.6875,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0,
+      "previousSha256": "c940932f3104f34e967dfce19f2008aa2ae5d48f7973cf1d3c91e9cceba2d137",
+      "changeReason": "Short-window navigation centers complete icon/label groups and preserves a fitting five-item row. Compact live rows remove optional vertical padding while retaining the touch floor; adverse fixtures use actual production error copy."
     },
     {
       "name": "frontend-shell-640x360-font16-ltr-motion-api29.png",
-      "sha256": "e294458611985b9d5bfdd2226c98901058dce6b92df906f91f0253b90acdb949",
+      "sha256": "b04125def71c920b56105b828e4083b3a6edacb0c4e87fddd070424c5f720ebf",
       "pixels": [
         1080,
         608
@@ -502,12 +599,16 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 1.6875,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0,
+      "previousSha256": "e294458611985b9d5bfdd2226c98901058dce6b92df906f91f0253b90acdb949",
+      "changeReason": "Short-window navigation centers complete icon/label groups and preserves a fitting five-item row. Compact live rows remove optional vertical padding while retaining the touch floor; adverse fixtures use actual production error copy."
     },
     {
       "name": "frontend-shell-640x360-font20-ltr-motion-api29.png",
-      "sha256": "a1fda8ba34591cbbe70c5aa66dd93d96e92760e0c2a383099eb69e79ca59c8c6",
+      "sha256": "bc3ad6414685bcfe8c6b798c22273ef9a5db67ed563297cf2eedcd4bd5bded39",
       "pixels": [
         1080,
         608
@@ -520,12 +621,16 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 1.6875,
-      "runId": "20260917-050210256",
-      "scenario": "normal"
+      "runId": "20260917-060135045",
+      "scenario": "normal",
+      "statusBarDp": 0,
+      "navigationBarDp": 0,
+      "previousSha256": "a1fda8ba34591cbbe70c5aa66dd93d96e92760e0c2a383099eb69e79ca59c8c6",
+      "changeReason": "Short-window navigation centers complete icon/label groups and preserves a fitting five-item row. Compact live rows remove optional vertical padding while retaining the touch floor; adverse fixtures use actual production error copy."
     },
     {
       "name": "frontend-shell-640x360-font20-ltr-motion-cardio-api29.png",
-      "sha256": "3b7b8bc06bbca641dd963aa14f0ab93686bc2c6c1a9e9a3b8115e428ed36ed97",
+      "sha256": "815b094540bcdb667239708d6a75f2d209d61558edd6f301ce574f2bfed750e2",
       "pixels": [
         1080,
         608
@@ -538,12 +643,38 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 1.6875,
-      "runId": "20260917-050210256",
-      "scenario": "cardio"
+      "runId": "20260917-060135045",
+      "scenario": "cardio",
+      "statusBarDp": 0,
+      "navigationBarDp": 0,
+      "previousSha256": "3b7b8bc06bbca641dd963aa14f0ab93686bc2c6c1a9e9a3b8115e428ed36ed97",
+      "changeReason": "Short-window navigation centers complete icon/label groups and preserves a fitting five-item row. Compact live rows remove optional vertical padding while retaining the touch floor; adverse fixtures use actual production error copy."
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-gesture-api29.png",
+      "sha256": "9e3aeb62e9499c25792ff879257893286e64c6531d59aebe3bdd2f6a4e62164b",
+      "pixels": [
+        1080,
+        608
+      ],
+      "logicalDp": [
+        640,
+        360
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.6875,
+      "runId": "20260917-060135045",
+      "scenario": "gesture",
+      "statusBarDp": 24,
+      "navigationBarDp": 24,
+      "previousSha256": null,
+      "changeReason": "Add explicit logical status/navigation inset fixture at enlarged text."
     },
     {
       "name": "frontend-shell-640x360-font20-ltr-motion-long-error-api29.png",
-      "sha256": "0abed07574e7e18b7822adabc7a56121c336b0e4d1017d97c6b2f8643536c895",
+      "sha256": "6a314bdf97b9ab2b468a0e776626050498f8700f793589501ac3596a946f8a47",
       "pixels": [
         1080,
         608
@@ -556,8 +687,34 @@
       "layoutDirection": "ltr",
       "reducedMotion": false,
       "capturePixelsPerDp": 1.6875,
-      "runId": "20260917-050210256",
-      "scenario": "long-error"
+      "runId": "20260917-060135045",
+      "scenario": "long-error",
+      "statusBarDp": 0,
+      "navigationBarDp": 0,
+      "previousSha256": "0abed07574e7e18b7822adabc7a56121c336b0e4d1017d97c6b2f8643536c895",
+      "changeReason": "Short-window navigation centers complete icon/label groups and preserves a fitting five-item row. Compact live rows remove optional vertical padding while retaining the touch floor; adverse fixtures use actual production error copy."
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-three-button-api29.png",
+      "sha256": "0dcbdc31ff28c5ee3139b2af26848c9bc5b8f7e02c34d8cdcfa4653a7300f8b2",
+      "pixels": [
+        1080,
+        608
+      ],
+      "logicalDp": [
+        640,
+        360
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.6875,
+      "runId": "20260917-060135045",
+      "scenario": "three-button",
+      "statusBarDp": 24,
+      "navigationBarDp": 48,
+      "previousSha256": null,
+      "changeReason": "Add explicit logical status/navigation inset fixture at enlarged text."
     }
   ],
   "limitations": [

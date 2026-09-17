@@ -1,130 +1,172 @@
 # F1 — Shared controls and app shell
 
-Status: implementation and verification in progress; not yet merged.
+Status: implemented, reviewed and verified locally; public-upload approval and
+PR/integrated verification pending. Not merged.
 Base: `d77fc432` (F0 integrated). Branch: `codex/frontend-controls`.
 Authority: ADR-026 and the approved frontend plan.
 
-## Scope and contracts
+The [native review page](controls.html) contains reviewed component states,
+layout extremes, Android dialog/keyboard observations and real app pages.
+This establishes shared controls and shell behavior. The workout and whole-app
+redesign remain pending in their assigned packets.
 
-- Radio choices, checkbox toggles, value-application buttons, quiet suggestions,
-  and informational content now have named component roles. Selection includes
-  a shape/state marker rather than relying on lime alone.
-- Button labels grow instead of truncating. Buttons and chips keep a 48 dp floor;
-  logging retains its 72 dp floor. Pressed, focused, saving and disabled states
-  are exercised in the native component gallery.
-- The shared header and confirmation actions wrap text. Fixed headers/live bars
-  preview unrestricted saved names in two lines with full text semantics; short
-  windows combine live kind/status/identity in one line to preserve navigation and
-  content. Names remain unchanged in storage. Confirmation title and warning share
-  a scroll area, with actions outside it. Confirmation
-  gives a press tick, not a false persistence-success haptic.
-- All five navigation labels remain available. Actual text measurement selects
-  a five-item row or three-plus-two rows. Tab restoration remains in AppNav.
-- The live bar's rail, identity, elapsed time, set count and rest context share
-  one resume target. Overflow is separate. Workout/Cardio labels distinguish
-  activity kind; enlarged text keeps metrics visible. Error dwell honors the
-  accessibility timeout preference; timer ticks are not live-region messages.
-- History/Body period choices, Body front/back and load-type choices adopt the
-  exclusive component. Other screen-specific selectors migrate with their
-  owner packets. In particular, the legacy workout recommendation border is
-  still assigned to F2; F1 does not close D02 on the workout screen.
+## Delivered behavior
+
+- Named radio choices, independent checkbox toggles, value-application actions
+  and quiet suggestions. Selection includes a shape/state marker.
+- Wrapping button/chip labels, 48 dp minimum targets and the existing 72 dp
+  workout-action floor. Native gallery covers pressed, focused, saving,
+  disabled, selection, entry, content, loading and overlay states.
+- Shared headers and live bars retain full accessibility text while previewing
+  unrestricted saved names in two lines. Short windows combine activity kind,
+  status and identity in one line. Stored names are unchanged.
+- Confirmation title and warning share a bounded scroll area with actions
+  outside it. Confirmation produces a press tick, not a false save-success haptic.
+- All five navigation labels remain visible. Measured label fit determines a
+  single row or three-plus-two rows. Short windows place icons beside labels
+  only when the already-selected rows fit. Tab restoration remains in AppNav.
+- Live-bar identity, elapsed time, set count and rest context share one resume
+  target; overflow stays separate. Workout/Cardio labels identify the activity.
+  Metrics wrap; timer ticks are not live announcements. Error dwell honors the
+  accessibility timeout preference. Compact rows retain their minimum touch
+  height while reducing optional padding to make room for full error messages.
+- Body/History periods, Body front/back and load-type choices adopt explicit
+  single-choice semantics. Body figure context has its own full-width row.
+  Remaining feature-specific migrations belong to F2–F10.
 
 ## Native verification design
 
-`FrontendShellInstrumentedTest` composes the shipping navigation and live bar
-inside a fixture Scaffold. It is a shared-shell test, not a replacement for
-real feature-page tests. Twenty-one profiles cover 360 x 640, 360 x 800,
-412 x 840, 600 x 840 and 640 x 360 dp at font 1.0/1.6/2.0, plus RTL and
-reduced-motion cases, plus long-name/error/stale/cardio combinations. Tests measure
-target dimensions, full label layout, non-overlap, actual metric taps, overflow
-independence and unclipped last-action containment with a real click.
+`FrontendShellInstrumentedTest` composes shipping navigation and the live bar
+inside a fixture Scaffold. Its 25 profiles cover 360 × 640, 360 × 800,
+412 × 840, 600 × 840 and 640 × 360 dp at font 1.0/1.6/2.0; RTL; reduced
+motion; and long-name, stale, error and cardio states. Four adverse profiles
+reserve logical 24 dp status and 48 dp three-button or 24 dp gesture insets.
+These simulate space requirements; they do not prove physical gesture behavior.
+Adverse workout fixtures use production `DataHealthCopy.FINISH_FAILED`; cardio
+uses its own production `CompleteTraining.LIVE_FINISH_FAILED` message.
 
-`FrontendControlsInstrumentedTest` verifies role semantics, draft-only preset
-application, numeric validation/absolute entry/cancel, action states, large-text
-reachability and overlay dismissal. Native dialog/keyboard observations use
-actual device windows rather than pretending ForcedSize controls another window.
-The keyboard/accessibility-window preferences are restored after each test.
-Separate-window captures wait for native idle plus a 750 ms software-renderer
-presentation interval; IME presence also requires a nonzero native window extent.
+Assertions check minimum targets, non-overlap, complete single-line navigation
+labels, preservation of a fitting five-item row, actual metric taps, separate
+overflow, exact inset allocation, at least one full target of scrolling space,
+and complete last-action containment inside the list before a real click.
 
-New viewport goldens record actual constrained logical dimensions. Legacy
-references retain their original clipped mount until their owning packet replaces
-them. Missing references still fail and now retain the actual PNG for inspection.
-No comparison threshold is relaxed. Pixel references and interaction assertions
-have separate roles; neither establishes physical-device performance or TalkBack.
+`FrontendControlsInstrumentedTest` has ten cases covering semantics, draft-only
+presets, numeric validation/absolute entry/cancel, focus and action states,
+large-text reachability and overlay dismissal. Seven control and 25 shell
+images form the 32 new renderer-specific references.
 
-## Audit disposition
+Logical viewport tests use Compose ForcedSize, FontScale and explicit
+WindowInsets. This prevents host portrait pixel insets from being interpreted
+at a different density. Android dialogs and keyboards instead use actual
+device windows; system font scale is set before launch and restored afterward.
+IME observations require a nonzero native window extent. Captures wait for
+native idle and a 750 ms software-renderer presentation interval.
 
-- D13: implemented; acceptance pending final native comparison and reviews.
-- D15: component contract established; screen composition remains with F2–F10.
-- D02: prerequisite established; workout migration remains F2.
-- D16/D17: broader layout/accessibility/evidence work continues in owner packets.
+Missing required references fail and retain the actual image. Existing pixel
+tolerances are unchanged. Exact source/image hashes and device properties are
+in the [golden manifest](../../../app/src/androidTest/assets/goldens/windows-swiftshader37/frontend-manifest.json).
+Real app and separate-window observations have their own
+[manifest](native/f1/manifest.json). Pixel equality, interaction correctness,
+visual review and physical-device acceptance remain separate evidence.
 
-## Executed evidence
+## Final-source evidence
 
-- Initial native recording: 23/23 behavioral checks, run `20260917-040241239`.
-  Recording is not a pixel comparison pass. Visual review prompted explicit
-  radio/checkbox markers, stronger primary focus contrast and metric separators.
-- Full local unit/build/lint/test-APK tasks passed: 2,536 tests, no failures.
-  The later combined run `20260917-044305684` also passed those tasks; its native
-  portion was 127/129, with all 28 new F1 checks and 25 new pixel comparisons passing.
-- Native failures in that run: Home's legacy unconfined test recomposer resumed
-  from a background flow emission without a Looper; success capture raced the
-  delayed rest start. Corrections are under verification. No failed image was
-  promoted to a reference to hide these failures.
-- Trial run `20260917-044800646` exposed a pre-existing alarm assertion race
-  (persisted row precedes arm), then stalled under an explicit StandardTestDispatcher
-  in the old Compose rule. That run was stopped after recording the failure. The
-  affected screen-test class now uses Compose's v2 rule; the alarm capability test
-  synchronously reschedules its persisted current timer before asserting the result.
-- Action focus uses real keyboard input mode and focus, with an assertIsFocused
-  check; its targeted recording passed in `20260917-044128762`. Whole Android
-  font-scale-2 overlays passed in `20260917-043214757` and the combined run.
-- References: 25 new shell/control PNGs and one bounded legacy font-2 warm-up-label
-  update. The other nine existing Windows references remain unchanged. Source and
-  image hashes are in the renderer-specific frontend manifest. The native
-  [review page](controls.html) also contains real MainActivity before/after views.
-- The lambda-arity checker now understands composable function slots, with five
-  added checker fixtures. No checker ceiling was increased over the committed
-  baseline. Gallery public-component coverage was preserved. The edit ViewModel
-  test now awaits the completed update state. Onboarding tests own and cancel a
-  private DataStore; an earlier full-run failure was not reproduced in the targeted
-  102-test rerun, so isolation is a fixture correction, not a proven root cause.
+| Final-source check | Result |
+|---|---|
+| Recording `20260917-060135045` | 35/35 passed; 32 images reviewed |
+| API 29 comparison `20260917-060414598` | 136/136 passed, including 32 F1 image comparisons |
+| API 36 shell matrix `20260917-060817179` | 25/25 passed |
+| API 26 shell matrix `20260917-061028797` | 25/25 passed |
+| Full local gate | Passed: 2,536 unit tests, static checks, debug build, lint and test APK; 2m 27s |
+| Independent and adversarial reviews | Both clear; no unresolved product or visual findings |
 
-The queued Compose runner follows the official
-[test migration guidance](https://developer.android.com/develop/ui/compose/testing/migrate-v2).
-Text direction follows the content's language while layout mirrors independently,
-using [TextDirection.Content](https://developer.android.com/reference/kotlin/androidx/compose/ui/text/style/TextDirection).
+All 29 source hashes and 32 image hashes match the final recording manifest.
+Compared with local commit `f142ea5c`, six references changed intentionally and
+four inset references were added. The other 22 references are unchanged. Review
+acceptance remains conditional on hosted evidence and integration. Final
+commands, counts, profiles and report hashes are recorded in
+[verification.json](native/f1/verification.json).
 
-Run `20260917-045303330`: all 23 affected legacy native tests passed, including
-the production-screen matrix, nine workout pixel comparisons and exact-alarm
-capability.
+Earlier executed evidence:
 
-## Review corrections and latest verification
+- API 29 full run `20260917-055400296`: 136/136 passed before that correction.
+- API 29 recording `20260917-054841289`: 35/35 passed; all 32 images reviewed.
+- API 36 `20260917-052912650` and API 26 `20260917-053449375`: 39/39 each.
+  Later shell runs `20260917-053214573` and `20260917-053713208`: 25/25 each,
+  before the final optical grouping and error-copy corrections.
+- Earlier full local gates passed 2,536 unit tests, debug build, lint and
+  test-APK compilation; the final source also passed as recorded above.
+- Native window run `20260917-050534591`: both journeys passed. Reviewed
+  captures show the real numeric keyboard, rest sheet, font-2 confirmation
+  and long-name warning with reachable actions.
+- Real MainActivity observations: `20260917-043013541`. Their portrait shell
+  is unchanged by the final compact landscape correction.
 
-Both clean-context reviewers identified unrestricted identity growth in fixed
-chrome; the adversarial pass additionally found a dynamic dialog-title overflow.
-These are corrected with bounded previews and the shared dialog scroll area.
-The independent pass caught two inaccurate native window observations: the sheet
-and keyboard had not yet been presented. Those earlier observations are rejected.
-Run `20260917-050534591` passed both native window journeys, and the replacement
-images have been inspected: the sheet, numeric keyboard and long-name warning/
-actions are visible. No pixel reference was loosened to accommodate this race.
+One legacy font-2 workout reference was deliberately updated in run
+`20260917-042534632` for wrapping warm-up labels; the other nine existing
+Windows references remain unchanged. Obsolete workout composition belongs
+to F2/F3. Each intentional new-reference change has a manifest rationale.
 
-Run `20260917-050210256` passed all 31 expanded F1 native checks in recording mode.
-There are now 28 shell/control references. Existing non-landscape references were
-pixel-identical; the three short-window references intentionally use compact live
-identity. The three additional references cover adverse long-name states.
+## Corrections and rejected evidence
 
-Combined run `20260917-045516575` passed local tasks but failed 29 native checks
-during an emulator System UI ANR/restart (confirmed in ActivityManager logcat).
-Status-bar disappearance changed capture heights and caused injection failures.
-Those images are rejected. Subsequent native runs are separated from the heavy
-local gate; final full comparison and cross-API results are still pending.
+- Both reviewers found unbounded saved-name growth in fixed chrome. The
+  adversarial pass also found an unbounded dialog title. Bounded previews,
+  full semantics and the shared dialog scroll area resolve these cases.
+- Earlier sheet/keyboard observations captured before native presentation.
+  They were rejected and replaced by the reviewed actual-window captures.
+- A stronger last-row assertion exposed insufficient landscape space on
+  API 36. Explicit logical insets and compact navigation resolve it. The test
+  checks actual list bounds and fails before attempting a zero-height scroll.
+- Initial compact navigation let icon width create an unnecessary extra row
+  and allowed word wrapping. Row selection now uses label fit first; complete
+  measured labels and matched padding determine compact eligibility.
+- The final adversarial image pass caught an abbreviated fixture error. All
+  adverse fixtures now use the longer runtime message; short-window live rows
+  remove optional vertical padding while retaining the 56 dp touch floor.
+- Run `20260917-045516575` suffered a System UI ANR/restart while heavy local
+  tasks overlapped native tests. Those captures were rejected. Native checks
+  and the heavy local gate now run sequentially.
+- Run `20260917-054311890` had 18 input failures after a Launcher3 ANR; all
+  its images were rejected. Owned-emulator startup now checks global window
+  focus for Launcher3 with a 30-second bound and fails before testing if absent.
+  The first check used an incomplete dump and failed closed; the corrected
+  global dump passed before the replacement recording. This does not guarantee
+  against a later Android system ANR.
+- Legacy test corrections: Compose's queued v2 rule for background flow
+  emissions; explicit settling of delayed rest state in pixel fixtures;
+  synchronous rescheduling of the persisted timer before exact-alarm assertions.
+  Affected legacy run `20260917-045303330` passed all 23 cases.
+- Edit tests await completed update state. Onboarding tests own/cancel a private
+  DataStore; an earlier failure did not reproduce in the targeted 102-test rerun,
+  so isolation is not claimed as a proven root-cause fix.
+- The lambda-arity checker supports composable slots with five new fixtures.
+  All 20 checker fixtures pass. No static-check ceiling was increased.
 
-## Remaining acceptance
+Supporting official guidance: [Compose v2 test migration](https://developer.android.com/develop/ui/compose/testing/migrate-v2),
+[content text direction](https://developer.android.com/reference/kotlin/androidx/compose/ui/text/style/TextDirection),
+[device configuration overrides](https://developer.android.com/reference/kotlin/androidx/compose/ui/test/DeviceConfigurationOverride.Companion).
 
-Final local gate; reviewed references and comparison run; real-page observations;
-API 36 behavior pass; independent and adversarial reviews; integrated verification.
-Physical TalkBack, normal phone display settings, gesture navigation and upgrade
-acceptance remain explicit milestone checks. No Obtainium drop is issued by F1.
+## Audit disposition and remaining acceptance
+
+- D13: implemented locally; integrated acceptance pending.
+- D15: shared contracts implemented; screen compositions remain F2–F10.
+- D02: prerequisites implemented; legacy workout suggestion treatment remains F2.
+- D16/D17: local shell checks above pass; feature-page, physical accessibility,
+  performance and integrated evidence continue in owner packets.
+
+The default hosted renderer still needs its own 32 references and comparison;
+Windows-renderer PNGs must not be copied into that profile. The older nine
+hosted workout references remain assigned to F2/F3. Hosted emulator results
+remain nonblocking under ADR-024; deterministic hosted checks remain required.
+
+Automatic approval review rejected the public GitHub push. Read-only checks
+confirmed `sinura7/PersonalTrainer` is public and the signed-in owner has admin
+access. No upload occurred. Explicit approval for pushing this packet's source
+and synthetic screenshots, opening its PR and merging after checks is pending.
+Until then, PR, hosted verification and integrated post-merge acceptance cannot
+run. The approved one-packet-at-a-time protocol keeps F2 pending.
+
+Physical TalkBack, actual gesture navigation, the phone's display settings,
+haptics, refresh-rate performance and signed upgrade/data retention remain
+milestone checks. No Obtainium drop, signer change or version increment is
+issued by F1.

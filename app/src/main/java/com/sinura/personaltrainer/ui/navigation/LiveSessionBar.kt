@@ -153,7 +153,9 @@ fun LiveSessionBar(
                             onClick = onResume,
                         )
                         .testTag(LiveSessionBarTestTags.ROOT)
-                        .padding(vertical = Metrics.space2),
+                        // Retain the full failure message and all metrics in short
+                        // windows. The row minimum still owns the touch target.
+                        .padding(vertical = if (compact) 0.dp else Metrics.space2),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
                 ) {

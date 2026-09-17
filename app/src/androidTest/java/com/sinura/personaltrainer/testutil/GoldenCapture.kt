@@ -8,10 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.FontScale
 import androidx.compose.ui.test.ForcedSize
+import androidx.compose.ui.test.WindowInsets
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
@@ -19,6 +21,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.Insets
+import androidx.core.view.WindowInsetsCompat
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 
 /**
@@ -61,13 +65,25 @@ object GoldenCapture {
         height: Dp,
         fontScale: Float = 1f,
         reduceMotion: Boolean = false,
+        statusBar: Dp = 0.dp,
+        navigationBar: Dp = 0.dp,
         content: @Composable () -> Unit,
     ) {
         compose.setContent {
             DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(width, height))) {
                 DeviceConfigurationOverride(DeviceConfigurationOverride.FontScale(fontScale)) {
-                    PersonalTrainerTheme(reduceMotion = reduceMotion) {
-                        Box(Modifier.size(width, height).testTag(DefaultTag)) { content() }
+                    // The host's portrait pixel insets cannot be reused after
+                    // ForcedSize changes density/shape. Pin logical system-bar
+                    // insets explicitly; actual-window observations use mountDevice.
+                    val density = LocalDensity.current
+                    val insets = WindowInsetsCompat.Builder()
+                        .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, with(density) { statusBar.roundToPx() }, 0, 0))
+                        .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, with(density) { navigationBar.roundToPx() }))
+                        .build()
+                    DeviceConfigurationOverride(DeviceConfigurationOverride.WindowInsets(insets)) {
+                        PersonalTrainerTheme(reduceMotion = reduceMotion) {
+                            Box(Modifier.size(width, height).testTag(DefaultTag)) { content() }
+                        }
                     }
                 }
             }

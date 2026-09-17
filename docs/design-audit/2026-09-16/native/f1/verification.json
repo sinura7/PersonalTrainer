@@ -1,0 +1,136 @@
+{
+  "packet": "F1",
+  "baseCommit": "d77fc432",
+  "recordedUtc": "2026-09-17T06:15:00.289626+00:00",
+  "goldenManifestSha256": "6cc614a8f45540c1a2ee451863ed7a7710f49b438be6f5a52f8580e68c3c4859",
+  "native": [
+    {
+      "api": 29,
+      "runId": "20260917-060414598",
+      "counts": {
+        "tests": 136,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "scope": "Full native suite, including 32 F1 pixel comparisons",
+      "command": ".\\tools\\dev-windows.ps1 connectedDebugAndroidTest",
+      "profile": {
+        "profile": "temper-tests-api29",
+        "serial": "emulator-5554",
+        "systemImage": "system-images;android-29;default;x86_64",
+        "imageRevision": "8",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T06:04:14.5804928Z"
+      },
+      "reportSha256": [
+        "32f5c94572ecc74dc9b271ed6a42f70cfa4615706741ea1dbb91bb6e80c4ce51"
+      ]
+    },
+    {
+      "api": 36,
+      "runId": "20260917-060817179",
+      "counts": {
+        "tests": 25,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "scope": "25-case shell interaction/layout matrix; no cross-renderer pixel comparison",
+      "command": ".\\tools\\dev-windows.ps1 connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.sinura.personaltrainer.ui.navigation.FrontendShellInstrumentedTest",
+      "profile": {
+        "profile": "temper-tests-api36",
+        "serial": "emulator-5556",
+        "systemImage": "system-images;android-36;default;x86_64",
+        "imageRevision": "2",
+        "fingerprint": "Android/sdk_phone64_x86_64/emu64x:16/BE2A.250530.026.D1/13818094:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T06:08:17.1755330Z"
+      },
+      "reportSha256": [
+        "c05b1dcf3d1e00682f8eebc473b0335bed912c8d77656348d4983a1113adc86a"
+      ]
+    },
+    {
+      "api": 26,
+      "runId": "20260917-061028797",
+      "counts": {
+        "tests": 25,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "scope": "25-case shell interaction/layout matrix; no cross-renderer pixel comparison",
+      "command": ".\\tools\\dev-windows.ps1 connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.sinura.personaltrainer.ui.navigation.FrontendShellInstrumentedTest",
+      "profile": {
+        "profile": "temper-tests-api26",
+        "serial": "emulator-5558",
+        "systemImage": "system-images;android-26;default;x86_64",
+        "imageRevision": "1",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:8.0.0/OSR1.180418.004/4931640:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T06:10:28.7954177Z"
+      },
+      "reportSha256": [
+        "ca1fa41c760f44f814240aacfa6bdaa5010b1d12682001816d54bed7645fd815"
+      ]
+    }
+  ],
+  "localGate": {
+    "command": ".\\tools\\dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+    "exitCode": 0,
+    "duration": "2m 27s",
+    "unitCounts": {
+      "tests": 2536,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "unitReportFiles": 393,
+    "staticChecks": "passed, no checker ceiling increased",
+    "debugBuild": "passed",
+    "lint": "passed",
+    "instrumentedApk": "passed"
+  },
+  "reviews": {
+    "independent": "clear, no unresolved product or visual findings",
+    "adversarial": "clear, no unresolved findings"
+  },
+  "outstanding": [
+    "Explicit approval to upload F1 source and synthetic evidence to public GitHub repository",
+    "Hosted deterministic check and default-renderer references/comparison",
+    "PR and post-merge integrated checks",
+    "Physical device milestone acceptance: TalkBack, gestures, normal display settings, haptics, performance and signed upgrade"
+  ]
+}

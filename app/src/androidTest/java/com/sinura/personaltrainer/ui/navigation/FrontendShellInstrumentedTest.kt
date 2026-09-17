@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -37,7 +38,10 @@ import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sinura.personaltrainer.testutil.GoldenCapture
 import com.sinura.personaltrainer.domain.LiveBarKind
+import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.workout.CompleteTraining
 import com.sinura.personaltrainer.testutil.GoldenImageAssert
+import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
@@ -72,11 +76,14 @@ class FrontendShellInstrumentedTest(
         var lastClicked = 0
         val cardio = scenario == "cardio"
         val adverse = scenario != "normal"
+        val systemBars = scenario in setOf("three-button", "gesture")
         val title = if (adverse) "A valid saved routine with a deliberately long identity ".repeat(20)
             else "Lower A · squat and posterior chain"
         GoldenCapture.mountViewport(
             compose = compose, width = width.dp, height = height.dp,
             fontScale = font, reduceMotion = reduced,
+            statusBar = if (systemBars) 24.dp else 0.dp,
+            navigationBar = when (scenario) { "three-button" -> 48.dp; "gesture" -> 24.dp; else -> 0.dp },
         ) {
             val localDensity = LocalDensity.current
             SideEffect { density = localDensity.density }
@@ -94,7 +101,11 @@ class FrontendShellInstrumentedTest(
                                     kind = if (cardio) LiveBarKind.ACTIVITY else LiveBarKind.WORKOUT,
                                 ),
                                 applyNavInsets = false, onResume = { resumed++ }, onFinish = {}, onDiscard = {},
-                                actionError = if (adverse) "Could not finish. Try again." else null,
+                                actionError = when {
+                                    cardio -> CompleteTraining.LIVE_FINISH_FAILED
+                                    adverse -> DataHealthCopy.FINISH_FAILED
+                                    else -> null
+                                },
                             )
                             InstrumentNavBar(tabs = shippingTabs, isSelected = { it == selected }, onSelect = { selected = it })
                         }
@@ -133,15 +144,25 @@ class FrontendShellInstrumentedTest(
             compose.onNodeWithText(tab.label.uppercase(), useUnmergedTree = true)
                 .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
             assertTrue("label layout exists", layouts.isNotEmpty())
-            assertFalse("full navigation label: ${tab.label}", layouts.any { it.hasVisualOverflow })
+            if (layouts.any { it.hasVisualOverflow }) NativeArtifacts.write(
+                "frontend-shell-label-${width}x$height-font${(font * 10).toInt()}-$scenario-api${Build.VERSION.SDK_INT}",
+                GoldenCapture.capture(compose).asAndroidBitmap(),
+            )
+            assertFalse("full navigation label: ${tab.label}; ${layouts.map { "${it.size} width=${it.didOverflowWidth} height=${it.didOverflowHeight}" }}", layouts.any { it.hasVisualOverflow })
+            assertTrue("single-word navigation labels stay intact: ${tab.label}", layouts.all { it.lineCount == 1 })
             box
         }
         bounds.forEachIndexed { index, rect ->
             bounds.drop(index + 1).forEach { assertFalse("navigation targets overlap", rect.overlaps(it)) }
         }
+        val expectedNavigationInset = when (scenario) { "three-button" -> 48f; "gesture" -> 24f; else -> 0f }
+        assertEquals("logical navigation-bar inset", expectedNavigationInset, (root.bottom - bounds.maxOf { it.bottom }) / density, 1f)
         if (width == 360 && font == 2f) {
             assertEquals(bounds[0].top, bounds[2].top, 1f)
             assertTrue("3 + 2 navigation", bounds[3].top >= bounds[0].bottom)
+        }
+        if (width == 640 && font <= 1.6f) {
+            bounds.drop(1).forEach { assertEquals("fitting five-item row is preserved", bounds[0].top, it.top, 1f) }
         }
         val resume = compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).fetchSemanticsNode().boundsInRoot
         val overflow = compose.onNodeWithTag("live-session-actions").fetchSemanticsNode().boundsInRoot
@@ -170,13 +191,21 @@ class FrontendShellInstrumentedTest(
         compose.onNodeWithText(if (cardio) "Finish session" else "Finish workout").assertIsDisplayed()
         compose.runOnIdle { assertEquals("overflow cannot resume", expectedResumes, resumed) }
         InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+        val viewport = compose.onNodeWithTag("shell-list").fetchSemanticsNode().boundsInRoot
+        assertEquals("logical status-bar inset", if (systemBars) 24f else 0f, (viewport.top - root.top) / density, 1f)
+        assertTrue("scroll viewport retains a full action target: $viewport", viewport.height / density >= 48f)
         compose.onNodeWithTag("shell-list").performScrollToNode(hasTestTag("shell-last"))
         compose.onNodeWithTag("shell-last").assertIsDisplayed()
         val last = compose.onNodeWithTag("shell-last").fetchSemanticsNode()
         val top = last.positionInRoot.y
         val bottom = top + last.size.height
         val list = compose.onNodeWithTag("shell-list").fetchSemanticsNode().boundsInRoot
-        assertTrue("complete last action fits above chrome", bottom <= resume.top + 1 && top >= list.top - 1)
+        val contained = bottom <= list.bottom + 1 && top >= list.top - 1
+        if (!contained) NativeArtifacts.write(
+            "frontend-shell-clipping-${width}x$height-font${(font * 10).toInt()}-$scenario-api${Build.VERSION.SDK_INT}",
+            GoldenCapture.capture(compose).asAndroidBitmap(),
+        )
+        assertTrue("complete last action [$top..$bottom] fits inside viewport $list", contained)
         compose.onNodeWithTag("shell-last").performTouchInput { click() }
         compose.runOnIdle { assertEquals(1, lastClicked) }
     }
@@ -193,6 +222,9 @@ class FrontendShellInstrumentedTest(
             add(arrayOf(360, 640, 2f, false, false, "long-error"))
             add(arrayOf(640, 360, 2f, false, false, "long-error"))
             add(arrayOf(640, 360, 2f, false, false, "cardio"))
+            for ((width, height) in listOf(360 to 640, 640 to 360)) {
+                for (bars in listOf("three-button", "gesture")) add(arrayOf(width, height, 2f, false, false, bars))
+            }
         }
     }
 }

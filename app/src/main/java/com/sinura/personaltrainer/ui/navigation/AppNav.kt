@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -58,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -770,17 +772,28 @@ internal fun InstrumentNavBar(
         ) {
             val density = LocalDensity.current
             val measurer = rememberTextMeasurer()
-            val cellPixels = with(density) { maxWidth.toPx() } / tabs.size
-            val labelPadding = with(density) { Metrics.space2.toPx() }
-            val fits = maxWidth >= Metrics.touchMin * tabs.size && tabs.all { tab ->
+            val widthPixels = with(density) { maxWidth.toPx() }
+            val labelWidths = tabs.associateWith { tab ->
                 measurer.measure(
                     text = AnnotatedString(tab.label.uppercase()),
                     style = InstrumentType.kicker,
                     softWrap = false,
-                ).size.width + labelPadding <= cellPixels
+                ).size.width
+            }
+            val compactPadding = with(density) { (NAV_ICON_SIZE + Metrics.space8 + Metrics.hairline).toPx() }
+            val cellPixels = widthPixels / tabs.size
+            val labelPadding = with(density) { Metrics.space2.toPx() }
+            val fits = maxWidth >= Metrics.touchMin * tabs.size && tabs.all { tab ->
+                labelWidths.getValue(tab) + labelPadding <= cellPixels
+            }
+            val rows = tabs.chunked(if (fits) tabs.size else 3)
+            // Preserve a fitting five-item row. Inline icons are only a height
+            // optimization; they must never force an otherwise needless row.
+            val compact = maxHeight < Metrics.compactWindowHeight && rows.all { row ->
+                row.all { tab -> labelWidths.getValue(tab) + compactPadding <= widthPixels / row.size }
             }
             Column {
-                tabs.chunked(if (fits) tabs.size else 3).forEach { row ->
+                rows.forEach { row ->
                     Row(Modifier.fillMaxWidth()) {
                         row.forEach { tab ->
                             NavTab(
@@ -788,6 +801,8 @@ internal fun InstrumentNavBar(
                                 selected = isSelected(tab),
                                 onClick = { onSelect(tab) },
                                 modifier = Modifier.weight(1f),
+                                compact = compact,
+                                labelWidth = with(density) { labelWidths.getValue(tab).toDp() },
                             )
                         }
                     }
@@ -803,6 +818,8 @@ private fun NavTab(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    labelWidth: Dp = 0.dp,
 ) {
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -826,7 +843,7 @@ private fun NavTab(
 
     Column(
         modifier = modifier
-            .heightIn(min = NAV_BAR_HEIGHT)
+            .heightIn(min = if (compact) Metrics.touchMin else NAV_BAR_HEIGHT)
             .background(background)
             .then(if (focused) Modifier.border(Metrics.emphasisBorder, Volt, RoundedCornerShape(Radius.xs)) else Modifier)
             .testTag("navigation-${tab.route.path}")
@@ -849,23 +866,32 @@ private fun NavTab(
                 .size(width = NAV_TICK_WIDTH, height = NAV_TICK_HEIGHT)
                 .background(tick, CircleShape),
         )
-        Icon(
-            tab.icon,
-            // The label below is the accessible name; describing the icon too would announce
-            // every tab twice.
-            contentDescription = null,
-            tint = content,
-            modifier = Modifier.size(NAV_ICON_SIZE),
-        )
-        Text(
-            text = tab.label.uppercase(),
-            style = InstrumentType.kicker,
-            color = content,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Metrics.space1),
-        )
+        val icon: @Composable () -> Unit = {
+            Icon(tab.icon, contentDescription = null, tint = content, modifier = Modifier.size(NAV_ICON_SIZE))
+        }
+        val label: @Composable (Modifier) -> Unit = { labelModifier ->
+            Text(
+                text = tab.label.uppercase(), style = InstrumentType.kicker,
+                color = content, textAlign = TextAlign.Center,
+                modifier = labelModifier.padding(horizontal = Metrics.space1),
+            )
+        }
+        if (compact) {
+            // Keep all labels and targets, but share the icon/label line in
+            // short windows so system bars and a live error cannot consume
+            // the entire scrolling viewport.
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2, Alignment.CenterHorizontally),
+            ) {
+                icon()
+                label(Modifier.width(labelWidth + Metrics.space2 + Metrics.hairline))
+            }
+        } else {
+            icon()
+            label(Modifier.fillMaxWidth())
+        }
     }
 }
 
