@@ -11,9 +11,9 @@ import org.junit.Test
  */
 class FloorPacket2ToolbarTest {
     @Test
-    fun headerStripIsReadOnlyAndTelemetryLivesOnTheHero() {
+    fun headerIsReadOnlyAndTelemetryLivesInSessionSummary() {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.headerIsReadOnlyInstrumentStrip())
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.headerShowsMinuteTelemetryOnly())
+        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.headerShowsMinuteTelemetryOnly())
         val header = readOwned("ui/workout/WorkoutHeader.kt")
         assertFalse("Start rest must not live in the header", header.contains("onStart"))
         assertFalse("Skip must not live in the header", header.contains("onSkip"))
@@ -31,8 +31,12 @@ class FloorPacket2ToolbarTest {
         )
         assertFalse(header.contains("delay(1_000L)"))
         val hero = readOwned("ui/workout/CurrentLiftCard.kt")
-        assertTrue(hero.contains("SessionTelemetryCopy.line"))
-        assertTrue(hero.contains("WorkoutTestTags.INSTRUMENT_STRIP"))
+        assertFalse(hero.contains("SessionTelemetryCopy"))
+        assertTrue(hero.contains("onSummary"))
+        val summary = readOwned("ui/workout/WorkoutSessionSummary.kt")
+        assertTrue(summary.contains("SessionTelemetryCopy.elapsedMinutesLabel"))
+        assertTrue(summary.contains("Working sets:"))
+        assertTrue(summary.contains("External volume:"))
     }
 
     @Test

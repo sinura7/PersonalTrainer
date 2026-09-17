@@ -89,7 +89,7 @@ enum class WeightMeaning {
         get() = when (this) {
             LIFTED -> "Weight"
             NONE -> "Weight"
-            ADDED -> "Added"
+            ADDED -> "Added weight"
             ASSISTANCE -> "Assistance"
         }
 }

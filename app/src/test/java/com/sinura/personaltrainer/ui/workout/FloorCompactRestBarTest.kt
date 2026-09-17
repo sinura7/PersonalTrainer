@@ -67,11 +67,13 @@ class FloorCompactRestBarTest {
     }
 
     @Test
-    fun honestyAndLogStayInTheReservedRailAndVolt() {
+    fun honestySharesTheCompanionWithAccessibleActiveTimerAndAnchoredCommit() {
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertTrue(bar.contains("RestHonestyRow("))
         assertTrue(bar.contains("RestHonestyCopy.pick("))
-        assertTrue(bar.contains("CONTEXT_RAIL"))
+        assertFalse(bar.contains("CONTEXT_RAIL"))
+        assertTrue(bar.contains("contextVisible"))
+        assertTrue(bar.contains("workout-companion-clock"))
         assertTrue(bar.contains("TIMER_ROW"))
         assertTrue(bar.contains("height = Metrics.commit"))
         assertTrue(bar.contains("next = false"))

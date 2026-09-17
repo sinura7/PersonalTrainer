@@ -5,14 +5,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,10 +32,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.sinura.personaltrainer.domain.EquipmentType
@@ -57,6 +64,7 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -254,7 +262,7 @@ private fun CompactFloorEntry(
             val actions = FloorWeightPresets.contextActions(
                 plannedKg = plannedKg,
                 lastKg = lastKg,
-            )
+            ).filter { WeightConverter.toDisplayValue(it.weightKg, unit) != WeightConverter.toDisplayValue(weightKg, unit) }
             FloorNumeralRow(
                 label = meaning.fieldLabel,
                 value = displayNumber,
@@ -397,108 +405,94 @@ private fun FloorNumeralRow(
     unitForChips: WeightUnit = WeightUnit.KG,
 ) {
     val view = LocalView.current
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
-            StepperButton(
-                label = decrementLabel,
-                onClick = onDecrement,
-                compact = true,
-                plateWidth = plateWidth,
-                plateHeight = plateHeight,
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .widthIn(min = Metrics.stepperNumeralMinWidth)
-                    .heightIn(min = plateHeight)
-                    .testTag(wellTag)
-                    .clickable(onClick = onType, onClickLabel = typeLabel)
-                    .semantics {
-                        contentDescription = spoken
-                        customActions = listOf(
-                            CustomAccessibilityAction("Decrease $label") {
-                                onDecrement()
-                                true
-                            },
-                            CustomAccessibilityAction("Increase $label") {
-                                onIncrement()
-                                true
-                            },
-                            CustomAccessibilityAction(typeLabel) {
-                                onType()
-                                true
-                            },
-                        )
-                    },
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-                ) {
-                    FloorFieldGlyph(
-                        icon = glyph,
-                        modifier = Modifier.testTag(glyphTag),
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val valueText = buildAnnotatedString {
+        append(value)
+        if (unit != null) withStyle(InstrumentType.unit.toSpanStyle()) { append(" $unit") }
+    }
+    val valueWidth = maxOf(
+        measurer.measure(valueText, style = InstrumentType.numeralLg, softWrap = false).size.width,
+        measurer.measure(label, style = InstrumentType.caption, softWrap = false).size.width +
+            with(density) { (Metrics.icon + Metrics.chevron + Metrics.space2).roundToPx() },
+    )
+    val adjustmentWidth = maxOf(
+        measurer.measure(decrementLabel, style = InstrumentType.bodyStrong, softWrap = false).size.width,
+        measurer.measure(incrementLabel, style = InstrumentType.bodyStrong, softWrap = false).size.width,
+    )
+    val fittingPlateWidth = maxOf(plateWidth, with(density) { adjustmentWidth.toDp() } + Metrics.space2 * 2)
+    val editableValue: @Composable (Modifier) -> Unit = { valueModifier ->
+        Column(
+            modifier = valueModifier
+                .heightIn(min = plateHeight)
+                .clip(RoundedCornerShape(Radius.xs))
+                .background(Surface2)
+                .testTag(wellTag)
+                .clickable(role = Role.Button, onClick = onType, onClickLabel = typeLabel)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = spoken
+                    customActions = listOf(
+                        CustomAccessibilityAction("Decrease $label") { onDecrement(); true },
+                        CustomAccessibilityAction("Increase $label") { onIncrement(); true },
+                        CustomAccessibilityAction(typeLabel) { onType(); true },
                     )
-                    Kicker(label, asHeading = false)
                 }
+                .padding(horizontal = Metrics.space1, vertical = Metrics.space1),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                FloorFieldGlyph(icon = glyph, modifier = Modifier.testTag(glyphTag))
+                Text(label, style = InstrumentType.caption, color = TextSecondary)
+                Icon(TemperIcons.Edit, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(Metrics.chevron))
+            }
+            // Values and units share a baseline and can grow vertically. No ellipsis:
+            // this is the exact payload the user is about to commit.
+            Text(valueText, style = InstrumentType.numeralLg, color = TextPrimary, textAlign = TextAlign.Center)
+            if (sourceLabel != null) {
+                Text(sourceLabel, style = InstrumentType.caption, color = TextTertiary, textAlign = TextAlign.Center)
+            }
+        }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val sideSpace = fittingPlateWidth * 2 + Metrics.space2 * 2 + Metrics.space1 * 2
+            val valueFits = valueWidth <= with(density) { (maxWidth - sideSpace).roundToPx() }
+            if (valueFits) {
                 Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                 ) {
-                    Text(
-                        value,
-                        modifier = Modifier.alignByBaseline(),
-                        style = InstrumentType.numeralLg,
-                        color = TextPrimary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (unit != null) {
-                        Text(
-                            unit,
-                            modifier = Modifier
-                                .alignByBaseline()
-                                .padding(start = Metrics.space1),
-                            style = InstrumentType.unit,
-                            color = TextSecondary,
-                        )
+                    StepperButton(label = decrementLabel, onClick = onDecrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
+                    editableValue(Modifier.weight(1f))
+                    StepperButton(label = incrementLabel, onClick = onIncrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    editableValue(Modifier.fillMaxWidth())
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        StepperButton(label = decrementLabel, onClick = onDecrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
+                        StepperButton(label = incrementLabel, onClick = onIncrement, compact = true, plateWidth = fittingPlateWidth, plateHeight = plateHeight)
                     }
                 }
-                if (sourceLabel != null) {
-                    Text(
-                        sourceLabel,
-                        style = InstrumentType.caption,
-                        color = TextTertiary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
             }
-            StepperButton(
-                label = incrementLabel,
-                onClick = onIncrement,
-                compact = true,
-                plateWidth = plateWidth,
-                plateHeight = plateHeight,
-            )
         }
         if (caption != null) {
             Text(
                 caption,
                 style = InstrumentType.caption,
                 color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
         if (contextActions.isNotEmpty()) {
-            Row(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
@@ -514,8 +508,6 @@ private fun FloorNumeralRow(
                             action.chipLabel(unitForChips),
                             style = InstrumentType.bodyStrong,
                             color = Volt,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }

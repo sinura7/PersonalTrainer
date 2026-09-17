@@ -15,7 +15,7 @@ class WorkoutLiftChipTest {
         assertTrue(card.contains("CurrentLiftCopy.heroOrdinal") || card.contains("CurrentLiftCopy.liftOrdinal"))
         assertTrue(card.contains("CurrentLiftCopy.heroProgress") || card.contains("CurrentLiftCopy.workingProgress"))
         assertTrue(card.contains("WorkoutTestTags.liftSets"))
-        assertTrue(card.contains("ThumbSize.hero"))
+        assertTrue(card.contains("Metrics.workoutIdentityImage"))
         assertFalse(card.contains("numeralMd"))
 
         val switcher = readOwned("ui/workout/LiftSwitcherSheet.kt")

@@ -11,11 +11,12 @@ import org.junit.Test
  */
 class FloorPacketFAdvanceTest {
     @Test
-    fun floorHidesAddSetAndStartNext() {
+    fun extraSetLivesInSavedSheetAndCompletionWithoutAnIdleStartNext() {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.addSetHiddenOnFloor())
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.showIdleStartNext())
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("addSetHiddenOnFloor()"))
+        assertFalse(screen.contains("addSetHiddenOnFloor()"))
+        assertTrue(screen.contains("showAddSet = WorkoutAdvance.cardOffersAnotherSet("))
         assertFalse(screen.contains("onStartNextLift"))
         val card = readOwned("ui/workout/WorkoutLiftCard.kt")
         assertTrue(card.contains("showAddSet = showAddSet"))
@@ -36,8 +37,8 @@ class FloorPacketFAdvanceTest {
     fun receiptAndLiftCompleteDockAreNamed() {
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.liftCompleteReplacesClock())
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("GymReceiptBanner("))
-        assertTrue(bar.contains("WorkoutTestTags.LOG_RECEIPT"))
+        assertFalse(bar.contains("GymReceiptBanner("))
+        assertTrue(readOwned("ui/workout/WorkoutSavedSets.kt").contains("WorkoutTestTags.LOG_RECEIPT"))
         assertTrue(bar.contains("NextLiftPreview("))
         assertTrue(bar.contains("finishAct"))
         assertTrue(bar.contains("WorkoutTestTags.DOCK_FINISH"))
@@ -45,7 +46,7 @@ class FloorPacketFAdvanceTest {
         assertTrue(bar.contains("completeDock"))
         assertTrue(readOwned("domain/LogBarCopy.kt").contains("FINISH_WORKOUT"))
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("receiptLine = logReceipt?.line"))
+        assertTrue(screen.contains("receipt = logReceipt"))
         assertTrue(screen.contains("showFinish"))
         assertTrue(screen.contains("Haptics.recordAccent(view)"))
         assertFalse(screen.contains("Haptics.celebrate"))

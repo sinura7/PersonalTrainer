@@ -1,9 +1,6 @@
 # F1 — Shared controls and app shell
 
-Status: implemented, reviewed and verified locally; PR #349 open, hosted and
-integrated verification pending. Not merged.
-Base: `d77fc432` (F0 integrated). Branch: `codex/frontend-controls`.
-Authority: ADR-026 and the approved frontend plan.
+Status: complete and integrated — PR #349, `97d08ca4`.
 
 The [native review page](controls.html) contains reviewed component states,
 layout extremes, Android dialog/keyboard observations and real app pages.
@@ -85,7 +82,7 @@ hashes. A subsequent JVM-test-only synchronization correction is recorded below;
 the native rendering sources and references are unchanged.
 Compared with local commit `f142ea5c`, six references changed intentionally and
 four inset references were added. The other 22 references are unchanged. Review
-acceptance remains conditional on hosted evidence and integration. Final
+acceptance was subsequently confirmed by hosted and integrated checks below. Final
 commands, counts, profiles and report hashes are recorded in
 [verification.json](native/f1/verification.json).
 
@@ -150,7 +147,7 @@ Supporting official guidance: [Compose v2 test migration](https://developer.andr
 
 ## Audit disposition and remaining acceptance
 
-- D13: implemented locally; integrated acceptance pending.
+- D13: integrated; native geometry and complete label checks pass.
 - D15: shared contracts implemented; screen compositions remain F2–F10.
 - D02: prerequisites implemented; legacy workout suggestion treatment remains F2.
 - D16/D17: local shell checks above pass; feature-page, physical accessibility,
@@ -158,8 +155,8 @@ Supporting official guidance: [Compose v2 test migration](https://developer.andr
 
 The hosted runs `35192689967` and `35192657616` produced 32 pixel-identical F1
 captures. All were reviewed and accepted as initial references for the hosted
-renderer, separately from Windows captures; their comparison rerun remains
-pending. Origin, image hashes and renderer limitations are recorded in
+renderer, separately from Windows captures; their comparison rerun passed.
+Origin, image hashes and renderer limitations are recorded in
 `app/src/androidTest/assets/goldens/frontend-hosted-manifest.json`.
 Both initial native jobs reported exactly 41 failures: 32 missing new references
 and the nine older workout differences assigned to F2/F3. No older workout
@@ -178,10 +175,20 @@ changes test synchronization only; the production timer contract is unchanged.
 The owner explicitly approved publishing this packet's source and synthetic
 screenshots, opening its PR and merging after checks on 17 September 2026.
 The push succeeded; [PR #349](https://github.com/sinura7/PersonalTrainer/pull/349)
-is open. Hosted evidence and post-merge integrated acceptance remain pending.
-The approved one-packet-at-a-time protocol keeps F2 pending until integration.
+is merged. Hosted and post-merge integrated acceptance passed. F2 follows on
+its own branch under the approved one-packet-at-a-time protocol.
 
 Physical TalkBack, actual gesture navigation, the phone's display settings,
 haptics, refresh-rate performance and signed upgrade/data retention remain
 milestone checks. No Obtainium drop, signer change or version increment is
 issued by F1.
+
+## Integrated closure
+
+PR #349 merged at `97d08ca4`. Both required hosted checks passed. Hosted F1
+comparison passed all35 control/shell tests including32 images; the only nine
+remaining hosted failures are the older workout references owned by F2/F3.
+From clean trunk, the full gate passed, then a forced fresh unit run passed
+2,537 tests. API29 integration `20260917-073927328` passed35/35 native checks,
+including all32 F1 image comparisons. The short-lived branch was deleted.
+F2 may now begin. No signed phone drop is claimed.

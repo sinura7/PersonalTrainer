@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -57,6 +58,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -65,6 +67,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
@@ -252,7 +255,7 @@ fun FloorInstrumentBar(
             horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
+            BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = Metrics.touchMin)
@@ -269,33 +272,38 @@ fun FloorInstrumentBar(
                             this.liveRegion = LiveRegionMode.Polite
                         }
                     },
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                verticalAlignment = Alignment.CenterVertically,
             ) {
-                leadingGlyph?.let { glyph ->
-                    FloorFieldGlyph(icon = glyph, tint = glyphTint)
-                }
-                Kicker(kicker, color = accent, asHeading = false)
-                Text(
-                    clock,
-                    modifier = Modifier
-                        .weight(1f)
-                        .graphicsLayer {
+                val density = LocalDensity.current
+                val measurer = rememberTextMeasurer()
+                val clockWidth = measurer.measure(clock, style = InstrumentType.numeralMd, softWrap = false).size.width
+                val labelWidth = measurer.measure(kicker.uppercase(), style = InstrumentType.kicker, softWrap = false).size.width
+                val decorations = Metrics.space2 * 2 +
+                    (if (leadingGlyph != null) Metrics.icon + Metrics.space2 else 0.dp) +
+                    (if (showChevron) Metrics.chevron else 0.dp)
+                val inline = clockWidth + labelWidth + with(density) { decorations.roundToPx() } <= constraints.maxWidth
+                val clockText: @Composable () -> Unit = {
+                    Text(
+                        clock,
+                        modifier = Modifier.graphicsLayer {
                             scaleX = pulseScale
                             scaleY = pulseScale
                         },
-                    style = InstrumentType.numeralMd,
-                    color = clockColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (showChevron) {
-                    Icon(
-                        imageVector = TemperIcons.Chevron,
-                        contentDescription = null,
-                        tint = TextSecondary,
-                        modifier = Modifier.size(Metrics.chevron),
+                        style = InstrumentType.numeralMd,
+                        color = clockColor,
                     )
+                }
+                if (inline) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2), verticalAlignment = Alignment.CenterVertically) {
+                        leadingGlyph?.let { FloorFieldGlyph(icon = it, tint = glyphTint) }
+                        Kicker(kicker, color = accent, asHeading = false)
+                        clockText()
+                        if (showChevron) Icon(TemperIcons.Chevron, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(Metrics.chevron))
+                    }
+                } else {
+                    Column(modifier = Modifier.padding(vertical = Metrics.space1), verticalArrangement = Arrangement.Center) {
+                        Kicker(kicker, color = accent, asHeading = false)
+                        clockText()
+                    }
                 }
             }
             if (showRestControls) {
@@ -675,6 +683,7 @@ fun RestDurationSheet(
     onDismiss: () -> Unit,
     offerSetClock: Boolean = false,
     onTimeSet: () -> Unit = {},
+    onStartRest: (() -> Unit)? = null,
 ) {
     var showCustom by rememberSaveable { mutableStateOf(false) }
     val reduceMotion = LocalReducedMotion.current
@@ -715,6 +724,9 @@ fun RestDurationSheet(
                     color = TextPrimary,
                     maxLines = 1,
                 )
+            }
+            if (onStartRest != null) {
+                SecondaryGymButton(text = "Start rest", onClick = onStartRest)
             }
             RestPresetChips(
                 selectedSeconds = selectedSeconds,

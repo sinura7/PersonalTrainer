@@ -29,22 +29,24 @@ class FloorRpePresentationTest {
         assertTrue(card.contains("WarmupRamp.sets"))
         assertTrue(card.contains("onApplyWarmupRamp"))
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("RpeCopy.LABEL"))
-        assertTrue(bar.contains("RpeCopy.HELPER"))
-        assertTrue(bar.contains("RpeCopy.WARMUP_REASON"))
-        assertTrue(bar.contains("Role.RadioButton"))
+        assertTrue(bar.contains("Effort · Optional"))
+        assertTrue(bar.contains("RPE help"))
+        assertTrue(bar.contains("Warm-ups leave RPE blank"))
+        assertTrue(bar.contains("InstrumentChoiceChip("))
+        assertTrue(readOwned("ui/components/InstrumentSelection.kt").contains("role = Role.RadioButton"))
         assertTrue(bar.contains("selectableGroup()"))
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("rpeHelperVisible"))
+        assertFalse(screen.contains("rpeHelperVisible"))
         assertTrue(screen.contains("viewModel::applyWarmupRamp"))
-        assertTrue(screen.contains("viewModel::dismissRpeHelper"))
-        val logged = readOwned("ui/workout/LoggedSetsPanel.kt")
-        assertTrue(logged.contains("SetOrdinalCopy.loggedLines"))
+        assertFalse(screen.contains("viewModel::dismissRpeHelper"))
+        val logged = readOwned("ui/workout/WorkoutSavedSets.kt")
+        assertTrue(logged.contains("Warm-up"))
+        assertTrue(logged.contains("Working set"))
         assertTrue(logged.contains("targetSets"))
     }
 
     @Test
-    fun rpeHelperLivesInDatastoreNotRoom() {
+    fun legacyHelperPreferenceRemainsDeviceLocalForCompatibility() {
         val prefs = readOwned("data/repository/prefs/SettingsStore.kt")
         assertTrue(prefs.contains("rpe_helper_dismissed"))
         assertFalse(prefs.contains("entity") && prefs.contains("rpe_helper"))

@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Dp
 import com.sinura.personaltrainer.domain.StepperRepeat
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -125,7 +126,7 @@ fun StepperButton(
         Text(
             label,
             modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
-            style = if (compact) InstrumentType.bodyStrong else InstrumentType.numeralMd,
+            style = (if (compact) InstrumentType.bodyStrong else InstrumentType.numeralMd).copy(textDirection = TextDirection.Ltr),
             color = TextPrimary,
             maxLines = 2,
             textAlign = TextAlign.Center,

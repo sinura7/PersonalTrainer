@@ -37,15 +37,17 @@ class ComponentInventoryTest {
     }
 
     @Test
-    fun workoutAndHistoryShareLiftCardAndSetTable() {
+    fun workoutHistoryIsASecondarySheetAndHistoryKeepsItsReusableTable() {
         val workout = readUi("workout/WorkoutLiftCard.kt")
-        assertTrue(workout.contains("LoggedSetsPanel("))
+        assertTrue(workout.contains("LatestWorkoutSet("))
+        assertTrue(workout.contains("WorkoutSetsSheet("))
         val current = readUi("workout/CurrentLiftCard.kt")
         assertTrue(current.contains("ExerciseThumb("))
         assertTrue(current.contains("LiftOverflowMenu("))
-        val logged = readUi("workout/LoggedSetsPanel.kt")
-        assertTrue(logged.contains("SetTable("))
-        assertTrue(logged.contains("SetTableLine.fromLog"))
+        val logged = readUi("workout/WorkoutSavedSets.kt")
+        assertTrue(logged.contains("SetCopy.setLine"))
+        assertTrue(logged.contains("Edit set"))
+        assertTrue(logged.contains("Delete set"))
         val filled = readUi("history/FilledLiftCard.kt")
         assertTrue(filled.contains("LiftCard("))
         assertTrue(filled.contains("SetTable("))

@@ -42,6 +42,15 @@ object TemperIcons {
     val Edit: ImageVector
         get() = edit ?: pencilMark().also { edit = it }
 
+    /** Compact overflow action, drawn in the same plate vocabulary. */
+    val More: ImageVector by lazy {
+        vector("More") {
+            plate(10f, 3f, 14f, 3f, 14f, 7f, 10f, 7f)
+            plate(10f, 10f, 14f, 10f, 14f, 14f, 10f, 14f)
+            plate(10f, 17f, 14f, 17f, 14f, 21f, 10f, 21f)
+        }
+    }
+
     /** Row action: remove a logged set. */
     val Delete: ImageVector
         get() = delete ?: binMark().also { delete = it }

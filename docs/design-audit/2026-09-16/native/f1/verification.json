@@ -128,8 +128,6 @@
     "adversarial": "clear, no unresolved findings"
   },
   "outstanding": [
-    "Hosted deterministic check and default-renderer references/comparison",
-    "PR and post-merge integrated checks",
     "Physical device milestone acceptance: TalkBack, gestures, normal display settings, haptics, performance and signed upgrade"
   ],
   "publication": {
@@ -157,6 +155,30 @@
       "missingF1references": 32,
       "oldWorkoutReferencesAssignedF2F3": 9
     },
-    "referenceComparison": "pending after initial reference acceptance"
+    "referenceComparison": "All35 F1 native checks passed, including32 image comparisons in run35194251568; only9 older workout refs fail (F2/F3)"
+  },
+  "integration": {
+    "mergeCommit": "97d08ca458a9823f4cd6b62bea78a84be9b14084",
+    "pullRequest": 349,
+    "requiredHostedChecks": "Both push35194248498 and PR35194251568 passed",
+    "cleanTrunkGate": "passed; unchanged build/lint outputs reused; static checks reran",
+    "freshUnitCommand": ".\\tools\\dev-windows.ps1 testDebugUnitTest --rerun",
+    "freshUnitCounts": {
+      "tests": 2537,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "nativeRun": "20260917-073927328",
+    "nativeCounts": {
+      "tests": 35,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "nativeScope": "F1 controls and complete shell;32 pixel comparisons",
+    "reportSha256": [
+      "b364396493e934dc473368977c73a6013bbac840402cc8cb7aca842c676a31fa"
+    ]
   }
 }

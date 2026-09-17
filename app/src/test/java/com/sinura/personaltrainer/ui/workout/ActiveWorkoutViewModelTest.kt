@@ -873,6 +873,47 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun editingEarlierSetsAnnouncesTheirOwnOrdinalIncludingAChangedSetType() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        repeat(5) { index ->
+            val saved = deps.workoutRepository.logSet(sessionId = fixture.session.id, exerciseId = SQUAT,
+                weightKg = 100.0, reps = 5, rpe = null, isWarmup = index < 2)
+            val dao = deps.database.workoutDao()
+            val row = checkNotNull(dao.getSet(saved.setId))
+            // A clock correction may reverse timestamps without changing set order.
+            dao.updateSet(row.copy(completedAt = STAMP + (5 - index) * 1_000L))
+        }
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        val sets = vm.awaitState { it.session?.sets?.size == 5 }.session!!.setsFor(SQUAT)
+        val firstWarmup = sets.first { it.isWarmup }
+        val firstWorking = sets.first { !it.isWarmup }
+        vm.editSet(firstWarmup.id)
+        vm.awaitState { it.editingSetId == firstWarmup.id }
+        vm.setWeight(45.0)
+        vm.logSetAndSettle()
+        withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWarmup.id && it.weightKg == 45.0 } }
+        vm.awaitState { !it.logging && it.editingSetId == null }
+        assertEquals(firstWarmup.id, vm.logReceipt.value?.setId)
+        assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("WU 1 logged"))
+        vm.editSet(firstWorking.id)
+        vm.awaitState { it.editingSetId == firstWorking.id }
+        vm.setWeight(75.0)
+        vm.logSetAndSettle()
+        withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWorking.id && it.weightKg == 75.0 } }
+        vm.awaitState { !it.logging && it.editingSetId == null }
+        assertEquals(firstWorking.id, vm.logReceipt.value?.setId)
+        assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Set 1 of 3 logged"))
+        vm.editSet(firstWorking.id)
+        vm.awaitState { it.editingSetId == firstWorking.id }
+        vm.setWarmup(true)
+        vm.logSetAndSettle()
+        withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWorking.id && it.isWarmup } }
+        assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("WU 3 logged"))
+        assertEquals(5, checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size)
+    }
+
+    @Test
     fun editingHidesMicroRec() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)

@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.domain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SetCopyTest {
@@ -47,6 +48,9 @@ class SetCopyTest {
             "no weight × 13",
             SetCopy.setLine(0.0, 13, LoadClass.LOADED, WeightUnit.KG),
         )
+        assertEquals("Weight, no weight", SetCopy.weightWellSpoken(WeightMeaning.LIFTED, 0.0, WeightUnit.KG))
+        assertFalse(SetCopy.weightKeypadHelper(LoadClass.LOADED, allowsZero = true).contains("bodyweight"))
+        assertTrue(SetCopy.weightKeypadHelper(LoadClass.BODYWEIGHT_ASSISTED, allowsZero = true).startsWith("0 means no assistance."))
     }
 
     @Test
@@ -56,7 +60,7 @@ class SetCopyTest {
             SetCopy.setLine(0.0, 13, LoadClass.BODYWEIGHT_ADDED, WeightUnit.LBS),
         )
         assertEquals(
-            "Added, no weight, bodyweight",
+            "Added weight, no weight, bodyweight",
             SetCopy.weightWellSpoken(WeightMeaning.ADDED, 0.0, WeightUnit.LBS),
         )
         assertEquals(
@@ -71,7 +75,7 @@ class SetCopyTest {
             SetCopy.weightKeypadHelper(LoadClass.BODYWEIGHT_ADDED, allowsZero = true),
         )
         assertEquals(
-            "A number, up to two decimals. 87.5 or 87,5.",
+            "No negatives; up to two decimals. 87.5 or 87,5.",
             SetCopy.weightKeypadHelper(LoadClass.LOADED, allowsZero = false),
         )
     }
