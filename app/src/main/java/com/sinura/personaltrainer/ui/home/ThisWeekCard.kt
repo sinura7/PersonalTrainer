@@ -26,6 +26,7 @@ import com.sinura.personaltrainer.domain.OneFilledVolt
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.featuredSession
 import com.sinura.personaltrainer.domain.sessionLifts
 import com.sinura.personaltrainer.domain.sessionMinutes
@@ -62,6 +63,9 @@ fun ThisWeekCard(
     routines: List<Routine> = emptyList(),
     quietStart: Boolean = false,
     setupComplete: Boolean = true,
+    dayLabel: String = "Today",
+    records: List<SessionSummary> = emptyList(),
+    onOpenRecord: (SessionSummary) -> Unit = {},
 ) {
     val trainingToday = day?.takeUnless { it.isRest }
     var startPending by rememberSaveable { mutableStateOf(false) }
@@ -84,9 +88,9 @@ fun ThisWeekCard(
     }
     val hasPlan = trainingToday != null || nextDay != null
     val kicker = when {
-        trainingToday != null -> "Today"
+        trainingToday != null -> dayLabel
         nextDay != null -> "Next · ${nextDay.dayOfWeek.shortLabel()}"
-        else -> "Today"
+        else -> dayLabel
     }
     val headline = when {
         trainingToday != null -> trainingToday.routineName ?: trainingToday.focusTitle
@@ -96,9 +100,10 @@ fun ThisWeekCard(
 
     val featuredRoutineId = featuredSession(trainingToday, nextDay)?.routineId
 
+    records.forEach { session -> HomeRecordedSession(session, onOpenRecord) }
     GymCard {
         Kicker(kicker, color = TextSecondary)
-        if (hasPlan) {
+        if (hasPlan && !loggedToday) {
             DayBlockHead(
                 title = headline,
                 lines = DayBlockCopy.preview(
@@ -107,7 +112,7 @@ fun ThisWeekCard(
                 ),
                 exercises = sessionLifts(featuredRoutineId, routines),
             )
-        } else {
+        } else if (!hasPlan) {
             Text(
                 headline,
                 style = InstrumentType.title,
@@ -117,7 +122,7 @@ fun ThisWeekCard(
             )
             Text(
                 if (hasRoutines) {
-                    "Nothing planned today. Start a workout, or open Plan."
+                    "Nothing planned for this day. Start a workout, or open Plan."
                 } else {
                     GetStartedCopy.EMPTY_CAPTION
                 },
@@ -125,7 +130,7 @@ fun ThisWeekCard(
                 color = TextSecondary,
             )
         }
-        if (hasPlan && reason != null) {
+        if (hasPlan && !loggedToday && reason != null) {
             Text(
                 reason,
                 style = InstrumentType.caption,
@@ -163,7 +168,7 @@ fun ThisWeekCard(
             val sessionModifier = Modifier
                 .padding(top = Metrics.space1)
                 .testTag(HomeTags.SESSION)
-                .semantics { contentDescription = "Start today's planned session" }
+                .semantics { contentDescription = "Start this planned session" }
             if (quietStart) {
                 TextButton(
                     onClick = { startPending = true },
@@ -205,24 +210,10 @@ fun ThisWeekCard(
                 )
             }
         } else if (!sessionLive) {
-            TextButton(
-                onClick = onStartFree,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = Metrics.touchMin)
-                    .padding(top = Metrics.space1)
-                    .testTag(HomeTags.START)
-                    .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
-                contentPadding = PaddingValues(0.dp),
-            ) {
-                Text(
-                    SessionOrderCopy.FREE_WORKOUT,
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            LeftoverFreeStart(
+                rank = if (quietStart) FreeStartRank.SECONDARY else FreeStartRank.PRIMARY,
+                onStartFree = onStartFree,
+            )
         }
     }
 }

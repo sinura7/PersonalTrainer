@@ -1,9 +1,11 @@
 package com.sinura.personaltrainer.domain
 
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.util.JvmTime
 import java.time.LocalDate
 import java.time.ZoneOffset
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -156,6 +158,12 @@ class WeekDerivationTest {
 
         assertEquals("s1", week.days.first { it.epochDay == MON_EPOCH }.satisfiedBySessionId)
         assertNull("nothing is left undone", week.nextUp)
+        val plan = WeekDerivation.toWeeklySchedulePlan(week, routines(), PREFS, millis(TUE))
+        val presentedDay = plan.days.first { it.epochDay == MON_EPOCH }
+        assertEquals("s1", presentedDay.satisfiedBySessionId)
+        val summary = session.toSummary(JvmTime, "UTC")
+        assertTrue(HomeRecords.fallbackCompleted(presentedDay, listOf(summary)))
+        assertFalse(HomeRecords.fallbackCompleted(presentedDay, listOf(summary.copy(id = "unrelated"))))
     }
 
     @Test

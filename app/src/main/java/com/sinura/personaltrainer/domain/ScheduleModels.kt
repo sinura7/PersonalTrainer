@@ -89,6 +89,8 @@ data class SuggestedTrainingDay(
      * sites — which produce proposals — need no change.
      */
     val slotId: String? = null,
+    /** Existing derived slot satisfaction, carried through for truthful presentation. */
+    val satisfiedBySessionId: String? = null,
 )
 
 data class WeeklySchedulePlan(

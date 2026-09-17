@@ -37,7 +37,7 @@ because source assertions or JVM tests alone pass.
 | F1 | Typed controls, component gallery, headers, navigation, insets and live bar | Complete — PR #349; integrated unit/native gates passed |
 | F2 | Compact workout identity, entry, warm-ups/RPE, latest sets and dock geometry | Complete — PR #350; integrated unit/native gates passed |
 | F3 | Primary-action state, completion, timing, switcher, retry, undo and resume | Implementation complete — PR #351; integrated checks passed; Milestone A phone acceptance pending |
-| F4 | Truthful Home dates, day picker, planned/completed/live/empty states | Pending |
+| F4 | Truthful Home dates, day picker, planned/completed/live/empty states | In progress |
 | F5 | Registered Body heat geometry, viewport, selection and list equivalence | Pending |
 | F6 | Unified History periods, calendar, readable duration and lifetime views | Pending |
 | F7 | Plan/routines, ordering, editing, import and failed-save recovery | Pending |

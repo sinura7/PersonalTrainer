@@ -88,7 +88,7 @@ class HomePassInstrumentedTest {
             )
         }
         compose.onNodeWithTag(HomeTags.SESSION).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Start today's planned session").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start this planned session").assertIsDisplayed()
         compose.onNodeWithText("Start this session").assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
@@ -393,7 +393,7 @@ class HomePassInstrumentedTest {
         ).assertTextContains("Rest", substring = true)
         compose.onNodeWithTag(
             com.sinura.personaltrainer.ui.components.WeekStripTags.cell(friday),
-        ).assertTextContains("Workout", substring = true)
+        ).assertTextContains("Plan", substring = true)
     }
 
     @Test

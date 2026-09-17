@@ -12,6 +12,22 @@ import org.junit.Test
 class MastheadCopyTest {
 
     @Test
+    fun unrelatedRecordedActivityDoesNotHideRemainingFallbackWork() {
+        for (isToday in listOf(true, false)) {
+            assertEquals(
+                "PUSH DAY · 4 LIFTS",
+                MastheadCopy.headline(
+                    day = day(SessionFocusKind.PUSH),
+                    loggedToday = true,
+                    liftCount = 4,
+                    isToday = isToday,
+                    hasRemainingPlannedWork = true,
+                ),
+            )
+        }
+    }
+
+    @Test
     fun trainingTodayNamesTheFocusAndTheLiftCount() {
         assertEquals(
             "PUSH DAY · 4 LIFTS",

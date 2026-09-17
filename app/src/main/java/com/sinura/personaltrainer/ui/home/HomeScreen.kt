@@ -1,12 +1,17 @@
 package com.sinura.personaltrainer.ui.home
 
+import com.sinura.personaltrainer.ui.plan.MissedWorkCard
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,15 +21,17 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.HomeToday
+import com.sinura.personaltrainer.domain.HomeRecords
+import com.sinura.personaltrainer.domain.HistoryKind
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.PlanDayCopy
@@ -44,7 +51,6 @@ import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeekStrip
 import com.sinura.personaltrainer.ui.theme.InstrumentType
-import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -62,6 +68,8 @@ fun HomeScreen(
     onOpenRoutine: (String) -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
+    onOpenSession: (String) -> Unit = {},
+    onOpenActivity: (String) -> Unit = {},
     pendingOccurrenceStartId: String? = null,
     onPendingOccurrenceConsumed: () -> Unit = {},
     pendingOccurrenceReviewId: String? = null,
@@ -200,8 +208,20 @@ fun HomeScreen(
         routineId = null,
         routineName = null,
     )
-    val weekCells = remember(weekStart, state.occurrences, state.rules, names) {
-        WeekBoard.forWeek(weekStart, state.occurrences, state.rules, names)
+    val unlinkedRecords = remember(selectedEpochDay, state.summaries, selectedAgenda) {
+        HomeRecords.unlinkedForDay(selectedEpochDay, state.summaries, selectedAgenda)
+    }
+    val fallbackCompleted = HomeRecords.fallbackCompleted(leftoverDay, unlinkedRecords)
+    val fallbackRemaining = selectedAgenda.isEmpty() &&
+        leftoverDay?.isRest == false && !fallbackCompleted
+    val onOpenRecord: (SessionSummary) -> Unit = { record ->
+        if (record.kind == HistoryKind.WORKOUT) onOpenSession(record.id) else onOpenActivity(record.id)
+    }
+    val weekCells = remember(weekStart, state.occurrences, state.rules, names, state.summaries) {
+        WeekBoard.forWeek(
+            weekStart, state.occurrences, state.rules, names,
+            recordedDays = state.summaries.groupingBy { it.localEpochDay }.eachCount(),
+        )
     }
     val dayKicker = if (selectedEpochDay == today) {
         "Today"
@@ -251,7 +271,7 @@ fun HomeScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().testTag(HomeTags.CONTENT),
         contentPadding = PaddingValues(
             start = Metrics.gutter,
             end = Metrics.gutter,
@@ -264,6 +284,7 @@ fun HomeScreen(
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
                 HomeMasthead(
                     epochDay = selectedEpochDay,
+                    onToday = if (selectedEpochDay != today) { { selectedEpochDay = today } } else null,
                     // The masthead describes the DAY, never the session. The live bar owns
                     // live, and a masthead that switched to narrating the workout would be a
                     // second answer to "where is my workout" on the screen that had three.
@@ -273,6 +294,8 @@ fun HomeScreen(
                         liftCount = liftCount,
                         hasPlan = hasPlan,
                         agenda = selectedAgenda,
+                        isToday = selectedEpochDay == today,
+                        hasRemainingPlannedWork = fallbackRemaining,
                     ),
                 )
                 WeekStrip(
@@ -301,7 +324,7 @@ fun HomeScreen(
         }
         if (state.missedWorkPrompt) {
             item {
-                com.sinura.personaltrainer.ui.plan.MissedWorkCard(
+                MissedWorkCard(
                     overdueCount = state.overdueCount,
                     onMoveRemaining = {
                         viewModel.applyMissedWork(
@@ -338,7 +361,7 @@ fun HomeScreen(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 when (HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen)) {
-                    HomeToday.Surface.AGENDA ->                     DailyAgendaCard(
+                    HomeToday.Surface.AGENDA -> DailyAgendaCard(
                         items = selectedAgenda,
                         sessionLive = sessionLive,
                         onStartOccurrence = viewModel::startOccurrence,
@@ -355,11 +378,14 @@ fun HomeScreen(
                             viewModel.moveDayBlock(selectedAgenda, occurrenceId, delta)
                         },
                         onSkipOccurrence = viewModel::skipOccurrence,
+                        summaries = state.summaries,
+                        unlinkedRecords = unlinkedRecords,
+                        onOpenRecord = onOpenRecord,
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
                         day = leftoverDay,
                         nextDay = nextDay,
-                        loggedToday = loggedSelected,
+                        loggedToday = fallbackCompleted,
                         sessionLive = sessionLive,
                         hasRoutines = state.routines.isNotEmpty(),
                         lifts = leftoverLiftNames(featured, state.routines),
@@ -372,6 +398,9 @@ fun HomeScreen(
                         },
                         onStartFree = { startSheet = true },
                         onOpenPlan = onOpenPlan,
+                        dayLabel = dayKicker,
+                        records = unlinkedRecords,
+                        onOpenRecord = onOpenRecord,
                     )
                 }
             }
@@ -418,6 +447,7 @@ fun HomeScreen(
 internal fun HomeMasthead(
     epochDay: Long,
     headline: String,
+    onToday: (() -> Unit)? = null,
 ) {
     val dateLine = remember(epochDay) {
         DateTimeFormatter.ofPattern(DATE_LINE_PATTERN).format(LocalDate.ofEpochDay(epochDay))
@@ -426,20 +456,36 @@ internal fun HomeMasthead(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Kicker(dateLine)
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                dateLine.uppercase(),
+                modifier = Modifier.weight(1f),
+                style = InstrumentType.kicker,
+                color = TextSecondary,
+            )
+            if (onToday != null) {
+                TextButton(
+                    onClick = onToday,
+                    modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(HomeTags.TODAY),
+                ) {
+                    Text("Today", style = InstrumentType.bodyStrong, color = TextPrimary)
+                }
+            }
+        }
         Text(
             headline,
             modifier = Modifier.semantics { heading() },
             style = InstrumentType.display,
             color = TextPrimary,
-            maxLines = LogLoopScale.headlineLines(LocalDensity.current.fontScale),
-            overflow = TextOverflow.Ellipsis,
         )
     }
 }
 
 // The separator is quoted: everything outside quotes in a pattern is a format field.
 object HomeTags {
+    const val CONTENT = "home-content"
+    const val TODAY = "home-today"
+    fun record(sessionId: String): String = "home-record-$sessionId"
     const val START = "home-start"
     const val FREE = "home-free-start"
     const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"

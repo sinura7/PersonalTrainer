@@ -32,6 +32,9 @@ import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.DayBlockCopy
+import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.SessionSummary
+import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.domain.sessionLifts
 import com.sinura.personaltrainer.domain.sessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -72,6 +75,9 @@ fun DailyAgendaCard(
     onSkipOccurrence: (String) -> Unit = {},
     confirmOccurrenceId: String? = null,
     onConfirmOccurrenceConsumed: () -> Unit = {},
+    summaries: List<SessionSummary> = emptyList(),
+    unlinkedRecords: List<SessionSummary> = emptyList(),
+    onOpenRecord: (SessionSummary) -> Unit = {},
 ) {
     val catalog = items + stillOpen
     var pendingOccurrenceId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -117,7 +123,7 @@ fun DailyAgendaCard(
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         Kicker(kicker)
-        if (items.isEmpty() && stillOpen.isEmpty()) {
+        if (items.isEmpty() && stillOpen.isEmpty() && unlinkedRecords.isEmpty()) {
             Text(
                 PlanDayCopy.EMPTY,
                 style = InstrumentType.body,
@@ -138,21 +144,43 @@ fun DailyAgendaCard(
         if (items.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
                 items.forEachIndexed { index, item ->
-                    AgendaRow(
-                        item = item,
-                        routines = routines,
-                        todayEpochDay = today,
-                        sessionLive = sessionLive,
-                        leftoverLabel = false,
-                        showReorder = canEditDay && items.size > 1,
-                        index = index,
-                        lastIndex = items.lastIndex,
-                        onMove = onMoveOccurrence,
-                        onOpen = { pendingOccurrenceId = item.occurrence.id },
-                    )
+                    if (item.occurrence.status == OccurrenceStatus.DONE) {
+                        val record = summaries.firstOrNull { it.id == item.occurrence.completedActivityId }
+                        if (record != null) {
+                            HomeRecordedSession(
+                                session = record,
+                                onOpen = onOpenRecord,
+                                scheduledTitle = item.title.takeIf { record.localEpochDay != item.occurrence.localEpochDay },
+                            )
+                        } else {
+                            GymCard(modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id))) {
+                                Kicker("Completed")
+                                Text(item.title, style = InstrumentType.title, color = TextPrimary)
+                                Text(
+                                    if (item.occurrence.completedActivityId == null) "Marked complete; no linked session."
+                                    else "Saved session unavailable.",
+                                    style = InstrumentType.body, color = TextSecondary,
+                                )
+                            }
+                        }
+                    } else {
+                        AgendaRow(
+                            item = item,
+                            routines = routines,
+                            todayEpochDay = today,
+                            sessionLive = sessionLive,
+                            leftoverLabel = false,
+                            showReorder = canEditDay && items.size > 1,
+                            index = index,
+                            lastIndex = items.lastIndex,
+                            onMove = onMoveOccurrence,
+                            onOpen = { pendingOccurrenceId = item.occurrence.id },
+                        )
+                    }
                 }
             }
         }
+        unlinkedRecords.forEach { session -> HomeRecordedSession(session, onOpenRecord) }
         if (stillOpen.isNotEmpty()) {
             Kicker(MoveToToday.STILL_OPEN)
             Text(

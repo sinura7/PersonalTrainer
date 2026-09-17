@@ -62,6 +62,7 @@ data class HomeUiState(
      * in the current week as untrained after a travel-week gap.
      */
     val loggedEpochDays: Set<Long> = emptySet(),
+    val summaries: List<com.sinura.personaltrainer.domain.SessionSummary> = emptyList(),
     val lighterWeek: Boolean = false,
     val error: String? = null,
     val missedWorkPrompt: Boolean = false,
@@ -158,6 +159,7 @@ class HomeViewModel @JvmOverloads constructor(
             recommendations = insights.recommendations,
             weekPlan = insights.weekPlan,
             loggedEpochDays = insights.summaries.map { it.localEpochDay }.toSet(),
+            summaries = insights.summaries,
             lighterWeek = LighterWeek.isCurrent(
                 lighterStart,
                 insights.weekPlan?.weekStartEpochDay,

@@ -43,6 +43,10 @@ data class WeekBoardCell(
     val caption: String,
     val plannedCount: Int,
     val resolvedCount: Int,
+    val completedCount: Int = resolvedCount,
+    val skippedCount: Int = 0,
+    val missedCount: Int = 0,
+    val recordedCount: Int = 0,
 )
 
 object WeekBoard {
@@ -51,6 +55,7 @@ object WeekBoard {
         occurrences: List<ScheduleOccurrence>,
         rules: List<ScheduleRule>,
         routineNames: Map<String, String> = emptyMap(),
+        recordedDays: Map<Long, Int> = emptyMap(),
     ): List<WeekBoardCell> = (0 until Weekday.DAYS_IN_WEEK).map { offset ->
         val epochDay = weekStartEpochDay + offset
         // MOVED rows are vacated slots: the work now lives on another day
@@ -68,6 +73,10 @@ object WeekBoard {
             caption = caption(items),
             plannedCount = items.size,
             resolvedCount = resolved,
+            completedCount = items.count { it.occurrence.status == OccurrenceStatus.DONE },
+            skippedCount = items.count { it.occurrence.status == OccurrenceStatus.SKIPPED },
+            missedCount = items.count { it.occurrence.status == OccurrenceStatus.MISSED },
+            recordedCount = recordedDays[epochDay] ?: 0,
         )
     }
 
@@ -79,20 +88,37 @@ object WeekBoard {
 
     fun summary(cells: List<WeekBoardCell>): String {
         val planned = cells.sumOf { it.plannedCount }
-        val done = cells.sumOf { it.resolvedCount }
+        val done = cells.sumOf { it.completedCount }
+        val skipped = cells.sumOf { it.skippedCount }
         val plannedLabel = if (planned == 1) "1 planned" else "$planned planned"
         val doneLabel = if (done == 1) "1 done this week" else "$done done this week"
-        return "$plannedLabel · $doneLabel"
+        return "$plannedLabel · $doneLabel" + if (skipped > 0) " · $skipped skipped" else ""
     }
 
-    fun spoken(cell: WeekBoardCell, today: Long, selected: Long): String {
+    /** Short visible labels; detailed activity names belong in the selected day's board. */
+    fun statusLabel(cell: WeekBoardCell): String = when {
+        cell.plannedCount > cell.resolvedCount &&
+            (cell.completedCount > 0 || cell.recordedCount > 0) -> "More"
+        cell.skippedCount > 0 && cell.completedCount + cell.recordedCount > 0 -> "Mixed"
+        cell.missedCount > 0 -> "Missed"
+        cell.plannedCount > cell.resolvedCount -> "Plan"
+        cell.skippedCount > 0 -> "Skip"
+        cell.completedCount > 0 || cell.recordedCount > 0 -> "Done"
+        else -> "Rest"
+    }
+
+    fun spoken(cell: WeekBoardCell, today: Long, selected: Long, proposal: SuggestedTrainingDay? = null): String {
         val name = CustomWeekPolicy.routineName(cell.weekday)
-        val fill = when (cell.fill) {
-            DayFill.EMPTY -> "rest"
-            DayFill.NONE -> "${cell.caption}, none done"
-            DayFill.PARTIAL -> "${cell.caption}, some done"
-            DayFill.ALL -> "${cell.caption}, complete"
-        }
+        val fill = buildList {
+            if (cell.plannedCount > 0) add("${cell.plannedCount} planned")
+            if (cell.completedCount > 0) add("${cell.completedCount} completed")
+            if (cell.skippedCount > 0) add("${cell.skippedCount} skipped")
+            if (cell.missedCount > 0) add("${cell.missedCount} missed")
+            if (cell.recordedCount > 0) add("${cell.recordedCount} recorded sessions")
+            if (isEmpty()) {
+                add(if (proposal != null && !proposal.isRest) "Suggested ${proposal.focusTitle}; not yet planned" else "rest")
+            }
+        }.joinToString(", ")
         val extra = buildList {
             if (cell.epochDay == selected) add("selected")
             if (cell.epochDay == today) add("today")
