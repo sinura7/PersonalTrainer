@@ -1872,17 +1872,16 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun aRefusalSurvivesALogSetStillInFlight() = runBlocking {
+    fun removingALiftWithSavedSetsIsRefusedAfterSaveCompletes() = runBlocking {
         val fixture = seedWorkout(targetSets = 1)
         val vm = createViewModel(fixture.session.id)
         vm.awaitFound()
         vm.setWeight(100.0)
-        // Deliberately not settled: the race under test is logSet's tail landing after the
-        // refusal below. Before ErrorSlot that tail's success-path `error = null` erased the
-        // refusal before this collector saw it, and the wait ran out its 30 seconds.
+        // F3 serializes entry mutations while saving. Wait for that operation to
+        // release before exercising the saved-set removal refusal.
         vm.logSet()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
-        vm.awaitState { it.session?.sets?.size == 1 }
+        vm.awaitState { it.session?.sets?.size == 1 && !it.logging && !it.save.pending }
 
         vm.removeSelectedLift()
 

@@ -187,6 +187,10 @@ class WorkoutSaveRecoveryTest {
         original.logSet()
         original.uiState.awaitFirst { it.logging && it.session?.sets?.size == 1 }
         val command = checkNotNull(SavedStateWorkoutSave(handle).read(fixture.session.id))
+        original.removeSelectedLift()
+        assertEquals(1, deps.workoutRepository.getSession(fixture.session.id)!!.exercises.size)
+        assertEquals(command, SavedStateWorkoutSave(handle).read(fixture.session.id))
+        assertNull(original.uiState.value.error)
         original.clearAndJoinForTest()
         models.remove(original)
         deps.workoutDraftCache.clear(fixture.session.id)

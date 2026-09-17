@@ -6,7 +6,8 @@ Obtainium **Temper Debug** entry; preserve its data and signing identity.
 
 ## Record once
 
-- Phone model, Android version, display size and font-size settings.
+- Owner reported Samsung S26 Ultra with regular text size (17 September 2026).
+  Android version and display-size setting remain unconfirmed.
 - Version/build shown in Settings → About after the update.
 - Existing history and settings remain present after upgrading in place.
 

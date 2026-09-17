@@ -183,3 +183,12 @@ failures; all other native checks passed. All 81 actual captures were reviewed
 and independently matched across both hosted runs within the unchanged one-level,
 256-pixel rounding allowance. Accepted hosted references are separate from Windows
 references and have per-file hashes/rationale. Fresh hosted comparison pending.
+
+Hosted required rerun 35232007169 exposed a second obsolete timing assumption in
+`aRefusalSurvivesALogSetStillInFlight`: it expected a removal attempt to execute
+before a save acknowledgement. F3 explicitly serializes such mutations. The
+renamed test now waits for save completion before checking the saved-set refusal;
+the gated pre-acknowledgement recovery test additionally verifies removal is
+blocked and preserves the pending command. Production source is unchanged.
+Full gate 12 verifies the corrected contract assertions before another push.
+Full gate 12 passed all 2,579 tests and required build/lint/static checks.
