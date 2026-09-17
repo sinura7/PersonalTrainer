@@ -62,6 +62,7 @@ object Metrics {
 
     /** Persistent chrome shares lines in short windows to leave usable content. */
     val compactWindowHeight: Dp = 400.dp
+    val inputDialogMaxWidth: Dp = 560.dp
 
     /**
      * One snap-wheel numeral. Rest length (Packet E still) and reminder

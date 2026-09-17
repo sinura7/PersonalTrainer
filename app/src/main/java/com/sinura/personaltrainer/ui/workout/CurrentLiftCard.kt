@@ -16,6 +16,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +65,7 @@ internal fun CurrentLiftCard(
     onSummary: () -> Unit,
     modifier: Modifier = Modifier,
     onSkip: () -> Unit = {},
+    enabled: Boolean = true,
 ) {
     val meaning = LoadClass.of(lift.exercise.loadType).weightMeaning
     val equipment = CurrentLiftCopy.secondaryLine(lift.exercise.equipment.label, meaning)
@@ -79,7 +81,7 @@ internal fun CurrentLiftCard(
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val overflow: @Composable () -> Unit = {
-        LiftOverflowMenu(liftId = lift.id, canEdit = canEdit, onSkip = onSkip, onSwap = onSwap,
+        LiftOverflowMenu(enabled = enabled, liftId = lift.id, canEdit = canEdit, onSkip = onSkip, onSwap = onSwap,
             onRemove = onRemove, onNotes = onNotes, onSummary = onSummary)
     }
     val details: @Composable () -> Unit = {
@@ -96,7 +98,7 @@ internal fun CurrentLiftCard(
     }
     val switchModifier = Modifier.heightIn(min = Metrics.touchMin)
         .clip(RoundedCornerShape(Radius.xs))
-        .clickable(role = Role.Button, onClickLabel = "Switch exercise", onClick = onOpenSwitcher)
+        .clickable(enabled = enabled, role = Role.Button, onClickLabel = "Switch exercise", onClick = onOpenSwitcher)
         .testTag(WorkoutTestTags.liftCard(lift.exercise.id))
         .semantics(mergeDescendants = true) {
             contentDescription = "$spoken. Switch exercise"
@@ -164,10 +166,13 @@ internal fun LiftOverflowMenu(
     onNotes: () -> Unit,
     onSummary: () -> Unit,
     onSkip: () -> Unit = {},
+    enabled: Boolean = true,
 ) {
     var menuOpen by rememberSaveable(liftId) { mutableStateOf(false) }
+    LaunchedEffect(enabled) { if (!enabled) menuOpen = false }
     Box {
         IconButton(
+            enabled = enabled,
             onClick = { menuOpen = true },
             modifier = Modifier
                 .size(Metrics.touchMin)

@@ -590,11 +590,9 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun aWeightChangedWhileTheSetIsBeingWrittenSurvivesTheLog() = runBlocking {
-        // The wells belong to the NEXT set. Room's write is tens of milliseconds and a finger
-        // is faster, so the load dialled in for the set after this one used to be taken back
-        // by the log's own tail — the number the lifter had just chosen reverted to the one
-        // already logged, and only sometimes, which is what made it so hard to pin down.
+    fun entryIsLockedDuringWriteAndEditableAgainAfterAcknowledgement() = runBlocking {
+        // F3 makes the outstanding operation explicit. Disabled wells and stale callbacks
+        // cannot replace its values; entry resumes after persistence acknowledges the save.
         val fixture = seedWorkout()
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
@@ -609,7 +607,7 @@ class ActiveWorkoutViewModelTest {
             // would prove nothing at all. No database read here — it would queue behind the
             // very transaction the gate is holding.
             assertTrue(vm.uiState.value.logging)
-            // Between the tap and the row: the next set is going up ten kilos.
+            assertTrue(vm.uiState.value.entryLocked)
             vm.setWeight(110.0)
             vm.setReps(3)
             gate.complete(Unit)
@@ -620,12 +618,16 @@ class ActiveWorkoutViewModelTest {
             // "the log has run its course" from "the log has not started".
             val settled = vm.awaitState { !it.logging && !it.draft.isWarmup }
             assertNull(settled.error)
-            assertEquals(110.0, settled.draft.weightKg, 0.0001)
-            assertEquals(3, settled.draft.reps)
-            // The set that was written is the one that was tapped, untouched by the change.
+            assertEquals(100.0, settled.draft.weightKg, 0.0001)
+            assertEquals(5, settled.draft.reps)
+            assertFalse(settled.entryLocked)
             val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
             assertEquals(100.0, persisted.sets.single().weightKg, 0.0001)
             assertEquals(5, persisted.sets.single().reps)
+            vm.setWeight(110.0)
+            vm.setReps(3)
+            vm.awaitState { it.draft.weightKg == 110.0 && it.draft.reps == 3 }
+            Unit
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
         }

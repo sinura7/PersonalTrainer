@@ -39,7 +39,7 @@ class FloorPacketFAdvanceTest {
         val bar = readOwned("ui/workout/WorkoutLogBar.kt")
         assertFalse(bar.contains("GymReceiptBanner("))
         assertTrue(readOwned("ui/workout/WorkoutSavedSets.kt").contains("WorkoutTestTags.LOG_RECEIPT"))
-        assertTrue(bar.contains("NextLiftPreview("))
+        assertTrue(bar.contains("primaryLabel ?: LogBarCopy.commit("))
         assertTrue(bar.contains("finishAct"))
         assertTrue(bar.contains("WorkoutTestTags.DOCK_FINISH"))
         assertTrue(bar.contains("nextName"))

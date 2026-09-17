@@ -11,7 +11,7 @@ package com.sinura.personaltrainer.domain
  * a pending rest generation so a hidden alarm cannot ring mid-set.
  */
 object FloorTimerSurface {
-    const val SET_KICKER = "SET"
+    const val SET_KICKER = "Set time"
     const val HOLD_KICKER = HoldWork.HOLD_KICKER
     const val REST_STATE = "rest"
     const val SET_STATE = "set"
@@ -150,7 +150,6 @@ object SetStopwatchCopy {
     const val STOP = "Stop"
     const val SWITCH_TITLE = "Stop timing and switch?"
     const val SWITCH_BODY =
-        "This set clock is still running. Stop it to change lifts. " +
-            "The time already counted stays with this lift."
+        "Timing is still running. Stop it to switch exercises. This does not save a set."
     const val SWITCH_CONFIRM = "Stop and switch"
 }

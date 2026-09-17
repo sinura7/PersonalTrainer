@@ -53,6 +53,10 @@ import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.WorkoutSetSave
+import com.sinura.personaltrainer.domain.WorkoutSetValues
+import com.sinura.personaltrainer.domain.WorkoutSetSaveResolution
+import kotlinx.coroutines.CancellationException
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
 import java.util.concurrent.TimeUnit
@@ -584,68 +588,174 @@ class WorkoutRepository(
         isWarmup: Boolean,
         durationSeconds: Int? = null,
     ): LoggedSet {
-        // Count-then-insert must be one Room transaction. Two overlapping logSet calls
-        // (or a log overlapping a delete/renumber) used to both read the same count and
-        // write the same setNumber — duplicate numbers under concurrency or process death.
-        val entity = database.withTransaction {
-            val current = workoutDao.getSession(sessionId)
+        val saved = saveSet(WorkoutSetSave(
+            sessionId = sessionId,
+            exerciseId = exerciseId,
+            setId = ids.newId(),
+            completedAt = time.nowMillis(),
+            values = WorkoutSetValues(weightKg, reps, rpe, isWarmup, durationSeconds),
+        ), requireExerciseMembership = false)
+        return LoggedSet(setId = saved.row.id, records = saved.records)
+    }
+
+    /**
+     * The existing primary key is the operation identity. Count, ownership check,
+     * insert/edit and ordinal calculation share a transaction. A repeated command
+     * acknowledges its row; equal values with a different ID remain a new set.
+     */
+    suspend fun saveSet(command: WorkoutSetSave): SavedWorkoutSet =
+        saveSet(command, requireExerciseMembership = true)
+
+    // The legacy importer/fixture facade also supports historical sets without a plan row.
+    // Interactive pending commands require the selected lift to remain in the live session.
+    private suspend fun saveSet(command: WorkoutSetSave, requireExerciseMembership: Boolean): SavedWorkoutSet {
+        val saved = database.withTransaction {
+            val existing = workoutDao.getSet(command.setId)
+            val current = workoutDao.getSession(command.sessionId)
                 ?: error("This workout is no longer available.")
-            if (current.session.finishedAt != null) {
+            if (existing != null && matchesSavedCommand(existing, command, current)) {
+                return@withTransaction savedResult(existing, current, alreadySaved = true)
+            }
+            if (existing != null && (!command.editing || !matchesOriginal(existing, command))) {
+                throw SetSaveConflict()
+            }
+            if (command.editing && existing == null) throw SetSaveConflict()
+            if (existing == null && requireExerciseMembership &&
+                current.exercises.none { it.exercise.id == command.exerciseId }
+            ) throw SetSaveConflict()
+            if (!command.editing && current.session.finishedAt != null) {
                 error("This workout is already finished.")
             }
-            val timedSeconds = durationSeconds?.takeIf { it > 0 }
-            val holdLift = current.exercises.any {
-                it.exercise.id == exerciseId &&
+            val values = command.values
+            val hold = current.exercises.any {
+                it.exercise.id == command.exerciseId &&
                     HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
             }
-            if (timedSeconds == null && reps < 1) error("Reps must be at least 1.")
-            val load = liftLoadOf(current, exerciseId)
-            val violation = SetLogRules.validate(
-                weightKg = weightKg,
-                reps = reps,
-                isWarmup = isWarmup,
+            val duration = values.durationSeconds?.takeIf { it > 0 }
+                ?: existing?.durationSeconds
+            val load = liftLoadOf(current, command.exerciseId)
+            SetLogRules.validate(
+                weightKg = values.weightKg,
+                reps = values.reps,
+                isWarmup = values.isWarmup,
                 loadType = load.loadType,
-                durationSeconds = timedSeconds,
-                isHold = holdLift,
+                durationSeconds = duration,
+                isHold = hold,
                 equipment = load.equipment,
                 movementKey = load.movementKey,
-            )
-            if (violation != null) error(violation)
-            val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
-            val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
-            val safeReps = if (holdLift) 0 else reps.coerceAtLeast(1)
-            val completedAt = time.nowMillis()
+            )?.let { error(it) }
             val row = SetLogEntity(
-                id = ids.newId(),
-                sessionId = sessionId,
-                exerciseId = exerciseId,
-                setNumber = nextNumber,
-                weightKg = safeWeight,
-                reps = safeReps,
-                rpe = rpe,
-                isWarmup = isWarmup,
-                completedAt = completedAt,
-                durationSeconds = timedSeconds,
+                id = command.setId,
+                sessionId = command.sessionId,
+                exerciseId = command.exerciseId,
+                setNumber = existing?.setNumber
+                    ?: (current.sets.count { it.set.exerciseId == command.exerciseId } + 1),
+                weightKg = values.weightKg,
+                reps = if (hold) 0 else values.reps,
+                rpe = values.rpe,
+                isWarmup = values.isWarmup,
+                completedAt = existing?.completedAt ?: command.completedAt,
+                durationSeconds = duration,
             )
-            workoutDao.insertSet(row)
-            row
+            if (existing == null) workoutDao.insertSet(row) else workoutDao.updateSet(row)
+            savedResult(row, current, alreadySaved = false)
         }
-        return LoggedSet(
-            setId = entity.id,
-            records = if (entity.isWarmup || entity.reps < 1) {
-                emptySet()
-            } else {
+        // Enrichment is not persistence. A failed record query after commit must
+        // never turn a durable set into a failed save or invite a second insert.
+        val row = saved.row
+        val records = if (saved.alreadySaved || command.editing || row.isWarmup || row.reps < 1) {
+            emptySet()
+        } else {
+            try {
                 recordsBrokenBy(
-                    exerciseId = exerciseId,
-                    sessionId = sessionId,
-                    weightKg = entity.weightKg,
-                    reps = entity.reps,
-                    completedAt = entity.completedAt,
-                    setNumber = entity.setNumber,
+                    exerciseId = row.exerciseId,
+                    sessionId = row.sessionId,
+                    weightKg = row.weightKg,
+                    reps = row.reps,
+                    completedAt = row.completedAt,
+                    setNumber = row.setNumber,
                 )
-            },
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                AppLog.w("PT/WorkoutRepo", "Set saved; record feedback could not be read", failure)
+                emptySet()
+            }
+        }
+        return saved.copy(records = records)
+    }
+
+    /** A read error propagates; it must not be interpreted as an absent set. */
+    suspend fun inspectSetSave(command: WorkoutSetSave): WorkoutSetSaveResolution = database.withTransaction {
+        val existing = workoutDao.getSet(command.setId)
+        val current = workoutDao.getSession(command.sessionId)
+        if (existing != null) {
+            if (matchesSavedCommand(existing, command, current)) return@withTransaction WorkoutSetSaveResolution.SAVED
+            return@withTransaction if (command.editing && matchesOriginal(existing, command)) {
+                WorkoutSetSaveResolution.UNSAVED
+            } else {
+                WorkoutSetSaveResolution.CONFLICT
+            }
+        }
+        if (command.editing || current == null || current.session.finishedAt != null ||
+            current.exercises.none { it.exercise.id == command.exerciseId }
+        ) {
+            WorkoutSetSaveResolution.CONFLICT
+        } else {
+            WorkoutSetSaveResolution.UNSAVED
+        }
+    }
+
+    private fun matchesSavedCommand(row: SetLogEntity, command: WorkoutSetSave, current: SessionWithDetails?): Boolean {
+        val hold = current?.exercises?.any {
+            it.exercise.id == command.exerciseId &&
+                HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
+        } == true
+        val storedValues = command.values.copy(
+            reps = if (hold) 0 else command.values.reps,
+            durationSeconds = command.values.durationSeconds?.takeIf { it > 0 }
+                ?: row.durationSeconds.takeIf { command.editing },
+        )
+        return row.sessionId == command.sessionId && row.exerciseId == command.exerciseId &&
+            row.completedAt == command.completedAt && valuesOf(row) == storedValues
+    }
+
+    private fun matchesOriginal(row: SetLogEntity, command: WorkoutSetSave): Boolean =
+        row.sessionId == command.sessionId && row.exerciseId == command.exerciseId &&
+            row.completedAt == command.completedAt && valuesOf(row) == command.original
+
+    private fun valuesOf(row: SetLogEntity) = WorkoutSetValues(
+        weightKg = row.weightKg, reps = row.reps, rpe = row.rpe,
+        isWarmup = row.isWarmup, durationSeconds = row.durationSeconds,
+    )
+
+    private fun savedResult(
+        row: SetLogEntity,
+        current: SessionWithDetails,
+        alreadySaved: Boolean,
+    ): SavedWorkoutSet {
+        val preceding = current.sets.map { it.set }.filter {
+            it.exerciseId == row.exerciseId && it.id != row.id && it.setNumber < row.setNumber
+        }
+        return SavedWorkoutSet(
+            row = row,
+            workingOrdinal = preceding.count { !it.isWarmup } + if (row.isWarmup) 0 else 1,
+            warmupOrdinal = preceding.count { it.isWarmup } + if (row.isWarmup) 1 else 0,
+            targetSets = current.exercises.firstOrNull { it.exercise.id == row.exerciseId }?.item?.targetSets ?: 0,
+            alreadySaved = alreadySaved,
         )
     }
+
+    data class SavedWorkoutSet(
+        val row: SetLogEntity,
+        val workingOrdinal: Int,
+        val warmupOrdinal: Int,
+        val targetSets: Int,
+        val alreadySaved: Boolean,
+        val records: Set<PersonalRecordKind> = emptySet(),
+    )
+
+    class SetSaveConflict : IllegalStateException("This set changed or was removed. Review your saved sets before continuing.")
 
     suspend fun updateSet(
         setId: String,

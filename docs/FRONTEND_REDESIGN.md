@@ -35,8 +35,8 @@ because source assertions or JVM tests alone pass.
 |---|---|---|
 | F0 | Reproducible emulator, fixture baseline, decision record and verification lane | Complete — PR #348; integrated gate passed |
 | F1 | Typed controls, component gallery, headers, navigation, insets and live bar | Complete — PR #349; integrated unit/native gates passed |
-| F2 | Compact workout identity, entry, warm-ups/RPE, latest sets and dock geometry | In progress |
-| F3 | Primary-action state, completion, timing, switcher, retry, undo and resume | Pending |
+| F2 | Compact workout identity, entry, warm-ups/RPE, latest sets and dock geometry | Complete — PR #350; integrated unit/native gates passed |
+| F3 | Primary-action state, completion, timing, switcher, retry, undo and resume | In progress |
 | F4 | Truthful Home dates, day picker, planned/completed/live/empty states | Pending |
 | F5 | Registered Body heat geometry, viewport, selection and list equivalence | Pending |
 | F6 | Unified History periods, calendar, readable duration and lifetime views | Pending |

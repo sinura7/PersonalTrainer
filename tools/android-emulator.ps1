@@ -208,7 +208,7 @@ $manifest = [ordered]@{
     renderer = 'swiftshader_indirect'; fontScale = 1.0; animations = 0
     locale = $locale
     timeZone = $timeZone
-    clockPolicy = 'Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)'
+    clockPolicy = 'Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values'
     goldenProfile = 'windows-swiftshader37'
     startupCheck = 'Repository launcher owns a focused window after boot and display configuration'
     capturedUtc = [DateTime]::UtcNow.ToString('o')

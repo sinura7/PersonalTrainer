@@ -4,6 +4,11 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.IdFactory
+import com.sinura.personaltrainer.domain.WorkoutSetSave
+import com.sinura.personaltrainer.domain.WorkoutSetValues
+import com.sinura.personaltrainer.domain.WorkoutSetSaveResolution
+import com.sinura.personaltrainer.workout.SavedStateWorkoutSave
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppDependencies
@@ -88,7 +93,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -134,6 +138,9 @@ enum class SessionLoadState {
      * the UI must offer a way out instead of spinning forever.
      */
     MISSING,
+
+    /** The row could not be read. Retain the draft and explicitly re-subscribe on Retry. */
+    FAILED,
 }
 
 /**
@@ -169,6 +176,8 @@ data class ActiveWorkoutUiState(
      * double tap cannot write two sets.
      */
     val logging: Boolean = false,
+    val save: WorkoutSaveState = WorkoutSaveState(),
+    val mutating: Boolean = false,
     val liftReadiness: LiftEntryReadiness = LiftEntryReadiness.NONE,
     val suggestionUnavailable: Boolean = false,
     val draftDirty: Boolean = false,
@@ -188,17 +197,19 @@ data class ActiveWorkoutUiState(
 ) {
     val isLoading: Boolean get() = loadState == SessionLoadState.LOADING
 
+    val entryLocked: Boolean get() = save.pending || logging || mutating || loadState != SessionLoadState.FOUND
+
     val canLog: Boolean
-        get() = session != null &&
+        get() = loadState == SessionLoadState.FOUND && session != null &&
             selectedExerciseId != null &&
-            !logging &&
+            !entryLocked &&
             (liftReadiness.allowsCommit() || draftDirty)
 
     val canFinish: Boolean
-        get() = session?.sets?.isNotEmpty() == true && !logging
+        get() = loadState == SessionLoadState.FOUND && session?.sets?.isNotEmpty() == true && !entryLocked
 
     val showDiscard: Boolean
-        get() = session != null && session.sets.isEmpty() && !logging
+        get() = loadState == SessionLoadState.FOUND && session != null && session.sets.isEmpty() && !entryLocked
 
     val showRest: Boolean
         get() {
@@ -265,6 +276,15 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val savedDraft = SavedStateWorkoutDraft(savedStateHandle)
     private val savedTimer = SavedStateFloorTimer(savedStateHandle)
     private val savedUndo = SavedStateFloorUndo(savedStateHandle)
+    private val savedSave = SavedStateWorkoutSave(savedStateHandle)
+    private val savedEdit = SavedStateWorkoutSave(handle = savedStateHandle, storageKey = "workout.editOriginal.v1")
+    private var editingOriginal = draftCache.editingOriginal(sessionId) ?: savedEdit.read(sessionId)
+    private val mutating = MutableStateFlow(false)
+    private val restoredSave = draftCache.pendingSave(sessionId) ?: savedSave.read(sessionId)
+    private val saveOperation = MutableStateFlow(WorkoutSaveState(
+        phase = if (restoredSave == null) WorkoutSavePhase.IDLE else WorkoutSavePhase.CHECKING,
+        command = restoredSave,
+    ))
 
     private val selectedExerciseId = MutableStateFlow<String?>(null)
     private val draft = MutableStateFlow(ActiveExerciseDraft())
@@ -356,6 +376,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     val setStopwatch: StateFlow<SetStopwatchUiState> = _setStopwatch.asStateFlow()
     private var setStopwatchJob: Job? = null
     private var timedGeneration = 0
+    private val timedActionGeneration = MutableStateFlow(0)
+    private val primaryActivation = MutableStateFlow(0L)
+    private var lastPrimaryTap: Long? = null
     private var pendingRestJob: Job? = null
     private val _floorTimerCue = MutableSharedFlow<FloorTimerCue>(
         extraBufferCapacity = 8,
@@ -365,12 +388,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val _pendingLiftSwitch = MutableStateFlow<PendingLiftSwitch?>(null)
     val pendingLiftSwitch: StateFlow<PendingLiftSwitch?> = _pendingLiftSwitch.asStateFlow()
 
-    /**
-     * Flips true the first time the session query emits — including when it emits null.
-     * "Session is null" alone cannot distinguish "still loading" from "gone", which is how a
-     * discarded workout used to leave the screen on a spinner with no exit.
-     */
-    private val sessionResolved = MutableStateFlow(false)
+    /** The read outcome remains distinct from a successful query with no row. */
+    private val sessionReader = WorkoutSessionReader(container.workoutRepository, sessionId, viewModelScope)
 
     /**
      * The session row, hot for this ViewModel's whole life.
@@ -383,15 +402,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * rendered state rather than the data itself.
      */
     private val session: StateFlow<WorkoutSession?> =
-        container.workoutRepository.observeSession(sessionId)
-            .onEach { sessionResolved.value = true }
+        sessionReader.observations.map { it.session }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     init {
         if (sessionId.isBlank()) {
             error.fail(source = ERR_LOAD, message = "This workout is no longer available.")
-            // Nothing will ever emit for a blank id, so resolve immediately rather than spin.
-            sessionResolved.value = true
         }
         // Survives process death; the in-memory cache does not. See WorkoutDraftRecovery.
         // Packet C: one draft per lift, restored as a map.
@@ -426,6 +442,16 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             if (savedNotes.isNotEmpty()) notes.value = savedNotes
         }
         savedDraft.editingSetId()?.let { editingSetId.value = it }
+        editingOriginal?.let { original ->
+            editingSetId.value = original.setId
+            savedEdit.write(original)
+            draftCache.putEditingOriginal(sessionId, original)
+        }
+        restoredSave?.let { command ->
+            draftCache.putPendingSave(command)
+            savedSave.write(command)
+            restoreSaveDraft(command)
+        }
         // Packet G: the undo queue survives process death; the dwell promised with it does too.
         val restoredUndo = savedUndo.read()
         _undoEntries.value = restoredUndo
@@ -439,7 +465,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 session.collect { current ->
                     if (current == null) return@collect
                     val resolved = current.resolveSelectedExerciseId(selectedExerciseId.value)
-                    if (resolved != selectedExerciseId.value) {
+                    if (!saveOperation.value.pending && resolved != selectedExerciseId.value) {
                         if (resolved == null) {
                             clearLiftSelection()
                         } else {
@@ -653,7 +679,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         },
     ) { core, extras ->
         ActiveWorkoutUiState(
-            // Overwritten below once sessionResolved is known; see the combine on that flow.
+            // The coherent read outcome and graph are supplied below.
             loadState = SessionLoadState.LOADING,
             session = core.session,
             selectedExerciseId = core.session?.resolveSelectedExerciseId(core.selected) ?: core.selected,
@@ -668,13 +694,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             finished = extras.finished,
             editingSetId = extras.editingSetId,
         )
-    }.combine(sessionResolved) { state, resolved ->
+    }.combine(sessionReader.observations) { state, read ->
         state.copy(
-            loadState = when {
-                !resolved && sessionId.isNotBlank() -> SessionLoadState.LOADING
-                state.session != null -> SessionLoadState.FOUND
-                else -> SessionLoadState.MISSING
-            },
+            loadState = read.loadState,
+            session = read.session,
+            selectedExerciseId = read.session?.resolveSelectedExerciseId(state.selectedExerciseId)
+                ?: state.selectedExerciseId,
         )
     }.combine(
         combine(
@@ -717,6 +742,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             suggestion = suggested?.first?.takeUnless { alreadyPresent },
             suggestionReason = suggested?.second?.takeUnless { alreadyPresent },
         )
+    }.combine(mutating) { state, busy ->
+        state.copy(mutating = busy)
+    }.combine(saveOperation) { state, operation ->
+        state.copy(
+            save = operation, error = operation.message ?: state.error,
+            selectedExerciseId = operation.command?.exerciseId ?: state.selectedExerciseId,
+        )
     }.combine(logging) { state, busy ->
         state.copy(logging = busy)
     }.combine(liftReadiness) { state, readiness ->
@@ -750,7 +782,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             pendingResumeDraft = null
             resume.exerciseId == null || resume.exerciseId == exerciseId
         }
-        val keepDraft = resumingThisLift || editingSetId.value != null
+        val keepDraft = resumingThisLift || editingSetId.value != null || saveOperation.value.pending
         if (!keepDraft) {
             liftReadiness.value = LiftEntryReadiness.RESOLVING
             suggestionUnavailable.value = false
@@ -759,10 +791,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
         lastPerformance.value = null
         hint.value = null
-        val current = session.value ?: run {
-            sessionResolved.first { it }
-            session.value ?: return
-        }
+        val current = sessionReader.observations.first {
+            it.loadState == SessionLoadState.FOUND || it.loadState == SessionLoadState.MISSING
+        }.session ?: return
         if (!isCurrentPrefill(exerciseId, generation)) return
         val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
         val hold = planned?.exercise?.let { HoldWork.isHold(it) } == true
@@ -813,7 +844,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 )?.restSeconds,
             )
             if (!isCurrentPrefill(exerciseId, generation)) return
-            if (keepDraft || draftDirty.value) {
+            if (keepDraft || draftDirty.value || saveOperation.value.pending) {
                 liftReadiness.value = LiftEntryReadiness.READY
                 suggestionUnavailable.value = false
                 persistDraft()
@@ -840,7 +871,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             val livePlanned = session.value?.exercises
                 ?.firstOrNull { it.exercise.id == exerciseId }
                 ?: planned
-            if (!draftDirty.value && (!keepDraft || draft.value.weightKg <= 0.0)) {
+            if (!saveOperation.value.pending && !draftDirty.value && (!keepDraft || draft.value.weightKg <= 0.0)) {
                 draft.value = ActiveExerciseDraft(
                     weightKg = livePlanned?.targetWeightKg ?: 0.0,
                     reps = if (hold) 0 else targetReps.coerceAtLeast(1),
@@ -865,6 +896,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private fun applySelection(exerciseId: String) {
         if (selectedExerciseId.value == exerciseId) return
         persistDraft()
+        editingSetId.value = null
+        clearEditingOriginal()
         persistStopwatchFor(selectedExerciseId.value)
         _pendingAdvance.value = null
         wantAnotherSet.value = false
@@ -914,6 +947,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             durationSeconds = cached.durationSeconds,
         )
         draftDirty.value = cached.dirty
+        wantAnotherSet.value = cached.extraSetRequested
     }
 
     private fun clearLiftSelection() {
@@ -934,8 +968,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun selectExercise(exerciseId: String) {
+        if (!canChangeEntry()) return
+        selectExerciseInternal(exerciseId)
+    }
+
+    private fun selectExerciseInternal(exerciseId: String) {
         if (selectedExerciseId.value == exerciseId) return
-        if (_setStopwatch.value.running) {
+        if (_setStopwatch.value.running || _holdTimer.value.running) {
             _pendingLiftSwitch.value = PendingLiftSwitch(exerciseId)
             return
         }
@@ -944,6 +983,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun confirmStopTimingAndSwitch() {
+        if (!canChangeEntry()) return
         val pending = _pendingLiftSwitch.value ?: return
         _pendingLiftSwitch.value = null
         stopSetStopwatch()
@@ -956,17 +996,20 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun advanceToNextLift(exerciseId: String) {
+        if (!canChangeEntry()) return
         wantAnotherSet.value = false
         selectExercise(exerciseId)
     }
 
     fun requestExtraSet() {
+        if (!canChangeEntry()) return
         _pendingAdvance.value = null
         wantAnotherSet.value = true
         persistDraft()
     }
 
     fun adjustWeight(deltaKg: Double) {
+        if (!canChangeEntry()) return
         val next = if (deltaKg.isFinite()) draft.value.weightKg + deltaKg else draft.value.weightKg
         draft.value = draft.value.copy(weightKg = next.coerceAtLeast(0.0))
         markDraftDirty()
@@ -974,6 +1017,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun setWeight(weightKg: Double) {
+        if (!canChangeEntry()) return
         if (!weightKg.isFinite()) return
         draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
         markDraftDirty()
@@ -995,6 +1039,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * bypasses the floor or the draft-persist.
      */
     fun setReps(reps: Int) {
+        if (!canChangeEntry()) return
         draft.value = draft.value.copy(reps = reps.coerceAtLeast(1))
         markDraftDirty()
         persistDraft()
@@ -1006,6 +1051,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun setHoldSeconds(seconds: Int) {
+        if (!canChangeEntry()) return
         draft.value = draft.value.copy(
             durationSeconds = HoldWork.countdownSeconds(seconds),
             reps = 0,
@@ -1019,6 +1065,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * after the set is logged, unchanged. Cancels any live rest generation.
      */
     fun startHoldSet() {
+        if (!canChangeEntry()) return
         val exerciseId = selectedExerciseId.value ?: return
         val selected = session.value?.exercises?.firstOrNull { it.exercise.id == exerciseId }
             ?: return
@@ -1098,6 +1145,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * (Packet E). Holds keep [startHoldSet].
      */
     fun startSetStopwatch() {
+        if (!canChangeEntry()) return
         val exerciseId = selectedExerciseId.value ?: return
         val selected = session.value?.exercises?.firstOrNull { it.exercise.id == exerciseId }
             ?: return
@@ -1178,6 +1226,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     private fun bumpTimedGeneration() {
         timedGeneration++
+        timedActionGeneration.value = timedGeneration
         holdJob?.cancel()
         holdJob = null
         setStopwatchJob?.cancel()
@@ -1294,6 +1343,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * with its own **Use**, and only that tap moves it into the wells.
      */
     fun setRpe(rpe: Int?) {
+        if (!canChangeEntry()) return
         if (draft.value.isWarmup) return
         val current = draft.value
         draft.value = current.copy(rpe = rpe)
@@ -1302,6 +1352,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun setWarmup(isWarmup: Boolean) {
+        if (!canChangeEntry()) return
         val current = draft.value
         draft.value = current.copy(
             isWarmup = isWarmup,
@@ -1317,6 +1368,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * sit on a warm-up draft.
      */
     fun applyWarmupRamp(weightKg: Double) {
+        if (!canChangeEntry()) return
         if (!weightKg.isFinite() || weightKg <= 0.0) return
         draft.value = draft.value.copy(
             weightKg = weightKg,
@@ -1340,6 +1392,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun setPickerVisible(visible: Boolean) {
+        if (visible && !canChangeEntry()) return
         if (!visible) swapTargetItemId.value = null
         showPicker.value = visible
         if (!visible) searchQuery.value = ""
@@ -1350,7 +1403,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun addExercise(exercise: Exercise) {
-        viewModelScope.launch {
+        if (!canChangeEntry()) return
+        launchEntryMutation(source = ERR_ADD_LIFT) {
             addExerciseInternal(exercise)
         }
     }
@@ -1360,10 +1414,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         muscleGroup: String,
         loadType: LoadType = LoadType.EXTERNAL,
     ) {
-        viewModelScope.launch {
+        if (!canChangeEntry()) return
+        launchEntryMutation(source = ERR_ADD_LIFT) {
             if (name.isBlank()) {
                 error.fail(source = ERR_ADD_LIFT, message = "Give that lift a name.")
-                return@launch
+                return@launchEntryMutation
             }
             try {
                 when (val result = container.exerciseRepository.createCustom(
@@ -1387,6 +1442,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun requestSwap() {
+        if (!canChangeEntry()) return
         val selectedId = selectedExerciseId.value ?: return
         val item = session.value?.exercises?.firstOrNull { it.exercise.id == selectedId } ?: return
         swapTargetItemId.value = item.id
@@ -1395,10 +1451,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun removeSelectedLift() {
+        if (!canChangeEntry()) return
         val started = error.mark()
         val selectedId = selectedExerciseId.value ?: return
         val item = session.value?.exercises?.firstOrNull { it.exercise.id == selectedId } ?: return
-        viewModelScope.launch {
+        launchEntryMutation(source = ERR_REMOVE_LIFT) {
             try {
                 val removed = undoMutex.withLock {
                     container.workoutRepository.removeExerciseFromSession(
@@ -1433,6 +1490,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * takes the lift out of the session and offers it back through undo.
      */
     fun skipForNow() {
+        if (!canChangeEntry()) return
         val started = error.mark()
         val current = session.value ?: return
         val selectedId = selectedExerciseId.value ?: return
@@ -1456,7 +1514,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             swapTargetItemId.value = null
             try {
                 container.workoutRepository.swapExerciseInSession(sessionId, itemId, exercise)
-                selectExercise(exercise.id)
+                selectExerciseInternal(exercise.id)
                 showPicker.value = false
                 error.clearFrom(source = ERR_ADD_LIFT, before = started)
             } catch (thrown: CancellationException) {
@@ -1474,7 +1532,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
         val alreadyAdded = session.value?.exercises?.any { it.exercise.id == exercise.id } == true
         if (alreadyAdded) {
-            selectExercise(exercise.id)
+            selectExerciseInternal(exercise.id)
             showPicker.value = false
             error.clearFrom(source = ERR_ADD_LIFT, before = started)
             return
@@ -1492,7 +1550,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 targetSeconds = defaults.seconds,
                 targetSecondsMax = defaults.secondsMax,
             )
-            selectExercise(exercise.id)
+            selectExerciseInternal(exercise.id)
             showPicker.value = false
             error.clearFrom(source = ERR_ADD_LIFT, before = started)
         } catch (thrown: CancellationException) {
@@ -1544,201 +1602,344 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         _personalRecord.value = null
     }
 
-    fun logSet() {
-        if (logging.value) return
-        val started = error.mark()
-        val exerciseId = selectedExerciseId.value
-        if (exerciseId == null) {
-            error.fail(source = ERR_LOG_SET, message = "Add a lift before logging a set.")
-            _logFeedback.tryEmit(LogCommitFeedback.REJECT)
-            return
+    init {
+        restoredSave?.let { command ->
+            viewModelScope.launch {
+                sessionReader.observations.first { it.loadState != SessionLoadState.LOADING }
+                reconcileSave(command, retryWrite = false)
+            }
         }
-        val ready = liftReadiness.value.allowsCommit() || draftDirty.value
-        if (!ready) return
-        logging.value = true
+    }
+
+    private fun canChangeEntry(): Boolean =
+        !terminalExit && !logging.value && !mutating.value && !saveOperation.value.pending &&
+            sessionReader.observations.value.loadState == SessionLoadState.FOUND &&
+            sessionReader.observations.value.session?.isFinished == false
+
+    private fun launchEntryMutation(source: String, block: suspend () -> Unit) {
+        if (!canChangeEntry()) return
+        mutating.value = true
+        viewModelScope.launch {
+            try {
+                block()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                AppLog.w(TAG, "Workout operation failed: $source", failure)
+                error.fail(source = source, message = "Could not update this workout. Your saved sets are kept.")
+            } finally {
+                mutating.value = false
+            }
+        }
+    }
+
+    private fun clearEditingOriginal() {
+        editingOriginal = null
+        savedEdit.clear()
+        draftCache.putEditingOriginal(sessionId, null)
+    }
+
+    val primaryAction: StateFlow<WorkoutPrimaryAction> = combine(
+        uiState,
+        wantAnotherSet,
+        combine(_holdTimer, _setStopwatch, timedActionGeneration) { hold, stopwatch, generation ->
+            Triple(hold, stopwatch, generation)
+        },
+        primaryActivation,
+    ) { state, extra, timing, activation ->
+        WorkoutPrimaryActions.derive(state, extra, timing.first, timing.second, timing.third, activation)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, currentPrimaryAction())
+
+    private fun currentPrimaryAction(): WorkoutPrimaryAction {
+        val read = sessionReader.observations.value
+        return WorkoutPrimaryActions.derive(
+            state = ActiveWorkoutUiState(
+                loadState = read.loadState, session = read.session,
+                selectedExerciseId = selectedExerciseId.value, draft = draft.value,
+                editingSetId = editingSetId.value, logging = logging.value,
+                mutating = mutating.value, save = saveOperation.value,
+                liftReadiness = liftReadiness.value, draftDirty = draftDirty.value,
+            ),
+            extraSet = wantAnotherSet.value, hold = _holdTimer.value, stopwatch = _setStopwatch.value,
+            timedGeneration = timedActionGeneration.value, activation = primaryActivation.value,
+        )
+    }
+
+    /** Validate the rendered action; a second Log tap cannot become Next after the save. */
+    fun performPrimary(action: WorkoutPrimaryAction): Boolean {
+        val current = currentPrimaryAction()
+        if (!current.enabled || action.identity != current.identity) return false
+        val now = elapsedNow()
+        val previous = lastPrimaryTap
+        if (previous != null && now >= previous &&
+            now - previous < android.view.ViewConfiguration.getDoubleTapTimeout()
+        ) return false
+        lastPrimaryTap = now
+        primaryActivation.value += 1
+        when (action.kind) {
+            WorkoutPrimaryKind.ADD_EXERCISE -> setPickerVisible(true)
+            WorkoutPrimaryKind.START_HOLD -> startHoldSet()
+            WorkoutPrimaryKind.LOG_SET, WorkoutPrimaryKind.LOG_WARMUP, WorkoutPrimaryKind.LOG_HOLD, WorkoutPrimaryKind.SAVE_CHANGES ->
+                logSetWithDuration(action.durationSeconds, freezeDisplayedDuration = true)
+            WorkoutPrimaryKind.NEXT_EXERCISE -> action.identity.nextExerciseId?.let(::selectExercise)
+            WorkoutPrimaryKind.RETRY_SAVE -> retrySave()
+            WorkoutPrimaryKind.FINISH, WorkoutPrimaryKind.REVIEW_SAVE -> Unit // The screen opens its confirmation/details.
+            WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING, WorkoutPrimaryKind.UPDATING -> return false
+        }
+        return true
+    }
+
+    fun logSet() = logSetWithDuration(displayedDurationSeconds = null, freezeDisplayedDuration = false)
+
+    private fun logSetWithDuration(displayedDurationSeconds: Int?, freezeDisplayedDuration: Boolean) {
+        if (!canChangeEntry()) return
+        val exerciseId = selectedExerciseId.value ?: return
+        if (!(liftReadiness.value.allowsCommit() || draftDirty.value)) return
         val current = draft.value
-        val selectedLift = session.value?.exercises
-            ?.firstOrNull { it.exercise.id == exerciseId }
-        val hold = selectedLift?.let { HoldWork.isHold(it.exercise) } == true
+        val selectedLift = session.value?.exercises?.firstOrNull { it.exercise.id == exerciseId } ?: return
+        val hold = HoldWork.isHold(selectedLift.exercise)
         val holdState = _holdTimer.value
         val editingId = editingSetId.value
-        // Freeze the edited row's position before suspending for persistence. Total
-        // counts describe the latest row, not an earlier row being corrected.
-        val precedingSets = session.value?.setsFor(exerciseId).orEmpty()
-            .takeWhile { it.id != editingId }
         if (hold && editingId == null && holdState.totalSeconds == 0 && !holdState.running) {
-            logging.value = false
             startHoldSet()
             return
         }
-        val duration = FloorTimerSurface.durationToLog(
+        val original = editingOriginal?.takeIf { it.setId == editingId && it.exerciseId == exerciseId }
+        if (editingId != null && original == null) {
+            error.fail(source = ERR_LOG_SET, message = "That saved set is no longer available. Cancel editing to continue.")
+            return
+        }
+        val duration = if (freezeDisplayedDuration) displayedDurationSeconds else FloorTimerSurface.durationToLog(
             hold = hold,
             holdElapsedSeconds = holdState.elapsedSeconds,
             holdTotalSeconds = holdState.totalSeconds,
             holdRemainingSeconds = holdState.remainingSeconds,
-            holdDraftSeconds = current.durationSeconds ?: selectedLift?.targetSeconds,
+            holdDraftSeconds = current.durationSeconds ?: selectedLift.targetSeconds,
             stopwatch = _setStopwatch.value,
             existingDurationSeconds = current.durationSeconds.takeUnless { hold },
         )
-        val reps = if (hold) 0 else current.reps
-        val loadType = selectedLift?.exercise?.loadType
-        val invalid = SetLogRules.validate(
+        val values = WorkoutSetValues(
             weightKg = current.weightKg,
-            reps = reps,
+            reps = if (hold) 0 else current.reps,
+            rpe = current.rpe,
             isWarmup = current.isWarmup,
-            loadType = loadType,
             durationSeconds = duration,
-            isHold = hold,
-            equipment = selectedLift?.exercise?.equipment,
-            movementKey = selectedLift?.exercise?.movementKey,
+        )
+        val invalid = SetLogRules.validate(
+            weightKg = values.weightKg, reps = values.reps, isWarmup = values.isWarmup,
+            loadType = selectedLift.exercise.loadType, durationSeconds = values.durationSeconds,
+            isHold = hold, equipment = selectedLift.exercise.equipment,
+            movementKey = selectedLift.exercise.movementKey,
         )
         if (invalid != null) {
-            logging.value = false
             error.fail(source = ERR_LOG_SET, message = invalid)
             _logFeedback.tryEmit(LogCommitFeedback.REJECT)
             return
         }
-        viewModelScope.launch {
-            try {
-                if (editingId != null) {
-                    container.workoutRepository.updateSet(
-                        setId = editingId,
-                        weightKg = current.weightKg,
-                        reps = reps,
-                        rpe = current.rpe,
-                        isWarmup = current.isWarmup,
-                        durationSeconds = duration,
-                    )
-                    editingSetId.value = null
-                    stopHoldTimer()
-                    clearSetStopwatch()
-                    emitLogReceipt(
-                        setId = editingId,
-                        weightKg = current.weightKg,
-                        reps = reps,
-                        rpe = current.rpe,
-                        isWarmup = current.isWarmup,
-                        durationSeconds = duration,
-                        loadType = loadType,
-                        warmupAfter = precedingSets.count { it.isWarmup } + if (current.isWarmup) 1 else 0,
-                        workingAfter = precedingSets.count { !it.isWarmup } + if (current.isWarmup) 0 else 1,
-                        targetSets = selectedLift?.targetSets ?: 0,
-                    )
-                    _logFeedback.tryEmit(LogCommitFeedback.SUCCESS)
-                } else {
-                    val previousWorking = session.value
-                        ?.sets
-                        ?.count { it.exerciseId == exerciseId && !it.isWarmup }
-                        ?: 0
-                    val previousWarmup = session.value
-                        ?.sets
-                        ?.count { it.exerciseId == exerciseId && it.isWarmup }
-                        ?: 0
-                    val targetSets = selectedLift?.targetSets ?: 0
-                    val logged = container.workoutRepository.logSet(
-                        sessionId = sessionId,
-                        exerciseId = exerciseId,
-                        weightKg = current.weightKg,
-                        reps = reps,
-                        rpe = current.rpe,
-                        isWarmup = current.isWarmup,
-                        durationSeconds = duration,
-                    )
-                    stopHoldTimer()
-                    clearSetStopwatch()
-                    val workingAfter = previousWorking + if (current.isWarmup) 0 else 1
-                    val warmupAfter = previousWarmup + if (current.isWarmup) 1 else 0
-                    emitLogReceipt(
-                        setId = logged.setId,
-                        weightKg = current.weightKg,
-                        reps = reps,
-                        rpe = current.rpe,
-                        isWarmup = current.isWarmup,
-                        durationSeconds = duration,
-                        loadType = loadType,
-                        warmupAfter = warmupAfter,
-                        workingAfter = workingAfter,
-                        targetSets = targetSets,
-                    )
-                    _logFeedback.tryEmit(LogCommitFeedback.SUCCESS)
-                    if (logged.records.isNotEmpty()) {
-                        _personalRecord.value = PersonalRecordMoment(
-                            exerciseName = session.value
-                                ?.exercises
-                                ?.firstOrNull { it.exercise.id == exerciseId }
-                                ?.exercise
-                                ?.name
-                                .orEmpty(),
-                            kinds = logged.records,
-                            weightKg = current.weightKg,
-                            reps = current.reps,
+        val command = WorkoutSetSave(
+            sessionId = sessionId, exerciseId = exerciseId,
+            setId = original?.setId ?: IdFactory.Uuid.newId(),
+            completedAt = original?.completedAt ?: time.nowMillis(),
+            values = values, original = original?.values,
+        )
+        // Freeze identity and payload synchronously, before Room or any coroutine suspension.
+        draftCache.putPendingSave(command)
+        savedSave.write(command)
+        saveOperation.value = WorkoutSaveState(WorkoutSavePhase.SAVING, command)
+        logging.value = true
+        viewModelScope.launch { persistSet(command) }
+    }
+
+    /** Retry belongs to the frozen command, never to today's editable draft or timer. */
+    fun retrySave() {
+        val operation = saveOperation.value
+        val command = operation.command ?: return
+        if (operation.busy || operation.phase == WorkoutSavePhase.CONFLICT) return
+        saveOperation.value = operation.copy(phase = WorkoutSavePhase.CHECKING, message = null)
+        logging.value = true
+        viewModelScope.launch { reconcileSave(command, retryWrite = true) }
+    }
+
+    /** Inspect before releasing a failed operation for editing; an unknown outcome stays owned. */
+    fun editFailedSave() {
+        val operation = saveOperation.value
+        val command = operation.command ?: return
+        if (operation.busy) return
+        saveOperation.value = operation.copy(phase = WorkoutSavePhase.CHECKING, message = null)
+        logging.value = true
+        viewModelScope.launch { reconcileSave(command, retryWrite = false, releaseUnwritten = true) }
+    }
+
+    private suspend fun reconcileSave(
+        command: WorkoutSetSave,
+        retryWrite: Boolean,
+        releaseUnwritten: Boolean = false,
+    ) {
+        try {
+            when (container.workoutRepository.inspectSetSave(command)) {
+                WorkoutSetSaveResolution.SAVED -> acknowledgeSave(command, result = null, recovered = true)
+                WorkoutSetSaveResolution.UNSAVED -> {
+                    if (releaseUnwritten) {
+                        clearSave(command)
+                        error.clearFrom(source = ERR_LOG_SET, before = error.mark())
+                        reconcileSelectionAfterSave()
+                    } else if (retryWrite && sessionReader.observations.value.loadState == SessionLoadState.FOUND) {
+                        saveOperation.value = WorkoutSaveState(WorkoutSavePhase.SAVING, command)
+                        persistSet(command)
+                    } else {
+                        saveOperation.value = WorkoutSaveState(
+                            WorkoutSavePhase.FAILED, command,
+                            "This set has not been saved. Retry to save these values.",
                         )
-                    }
-                    wantAnotherSet.value = false
-                    _pendingAdvance.value = null
-                    val liftComplete = !current.isWarmup &&
-                        WorkoutAdvance.liftComplete(workingAfter, targetSets, wantAnother = false)
-                    if (liftComplete) {
-                        val after = session.value
-                        val nextId = WorkoutAdvance.nextUnfinishedExerciseId(after, exerciseId)
-                        val nameOf = { id: String ->
-                            after?.exercises
-                                ?.firstOrNull { it.exercise.id == id }
-                                ?.exercise
-                                ?.name
-                                .orEmpty()
-                        }
-                        _pendingAdvance.value = PendingAdvance(
-                            finishedExerciseId = exerciseId,
-                            finishedName = nameOf(exerciseId),
-                            nextExerciseId = nextId,
-                            nextName = nextId?.let(nameOf).orEmpty(),
-                        )
-                    }
-                    cancelPendingRest()
-                    val startRest = RestTimer.shouldStartAfterLog(
-                        isWarmup = current.isWarmup,
-                        workingSetsAfterLog = workingAfter,
-                        targetSets = targetSets,
-                    ) || RestTimer.shouldStartAfterExtra(
-                        isWarmup = current.isWarmup,
-                        workingSetsAfterLog = workingAfter,
-                        targetSets = targetSets,
-                    )
-                    if (startRest) {
-                        scheduleRestAfterReceipt(
-                            prescribedSeconds = RestPrescription.seconds(
-                                reasonCode = microRec.value?.reasonCode
-                                    ?: SetMicroRecCalculator.QUALITY,
-                                loadType = loadType,
-                                reps = reps,
-                            ),
-                        )
-                    } else if (liftComplete) {
-                        restTimer.stop()
                     }
                 }
-                error.clearFrom(source = ERR_LOG_SET, before = started)
-                draft.value = draft.value.copy(isWarmup = false, rpe = null)
-                persistDraft()
-            } catch (thrown: CancellationException) {
-                throw thrown
-            } catch (thrown: Exception) {
-                _logFeedback.tryEmit(LogCommitFeedback.REJECT)
-                error.fail(
-                    source = ERR_LOG_SET,
-                    message = thrown.message?.takeIf { message ->
-                        SetLogRules.isFieldMessage(message)
-                    } ?: LogCommitCopy.WRITE_FAILED,
-                )
-            } finally {
-                logging.value = false
+                WorkoutSetSaveResolution.CONFLICT -> {
+                    if (releaseUnwritten) {
+                        // Inspection proved this command is not the stored row. Never replay it.
+                        clearSave(command)
+                        editingSetId.value = null
+                        clearEditingOriginal()
+                        reconcileSelectionAfterSave()
+                        persistDraft()
+                    } else {
+                        saveOperation.value = WorkoutSaveState(
+                            WorkoutSavePhase.CONFLICT, command, WorkoutRepository.SetSaveConflict().message,
+                        )
+                    }
+                }
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            AppLog.w(TAG, "Could not establish the saved set outcome", failure)
+            saveOperation.value = WorkoutSaveState(
+                WorkoutSavePhase.FAILED, command,
+                "Could not confirm whether this set was saved. Retry will check before saving again.",
+            )
+        } finally {
+            logging.value = false
+        }
+    }
+
+    private suspend fun persistSet(command: WorkoutSetSave) {
+        val result = try {
+            container.workoutRepository.saveSet(command)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            AppLog.w(TAG, "Set save did not acknowledge completion", failure)
+            saveOperation.value = WorkoutSaveState(
+                phase = if (failure is WorkoutRepository.SetSaveConflict) WorkoutSavePhase.CONFLICT else WorkoutSavePhase.FAILED,
+                command = command,
+                message = failure.message?.takeIf { SetLogRules.isFieldMessage(it) }
+                    ?: if (failure is WorkoutRepository.SetSaveConflict) failure.message else LogCommitCopy.WRITE_FAILED,
+            )
+            _logFeedback.tryEmit(LogCommitFeedback.REJECT)
+            logging.value = false
+            return
+        }
+        // A receipt, timer, or feedback failure after this point cannot create Retry save.
+        acknowledgeSave(command, result, recovered = result.alreadySaved)
+        logging.value = false
+    }
+
+    private fun restoreSaveDraft(command: WorkoutSetSave) {
+        selectedExerciseId.value = command.exerciseId
+        editingSetId.value = command.setId.takeIf { command.editing }
+        val values = command.values
+        draft.value = ActiveExerciseDraft(
+            weightKg = values.weightKg, reps = values.reps, rpe = values.rpe,
+            isWarmup = values.isWarmup, durationSeconds = values.durationSeconds,
+        )
+        draftDirty.value = true
+        liftReadiness.value = LiftEntryReadiness.READY
+    }
+
+    private fun clearSave(command: WorkoutSetSave) {
+        draftCache.clearPendingSave(command)
+        if (saveOperation.value.command == command) {
+            savedSave.clear()
+            saveOperation.value = WorkoutSaveState()
+        }
+    }
+
+    private fun reconcileSelectionAfterSave() {
+        val current = sessionReader.observations.value.session ?: return
+        val resolved = current.resolveSelectedExerciseId(selectedExerciseId.value)
+        if (resolved != selectedExerciseId.value) {
+            if (resolved == null) clearLiftSelection() else applySelection(resolved)
+        }
+    }
+
+    private fun acknowledgeSave(
+        command: WorkoutSetSave,
+        result: WorkoutRepository.SavedWorkoutSet?,
+        recovered: Boolean,
+    ) {
+        if (saveOperation.value.command != command) return
+        // Entry/selection were locked while this command was outstanding.
+        clearSave(command)
+        try {
+            editingSetId.value = null
+            clearEditingOriginal()
+            wantAnotherSet.value = false
+            _pendingAdvance.value = null
+            draft.value = draft.value.copy(isWarmup = false, rpe = null)
+            error.clearFrom(source = ERR_LOG_SET, before = error.mark())
+            persistDraft()
+            stopHoldTimer()
+            clearSetStopwatch()
+            reconcileSelectionAfterSave()
+            if (recovered || result == null) return
+            val values = command.values
+            val lift = session.value?.exercises?.firstOrNull { it.exercise.id == command.exerciseId }
+            emitLogReceipt(
+                setId = command.setId, weightKg = values.weightKg, reps = values.reps,
+                rpe = values.rpe, isWarmup = values.isWarmup, durationSeconds = values.durationSeconds,
+                loadType = lift?.exercise?.loadType,
+                warmupAfter = result.warmupOrdinal, workingAfter = result.workingOrdinal,
+                targetSets = result.targetSets,
+            )
+            _logFeedback.tryEmit(LogCommitFeedback.SUCCESS)
+            if (result.records.isNotEmpty()) {
+                _personalRecord.value = PersonalRecordMoment(
+                    exerciseName = lift?.exercise?.name.orEmpty(), kinds = result.records,
+                    weightKg = values.weightKg, reps = values.reps,
+                )
+            }
+            if (command.editing) return
+            val complete = !values.isWarmup && WorkoutAdvance.liftComplete(
+                result.workingOrdinal, result.targetSets, wantAnother = false,
+            )
+            // Transitional compatibility for the old rail. The new primary derives from saved rows.
+            if (complete) {
+                val nextId = WorkoutAdvance.nextUnfinishedExerciseId(session.value, command.exerciseId)
+                _pendingAdvance.value = PendingAdvance(
+                    finishedExerciseId = command.exerciseId, finishedName = lift?.exercise?.name.orEmpty(),
+                    nextExerciseId = nextId,
+                    nextName = session.value?.exercises?.firstOrNull { it.exercise.id == nextId }?.exercise?.name.orEmpty(),
+                )
+            }
+            cancelPendingRest()
+            val startRest = RestTimer.shouldStartAfterLog(values.isWarmup, result.workingOrdinal, result.targetSets) ||
+                RestTimer.shouldStartAfterExtra(values.isWarmup, result.workingOrdinal, result.targetSets)
+            if (startRest) {
+                scheduleRestAfterReceipt(RestPrescription.seconds(
+                    reasonCode = microRec.value?.reasonCode ?: SetMicroRecCalculator.QUALITY,
+                    loadType = lift?.exercise?.loadType, reps = values.reps,
+                ))
+            } else if (complete) {
+                restTimer.stop()
+            }
+        } catch (failure: Exception) {
+            AppLog.w(TAG, "Set saved; subsequent workout feedback failed", failure)
+            error.fail(source = ERR_LOAD, message = "Set saved. Timer or feedback could not update.")
         }
     }
 
     /** Take the offer: move the loop to the waiting unfinished lift. */
     fun advanceNow() {
+        if (!canChangeEntry()) return
         val current = session.value ?: return
         val selected = selectedExerciseId.value
         val next = _pendingAdvance.value?.nextExerciseId
@@ -1761,11 +1962,23 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         error.dismiss()
     }
 
+    fun retrySession() {
+        sessionReader.retry()
+    }
+
     fun editSet(setId: String) {
+        if (!canChangeEntry()) return
         val set = session.value?.sets?.firstOrNull { it.id == setId } ?: return
         // editingSetId is set below and prefill refuses to run while it is, so selecting the
         // set's lift here cannot overwrite the values being edited.
         editingSetId.value = set.id
+        editingOriginal = WorkoutSetSave(
+            sessionId = sessionId, exerciseId = set.exerciseId, setId = set.id,
+            completedAt = set.completedAt, values = WorkoutSetValues.from(set),
+        ).also { original ->
+            savedEdit.write(original)
+            draftCache.putEditingOriginal(sessionId, original)
+        }
         // Revising a set is not moving on from it.
         _pendingAdvance.value = null
         stopHoldTimer()
@@ -1785,7 +1998,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun cancelEdit() {
+        if (!canChangeEntry()) return
         editingSetId.value = null
+        clearEditingOriginal()
         persistDraft()
     }
 
@@ -1802,14 +2017,16 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * exactly what landed. Never starts or restarts rest.
      */
     fun deleteSet(setId: String) {
+        if (!canChangeEntry()) return
         val started = error.mark()
-        viewModelScope.launch {
+        launchEntryMutation(source = ERR_DELETE_SET) {
             val current = session.value
             val deleted = current?.sets?.firstOrNull { it.id == setId }
             val wasLatest = deleted != null &&
                 current.sets.maxByOrNull { it.completedAt }?.id == setId
             if (editingSetId.value == setId) {
                 editingSetId.value = null
+                clearEditingOriginal()
             }
             try {
                 val removed = undoMutex.withLock {
@@ -1844,29 +2061,31 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * underneath. A failed restore keeps the offer rather than expiring it.
      */
     fun undoDeleteSet() {
+        if (!canChangeEntry()) return
         val started = error.mark()
-        viewModelScope.launch {
+        launchEntryMutation(source = ERR_UNDO_DELETE) {
             undoMutex.withLock {
                 val top = _undoEntries.value.lastOrNull()?.token as? FloorUndo.DeletedSet
                     ?: return@withLock null
                 container.workoutRepository.restoreSet(top.deleted)
                 popUndo()
-            } ?: return@launch
+            } ?: return@launchEntryMutation
             _deleteFeedback.tryEmit(DeleteFeedback.UNDO)
             error.clearFrom(source = ERR_UNDO_DELETE, before = started)
         }
     }
 
     fun undoRemoveLift() {
+        if (!canChangeEntry()) return
         val started = error.mark()
-        viewModelScope.launch {
+        launchEntryMutation(source = ERR_UNDO_REMOVE) {
             val pending = undoMutex.withLock {
                 val top = _undoEntries.value.lastOrNull()?.token as? FloorUndo.RemovedLift
                     ?: return@withLock null
                 container.workoutRepository.restoreExerciseToSession(removed = top.removed)
                 popUndo()
                 top
-            } ?: return@launch
+            } ?: return@launchEntryMutation
             try {
                 applySelection(pending.removed.item.exerciseId)
                 persistDraft()
@@ -1968,6 +2187,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun startSelectedRest() {
+        if (!canChangeEntry()) return
         bumpTimedGeneration()
         stopHoldTimer()
         clearSetStopwatch()
@@ -1975,10 +2195,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             RestTimerPreferences.MIN_SECONDS,
             RestTimerPreferences.MAX_SECONDS,
         )
+        // Starting owns the clock immediately. Preference IO must not queue a
+        // late start after Skip, Time set, Finish, or another timer generation.
+        restTimer.start(seconds, sessionId)
         viewModelScope.launch {
             container.preferencesRepository.setLastRestPresetSeconds(seconds)
             container.preferencesRepository.markRestAlarmEligible()
-            restTimer.start(seconds, sessionId)
         }
     }
 
@@ -2017,6 +2239,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * the 70 that was mirrored and the tap is gone.
      */
     fun applySuggestedWeight() {
+        if (!canChangeEntry()) return
         val suggested = hint.value?.suggestedWeightKg ?: return
         draft.value = draft.value.copy(weightKg = suggested)
         markDraftDirty()
@@ -2025,6 +2248,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     /** Fills the wells from one working set of the last session. Does not log. */
     fun applyLastTimeSet(weightKg: Double, reps: Int) {
+        if (!canChangeEntry()) return
         if (!weightKg.isFinite()) return
         draft.value = draft.value.copy(
             weightKg = weightKg.coerceAtLeast(0.0),
@@ -2039,6 +2263,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * After a log, today's hold stays until the lifter taps Use.
      */
     fun applyMicroRec() {
+        if (!canChangeEntry()) return
         val rec = microRec.value ?: return
         if (!rec.showApply || rec.previewOnly) return
         draft.value = draft.value.copy(
@@ -2071,9 +2296,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * one-shot exit event.
      */
     fun finishWorkout() {
+        if (!canChangeEntry()) return
         if (logging.value) return
+        cancelPendingRest()
         val started = error.mark()
-        viewModelScope.launch {
+        launchEntryMutation(source = ERR_FINISH) {
             when (val outcome = container.finishWorkout(sessionId, notes.value)) {
                 is FinishOutcome.Finished -> {
                     PendingOccurrence.complete(container, outcome.sessionId)
@@ -2087,6 +2314,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     // the cache in the narrow gap between those two operations.
                     draftCache.clear(sessionId)
                     savedDraft.clear()
+                    savedEdit.clear()
                     finished.value = true
                     _exitRequested.value = WorkoutExit.Finished(outcome.sessionId)
                 }
@@ -2118,8 +2346,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun discardWorkout() {
+        if (!canChangeEntry()) return
+        cancelPendingRest()
         val started = error.mark()
-        viewModelScope.launch {
+        launchEntryMutation(source = ERR_DISCARD) {
             when (container.discardWorkout(sessionId)) {
                 DiscardOutcome.Discarded -> {
                     PendingOccurrence.forgetIfSession(container, sessionId)
@@ -2127,6 +2357,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     terminalExit = true
                     draftCache.clear(sessionId)
                     savedDraft.clear()
+                    savedEdit.clear()
                     _exitRequested.value = WorkoutExit.Discarded
                 }
 
@@ -2180,7 +2411,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         cancelPendingRest()
         pendingRestJob = viewModelScope.launch {
             delay(Motion.ROW_SETTLE_MS.toLong())
-            startRestAfterSet(prescribedSeconds)
+            if (canChangeEntry()) startRestAfterSet(prescribedSeconds)
         }
     }
 
@@ -2237,6 +2468,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             notes = notes.value,
             durationSeconds = draft.value.durationSeconds,
             dirty = draftDirty.value,
+            extraSetRequested = wantAnotherSet.value,
         )
         draftCache.put(current)
         // Written through to saved state so the numbers dialed in before a rest survive the

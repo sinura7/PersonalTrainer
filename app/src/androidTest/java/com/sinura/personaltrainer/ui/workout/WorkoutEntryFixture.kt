@@ -79,9 +79,32 @@ internal class WorkoutEntryFixture {
             if (::sessionId.isInitialized && container.workoutRepository.getInProgress()?.id == sessionId) {
                 container.discardWorkout(sessionId)
             }
+            if (::sessionId.isInitialized && container.workoutRepository.getSession(sessionId)?.isFinished == true) {
+                container.workoutRepository.deleteFinishedSession(sessionId)
+            }
             if (::routineId.isInitialized) container.routineRepository.delete(routineId)
             customExerciseId?.let { container.exerciseRepository.deleteCustom(it) }
         }
+    }
+
+    fun recreate(handle: SavedStateHandle) {
+        if (::vm.isInitialized) runBlocking { vm.viewModelScope.coroutineContext[Job]?.cancelAndJoin() }
+        container.workoutDraftCache.clear(sessionId)
+        vm = ActiveWorkoutViewModel(application = app, savedStateHandle = handle, container = container)
+    }
+
+    fun addNextExercise(longName: Boolean = false, targetSets: Int = 1): Exercise = runBlocking(Dispatchers.IO) {
+        val exercise = if (longName) {
+            when (val result = container.exerciseRepository.createCustom(
+                "$PREFIX · Romanian deadlift with a controlled three-second lowering phase", "Hamstrings",
+            )) {
+                is SaveExerciseResult.Saved -> result.exercise
+                is SaveExerciseResult.DuplicateName -> result.existing
+                SaveExerciseResult.MissingMuscle -> error("Fixture muscle is missing")
+            }.also { customExerciseId = it.id }
+        } else awaitExercise("ex-romanian-deadlift")
+        container.workoutRepository.addExerciseToSession(sessionId, exercise, targetSets, 8, 40.0, 90)
+        exercise
     }
 
     private suspend fun awaitExercise(id: String): Exercise = withTimeout(15_000) {

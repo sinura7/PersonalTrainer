@@ -76,7 +76,7 @@ class FloorCompactRestBarTest {
         assertTrue(bar.contains("workout-companion-clock"))
         assertTrue(bar.contains("TIMER_ROW"))
         assertTrue(bar.contains("height = Metrics.commit"))
-        assertTrue(bar.contains("next = false"))
+        assertTrue(bar.contains("primaryLabel ?: LogBarCopy.commit("))
         assertTrue(bar.contains("holdRemainingSeconds"))
         assertTrue(bar.contains("holdTotalSeconds"))
         assertFalse(FloorCompactChrome.liftCompleteReplacesClock())

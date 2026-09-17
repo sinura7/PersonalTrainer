@@ -17,10 +17,12 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
@@ -63,7 +65,7 @@ class WorkoutEntryJourneyInstrumentedTest {
                 val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
                 val previousFlags = automation.serviceInfo.flags
                 val landscape = description.methodName.startsWith("longName")
-                val large = landscape || description.methodName.startsWith("numericEntry") || description.methodName.startsWith("savedSetsSheet")
+                val large = landscape || description.methodName.startsWith("numericEntry") || description.methodName.startsWith("savedSetsSheet") || description.methodName.startsWith("switcher")
                 try {
                     shell("settings put system font_scale ${if (large) "2.0" else "1.0"}")
                     awaitSystemFont(if (large) 2f else 1f)
@@ -133,6 +135,7 @@ class WorkoutEntryJourneyInstrumentedTest {
     private fun awaitSets(count: Int) {
         compose.waitUntil(15_000) { !fixture.vm.uiState.value.logging && savedSets().size == count }
         compose.waitForIdle()
+        SystemClock.sleep(android.view.ViewConfiguration.getDoubleTapTimeout().toLong() + 20)
     }
 
     private fun captureWindow(state: String) {
@@ -275,6 +278,63 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed()
     }
 
+    @Test fun switcherNamesProgressAndRequiresConfirmationToInterruptTimingAtLargeText() {
+        mount(fontScale = 2f, longName = true)
+        val original = fixture.vm.uiState.value.selectedExerciseId
+        val next = fixture.addNextExercise()
+        compose.waitUntil(15_000) { fixture.vm.uiState.value.session?.exercises?.size == 2 }
+        compose.runOnIdle { fixture.vm.startSetStopwatch() }
+        compose.waitUntil(5_000) { fixture.vm.setStopwatch.value.running }
+        compose.onNodeWithText("Switch exercise ›").performScrollTo().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.liftSwitcherRow(checkNotNull(original))).assertIsDisplayed()
+        captureWindow("switcher-font20")
+        compose.onNodeWithTag("workout-switcher-list").performScrollToNode(hasTestTag(WorkoutTestTags.liftSwitcherRow(next.id)))
+        compose.onNodeWithTag(WorkoutTestTags.liftSwitcherRow(next.id)).assertIsDisplayed().performClick()
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.SetStopwatchCopy.SWITCH_TITLE).assertIsDisplayed()
+        assertEquals(original, fixture.vm.uiState.value.selectedExerciseId)
+        captureWindow("switch-timing-confirm-font20")
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.SetStopwatchCopy.SWITCH_CONFIRM).performClick()
+        compose.waitUntil(15_000) { fixture.vm.uiState.value.selectedExerciseId == next.id }
+        assertFalse(fixture.vm.setStopwatch.value.running)
+        assertTrue(savedSets().isEmpty())
+    }
+
+    @Test fun longNameIdleLandscapeKeepsTimerAccessAndCustomEntryUsesOneOverlay() {
+        mount(fontScale = 2f)
+        val planned = fixture.vm.restTimerState.value.totalSeconds
+        compose.onNodeWithTag("workout-companion-clock").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("workout-sheet-start-set-clock").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Custom").performScrollTo().performClick()
+        compose.onNodeWithTag("workout-rest-duration-sheet").assertDoesNotExist()
+        compose.onNodeWithText("Custom rest").assertIsDisplayed()
+        compose.onNode(hasSetTextAction()).performScrollTo().performClick()
+        compose.onNode(hasSetTextAction()).performTextReplacement("180")
+        compose.waitUntil(10_000) {
+            InstrumentationRegistry.getInstrumentation().uiAutomation.windows.any {
+                val bounds = android.graphics.Rect()
+                it.getBoundsInScreen(bounds)
+                it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD && bounds.height() > 200
+            }
+        }
+        compose.onNode(hasSetTextAction()).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performScrollTo().assertIsDisplayed()
+        captureWindow("custom-rest-landscape-font20")
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithTag("workout-rest-duration-sheet").assertIsDisplayed()
+        assertEquals(planned, fixture.vm.restTimerState.value.totalSeconds)
+        compose.onNodeWithText("Custom").performScrollTo().performClick()
+        compose.onNode(hasSetTextAction()).performScrollTo().performClick()
+        compose.onNode(hasSetTextAction()).performTextReplacement("2:15")
+        compose.onNode(hasSetTextAction()).performImeAction()
+        compose.waitUntil(5_000) { fixture.vm.restTimerState.value.totalSeconds == 135 }
+        compose.onNodeWithTag("workout-rest-duration-sheet").assertDoesNotExist()
+        assertFalse(fixture.vm.restTimerState.value.running)
+        compose.onNodeWithTag("workout-companion-clock").performClick()
+        compose.onNodeWithText("Start rest").performScrollTo().performClick()
+        compose.waitUntil(5_000) { fixture.vm.restTimerState.value.running }
+        assertTrue(savedSets().isEmpty())
+    }
+
     @Test fun longNameSavedSheetKeepsEveryRowAndExtraSetReachableInLandscapeAtSystemFontTwo() {
         mount(fontScale = 2f, targetSets = 2, longName = true, savedCount = 10)
         val bounds = compose.onNodeWithTag(GoldenCapture.DefaultTag).fetchSemanticsNode().boundsInRoot
@@ -293,9 +353,11 @@ class WorkoutEntryJourneyInstrumentedTest {
             compose.waitForIdle()
         }
         list.performScrollToNode(androidx.compose.ui.test.hasText("Add another set"))
-        compose.onNodeWithText("Add another set").assertIsDisplayed()
+        val anotherInSheet = androidx.compose.ui.test.hasText("Add another set") and
+            androidx.compose.ui.test.hasAnyAncestor(hasTestTag("workout-saved-sets-sheet"))
+        compose.onNode(anotherInSheet).assertIsDisplayed()
         captureWindow("long-sheet-last-row-landscape-font20")
-        compose.onNodeWithText("Add another set").performClick()
+        compose.onNode(anotherInSheet).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         assertEquals(10, savedSets().size)
     }

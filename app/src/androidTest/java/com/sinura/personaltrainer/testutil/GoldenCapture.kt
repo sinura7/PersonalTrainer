@@ -47,6 +47,18 @@ object GoldenCapture {
     val ViewportHeight: Dp = 800.dp
     const val DefaultTag = "golden-capture-root"
 
+    /** ForcedSize can update density across a parent remeasure. Require the
+     * requested viewport before reading coordinates or accepting pixels. */
+    fun awaitViewport(compose: ComposeContentTestRule, widthDp: Int, heightDp: Int) {
+        compose.waitUntil(5_000) {
+            val node = compose.onNodeWithTag(DefaultTag).fetchSemanticsNode()
+            val density = node.layoutInfo.density.density
+            val bounds = node.boundsInRoot
+            kotlin.math.abs(bounds.width / density - widthDp) <= 1f &&
+                kotlin.math.abs(bounds.height / density - heightDp) <= 1f
+        }
+    }
+
     /** Dialogs and IME live in native windows; do not fake their window size with ForcedSize. */
     @OptIn(ExperimentalTestApi::class)
     fun mountDevice(

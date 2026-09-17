@@ -21,7 +21,7 @@ class WorkoutLiftChipTest {
         val switcher = readOwned("ui/workout/LiftSwitcherSheet.kt")
         assertTrue(switcher.contains("LiftChipCopy.marks("))
         assertTrue(switcher.contains("CurrentLiftCopy.switcherSpoken"))
-        assertTrue(switcher.contains("LiftChipCopy.REST"))
+        assertTrue(switcher.contains("Rest remaining"))
         assertTrue(switcher.contains("WorkoutTestTags.liftRest"))
         assertTrue(switcher.contains("RestCyan"))
 

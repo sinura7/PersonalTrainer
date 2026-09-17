@@ -25,7 +25,7 @@ class FloorCompactPresentationTest {
     }
 
     @Test
-    fun logSetStaysTheOnlyVoltAndIdleRestIsOneLine() {
+    fun derivedCommitStaysTheOnlyVoltAndIdleRestIsOneLine() {
         val dock = readOwned("ui/components/RestTimerUi.kt")
         val idleStart = dock.indexOf("fun RestIdleRow")
         val idleEnd = dock.indexOf("fun RestDurationSheet")
@@ -49,11 +49,11 @@ class FloorCompactPresentationTest {
         assertTrue(bar.contains("showRpe: Boolean"))
         assertTrue(bar.contains("showNext: Boolean"))
         assertTrue(bar.contains("showFinish: Boolean"))
-        assertTrue(bar.contains("LogBarCopy.ANOTHER_SET"))
+        assertTrue(bar.contains("Add another set"))
         assertTrue(bar.contains("canLog: Boolean"))
         assertTrue(bar.contains("LogCommitCopy.disabledReason"))
-        assertTrue(bar.contains("next = false"))
-        assertTrue(bar.contains("testTag(WorkoutTestTags.LOG_SET)"))
+        assertTrue(bar.contains("primaryAction?.identity"))
+        assertTrue(bar.contains("else -> WorkoutTestTags.LOG_SET"))
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.logButtonStaysAnchored())
         assertFalse(bar.contains("RpeCopy.blurb"))
         assertFalse(bar.contains("LazyRow("))
@@ -163,7 +163,7 @@ class FloorCompactPresentationTest {
     fun emptySessionDockIsAddALiftWithoutATimer() {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.emptySessionHidesTimerDock())
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(workout.contains("LogBarCopy.ADD_LIFT"))
+        assertTrue(workout.contains("text = \"Add exercise\""))
         assertTrue(workout.contains("WorkoutTestTags.DOCK_ADD_LIFT"))
         assertTrue(workout.contains("emptySession"))
         assertTrue(workout.contains("showDiscard = state.showDiscard"))

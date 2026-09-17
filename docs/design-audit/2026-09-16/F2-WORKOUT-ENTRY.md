@@ -1,7 +1,8 @@
 # F2 — Workout entry and composition
 
-Status: implementation and verification in progress on `codex/workout-entry`,
-based on integrated F1 `97d08ca458a9823f4cd6b62bea78a84be9b14084`.
+Status: complete. PR [#350](https://github.com/sinura7/PersonalTrainer/pull/350)
+merged as `579642b6d3737276510b6eab476c29ab71d9fcfc`, based on integrated F1
+`97d08ca458a9823f4cd6b62bea78a84be9b14084`.
 This is not the complete workout milestone; F3 owns completion and timing.
 
 ## Changed contracts
@@ -111,8 +112,7 @@ After these test-only corrections the complete local gate passed again in
 Original recording source hashes remain intact; subsequent harness hashes and
 verification are recorded separately in `native/f2/verification.json`.
 
-PR [#350](https://github.com/sinura7/PersonalTrainer/pull/350) is a draft until
-acceptance is complete. Initial hosted required verification passed on
+Initial hosted required verification for PR #350 passed on
 `bfc4781e699af844a4e114e43c68f4d49b1a20c4`. Its 180 native tests had exactly 38
 missing new references and nine legacy workout image differences assigned to F3.
 All 38 new hosted renders were reviewed and independently reproduced in push and
@@ -123,9 +123,20 @@ references with a manifest; no Windows baseline was reused across renderers.
 Captures use only synthetic fixture data on the repository-owned emulator.
 The original phone screenshots are not part of public implementation evidence.
 
-## Acceptance still required
+## Integrated acceptance
 
-- PR hosted deterministic check and clean integrated verification after merge.
+Final exact-commit hosted run `35205895682` passed required verification and
+all 38 new F2 image comparisons plus six entry journeys. Of 180 native tests,
+the only nine failures were the documented legacy FloorGolden references owned
+by F3; zero tests were skipped. Both reviews approved the corrected source and
+platform evidence. Their final comparison/hosted/integration conditions are met.
+
+Clean merged trunk passed the full local gate in 1m 24s (unchanged 2,537 unit
+results reused), followed by six fresh native journeys with zero failures or
+skips: `20260917-095008398`. No signer or debug version change was made.
+
+## Milestone acceptance still required
+
 - F3: derived Next/Finish/extra-set action contract, operation-specific retry,
   complete timer/switcher/resume work and replacement of legacy workout goldens.
   Commit agreement includes exposing existing unit-conversion rounding when

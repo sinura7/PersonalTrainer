@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalAccessibilityManager
-import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.platform.testTag
 import kotlin.math.roundToInt
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,7 +36,6 @@ import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.FloorTimedModeResolver
 import com.sinura.personaltrainer.domain.FloorTimerCue
-import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
@@ -139,22 +138,39 @@ fun ActiveWorkoutScreen(
     viewModel: ActiveWorkoutViewModel = viewModel(),
     restNotificationsEnabledOverride: Boolean? = null,
 ) {
+    // Use the space assigned by our parent, including embedded / constrained
+    // windows. The host window can be portrait while this surface is landscape.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        ActiveWorkoutContent(
+            onExit = onExit, onFinished = onFinished, onOpenRest = onOpenRest,
+            viewModel = viewModel, restNotificationsEnabledOverride = restNotificationsEnabledOverride,
+            landscape = LandscapeChrome.isLandscape(
+                widthDp = maxWidth.value.roundToInt(), heightDp = maxHeight.value.roundToInt(),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun ActiveWorkoutContent(
+    onExit: () -> Unit,
+    onFinished: (String) -> Unit,
+    onOpenRest: (String) -> Unit,
+    viewModel: ActiveWorkoutViewModel,
+    restNotificationsEnabledOverride: Boolean?,
+    landscape: Boolean,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
-    val holdTimer by viewModel.holdTimer.collectAsStateWithLifecycle()
-    val setStopwatch by viewModel.setStopwatch.collectAsStateWithLifecycle()
+    val restState = viewModel.restTimerState.collectAsStateWithLifecycle()
+    val holdState = viewModel.holdTimer.collectAsStateWithLifecycle()
+    val stopwatchState = viewModel.setStopwatch.collectAsStateWithLifecycle()
     val microRec by viewModel.microRec.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
-    val windowDp = LocalWindowInfo.current.containerDpSize
-    val landscape = LandscapeChrome.isLandscape(
-        widthDp = windowDp.width.value.roundToInt(),
-        heightDp = windowDp.height.value.roundToInt(),
-    )
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     val undoEntries by viewModel.undoEntries.collectAsStateWithLifecycle()
     val undoDwellMs by viewModel.undoDwellMs.collectAsStateWithLifecycle()
-    val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
+    val primaryState = viewModel.primaryAction.collectAsStateWithLifecycle()
     val logReceipt by viewModel.logReceipt.collectAsStateWithLifecycle()
     val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
@@ -163,6 +179,15 @@ fun ActiveWorkoutScreen(
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var sessionSummaryOpen by rememberSaveable { mutableStateOf(false) }
     var finishNotesOpen by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.entryLocked) {
+        if (state.entryLocked) {
+            confirmEnd = false
+            confirmDiscard = false
+            liftSwitcherOpen = false
+            viewModel.setPickerVisible(false)
+            viewModel.cancelPendingLiftSwitch()
+        }
+    }
     val restNotificationsEnabled = restNotificationsEnabledOverride
         ?: rememberRestNotificationsEnabled()
     val session = state.session
@@ -170,31 +195,15 @@ fun ActiveWorkoutScreen(
     val afterWarmup = selected?.let { lift ->
         session?.setsFor(lift.exercise.id)?.maxByOrNull { it.completedAt }?.isWarmup == true
     } == true
-    val holdLift = selected?.exercise?.let { HoldWork.isHold(it) } == true
-    val offerSetClock = FloorTimedModeResolver.offerSetClock(
-        mode = FloorTimerSurface.mode(
-            holdRunning = holdTimer.running,
-            stopwatchRunning = setStopwatch.running,
-            hasLifts = session?.hasLifts() == true,
-            restRunning = rest.running,
-            restComplete = rest.completedTimerId != null && !rest.running,
-            holdActive = holdTimer.running || holdTimer.targetReached,
-        ),
-        isHoldLift = holdLift,
-    ) && state.offerSetClock
-    val advance = remember(session, state.selectedExerciseId, extraSetRequested, state.editingSetId) {
+    val advance = remember(session, state.selectedExerciseId, extraSetRequested, state.editingSetId, state.draft.isWarmup) {
         WorkoutAdvance.forSelection(
             session = session,
             selectedExerciseId = state.selectedExerciseId,
-            wantAnother = extraSetRequested,
+            wantAnother = extraSetRequested || state.draft.isWarmup,
             editing = state.editingSetId != null,
         )
     }
     val workingLogged = advance.workingLogged
-    val pending = pendingAdvance
-    val showNext = advance.showNext || pending?.nextExerciseId != null
-    val showFinish = advance.showFinish || (pending != null && pending.nextExerciseId == null)
-    val showAnother = advance.showAnother || pending != null
     val sessionWork = remember(session) { session?.work() ?: SetWork.NONE }
     val unit = LocalWeightUnit.current
     val view = LocalView.current
@@ -236,7 +245,10 @@ fun ActiveWorkoutScreen(
         val reason = exitRequested ?: return@LaunchedEffect
         viewModel.onExitHandled()
         when (reason) {
-            is WorkoutExit.Finished -> onFinished(reason.sessionId)
+            is WorkoutExit.Finished -> {
+                Haptics.commit(view)
+                onFinished(reason.sessionId)
+            }
             WorkoutExit.Discarded -> onExit()
         }
     }
@@ -252,7 +264,8 @@ fun ActiveWorkoutScreen(
     // Always composed, unlike the bottom bar. An error raised while no lift is selected —
     // a failed create from the picker in an empty free workout — previously had no reader at
     // all: it was written to state and rendered nowhere.
-    val logBarVisible = session != null && selected != null
+    val logBarVisible = state.loadState == SessionLoadState.FOUND && session != null &&
+        (selected != null || state.save.pending)
 
     // The record's haptics and its acknowledgement live here rather than inside the banner:
     // the banner is a list item, and logging the set that breaks a record also scrolls the
@@ -340,13 +353,35 @@ fun ActiveWorkoutScreen(
             )
         },
         bottomBar = {
+
+            // Read ticking values inside the dock's composition scope. The screen,
+            // exercise identity, and historical rows do not subscribe to each tick.
+            val rest = restState.value
+            val holdTimer = holdState.value
+            val setStopwatch = stopwatchState.value
+            val primaryAction = primaryState.value
+            val holdLift = selected?.exercise?.let { HoldWork.isHold(it) } == true
+            val offerSetClock = FloorTimedModeResolver.offerSetClock(
+                mode = FloorTimerSurface.mode(
+                    holdRunning = holdTimer.running,
+                    stopwatchRunning = setStopwatch.running,
+                    hasLifts = session?.hasLifts() == true,
+                    restRunning = rest.running,
+                    restComplete = rest.completedTimerId != null && !rest.running,
+                    holdActive = holdTimer.running || holdTimer.targetReached,
+                ),
+                isHoldLift = holdLift,
+            ) && state.offerSetClock
+            val showNext = primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE
+            val showFinish = primaryAction.kind == WorkoutPrimaryKind.FINISH
+            val showAnother = (showNext || showFinish) && !state.entryLocked
             // G-02 / Packet 2: timer slot, advance choice, and Log set share
             // the LogBar dock so a one-handed thumb reaches every control.
             // Finish stays in the header — it is not a mid-set act.
-            val emptySession = session != null &&
-                !session.hasLifts() &&
+            val emptySession = state.loadState == SessionLoadState.FOUND && session != null &&
+                !session.hasLifts() && !state.save.pending &&
                 FloorCompactChrome.emptySessionHidesTimerDock()
-            val showRest = state.showRest
+            val showRest = state.loadState == SessionLoadState.FOUND && state.showRest
             if (emptySession || showRest || logBarVisible) {
                 Column(
                     modifier = Modifier
@@ -372,8 +407,9 @@ fun ActiveWorkoutScreen(
                         PinnedDock(
                             volt = {
                                 PrimaryGymButton(
-                                    text = LogBarCopy.ADD_LIFT,
-                                    onClick = { viewModel.setPickerVisible(true) },
+                                    text = "Add exercise",
+                                    onClick = { viewModel.performPrimary(primaryAction) },
+                                    enabled = primaryAction.enabled,
                                     modifier = Modifier.testTag(WorkoutTestTags.DOCK_ADD_LIFT),
                                     height = Metrics.commit,
                                 )
@@ -383,6 +419,15 @@ fun ActiveWorkoutScreen(
                         val hold = selected?.exercise?.let { HoldWork.isHold(it) } == true
                         val holdArmed = holdTimer.running || holdTimer.totalSeconds > 0
                         LogBar(
+                            primaryAction = primaryAction,
+                            primaryLabel = primaryAction.label(unit = unit, loadClass = LoadClass.of(selected?.exercise?.loadType), includeNextName = !landscape),
+                            onPrimary = { action ->
+                                val accepted = viewModel.performPrimary(action)
+                                if (accepted && action.kind == WorkoutPrimaryKind.FINISH) confirmEnd = true
+                                accepted
+                            },
+                            onEditFailedSave = viewModel::editFailedSave,
+                            savePending = state.save.pending,
                             editing = state.editingSetId != null,
                             logging = state.logging,
                             canLog = state.canLog,
@@ -413,7 +458,7 @@ fun ActiveWorkoutScreen(
                             showNext = showNext,
                             showFinish = showFinish,
                             showAnother = showAnother,
-                            nextName = advance.nextName ?: pendingAdvance?.nextName,
+                            nextName = advance.nextName,
                             nextLift = advance.nextLift,
                             hold = hold,
                             holdRunning = holdArmed,
@@ -475,6 +520,18 @@ fun ActiveWorkoutScreen(
         },
     ) { padding ->
         when {
+            state.loadState == SessionLoadState.FAILED -> {
+                EmptyState(
+                    scene = EmptyScene.GONE,
+                    title = "Workout unavailable",
+                    body = "Your workout could not be read. Your draft is kept. Retry, or close this screen and return later.",
+                    actionLabel = "Retry",
+                    onAction = viewModel::retrySession,
+                    compact = true,
+                    modifier = Modifier.padding(padding).padding(Metrics.gutter),
+                )
+            }
+
             state.isLoading -> {
                 ScreenLoading(modifier = Modifier.padding(padding))
             }
@@ -524,8 +581,6 @@ fun ActiveWorkoutScreen(
                                     scene = EmptyScene.RACK,
                                     title = "Add a lift",
                                     body = SessionOrderCopy.EMPTY_SESSION_BODY,
-                                    actionLabel = "Add a lift",
-                                    onAction = { viewModel.setPickerVisible(true) },
                                     compact = true,
                                 )
                             }
@@ -537,6 +592,7 @@ fun ActiveWorkoutScreen(
                                 val logged = session.setsFor(currentLift.exercise.id)
                                 item(key = "current-lift") {
                                     CurrentLiftCard(
+                                        enabled = !state.entryLocked,
                                         lift = currentLift,
                                         number = currentIndex + 1,
                                         total = session.exercises.size,
@@ -551,6 +607,8 @@ fun ActiveWorkoutScreen(
                                     )
                                 }
                                 item(key = "current-entry") {
+                                    val holdTimer = holdState.value
+                                    val entryAction = primaryState.value
                                     WorkoutLiftCard(
                                         card = WorkoutLiftCardState(
                                             lift = currentLift,
@@ -581,8 +639,13 @@ fun ActiveWorkoutScreen(
                                             holdRunning = holdTimer.running,
                                             holdRemainingSeconds = holdTimer.remainingSeconds,
                                             receipt = logReceipt,
+                                            entryEnabled = !state.entryLocked,
+                                            plannedComplete = entryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE ||
+                                                entryAction.kind == WorkoutPrimaryKind.FINISH,
+                                            completionNextName = entryAction.nextName.takeIf { landscape && entryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
                                         ),
                                         events = WorkoutLiftCardEvents(
+                                            onCancelEdit = viewModel::cancelEdit,
                                             onWeightKgChange = viewModel::setWeight,
                                             onRepsAdjust = viewModel::adjustReps,
                                             onRepsChange = viewModel::setReps,
@@ -619,33 +682,35 @@ fun ActiveWorkoutScreen(
     }
 
     if (liftSwitcherOpen && session != null && session.hasLifts()) {
-        LiftSwitcherSheet(
-            lifts = session.exercises.mapIndexed { index, lift ->
-                val isCurrent = lift.exercise.id == state.selectedExerciseId
-                LiftSwitcherRow(
-                    lift = lift,
-                    number = index + 1,
-                    workingLogged = session.setsFor(lift.exercise.id).count { !it.isWarmup },
-                    restSeconds = if (isCurrent) {
-                        lift.restSeconds.takeIf { it > 0 } ?: rest.totalSeconds
-                    } else {
-                        lift.restSeconds
-                    },
-                    restRunning = isCurrent && rest.running,
-                    restRemainingSeconds = rest.remainingSeconds,
-                    current = isCurrent,
-                )
-            },
-            onSelect = { exerciseId ->
-                liftSwitcherOpen = false
-                viewModel.selectExercise(exerciseId)
-            },
-            onDismiss = { liftSwitcherOpen = false },
-            onAddLift = {
-                liftSwitcherOpen = false
-                viewModel.setPickerVisible(true)
-            },
-        )
+        WorkoutSwitcherClock(rest = restState) { rest ->
+            LiftSwitcherSheet(
+                lifts = session.exercises.mapIndexed { index, lift ->
+                    val isCurrent = lift.exercise.id == state.selectedExerciseId
+                    LiftSwitcherRow(
+                        lift = lift,
+                        number = index + 1,
+                        workingLogged = session.setsFor(lift.exercise.id).count { !it.isWarmup },
+                        restSeconds = if (isCurrent) {
+                            lift.restSeconds.takeIf { it > 0 } ?: rest.totalSeconds
+                        } else {
+                            lift.restSeconds
+                        },
+                        restRunning = isCurrent && rest.running,
+                        restRemainingSeconds = rest.remainingSeconds,
+                        current = isCurrent,
+                    )
+                },
+                onSelect = { exerciseId ->
+                    liftSwitcherOpen = false
+                    viewModel.selectExercise(exerciseId)
+                },
+                onDismiss = { liftSwitcherOpen = false },
+                onAddLift = {
+                    liftSwitcherOpen = false
+                    viewModel.setPickerVisible(true)
+                },
+            )
+        }
     }
 
     pendingLiftSwitch?.let {
@@ -725,7 +790,6 @@ fun ActiveWorkoutScreen(
             onNotesChange = viewModel::setNotes,
             onSave = {
                 confirmEnd = false
-                Haptics.commit(view)
                 viewModel.finishWorkout()
             },
             onDiscardInstead = {
@@ -759,3 +823,12 @@ fun ActiveWorkoutScreen(
 
 
 private const val PERSONAL_RECORD_DWELL_MS = Motion.STATUS_DWELL_MS
+
+/** Keep the optional switcher's clock subscription out of the parent screen. */
+@Composable
+private fun WorkoutSwitcherClock(
+    rest: androidx.compose.runtime.State<RestTimerUiState>,
+    content: @Composable (RestTimerUiState) -> Unit,
+) {
+    content(rest.value)
+}

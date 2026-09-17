@@ -38,6 +38,7 @@ import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.instrumentTween
 import kotlinx.coroutines.delay
@@ -58,6 +59,7 @@ fun StepperButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    enabled: Boolean = true,
     plateWidth: Dp? = null,
     plateHeight: Dp? = null,
 ) {
@@ -75,8 +77,8 @@ fun StepperButton(
     // onClick on release, which would otherwise add one more on top of the repeat run.
     var repeatedThisPress by remember { mutableStateOf(false) }
 
-    LaunchedEffect(pressed) {
-        if (!pressed) return@LaunchedEffect
+    LaunchedEffect(pressed, enabled) {
+        if (!pressed || !enabled) return@LaunchedEffect
         // Cleared here rather than on release: a press that is cancelled instead of clicked
         // — dragged off the plate, or stolen by a parent scroll — never reaches the click
         // handler, and a flag left set would silently swallow the next genuine tap.
@@ -91,7 +93,7 @@ fun StepperButton(
     }
 
     val background by animateColorAsState(
-        targetValue = if (pressed) SurfacePressed else Surface2,
+        targetValue = if (pressed && enabled) SurfacePressed else Surface2,
         animationSpec = instrumentTween(Motion.TAP),
         label = "stepper-press",
     )
@@ -109,6 +111,7 @@ fun StepperButton(
             .background(background)
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
             .clickable(
+                enabled = enabled,
                 interactionSource = interactionSource,
                 indication = null,
                 role = Role.Button,
@@ -127,7 +130,7 @@ fun StepperButton(
             label,
             modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
             style = (if (compact) InstrumentType.bodyStrong else InstrumentType.numeralMd).copy(textDirection = TextDirection.Ltr),
-            color = TextPrimary,
+            color = if (enabled) TextPrimary else TextDisabled,
             maxLines = 2,
             textAlign = TextAlign.Center,
         )

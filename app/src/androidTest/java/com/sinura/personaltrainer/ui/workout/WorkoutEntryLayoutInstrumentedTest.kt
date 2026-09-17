@@ -23,7 +23,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.LayoutDirection
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.WorkoutWeightCopy
 import com.sinura.personaltrainer.testutil.GoldenCapture
 import com.sinura.personaltrainer.testutil.GoldenImageAssert
 import com.sinura.personaltrainer.testutil.NativeArtifacts
@@ -93,6 +93,7 @@ class WorkoutEntryLayoutInstrumentedTest(
         }
         compose.waitForIdle()
         SystemClock.sleep(750) // Await the catalog still's first decode, not an animation.
+        GoldenCapture.awaitViewport(compose, width, height)
         val rootNode = compose.onNodeWithTag(GoldenCapture.DefaultTag).fetchSemanticsNode()
         val density = rootNode.layoutInfo.density.density
         val root = rootNode.boundsInRoot
@@ -128,7 +129,7 @@ class WorkoutEntryLayoutInstrumentedTest(
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         if (scenario == "large") {
             val layouts = mutableListOf<TextLayoutResult>()
-            compose.onNodeWithText(WeightConverter.formatLabel(fixture.vm.uiState.value.draft.weightKg, WeightUnit.KG), useUnmergedTree = true)
+            compose.onNodeWithText(WorkoutWeightCopy.label(fixture.vm.uiState.value.draft.weightKg, WeightUnit.KG), useUnmergedTree = true)
                 .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
             assertTrue(layouts.isNotEmpty())
             assertFalse("entered value is not clipped", layouts.any { it.hasVisualOverflow })

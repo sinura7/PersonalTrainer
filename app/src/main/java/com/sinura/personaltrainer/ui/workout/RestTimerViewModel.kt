@@ -27,7 +27,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -57,23 +56,14 @@ class RestTimerViewModel @JvmOverloads constructor(
     private val restTotal = MutableStateFlow(RestTimerPreferences.DEFAULT_SECONDS)
     private val hint = MutableStateFlow<ProgressionHint?>(null)
     private val lighterWeek = MutableStateFlow(false)
-    private val sessionResolved = MutableStateFlow(false)
-
-    private val session: StateFlow<WorkoutSession?> =
-        container.workoutRepository.observeSession(sessionId)
-            .onEach { sessionResolved.value = true }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val sessionReader = WorkoutSessionReader(container.workoutRepository, sessionId, viewModelScope)
 
     init {
-        if (sessionId.isBlank()) {
-            sessionResolved.value = true
-        }
         viewModelScope.launch {
             runCatchingCancellable {
-                val current = session.value ?: run {
-                    sessionResolved.first { it }
-                    session.value
-                }
+                val current = sessionReader.observations.first {
+                    it.loadState == SessionLoadState.FOUND || it.loadState == SessionLoadState.MISSING
+                }.session
                 val prefs = container.preferencesRepository.restTimerPreferences.first()
                 val exerciseId = resolveExerciseId(current)
                 val planned = current?.exercises?.firstOrNull { it.exercise.id == exerciseId }
@@ -119,8 +109,7 @@ class RestTimerViewModel @JvmOverloads constructor(
     }
 
     val uiState: StateFlow<RestTimerScreenState> = combine(
-        session,
-        sessionResolved,
+        sessionReader.observations,
         combine(
             combine(
                 restTimer.remainingSeconds,
@@ -148,12 +137,13 @@ class RestTimerViewModel @JvmOverloads constructor(
         combine(hint, lighterWeek, container.preferencesRepository.weightUnit) { currentHint, lighter, unit ->
             Triple(currentHint, lighter, unit)
         },
-    ) { current, resolved, rest, extras ->
+    ) { read, rest, extras ->
+        val current = read.session
         val (currentHint, lighter, unit) = extras
         val missing = current == null || current.isFinished
         RestTimerScreenState(
             loadState = when {
-                !resolved && sessionId.isNotBlank() -> SessionLoadState.LOADING
+                read.loadState != SessionLoadState.FOUND -> read.loadState
                 missing -> SessionLoadState.MISSING
                 else -> SessionLoadState.FOUND
             },
@@ -199,6 +189,10 @@ class RestTimerViewModel @JvmOverloads constructor(
         restTimer.stop()
     }
 
+    fun retrySession() {
+        sessionReader.retry()
+    }
+
     fun adjustRest(deltaSeconds: Int) {
         restTimer.adjust(deltaSeconds)
     }
@@ -221,10 +215,10 @@ class RestTimerViewModel @JvmOverloads constructor(
             RestTimerPreferences.MIN_SECONDS,
             RestTimerPreferences.MAX_SECONDS,
         )
+        restTimer.start(seconds, sessionId)
         viewModelScope.launch {
             container.preferencesRepository.setLastRestPresetSeconds(seconds)
             container.preferencesRepository.markRestAlarmEligible()
-            restTimer.start(seconds, sessionId)
         }
     }
 
