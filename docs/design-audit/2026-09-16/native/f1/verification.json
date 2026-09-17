@@ -110,9 +110,9 @@
   "localGate": {
     "command": ".\\tools\\dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
     "exitCode": 0,
-    "duration": "2m 27s",
+    "duration": "2m 8s",
     "unitCounts": {
-      "tests": 2536,
+      "tests": 2537,
       "failures": 0,
       "errors": 0,
       "skipped": 0
@@ -128,9 +128,35 @@
     "adversarial": "clear, no unresolved findings"
   },
   "outstanding": [
-    "Explicit approval to upload F1 source and synthetic evidence to public GitHub repository",
     "Hosted deterministic check and default-renderer references/comparison",
     "PR and post-merge integrated checks",
     "Physical device milestone acceptance: TalkBack, gestures, normal display settings, haptics, performance and signed upgrade"
-  ]
+  ],
+  "publication": {
+    "approval": "Owner explicitly approved source and synthetic screenshot publication, PR and merge after checks on 2026-09-17",
+    "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/349",
+    "initialPublishedCommit": "881957717df016bbed9deb83f88fd9e682c3c9ad"
+  },
+  "postCaptureTestCorrection": {
+    "file": "app/src/test/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModelTest.kt",
+    "sha256": "e257d4d6c9f91fdf206b1071d506932f777980828bf59dea579c559b979a238d",
+    "reason": "Drive virtual receipt delay while awaiting real Room completion; deterministic gated-write regression; no native rendering source changes",
+    "targetedTests": 88,
+    "targetedFailures": 0,
+    "independentReview": "clear",
+    "adversarialReview": "clear"
+  },
+  "hostedInitialEvidence": {
+    "runs": [
+      "35192689967",
+      "35192657616"
+    ],
+    "F1captures": 32,
+    "pixelIdenticalBetweenRuns": 32,
+    "initialNativeFailures": {
+      "missingF1references": 32,
+      "oldWorkoutReferencesAssignedF2F3": 9
+    },
+    "referenceComparison": "pending after initial reference acceptance"
+  }
 }

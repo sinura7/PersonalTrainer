@@ -1,7 +1,7 @@
 # F1 — Shared controls and app shell
 
-Status: implemented, reviewed and verified locally; public-upload approval and
-PR/integrated verification pending. Not merged.
+Status: implemented, reviewed and verified locally; PR #349 open, hosted and
+integrated verification pending. Not merged.
 Base: `d77fc432` (F0 integrated). Branch: `codex/frontend-controls`.
 Authority: ADR-026 and the approved frontend plan.
 
@@ -77,10 +77,12 @@ visual review and physical-device acceptance remain separate evidence.
 | API 29 comparison `20260917-060414598` | 136/136 passed, including 32 F1 image comparisons |
 | API 36 shell matrix `20260917-060817179` | 25/25 passed |
 | API 26 shell matrix `20260917-061028797` | 25/25 passed |
-| Full local gate | Passed: 2,536 unit tests, static checks, debug build, lint and test APK; 2m 27s |
+| Full local gate | Passed: 2,537 unit tests, static checks, debug build, lint and test APK; 2m 8s |
 | Independent and adversarial reviews | Both clear; no unresolved product or visual findings |
 
-All 29 source hashes and 32 image hashes match the final recording manifest.
+The recording manifest preserves its original 29 source hashes and 32 image
+hashes. A subsequent JVM-test-only synchronization correction is recorded below;
+the native rendering sources and references are unchanged.
 Compared with local commit `f142ea5c`, six references changed intentionally and
 four inset references were added. The other 22 references are unchanged. Review
 acceptance remains conditional on hosted evidence and integration. Final
@@ -154,17 +156,30 @@ Supporting official guidance: [Compose v2 test migration](https://developer.andr
 - D16/D17: local shell checks above pass; feature-page, physical accessibility,
   performance and integrated evidence continue in owner packets.
 
-The default hosted renderer still needs its own 32 references and comparison;
-Windows-renderer PNGs must not be copied into that profile. The older nine
-hosted workout references remain assigned to F2/F3. Hosted emulator results
-remain nonblocking under ADR-024; deterministic hosted checks remain required.
+The hosted runs `35192689967` and `35192657616` produced 32 pixel-identical F1
+captures. All were reviewed and accepted as initial references for the hosted
+renderer, separately from Windows captures; their comparison rerun remains
+pending. Origin, image hashes and renderer limitations are recorded in
+`app/src/androidTest/assets/goldens/frontend-hosted-manifest.json`.
+Both initial native jobs reported exactly 41 failures: 32 missing new references
+and the nine older workout differences assigned to F2/F3. No older workout
+reference was replaced. Hosted emulator results remain nonblocking under
+ADR-024; deterministic hosted checks remain required.
 
-Automatic approval review rejected the public GitHub push. Read-only checks
-confirmed `sinura7/PersonalTrainer` is public and the signed-in owner has admin
-access. No upload occurred. Explicit approval for pushing this packet's source
-and synthetic screenshots, opening its PR and merging after checks is pending.
-Until then, PR, hosted verification and integrated post-merge acceptance cannot
-run. The approved one-packet-at-a-time protocol keeps F2 pending.
+The PR's required check exposed a real/virtual-clock race in a test wait, while
+the same source passed the push check. Room can finish after the test's last
+virtual-clock advance, leaving the subsequently scheduled rest delay parked.
+`awaitRestRunning` now drives that clock and yields to Room within the existing
+30-second bound, still requiring the actual rest state to become running. A
+gated-write regression deliberately schedules the delay after the first advance.
+All 88 workout ViewModel tests passed locally, including that regression. This
+changes test synchronization only; the production timer contract is unchanged.
+
+The owner explicitly approved publishing this packet's source and synthetic
+screenshots, opening its PR and merging after checks on 17 September 2026.
+The push succeeded; [PR #349](https://github.com/sinura7/PersonalTrainer/pull/349)
+is open. Hosted evidence and post-merge integrated acceptance remain pending.
+The approved one-packet-at-a-time protocol keeps F2 pending until integration.
 
 Physical TalkBack, actual gesture navigation, the phone's display settings,
 haptics, refresh-rate performance and signed upgrade/data retention remain
