@@ -215,3 +215,30 @@ APK identity verification and physical phone acceptance are separate steps.
 The owner reported Samsung S26 Ultra, regular text size; Android version and
 display-size setting are unconfirmed. Milestone A remains in phone acceptance
 until the focused checklist is executed. F4–F11 remain outstanding.
+
+## Post-merge trunk verification — 17 September 2026
+
+Trunk run 35239125454, on `8840af7` (the Debug 79 version bump and this
+document; no production Kotlin), failed the required deterministic job: two
+`ActiveWorkoutViewModelTest` waits ran out their 30 seconds. The draft F4
+branch lost a third wait of the same shape in run 35246475560. These are
+timing losses inside the test class, not defects in the shipped build.
+
+Reproduced locally on the first run of the class: the write-failure tests
+deleted the session row from under the ViewModel and then tapped Log. Whether
+Room refused the insert (the intended error) or the session reader observed
+MISSING first (F3's entry lock refuses the tap, silently and correctly) was
+decided by which thread won. Both tests now inject a DAO whose insert throws,
+which is the failure they are about and cannot lose that race. `logSetAndSettle`
+now settles only when the save operation has released or come to rest as
+FAILED / CONFLICT. The undo-queue loss reproduced locally with the row still
+stored and nothing running: the delete had been dropped by the entry lock,
+which every mutation applies silently by design, because the test tapped the
+instant the row appeared on the repository flow. Delete, remove and undo taps
+now wait on the live `entryLocked` projection first, `startNextLift` waits
+for the ViewModel's own session projection, and a missing undo offer reports
+the screen state so any further hosted loss names the outstanding operation.
+Verified: hosted runs 35258250957, 35258684789, 35259674266, 35260331665 and
+35261004937 green on the full suite; the class green on three consecutive
+local runs of the final source. Production source is unchanged. Debug 79 on
+the phone is unaffected.
