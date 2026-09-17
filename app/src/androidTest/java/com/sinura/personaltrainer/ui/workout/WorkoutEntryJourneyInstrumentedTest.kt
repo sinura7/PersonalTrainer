@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.os.Build
+import android.graphics.BitmapFactory
 import android.os.SystemClock
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.view.accessibility.AccessibilityWindowInfo
@@ -140,7 +141,14 @@ class WorkoutEntryJourneyInstrumentedTest {
         // UiAutomation observes the OS compositor, which can lag Compose idle
         // when a separate sheet/dialog/IME window has just attached.
         SystemClock.sleep(750)
-        val bitmap = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        // Older platform UiAutomation can return null after a real display-size
+        // override. Shell screencap still captures the same OS windows/IME; a
+        // missing or invalid PNG must fail, never silently omit visual evidence.
+        val bitmap = automation.takeScreenshot() ?: automation.executeShellCommand("screencap -p").use { pipe ->
+            FileInputStream(pipe.fileDescriptor).use(BitmapFactory::decodeStream)
+        }
+        checkNotNull(bitmap) { "Both native-window screenshot paths failed for $state" }
         NativeArtifacts.write("frontend-workout-window-$state-api${Build.VERSION.SDK_INT}", bitmap)
         bitmap.recycle()
     }

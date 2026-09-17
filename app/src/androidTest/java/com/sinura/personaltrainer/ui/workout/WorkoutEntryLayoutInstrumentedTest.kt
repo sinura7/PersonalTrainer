@@ -99,7 +99,14 @@ class WorkoutEntryLayoutInstrumentedTest(
         assertEquals(width.toFloat(), root.width / density, 1f)
         assertEquals(height.toFloat(), root.height / density, 1f)
         val commit = compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        assertTrue("72 dp commit floor", commit.height / density >= 71.9f)
+        val name = "frontend-workout-${width}x$height-font${(font * 10).toInt()}-$scenario-api${Build.VERSION.SDK_INT}"
+        val image = GoldenCapture.capture(compose)
+        if (Build.VERSION.SDK_INT == 29) GoldenImageAssert.assertMatches(name, image)
+        else NativeArtifacts.write(name, image.asAndroidBitmap())
+        // Compose rounds dp constraints to physical pixels. Compare the same
+        // integer floor; 72 dp at density 2.28125 correctly renders as 164 px.
+        val minimumCommitPixels = with(rootNode.layoutInfo.density) { 72.dp.roundToPx() }
+        assertTrue("72 dp commit floor: pixels=${commit.height}, expected=$minimumCommitPixels", commit.height >= minimumCommitPixels)
         assertTrue("commit remains in viewport", commit.bottom <= root.bottom + 1)
         val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
         assertTrue("scroll content clears dock", content.bottom <= compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).fetchSemanticsNode().boundsInRoot.top + 1)
@@ -109,11 +116,6 @@ class WorkoutEntryLayoutInstrumentedTest(
             compose.onNodeWithTag("workout-reps-stepper").assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertIsDisplayed()
         }
-        val name = "frontend-workout-${width}x$height-font${(font * 10).toInt()}-$scenario-api${Build.VERSION.SDK_INT}"
-        val image = GoldenCapture.capture(compose)
-        if (Build.VERSION.SDK_INT == 29) GoldenImageAssert.assertMatches(name, image)
-        else NativeArtifacts.write(name, image.asAndroidBitmap())
-
         // Essential fields remain reachable even if large text deliberately puts
         // supporting content below the initial viewport.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_ENTRY))

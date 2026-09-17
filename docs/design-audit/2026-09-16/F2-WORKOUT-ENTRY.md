@@ -53,6 +53,11 @@ hosted and integrated results are recorded separately from baseline acceptance.
 | `20260917-085123091` | 44/44 passed | All 38 viewport cases and six durable/real-window journeys, including long-name landscape and denied notifications. Enlarged error-context wrapping still needed visual refinement after this run. |
 | `20260917-085721688` | 38/38 passed | Final viewport capture after error/undo companion reflow. The four changed error/undo images were inspected at full size; the other 34 are pixel-identical to the previously reviewed run. All 38 references accepted. |
 | `20260917-090559673` | 81/81 passed | Fresh comparison: 38 F2 and 32 F1 image references, six new entry journeys, two existing workout journeys, and shared-control/shell interaction checks. No missing references, failures or skips. |
+| `20260917-091057572` | 41/44 passed | Android 16: all six real-window journeys passed. Three 412 dp geometry assertions rejected valid integer-pixel rounding; diagnostic run below isolated it. |
+| `20260917-091357253` | 35/38 passed | Measured 164 px at density 2.28125: exactly Compose's rounded 72 dp minimum, but 71.89041 dp when divided back. Assertion now compares the rounded pixel constraint. |
+| `20260917-091640157` | 44/44 passed | Corrected Android 16 run: all geometry checks and real-window journeys passed. All 43 captures visually reviewed; default test-host navigation scrim is gone and keyboard/sheet actions remain readable. |
+| `20260917-092014184` | 43/44 passed | Android 8: all 38 viewport checks and five journeys passed. The landscape journey stopped when the old platform UiAutomation screenshot API returned null. |
+| `20260917-092400978` | 6/6 passed | Android 8 real-window journeys with native shell screencap fallback. All five observations were retained, including both landscape sheet positions. |
 
 The layout test includes the production navigation parent's Scaffold padding and
 consumed system insets. Geometry uses the measured root node's own density rather
@@ -88,12 +93,38 @@ prove system-font-2 dialogs or visible IME. The corrected lane sets Android's
 font scale before Activity creation and asserts an actual input-method window.
 Those corrected results are tracked separately; old captures are observations.
 
+Android 16 review additionally exposed the generic test Activity's default light
+navigation contrast scrim in captures. On API 35+, where edge-to-edge is enforced,
+the harness now applies the same dark/transparent system-bar policy already used
+by MainActivity. This is test-host parity, not a product inset change. The API 29
+reference window, logical insets and comparison allowance are unchanged. Captures
+now precede geometry assertions so a failed bound retains visual evidence.
+On Android 8, a display-size override can make UiAutomation's screenshot return
+null. The observation harness falls back to native shell screencap and still
+fails if no valid image is produced. The API 26 viewport captures and all five
+successful window observations were visually reviewed. Its legacy compositor
+letterboxes the resized landscape app in the physical portrait display.
+
+After these test-only corrections the complete local gate passed again in
+1m 21s: static checks reran and unchanged unit/build/lint outputs were reused.
+Original recording source hashes remain intact; subsequent harness hashes and
+verification are recorded separately in `native/f2/verification.json`.
+
+PR [#350](https://github.com/sinura7/PersonalTrainer/pull/350) is a draft until
+acceptance is complete. Initial hosted required verification passed on
+`bfc4781e699af844a4e114e43c68f4d49b1a20c4`. Its 180 native tests had exactly 38
+missing new references and nine legacy workout image differences assigned to F3.
+All 38 new hosted renders were reviewed and independently reproduced in push and
+PR runs (`35203754406`, `35203773061`): three pixel-identical, the remainder within
+the unchanged one-level/256-pixel rounding allowance. They are separate hosted
+references with a manifest; no Windows baseline was reused across renderers.
+
 Captures use only synthetic fixture data on the repository-owned emulator.
 The original phone screenshots are not part of public implementation evidence.
 
 ## Acceptance still required
 
-- Relevant API 26/36 checks.
+- Final API 29 comparison after the test-only corrections.
 - PR hosted deterministic check and clean integrated verification after merge.
 - F3: derived Next/Finish/extra-set action contract, operation-specific retry,
   complete timer/switcher/resume work and replacement of legacy workout goldens.
