@@ -22,6 +22,7 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLooper
 
 /**
  * The rest service follows the store. Alarm-path completion used to leave
@@ -201,15 +202,7 @@ class RestTimerServiceTest {
         val service = controller.create().startCommand(0, 1).get()
         val looper = shadowOf(Looper.getMainLooper())
         looper.idle()
-        val giveUpAt = System.nanoTime() + PREFS_WAIT_NANOS
-        while (service.tickPreferences?.tickEnabled != true && System.nanoTime() < giveUpAt) {
-            Thread.sleep(10)
-            looper.idle()
-        }
-        assertTrue(
-            "tick preference never reached the service",
-            service.tickPreferences?.tickEnabled == true,
-        )
+        awaitTickPreferences(service, looper, enabled = true)
 
         looper.idleFor(Duration.ofSeconds(84))
         assertEquals(emptyList<Int>(), ticks)
@@ -236,6 +229,7 @@ class RestTimerServiceTest {
         val service = controller.create().startCommand(0, 1).get()
         val looper = shadowOf(Looper.getMainLooper())
         looper.idle()
+        awaitTickPreferences(service, looper, enabled = true)
 
         // 4.5 s left: the five-second tick has sounded, the four-second one is half a second out.
         looper.idleFor(Duration.ofMillis(25_500))
@@ -272,9 +266,10 @@ class RestTimerServiceTest {
         val intent = Intent(app, RestTimerService::class.java)
             .setAction(RestTimerService.ACTION_SYNC)
         val controller = Robolectric.buildService(RestTimerService::class.java, intent)
-        controller.create().startCommand(0, 1)
+        val service = controller.create().startCommand(0, 1).get()
         val looper = shadowOf(Looper.getMainLooper())
         looper.idle()
+        awaitTickPreferences(service, looper, enabled = true)
 
         looper.idleFor(Duration.ofSeconds(10))
         assertEquals(emptyList<Int>(), ticks)
@@ -301,17 +296,7 @@ class RestTimerServiceTest {
             val controller = Robolectric.buildService(RestTimerService::class.java, intent)
             val service = controller.create().startCommand(0, 1).get()
             val looper = shadowOf(Looper.getMainLooper())
-            // The service reads the toggle off DataStore on another thread; give
-            // that read a bounded chance to land before the clock moves.
-            val giveUpAt = System.nanoTime() + PREFS_WAIT_NANOS
-            while (service.tickPreferences?.tickEnabled != false && System.nanoTime() < giveUpAt) {
-                Thread.sleep(10)
-                looper.idle()
-            }
-            assertFalse(
-                "tick preference never reached the service",
-                service.tickPreferences?.tickEnabled ?: true,
-            )
+            awaitTickPreferences(service, looper, enabled = false)
 
             looper.idleFor(Duration.ofSeconds(89))
             assertEquals(emptyList<Int>(), ticks)
@@ -351,6 +336,30 @@ class RestTimerServiceTest {
         looper.idleFor(Duration.ofSeconds(3))
         assertEquals(listOf(3, 2, 1), ticks)
         controller.destroy()
+    }
+
+    /**
+     * Blocks, in real time, until the service has read the tick toggle off DataStore.
+     *
+     * That read happens on a real thread; everything else in these tests runs on
+     * Robolectric's virtual clock, which `idleFor` advances instantly. A boundary that
+     * fires before the preferences have landed is dropped by design (see
+     * `aTickBeforeThePreferencesLandStaysSilentAndKeepsCounting`), so a test that moves
+     * the clock first is racing the runner: `addFifteenMovesTheTicksWithTheDeadline` lost
+     * that race on trunk (run 35272784785, `expected [5] but was []`). Bounded, so a
+     * preference that never arrives fails the test rather than hanging it.
+     */
+    private fun awaitTickPreferences(service: RestTimerService, looper: ShadowLooper, enabled: Boolean) {
+        val giveUpAt = System.nanoTime() + PREFS_WAIT_NANOS
+        while (service.tickPreferences?.tickEnabled != enabled && System.nanoTime() < giveUpAt) {
+            Thread.sleep(10)
+            looper.idle()
+        }
+        assertEquals(
+            "tick preference never reached the service",
+            enabled,
+            service.tickPreferences?.tickEnabled,
+        )
     }
 
     private companion object {
