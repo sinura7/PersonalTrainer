@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasAnyAncestor
@@ -23,6 +26,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.domain.AgendaItem
@@ -44,12 +48,16 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
+import com.sinura.personaltrainer.ui.components.WeekStrip
+import com.sinura.personaltrainer.ui.components.WeekStripTags
 import com.sinura.personaltrainer.ui.plan.ExtraEquipmentTags
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import org.junit.Rule
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -344,6 +352,39 @@ class HomePassInstrumentedTest {
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
         compose.onNodeWithText(HomeStartCopy.EMPTY_BODY).assertIsDisplayed()
+    }
+
+    @Test
+    fun selectedDayStaysVisibleWhenWeekStartChanges() {
+        assertWeekStartChangeKeepsSelectionVisible(LayoutDirection.Ltr)
+    }
+
+    @Test
+    fun selectedDayStaysVisibleWhenWeekStartChangesInRtl() {
+        assertWeekStartChangeKeepsSelectionVisible(LayoutDirection.Rtl)
+    }
+
+    private fun assertWeekStartChangeKeepsSelectionVisible(direction: LayoutDirection) {
+        val monday = 19_996L
+        val thursday = monday + 3
+        val cells = mutableStateOf(WeekBoard.forWeek(monday, emptyList(), emptyList()))
+        setConstrainedContent(fontScale = 2f) {
+            CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                WeekStrip(cells = cells.value, today = thursday, selected = thursday, onSelectDay = {})
+            }
+        }
+        fun assertWholeSelectedCell() {
+            compose.waitForIdle()
+            val node = compose.onNodeWithTag(WeekStripTags.cell(thursday))
+                .assertIsSelected().assertIsDisplayed().fetchSemanticsNode()
+            assertTrue("Selected day remains fully visible after changing week start",
+                node.boundsInRoot.width >= node.layoutInfo.width - 1f)
+        }
+        assertWholeSelectedCell()
+        compose.runOnIdle {
+            cells.value = WeekBoard.forWeek(monday - 1, emptyList(), emptyList())
+        }
+        assertWholeSelectedCell()
     }
 
     @Test

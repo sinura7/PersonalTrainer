@@ -74,8 +74,8 @@ fun WeekStrip(
         )
         val stepPx = with(density) { (cellWidth + Metrics.space1).roundToPx() }
         val viewportPx = with(density) { maxWidth.roundToPx() }
-        LaunchedEffect(selected, stepPx, viewportPx, scroll.maxValue) {
-            val index = cells.indexOfFirst { it.epochDay == selected }
+        val index = cells.indexOfFirst { it.epochDay == selected }
+        LaunchedEffect(selected, index, stepPx, viewportPx, scroll.maxValue) {
             if (index >= 0) {
                 val start = index * stepPx
                 val end = start + with(density) { cellWidth.roundToPx() }

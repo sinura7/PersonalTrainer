@@ -76,6 +76,30 @@ schedule identity or stored calculation changes are introduced.
 - F5 follow-up: the API 36 real-app Body observation captured no visible figure.
   Determine whether its capture readiness or rendering needs correction during
   the Body packet; this observation is not treated as Body visual acceptance.
+- Final adversarial review found that changing the week-start preference could
+  move the selected day offscreen without changing its date. Two new native
+  regression tests reproduced the defect at font 2 in LTR and RTL. Keying the
+  scroll effect by the selected index fixes it without reacting to unrelated
+  status changes. API 36 Home interactions then passed 26/26 (run
+  20260917-163144534); the focused source review is clear.
+- The first hosted push deterministic job passed. Its parallel PR job timed out
+  in the pre-existing workout ordinal-copy test after a rapid second edit. The
+  test now awaits the observed saved row before reopening it, rather than
+  mistaking a write receipt for Room-flow delivery. Its ordinal assertions and
+  timeout stay unchanged. A fresh complete local and hosted run is required.
+- F11 owns a P2 follow-up: deterministically gate the workout session observation
+  and check immediate re-edit after a save receipt. Source review identifies a
+  possible stale-original conflict; current optimistic concurrency prevents
+  overwriting data and retains the failed draft. The hosted timeout alone does
+  not prove the app-level race. This is deferred from Home because it requires
+  a dedicated workout observation fixture, not a change to Home behavior.
+- Full local gate 7 passed all 2,587 unit tests with that synchronization and the
+  selected-index fix, plus static checks, lint and both debug builds.
+- Initial hosted API 29 run 35246435024 executed 249 tests: 27 Home cases failed
+  solely for the 56 missing Linux references; an existing rest reference differed
+  by two pixels. All 56 Home captures were reviewed and added as new references.
+  The rest reference and comparator are unchanged. Fresh hosted comparison is
+  pending; missing-reference failures were not skipped or treated as passes.
 
 ## Milestone boundary
 
