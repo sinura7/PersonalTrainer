@@ -2129,13 +2129,14 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun writeFailureRetainsDraftAndEmitsReject() = runBlocking {
         val fixture = seedWorkout()
-        val vm = createViewModel(fixture.session.id)
+        // A throwing insert, not a deleted session: see
+        // [logSetWriteFailureSurfacesErrorInsteadOfPretendingSuccess].
+        val vm = createViewModel(fixture.session.id, container = failingInsert())
         vm.awaitPrefilled()
         vm.setWeight(100.0)
         val seen = mutableListOf<LogCommitFeedback>()
         val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
         try {
-            deps.database.workoutDao().deleteSession(fixture.session.id)
             vm.logSetAndSettle()
             val state = vm.awaitState { it.error != null }
             assertEquals(LogCommitCopy.WRITE_FAILED, state.error)
