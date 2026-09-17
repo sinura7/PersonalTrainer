@@ -1126,6 +1126,9 @@ class ActiveWorkoutViewModelTest {
         vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
+        // The repository flow publishes the row before the ViewModel's own session
+        // projection re-queries it; startNextLift decides "lift done" from the latter.
+        vm.awaitState { it.session?.sets?.size == 1 }
         vm.startNextLift()
         vm.awaitState { it.selectedExerciseId == ROW }
         assertFalse(deps.restTimerStore.current().running)
