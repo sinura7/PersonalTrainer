@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Temper — native redesign evidence</title>
+<style>
+:root{color-scheme:dark;font:16px/1.6 system-ui;background:#07090b;color:#f2f5f7}body{max-width:1280px;margin:auto;padding:32px 20px 64px}h1{font-size:clamp(30px,5vw,48px);line-height:1.1;letter-spacing:-1px}h2{font-size:22px}p{max-width:850px;color:#9ba7ae}a{color:#c2ff44;text-underline-offset:4px}a:focus-visible{outline:3px solid #33d6e8;outline-offset:5px}.eyebrow{color:#c2ff44;text-transform:uppercase;letter-spacing:.15em;font-size:12px}.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;margin-top:32px}figure{margin:0}img{display:block;width:100%;border-radius:12px;border:1px solid #354049}figcaption{margin:10px 0;color:#9ba7ae}section{border-top:1px solid #354049;margin-top:36px;padding-top:24px}
+</style>
+<main>
+<div class="eyebrow">Temper · frontend programme · packet 0</div>
+<h1>The native starting point.</h1>
+<p>Captured from the actual Android app using fixture data, a completed workout, and a live session. These are the current screens before the redesign. The visible layout problems remain assigned to the implementation packets.</p>
+<p><a href="F0-BASELINE.md">Verification, findings and limitations</a> · <a href="../../FRONTEND_REDESIGN.md">Implementation programme</a> · <a href="AUDIT.md">Original audit</a></p>
+<div class="gallery">
+<figure><a href="native/api29/frontend-baseline-home-api29.png"><img src="native/api29/frontend-baseline-home-api29.png" alt="Home native baseline, a completed workout today and a live session"></a><figcaption>Home · selected date and live-session chrome</figcaption></figure>
+<figure><a href="native/api29/frontend-baseline-body-api29.png"><img src="native/api29/frontend-baseline-body-api29.png" alt="Body native baseline with completed-set heat over the anatomical figure"></a><figcaption>Body · geometry and available-height problems visible</figcaption></figure>
+<figure><a href="native/api29/frontend-baseline-plan-api29.png"><img src="native/api29/frontend-baseline-plan-api29.png" alt="Plan native baseline showing schedule and routine entry"></a><figcaption>Plan · schedule and reusable routines</figcaption></figure>
+<figure><a href="native/api29/frontend-baseline-history-api29.png"><img src="native/api29/frontend-baseline-history-api29.png" alt="History native baseline showing totals and independent calendar period"></a><figcaption>History · existing period mismatch to be replaced</figcaption></figure>
+<figure><a href="native/api29/frontend-baseline-settings-api29.png"><img src="native/api29/frontend-baseline-settings-api29.png" alt="Settings native baseline with persistent live-session bar"></a><figcaption>Settings · grouped controls and persistent activity</figcaption></figure>
+</div>
+<section><h2>What the evidence establishes</h2><p>Real MainActivity, navigation and Room data on API 29; 1080 × 1920 pixels at 420 dpi. Full device captures include system bars. Page-specific readiness checks precede capture. See the <a href="native/api29/profile.json">profile manifest</a>.</p><p>These whole-device observations use the real civil clock. Separate renderer-specific golden references compare controlled screen states. No physical-phone accessibility or performance claim is made by an emulator screenshot.</p></section>
+</main>
+</html>

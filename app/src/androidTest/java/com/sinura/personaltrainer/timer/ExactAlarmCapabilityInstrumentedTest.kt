@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.timer
 import android.content.pm.PackageManager
 import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
@@ -21,6 +22,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class ExactAlarmCapabilityInstrumentedTest {
     @Test
+    @SdkSuppress(maxSdkVersion = 30)
     fun apiBelow31SchedulesExact() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val app = context.applicationContext as PersonalTrainerApp

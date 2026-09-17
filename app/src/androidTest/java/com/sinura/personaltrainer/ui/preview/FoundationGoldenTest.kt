@@ -77,6 +77,7 @@ class FoundationGoldenTest {
         val diff = GoldenImageAssert.compare(before, after)
         assertEquals(0, diff.differentPixels)
         assertEquals(1, diff.roundingPixels)
+        assertEquals(16, diff.totalPixels)
         assertTrue("one level is rounding", diff.matches)
     }
 

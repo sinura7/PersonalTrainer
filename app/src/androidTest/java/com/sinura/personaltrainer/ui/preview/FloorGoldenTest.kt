@@ -47,8 +47,8 @@ import org.junit.runner.RunWith
  * [androidx.compose.ui.test.junit4.ComposeContentTestRule.setContent] per
  * test — the empty Activity rejects a second mount.
  *
- * Without the record flag, a state that is not in [GoldenPageCatalog.committed]
- * is skipped rather than compared against a missing asset.
+ * A required state without a committed baseline fails, including on the
+ * explicit Windows renderer profile. Recording is always an explicit action.
  */
 @RunWith(AndroidJUnit4::class)
 class FloorGoldenTest {
@@ -241,10 +241,9 @@ class FloorGoldenTest {
         val recording = InstrumentationRegistry.getArguments()
             .getString("recordGoldens").toBoolean()
         if (!recording) {
-            assumeTrue(
-                "$name is not committed; recapture with recordGoldens=true",
-                GoldenPageCatalog.isCommitted(name),
-            )
+            check(GoldenPageCatalog.isCommitted(name)) {
+                "$name is not committed; review and record the required baseline"
+            }
         }
         GoldenImageAssert.assertMatches(name, image)
     }

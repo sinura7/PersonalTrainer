@@ -30,3 +30,8 @@ debug-keystore.properties
 # Python bytecode from tools/
 __pycache__/
 *.pyc
+
+# Owner-supplied phone images and the local interactive comparison stay local.
+# Reproducible fixture captures and native.html are versioned review evidence.
+/docs/design-audit/2026-09-16/references/
+/docs/design-audit/2026-09-16/index.html

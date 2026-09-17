@@ -10,7 +10,7 @@ on:
     # that have no Android SDK and cannot reach Google's Maven, so the branch build is
     # the only thing that ever compiles that code — verifying it only once it reaches
     # trunk would mean reviewing it blind right up to the merge.
-    branches: [trunk, 'claude/**', 'cursor/**']
+    branches: [trunk, 'claude/**', 'cursor/**', 'codex/**']
   pull_request:
   workflow_dispatch:
 
