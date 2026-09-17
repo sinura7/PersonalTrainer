@@ -231,6 +231,14 @@ MISSING first (F3's entry lock refuses the tap, silently and correctly) was
 decided by which thread won. Both tests now inject a DAO whose insert throws,
 which is the failure they are about and cannot lose that race. `logSetAndSettle`
 now settles only when the save operation has released or come to rest as
-FAILED / CONFLICT, and a missing undo offer reports the screen state so the
-next hosted loss names the outstanding operation. Production source is
-unchanged. Debug 79 on the phone is unaffected.
+FAILED / CONFLICT. The undo-queue loss reproduced locally with the row still
+stored and nothing running: the delete had been dropped by the entry lock,
+which every mutation applies silently by design, because the test tapped the
+instant the row appeared on the repository flow. Delete, remove and undo taps
+now wait on the live `entryLocked` projection first, `startNextLift` waits
+for the ViewModel's own session projection, and a missing undo offer reports
+the screen state so any further hosted loss names the outstanding operation.
+Verified: hosted runs 35258250957, 35258684789, 35259674266, 35260331665 and
+35261004937 green on the full suite; the class green on three consecutive
+local runs of the final source. Production source is unchanged. Debug 79 on
+the phone is unaffected.
