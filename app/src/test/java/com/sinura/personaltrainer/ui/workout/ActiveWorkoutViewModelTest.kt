@@ -35,15 +35,12 @@ import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import kotlinx.coroutines.CompletableDeferred
 import com.sinura.personaltrainer.workout.WorkoutDraft
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestDispatcher
@@ -78,31 +75,10 @@ class ActiveWorkoutViewModelTest {
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<ActiveWorkoutViewModel>()
 
-    /**
-     * Stands in for the composed screen: it collects every ViewModel's `uiState` for the
-     * whole test, the way `WorkoutScreen` does while it is on screen.
-     *
-     * `uiState` is shared `WhileSubscribed(5_000)`, and that five-second stop timeout runs on
-     * the test scheduler's virtual clock. Every `awaitState { }` used to be the only
-     * subscriber, so the moment it returned the timeout was armed, and the next
-     * `advanceUntilIdle()` — `logSetAndSettle` ends with one — fired it and froze `uiState`
-     * at its last emitted value. A later `awaitState { !it.logging }` then matched that
-     * frozen snapshot before `logSet()`'s own `logging = true` was ever projected, and the
-     * test carried on into a save that was still writing: `deleteSet`, `editSet` and a
-     * second `logSet` refuse silently while the operation is outstanding, so the row or
-     * receipt never appeared and the next wait ran out its 30 seconds. Trunk run
-     * 35239125454 and the draft's run 35246475560 each lost a wait of exactly that shape,
-     * on commits that changed no production Kotlin — a timing loss between Room's write
-     * thread and the test thread, never a defect. A permanently subscribed state keeps every
-     * projection live, so a wait can only pass on what the ViewModel is actually showing.
-     */
-    private lateinit var screen: CoroutineScope
-
     @Before
     fun setUp() {
         dispatcher = UnconfinedTestDispatcher()
         Dispatchers.setMain(dispatcher)
-        screen = CoroutineScope(SupervisorJob() + dispatcher)
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
@@ -112,7 +88,6 @@ class ActiveWorkoutViewModelTest {
 
     @After
     fun tearDown() {
-        if (::screen.isInitialized) screen.cancel()
         runBlocking {
             viewModels.forEach { it.clearAndJoinForTest() }
         }
@@ -1422,7 +1397,7 @@ class ActiveWorkoutViewModelTest {
         awaitRestRunning()
 
         vm.deleteSet(logged.id)
-        checkNotNull(vm.deletedSet.awaitFirst { it != null })
+        vm.awaitOffer(vm.deletedSet)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
         assertFalse(deps.restTimerStore.current().running)
 
@@ -1556,7 +1531,7 @@ class ActiveWorkoutViewModelTest {
         awaitSession(fixture.session.id) { session ->
             session.exercises.none { it.exercise.id == ROW }
         }
-        checkNotNull(vm.removedLift.awaitFirst { it != null })
+        vm.awaitOffer(vm.removedLift)
         assertEquals(
             SQUAT,
             deps.workoutRepository.getSession(fixture.session.id)!!.exercises.single().exercise.id,
@@ -1584,7 +1559,7 @@ class ActiveWorkoutViewModelTest {
         val (first, second) = sets
 
         vm.deleteSet(first.id)
-        checkNotNull(vm.deletedSet.awaitFirst { it != null })
+        vm.awaitOffer(vm.deletedSet)
         vm.deleteSet(second.id)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
 
@@ -1616,11 +1591,11 @@ class ActiveWorkoutViewModelTest {
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
 
         vm.deleteSet(logged.id)
-        checkNotNull(vm.deletedSet.awaitFirst { it != null })
+        vm.awaitOffer(vm.deletedSet)
         vm.selectExercise(ROW)
         vm.awaitState { it.selectedExerciseId == ROW }
         vm.removeSelectedLift()
-        checkNotNull(vm.removedLift.awaitFirst { it != null })
+        vm.awaitOffer(vm.removedLift)
 
         assertEquals(2, vm.undoEntries.value.size)
         assertEquals(UndoKind.REMOVED_LIFT, vm.undoEntries.value.last().offer.kind)
@@ -1648,7 +1623,7 @@ class ActiveWorkoutViewModelTest {
             .sets.sortedBy { it.completedAt }
 
         vm.deleteSet(sets[0].id)
-        checkNotNull(vm.deletedSet.awaitFirst { it != null })
+        vm.awaitOffer(vm.deletedSet)
         vm.deleteSet(sets[1].id)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
         assertEquals(2, vm.undoEntries.value.size)
@@ -1675,7 +1650,7 @@ class ActiveWorkoutViewModelTest {
         vm.logSetAndSettle()
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
         vm.deleteSet(logged.id)
-        checkNotNull(vm.deletedSet.awaitFirst { it != null })
+        vm.awaitOffer(vm.deletedSet)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
 
         // A new process over the same saved state still offers the delete back.
@@ -2177,11 +2152,7 @@ class ActiveWorkoutViewModelTest {
             savedStateHandle = handle,
             container = container,
             undoTimeout = undoTimeout,
-        ).also { vm ->
-            viewModels += vm
-            // The screen is on: see [screen].
-            vm.uiState.launchIn(screen)
-        }
+        ).also(viewModels::add)
 
     private fun withClock(clock: ControllableTimePort): AppDependencies =
         object : AppDependencies by deps {
@@ -2350,6 +2321,19 @@ class ActiveWorkoutViewModelTest {
         withTimeout(TestWaits.FLOW_MS) { uiState.first(predicate) }
     } catch (timedOut: TimeoutCancellationException) {
         throw AssertionError("awaitState gave up; last uiState was ${uiState.value}", timedOut)
+    }
+
+    /**
+     * An undo offer that never appears is most often a delete or remove that the entry lock
+     * refused — silently, by design, because a queued tap must not act after the screen has
+     * moved on. The generic wait can only say "last value was null"; the screen state says
+     * whether a save was still outstanding, which is the whole diagnosis when it happens on a
+     * hosted runner and nowhere else.
+     */
+    private suspend fun <T : Any> ActiveWorkoutViewModel.awaitOffer(offer: StateFlow<T?>): T = try {
+        checkNotNull(offer.awaitFirst { it != null })
+    } catch (gaveUp: AssertionError) {
+        throw AssertionError("${gaveUp.message}\nuiState was ${uiState.value}", gaveUp)
     }
 
     private suspend fun awaitSession(

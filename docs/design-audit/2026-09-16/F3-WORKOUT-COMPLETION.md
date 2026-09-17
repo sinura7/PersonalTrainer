@@ -221,13 +221,16 @@ until the focused checklist is executed. F4–F11 remain outstanding.
 Trunk run 35239125454, on `8840af7` (the Debug 79 version bump and this
 document; no production Kotlin), failed the required deterministic job: two
 `ActiveWorkoutViewModelTest` waits ran out their 30 seconds. The draft F4
-branch lost a third wait of the same shape in run 35246475560. All three are
-timing losses inside the test class, not defects in the shipped build:
-`uiState` is shared `WhileSubscribed(5_000)` on the virtual clock, so once a
-test advanced time the state froze and a wait could pass on a stale snapshot
-while a save was still writing; the next mutation was then refused by F3's
-entry lock, silently and correctly. The class now keeps the screen subscribed
-for the life of every ViewModel, settles a log only when the save operation
-has released, and drives the write-failure case from a DAO whose insert throws
-rather than by deleting the session row under the reader. Production source is
+branch lost a third wait of the same shape in run 35246475560. These are
+timing losses inside the test class, not defects in the shipped build.
+
+Reproduced locally on the first run of the class: the write-failure tests
+deleted the session row from under the ViewModel and then tapped Log. Whether
+Room refused the insert (the intended error) or the session reader observed
+MISSING first (F3's entry lock refuses the tap, silently and correctly) was
+decided by which thread won. Both tests now inject a DAO whose insert throws,
+which is the failure they are about and cannot lose that race. `logSetAndSettle`
+now settles only when the save operation has released or come to rest as
+FAILED / CONFLICT, and a missing undo offer reports the screen state so the
+next hosted loss names the outstanding operation. Production source is
 unchanged. Debug 79 on the phone is unaffected.
