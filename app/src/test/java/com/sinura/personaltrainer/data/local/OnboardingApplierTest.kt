@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.local
 
 import android.content.Context
 import androidx.room.Room
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.repository.ApplyPlanResult
 import com.sinura.personaltrainer.data.repository.OnboardingApplier
@@ -19,6 +20,11 @@ import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
 import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -28,6 +34,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
 
 /**
  * The one moment in the app that writes across preferences, routines, their exercises and the
@@ -44,6 +51,7 @@ class OnboardingApplierTest {
     private lateinit var schedule: ScheduleRepository
     private lateinit var preferences: PreferencesRepository
     private lateinit var applier: OnboardingApplier
+    private lateinit var preferencesScope: CoroutineScope
 
     private val catalog: List<Exercise> = DefaultExercises.catalog().map { seed ->
         Exercise(
@@ -75,12 +83,20 @@ class OnboardingApplierTest {
         }
         routines = RoutineRepository(database.routineDao())
         schedule = ScheduleRepository(database.scheduleDao())
-        preferences = PreferencesRepository(context)
+        // A process-global DataStore survives individual Robolectric contexts.
+        // Own and close this fixture's store, just as the other database fixtures do.
+        preferencesScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        val store = PreferenceDataStoreFactory.create(
+            scope = preferencesScope,
+            produceFile = { File(context.cacheDir, "onboarding-${System.nanoTime()}.preferences_pb") },
+        )
+        preferences = PreferencesRepository(context = context, dataStore = store)
         applier = OnboardingApplier(database, routines, schedule, preferences)
     }
 
     @After
     fun tearDown() {
+        preferencesScope.cancel()
         database.close()
     }
 
@@ -287,7 +303,10 @@ class OnboardingApplierTest {
             weekStart = WEEK_START,
             today = TODAY,
         )
-        assertTrue(result is ApplyPlanResult.Applied)
+        assertTrue(
+            "Outcome: $result; logs: ${ShadowLog.getLogsForTag("PT/Onboarding").joinToString { it.msg }}",
+            result is ApplyPlanResult.Applied,
+        )
         val routine = routines.getById(schedule.slots().first().routineId!!)!!
         assertEquals(80.0, routine.exercises.first().targetWeightKg!!, 0.001)
     }

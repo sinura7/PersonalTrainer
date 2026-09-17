@@ -1,0 +1,568 @@
+{
+  "packet": "F1",
+  "baseCommit": "d77fc432",
+  "sourceSha256": {
+    "app/src/androidTest/java/com/sinura/personaltrainer/testutil/GoldenCapture.kt": "2baa56a99e784337226469e17b78ed02fbf6d3aa98f579bd814eed8ba6423c3e",
+    "app/src/androidTest/java/com/sinura/personaltrainer/testutil/GoldenImageAssert.kt": "bf432c154febe6b35b3bedf381e02f10004737454673cd046ea0dcd0c8a0e6a7",
+    "app/src/androidTest/java/com/sinura/personaltrainer/timer/ExactAlarmCapabilityInstrumentedTest.kt": "734890a88cd2bc09d8ecd872053beef078a04b8646e3627e2493e08bd651f8a9",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/ProductionScreensPassInstrumentedTest.kt": "4b18b5dcb7e9efdc3fba4e2a25f2aaa7e8f354f38b994a5eabec2244d973d57a",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/components/FrontendControlsInstrumentedTest.kt": "c17028c0df47597541589002d7a1da90fbaa9ba06f86287b0b90e800c67e816d",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/navigation/FrontendShellInstrumentedTest.kt": "ae798826d46e3cff9af6798edff652bbb580e20e9bb6f89dcd7907b74be968f1",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/preview/FloorGoldenTest.kt": "e7d969e1a7b9bf1639f89975927c7e48033c1f880cad1d0c6432002f34cb1a85",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/preview/FrontendBaselineCaptureTest.kt": "99f4c5295d2e725cd0366f1a6667677a41afb005ff10af55ee75ab0565c9010f",
+    "app/src/debug/java/com/sinura/personaltrainer/ui/preview/ComponentStateGallery.kt": "b969ff473c34f3c6d295d88dcbe6597517a0b8aba604166c331a816e7613dcba",
+    "app/src/main/java/com/sinura/personaltrainer/domain/LiveBarCopy.kt": "81daa2e7112eff67f15e43b253be30cf7875b0e6c0ac9b4979456c56eb834c05",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/ConfirmActionDialog.kt": "a4152eb039eb2806b9c7bbc31ddeb7d0defc9b74b04de347b8f49e96f385d548",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/GymButtons.kt": "6536f6c8dc55de878c65c58e1e2b65aedc0a39b0c69dc9d2b7b3cd146f88f5bf",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/InstrumentChip.kt": "fc9e78174615345264bb5edb7e1fc4426eaf6b4ae2e9ef410d56bc96d1dc7d9b",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/InstrumentSelection.kt": "14de6f75a10704087ff35f911ac99a5d6225c4d6e91708e2858843905f0d9f3a",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/InstrumentSwitch.kt": "393d2588e2a1462b6863ca80ef11f0c979eb131bdca58e0dc6f49591e42f3d47",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/LoadTypeChips.kt": "1f76dc4480b0388b0b5dbbfd9f677ab3555eb1a4a98e0ca05755445717c83bcd",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/ScreenHeader.kt": "da16304dbcbbc39e21d8f052c01e551be059fff449559c8d2dac3d2536f55a9b",
+    "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt": "1e76f4b9fa83968693e791dd77c8ba4bc72e2aeaa958f197f11dfa03139b0c7b",
+    "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt": "597c0a5c7a5cd2658dafc4f48a12014dd81ec8df9d7c25f4391fdf691599bfd2",
+    "app/src/main/java/com/sinura/personaltrainer/ui/navigation/LiveSessionBar.kt": "cb9518890fcdadb417c4cecb44d34b506613c161cee19b7cb3121ec2e2397bab",
+    "app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt": "5315347639ae8944c83e8fbc49ba804b6135aac2d4b402c5303a22f740fdcf57",
+    "app/src/main/java/com/sinura/personaltrainer/ui/progress/ProgressScreen.kt": "a35788cd76827e1d479758e58fce713284e9abb5da0385c4deaa1b514a3a65fe",
+    "app/src/main/java/com/sinura/personaltrainer/ui/theme/LogLoopScale.kt": "e6792c74610f18114fee668c7926284ca52749abf76ffc3bf327b9e4ec5eaf91",
+    "app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt": "d5d4614d945ca54e68be92087b40e5d1f1a0f3a4737940827b87b2483bb77fbe",
+    "app/src/main/java/com/sinura/personaltrainer/ui/theme/Shape.kt": "76ca36ac4809f1860f06ab043ea30856b23436b2449ab61887aa216e7e19a054",
+    "app/src/main/java/com/sinura/personaltrainer/ui/theme/Type.kt": "042eb573bc209581e83a916d084031e395a36b7e7528e6524aebe109b8d64cc0",
+    "app/src/test/java/com/sinura/personaltrainer/data/local/OnboardingApplierTest.kt": "72856bba58e049a25e30b30c9a2e64e45b975f79a0748e591d053a7efa56b77c",
+    "app/src/test/java/com/sinura/personaltrainer/ui/theme/LogLoopScaleTest.kt": "50562a5b9d0d5216c77e0f117342cbcd129ef623d721ee9ef93c94d90ec91a78",
+    "app/src/test/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModelTest.kt": "5c5bd24162feda819ccb96afac066d15efd1212b356bcb7f1672563730eeea8f"
+  },
+  "device": {
+    "profile": "temper-tests-api29",
+    "serial": "emulator-5554",
+    "systemImage": "system-images;android-29;default;x86_64",
+    "imageRevision": "8",
+    "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+    "density": "Physical density: 420",
+    "size": "Physical size: 1080x1920",
+    "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+    "renderer": "swiftshader_indirect",
+    "fontScale": 1.0,
+    "animations": 0,
+    "locale": "en-US",
+    "timeZone": "America/Toronto",
+    "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+    "goldenProfile": "windows-swiftshader37",
+    "capturedUtc": "2026-09-17T05:02:10.2381315Z"
+  },
+  "fixture": "FrontendShellInstrumentedTest (shipping shell in fixture Scaffold); FrontendControlsInstrumentedTest (native debug gallery)",
+  "clock": "Fixed shell elapsed 12:34, rest 1:15; gallery has no running clock",
+  "viewport": "Compose ForcedSize rescales density to fit the native test canvas. Logical bounds are asserted. Separate Android dialog/IME windows use the real device configuration.",
+  "fonts": "Bundled Inter and Space Grotesk",
+  "images": [
+    {
+      "name": "frontend-controls-disabled-api29.png",
+      "sha256": "f4925e8679e1f7392577b6d06c97b21bed7b97c6e22be6bfdefbf1089c9001c1",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-controls-focused-api29.png",
+      "sha256": "aa2b0b977c3fe6438d0ac02138ed0624d30113573a3e3a3d9b4c5b76c1174b93",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-controls-pressed-api29.png",
+      "sha256": "ff92be89d4de0d2751a034488aad121861003814abe0e3e53e45b0f495393afb",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-controls-ready-api29.png",
+      "sha256": "f35873d220d430004fbc451596d233b6c69e188e423ac1a12667315afb52a7e3",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-controls-saving-api29.png",
+      "sha256": "4966d3c4c2d7428b2dd71708271baa7b800c56e7d2c4c31e51b002650475e73d",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-controls-selection-api29.png",
+      "sha256": "d8315f41b3a350fc1ed4547d28581b7cd4a0cb9ba8f919c3629e093f22a9eda6",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-controls-selection-font20-api29.png",
+      "sha256": "31231d380df483d51dc95ea2db0561630c838337445dbfca883be6fcf2111aaa",
+      "pixels": [
+        945,
+        1680
+      ],
+      "logicalDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.625,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-360x640-font10-ltr-motion-api29.png",
+      "sha256": "1b72a74c265808037d4aec9c3c9edcb632495409bce4046e43391851908d5fd8",
+      "pixels": [
+        945,
+        1680
+      ],
+      "logicalDp": [
+        360,
+        640
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.625,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-360x640-font16-ltr-motion-api29.png",
+      "sha256": "f9cbeeb45b81b2a6fcc0d4afac854e5853238e8be617523fe1a20e2e27475fc6",
+      "pixels": [
+        945,
+        1680
+      ],
+      "logicalDp": [
+        360,
+        640
+      ],
+      "fontScale": 1.6,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.625,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-360x640-font20-ltr-motion-api29.png",
+      "sha256": "e6c5218764d17b221cba9c52bd4b2a1731d7205070a8448c82f432ebcb26b6fc",
+      "pixels": [
+        945,
+        1680
+      ],
+      "logicalDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.625,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-360x640-font20-ltr-motion-long-error-api29.png",
+      "sha256": "66ebdbfff5d961bd854217a73d3c917944e8f4991ac1288e9c3632a8d3411422",
+      "pixels": [
+        945,
+        1680
+      ],
+      "logicalDp": [
+        360,
+        640
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.625,
+      "runId": "20260917-050210256",
+      "scenario": "long-error"
+    },
+    {
+      "name": "frontend-shell-360x800-font10-ltr-motion-api29.png",
+      "sha256": "6d7f92c3185acda4fb6a294b46f17f19c17cb3fa3005f093fad91af58270c646",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-360x800-font10-ltr-still-api29.png",
+      "sha256": "6d7f92c3185acda4fb6a294b46f17f19c17cb3fa3005f093fad91af58270c646",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": true,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-360x800-font10-rtl-motion-api29.png",
+      "sha256": "62d8d420d188a386f0cdbef6163ab9c8c95035c9b20f763ce82a1c7517f495c0",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "rtl",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-360x800-font16-ltr-motion-api29.png",
+      "sha256": "b0c3a54c699090cb3c4a4fc3622a26fe7c4d7e22b7354d3a620b9d491b45fbc9",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 1.6,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-360x800-font20-ltr-motion-api29.png",
+      "sha256": "12cfaa7bc8c24b9808df3219bfd18f2de4ee07a9d8a78995e9f335050674f8e2",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-360x800-font20-rtl-motion-api29.png",
+      "sha256": "ae9407e12c4117bc8d14d13d4826a97ce3be9ae5d722da3d29075ed17a2417ca",
+      "pixels": [
+        778,
+        1730
+      ],
+      "logicalDp": [
+        360,
+        800
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "rtl",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.161111111111111,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-412x840-font10-ltr-motion-api29.png",
+      "sha256": "b2f42eac116c7e09784189a8ce50a0442177aeff3a33ec3e24414a9c6b60dc7b",
+      "pixels": [
+        847,
+        1727
+      ],
+      "logicalDp": [
+        412,
+        840
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.0558252427184467,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-412x840-font16-ltr-motion-api29.png",
+      "sha256": "1351b3ca3c18ad74adaf0238823d2db2e03fb2aaf06f4db5b6bf84652e62a98c",
+      "pixels": [
+        847,
+        1727
+      ],
+      "logicalDp": [
+        412,
+        840
+      ],
+      "fontScale": 1.6,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.0558252427184467,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-412x840-font20-ltr-motion-api29.png",
+      "sha256": "4182c47451e65c0bc077423c097fde8316f4ff61daaf4a19cb28423f506f00d4",
+      "pixels": [
+        847,
+        1727
+      ],
+      "logicalDp": [
+        412,
+        840
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 2.0558252427184467,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-600x840-font10-ltr-motion-api29.png",
+      "sha256": "fdf9be531cdbe7a29cc852a2df988062f230a1e474d0c06e6253a71d98868bb1",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "logicalDp": [
+        600,
+        840
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.8,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-600x840-font16-ltr-motion-api29.png",
+      "sha256": "784b3efd63aae43326d0b1b96756d8854fbdead5b2be4e59fc45a9606c0b3cde",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "logicalDp": [
+        600,
+        840
+      ],
+      "fontScale": 1.6,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.8,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-600x840-font20-ltr-motion-api29.png",
+      "sha256": "e9a966dd9dd1efc62c0f58e1db7c982f313bd747627bfae486176f7a36913ecd",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "logicalDp": [
+        600,
+        840
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.8,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-640x360-font10-ltr-motion-api29.png",
+      "sha256": "c940932f3104f34e967dfce19f2008aa2ae5d48f7973cf1d3c91e9cceba2d137",
+      "pixels": [
+        1080,
+        608
+      ],
+      "logicalDp": [
+        640,
+        360
+      ],
+      "fontScale": 1.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.6875,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-640x360-font16-ltr-motion-api29.png",
+      "sha256": "e294458611985b9d5bfdd2226c98901058dce6b92df906f91f0253b90acdb949",
+      "pixels": [
+        1080,
+        608
+      ],
+      "logicalDp": [
+        640,
+        360
+      ],
+      "fontScale": 1.6,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.6875,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-api29.png",
+      "sha256": "a1fda8ba34591cbbe70c5aa66dd93d96e92760e0c2a383099eb69e79ca59c8c6",
+      "pixels": [
+        1080,
+        608
+      ],
+      "logicalDp": [
+        640,
+        360
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.6875,
+      "runId": "20260917-050210256",
+      "scenario": "normal"
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-cardio-api29.png",
+      "sha256": "3b7b8bc06bbca641dd963aa14f0ab93686bc2c6c1a9e9a3b8115e428ed36ed97",
+      "pixels": [
+        1080,
+        608
+      ],
+      "logicalDp": [
+        640,
+        360
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.6875,
+      "runId": "20260917-050210256",
+      "scenario": "cardio"
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-long-error-api29.png",
+      "sha256": "0abed07574e7e18b7822adabc7a56121c336b0e4d1017d97c6b2f8643536c895",
+      "pixels": [
+        1080,
+        608
+      ],
+      "logicalDp": [
+        640,
+        360
+      ],
+      "fontScale": 2.0,
+      "layoutDirection": "ltr",
+      "reducedMotion": false,
+      "capturePixelsPerDp": 1.6875,
+      "runId": "20260917-050210256",
+      "scenario": "long-error"
+    }
+  ],
+  "limitations": [
+    "Not physical-device performance or TalkBack evidence",
+    "Not whole-app large-font acceptance",
+    "OS animations disabled in pinned device; theme reduced-motion also tested separately"
+  ]
+}

@@ -120,6 +120,11 @@ def function_type_arity(type_text):
 
     for _ in range(6):  # unwrap `( ... )?` and `( ... )` a bounded number of times
         t = t.strip()
+        # Compose marks a function type; it does not add a lambda parameter.
+        # Read named slots rather than counting every new component as a blind spot.
+        if t.startswith("@Composable "):
+            t = t[len("@Composable "):].strip()
+            continue
         if t.startswith("suspend "):
             t = t[len("suspend "):].strip()
             continue

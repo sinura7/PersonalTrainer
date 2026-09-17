@@ -60,6 +60,9 @@ object Metrics {
     /** Absolute minimum touch target. */
     val touchMin: Dp = 48.dp
 
+    /** Persistent chrome shares lines in short windows to leave usable content. */
+    val compactWindowHeight: Dp = 400.dp
+
     /**
      * One snap-wheel numeral. Rest length (Packet E still) and reminder
      * / onboarding wheels keep this row. Floor weight and reps left it.

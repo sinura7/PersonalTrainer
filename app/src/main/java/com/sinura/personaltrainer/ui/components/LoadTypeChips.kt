@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -33,9 +34,12 @@ fun LoadTypeChipRow(
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Kicker(LoadTypeCopy.KICKER)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        LazyRow(
+            modifier = Modifier.selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        ) {
             items(LoadType.entries, key = { it.name }) { type ->
-                InstrumentChip(
+                InstrumentChoiceChip(
                     label = type.label,
                     selected = selected == type,
                     onClick = { onSelect(type) },

@@ -14,7 +14,7 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
@@ -110,6 +110,8 @@ private const val WIDTH_PROBE = "screens-pass-width-probe"
 @RunWith(AndroidJUnit4::class)
 class ProductionScreensPassInstrumentedTest {
     @get:Rule
+    // Queue background StateFlow emissions for the controlled UI clock instead
+    // of resuming an unconfined recomposer on the emitting Room/worker thread.
     val compose = createComposeRule()
 
     private lateinit var container: AppContainer

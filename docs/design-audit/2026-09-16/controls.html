@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Temper — controls and shell</title>
+<style>
+:root{color-scheme:dark;font:16px/1.6 system-ui;background:#07090b;color:#f2f5f7}*{box-sizing:border-box}body{max-width:1240px;margin:auto;padding:32px 20px 64px}h1{font-size:clamp(32px,6vw,56px);line-height:1.05;letter-spacing:-1.5px;max-width:850px}h2{font-size:26px;margin:0 0 12px}p{max-width:860px;color:#a8b3ba}a{color:#c2ff44;text-underline-offset:4px}a:focus-visible{outline:3px solid #33d6e8;outline-offset:5px}.eyebrow{color:#c2ff44;text-transform:uppercase;letter-spacing:.12em;font-size:12px}.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:24px;margin-top:28px}.pair{grid-template-columns:repeat(2,minmax(0,1fr));max-width:720px}figure{margin:0;min-width:0}img{display:block;width:100%;height:auto;border-radius:12px;border:1px solid #354049}figcaption{margin:10px 0;color:#a8b3ba;font-size:14px}section{border-top:1px solid #354049;margin-top:40px;padding-top:28px}.status{padding:16px 20px;background:#151a1e;border-radius:16px}.status strong{color:#f2f5f7}nav{display:flex;gap:16px;flex-wrap:wrap}details{margin:24px 0}summary{cursor:pointer;min-height:48px;color:#c2ff44} @media(max-width:520px){.pair{grid-template-columns:1fr}}
+</style>
+<main>
+<div class="eyebrow">Temper · native redesign · packet 1</div>
+<h1>A consistent language for controls and navigation.</h1>
+<p>The first implementation establishes full labels, distinct selection and action roles, a larger resume target, and navigation that adapts to enlarged text. The workout composition follows in Packets 2 and 3.</p>
+<nav aria-label="Evidence navigation"><a href="native.html">Native starting point</a><a href="F1-CONTROLS.md">Verification record</a><a href="../../FRONTEND_REDESIGN.md">Full programme</a></nav>
+<p class="status"><strong>Native fixture evidence.</strong> Images below come from Compose on the pinned Android emulator. The shell matrix uses shipping controls inside a fixture screen. Whole-device observations include real Android dialogs, keyboard and app pages. Final acceptance is recorded in the verification document.</p>
+<section><h2>Different jobs, distinct controls</h2><p>Radio choices indicate one selection. A checkbox indicates an independent toggle. A suggestion stays quiet; applying its preset changes the draft. The primary action keeps its own emphasis.</p>
+<div class="gallery">
+<figure><a href="native/f1/frontend-controls-selection-api29.png"><img src="native/f1/frontend-controls-selection-api29.png" alt="Native component gallery with Working and Warm-up radio choices, reminder checkbox, quiet suggestion and Use 15 lbs action"></a><figcaption>Choices, toggles, suggestions and presets.</figcaption></figure>
+<figure><a href="native/f1/frontend-controls-ready-api29.png"><img src="native/f1/frontend-controls-ready-api29.png" alt="Ready lime action, quieter View sets action and red-text destructive action"></a><figcaption>One dominant action, with secondary and destructive alternatives.</figcaption></figure>
+<figure><a href="native/f1/frontend-controls-focused-api29.png"><img src="native/f1/frontend-controls-focused-api29.png" alt="Actual keyboard focus with a dark outline inside the lime action"></a><figcaption>Real keyboard focus, asserted in the native test.</figcaption></figure>
+</div>
+<details><summary>Saving, disabled and enlarged-text samples</summary><div class="gallery">
+<figure><img loading="lazy" src="native/f1/frontend-controls-saving-api29.png" alt="Disabled Saving action"><figcaption>Saving prevents another submission.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-controls-disabled-api29.png" alt="Disabled action preserving its label"><figcaption>Disabled reason is a separate accessible state.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-controls-selection-font20-api29.png" alt="Selection controls at twice the default font scale"><figcaption>Enlarged text: controls wrap and content scrolls.</figcaption></figure>
+</div></details></section>
+<section><h2>Full labels and reachable activity</h2><p>The whole live-session body resumes the workout, including its time and set count. Overflow remains a separate target. Navigation measures all five labels and uses three items followed by two when needed.</p>
+<div class="gallery">
+<figure><a href="native/f1/frontend-shell-360x800-font10-ltr-motion-api29.png"><img loading="lazy" src="native/f1/frontend-shell-360x800-font10-ltr-motion-api29.png" alt="360 by 800 dp shell with all five navigation labels in one row"></a><figcaption>360 × 800 dp · standard text.</figcaption></figure>
+<figure><a href="native/f1/frontend-shell-360x640-font20-ltr-motion-api29.png"><img loading="lazy" src="native/f1/frontend-shell-360x640-font20-ltr-motion-api29.png" alt="Small shell at font scale 2 with navigation arranged in three and two items"></a><figcaption>360 × 640 dp · font scale 2.0. Last-item clearance is separately tested after scrolling.</figcaption></figure>
+<figure><a href="native/f1/frontend-shell-360x800-font20-rtl-motion-api29.png"><img loading="lazy" src="native/f1/frontend-shell-360x800-font20-rtl-motion-api29.png" alt="Mirrored shell preserving readable English metric phrases"></a><figcaption>Forced RTL · font scale 2.0. English phrases retain their reading direction.</figcaption></figure>
+</div>
+<details><summary>Short landscape and unusually long names</summary><div class="gallery">
+<figure><img loading="lazy" src="native/f1/frontend-shell-640x360-font20-ltr-motion-api29.png" alt="640 by 360 dp shell at font scale 2"><figcaption>Short windows combine activity identity into one line.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-shell-640x360-font20-ltr-motion-long-error-api29.png" alt="Long workout name with a stale warning and finish error in landscape"><figcaption>Long name, stale activity and error together. Navigation and the last content action remain reachable.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-shell-640x360-font20-ltr-motion-cardio-api29.png" alt="Cardio live bar showing elapsed time without strength set counts"><figcaption>Cardio uses its own label and elapsed time.</figcaption></figure>
+</div><p>Persistent identity is a bounded preview with full accessibility text. Whole workout landscape composition is owned by Packet 2.</p></details></section>
+<section><h2>Actual keyboard and dialog windows</h2><p>These are device-window observations. The large-text dialogs use the emulator's system font setting, applied before the Activity launches and restored after the test.</p><div class="gallery">
+<figure><img loading="lazy" src="native/f1/frontend-number-entry-valid.png" alt="Numeric-entry dialog with the Android keyboard open"><figcaption>Absolute numeric entry with the real keyboard.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-confirmation-font20.png" alt="Large-text discard dialog with a wrapped title and stacked actions"><figcaption>Confirmation at system font scale 2.0.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-rest-sheet-font20.png" alt="Large-text native rest settings sheet"><figcaption>One overlay at a time; Back returns to its parent.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-long-confirmation-font20.png" alt="Long-name confirmation scrolled to the complete warning with both actions visible"><figcaption>Unrestricted saved names scroll with the warning; actions remain reachable.</figcaption></figure>
+</div></section>
+<section><h2>The change in the app</h2><p>Before and after use the real Settings screen and a fixture workout. The new activity bar identifies the activity kind, retains metrics and provides a single resume target. Settings content itself is scheduled for Packet 10.</p><div class="gallery pair">
+<figure><img loading="lazy" src="native/api29/frontend-baseline-settings-api29.png" alt="Settings before shared-shell changes"><figcaption>Before · Packet 0.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-baseline-settings-api29.png" alt="Settings after shared-shell changes"><figcaption>After · Packet 1.</figcaption></figure>
+</div><details><summary>Other whole-app observations</summary><div class="gallery">
+<figure><img loading="lazy" src="native/f1/frontend-baseline-home-api29.png" alt="Home with the updated live bar"><figcaption>Home · date and board redesign still pending.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-baseline-body-api29.png" alt="Body with radio period choices and full-width figure context"><figcaption>Body · anatomical registration remains Packet 5.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-baseline-plan-api29.png" alt="Plan with shared-shell changes"><figcaption>Plan · composition remains Packet 7.</figcaption></figure>
+<figure><img loading="lazy" src="native/f1/frontend-baseline-history-api29.png" alt="History with explicit exclusive period choices"><figcaption>History · unified filtering remains Packet 6.</figcaption></figure>
+</div></details></section>
+<section><h2>Acceptance boundaries</h2><p>The matrix covers five logical viewport sizes, three font scales, RTL and reduced motion. Native assertions check target bounds, non-overlap, complete labels, metric taps and scroll clearance. Pixel comparisons use a fixed renderer and narrowly bounded rounding tolerance.</p><p>These captures do not establish physical-phone TalkBack, haptics, refresh-rate performance or upgrade acceptance. Those remain explicit milestone checks. No signed phone update is issued by Packet 1.</p><p><a href="native/f1/manifest.json">Observation manifest</a> · <a href="../../../app/src/androidTest/assets/goldens/windows-swiftshader37/frontend-manifest.json">Golden manifest</a></p></section>
+</main>
+</html>

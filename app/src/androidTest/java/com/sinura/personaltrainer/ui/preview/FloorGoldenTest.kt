@@ -159,7 +159,13 @@ class FloorGoldenTest {
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }
-        if (vm.restTimerState.value.running) vm.skipRest()
+        // A receipt precedes delayed auto-rest. Cancel that pending start too,
+        // then wait for the rendered idle row before comparing the success state.
+        compose.runOnIdle { vm.skipRest() }
+        awaitCondition("rest stopped after receipt") { !vm.restTimerState.value.running }
+        compose.waitUntil(60_000) {
+            compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isEmpty()
+        }
         record("success", waitIdle = false)
     }
 
@@ -182,7 +188,7 @@ class FloorGoldenTest {
         awaitHero(vm)
         vm.logSet()
         awaitCondition("lift complete") { vm.pendingAdvance.value != null }
-        if (vm.restTimerState.value.running) vm.skipRest()
+        compose.runOnIdle { vm.skipRest() }
         awaitCondition("rest stopped after lift complete") { !vm.restTimerState.value.running }
         compose.waitUntil(60_000) {
             compose.onAllNodesWithTag(WorkoutTestTags.NEXT)

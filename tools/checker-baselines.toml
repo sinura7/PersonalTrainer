@@ -3,13 +3,12 @@
 
 [skips]
 # RestTimerController.kt: `state.` is the store snapshot, not a screen UiState.
-# InstrumentSwitch.kt: no typed uiState ViewModel (G4).
-state_members = 2
+state_members = 1
 # 180 -> 181 on 10 Sep 2026, when the checkers began reading androidTest, debug and
 # sharedTest. This counts calls the checker DECLINES to judge, not defects: the defect
 # count is separate and is 0. One more blind spot became visible; none was created.
 # 181 -> 178 on the UX batch-A merge: three mixed call sites became fully named.
-required_args_mixed = 178
+required_args_mixed = 174
 required_args_lambda = 46
 when_exhaustive = 47
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
@@ -19,7 +18,9 @@ when_exhaustive = 47
 # `vm.method(...)` against a same-named top-level declaration. Ratchet down; a rise means a
 # new blind spot, not new code. 61 on trunk alone; 62 with batch A, whose one extra site is a
 # fully-qualified call. The defect count is 0 either way.
-lambda_arity_declined = 62
+# F1: 18 annotated Compose slots now checked; one isolated test-store factory added.
+# Net reduction from the accepted ceiling of 62. Receiver slots remain out of scope.
+lambda_arity_declined = 46
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
 # (9 Sep 2026, twice). Ratchet down class by class.
@@ -36,15 +37,15 @@ named_color = 2
 rounded_percent = 4
 # Was 11 while the scan counted `import androidx.compose.foundation.shape.CircleShape`
 # alongside every real use, which made the number a function of file layout: splitting one
-# file into nine raised it without changing a call. Imports are skipped now, so this is six
+# file into nine raised it without changing a call. Imports are skipped now; five
 # actual uses.
-circle = 6
-raw_dp = 22
+circle = 5
+raw_dp = 20
 sp_style = 0
 motion = 13
 haptic = 0
 m3_scheme = 0
-stock_icons = 20
+stock_icons = 18
 shadow = 0
 defaults_elevation = 1
 stock_component = 1

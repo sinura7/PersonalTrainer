@@ -41,7 +41,9 @@ fun ScreenHeader(
     backDescription: String = "Back",
     backIcon: ImageVector = Icons.AutoMirrored.Outlined.ArrowBack,
     titleStyle: TextStyle = InstrumentType.title,
-    titleMaxLines: Int = 1,
+    // Fixed chrome previews arbitrary saved names; full Text semantics remain.
+    // Scrolling page headings can explicitly opt into more lines.
+    titleMaxLines: Int = 2,
     kickerTitle: Boolean = false,
     subtitle: String? = null,
     paintBackground: Boolean = true,
@@ -88,8 +90,6 @@ fun ScreenHeader(
                     subtitle,
                     style = InstrumentType.caption,
                     color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

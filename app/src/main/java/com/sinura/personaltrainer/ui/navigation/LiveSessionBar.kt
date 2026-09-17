@@ -8,7 +8,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,8 +37,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.LiveBarCopy
@@ -44,10 +50,7 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
-import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.theme.InstrumentType
-import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.RestCyan
@@ -93,119 +96,147 @@ fun LiveSessionBar(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    val errorDwell = LocalAccessibilityManager.current?.calculateRecommendedTimeoutMillis(
+        originalTimeoutMillis = ACTION_ERROR_DWELL_MS,
+        containsIcons = false,
+        containsText = true,
+        containsControls = false,
+    ) ?: ACTION_ERROR_DWELL_MS
     // The error must not be sticky: without this it stayed on the bar until
     // some later action happened to succeed — the pinned-banner pattern the
     // Home screen already had fixed.
     if (actionError != null) {
-        LaunchedEffect(actionError) {
-            kotlinx.coroutines.delay(ACTION_ERROR_DWELL_MS)
+        LaunchedEffect(actionError, errorDwell) {
+            kotlinx.coroutines.delay(errorDwell)
             onActionErrorShown()
         }
     }
 
-    Column(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .background(Pit)
             .then(if (applyNavInsets) Modifier.navigationBarsPadding() else Modifier),
     ) {
-        HairlineDivider(startIndent = 0.dp)
-        // A confirmed finish/discard that failed must say so here — the dialog is
-        // gone and the bar staying put is otherwise indistinguishable from a lag.
-        if (actionError != null) {
-            Text(
-                actionError,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Metrics.gutter, vertical = Metrics.space1),
-                style = InstrumentType.caption,
-                color = Warn,
-            )
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = Metrics.rowMin)
-                .padding(horizontal = Metrics.gutter),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-        ) {
-            // The accent's whole meaning is live/act/now; this is the one place on a tab
-            // screen that is literally live.
-            Box(
-                modifier = Modifier
-                    .width(RAIL_WIDTH)
-                    .height(RAIL_HEIGHT)
-                    .clip(RoundedCornerShape(RAIL_WIDTH))
-                    .background(if (state.stale) Warn else Volt),
-            )
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable(onClickLabel = LiveBarCopy.resumeLabel(state.kind), onClick = onResume)
-                    .testTag(LiveSessionBarTestTags.ROOT),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                if (state.stale) {
-                    Kicker("Left open · ${state.staleHours}h", color = Warn)
-                } else {
-                    Kicker(LiveBarCopy.IN_PROGRESS, color = Volt)
-                }
+        val compact = maxHeight < Metrics.compactWindowHeight
+        Column {
+            HairlineDivider(startIndent = 0.dp)
+            // A confirmed finish/discard that failed must say so here — the dialog is
+            // gone and the bar staying put is otherwise indistinguishable from a lag.
+            if (actionError != null) {
                 Text(
-                    state.title,
-                    style = InstrumentType.bodyStrong,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    actionError,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { liveRegion = LiveRegionMode.Polite }
+                        .padding(horizontal = Metrics.gutter, vertical = Metrics.space1),
+                    style = InstrumentType.caption,
+                    color = Warn,
                 )
             }
-            Text(
-                state.elapsedLabel,
-                style = InstrumentType.numeralSm,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!LogLoopScale.hideLiveBarCluster(LocalDensity.current.fontScale)) {
-                if (state.restRunning) {
-                    Text(
-                        RestTimer.formatClock(state.restRemainingSeconds),
-                        style = InstrumentType.numeralSm,
-                        color = RestCyan,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Metrics.rowMin)
+                    .padding(start = Metrics.gutter, end = Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = Metrics.rowMin)
+                        .clip(RoundedCornerShape(Metrics.space2))
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = LiveBarCopy.resumeLabel(state.kind),
+                            onClick = onResume,
+                        )
+                        .testTag(LiveSessionBarTestTags.ROOT)
+                        .padding(vertical = Metrics.space2),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(RAIL_WIDTH)
+                            .height(RAIL_HEIGHT)
+                            .clip(RoundedCornerShape(RAIL_WIDTH))
+                            .background(if (state.stale) Warn else Volt),
                     )
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (!compact) Text(
+                            text = if (state.stale) "${LiveBarCopy.kindLabel(state.kind)} · Left open ${state.staleHours}h"
+                                else "${LiveBarCopy.kindLabel(state.kind)} · In progress",
+                            style = InstrumentType.caption,
+                            color = if (state.stale) Warn else Volt,
+                        )
+                        // A saved routine name is unrestricted. The persistent bar
+                        // is a preview; its semantics retain the full identity and
+                        // tapping opens the session. Never let it consume navigation.
+                        Text(
+                            if (compact) "${LiveBarCopy.kindLabel(state.kind)} · ${if (state.stale) "Left open ${state.staleHours}h · " else ""}${state.title}" else state.title,
+                            style = InstrumentType.bodyStrong, color = TextPrimary,
+                            maxLines = if (compact) 1 else 2, overflow = TextOverflow.Ellipsis,
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+                            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                        ) {
+                            Text(
+                                text = "${state.elapsedLabel} elapsed",
+                                modifier = Modifier.testTag("live-session-elapsed"),
+                                style = InstrumentType.caption,
+                                color = TextSecondary,
+                            )
+                            if (LiveBarCopy.showsSets(state.kind)) {
+                                Text(
+                                    text = "· ${state.workingSets} ${if (state.workingSets == 1) "set" else LiveBarCopy.SETS}",
+                                    modifier = Modifier.testTag("live-session-sets"),
+                                    style = InstrumentType.caption,
+                                    color = TextSecondary,
+                                )
+                            }
+                            if (state.restRunning) {
+                                Text(
+                                    text = "Rest ${RestTimer.formatClock(state.restRemainingSeconds)}",
+                                    style = InstrumentType.caption,
+                                    color = RestCyan,
+                                )
+                            }
+                        }
+                    }
                 }
-                if (LiveBarCopy.showsSets(state.kind)) {
-                    MetricCluster(value = state.workingSets.toString(), label = LiveBarCopy.SETS)
-                }
-            }
-            Box {
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(
-                        Icons.Outlined.MoreVert,
-                        contentDescription = LiveBarCopy.actionsDescription(state.kind),
-                        tint = TextSecondary,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-                InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    if (state.canFinish) {
+                Box {
+                    IconButton(
+                        onClick = { menuOpen = true },
+                        modifier = Modifier.testTag("live-session-actions"),
+                    ) {
+                        Icon(
+                            Icons.Outlined.MoreVert,
+                            contentDescription = LiveBarCopy.actionsDescription(state.kind),
+                            tint = TextSecondary,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        if (state.canFinish) {
+                            DropdownMenuItem(
+                                text = { Text(LiveBarCopy.finish(state.kind), style = InstrumentType.body) },
+                                onClick = {
+                                    menuOpen = false
+                                    onFinish()
+                                },
+                            )
+                        }
                         DropdownMenuItem(
-                            text = { Text(LiveBarCopy.finish(state.kind), style = InstrumentType.body) },
+                            text = { Text(LiveBarCopy.discard(state.kind), style = InstrumentType.body) },
                             onClick = {
                                 menuOpen = false
-                                onFinish()
+                                confirmDiscard = true
                             },
                         )
                     }
-                    DropdownMenuItem(
-                        text = { Text(LiveBarCopy.discard(state.kind), style = InstrumentType.body) },
-                        onClick = {
-                            menuOpen = false
-                            confirmDiscard = true
-                        },
-                    )
                 }
             }
         }

@@ -2,11 +2,12 @@ package com.sinura.personaltrainer.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -14,15 +15,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.toggleableState
-import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltContainer
 
@@ -40,36 +38,42 @@ fun InstrumentSwitch(
     enabled: Boolean = true,
     onCheckedChange: ((Boolean) -> Unit)? = null,
 ) {
-    val track = if (checked) VoltContainer else SurfacePressed
-    val stroke = if (checked) Volt.copy(alpha = 0.55f) else HairlineStrong
-    val thumb = if (checked) Volt else TextSecondary
+    val track = if (checked && enabled) VoltContainer else SurfacePressed
+    val stroke = if (checked && enabled) Volt.copy(alpha = 0.55f) else HairlineStrong
+    val thumb = if (!enabled) TextDisabled else if (checked) Volt else TextSecondary
     val shape = RoundedCornerShape(percent = 50)
-    val interactive = if (onCheckedChange != null && enabled) {
-        Modifier
-            .clickable(role = Role.Switch) { onCheckedChange(!checked) }
-            .semantics {
-                role = Role.Switch
-                toggleableState = ToggleableState(checked)
-            }
+    val interactive = if (onCheckedChange != null) {
+        Modifier.toggleable(
+            value = checked,
+            enabled = enabled,
+            role = Role.Switch,
+            onValueChange = onCheckedChange,
+        )
     } else {
         Modifier
     }
     Box(
         modifier = modifier
-            .size(width = 52.dp, height = 32.dp)
-            .then(interactive)
-            .clip(shape)
-            .background(track)
-            .border(Metrics.hairline, stroke, shape)
-            .padding(4.dp),
-        contentAlignment = Alignment.CenterStart,
+            .then(if (onCheckedChange != null) Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin) else Modifier)
+            .then(interactive),
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier
-                .offset(x = if (checked) 20.dp else 0.dp)
-                .size(24.dp)
-                .clip(CircleShape)
-                .background(thumb),
-        )
+                .size(width = 52.dp, height = 32.dp)
+                .clip(shape)
+                .background(track)
+                .border(Metrics.hairline, stroke, shape)
+                .padding(4.dp),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset(x = if (checked) 20.dp else 0.dp)
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(thumb),
+            )
+        }
     }
 }

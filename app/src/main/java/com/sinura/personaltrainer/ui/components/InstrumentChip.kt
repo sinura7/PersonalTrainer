@@ -4,6 +4,9 @@ package com.sinura.personaltrainer.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -11,10 +14,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,7 +27,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -30,6 +34,8 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface2
+import com.sinura.personaltrainer.ui.theme.SurfacePressed
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
@@ -69,38 +75,60 @@ fun InstrumentChip(
      */
     role: Role = Role.Checkbox,
     spoken: String? = null,
+    enabled: Boolean = true,
+    interactionSource: MutableInteractionSource? = null,
 ) {
     val view = LocalView.current
+    val interactions = interactionSource ?: remember { MutableInteractionSource() }
+    val pressed by interactions.collectIsPressedAsState()
+    val focused by interactions.collectIsFocusedAsState()
     // VoltDim, not solid Volt: the palette declares this token as "selected chips, active
     // tracks" and nothing was using it, while every selected chip in the app burned a full
     // accent fill. A screen can hold a dozen chips; the accent is meant to appear once or
     // twice.
     val background by animateColorAsState(
-        targetValue = if (selected) VoltDim else Surface2,
+        targetValue = when {
+            pressed && enabled -> SurfacePressed
+            selected -> VoltDim
+            else -> Surface2
+        },
         animationSpec = instrumentTween(Motion.FIELD_MS),
         label = "chip-fill",
     )
     Box(
         modifier = modifier
             .heightIn(min = Metrics.touchMin)
-            .then(if (compact) Modifier.widthIn(min = Metrics.touchMin) else Modifier)
+            .widthIn(min = Metrics.touchMin)
             .clip(RoundedCornerShape(Radius.xs))
             .background(background)
             .border(
-                Metrics.hairline,
-                if (selected || recommended) Volt else Hairline,
+                if (focused) Metrics.emphasisBorder else Metrics.hairline,
+                if (focused || selected || recommended) Volt else Hairline,
                 RoundedCornerShape(Radius.xs),
             )
             // selectable, not clickable: this replaced FilterChip everywhere in the app, and
             // FilterChip published a Selected semantics property that a screen reader reads
             // out. With a plain clickable the selected state exists only as a colour swap,
             // which TalkBack cannot see at all.
-            .selectable(
-                selected = selected,
-                role = role,
-                onClick = {
-                    Haptics.tick(view)
-                    onClick()
+            .then(
+                if (role == Role.Checkbox || role == Role.Switch) {
+                    Modifier.toggleable(
+                        value = selected,
+                        enabled = enabled,
+                        role = role,
+                        interactionSource = interactions,
+                        indication = null,
+                        onValueChange = { Haptics.tick(view); onClick() },
+                    )
+                } else {
+                    Modifier.selectable(
+                        selected = selected,
+                        enabled = enabled,
+                        role = role,
+                        interactionSource = interactions,
+                        indication = null,
+                        onClick = { Haptics.tick(view); onClick() },
+                    )
                 },
             )
             .then(
@@ -110,7 +138,10 @@ fun InstrumentChip(
                     Modifier.semantics { contentDescription = spoken }
                 },
             )
-            .padding(horizontal = if (compact) Metrics.space2 else Metrics.space4),
+            .padding(
+                horizontal = if (compact) Metrics.space2 else Metrics.space4,
+                vertical = Metrics.space2,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -122,9 +153,11 @@ fun InstrumentChip(
                 label,
                 style = InstrumentType.bodyStrong,
                 // Volt ink on the dim fill: Pit ink was only legible against a solid accent.
-                color = if (selected) Volt else TextSecondary,
-                maxLines = if (compact) 1 else 2,
-                overflow = TextOverflow.Ellipsis,
+                color = when {
+                    !enabled -> TextDisabled
+                    selected -> Volt
+                    else -> TextSecondary
+                },
             )
         }
     }

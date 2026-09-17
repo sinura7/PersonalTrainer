@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.test.platform.app.InstrumentationRegistry
 import java.util.Locale
+import java.io.IOException
 import kotlin.math.abs
 import org.junit.Assert.fail
 
@@ -93,30 +94,42 @@ object GoldenImageAssert {
             return
         }
 
-        val expected = checkNotNull(instrumentation.context.assets
-            .open(asset)
-            .use(BitmapFactory::decodeStream)) {
-            "Golden $name decoded to null"
+        val expected = try {
+            checkNotNull(instrumentation.context.assets.open(asset).use(BitmapFactory::decodeStream)) {
+                "Golden $name decoded to null"
+            }
+        } catch (missing: IOException) {
+            val actualPath = writeArtifact(name, "actual", actual)
+            throw AssertionError("Required golden missing: $asset; review actual=$actualPath before recording a reference", missing)
         }
+        try {
+            if (expected.width != actual.width || expected.height != actual.height) {
+                val actualPath = writeArtifact(name, "actual", actual)
+                val expectedPath = writeArtifact(name, "expected", expected)
+                fail("Golden $name dimensions changed: ${expected.width}×${expected.height} to ${actual.width}×${actual.height}; expected=$expectedPath actual=$actualPath")
+            }
+            val diff = compare(expected, actual)
+            if (diff.matches) return
 
-        val diff = compare(expected, actual)
-        if (diff.matches) return
-
-        val actualPath = writeArtifact(name, "actual", actual)
-        val expectedPath = writeArtifact(name, "expected", expected)
-        val diffPath = writeArtifact(name, "diff", diffBitmap(expected, actual))
-        val rounding = if (diff.roundingPixels == 0) {
-            ""
-        } else {
-            " ${diff.roundingPixels} pixel(s) within the ${ROUNDING_LEVELS}-level " +
-                "rounding allowance (budget $ROUNDING_BUDGET)."
+            val actualPath = writeArtifact(name, "actual", actual)
+            val expectedPath = writeArtifact(name, "expected", expected)
+            val difference = diffBitmap(expected, actual)
+            val diffPath = try { writeArtifact(name, "diff", difference) } finally { difference.recycle() }
+            val rounding = if (diff.roundingPixels == 0) {
+                ""
+            } else {
+                " ${diff.roundingPixels} pixel(s) within the ${ROUNDING_LEVELS}-level " +
+                    "rounding allowance (budget $ROUNDING_BUDGET)."
+            }
+            fail(
+                "Golden $name changed: ${diff.differentPixels}/${diff.totalPixels} " +
+                    "pixels (${String.format(Locale.US, "%.3f", diff.ratio * 100)}%), " +
+                    "bounds=[${diff.left},${diff.top}..${diff.right},${diff.bottom}].$rounding " +
+                    "expected=$expectedPath actual=$actualPath diff=$diffPath",
+            )
+        } finally {
+            expected.recycle()
         }
-        fail(
-            "Golden $name changed: ${diff.differentPixels}/${diff.totalPixels} " +
-                "pixels (${String.format(Locale.US, "%.3f", diff.ratio * 100)}%), " +
-                "bounds=[${diff.left},${diff.top}..${diff.right},${diff.bottom}].$rounding " +
-                "expected=$expectedPath actual=$actualPath diff=$diffPath",
-        )
     }
 
     fun compare(expected: ImageBitmap, actual: ImageBitmap): PixelDiff =

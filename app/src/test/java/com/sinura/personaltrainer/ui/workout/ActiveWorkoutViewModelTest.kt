@@ -1298,6 +1298,8 @@ class ActiveWorkoutViewModelTest {
         }.sets.single()
         assertEquals(logged.id, updated.id)
         assertEquals(6, updated.reps)
+        // Room can publish the updated row before the presentation flow clears edit mode.
+        vm.awaitState { !it.logging && it.editingSetId == null }
         assertNull(vm.personalRecord.value)
         assertFalse(deps.restTimerStore.current().running)
         assertNull(vm.uiState.value.editingSetId)
