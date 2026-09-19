@@ -145,7 +145,7 @@ class WorkoutEntryLayoutInstrumentedTest(
             // The hero numeral shows the number alone; its unit sits in the column's label.
             val number = WorkoutWeightCopy.number(fixture.vm.uiState.value.draft.weightKg, WeightUnit.KG)
             val layouts = mutableListOf<TextLayoutResult>()
-            compose.onNode(hasText(number) and hasAnyAncestor(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER)), useUnmergedTree = true)
+            compose.onNode(matcher = hasText(number) and hasAnyAncestor(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER)), useUnmergedTree = true)
                 .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
             assertTrue(layouts.isNotEmpty())
             assertFalse("entered value is not clipped", layouts.any { it.hasVisualOverflow })

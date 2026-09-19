@@ -127,7 +127,7 @@ class WorkoutCompletionLayoutInstrumentedTest(
         assertTrue("Scrollable content must retain a full touch target", content.height / root.layoutInfo.density.density >= 48)
         fun layoutsOf(text: String): List<TextLayoutResult> {
             val layouts = mutableListOf<TextLayoutResult>()
-            compose.onNode(hasText(text) and hasAnyAncestor(hasTestTag(tag)), useUnmergedTree = true)
+            compose.onNode(matcher = hasText(text) and hasAnyAncestor(hasTestTag(tag)), useUnmergedTree = true)
                 .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
             assertTrue(layouts.isNotEmpty())
             return layouts
@@ -153,7 +153,7 @@ class WorkoutCompletionLayoutInstrumentedTest(
         if (width > height && scenario == "next") {
             // Landscape: the next lift's name rides the commit's second line, under the short verb.
             val nextName = checkNotNull(action.nextName)
-            compose.onNode(hasText(nextName) and hasAnyAncestor(hasTestTag(WorkoutTestTags.NEXT)), useUnmergedTree = true).assertIsDisplayed()
+            compose.onNode(matcher = hasText(nextName) and hasAnyAncestor(hasTestTag(WorkoutTestTags.NEXT)), useUnmergedTree = true).assertIsDisplayed()
         }
 
         if (scenario == "edit-denied") {
