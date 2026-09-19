@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -31,6 +32,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -100,11 +102,11 @@ internal fun WeightRepsEditor(
     holdRemainingSeconds: Int,
     sourceLabel: String?,
     onWeightKgChange: (Double) -> Unit,
-    plannedKg: Double? = null,
-    lastKg: Double? = null,
     onRepsChange: (Int) -> Unit,
     onSecondsChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    plannedKg: Double? = null,
+    lastKg: Double? = null,
 ) {
     val meaning = loadClass.weightMeaning
     val showWeight = meaning != WeightMeaning.NONE
@@ -127,10 +129,11 @@ internal fun WeightRepsEditor(
     val weightField = meaning.fieldLabel.lowercase()
     // Plan / Last as one-tap fills, only while the entry holds something else.
     val quickFills = FloorWeightPresets.quickFills(currentKg = weightKg, plannedKg = plannedKg, lastKg = lastKg)
-    val weightColumn: @Composable (Modifier, Dp) -> Unit = { columnModifier, columnWidth ->
+    val weightColumn: @Composable (Modifier, Dp, TextStyle) -> Unit = { columnModifier, columnWidth, heroStyle ->
         HeroNumeral(
             modifier = columnModifier,
             availableWidth = columnWidth,
+            style = heroStyle,
             enabled = enabled,
             below = quickFills.takeIf { it.isNotEmpty() }?.let { fills ->
                 {
@@ -170,12 +173,13 @@ internal fun WeightRepsEditor(
         )
     }
     val holdShown = if (holdRunning) holdRemainingSeconds else holdSeconds ?: HoldWork.DEFAULT_SECONDS
-    val workColumn: @Composable (Modifier, Dp) -> Unit = { columnModifier, columnWidth ->
+    val workColumn: @Composable (Modifier, Dp, TextStyle) -> Unit = { columnModifier, columnWidth, heroStyle ->
         if (hold) {
             val seconds = holdShown.coerceAtLeast(0)
             HeroNumeral(
                 modifier = columnModifier,
                 availableWidth = columnWidth,
+                style = heroStyle,
                 enabled = enabled && !holdRunning,
                 label = if (holdRunning) HoldWork.HOLD_KICKER else "Time",
                 value = HoldWork.clock(seconds),
@@ -194,6 +198,7 @@ internal fun WeightRepsEditor(
             HeroNumeral(
                 modifier = columnModifier,
                 availableWidth = columnWidth,
+                style = heroStyle,
                 enabled = enabled,
                 label = "Reps",
                 value = reps.toString(),
@@ -212,11 +217,29 @@ internal fun WeightRepsEditor(
     }
     // The one constraints read on the editor: each numeral learns its column width from
     // here, so nothing beneath asks a lazy parent for intrinsic sizes.
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         // Read once here: the Row and Column scopes below cannot see this scope's maxWidth.
         val fullWidth = maxWidth
+        val columnWidth = if (showWeight && !stack) fullWidth / 2 - Metrics.space2 else fullWidth
+        // The largest numeral whose widest sample (a decimal weight with its unit, or a long
+        // hold) fits the column: decided from fixed samples, so the size never jumps as the
+        // value changes, and a 102.5 lbs never crosses the divider on a narrow phone.
+        val heroStyle = remember(columnWidth, density, hold, unit) {
+            val textWidth = columnWidth - Metrics.space1 * 2
+            val unitWidth = with(density) {
+                measurer.measure(unit.suffix, style = InstrumentType.unit, softWrap = false).size.width.toDp()
+            } + Metrics.space1
+            fun widest(style: TextStyle): Dp = with(density) {
+                val weight = measurer.measure(WEIGHT_SAMPLE, style = style, softWrap = false).size.width.toDp() + unitWidth
+                val work = measurer.measure(if (hold) TIME_SAMPLE else REPS_SAMPLE, style = style, softWrap = false).size.width.toDp()
+                maxOf(weight, work)
+            }
+            listOf(InstrumentType.numeralXl, InstrumentType.numeralLg).firstOrNull { widest(it) <= textWidth }
+                ?: InstrumentType.numeralMd
+        }
         if (showWeight && !stack) {
-            val columnWidth = fullWidth / 2 - Metrics.space2
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -233,8 +256,8 @@ internal fun WeightRepsEditor(
                     }
                     .testTag(WorkoutTestTags.SET_ENTRY),
             ) {
-                weightColumn(Modifier.weight(1f).padding(end = Metrics.space2), columnWidth)
-                workColumn(Modifier.weight(1f).padding(start = Metrics.space2), columnWidth)
+                weightColumn(Modifier.weight(1f).padding(end = Metrics.space2), columnWidth, heroStyle)
+                workColumn(Modifier.weight(1f).padding(start = Metrics.space2), columnWidth, heroStyle)
             }
         } else {
             Column(
@@ -244,10 +267,10 @@ internal fun WeightRepsEditor(
                 verticalArrangement = Arrangement.spacedBy(Metrics.space3),
             ) {
                 if (showWeight) {
-                    weightColumn(Modifier.fillMaxWidth(), fullWidth)
+                    weightColumn(Modifier.fillMaxWidth(), fullWidth, heroStyle)
                     HairlineDivider(startIndent = Metrics.space7)
                 }
-                workColumn(Modifier.fillMaxWidth(), fullWidth)
+                workColumn(Modifier.fillMaxWidth(), fullWidth, heroStyle)
             }
         }
     }
@@ -307,6 +330,7 @@ internal fun WeightRepsEditor(
 private fun HeroNumeral(
     modifier: Modifier,
     availableWidth: Dp,
+    style: TextStyle,
     enabled: Boolean,
     label: String,
     value: String,
@@ -328,7 +352,7 @@ private fun HeroNumeral(
     Box(modifier = modifier) {
         // The unit rides the numeral's baseline, so it counts toward the widest sample too.
         val numeralWidth = with(density) {
-            measurer.measure(sample, style = InstrumentType.numeralXl, softWrap = false).size.width.toDp()
+            measurer.measure(sample, style = style, softWrap = false).size.width.toDp()
         }
         val sampleWidth = if (unitLabel == null) {
             numeralWidth
@@ -367,7 +391,7 @@ private fun HeroNumeral(
                         Text(
                             shown,
                             modifier = Modifier.alignByBaseline(),
-                            style = InstrumentType.numeralXl,
+                            style = style,
                             color = if (enabled) TextPrimary else TextDisabled,
                             maxLines = 1,
                             softWrap = false,

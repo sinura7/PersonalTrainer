@@ -103,7 +103,9 @@ class FloorPacket2ToolbarTest {
         assertTrue(timers.contains("fun RestDurationSheet"))
         assertFalse(timers.contains("SnapValueWheel("))
         assertTrue(timers.contains("RestPresetChips("))
-        assertTrue(timers.contains("FloorTimerSurface.mode("))
+        // The mode switch moved with the dock: RestTimerUi keeps only the bar, sheet and rings.
+        assertFalse(timers.contains("FloorTimerSurface.mode("))
+        assertTrue(readOwned("ui/workout/WorkoutDock.kt").contains("FloorTimerSurface.mode("))
         val sheet = timers.substring(timers.indexOf("fun RestDurationSheet"))
         assertTrue(sheet.contains("RestPresetChips("))
         assertTrue(sheet.contains("ModalBottomSheet("))

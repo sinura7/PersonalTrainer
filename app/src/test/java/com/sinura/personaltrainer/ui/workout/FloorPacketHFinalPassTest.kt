@@ -237,8 +237,9 @@ class FloorPacketHFinalPassTest {
         assertTrue(card.contains("private const val REST_COMPLETE = \"Rest complete\""))
         assertTrue(card.contains("justFinished -> TalkBackPolicy.REST_FINISHED_KICKER"))
         val rest = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(rest.contains("Last ten seconds"))
-        assertFalse(rest.contains("\"10 seconds\""))
+        // The floor's rest words live on the card now; the bar file keeps none of its own.
+        assertTrue(card.contains("Last ten seconds"))
+        assertFalse(card.contains("\"10 seconds\""))
         val colors = readMain("ui/theme/Color.kt")
         assertTrue(colors.contains("val PrGold = Color(0xFFFFC53D)"))
         assertTrue(colors.contains("val Warn = Color(0xFFFFB020)"))

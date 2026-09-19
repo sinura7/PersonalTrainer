@@ -62,9 +62,9 @@ class FloorPacket4KickerGlyphsTest {
         assertTrue(copy.contains("fun fromMicroRec"))
         assertTrue(copy.contains("fun collapsed"))
         assertTrue(copy.contains("fun deltaLine"))
-        assertTrue(copy.contains("ProgressionKickerCopy.PLUS_REP -> \"+1 rep\""))
-        assertTrue(copy.contains("ProgressionKickerCopy.HOLD -> \"Hold the load\""))
-        assertTrue(copy.contains("ProgressionKickerCopy.BACK_OFF -> \"Back off\""))
+        assertTrue(copy.contains("ProgressionKickerCopy.PLUS_REP to \"+1 rep\""))
+        assertTrue(copy.contains("ProgressionKickerCopy.HOLD to \"Hold the load\""))
+        assertTrue(copy.contains("ProgressionKickerCopy.BACK_OFF to \"Back off\""))
         assertTrue(copy.contains("RpeModifier") || copy.contains("RPE_HOLD"))
     }
 

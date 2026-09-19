@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.ProgressSegment
@@ -110,9 +111,10 @@ internal fun WorkoutHeader(
                             .heightIn(min = Metrics.touchMin)
                             .testTag(WorkoutTestTags.FINISH)
                             .semantics {
+                                // The name stays Finish; the reason it waits is its state.
                                 if (!canFinish) {
                                     disabled()
-                                    contentDescription = EndWorkoutCopy.LOG_FIRST
+                                    stateDescription = EndWorkoutCopy.LOG_FIRST
                                 }
                             },
                     ) {

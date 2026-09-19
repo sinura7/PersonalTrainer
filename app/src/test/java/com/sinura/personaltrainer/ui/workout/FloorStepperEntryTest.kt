@@ -147,14 +147,14 @@ class FloorStepperEntryTest {
         val row = editor.substring(sideBySide, stacked)
         assertTrue(row.contains("Row("))
         assertTrue("no intrinsic pass over the lazy parent", row.contains(".drawBehind {"))
-        assertTrue(row.contains("weightColumn(Modifier.weight(1f).padding(end = Metrics.space2), columnWidth)"))
+        assertTrue(row.contains("weightColumn(Modifier.weight(1f).padding(end = Metrics.space2), columnWidth, heroStyle)"))
         assertTrue("a hairline splits the two numerals", row.contains("strokeWidth = Metrics.hairline.toPx()"))
-        assertTrue(row.contains("workColumn(Modifier.weight(1f).padding(start = Metrics.space2), columnWidth)"))
+        assertTrue(row.contains("workColumn(Modifier.weight(1f).padding(start = Metrics.space2), columnWidth, heroStyle)"))
         val column = editor.substring(stacked, typing)
         assertTrue(column.contains("Column("))
-        assertTrue(column.contains("weightColumn(Modifier.fillMaxWidth(), fullWidth)"))
+        assertTrue(column.contains("weightColumn(Modifier.fillMaxWidth(), fullWidth, heroStyle)"))
         assertTrue(column.contains("HairlineDivider(startIndent = Metrics.space7)"))
-        assertTrue(column.contains("workColumn(Modifier.fillMaxWidth(), fullWidth)"))
+        assertTrue(column.contains("workColumn(Modifier.fillMaxWidth(), fullWidth, heroStyle)"))
         assertTrue(
             "both layouts anchor the log loop",
             row.contains(".testTag(WorkoutTestTags.SET_ENTRY)") && column.contains(".testTag(WorkoutTestTags.SET_ENTRY)"),

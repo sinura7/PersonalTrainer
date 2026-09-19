@@ -109,7 +109,10 @@ internal fun SetHistoryStrip(
                 TextButton(
                     enabled = enabled,
                     onClick = onOpenAll,
-                    modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.VIEW_SETS),
+                    modifier = Modifier
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.VIEW_SETS)
+                        .semantics { contentDescription = EDIT_ALL_SPOKEN },
                 ) {
                     Icon(
                         TemperIcons.Edit,
@@ -188,7 +191,8 @@ internal fun SetHistoryStrip(
                         .clip(RoundedCornerShape(Radius.xs))
                         .clickable(enabled = enabled, role = Role.Button, onClick = onAddSet)
                         .padding(horizontal = Metrics.space2)
-                        .testTag(WorkoutTestTags.ADD_SET),
+                        .testTag(WorkoutTestTags.ADD_SET)
+                        .semantics { contentDescription = ADD_SET },
                     horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -306,3 +310,4 @@ private const val CURRENT = "Current"
 private const val EDITING = "Editing"
 private const val SAVED = "Saved"
 private const val ADD_SET = "Add set"
+private const val EDIT_ALL_SPOKEN = "Edit saved sets"
