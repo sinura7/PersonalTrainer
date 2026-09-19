@@ -76,7 +76,10 @@ fun ScreenHeader(
         Column(modifier = Modifier.weight(1f)) {
             if (title.isNotEmpty()) {
                 if (kickerTitle) {
-                    Kicker(title)
+                    // The same modifier reaches the title in both spellings. A caller that
+                    // hangs a test tag or a spoken form on the title — the workout header's
+                    // landscape progress line does — must not lose it by asking for a kicker.
+                    Kicker(text = title, modifier = titleModifier)
                 } else {
                     Text(
                         title,
