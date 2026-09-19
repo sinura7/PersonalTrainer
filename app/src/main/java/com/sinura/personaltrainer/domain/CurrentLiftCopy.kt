@@ -13,6 +13,8 @@ object CurrentLiftCopy {
     const val SWAP = "Swap lift…"
     const val REMOVE = "Remove lift"
     const val SKIP = "Skip for now"
+    const val SWITCH = "Switch exercise"
+    const val DETAILS = "Details"
 
     /**
      * Packet G: swap/remove stay visible on a logged lift, disabled with this reason.
@@ -25,7 +27,7 @@ object CurrentLiftCopy {
 
     fun liftOrdinal(number: Int, total: Int): String = "Lift $number/$total"
 
-    /** Hero kicker. [Kicker] uppercases it to `LIFT 3 OF 7`. */
+    /** Spoken position in the session: `Lift 3 of 7`. The header's progress line shows the same count. */
     fun heroOrdinal(number: Int, total: Int): String =
         SessionOrderCopy.liftIndex(number, total)
 

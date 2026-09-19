@@ -1,14 +1,12 @@
 package com.sinura.personaltrainer.ui.workout
 
-import com.sinura.personaltrainer.domain.FloorCompactChrome
 
 /**
  * Landscape survival for the workout log and the rest floor.
  *
  * Chrome alone used to exceed a 360 dp landscape height, so the log was
- * off-screen on a phone on a bench. Compact header, hide idle rest, fold
- * the micro-rec into the lift card, and scale the rest ring to
- * `min(280, height − 120)`. Rest still counts as chrome in [logBudgetDp]
+ * off-screen on a phone on a bench. Compact header, hide idle rest, and
+ * scale the rest ring to `min(280, height − 120)`. Rest still counts as chrome in [logBudgetDp]
  * after G-02 moved it into the lower dock with Log set.
  */
 object LandscapeChrome {
@@ -29,15 +27,6 @@ object LandscapeChrome {
     fun compactHeader(landscape: Boolean): Boolean = landscape
 
     fun hideIdleRest(landscape: Boolean): Boolean = landscape
-
-    fun hideSelectedLiftDock(landscape: Boolean): Boolean {
-        // Portrait used to pin a THIS LIFT strip under the expanded card.
-        // That duplicate ate the list. The expanded card is the one copy.
-        return landscape || !FloorCompactChrome.showSelectedLiftDock()
-    }
-
-    fun foldMicroRecIntoCard(landscape: Boolean): Boolean =
-        landscape || FloorCompactChrome.progressionKickerInline()
 
     fun logBudgetDp(
         heightDp: Int,

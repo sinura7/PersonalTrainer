@@ -586,6 +586,7 @@ fun PersonalTrainerNav(
                 ) {
                     ActiveWorkoutScreen(
                         onExit = { navController.popBackStack() },
+                        onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenRest = { sessionId ->
                             navController.navigate(Route.RestTimer.create(sessionId)) {
                                 launchSingleTop = true

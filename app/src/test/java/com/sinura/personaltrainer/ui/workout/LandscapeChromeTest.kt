@@ -13,10 +13,7 @@ class LandscapeChromeTest {
         assertFalse(LandscapeChrome.isLandscape(360, 640))
         assertTrue(LandscapeChrome.compactHeader(landscape = true))
         assertTrue(LandscapeChrome.hideIdleRest(landscape = true))
-        assertTrue(LandscapeChrome.hideSelectedLiftDock(landscape = true))
-        assertTrue(LandscapeChrome.hideSelectedLiftDock(landscape = false))
-        assertTrue(LandscapeChrome.foldMicroRecIntoCard(landscape = true))
-        assertTrue(LandscapeChrome.foldMicroRecIntoCard(landscape = false))
+        assertFalse(LandscapeChrome.hideIdleRest(landscape = false))
         assertFalse(LandscapeChrome.compactHeader(landscape = false))
         assertTrue(LandscapeChrome.logVisibleInLandscape(restRunning = false))
         assertTrue(LandscapeChrome.logVisibleInLandscape(restRunning = true))
@@ -31,12 +28,16 @@ class LandscapeChromeTest {
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertTrue(workout.contains("LandscapeChrome.compactHeader"))
         assertTrue(workout.contains("LandscapeChrome.hideIdleRest"))
-        assertTrue(workout.contains("LandscapeChrome.hideSelectedLiftDock"))
-        assertTrue(workout.contains("LandscapeChrome.foldMicroRecIntoCard"))
-        val card = readOwned("ui/workout/WorkoutLiftCard.kt")
-        assertTrue(card.contains("WorkoutLiftCardState"))
-        assertTrue(card.contains("WorkoutLiftCardEvents"))
-        assertFalse(card.contains("CartBadge("))
+        // ADR-027: there is one identity on the floor and the recommendation is its
+        // own card, so the old selected-lift dock and fold-into-card switches are gone.
+        val chrome = readOwned("ui/workout/LandscapeChrome.kt")
+        assertFalse(chrome.contains("hideSelectedLiftDock"))
+        assertFalse(chrome.contains("foldMicroRecIntoCard"))
+        assertFalse(workout.contains("SelectedLiftDock("))
+        val dock = readOwned("ui/workout/WorkoutDock.kt")
+        assertTrue(dock.contains("data class WorkoutDockState("))
+        assertTrue(dock.contains("class WorkoutDockEvents("))
+        assertFalse(dock.contains("CartBadge("))
         val liftCard = readOwned("ui/components/LiftCard.kt")
         assertTrue(liftCard.contains("CountBadge("))
 
@@ -52,34 +53,31 @@ class LandscapeChromeTest {
 
     @Test
     fun sessionPrimaryActionsSitInTheLowerDock() {
-        // G-02 / Packet 2: timer slot and Log set share LogBar in
-        // Scaffold.bottomBar. Finish stays in the header (not a mid-set act).
+        // G-02 / Packet 2 / ADR-027: the timer surface and Log set share WorkoutDock
+        // in Scaffold.bottomBar. Finish stays in the header (not a mid-set act).
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        val bottomBar = workout.indexOf("bottomBar")
-        val selectedDock = workout.indexOf("SelectedLiftDock(")
-        val logBar = workout.indexOf("LogBar(")
+        val dock = readOwned("ui/workout/WorkoutDock.kt")
+        val bottomBar = workout.indexOf("bottomBar = {")
+        val workoutDock = workout.indexOf("WorkoutDock(")
         val lazy = workout.indexOf("LazyColumn(")
         assertTrue("bottomBar missing", bottomBar >= 0)
-        assertTrue("SelectedLiftDock missing", selectedDock >= 0)
-        assertTrue("LogBar missing", logBar >= 0)
+        assertTrue("WorkoutDock missing", workoutDock >= 0)
         assertTrue("LazyColumn missing", lazy >= 0)
-        assertTrue("SelectedLiftDock must sit in the lower dock", selectedDock > bottomBar)
-        assertTrue("LogBar must sit in the lower dock", logBar > bottomBar)
-        assertTrue("the lift list must not contain LogBar", lazy > logBar)
-        assertTrue("LogBar owns the timer slot", bar.contains("FloorTimerSlot("))
+        assertTrue("WorkoutDock must sit in the lower dock", workoutDock > bottomBar)
+        assertTrue("the lift list must not contain the dock", lazy > workoutDock)
+        assertTrue("the dock owns the timer surface", dock.contains("val timerSurface: @Composable () -> Unit"))
+        assertTrue("the rest card is the dock's rest surface", dock.contains("RestTimerCard("))
+        assertTrue("holds and the set clock keep their bar", dock.contains("SetWorkDock("))
         assertFalse(
-            "FloorTimerSlot must not be composed in the scrolling column",
-            workout.substring(lazy).contains("FloorTimerSlot("),
+            "RestTimerCard must not be composed in the scrolling column",
+            workout.substring(lazy).contains("RestTimerCard("),
         )
         assertFalse(
-            "SelectedLiftDock must not be composed in the scrolling column",
-            workout.substring(lazy).contains("SelectedLiftDock("),
+            "SetWorkDock must not be composed in the scrolling column",
+            workout.substring(lazy).contains("SetWorkDock("),
         )
-        assertFalse(
-            "RestDock is owned through FloorTimerSlot inside LogBar",
-            workout.contains("RestDock("),
-        )
+        assertFalse("the dock is the only timer host", workout.contains("FloorTimerSlot("))
+        assertFalse("RestDock is owned inside the dock", workout.contains("RestDock("))
     }
 
     private fun readOwned(relative: String): String {

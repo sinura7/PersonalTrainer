@@ -38,8 +38,15 @@ object FloorCompactChrome {
     /** Swap / remove live on the identity row, not a row of their own. */
     fun overflowOnHeaderRow(): Boolean = true
 
-    /** Compact floor: a weight row, then a reps (or time) row. */
-    fun stackWeightAboveReps(): Boolean = true
+    /**
+     * Weight and reps (or time) sit side by side as two hero numerals split by a
+     * hairline; [com.sinura.personaltrainer.ui.theme.LogLoopScale] stacks them once the
+     * system font is large enough that a half-kilo three-digit value no longer fits.
+     */
+    fun stackWeightAboveReps(): Boolean = false
+
+    /** The two hero numerals are the loudest elements on the floor; their plates are round and quiet. */
+    fun heroNumeralsSideBySide(): Boolean = true
 
     /** Packet B: gym-floor weight / reps / hold draft are plates + keypad. */
     fun weightAndRepsAreWheels(): Boolean = false
@@ -56,8 +63,18 @@ object FloorCompactChrome {
      */
     fun headerIsReadOnlyInstrumentStrip(): Boolean = true
 
-    /** F2 replaces the oversized hero with a 64 dp exercise identity. */
-    fun imageLedHero(): Boolean = false
+    /**
+     * The identity is image-led again: the 112 dp still beside the name, equipment,
+     * set ordinal and working count, with Details beside it and Working / Warm-up under it.
+     * Switch, Skip, Swap and Remove live in the header overflow.
+     */
+    fun imageLedHero(): Boolean = true
+
+    /** Last set · Best set · Volume (this exercise) sit under the identity, split by hairlines. */
+    fun statsRowUnderIdentity(): Boolean = true
+
+    /** The header's second line and segmented bar say where the session stands. */
+    fun headerShowsSessionProgress(): Boolean = true
 
     /** Add a lift lives in the switcher once a session lift exists. */
     fun addLiftLivesInSwitcher(): Boolean = true
@@ -76,11 +93,14 @@ object FloorCompactChrome {
     fun timerIsCompactInstrumentBar(): Boolean = true
 
     /**
-     * Idle rest is the same 56 dp instrument at rest: dim numeral,
-     * empty track, Start. Duration editing lives in a sheet, not a
-     * second dock row.
+     * Rest is its own quiet card in the dock: a small countdown ring, REST, the time,
+     * the target, and −15 / +15 / Skip. Idle is the same card at rest — dim, the planned
+     * length, Start rest. Duration editing still lives in a sheet. HOLD and SET keep
+     * the 56 dp instrument bar.
      */
-    fun idleRestIsInstrumentBar(): Boolean = true
+    fun idleRestIsInstrumentBar(): Boolean = false
+
+    fun restIsDockCard(): Boolean = true
 
     /** Packet E: planned rest is presets / ±15 / Custom, not a 15 s wheel. */
     fun restLengthIsInlineWheel(): Boolean = false
@@ -97,8 +117,13 @@ object FloorCompactChrome {
      */
     fun progressionKickerInline(): Boolean = true
 
-    /** No inline add row on the entry floor; extra sets remain in the dock and saved-set sheet. */
-    fun addSetHiddenOnFloor(): Boolean = true
+    /**
+     * Today's sets are a strip of chips under the recommendation, with the current set
+     * ringed and Add set as the last chip once the plan is met. Edit opens the full sheet.
+     */
+    fun addSetHiddenOnFloor(): Boolean = false
+
+    fun setHistoryOnFloor(): Boolean = true
 
     /**
      * Completion uses the context rail. The timer row stays reserved so

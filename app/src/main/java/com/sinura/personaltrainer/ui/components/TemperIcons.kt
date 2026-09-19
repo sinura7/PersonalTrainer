@@ -111,6 +111,10 @@ object TemperIcons {
     val Chevron: ImageVector
         get() = chevron ?: chevronMark().also { chevron = it }
 
+    /** [Chevron] mirrored: the back control on pushed routes. */
+    val Back: ImageVector
+        get() = back ?: backMark().also { back = it }
+
     /** Idle Time-set mark. Floor rest keeps [FloorRest]; this adds a crown. */
     val Stopwatch: ImageVector
         get() = stopwatch ?: stopwatchMark().also { stopwatch = it }
@@ -139,6 +143,7 @@ object TemperIcons {
     private var foundation: ImageVector? = null
     private var check: ImageVector? = null
     private var chevron: ImageVector? = null
+    private var back: ImageVector? = null
     private var stopwatch: ImageVector? = null
 }
 
@@ -222,6 +227,10 @@ private fun checkMark(): ImageVector = vector("Check") {
 
 private fun chevronMark(): ImageVector = vector("Chevron") {
     plate(8.8f, 4.8f, 11.4f, 4.8f, 17.4f, 12.0f, 11.4f, 19.2f, 8.8f, 19.2f, 14.4f, 12.0f)
+}
+
+private fun backMark(): ImageVector = vector("Back") {
+    plate(15.2f, 4.8f, 12.6f, 4.8f, 6.6f, 12.0f, 12.6f, 19.2f, 15.2f, 19.2f, 9.6f, 12.0f)
 }
 
 /** Rectangular clock in the floor-rest language, plus a crown for Time set. */

@@ -256,6 +256,10 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    // Compose UI tests on the JVM: Robolectric's native graphics render the redesigned
+    // workout floor to PNG (see ui/workout/WorkoutFloorRenderTest) where no emulator exists.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.junit)

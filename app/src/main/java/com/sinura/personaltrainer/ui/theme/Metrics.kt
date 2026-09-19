@@ -115,6 +115,22 @@ object Metrics {
     /** The one action worth a bigger target than anything else: logging a set. */
     val commit: Dp = 72.dp
 
+    /** Round − / + plates beside the hero numerals on the active workout. */
+    val stepperRound: Dp = control
+
+    /** The rest card's small countdown ring, and its stroke. */
+    val restRingSmall: Dp = 48.dp
+    val ringStroke: Dp = 4.dp
+
+    /** Segmented session progress under the workout title. */
+    val progressTrack: Dp = space1
+
+    /** Numbered marker on a set-history chip, and the ring around the current set. */
+    val setMarker: Dp = 28.dp
+
+    /** Small help affordance (the RPE question mark). Target stays [touchMin]. */
+    val helpMark: Dp = 20.dp
+
     /** Bottom-of-list clearance so a floating action never covers the last row. */
     val fabClearance: Dp = 88.dp
 }

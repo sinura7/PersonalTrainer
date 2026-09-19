@@ -44,7 +44,7 @@ Images 03–05 show lime-outlined warm-up/RPE choices. `InstrumentChip` uses the
 
 **Acceptance:** before any tap, a user can tell the entered weight, the current set type, an uncommitted recommendation, and a selected RPE. Changing a recommendation never changes the draft until applied. Selected and suggested remain distinguishable without color.
 
-Evidence: [InstrumentChip.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/components/InstrumentChip.kt), `WarmupRampRow` in [WorkoutLiftCard.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/WorkoutLiftCard.kt), `SecondaryLogOptions` in [WorkoutLogBar.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/WorkoutLogBar.kt).
+Evidence: [InstrumentChip.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/components/InstrumentChip.kt), `WarmupRampRow` (then in `WorkoutLiftCard.kt`, now in [WeightRepsEditor.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/WeightRepsEditor.kt)), `SecondaryLogOptions` (then in `WorkoutLogBar.kt`, now [RpeSelector.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/RpeSelector.kt)).
 
 ### D03 · P1 · The workout footer reserves too much vertical space · S/C
 
@@ -54,7 +54,7 @@ Images 02–03 have a large empty span; images 04–05 become crowded after logg
 
 **Acceptance:** at normal font on a 360 × 640 dp viewport, core entry controls and the commit action remain usable without accidental overlap. At larger fonts, allow intentional scrolling and expanded controls. Measure actual coordinates before/after log, receipt expiry, error, and completion. The commit button must not jump because a receipt disappears.
 
-Evidence: [WorkoutLogBar.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/WorkoutLogBar.kt), [PinnedDock.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/components/PinnedDock.kt), [Metrics.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt).
+Evidence: `WorkoutLogBar.kt` (now [WorkoutDock.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/WorkoutDock.kt)), [PinnedDock.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/components/PinnedDock.kt), [Metrics.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt).
 
 ### D04 · P1 · Logging can redirect the viewport away from the next input · S/C/R
 
@@ -64,7 +64,7 @@ Images 04–05 show the exercise card partly scrolled beneath the header. That a
 
 **Acceptance:** log sets 1–8 on a short screen; the next input remains predictable. Test with keyboard open, warm-ups, RPE helper, recommendation, receipt, and an active timer. Do not use a screenshot of a partly scrolled card as the sole regression criterion.
 
-Evidence: [WorkoutLiftCard.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/WorkoutLiftCard.kt), [LogLoopBringIntoViewTest.kt](../../../app/src/test/java/com/sinura/personaltrainer/ui/workout/LogLoopBringIntoViewTest.kt).
+Evidence: `WorkoutLiftCard.kt` (now [WeightRepsEditor.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/WeightRepsEditor.kt)), [LogLoopBringIntoViewTest.kt](../../../app/src/test/java/com/sinura/personaltrainer/ui/workout/LogLoopBringIntoViewTest.kt).
 
 ### D05 · P1 · The Body illustration is the weakest major visual asset · S/C
 
@@ -114,7 +114,7 @@ The 112 dp image and 128 dp minimum hero compete with the values being entered i
 
 **Acceptance:** a new user finds the exercise list without trial taps. Long exercise names remain recognizable. Compare hero rest, press, focus, and TalkBack states on the exact installed build.
 
-Evidence: [CurrentLiftCard.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/CurrentLiftCard.kt), [LiftSwitcherSheet.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/LiftSwitcherSheet.kt).
+Evidence: `CurrentLiftCard.kt` (now [ExerciseHeader.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/ExerciseHeader.kt)), [LiftSwitcherSheet.kt](../../../app/src/main/java/com/sinura/personaltrainer/ui/workout/LiftSwitcherSheet.kt).
 
 ### D10 · P2 · Direct numeric entry lacks a visible invitation · S/C
 

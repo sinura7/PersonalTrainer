@@ -24,8 +24,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Dp
@@ -62,6 +64,9 @@ fun StepperButton(
     enabled: Boolean = true,
     plateWidth: Dp? = null,
     plateHeight: Dp? = null,
+    /** Round plates beside the hero numerals pass [com.sinura.personaltrainer.ui.theme.Radius.full]. */
+    shape: Shape = RoundedCornerShape(Radius.sm),
+    textStyle: TextStyle? = null,
 ) {
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -107,9 +112,9 @@ fun StepperButton(
     }
     Box(
         modifier = sized
-            .clip(RoundedCornerShape(Radius.sm))
+            .clip(shape)
             .background(background)
-            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
+            .border(Metrics.hairline, Hairline, shape)
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
@@ -129,7 +134,8 @@ fun StepperButton(
         Text(
             label,
             modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
-            style = (if (compact) InstrumentType.bodyStrong else InstrumentType.numeralMd).copy(textDirection = TextDirection.Ltr),
+            style = (textStyle ?: if (compact) InstrumentType.bodyStrong else InstrumentType.numeralMd)
+                .copy(textDirection = TextDirection.Ltr),
             color = if (enabled) TextPrimary else TextDisabled,
             maxLines = 2,
             textAlign = TextAlign.Center,

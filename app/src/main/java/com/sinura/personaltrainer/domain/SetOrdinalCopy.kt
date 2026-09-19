@@ -17,11 +17,23 @@ object SetOrdinalCopy {
 
     fun extra(n: Int): String = "Extra $n"
 
+    /** The mark inside a set-history chip's ring: `W` for a warm-up, else the working count. */
+    const val WARMUP_MARK = "W"
+
+    fun marks(warmupFlags: List<Boolean>): List<String> {
+        var working = 0
+        return warmupFlags.map { isWarmup ->
+            if (isWarmup) WARMUP_MARK else { working += 1; working.toString() }
+        }
+    }
+
+    fun draftMark(isWarmup: Boolean, workingLogged: Int): String =
+        if (isWarmup) WARMUP_MARK else (workingLogged.coerceAtLeast(0) + 1).toString()
+
     /**
-     * The line above the wells for the set about to be logged.
-     *
-     * [Kicker] uppercases this, so the entry surface reads SET 3 OF 4 /
-     * WU 2 / EXTRA 1.
+     * The set about to be logged, as the exercise identity states it:
+     * `Set 3 of 4` / `WU 2` / `Extra 1`. Rendered in sentence case, and also
+     * the label under the current chip in the set history.
      */
     fun draftLine(
         isWarmup: Boolean,

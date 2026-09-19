@@ -585,6 +585,19 @@ object SetMicroRecCopy {
     fun caption(rec: SetMicroRec): String? =
         if (rec.previewOnly) "If you log this: …" else null
 
+    /**
+     * The change in words for the Next-set card: `+1 rep`, `+5 lbs`, `Hold the load`,
+     * `Back off`. Null when the rec is not a load call.
+     */
+    fun deltaLine(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? =
+        when (val kicker = kicker(rec, loadClass, unit)) {
+            null -> null
+            ProgressionKickerCopy.PLUS_REP -> "+1 rep"
+            ProgressionKickerCopy.HOLD -> "Hold the load"
+            ProgressionKickerCopy.BACK_OFF -> "Back off"
+            else -> kicker
+        }
+
     fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.whySheet(rec.trace)
         .ifEmpty { RuleTraceCopy.lines(rec.trace) }
 

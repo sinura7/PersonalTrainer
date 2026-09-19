@@ -39,15 +39,70 @@ data class WorkoutPrimaryAction(
 ) {
     val kind: WorkoutPrimaryKind get() = identity.kind
 
-    fun label(unit: WeightUnit, loadClass: LoadClass, includeNextName: Boolean = true): String {
+    /**
+     * The verb alone: `Log set`, `Next exercise · Leg curl`, `Saving…`.
+     * The commit button shows this on its first line and [payload] under it.
+     */
+    fun verb(includeNextName: Boolean = true): String = when (kind) {
+        WorkoutPrimaryKind.UNAVAILABLE -> "Workout unavailable"
+        WorkoutPrimaryKind.ADD_EXERCISE -> "Add exercise"
+        WorkoutPrimaryKind.LOG_SET -> "Log set"
+        WorkoutPrimaryKind.LOG_WARMUP -> "Log warm-up"
+        WorkoutPrimaryKind.SAVE_CHANGES -> "Save changes"
+        WorkoutPrimaryKind.START_HOLD -> "Start hold"
+        WorkoutPrimaryKind.LOG_HOLD -> "Log hold"
+        WorkoutPrimaryKind.NEXT_EXERCISE -> if (includeNextName) "Next exercise · ${nextName.orEmpty()}" else "Next exercise"
+        WorkoutPrimaryKind.FINISH -> "Finish workout"
+        WorkoutPrimaryKind.CHECKING -> "Checking save…"
+        WorkoutPrimaryKind.SAVING -> "Saving…"
+        WorkoutPrimaryKind.UPDATING -> "Updating workout…"
+        WorkoutPrimaryKind.RETRY_SAVE -> "Retry save"
+        WorkoutPrimaryKind.REVIEW_SAVE -> "Review save"
+    }
+
+    /**
+     * What the tap will write, with effort when it was chosen: `70 lbs × 10 · RPE 9`.
+     * Null for actions that carry no set — Next, Finish, the saving states.
+     */
+    fun payload(unit: WeightUnit, loadClass: LoadClass): String? {
+        val carriesSet = when (kind) {
+            WorkoutPrimaryKind.LOG_SET,
+            WorkoutPrimaryKind.LOG_WARMUP,
+            WorkoutPrimaryKind.LOG_HOLD,
+            WorkoutPrimaryKind.SAVE_CHANGES,
+            WorkoutPrimaryKind.START_HOLD,
+            WorkoutPrimaryKind.SAVING,
+            WorkoutPrimaryKind.RETRY_SAVE,
+            WorkoutPrimaryKind.REVIEW_SAVE,
+            WorkoutPrimaryKind.CHECKING,
+            -> true
+            WorkoutPrimaryKind.UNAVAILABLE,
+            WorkoutPrimaryKind.ADD_EXERCISE,
+            WorkoutPrimaryKind.NEXT_EXERCISE,
+            WorkoutPrimaryKind.FINISH,
+            WorkoutPrimaryKind.UPDATING,
+            -> false
+        }
+        if (!carriesSet) return null
+        val saved = identity.pendingSave?.values
+        val line = setPayload(unit, loadClass)
+        val rpe = saved?.rpe ?: identity.draft.rpe.takeUnless { identity.draft.isWarmup }
+        return if (rpe != null) "$line · RPE $rpe" else line
+    }
+
+    private fun setPayload(unit: WeightUnit, loadClass: LoadClass): String {
         val draft = identity.pendingSave?.values
-        val payload = SetCopy.setLine(
+        return SetCopy.setLine(
             weightKg = draft?.weightKg ?: identity.draft.weightKg,
             reps = draft?.reps ?: identity.draft.reps,
             loadClass = loadClass, unit = unit,
             durationSeconds = draft?.durationSeconds ?: durationSeconds,
             entryPrecision = true,
         )
+    }
+
+    fun label(unit: WeightUnit, loadClass: LoadClass, includeNextName: Boolean = true): String {
+        val payload = setPayload(unit, loadClass)
         return when (kind) {
             WorkoutPrimaryKind.UNAVAILABLE -> "Workout unavailable"
             WorkoutPrimaryKind.ADD_EXERCISE -> "Add exercise"
