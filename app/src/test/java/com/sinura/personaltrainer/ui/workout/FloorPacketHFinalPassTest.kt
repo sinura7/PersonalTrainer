@@ -115,8 +115,9 @@ class FloorPacketHFinalPassTest {
         assertTrue(card.contains("if (TalkBackPolicy.announceRestKicker(justFinished)) {"))
         assertTrue(card.contains("liveRegion = LiveRegionMode.Polite"))
         assertEquals(1, card.split("liveRegion = LiveRegionMode.Polite").size - 1)
+        // One live region for the rest kicker, the card's: the old bar's copy is gone.
         val rest = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(rest.contains("TalkBackPolicy.announceRestKicker"))
+        assertFalse(rest.contains("TalkBackPolicy.announceRestKicker"))
     }
 
     @Test

@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SetRowCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.GoldenCapture
@@ -93,10 +94,11 @@ class WorkoutCompletionJourneyInstrumentedTest {
         awaitSets(1)
         val original = session().sets.single()
         // The saved chip in the set history is the row itself: its menu carries Revise / Delete.
-        val chip = hasTestTag(WorkoutTestTags.setOptions(original.id))
+        val chip = hasTestTag(WorkoutTestTags.setChip(original.id))
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(chip)
         compose.onNode(chip).assertIsDisplayed().performClick()
-        compose.onNodeWithText(SetRowCopy.deleteSet(1)).performClick()
+        // The chip's menu names the chip's own ordinal (Set 1 of 1 here).
+        compose.onNodeWithText(SetRowCopy.delete(SetOrdinalCopy.working(1, 1))).performClick()
         awaitSets(0)
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         compose.onNodeWithText("Undo").performClick()

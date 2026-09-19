@@ -602,23 +602,22 @@ object SetMicroRecCopy {
      * The change in words for the Next-set card: `+1 rep`, `+5 lbs`, `Hold the load`,
      * `Back off`. Null when the rec is not a load call.
      */
-    fun deltaLine(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? = when (rec.reasonCode) {
+    fun deltaLine(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? {
+        val code = rec.reasonCode
         // These repeat last set's numbers, whatever the kicker's step label would say.
-        SetMicroRecCalculator.QUALITY,
-        SetMicroRecCalculator.TOP_SET,
-        -> "Hold the load"
+        if (code == SetMicroRecCalculator.QUALITY || code == SetMicroRecCalculator.TOP_SET) return "Hold the load"
         // A first set has nothing to move from.
-        SetMicroRecCalculator.FIRST_SET,
-        SetMicroRecCalculator.WARMUP_DONE,
-        -> null
-        else -> when (val kicker = kicker(rec, loadClass, unit)) {
-            null -> null
-            ProgressionKickerCopy.PLUS_REP -> "+1 rep"
-            ProgressionKickerCopy.HOLD -> "Hold the load"
-            ProgressionKickerCopy.BACK_OFF -> "Back off"
-            else -> kicker
-        }
+        if (code == SetMicroRecCalculator.FIRST_SET || code == SetMicroRecCalculator.WARMUP_DONE) return null
+        val kicker = kicker(rec, loadClass, unit) ?: return null
+        return DELTA_WORDS[kicker] ?: kicker
     }
+
+    /** The kicker's shorthand said in words; a step label such as `+5` stands as it is. */
+    private val DELTA_WORDS = mapOf(
+        ProgressionKickerCopy.PLUS_REP to "+1 rep",
+        ProgressionKickerCopy.HOLD to "Hold the load",
+        ProgressionKickerCopy.BACK_OFF to "Back off",
+    )
 
     fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.whySheet(rec.trace)
         .ifEmpty { RuleTraceCopy.lines(rec.trace) }

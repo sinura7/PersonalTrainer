@@ -116,8 +116,8 @@ class FloorCompactRestBarTest {
         val editAt = dock.indexOf("state.editing -> TextButton(")
         val hintAt = dock.indexOf("state.suggestionUnavailable -> Text(")
         assertTrue(
-            "companion priority is error, undo, honesty, Cancel edit, suggestion caption",
-            errorAt >= 0 && undoAt > errorAt && honestyAt > undoAt && editAt > honestyAt && hintAt > editAt,
+            "companion priority is error, undo, Cancel edit, honesty, suggestion caption",
+            errorAt >= 0 && undoAt > errorAt && editAt > undoAt && honestyAt > editAt && hintAt > honestyAt,
         )
         assertTrue("an active clock stays reachable beside the companion", dock.contains("if (timer.show) clockButton()"))
         assertTrue(dock.contains("timer.restRunning -> \"Rest \${RestTimer.formatClock(timer.restRemainingSeconds)}\""))

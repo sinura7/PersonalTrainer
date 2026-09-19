@@ -183,7 +183,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         // The receipt is the just-saved chip in the set history: it reads as saved while the
         // receipt is live and as logged once the receipt has been shown.
         val receipt = checkNotNull(fixture.vm.logReceipt.value) { "the eighth save must leave a live receipt" }
-        val savedChip = hasTestTag(WorkoutTestTags.setOptions(receipt.setId))
+        val savedChip = hasTestTag(WorkoutTestTags.setChip(receipt.setId))
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(savedChip)
         compose.onNode(savedChip and hasContentDescription(value = "saved", substring = true)).assertIsDisplayed()
         compose.runOnIdle { fixture.vm.onLogReceiptShown() }
@@ -377,7 +377,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         captureWindow("long-sheet-landscape-font20")
         val list = compose.onNodeWithTag("workout-saved-sets-list")
         for (set in listOf(sets.first(), sets.last())) {
-            list.performScrollToNode(hasTestTag(WorkoutTestTags.setOptions(set.id)))
+            list.performScrollToNode(hasTestTag(WorkoutTestTags.setChip(set.id)))
             compose.onNode(sheetOptionsFor(set.id)).assertIsDisplayed().performClick()
             compose.onNodeWithText("Edit set").assertIsDisplayed()
             compose.onNodeWithText("Delete set").assertIsDisplayed()

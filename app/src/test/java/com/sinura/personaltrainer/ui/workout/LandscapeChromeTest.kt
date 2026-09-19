@@ -71,7 +71,7 @@ class LandscapeChromeTest {
         assertTrue(rest.contains("verticalScroll(rememberScrollState())"))
 
         val dock = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(dock.contains("hideWhenIdle"))
+        assertTrue(readOwned("ui/workout/WorkoutDock.kt").contains("hideIdleRest"))
         assertTrue(dock.contains("ringSize: Dp = REST_RING_SIZE"))
         assertTrue(readOwned("ui/components/GymButtons.kt").contains("fun DangerGymButton"))
     }

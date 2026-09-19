@@ -157,15 +157,15 @@ class WorkoutCompletionLayoutInstrumentedTest(
         }
 
         if (scenario == "edit-denied") {
-            // With rest alerts denied, the dock's companion slot carries the notification
-            // honesty row (it outranks Cancel edit there), so the edit is announced by the
-            // identity and the commit's verb instead.
-            compose.onNodeWithTag(WorkoutTestTags.NOTIF_RECOVERY).assertIsDisplayed()
+            // With rest alerts denied, an edit in progress still owns the companion slot:
+            // Cancel edit outranks the notification honesty row, which returns once the
+            // edit stands down. The identity and the commit's verb announce the edit too.
             compose.onNodeWithTag(WorkoutTestTags.liftCard(checkNotNull(fixture.vm.uiState.value.selectedExerciseId)))
                 .assert(hasContentDescription(value = "Editing saved set", substring = true))
             assertEquals("Save changes", verb)
-            compose.runOnIdle { fixture.vm.cancelEdit() }
+            compose.onNodeWithTag(WorkoutTestTags.CANCEL_EDIT).assertIsDisplayed().performClick()
             compose.waitUntil(15_000) { fixture.vm.uiState.value.editingSetId == null }
+            compose.onNodeWithTag(WorkoutTestTags.NOTIF_RECOVERY).assertIsDisplayed()
             assertEquals(60.0, runBlocking(Dispatchers.IO) { repo.getSession(sessionId)!!.sets.single().weightKg }, 0.01)
         }
         if (scenario.startsWith("removed")) {

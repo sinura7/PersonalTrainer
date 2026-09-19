@@ -105,7 +105,7 @@ internal data class WorkoutDockEvents(
  * The anchored bottom of the floor: one companion slot and the 72 dp commit.
  *
  * The companion is the rest card while resting, the hold or set clock while one runs,
- * and otherwise whichever of error, undo, timer honesty or Cancel edit needs the room —
+ * and otherwise whichever of error, undo, Cancel edit or timer honesty needs the room —
  * with a compact clock kept reachable beside it. The slot never drops below the 56 dp
  * instrument row (the rest card asks for 72 dp on its own), so the Volt's bottom edge
  * does not jump as the slot changes hands. Save receipts live in the set history, not here.
@@ -237,17 +237,19 @@ internal fun WorkoutDock(
                                     offerKey = state.undoKey ?: state.undoMessage,
                                     dwellMs = state.undoDwellMs,
                                 )
-                                honesty != null -> RestHonestyRow(
-                                    honesty = honesty,
-                                    onDismissBatteryHint = events.onDismissRestBatteryHint,
-                                    onOpenNotifications = events.onOpenNotifications,
-                                )
+                                // An edit in progress must always be able to stand down, so Cancel edit
+                                // outranks the rest-alert honesty row (rest is not running mid-edit).
                                 state.editing -> TextButton(
                                     onClick = events.onCancelEdit,
                                     modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.CANCEL_EDIT),
                                 ) {
                                     Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
                                 }
+                                honesty != null -> RestHonestyRow(
+                                    honesty = honesty,
+                                    onDismissBatteryHint = events.onDismissRestBatteryHint,
+                                    onOpenNotifications = events.onOpenNotifications,
+                                )
                                 state.suggestionUnavailable -> Text(
                                     LogCommitCopy.SUGGESTION_UNAVAILABLE,
                                     style = InstrumentType.caption,

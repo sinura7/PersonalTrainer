@@ -45,7 +45,9 @@ class TalkBackPolicyTest {
         val rest = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(rest.contains("role = Role.Button"))
         assertTrue(rest.contains("LiveRegionMode.Polite"))
-        assertTrue(rest.contains("TalkBackPolicy.announceRestKicker"))
+        // ADR-027: the rest clock on the floor is the dock card; it owns the finished-kicker announcement.
+        val restCard = readOwned("ui/workout/RestTimerCard.kt")
+        assertTrue(restCard.contains("TalkBackPolicy.announceRestKicker"))
 
         val gymStatus = readOwned("ui/components/GymStatus.kt")
         assertTrue(gymStatus.contains("LiveRegionMode.Polite"))

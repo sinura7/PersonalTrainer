@@ -49,7 +49,7 @@ class FloorPacketEClockTest {
         val src = readOwned("ui/components/RestTimerUi.kt")
         assertFalse(src.contains("SnapValueWheel("))
         val sheetStart = src.indexOf("fun RestDurationSheet")
-        val sheetEnd = src.indexOf("fun RestIconControl")
+        val sheetEnd = src.indexOf("fun RestSweepRing")
         assertTrue(sheetStart >= 0 && sheetEnd > sheetStart)
         val sheet = src.substring(sheetStart, sheetEnd)
         assertTrue(sheet.contains("RestPresetChips("))
