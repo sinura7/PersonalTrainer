@@ -15,9 +15,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,31 +30,33 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.HoldWork
+import com.sinura.personaltrainer.domain.LoadClass
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.LoadTypeCopy
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SessionOrderCopy
-import com.sinura.personaltrainer.domain.TargetEntry
+import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.TargetStepper
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
-import com.sinura.personaltrainer.ui.components.FieldComplaint
-import com.sinura.personaltrainer.ui.components.fieldError
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.NumberEntryDialog
+import com.sinura.personaltrainer.ui.components.NumeralWell
 import com.sinura.personaltrainer.ui.components.ThumbSize
-import com.sinura.personaltrainer.ui.components.imeAction
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -77,6 +76,8 @@ data class SessionLiftItem(
     val reps: Int,
     val restSeconds: Int,
     val targetWeightKg: Double? = null,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 object SessionLiftTags {
@@ -92,12 +93,16 @@ object SessionLiftCopy {
 }
 
 object CompactLiftCopy {
-    const val TARGET_WEIGHT = "Target weight"
+    const val SETS = "Sets"
+    const val REPS = "Reps"
+    const val TIME = "Time"
+    const val TARGET_WEIGHT = LoadTypeCopy.TARGET_WEIGHT
     const val REST = "Rest"
 }
 
 object CompactLiftTags {
     const val TARGET_WEIGHT = "compact-lift-target-weight"
+    const val TIME = "compact-lift-time"
 }
 
 /**
@@ -116,7 +121,7 @@ fun SessionLiftStrip(
     onMoveEarlier: (String) -> Unit,
     onMoveLater: (String) -> Unit,
     onRemove: (String) -> Unit,
-    onStageTargets: (String, Int?, Int?, Int?, Double?, String?) -> Unit,
+    onStageTargets: (String, Int?, Int?, Int?, Double?, String?, Int?, Int?) -> Unit,
     onCommitTargets: (String) -> Unit,
     /**
      * The card folded shut, taking its four boxes and their text with it. Whatever rule
@@ -168,8 +173,8 @@ fun SessionLiftStrip(
                 onRemove = { onRemove(item.id) },
                 onSwap = { onSwap(item.id) },
                 onForgetTargetRule = onForgetTargetRule,
-                onStageTargets = { sets, reps, rest, kg, invalid ->
-                    onStageTargets(item.id, sets, reps, rest, kg, invalid)
+                onStageTargets = { sets, reps, rest, kg, invalid, seconds, secondsMax ->
+                    onStageTargets(item.id, sets, reps, rest, kg, invalid, seconds, secondsMax)
                 },
                 onCommitTargets = { onCommitTargets(item.id) },
                 modifier = Modifier.then(
@@ -202,7 +207,7 @@ private fun SessionLiftCard(
     onMoveLater: () -> Unit,
     onRemove: () -> Unit,
     onSwap: () -> Unit,
-    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?, Int?, Int?) -> Unit,
     onCommitTargets: () -> Unit,
     onForgetTargetRule: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -211,14 +216,23 @@ private fun SessionLiftCard(
     val restClock = RestTimer.formatClock(item.restSeconds)
     val loadKg = item.targetWeightKg?.takeIf { it > 0.0 }
     val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
+    val loadTag = LoadTypeCopy.rowTag(item.exercise)
+    val subtitle = listOf(
+        item.exercise.muscleGroup.takeIf { it.isNotBlank() },
+        loadTag,
+    ).filterNotNull().distinct().joinToString(" · ")
     val spoken = SessionOrderCopy.cardSpoken(
         number = number,
         name = item.exercise.name,
-        muscleGroup = item.exercise.muscleGroup,
+        muscleGroup = subtitle,
         sets = item.sets,
         reps = item.reps,
         restClock = restClock,
         load = loadDisplay,
+        holdSeconds = item.targetSeconds ?: item.exercise.takeIf { HoldWork.isHold(it) }?.let {
+            HoldWork.DEFAULT_SECONDS
+        },
+        holdSecondsMax = item.targetSecondsMax,
     )
     val shape = RoundedCornerShape(Radius.sm)
     Column(
@@ -263,9 +277,9 @@ private fun SessionLiftCard(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (item.exercise.muscleGroup.isNotBlank()) {
+                    if (subtitle.isNotBlank()) {
                         Text(
-                            item.exercise.muscleGroup,
+                            subtitle,
                             style = InstrumentType.caption,
                             color = TextSecondary,
                             maxLines = 1,
@@ -279,7 +293,15 @@ private fun SessionLiftCard(
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
                 MetricCluster(
-                    value = "${item.sets} × ${item.reps}",
+                    value = if (item.targetSeconds != null || HoldWork.isHold(item.exercise)) {
+                        HoldWork.workLine(
+                            item.sets,
+                            item.targetSeconds ?: HoldWork.DEFAULT_SECONDS,
+                            item.targetSecondsMax,
+                        )
+                    } else {
+                        "${item.sets} × ${item.reps}"
+                    },
                     label = SessionOrderCopy.WORK,
                     modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start,
@@ -335,7 +357,7 @@ private fun SessionLiftEditor(
     onMoveLater: () -> Unit,
     onRemove: () -> Unit,
     onSwap: () -> Unit,
-    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?, Int?, Int?) -> Unit,
     onCommitTargets: () -> Unit,
     onForgetTargetRule: (String) -> Unit,
 ) {
@@ -349,15 +371,15 @@ private fun SessionLiftEditor(
             modifier = Modifier.padding(horizontal = Metrics.space3),
         )
         key("${item.id}:${item.exercise.id}") {
-            // Tied to the SAME key as the boxes themselves, so it fires exactly when their
-            // text is discarded — the card folded shut, the lift removed, or this slot reused
-            // for a different lift after a reorder. Reopening re-reads the STORED numbers, so
-            // a rejection staged from text that no longer exists would refuse Save for a box
-            // showing its stored value: a dead end with nothing on screen to correct, the same
-            // shape 1801821 fixed for a removed card.
+            // Tied to the SAME key as the wells themselves, so it fires exactly when they go
+            // away — the card folded shut, the lift removed, or this slot reused for a
+            // different lift after a reorder. Reopening re-reads the STORED numbers. A
+            // rejection staged from a typed value that no longer exists would refuse Save
+            // for a well showing its stored value: a dead end with nothing on screen to
+            // correct, the same shape 1801821 fixed for a removed card.
             //
             // A configuration change disposes too, but there `rememberSaveable` restores the
-            // typed text and CompactTargetFields re-registers the rejection on its next
+            // well values and CompactTargetFields re-registers a pending edit on its next
             // composition, so clearing here is self-correcting for rotation.
             //
             // The id is captured in a local rather than read through the lambda at dispose
@@ -373,6 +395,14 @@ private fun SessionLiftEditor(
                 reps = item.reps,
                 restSeconds = item.restSeconds,
                 targetWeightKg = item.targetWeightKg,
+                loadType = item.exercise.loadType,
+                hold = HoldWork.isHold(item.exercise),
+                targetSeconds = item.targetSeconds ?: if (HoldWork.isHold(item.exercise)) {
+                    HoldWork.DEFAULT_SECONDS
+                } else {
+                    null
+                },
+                targetSecondsMax = item.targetSecondsMax,
                 onStageTargets = onStageTargets,
                 onCommitTargets = onCommitTargets,
                 onRemove = onRemove,
@@ -460,123 +490,198 @@ internal fun CompactTargetFields(
     reps: Int,
     restSeconds: Int,
     targetWeightKg: Double?,
-    onStageTargets: (Int?, Int?, Int?, Double?, String?) -> Unit,
+    loadType: LoadType = LoadType.EXTERNAL,
+    hold: Boolean = false,
+    targetSeconds: Int? = null,
+    targetSecondsMax: Int? = null,
+    onStageTargets: (Int?, Int?, Int?, Double?, String?, Int?, Int?) -> Unit,
     onCommitTargets: () -> Unit,
     onRemove: () -> Unit,
     onSwap: (() -> Unit)?,
 ) {
     val unit = LocalWeightUnit.current
-    val chain = NumericEntry.ROUTINE_EDITOR_CHAIN
-    val setsFocus = remember { FocusRequester() }
-    val repsFocus = remember { FocusRequester() }
-    val restFocus = remember { FocusRequester() }
-    val weightFocus = remember { FocusRequester() }
-    // What each box reads when it shows the STORED target and nothing else. Held as values so
-    // the restore hook below can ask the only question that matters: is the text on screen
-    // still what the routine holds, or did the owner type something the routine does not?
-    val storedWeightText = targetWeightKg?.let { kg ->
-        WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(kg, unit))
-    }.orEmpty()
-    var setsText by rememberSaveable(rowKey) { mutableStateOf(sets.toString()) }
-    var repsText by rememberSaveable(rowKey) { mutableStateOf(reps.toString()) }
-    var restText by rememberSaveable(rowKey) { mutableStateOf(restSeconds.toString()) }
-    var weightText by rememberSaveable(rowKey) { mutableStateOf(storedWeightText) }
-    // The four boxes, read as typed. An empty box means "leave this one alone"; a box that
-    // cannot be stored as written is a complaint under that box and a rejection staged with the
-    // card, so the commit refuses it and Save and Back count it as unsaved (UX06). The text is
-    // never rewritten on the way.
-    val entry = TargetEntry.read(setsText, repsText, restText, weightText, unit)
-    val stage = {
-        val read = TargetEntry.read(setsText, repsText, restText, weightText, unit)
-        // `weightToStage`, not `typedWeightKg`: a null weight is an instruction to clear the
-        // stored target, and an unreadable box must never issue it. See TargetEntry.
-        onStageTargets(
-            read.typedSets,
-            read.typedReps,
-            read.typedRest,
-            read.weightToStage(targetWeightKg),
-            read.firstError,
+    val weightLabel = LoadTypeCopy.editorWeightLabel(loadType)
+    val showWeight = weightLabel != null
+    val storedWeightKg = if (showWeight) targetWeightKg ?: 0.0 else 0.0
+    val storedHold = targetSeconds ?: HoldWork.DEFAULT_SECONDS
+    var setsValue by rememberSaveable(rowKey) { mutableIntStateOf(sets) }
+    var repsValue by rememberSaveable(rowKey) { mutableIntStateOf(reps) }
+    var restValue by rememberSaveable(rowKey) { mutableIntStateOf(restSeconds) }
+    var secondsValue by rememberSaveable(rowKey) { mutableIntStateOf(storedHold) }
+    var secondsMaxValue by rememberSaveable(rowKey) {
+        mutableStateOf(targetSecondsMax)
+    }
+    var weightValue by rememberSaveable(rowKey) { mutableStateOf(storedWeightKg) }
+    var typing by rememberSaveable(rowKey) { mutableStateOf<TargetWell?>(null) }
+    val persist: (Int, Int, Int, Double, Int, Int?) -> Unit =
+        { nextSets, nextReps, nextRest, nextKg, nextSeconds, nextSecondsMax ->
+            onStageTargets(
+                nextSets,
+                if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else nextReps,
+                nextRest,
+                TargetStepper.weightToStage(nextKg),
+                null,
+                if (hold) nextSeconds else null,
+                if (hold) nextSecondsMax else null,
+            )
+            onCommitTargets()
+        }
+    val stagedWeight = if (showWeight) weightValue else 0.0
+    val differsFromStored = setsValue != sets ||
+        (!hold && repsValue != reps) ||
+        restValue != restSeconds ||
+        (hold && (secondsValue != storedHold || secondsMaxValue != targetSecondsMax)) ||
+        TargetStepper.weightToStage(stagedWeight) != targetWeightKg
+    LaunchedEffect(rowKey, differsFromStored) {
+        if (differsFromStored) {
+            persist(setsValue, repsValue, restValue, stagedWeight, secondsValue, secondsMaxValue)
+        }
+    }
+    val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
+    val setsWell: @Composable (Modifier) -> Unit = { modifier ->
+        NumeralWell(
+            label = CompactLiftCopy.SETS,
+            value = setsValue.toString(),
+            unit = null,
+            onType = { typing = TargetWell.SETS },
+            typeLabel = "Type a set count",
+            decrementLabel = "−1",
+            incrementLabel = "+1",
+            onDecrement = {
+                val next = TargetStepper.nextSets(setsValue, -1)
+                setsValue = next
+                persist(next, repsValue, restValue, weightValue, secondsValue, secondsMaxValue)
+            },
+            onIncrement = {
+                val next = TargetStepper.nextSets(setsValue, 1)
+                setsValue = next
+                persist(next, repsValue, restValue, weightValue, secondsValue, secondsMaxValue)
+            },
+            modifier = modifier,
         )
     }
-    // The box text is saved state; what was staged from it is not. After the process is
-    // reclaimed the card is rebuilt showing whatever was typed and nothing upstream knows, so
-    // Save walks past it — refusing a card the owner can see is wrong when the text cannot be
-    // read, and worse when it CAN: typing "8" into reps, losing the process before the box
-    // loses focus, and pressing Save popped the editor claiming success while the routine
-    // still held 5. Both are the same omission and both are re-registered here.
-    //
-    // The condition is "the text is not what the routine holds", not "the text is broken",
-    // because that is exactly what a pending edit is. A card showing its stored numbers stages
-    // nothing, so an untouched editor is never marked dirty and Back never asks about changes
-    // nobody made — which is the trap a blanket re-stage would fall into.
-    val differsFromStored = setsText != sets.toString() ||
-        repsText != reps.toString() ||
-        restText != restSeconds.toString() ||
-        weightText != storedWeightText
-    LaunchedEffect(rowKey, entry.hasError, differsFromStored) {
-        if (entry.hasError || differsFromStored) stage()
+    val repsWell: @Composable (Modifier) -> Unit = { modifier ->
+        NumeralWell(
+            label = CompactLiftCopy.REPS,
+            value = repsValue.toString(),
+            unit = null,
+            onType = { typing = TargetWell.REPS },
+            typeLabel = "Type a rep count",
+            decrementLabel = "−1",
+            incrementLabel = "+1",
+            onDecrement = {
+                val next = TargetStepper.nextReps(repsValue, -1)
+                repsValue = next
+                persist(setsValue, next, restValue, weightValue, secondsValue, secondsMaxValue)
+            },
+            onIncrement = {
+                val next = TargetStepper.nextReps(repsValue, 1)
+                repsValue = next
+                persist(setsValue, next, restValue, weightValue, secondsValue, secondsMaxValue)
+            },
+            modifier = modifier,
+        )
+    }
+    val timeWell: @Composable (Modifier) -> Unit = { modifier ->
+        NumeralWell(
+            label = CompactLiftCopy.TIME,
+            value = HoldWork.formatRange(secondsValue, secondsMaxValue),
+            unit = null,
+            onType = { typing = TargetWell.TIME },
+            typeLabel = "Type hold seconds",
+            decrementLabel = "−${HoldWork.STEP_SECONDS}s",
+            incrementLabel = "+${HoldWork.STEP_SECONDS}s",
+            onDecrement = {
+                val span = secondsMaxValue?.let { it - secondsValue }
+                val next = TargetStepper.nextHoldSeconds(secondsValue, -1)
+                secondsValue = next
+                secondsMaxValue = span?.let { next + it }
+                persist(setsValue, repsValue, restValue, weightValue, next, secondsMaxValue)
+            },
+            onIncrement = {
+                val span = secondsMaxValue?.let { it - secondsValue }
+                val next = TargetStepper.nextHoldSeconds(secondsValue, 1)
+                secondsValue = next
+                secondsMaxValue = span?.let { next + it }
+                persist(setsValue, repsValue, restValue, weightValue, next, secondsMaxValue)
+            },
+            modifier = modifier.testTag(CompactLiftTags.TIME),
+        )
+    }
+    val workWell = if (hold) timeWell else repsWell
+    val restWell: @Composable (Modifier) -> Unit = { modifier ->
+        NumeralWell(
+            label = CompactLiftCopy.REST,
+            value = RestTimer.formatClock(restValue),
+            unit = null,
+            onType = { typing = TargetWell.REST },
+            typeLabel = "Type rest seconds",
+            decrementLabel = "−${TargetStepper.REST_STEP_SECONDS}",
+            incrementLabel = "+${TargetStepper.REST_STEP_SECONDS}",
+            onDecrement = {
+                val next = TargetStepper.nextRestSeconds(restValue, -1)
+                restValue = next
+                persist(setsValue, repsValue, next, weightValue, secondsValue, secondsMaxValue)
+            },
+            onIncrement = {
+                val next = TargetStepper.nextRestSeconds(restValue, 1)
+                restValue = next
+                persist(setsValue, repsValue, next, weightValue, secondsValue, secondsMaxValue)
+            },
+            modifier = modifier,
+        )
+    }
+    val weightWell: @Composable (Modifier) -> Unit = { modifier ->
+        NumeralWell(
+            label = weightLabel ?: CompactLiftCopy.TARGET_WEIGHT,
+            value = WeightConverter.formatDisplayNumber(
+                WeightConverter.toDisplayValue(weightValue, unit),
+            ),
+            unit = unit.suffix,
+            onType = { typing = TargetWell.WEIGHT },
+            typeLabel = "Type a ${weightLabel?.lowercase() ?: "target weight"}",
+            decrementLabel = "−${unit.stepLabel}",
+            incrementLabel = "+${unit.stepLabel}",
+            onDecrement = {
+                val next = WeightConverter.incrementKg(weightValue, unit, -1)
+                weightValue = next
+                persist(setsValue, repsValue, restValue, next, secondsValue, secondsMaxValue)
+            },
+            onIncrement = {
+                val next = WeightConverter.incrementKg(weightValue, unit, 1)
+                weightValue = next
+                persist(setsValue, repsValue, restValue, next, secondsValue, secondsMaxValue)
+            },
+            modifier = modifier.testTag(CompactLiftTags.TARGET_WEIGHT),
+            spoken = SetCopy.weightWellSpoken(
+                LoadClass.of(loadType).weightMeaning,
+                weightValue,
+                unit,
+            ),
+        )
     }
     Column(
         modifier = Modifier.padding(start = Metrics.space3, end = Metrics.space3, bottom = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            MiniNumberField(
-                label = "Sets",
-                value = setsText,
-                modifier = Modifier.weight(1f),
-                onFocusLost = onCommitTargets,
-                error = entry.setsError,
-                ime = chain[0],
-                focusRequester = setsFocus,
-                onImeNext = { repsFocus.requestFocus() },
-            ) {
-                setsText = it
-                stage()
+        if (stack) {
+            setsWell(Modifier.fillMaxWidth())
+            workWell(Modifier.fillMaxWidth())
+            restWell(Modifier.fillMaxWidth())
+            if (showWeight) weightWell(Modifier.fillMaxWidth())
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                setsWell(Modifier.weight(1f))
+                workWell(Modifier.weight(1f))
             }
-            MiniNumberField(
-                label = "Reps",
-                value = repsText,
-                modifier = Modifier.weight(1f),
-                onFocusLost = onCommitTargets,
-                error = entry.repsError,
-                ime = chain[1],
-                focusRequester = repsFocus,
-                onImeNext = { restFocus.requestFocus() },
-            ) {
-                repsText = it
-                stage()
+            if (showWeight) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    restWell(Modifier.weight(1f))
+                    weightWell(Modifier.weight(1f))
+                }
+            } else {
+                restWell(Modifier.fillMaxWidth())
             }
-        }
-        MiniNumberField(
-            label = CompactLiftCopy.REST,
-            value = restText,
-            modifier = Modifier.fillMaxWidth(),
-            onFocusLost = onCommitTargets,
-            error = entry.restError,
-            suffix = "s",
-            ime = chain[2],
-            focusRequester = restFocus,
-            onImeNext = { weightFocus.requestFocus() },
-        ) {
-            restText = it
-            stage()
-        }
-        MiniNumberField(
-            label = CompactLiftCopy.TARGET_WEIGHT,
-            value = weightText,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(CompactLiftTags.TARGET_WEIGHT),
-            onFocusLost = onCommitTargets,
-            error = entry.weightError,
-            allowDecimal = true,
-            suffix = unit.suffix,
-            ime = chain[3],
-            focusRequester = weightFocus,
-        ) {
-            weightText = it
-            stage()
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             TextButton(onClick = onRemove) {
@@ -589,59 +694,91 @@ internal fun CompactTargetFields(
             }
         }
     }
+    if (typing == TargetWell.SETS) {
+        NumberEntryDialog(
+            title = CompactLiftCopy.SETS,
+            unitLabel = null,
+            initial = setsValue.toString(),
+            decimal = false,
+            helper = NumericEntry.SETS_RULE,
+            parse = { NumericEntry.typedWhole(it, min = 1, rule = NumericEntry.SETS_RULE).valueOrNull },
+            onConfirm = { next ->
+                setsValue = next
+                persist(next, repsValue, restValue, weightValue, secondsValue, secondsMaxValue)
+            },
+            onDismiss = { typing = null },
+        )
+    }
+    if (typing == TargetWell.REPS) {
+        NumberEntryDialog(
+            title = CompactLiftCopy.REPS,
+            unitLabel = null,
+            initial = repsValue.toString(),
+            decimal = false,
+            helper = NumericEntry.REPS_WHOLE_RULE,
+            parse = { NumericEntry.typedWhole(it, min = 1, rule = NumericEntry.REPS_WHOLE_RULE).valueOrNull },
+            onConfirm = { next ->
+                repsValue = next
+                persist(setsValue, next, restValue, weightValue, secondsValue, secondsMaxValue)
+            },
+            onDismiss = { typing = null },
+        )
+    }
+    if (typing == TargetWell.REST) {
+        NumberEntryDialog(
+            title = CompactLiftCopy.REST,
+            unitLabel = "s",
+            initial = restValue.toString(),
+            decimal = false,
+            helper = NumericEntry.REST_RULE,
+            parse = { NumericEntry.typedWhole(it, min = 0, rule = NumericEntry.REST_RULE).valueOrNull },
+            onConfirm = { next ->
+                restValue = next
+                persist(setsValue, repsValue, next, weightValue, secondsValue, secondsMaxValue)
+            },
+            onDismiss = { typing = null },
+        )
+    }
+    if (showWeight && typing == TargetWell.WEIGHT) {
+        NumberEntryDialog(
+            title = weightLabel ?: CompactLiftCopy.TARGET_WEIGHT,
+            unitLabel = unit.suffix,
+            initial = WeightConverter.formatDisplayNumber(
+                WeightConverter.toDisplayValue(weightValue, unit),
+            ),
+            decimal = true,
+            helper = "A number, up to two decimals. 0 means no target.",
+            parse = { NumericEntry.parseWeightKg(it, unit) },
+            onConfirm = { next ->
+                weightValue = next
+                persist(setsValue, repsValue, restValue, next, secondsValue, secondsMaxValue)
+            },
+            onDismiss = { typing = null },
+        )
+    }
+    if (hold && typing == TargetWell.TIME) {
+        NumberEntryDialog(
+            title = CompactLiftCopy.TIME,
+            unitLabel = "s",
+            initial = HoldWork.formatRange(secondsValue, secondsMaxValue).trimEnd('s'),
+            decimal = false,
+            helper = "Whole seconds, 5 or more. A range like 20-40 is fine.",
+            parse = { HoldWork.parseRange(it) },
+            onConfirm = { range ->
+                secondsValue = range.minSeconds
+                secondsMaxValue = range.maxSeconds
+                persist(
+                    setsValue,
+                    repsValue,
+                    restValue,
+                    weightValue,
+                    range.minSeconds,
+                    range.maxSeconds,
+                )
+            },
+            onDismiss = { typing = null },
+        )
+    }
 }
 
-@Composable
-private fun MiniNumberField(
-    label: String,
-    value: String,
-    modifier: Modifier,
-    onFocusLost: () -> Unit,
-    /**
-     * The rule this box's text breaks, or null. Shown once the finger has left the box — a
-     * half-typed "62." would otherwise flash red on the way to "62.5" — and kept there until
-     * the text changes to something the routine can hold.
-     */
-    error: String? = null,
-    allowDecimal: Boolean = false,
-    suffix: String? = null,
-    ime: NumericEntry.Ime = NumericEntry.Ime.NEXT,
-    focusRequester: FocusRequester? = null,
-    onImeNext: (() -> Unit)? = null,
-    onValueChange: (String) -> Unit,
-) {
-    var hadFocus by remember { mutableStateOf(false) }
-    var focused by remember { mutableStateOf(false) }
-    val shownError = error?.takeIf { !focused }
-    val complaint: (@Composable () -> Unit)? = shownError?.let { message ->
-        { FieldComplaint(message) }
-    }
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label, style = InstrumentType.caption) },
-        modifier = modifier
-            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
-            .fieldError(shownError)
-            .onFocusChanged { focus ->
-                if (hadFocus && !focus.isFocused) onFocusLost()
-                hadFocus = focus.isFocused
-                focused = focus.isFocused
-            },
-        singleLine = true,
-        isError = shownError != null,
-        supportingText = complaint,
-        textStyle = InstrumentType.numeralMd,
-        suffix = suffix?.let { unit ->
-            { Text(unit, style = InstrumentType.unit, color = TextSecondary) }
-        },
-        keyboardOptions = KeyboardOptions(
-            keyboardType = if (allowDecimal) KeyboardType.Decimal else KeyboardType.Number,
-            imeAction = ime.imeAction(),
-        ),
-        keyboardActions = KeyboardActions(
-            onNext = { onImeNext?.invoke() },
-            onDone = { onFocusLost() },
-        ),
-    )
-}
+private enum class TargetWell { SETS, REPS, TIME, REST, WEIGHT }

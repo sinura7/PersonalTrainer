@@ -23,6 +23,7 @@ import com.sinura.personaltrainer.domain.ActivitySource
 import com.sinura.personaltrainer.domain.ActivityStatus
 import com.sinura.personaltrainer.domain.ActivityTemplate
 import com.sinura.personaltrainer.domain.CapturedCivilTime
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.CardioBlock
@@ -399,7 +400,9 @@ fun BackupActivityBlock.toDomain(): ActivityBlock = when (kind) {
     )
 }
 
-fun ActivitySummaryRow.toSummary(): SessionSummary = SessionSummary(
+fun ActivitySummaryRow.toSummary(
+    stills: List<Exercise> = emptyList(),
+): SessionSummary = SessionSummary(
     id = id,
     routineId = null,
     routineName = title.takeIf { it.isNotBlank() },
@@ -412,4 +415,5 @@ fun ActivitySummaryRow.toSummary(): SessionSummary = SessionSummary(
     cardioSeconds = cardioSeconds,
     cardioDistanceMeters = cardioDistanceMeters?.takeIf { it > 0.0 },
     kind = HistoryKind.ACTIVITY,
+    stills = stills,
 )

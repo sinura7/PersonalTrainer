@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -19,6 +21,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -105,26 +108,30 @@ class IdentityBeforeMetricsInstrumentedTest {
                 ) {
                     Box(Modifier.fillMaxSize()) {
                         Box(Modifier.size(360.dp, 800.dp)) {
-                            SessionLiftStrip(
-                                lifts = listOf(
-                                    SessionLiftItem(
-                                        id = LONG_LIFT.id,
-                                        exercise = LONG_LIFT,
-                                        sets = 4,
-                                        reps = 6,
-                                        restSeconds = 120,
-                                        targetWeightKg = 100.0,
+                            // Match the editor's scrollable production host: at font 2.0
+                            // all target fields must be reachable, not fit above the fold.
+                            Box(Modifier.verticalScroll(rememberScrollState())) {
+                                SessionLiftStrip(
+                                    lifts = listOf(
+                                        SessionLiftItem(
+                                            id = LONG_LIFT.id,
+                                            exercise = LONG_LIFT,
+                                            sets = 4,
+                                            reps = 6,
+                                            restSeconds = 120,
+                                            targetWeightKg = 100.0,
+                                        ),
                                     ),
-                                ),
-                                selectedId = selectedId,
-                                onSelect = { selectedId = it },
-                                onMoveEarlier = {},
-                                onMoveLater = {},
-                                onRemove = {},
-                                onStageTargets = { _, _, _, _, _, _ -> },
-                                onCommitTargets = {},
-                                onForgetTargetRule = {},
-                            )
+                                    selectedId = selectedId,
+                                    onSelect = { selectedId = it },
+                                    onMoveEarlier = {},
+                                    onMoveLater = {},
+                                    onRemove = {},
+                                    onStageTargets = { _, _, _, _, _, _, _, _ -> },
+                                    onCommitTargets = {},
+                                    onForgetTargetRule = {},
+                                )
+                            }
                         }
                     }
                 }
@@ -139,7 +146,8 @@ class IdentityBeforeMetricsInstrumentedTest {
         compose.onNodeWithTag(SessionLiftTags.card(LONG_LIFT.id)).performClick()
         compose.waitForIdle()
         compose.onNodeWithTag(SessionLiftTags.EDITOR).assertIsDisplayed()
-        compose.onNodeWithText(CompactLiftCopy.TARGET_WEIGHT).assertIsDisplayed()
+        compose.onNodeWithText(CompactLiftCopy.TARGET_WEIGHT.uppercase())
+            .performScrollTo().assertIsDisplayed()
         org.junit.Assert.assertTrue(
             compose.onAllNodesWithText("lbs").fetchSemanticsNodes().isNotEmpty(),
         )

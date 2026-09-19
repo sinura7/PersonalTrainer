@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * The three windows the body map offers.
@@ -26,7 +25,7 @@ enum class HeatWindow(
      */
     fun startMs(
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         weekStart: Weekday = Weekday.MONDAY,
         zoneId: String = time.defaultZoneId(),
     ): Long {
@@ -79,7 +78,8 @@ enum class HeatBand {
 
     val legendLabel: String
         get() = when (this) {
-            UNTRAINED -> "Untrained"
+            // This is a windowed workload state, not a recovery/readiness claim.
+            UNTRAINED -> "No work"
             LOW -> "Low"
             PRODUCTIVE -> "Productive"
             HIGH -> "High"
@@ -102,7 +102,7 @@ enum class HeatBand {
         }
 
         /**
-         * Map readout: any work in the window is Low, not Rest. Rest is
+         * Map readout: any work in the window is Low, not No work. No work is
          * reserved for a muscle the window never touched.
          */
         fun fromWindowSets(sets: Double): HeatBand = when {
@@ -201,7 +201,7 @@ data class BodyHeatSnapshot(
     fun rememberLifetimeWork(
         summaries: List<SessionSummary>,
         nowMs: Long = generatedAtMs,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
     ): BodyHeatSnapshot {
         val anyWork = hasAnyWorkingSets || summaries.any { it.hasLoggedWork() }
@@ -227,7 +227,7 @@ data class BodyHeatSnapshot(
     fun rememberLifetimeRecency(
         lastTrainedByMuscle: Map<CanonicalMuscle, Long>,
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
     ): BodyHeatSnapshot {
         if (lastTrainedByMuscle.isEmpty()) return this

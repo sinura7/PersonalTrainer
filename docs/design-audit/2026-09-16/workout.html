@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Temper — native workout entry</title>
+<style>
+:root{color-scheme:dark;font:16px/1.6 system-ui;background:#07090b;color:#f2f5f7}*{box-sizing:border-box}body{max-width:1240px;margin:auto;padding:32px 20px 64px}h1{font-size:clamp(32px,6vw,56px);line-height:1.05;letter-spacing:-1.5px;max-width:900px}h2{font-size:26px;margin:0 0 12px}p{max-width:900px;color:#a8b3ba}a{color:#c2ff44;text-underline-offset:4px}a:focus-visible{outline:3px solid #33d6e8;outline-offset:5px}.eyebrow{color:#c2ff44;text-transform:uppercase;letter-spacing:.12em;font-size:12px}.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:24px;margin-top:28px}.pair{grid-template-columns:repeat(2,minmax(0,1fr));max-width:840px}figure{margin:0;min-width:0}img{display:block;width:100%;height:auto;border-radius:12px;border:1px solid #354049}figcaption{margin:10px 0;color:#a8b3ba;font-size:14px}section{border-top:1px solid #354049;margin-top:40px;padding-top:28px}.status{padding:16px 20px;background:#151a1e;border-radius:16px}.status strong{color:#f2f5f7}nav{display:flex;gap:16px;flex-wrap:wrap}details{margin:24px 0}summary{cursor:pointer;min-height:48px;color:#c2ff44}@media(max-width:560px){.pair{grid-template-columns:1fr}}
+</style>
+<main>
+<div class="eyebrow">Temper · native redesign · packet 2</div>
+<h1>Make the next set clear.</h1>
+<p>Compact exercise identity, visibly editable numbers, explicit working and warm-up modes, and optional effort. Saved sets move into a dedicated list so logging stays in place.</p>
+<nav aria-label="Evidence navigation"><a href="completion.html">Workout completion</a><a href="controls.html">Controls and navigation</a><a href="native.html">Native starting point</a><a href="F2-WORKOUT-ENTRY.md">Verification record</a><a href="../../FRONTEND_REDESIGN.md">Full programme</a></nav>
+<p class="status"><strong>Entry packet merged and verified.</strong> These are native Compose renders of synthetic workouts. Packet 3 will complete the Next exercise / Finish contract, timer redesign and retry behavior before the workout phone milestone.</p>
+<details><summary>Compare with the native starting point</summary><div class="gallery pair">
+<figure><img loading="lazy" src="native/f2/before-active-strength-working-api29.png" alt="Previous native workout composition with large exercise identity and separate footer context reservation"><figcaption>Before · recorded native baseline. Different fixture data and viewport harness; compare composition, not pixels.</figcaption></figure>
+<figure><img loading="lazy" src="native/f2/frontend-workout-360x800-font10-working-api29.png" alt="Redesigned native workout composition with compact exercise identity and editable entry"><figcaption>After · reviewed 360 × 800 dp reference.</figcaption></figure>
+</div></details>
+<section><h2>Working sets and warm-ups</h2><p>The main values are always editable. Presets say exactly what they apply; they never look selected before use. The footer keeps the commit action anchored while receipts update alongside the saved-set summary.</p>
+<div class="gallery pair">
+<figure><a href="native/f2/frontend-workout-360x800-font10-working-api29.png"><img src="native/f2/frontend-workout-360x800-font10-working-api29.png" alt="Native working-set entry, editable weight and repetitions, RPE choices and anchored Log set action"></a><figcaption>360 × 800 dp · working set.</figcaption></figure>
+<figure><a href="native/f2/frontend-workout-360x800-font10-warmup-api29.png"><img src="native/f2/frontend-workout-360x800-font10-warmup-api29.png" alt="Native warm-up entry with Use weight presets and an explanation of optional effort"></a><figcaption>360 × 800 dp · warm-up presets apply a draft without saving.</figcaption></figure>
+</div></section>
+<section><h2>Every load has its own meaning</h2><p>Bodyweight repetitions, added weight, assistance and timed holds retain their distinct inputs and stored measurements. No barbell starting weight is invented.</p>
+<div class="gallery">
+<figure><img loading="lazy" src="native/f2/frontend-workout-360x800-font10-added-api29.png" alt="Pull-up entry explicitly labeled Added weight"><figcaption>Added weight.</figcaption></figure>
+<figure><img loading="lazy" src="native/f2/frontend-workout-360x800-font10-assisted-api29.png" alt="Assisted pull-up entry explicitly labeled Assistance"><figcaption>Assistance.</figcaption></figure>
+<figure><img loading="lazy" src="native/f2/frontend-workout-360x800-font10-hold-api29.png" alt="Plank duration entry with Start hold action"><figcaption>Timed hold.</figcaption></figure>
+</div></section>
+<section><h2>Enlarged text and correction</h2><p>Long identities get more text width. Numeric entry selects the existing value, validates before applying, and preserves the draft on Cancel. Saved-set identity, rows and extra-set access share one scrolling area.</p>
+<div class="gallery">
+<figure><img loading="lazy" src="native/f2/frontend-workout-412x840-font20-working-api29.png" alt="Workout entry with text enlarged to twice the default size"><figcaption>412 × 840 dp · font scale 2.0. Supporting content scrolls.</figcaption></figure>
+<figure><img loading="lazy" src="native/f2/frontend-workout-window-numeric-invalid-font20-api29.png" alt="Actual Android numeric-entry window at system font scale 2 with invalid input and keyboard"><figcaption>Actual Android window · invalid input · system font scale 2.0.</figcaption></figure>
+<figure><img loading="lazy" src="native/f2/frontend-workout-window-saved-sets-font20-api29.png" alt="Actual Android saved-set sheet at system font scale 2"><figcaption>Saved sets · each row has Edit and Delete.</figcaption></figure>
+</div>
+<details><summary>Short landscape with a long exercise name and ten saved sets</summary>
+<figure><img loading="lazy" src="native/f2/frontend-workout-window-long-sheet-last-row-landscape-font20-api29.png" alt="Native landscape saved-set sheet scrolled to its final row and Add another set"><figcaption>Real landscape window · system font scale 2.0 · first and last row actions and Add another set are exercised.</figcaption></figure>
+</details></section>
+<section><h2>Evidence and remaining work</h2><p>The verification record separates viewport comparisons, actual Android windows, durable-data journeys, independent reviews and physical-device acceptance. Emulator screenshots do not establish TalkBack usability, phone performance or upgrade safety. Those remain explicit milestone checks.</p><p><a href="F2-WORKOUT-ENTRY.md">Read the executed results and outstanding acceptance</a></p></section>
+</main>
+</html>

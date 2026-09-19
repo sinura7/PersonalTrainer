@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.domain.RestFinishFlash
+import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestControl
@@ -216,7 +217,7 @@ private fun RestLockScreen(
     val kicker = when {
         justFinished -> "Back to the bar"
         snapshot.running -> "REST"
-        else -> "Next rest"
+        else -> RestIdleCopy.KICKER
     }
 
     Column(

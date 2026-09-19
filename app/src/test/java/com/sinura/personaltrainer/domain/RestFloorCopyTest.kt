@@ -14,7 +14,9 @@ class RestFloorCopyTest {
     }
 
     @Test
-    fun sessionTargetLineIsTheProgressionStrip() {
+    fun sessionTargetLineReusesTheProgressionReason() {
+        // ADR-027 retired the in-card ProgressionStrip; the session-grain reason still
+        // has one wording, and the rest floor page speaks that same ProgressionCopy line.
         val hint = ProgressionHint(
             exerciseId = "squat",
             exerciseName = "Squat",
@@ -32,7 +34,7 @@ class RestFloorCopyTest {
     }
 
     @Test
-    fun contextUsesSelectedLiftLastSetAndNextLine() {
+    fun contextUsesSelectedLiftLastSetNextLineAndPlannedRest() {
         val squat = sessionExercise("squat", "Squat", "Legs")
         val logged = set(
             id = "set-1",
@@ -55,10 +57,49 @@ class RestFloorCopyTest {
             selectedExerciseId = "squat",
             unit = WeightUnit.KG,
             nextLine = "Next: 100 kg × 5 · RPE 8",
+            prescribedSeconds = 90,
         )
         assertEquals("Squat", floor.exerciseName)
         assertEquals("Last set · 100 kg × 5", floor.lastSetLine)
         assertEquals("Next: 100 kg × 5 · RPE 8", floor.sessionTargetLine)
+        assertEquals("Planned rest: 1:30", floor.prescribedRestLine)
+        assertEquals(false, floor.afterWarmup)
+    }
+
+    @Test
+    fun lastWarmupMarksIdleRestAsAfterWarmup() {
+        val squat = sessionExercise("squat", "Squat", "Legs")
+        val logged = set(
+            id = "set-1",
+            sessionId = "s1",
+            exerciseId = "squat",
+            name = "Squat",
+            weightKg = 60.0,
+            reps = 8,
+            warmup = true,
+            at = 1_000L,
+        )
+        val current = session(
+            id = "s1",
+            finishedAt = null,
+            sets = listOf(logged),
+            exercises = listOf(squat),
+            date = 1_000L,
+        )
+        val floor = RestFloorCopy.context(
+            session = current,
+            selectedExerciseId = "squat",
+            unit = WeightUnit.KG,
+        )
+        assertEquals(true, floor.afterWarmup)
+        // No planned length was given, so the rest card's Planned caption has nothing to add here.
+        assertNull(floor.prescribedRestLine)
+    }
+
+    @Test
+    fun prescribedRestLineNamesTheClock() {
+        assertEquals("Planned rest: 2:30", RestFloorCopy.prescribedLine(150))
+        assertEquals("Planned rest: 1:00", RestFloorCopy.prescribedLine(60))
     }
 
     @Test
@@ -67,5 +108,7 @@ class RestFloorCopyTest {
         assertNull(floor.exerciseName)
         assertNull(floor.lastSetLine)
         assertNull(floor.sessionTargetLine)
+        assertNull(floor.prescribedRestLine)
+        assertEquals(false, floor.afterWarmup)
     }
 }

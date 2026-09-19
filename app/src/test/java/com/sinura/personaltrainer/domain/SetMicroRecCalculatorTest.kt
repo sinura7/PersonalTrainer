@@ -54,6 +54,23 @@ class SetMicroRecCalculatorTest {
     }
 
     @Test
+    fun tracesNameThresholdsAndAlternativesWithoutChangingTheLoad() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 5, rpe = 6))),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.IN_TANK, rec.reasonCode)
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
+        assertEquals(5, rec.nextReps)
+        assertTrue(rec.trace.alternatives.contains(SetMicroRecCopy.ALT_ADD_REP))
+        assertTrue(rec.trace.alternatives.contains(SetMicroRecCopy.ALT_BACK_OFF))
+        assertTrue(rec.trace.facts.any { it.name == "lastSet" })
+        assertTrue(rec.trace.thresholds.any { it.name == "targetReps" })
+        assertTrue(rec.trace.facts.any { it.name == "call" })
+    }
+
+    @Test
     fun rpeIntentUsesLastWorkingNotTheDraftWells() {
         val rec = checkNotNull(
             SetMicroRecCalculator.suggest(
@@ -72,7 +89,38 @@ class SetMicroRecCalculatorTest {
         assertFalse(rec.previewOnly)
         assertEquals(102.5, rec.nextWeightKg, 0.0001)
         assertEquals(5, rec.nextReps)
+        assertEquals(6, rec.nextRpe)
         assertNull(SetMicroRecCopy.caption(rec))
+    }
+
+    @Test
+    fun firstSetUsesThisLiftHistoryRpe() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    hint = hint(suggested = 102.5),
+                    workingLogged = 0,
+                    historyWorking = listOf(set(90.0, 12, rpe = 7)),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.FIRST_SET, rec.reasonCode)
+        assertEquals(102.5, rec.nextWeightKg, 0.0001)
+        assertEquals(7, rec.nextRpe)
+    }
+
+    @Test
+    fun firstSetWithoutHistoryDoesNotInventAnRpe() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    hint = hint(suggested = 102.5),
+                    workingLogged = 0,
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.FIRST_SET, rec.reasonCode)
+        assertEquals(null, rec.nextRpe)
     }
 
     @Test
@@ -115,6 +163,176 @@ class SetMicroRecCalculatorTest {
         assertEquals(102.5, rec.nextWeightKg, 0.0001)
         assertEquals(5, rec.nextReps)
         assertTrue(rec.showApply)
+    }
+
+    @Test
+    fun twoRepsShortAlsoClimbsOneRepNotTheWeight() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 3, rpe = 8))),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.CLIMB_REPS, rec.reasonCode)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+        assertEquals(4, rec.nextReps)
+    }
+
+    @Test
+    fun climbCapsAtTheTarget() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 4, rpe = 7))),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.CLIMB_REPS, rec.reasonCode)
+        assertEquals(5, rec.nextReps)
+    }
+
+    @Test
+    fun rpeHoldDoesNotClimbReps() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    workingLogged = 2,
+                    working = listOf(set(100.0, 5, rpe = 9), set(100.0, 5, rpe = 10)),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.RPE_HOLD, rec.reasonCode)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+        assertEquals(5, rec.nextReps)
+    }
+
+    @Test
+    fun lighterWeekDoesNotClimbReps() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    lighterWeek = true,
+                    workingLogged = 1,
+                    working = listOf(set(100.0, 4, rpe = 8)),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.LIGHTER_HOLD, rec.reasonCode)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+        assertEquals(4, rec.nextReps)
+    }
+
+    @Test
+    fun assistedHoldClimbsRepsAtTheSameAssist() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    loadType = LoadType.ASSISTED,
+                    targetReps = 8,
+                    workingLogged = 1,
+                    working = listOf(set(20.0, 7, rpe = 8)),
+                    hint = hint(suggested = 20.0, lastReps = 7, targetReps = 8),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.CLIMB_REPS, rec.reasonCode)
+        assertEquals(20.0, rec.nextWeightKg, 0.0001)
+        assertEquals(8, rec.nextReps)
+    }
+
+    @Test
+    fun aOneRepHoldPlaceholderDoesNotInventAClimb() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    loadType = LoadType.BODYWEIGHT,
+                    targetReps = HoldWork.HOLD_REPS_PLACEHOLDER,
+                    workingLogged = 1,
+                    working = listOf(set(0.0, HoldWork.HOLD_REPS_PLACEHOLDER, rpe = 8)),
+                    hint = hint(
+                        suggested = 0.0,
+                        lastReps = HoldWork.HOLD_REPS_PLACEHOLDER,
+                        targetReps = HoldWork.HOLD_REPS_PLACEHOLDER,
+                    ),
+                ),
+            ),
+        )
+        assertTrue(rec.reasonCode != SetMicroRecCalculator.CLIMB_REPS)
+        assertEquals(0.0, rec.nextWeightKg, 0.0001)
+        assertEquals(HoldWork.HOLD_REPS_PLACEHOLDER, rec.nextReps)
+    }
+
+    @Test
+    fun climbRaisesEstimatedOneRepMax() {
+        val before = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(100.0, 4))
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 4, rpe = 8))),
+            ),
+        )
+        val after = checkNotNull(PersonalRecords.estimatedOneRepMaxKg(rec.nextWeightKg, rec.nextReps))
+        assertTrue(after > before)
+        assertEquals(100.0, rec.nextWeightKg, 0.0001)
+    }
+
+    @Test
+    fun nextRestFollowsTheLoggedReps() {
+        val heavy = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(workingLogged = 1, working = listOf(set(100.0, 3, rpe = 8))),
+            ),
+        )
+        val highRep = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    targetReps = 15,
+                    workingLogged = 1,
+                    working = listOf(set(40.0, 15, rpe = 8)),
+                ),
+            ),
+        )
+        assertTrue(heavy.restSeconds > highRep.restSeconds)
+        assertEquals(
+            RestPrescription.seconds(heavy.reasonCode, LoadType.EXTERNAL, heavy.nextReps),
+            heavy.restSeconds,
+        )
+    }
+
+    @Test
+    fun easySetsInviteAnother() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    targetSets = 3,
+                    workingLogged = 3,
+                    working = listOf(
+                        set(100.0, 5, rpe = 6),
+                        set(100.0, 5, rpe = 7),
+                        set(100.0, 5, rpe = 7),
+                    ),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.LIFT_DONE, rec.reasonCode)
+        assertTrue(rec.anotherSetAdvised)
+        assertEquals(SetMicroRecCopy.ANOTHER_IN_YOU, SetMicroRecCopy.anotherSetLine(rec))
+    }
+
+    @Test
+    fun grindingSetsDoNotInviteAnother() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                inputs(
+                    targetSets = 3,
+                    workingLogged = 3,
+                    working = listOf(
+                        set(100.0, 5, rpe = 8),
+                        set(100.0, 5, rpe = 8),
+                        set(100.0, 5, rpe = 8),
+                    ),
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.LIFT_DONE, rec.reasonCode)
+        assertEquals(false, rec.anotherSetAdvised)
+        assertEquals(null, SetMicroRecCopy.anotherSetLine(rec))
     }
 
     data class V1Case(
@@ -208,11 +426,11 @@ class SetMicroRecCalculatorTest {
                 nextReps = 5,
             ),
             V1Case(
-                "close hold",
+                "close hold climbs a rep",
                 inputs(workingLogged = 1, working = listOf(set(100.0, 4, rpe = 8))),
-                reason = SetMicroRecCalculator.CLOSE_HOLD,
+                reason = SetMicroRecCalculator.CLIMB_REPS,
                 nextWeightKg = 100.0,
-                nextReps = 4,
+                nextReps = 5,
             ),
             V1Case(
                 "failed drop",
@@ -302,6 +520,7 @@ class SetMicroRecCalculatorTest {
             draftRpe: Int? = null,
             allowExtra: Boolean = false,
             rpeIntent: Boolean = false,
+            historyWorking: List<LoggedSetView> = emptyList(),
         ) = SetMicroRecInputs(
             editing = editing,
             loadType = loadType,
@@ -321,6 +540,7 @@ class SetMicroRecCalculatorTest {
             todayEpochDay = 10L,
             allowExtra = allowExtra,
             rpeIntent = rpeIntent,
+            historyWorking = historyWorking,
         )
 
         private fun set(weightKg: Double, reps: Int, rpe: Int?) =
@@ -372,9 +592,11 @@ class SetMicroRecCopyTest {
         assertEquals("Next: 100 kg × 5 · RPE 8", line)
         val why = SetMicroRecCopy.whyLines(rec)
         assertTrue(why.any { it.contains("Quality set") })
+        assertTrue(why.any { it.startsWith("Call:") })
+        assertTrue(why.any { it.startsWith("Evidence:") })
+        assertTrue(why.any { it.startsWith("Rule:") })
         assertFalse(why.joinToString().contains("QUALITY"))
         assertFalse(why.joinToString().contains("nextWeightKg"))
-        assertTrue(why.any { it.startsWith("Next weight (kg):") })
     }
 
     @Test
@@ -403,5 +625,110 @@ class SetMicroRecCopyTest {
         )
         assertEquals(SetMicroRecCalculator.FAILED_DROP, rec.reasonCode)
         assertEquals(22.5, rec.nextWeightKg, 0.0001)
+        assertEquals(
+            ProgressionKickerCopy.BACK_OFF,
+            SetMicroRecCopy.kicker(rec, LoadClass.BODYWEIGHT_ASSISTED, WeightUnit.KG),
+        )
+    }
+
+    @Test
+    fun qualitySetKickerIsThePlateStep() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                SetMicroRecInputs(
+                    editing = false,
+                    loadType = LoadType.EXTERNAL,
+                    unit = WeightUnit.KG,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = 100.0,
+                    workingLogged = 1,
+                    thisSessionWorking = listOf(
+                        LoggedSetView(100.0, 5, 8, false),
+                    ),
+                    lastAnySetWasWarmup = false,
+                    hint = null,
+                    lighterWeek = false,
+                    draftWeightKg = 100.0,
+                    draftReps = 5,
+                    draftRpe = null,
+                ),
+            ),
+        )
+        assertEquals("+2.5", SetMicroRecCopy.kicker(rec, LoadClass.LOADED, WeightUnit.KG))
+        assertEquals("+5", ProgressionKickerCopy.plusLabel(LoadClass.LOADED, WeightUnit.LBS))
+        assertEquals(
+            ProgressionKickerCopy.PLUS_REP,
+            ProgressionKickerCopy.plusLabel(LoadClass.BODYWEIGHT, WeightUnit.KG),
+        )
+        assertEquals("100 kg × 5 · RPE 8", SetMicroRecCopy.payload(rec, LoadClass.LOADED, WeightUnit.KG))
+    }
+
+    @Test
+    fun climbRepsKickerIsPlusOneNotThePlate() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                SetMicroRecInputs(
+                    editing = false,
+                    loadType = LoadType.EXTERNAL,
+                    unit = WeightUnit.KG,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = 100.0,
+                    workingLogged = 1,
+                    thisSessionWorking = listOf(
+                        LoggedSetView(
+                            weightKg = 100.0,
+                            reps = 3,
+                            rpe = 8,
+                            isWarmup = false,
+                        ),
+                    ),
+                    lastAnySetWasWarmup = false,
+                    hint = null,
+                    lighterWeek = false,
+                    draftWeightKg = 100.0,
+                    draftReps = 5,
+                    draftRpe = null,
+                ),
+            ),
+        )
+        assertEquals(SetMicroRecCalculator.CLIMB_REPS, rec.reasonCode)
+        assertEquals(
+            ProgressionKickerCopy.PLUS_REP,
+            SetMicroRecCopy.kicker(rec, LoadClass.LOADED, WeightUnit.KG),
+        )
+    }
+
+    @Test
+    fun stackQualityKickerIsThePinStep() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                SetMicroRecInputs(
+                    editing = false,
+                    loadType = LoadType.STACK,
+                    unit = WeightUnit.KG,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = 50.0,
+                    workingLogged = 1,
+                    thisSessionWorking = listOf(
+                        LoggedSetView(
+                            weightKg = 50.0,
+                            reps = 5,
+                            rpe = 8,
+                            isWarmup = false,
+                        ),
+                    ),
+                    lastAnySetWasWarmup = false,
+                    hint = null,
+                    lighterWeek = false,
+                    draftWeightKg = 50.0,
+                    draftReps = 5,
+                    draftRpe = null,
+                ),
+            ),
+        )
+        assertEquals("+5", SetMicroRecCopy.kicker(rec, LoadClass.LOADED, WeightUnit.KG))
     }
 }

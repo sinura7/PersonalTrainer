@@ -135,10 +135,11 @@ keeps the draft.
 - Agenda exists → `DailyAgendaCard` is the only today-surface. Planned
   rows carry a trailing **Start** and open a start confirm (ADR-018).
   Confirm starts that session. The filled Volt is **Start a workout**
-  (freestyle). A leftover from an earlier day (Still open, or the past
+  and opens a sheet: free workout, a Plan routine, cardio pictures, or
+  Extra pictures. A leftover from an earlier day (Still open, or the past
   day’s board) confirms as **Do it today**, which moves it here then
-  starts. Still open leftovers can **Skip**. Add sits under Today and
-  asks just-today vs every this weekday (ADR-021).
+  starts. Still open leftovers can **Skip**. There is no Add row on Home.
+  Plan still adds.
 - Two-a-day: one Volt (Start a workout). Planned rows stay tappable,
   not a second filled Start. Stretch does not own the Volt while a
   workout is planned.
@@ -486,4 +487,4 @@ and a 240 dp ring on the log stay won’ts.
 - [ ] Phone: the page gate, plus any floor finding shipped this turn
 - [ ] This file updated if we left the written plan
 
-Last JVM gate: 1324 tests, 0 failures (composer chrome packet, 26 Aug 2026). Phone gates still need the owner. Job 5 is code-done except CI `trunk`. Job 6 regroup: [JOB6_REGROUP.md](JOB6_REGROUP.md).
+Last JVM gate: 1324 tests, 0 failures (composer chrome packet, 26 Aug 2026). Phone gates still need the owner. Job 5 is code-done except CI `trunk`. Job 6 regroup: [JOB6_REGROUP.md](archive/jobs/JOB6_REGROUP.md).

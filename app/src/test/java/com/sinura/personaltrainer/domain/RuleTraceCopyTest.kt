@@ -75,4 +75,57 @@ class RuleTraceCopyTest {
         assertFalse(lines.joinToString().contains("QUALITY"))
         assertFalse(lines.joinToString().contains("nextWeightKg"))
     }
+
+    @Test
+    fun climbRepsSpeaksAddARep() {
+        val trace = RuleTrace.forMicroRec(
+            reasonCodes = listOf(SetMicroRecCalculator.CLIMB_REPS),
+            nextWeightKg = 100.0,
+            nextReps = 5,
+            nextRpe = 8,
+            nowMs = 3L,
+            todayEpochDay = 20,
+        )
+        val lines = RuleTraceCopy.lines(trace)
+        assertTrue(lines.any { it == "Add a rep" })
+        assertFalse(lines.joinToString().contains("CLIMB_REPS"))
+    }
+
+    @Test
+    fun whySheetRendersEvidenceThresholdsAndAlternatives() {
+        val trace = RuleTrace.forMicroRec(
+            reasonCodes = listOf(SetMicroRecCalculator.IN_TANK),
+            nextWeightKg = 102.5,
+            nextReps = 5,
+            nextRpe = 6,
+            nowMs = 3L,
+            todayEpochDay = 20,
+            lastSetLine = "100 kg × 5 at RPE 6",
+            incrementLabel = "2.5 kg",
+            targetReps = 5,
+            targetSets = 3,
+            restSeconds = 90,
+            call = "102.5 kg × 5",
+            rule = "In the tank — add weight",
+            alternatives = listOf(
+                SetMicroRecCopy.ALT_ADD_REP,
+                SetMicroRecCopy.ALT_BACK_OFF,
+            ),
+        )
+        assertTrue(trace.thresholds.any { it.name == "targetReps" })
+        assertTrue(trace.thresholds.any { it.name == "increment" })
+        assertEquals(
+            listOf(SetMicroRecCopy.ALT_ADD_REP, SetMicroRecCopy.ALT_BACK_OFF),
+            trace.alternatives,
+        )
+        val why = RuleTraceCopy.whySheet(trace)
+        assertTrue(why.any { it.startsWith("Call:") })
+        assertTrue(why.any { it.startsWith("Evidence:") })
+        assertTrue(why.any { it.startsWith("Rule:") })
+        assertTrue(why.any { it.startsWith("Threshold:") })
+        assertTrue(why.any { it.startsWith("Rest:") })
+        assertTrue(why.any { it.startsWith("Alternatives considered:") })
+        assertTrue(why.joinToString().contains(SetMicroRecCopy.ALT_ADD_REP))
+        assertFalse(why.joinToString().contains("IN_TANK"))
+    }
 }

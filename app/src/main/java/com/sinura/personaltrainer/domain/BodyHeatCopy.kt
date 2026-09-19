@@ -4,18 +4,39 @@ package com.sinura.personaltrainer.domain
  * Honesty for Body chips and the silhouette wash.
  *
  * Day / Week / Month only retotal the figure. Year and all-time stay
- * History. Rest on the still is untrained in this window, not "never".
+ * History. No colour on the still means no mapped work in this window, not "never".
  */
 object BodyHeatCopy {
-    const val LEGEND_CAPTION = "Colour is muscle load in this window, not calendar sets."
+    const val LEGEND_CAPTION =
+        "Completed-set muscle load in this period — not calendar activity or recovery."
 
     const val WINDOW_CAPTION =
-        "The figure is this window. Rest is untrained here."
+        "The figure is this period. No colour means no mapped work here, not recovered."
 
-    const val EMPTY_LOG = "Finished sets light the figure."
+    /** Why adding the muscle rows together can exceed the workout's unique set count. */
+    const val ATTRIBUTION_NOTE =
+        "Compound lifts credit every muscle they train. Secondary muscles receive partial " +
+            "load, so muscle set totals can exceed unique sets."
+
+    /**
+     * First launch, before any working set. Names the next tap. The figure
+     * stays; this line is what stops the tab being a dead end (DESIGN_AUDIT B-02).
+     */
+    const val EMPTY_LOG =
+        "Tap a muscle to see the lifts that train it. Finished sets light the figure."
 
     const val EMPTY_WINDOW =
         "Nothing in this window yet. Older work still shows recency."
+
+    const val FIRST_LIFTS = "Lifts that train the figure"
+
+    const val SEE_LIFTS = "See lifts"
+
+    fun liftsThatTrain(muscle: CanonicalMuscle): String =
+        "Lifts that train ${muscle.displayName.lowercase()}"
+
+    fun findLiftsInLibrary(muscle: CanonicalMuscle): String =
+        "Find the lifts that train ${muscle.displayName.lowercase()}."
 
     fun windowTitle(window: HeatWindow): String = window.label
 

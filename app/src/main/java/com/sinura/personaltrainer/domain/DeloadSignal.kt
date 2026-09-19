@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * Volume climbing while strength does not.
@@ -31,7 +30,7 @@ object DeloadSignal {
     fun detect(
         history: List<WorkoutSession>,
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
         weekStart: Weekday = Weekday.MONDAY,
     ): DeloadFinding? {

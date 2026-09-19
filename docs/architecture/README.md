@@ -7,6 +7,12 @@ Authority order is defined in [ADR-001](ADR-001-documentation-authority.md).
 The executable program that consumes these decisions is
 [FOUNDATION_PROGRAM.md](../FOUNDATION_PROGRAM.md).
 
+**New to the code?** Start with
+[CURRENT_STRUCTURE.md](CURRENT_STRUCTURE.md) — what the packages, layers,
+wiring and verification lanes actually are today. It describes; the ADRs
+decide, and where the two disagree the ADR is right and the description needs
+fixing.
+
 A decision is binding when its status is **Accepted**. Changing one requires a
 new ADR that names what it supersedes. Silent contradiction of an accepted ADR
 is a defect.
@@ -49,10 +55,13 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-018](ADR-018-home-start-confirm.md) | Home start confirm | Confirm-then-start; workout over aux |
 | [ADR-019](ADR-019-move-to-today.md) | Move a leftover session to today | Do it today; Still open |
 | [ADR-020](ADR-020-warmup-extras.md) | Warm-up extras, untimed board, same-day extra | Golf/lower/upper/shoulder packs; Home Add extra; Up/Down; hide clocks |
-| [ADR-021](ADR-021-home-start-and-day-add.md) | Home start, day add, skip leftover, editor Save | Row starts planned; Volt is Start a workout; + under Today; skip Still open; §7 amended 10 Sep 2026 — Save leaves only when its writes landed |
+| [ADR-021](ADR-021-home-start-and-day-add.md) | Home start, day add, skip leftover, editor Save | Row starts planned; Volt is Start a workout sheet (free / routine / cardio / Extra); no Home Add; skip Still open; §7 amended 10 Sep 2026 — Save leaves only when its writes landed |
 | [ADR-022](ADR-022-keyed-catalog-stills.md) | Keyed catalog stills | One WebP per built-in lift; `imageKey` written at catalog v7 |
 | [ADR-023](ADR-023-palette-and-reduced-motion.md) | Palette collisions stay; reduced motion finishes the gate | F14 / G6; amends ADR-005 §5 |
 | [ADR-024](ADR-024-hosted-jvm-check.md) | The deterministic hosted job may gate `trunk`; the emulator may not | Amends ADR-002 §6 for one named job; the local gate is unchanged |
+| [ADR-025](ADR-025-goal-thresholds.md) | Goal may move AddDefaults thresholds, never rules | Progression engine packet 5 |
+| [ADR-026](ADR-026-frontend-redesign.md) | Frontend redesign and native evidence | Compact workout, completion action, unified History, adaptive targets and codex branches |
+| [ADR-027](ADR-027-workout-logging-redesign.md) | Active workout logging screen redesign | Amends ADR-026 §3: image-led identity, stats row, hero numerals, next-set card, set-history chips, rest card, two-line commit; business rules untouched |
 
 ## Supporting records
 

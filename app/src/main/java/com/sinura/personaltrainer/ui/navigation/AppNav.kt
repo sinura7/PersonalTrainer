@@ -16,10 +16,16 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.sinura.personaltrainer.ui.theme.Radius
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +38,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -45,9 +52,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -59,13 +71,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.CustomWeekLaunch
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.history.HistoryScreen
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailScreen
@@ -77,6 +90,7 @@ import com.sinura.personaltrainer.ui.routines.CustomWeekScreen
 import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGate
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModel
+import com.sinura.personaltrainer.ui.permissions.LaunchPermissionsHost
 import com.sinura.personaltrainer.ui.onboarding.OnboardingScreen
 import com.sinura.personaltrainer.ui.plan.PlanDayScreen
 import com.sinura.personaltrainer.ui.plan.PlanScreen
@@ -84,6 +98,7 @@ import com.sinura.personaltrainer.ui.settings.SettingsScreen
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
 import com.sinura.personaltrainer.ui.settings.SettingsViewModel
 import com.sinura.personaltrainer.ui.theme.Haptics
+import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
@@ -260,8 +275,9 @@ fun PersonalTrainerNav(
     settingsViewModel: SettingsViewModel = viewModel(),
     gateViewModel: OnboardingGateViewModel = viewModel(),
 ) {
-    val weightUnit by settingsViewModel.weightUnit.collectAsStateWithLifecycle()
-    val clockFormat by settingsViewModel.clockFormat.collectAsStateWithLifecycle()
+    val settings by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val weightUnit = settings.weightUnit
+    val clockFormat = settings.clockFormat
     val gate by gateViewModel.gate.collectAsStateWithLifecycle()
     val application = LocalContext.current.applicationContext as Application
     val container = remember(application) { application.appContainer() }
@@ -272,6 +288,7 @@ fun PersonalTrainerNav(
         OnboardingGate.UNKNOWN -> return
         OnboardingGate.UNAVAILABLE -> {
             EmptyState(
+                scene = EmptyScene.RETRY,
                 title = DataHealthCopy.SETTINGS_TITLE,
                 body = DataHealthCopy.SETTINGS_BODY,
                 actionLabel = DataHealthCopy.RETRY,
@@ -283,6 +300,14 @@ fun PersonalTrainerNav(
             return
         }
         OnboardingGate.APP -> Unit
+    }
+
+    val launchAsked by settingsViewModel.launchPermissionsAsked.collectAsStateWithLifecycle()
+    if (gate == OnboardingGate.APP) {
+        LaunchPermissionsHost(
+            alreadyAsked = launchAsked,
+            onAsked = settingsViewModel::markLaunchPermissionsAsked,
+        )
     }
 
     val reduceMotion = LocalReducedMotion.current
@@ -453,11 +478,6 @@ fun PersonalTrainerNav(
                         },
                         onOpenPlan = { goToTab(Route.Routines.path) },
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
-                        onGenerateSchedule = { navController.navigate(Route.Onboarding.path) },
-                        onBuildWeek = {
-                            container.pendingCustomWeek.value = CustomWeekLaunch()
-                            navController.navigate(Route.CustomWeek.path)
-                        },
                     )
                 }
                 composable(Route.Progress.path) {
@@ -533,7 +553,6 @@ fun PersonalTrainerNav(
                 }
                 composable(Route.Routines.path) {
                     PlanScreen(
-                        onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
                         onOpenRoutine = { navController.navigate(Route.RoutineEditor.create(it)) },
                         onOpenLibrary = { navController.navigate(Route.Library.create(null)) },
                         onOpenDay = { epochDay, add ->
@@ -567,6 +586,7 @@ fun PersonalTrainerNav(
                 ) {
                     ActiveWorkoutScreen(
                         onExit = { navController.popBackStack() },
+                        onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenRest = { sessionId ->
                             navController.navigate(Route.RestTimer.create(sessionId)) {
                                 launchSingleTop = true
@@ -728,7 +748,7 @@ fun PersonalTrainerNav(
  * near-black field a pressed fill says the same thing without the animation.
  */
 @Composable
-private fun InstrumentNavBar(
+internal fun InstrumentNavBar(
     tabs: List<Tab>,
     isSelected: (Tab) -> Boolean,
     onSelect: (Tab) -> Unit,
@@ -740,7 +760,7 @@ private fun InstrumentNavBar(
             .background(Pit),
     ) {
         HairlineDivider(startIndent = 0.dp)
-        Row(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 // Material's NavigationBar applied this; without it the tabs are five
@@ -749,15 +769,45 @@ private fun InstrumentNavBar(
                 // The inset sits below the row rather than inside it, so the 64dp of touch
                 // target survives on a phone with gesture navigation.
                 .navigationBarsPadding()
-                .heightIn(min = NAV_BAR_HEIGHT),
+                .testTag("primary-navigation"),
         ) {
-            tabs.forEach { tab ->
-                NavTab(
-                    tab = tab,
-                    selected = isSelected(tab),
-                    onClick = { onSelect(tab) },
-                    modifier = Modifier.weight(1f),
-                )
+            val density = LocalDensity.current
+            val measurer = rememberTextMeasurer()
+            val widthPixels = with(density) { maxWidth.toPx() }
+            val labelWidths = tabs.associateWith { tab ->
+                measurer.measure(
+                    text = AnnotatedString(tab.label.uppercase()),
+                    style = InstrumentType.kicker,
+                    softWrap = false,
+                ).size.width
+            }
+            val compactPadding = with(density) { (NAV_ICON_SIZE + Metrics.space8 + Metrics.hairline).toPx() }
+            val cellPixels = widthPixels / tabs.size
+            val labelPadding = with(density) { Metrics.space2.toPx() }
+            val fits = maxWidth >= Metrics.touchMin * tabs.size && tabs.all { tab ->
+                labelWidths.getValue(tab) + labelPadding <= cellPixels
+            }
+            val rows = tabs.chunked(if (fits) tabs.size else 3)
+            // Preserve a fitting five-item row. Inline icons are only a height
+            // optimization; they must never force an otherwise needless row.
+            val compact = maxHeight < Metrics.compactWindowHeight && rows.all { row ->
+                row.all { tab -> labelWidths.getValue(tab) + compactPadding <= widthPixels / row.size }
+            }
+            Column {
+                rows.forEach { row ->
+                    Row(Modifier.fillMaxWidth()) {
+                        row.forEach { tab ->
+                            NavTab(
+                                tab = tab,
+                                selected = isSelected(tab),
+                                onClick = { onSelect(tab) },
+                                modifier = Modifier.weight(1f),
+                                compact = compact,
+                                labelWidth = with(density) { labelWidths.getValue(tab).toDp() },
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -769,10 +819,13 @@ private fun NavTab(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    labelWidth: Dp = 0.dp,
 ) {
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
+    val focused by interactionSource.collectIsFocusedAsState()
     val content by animateColorAsState(
         targetValue = if (selected) Volt else TextSecondary,
         animationSpec = instrumentTween(Motion.FAST),
@@ -791,8 +844,10 @@ private fun NavTab(
 
     Column(
         modifier = modifier
-            .heightIn(min = NAV_BAR_HEIGHT)
+            .heightIn(min = if (compact) Metrics.touchMin else NAV_BAR_HEIGHT)
             .background(background)
+            .then(if (focused) Modifier.border(Metrics.emphasisBorder, Volt, RoundedCornerShape(Radius.xs)) else Modifier)
+            .testTag("navigation-${tab.route.path}")
             .selectable(
                 selected = selected,
                 interactionSource = interactionSource,
@@ -802,7 +857,8 @@ private fun NavTab(
                     Haptics.tick(view)
                     onClick()
                 },
-            ),
+            )
+            .padding(vertical = Metrics.space1),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Metrics.space1, Alignment.CenterVertically),
     ) {
@@ -811,22 +867,32 @@ private fun NavTab(
                 .size(width = NAV_TICK_WIDTH, height = NAV_TICK_HEIGHT)
                 .background(tick, CircleShape),
         )
-        Icon(
-            tab.icon,
-            // The label below is the accessible name; describing the icon too would announce
-            // every tab twice.
-            contentDescription = null,
-            tint = content,
-            modifier = Modifier.size(NAV_ICON_SIZE),
-        )
-        Kicker(
-            tab.label,
-            color = content,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Metrics.space1),
-        )
+        val icon: @Composable () -> Unit = {
+            Icon(tab.icon, contentDescription = null, tint = content, modifier = Modifier.size(NAV_ICON_SIZE))
+        }
+        val label: @Composable (Modifier) -> Unit = { labelModifier ->
+            Text(
+                text = tab.label.uppercase(), style = InstrumentType.kicker,
+                color = content, textAlign = TextAlign.Center,
+                modifier = labelModifier.padding(horizontal = Metrics.space1),
+            )
+        }
+        if (compact) {
+            // Keep all labels and targets, but share the icon/label line in
+            // short windows so system bars and a live error cannot consume
+            // the entire scrolling viewport.
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2, Alignment.CenterHorizontally),
+            ) {
+                icon()
+                label(Modifier.width(labelWidth + Metrics.space2 + Metrics.hairline))
+            }
+        } else {
+            icon()
+            label(Modifier.fillMaxWidth())
+        }
     }
 }
 

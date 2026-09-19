@@ -39,10 +39,15 @@ class TalkBackPolicyTest {
         assertTrue(gymSurfaces.contains("heading()"))
         assertTrue(gymSurfaces.contains("Role.Button"))
 
-        val common = readOwned("ui/components/Common.kt")
-        assertTrue(common.contains("role = Role.Button"))
-        assertTrue(common.contains("LiveRegionMode.Polite"))
-        assertTrue(common.contains("TalkBackPolicy.announceRestKicker"))
+        val stepper = readOwned("ui/components/StepperButton.kt")
+        assertTrue(stepper.contains("role = Role.Button"))
+
+        val rest = readOwned("ui/components/RestTimerUi.kt")
+        assertTrue(rest.contains("role = Role.Button"))
+        assertTrue(rest.contains("LiveRegionMode.Polite"))
+        // ADR-027: the rest clock on the floor is the dock card; it owns the finished-kicker announcement.
+        val restCard = readOwned("ui/workout/RestTimerCard.kt")
+        assertTrue(restCard.contains("TalkBackPolicy.announceRestKicker"))
 
         val gymStatus = readOwned("ui/components/GymStatus.kt")
         assertTrue(gymStatus.contains("LiveRegionMode.Polite"))
@@ -62,10 +67,19 @@ class TalkBackPolicyTest {
         assertTrue(wheel.contains("NumberEntryDialog("))
         assertTrue(wheel.contains("TalkBackPolicy.parseTypedBodyweightKg"))
 
-        val settings = readOwned("ui/settings/SettingsScreen.kt")
-        assertTrue(settings.contains("checked = preferences.soundEnabled"))
-        assertTrue(settings.contains("onCheckedChange = onSound"))
-        assertTrue(settings.contains("onCheckedChange = null"))
+        val restPrefs = readOwned("ui/settings/RestTimerPrefsSection.kt")
+        assertTrue(restPrefs.contains("checked = preferences.soundEnabled"))
+        assertTrue(restPrefs.contains("onCheckedChange = onSound"))
+        assertTrue(restPrefs.contains("onCheckedChange = null"))
+        assertTrue(restPrefs.contains("title = RestCompleteCue.TITLE"))
+        assertTrue(restPrefs.contains("onClick = onPreview"))
+        assertTrue(restPrefs.contains("SettingsTags.PLAY_COMPLETE_CUE"))
+
+        val settingsScreen = readOwned("ui/settings/SettingsScreen.kt")
+        assertTrue(settingsScreen.contains("onPreview = viewModel::previewRestCompleteCue"))
+
+        val settingsVm = readOwned("ui/settings/SettingsViewModel.kt")
+        assertTrue(settingsVm.contains("RestTimerAlerts.preview"))
 
         val reminders = readOwned("ui/reminders/ReminderPrefsSection.kt")
         assertTrue(reminders.contains("checked = enabled"))

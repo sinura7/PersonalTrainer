@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.timer
 
+import android.app.Notification
 import android.app.NotificationManager
 import android.content.Intent
 import android.os.Looper
@@ -21,6 +22,7 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLooper
 
 /**
  * The rest service follows the store. Alarm-path completion used to leave
@@ -38,6 +40,9 @@ class RestTimerServiceTest {
         app = ApplicationProvider.getApplicationContext()
         RestTimerCompletion.reset()
         app.container.restTimerController.stop(fromService = true)
+        // DataStore outlives a test. A backup/settings case that left ticks
+        // off would mute theLastFiveSecondsTickOncePerSecond in the suite.
+        runBlocking { app.container.preferencesRepository.setRestTickEnabled(true) }
         shadowOf(Looper.getMainLooper()).idle()
     }
 
@@ -127,6 +132,59 @@ class RestTimerServiceTest {
     }
 
     /**
+     * A-03. The screen-on deadline used to leave a live Chronometer whose
+     * base was already past, so the shade painted `-0:01` until Done
+     * replaced it. Freeze first: last running frame is `0:00 remaining`.
+     */
+    @Test
+    fun deadlineFreezesTheShadeClockAtZero() {
+        val store = app.container.restTimerStore
+        store.start(1, "session-1", nowElapsedRealtime = SystemClock.elapsedRealtime())
+
+        val intent = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_SYNC)
+        val controller = Robolectric.buildService(RestTimerService::class.java, intent)
+        val service = controller.create().startCommand(0, 1).get()
+        val looper = shadowOf(Looper.getMainLooper())
+        looper.idle()
+
+        val manager = app.getSystemService(NotificationManager::class.java)
+        val live = manager.activeNotifications
+            .first { it.id == RestTimerNotifications.RUNNING_ID }
+            .notification
+        assertTrue(live.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER))
+
+        looper.idleFor(Duration.ofSeconds(1))
+        looper.idle()
+
+        val after = manager.activeNotifications
+            .firstOrNull { it.id == RestTimerNotifications.RUNNING_ID }
+            ?.notification
+        if (after != null) {
+            assertFalse(after.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER))
+            assertEquals(
+                "0:00 remaining",
+                after.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
+            )
+        }
+        // completeOnce may suspend on DataStore before posting DONE; one idle
+        // after the freeze is not always enough on a busy runner.
+        val giveUpAt = System.nanoTime() + PREFS_WAIT_NANOS
+        while (
+            manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID } &&
+            System.nanoTime() < giveUpAt
+        ) {
+            Thread.sleep(10)
+            looper.idle()
+        }
+        assertNotNull(
+            "DONE_ID never posted after screen-on deadline",
+            manager.activeNotifications.firstOrNull { it.id == RestTimerNotifications.DONE_ID },
+        )
+        controller.destroy()
+    }
+
+    /**
      * R-04. One tick per boundary, 5 down to 1, none above five and none at
      * zero — the cue owns zero. Walked on Robolectric's clock; the observer
      * is the only listener there is.
@@ -141,9 +199,10 @@ class RestTimerServiceTest {
         val intent = Intent(app, RestTimerService::class.java)
             .setAction(RestTimerService.ACTION_SYNC)
         val controller = Robolectric.buildService(RestTimerService::class.java, intent)
-        controller.create().startCommand(0, 1)
+        val service = controller.create().startCommand(0, 1).get()
         val looper = shadowOf(Looper.getMainLooper())
         looper.idle()
+        awaitTickPreferences(service, looper, enabled = true)
 
         looper.idleFor(Duration.ofSeconds(84))
         assertEquals(emptyList<Int>(), ticks)
@@ -170,6 +229,7 @@ class RestTimerServiceTest {
         val service = controller.create().startCommand(0, 1).get()
         val looper = shadowOf(Looper.getMainLooper())
         looper.idle()
+        awaitTickPreferences(service, looper, enabled = true)
 
         // 4.5 s left: the five-second tick has sounded, the four-second one is half a second out.
         looper.idleFor(Duration.ofMillis(25_500))
@@ -206,9 +266,10 @@ class RestTimerServiceTest {
         val intent = Intent(app, RestTimerService::class.java)
             .setAction(RestTimerService.ACTION_SYNC)
         val controller = Robolectric.buildService(RestTimerService::class.java, intent)
-        controller.create().startCommand(0, 1)
+        val service = controller.create().startCommand(0, 1).get()
         val looper = shadowOf(Looper.getMainLooper())
         looper.idle()
+        awaitTickPreferences(service, looper, enabled = true)
 
         looper.idleFor(Duration.ofSeconds(10))
         assertEquals(emptyList<Int>(), ticks)
@@ -235,17 +296,7 @@ class RestTimerServiceTest {
             val controller = Robolectric.buildService(RestTimerService::class.java, intent)
             val service = controller.create().startCommand(0, 1).get()
             val looper = shadowOf(Looper.getMainLooper())
-            // The service reads the toggle off DataStore on another thread; give
-            // that read a bounded chance to land before the clock moves.
-            val giveUpAt = System.nanoTime() + PREFS_WAIT_NANOS
-            while (service.tickPreferences?.tickEnabled != false && System.nanoTime() < giveUpAt) {
-                Thread.sleep(10)
-                looper.idle()
-            }
-            assertFalse(
-                "tick preference never reached the service",
-                service.tickPreferences?.tickEnabled ?: true,
-            )
+            awaitTickPreferences(service, looper, enabled = false)
 
             looper.idleFor(Duration.ofSeconds(89))
             assertEquals(emptyList<Int>(), ticks)
@@ -285,6 +336,30 @@ class RestTimerServiceTest {
         looper.idleFor(Duration.ofSeconds(3))
         assertEquals(listOf(3, 2, 1), ticks)
         controller.destroy()
+    }
+
+    /**
+     * Blocks, in real time, until the service has read the tick toggle off DataStore.
+     *
+     * That read happens on a real thread; everything else in these tests runs on
+     * Robolectric's virtual clock, which `idleFor` advances instantly. A boundary that
+     * fires before the preferences have landed is dropped by design (see
+     * `aTickBeforeThePreferencesLandStaysSilentAndKeepsCounting`), so a test that moves
+     * the clock first is racing the runner: `addFifteenMovesTheTicksWithTheDeadline` lost
+     * that race on trunk (run 35272784785, `expected [5] but was []`). Bounded, so a
+     * preference that never arrives fails the test rather than hanging it.
+     */
+    private fun awaitTickPreferences(service: RestTimerService, looper: ShadowLooper, enabled: Boolean) {
+        val giveUpAt = System.nanoTime() + PREFS_WAIT_NANOS
+        while (service.tickPreferences?.tickEnabled != enabled && System.nanoTime() < giveUpAt) {
+            Thread.sleep(10)
+            looper.idle()
+        }
+        assertEquals(
+            "tick preference never reached the service",
+            enabled,
+            service.tickPreferences?.tickEnabled,
+        )
     }
 
     private companion object {

@@ -1,0 +1,61 @@
+{
+  "goldenManifest": "../../../../../app/src/androidTest/assets/goldens/windows-swiftshader37/workout-entry-manifest.json",
+  "observations": [
+    {
+      "name": "frontend-workout-window-long-sheet-landscape-font20-api29.png",
+      "sha256": "4f86ef130602d98e2dd1531b616284215ea7d90fe07054175d2756461ff265b7",
+      "runId": "20260917-085123091",
+      "systemFontScale": 2,
+      "pixelSize": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "name": "frontend-workout-window-long-sheet-last-row-landscape-font20-api29.png",
+      "sha256": "242dad574ac35eb15890e71da4dbf0733d2e0dd7af3f2918e0d192632c18e0f8",
+      "runId": "20260917-085123091",
+      "systemFontScale": 2,
+      "pixelSize": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "name": "frontend-workout-window-numeric-invalid-font20-api29.png",
+      "sha256": "e20b347236de4221710392d4266024150507c47985a9304c3ebe2fcffc9ac89f",
+      "runId": "20260917-085123091",
+      "systemFontScale": 2,
+      "pixelSize": [
+        1080,
+        1920
+      ]
+    },
+    {
+      "name": "frontend-workout-window-rpe-help-api29.png",
+      "sha256": "5c6b5dd8a9b383f31585cd13d8bb99699682713cbe888a0cd2e8c3cff669d658",
+      "runId": "20260917-085123091",
+      "systemFontScale": 1,
+      "pixelSize": [
+        1080,
+        1920
+      ]
+    },
+    {
+      "name": "frontend-workout-window-saved-sets-font20-api29.png",
+      "sha256": "fbf4a262141afd8fc61a43b04d22bcfd15c3377d868f19bcdc949fefb55d1086",
+      "runId": "20260917-085123091",
+      "systemFontScale": 2,
+      "pixelSize": [
+        1080,
+        1920
+      ]
+    }
+  ],
+  "before": {
+    "name": "before-active-strength-working-api29.png",
+    "sha256": "76f8751e52f918e1ddb108c8b7c81297cb69ef6dc1068ab20097cedb64d0b9aa",
+    "note": "Existing F0 Windows legacy fixture: different data and older viewport harness, for composition context only."
+  },
+  "note": "Actual OS-window observations use real civil time and do not enter pixel comparison; native font/IME/window settings restore after each journey."
+}

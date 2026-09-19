@@ -425,20 +425,21 @@ object RoutineGenerator {
         answers: OnboardingAnswers,
         catalog: List<Exercise>,
         weekStart: Weekday = Weekday.MONDAY,
+        splitStyle: SplitStyle = SplitStyle.AUTO,
     ): PlanBlueprint {
         val clean = answers.sanitized()
+        val split = resolveSplit(clean, splitStyle)
         if (clean.focus == TrainingFocus.CARDIO) {
             val days = (0 until 7).map { offset ->
                 BlueprintDay(dayOfWeek = weekStart.plus(offset.toLong()), routineKey = null)
             }
             return PlanBlueprint(
-                splitStyle = SplitDerivation.forAnswers(clean),
+                splitStyle = split,
                 routines = emptyList(),
                 days = days,
-                trace = RuleTrace.forGeneration(clean, SplitDerivation.forAnswers(clean)),
+                trace = RuleTrace.forGeneration(clean, split),
             )
         }
-        val split = SplitDerivation.forAnswers(clean)
         val kinds = WeeklySchedulePlanner.slotKinds(
             split,
             clean.daysPerWeek,
@@ -643,6 +644,17 @@ object RoutineGenerator {
         if (ofKind.isEmpty()) return null
         return ofKind[index % ofKind.size].key
     }
+
+    /**
+     * Settings split wins when the lifter picked one. AUTO and CUSTOM still
+     * derive from the answers — CUSTOM needs routines that do not exist yet.
+     */
+    internal fun resolveSplit(answers: OnboardingAnswers, splitStyle: SplitStyle): SplitStyle =
+        if (splitStyle == SplitStyle.AUTO || splitStyle == SplitStyle.CUSTOM) {
+            SplitDerivation.forAnswers(answers)
+        } else {
+            splitStyle
+        }
 
     private const val DAYS_IN_WEEK = 7
 

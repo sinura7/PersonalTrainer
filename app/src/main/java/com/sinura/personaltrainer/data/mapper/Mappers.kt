@@ -4,11 +4,13 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleSlotEntity
+import com.sinura.personaltrainer.data.local.entity.SessionStillRow
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.HistoryCardCopy
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleCredit
 import com.sinura.personaltrainer.domain.MuscleNormalizer
@@ -38,6 +40,24 @@ fun ExerciseEntity.toDomain(credits: List<MuscleCredit> = emptyList()): Exercise
     imageKey = imageKey,
     muscles = credits,
 )
+
+fun SessionStillRow.toExercise(): Exercise = Exercise(
+    id = id,
+    name = name,
+    muscleGroup = muscleGroup,
+    notes = notes,
+    isCustom = isCustom,
+    equipment = EquipmentType.fromStorage(equipment),
+    loadType = LoadType.fromStorage(loadType),
+    movementKey = movementKey,
+    imageKey = imageKey,
+)
+
+fun List<SessionStillRow>.toHistoryStills(): Map<String, List<Exercise>> =
+    groupBy { it.sessionId }
+        .mapValues { (_, rows) ->
+            HistoryCardCopy.stills(rows.sortedBy { it.sortOrder }.map { it.toExercise() })
+        }
 
 fun Exercise.toEntity(): ExerciseEntity = ExerciseEntity(
     id = id,
@@ -71,6 +91,8 @@ fun RoutineWithExercises.toDomain(): Routine = Routine(
                 targetReps = rel.item.targetReps,
                 targetWeightKg = rel.item.targetWeightKg,
                 restSeconds = rel.item.restSeconds,
+                targetSeconds = rel.item.targetSeconds,
+                targetSecondsMax = rel.item.targetSecondsMax,
             )
         },
 )
@@ -92,6 +114,8 @@ fun RoutineExercise.toEntity(): RoutineExerciseEntity = RoutineExerciseEntity(
     targetReps = targetReps,
     targetWeightKg = targetWeightKg,
     restSeconds = restSeconds,
+    targetSeconds = targetSeconds,
+    targetSecondsMax = targetSecondsMax,
 )
 
 fun SessionWithDetails.toDomain(): WorkoutSession = WorkoutSession(
@@ -115,6 +139,8 @@ fun SessionWithDetails.toDomain(): WorkoutSession = WorkoutSession(
                 targetReps = rel.item.targetReps,
                 targetWeightKg = rel.item.targetWeightKg,
                 restSeconds = rel.item.restSeconds,
+                targetSeconds = rel.item.targetSeconds,
+                targetSecondsMax = rel.item.targetSecondsMax,
             )
         },
     sets = sets
@@ -131,6 +157,7 @@ fun SessionWithDetails.toDomain(): WorkoutSession = WorkoutSession(
                 rpe = rel.set.rpe,
                 isWarmup = rel.set.isWarmup,
                 completedAt = rel.set.completedAt,
+                durationSeconds = rel.set.durationSeconds,
             )
         },
 )

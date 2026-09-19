@@ -41,12 +41,18 @@ class PlannerRepository(
 
     fun observeRules(): Flow<List<ScheduleRule>> =
         dao.observeRules().map { rows -> rows.map { it.toDomain() } }
+            .observeHealth("the schedule rules")
+            .presentValues()
 
     fun observeOccurrences(): Flow<List<ScheduleOccurrence>> =
         dao.observeOccurrences().map { rows -> rows.map { it.toDomain() } }
+            .observeHealth("the planned week")
+            .presentValues()
 
     fun observeDecisions(): Flow<List<MissedWorkDecision>> =
         dao.observeDecisions().map { rows -> rows.map { it.toDomain() } }
+            .observeHealth("the missed-work decisions")
+            .presentValues()
 
     suspend fun rules(): List<ScheduleRule> = dao.getRules().map { it.toDomain() }
 
@@ -349,17 +355,42 @@ class PlannerRepository(
      * nothing. DONE, SKIPPED and MOVED are all settled; a stale notification must not be able
      * to unsettle them. A refused call returns quietly, as the other guards here do: the
      * button came from a notification the user has every right to press.
+     *
+     * Returns the previous skippable status so a caller can offer Undo.
+     * Null when the row was missing or already settled (those calls still
+     * cancel leftover reminders).
      */
-    suspend fun skipOccurrence(occurrenceId: String, nowMs: Long = time.nowMillis()) {
-        val current = dao.getOccurrence(occurrenceId) ?: return
+    suspend fun skipOccurrence(occurrenceId: String, nowMs: Long = time.nowMillis()): OccurrenceStatus? {
+        val current = dao.getOccurrence(occurrenceId) ?: return null
         if (current.status !in SKIPPABLE) {
             cancelReminders(occurrenceId)
-            return
+            return null
         }
+        val previous = OccurrenceStatus.valueOf(current.status)
         dao.upsertOccurrence(
             current.copy(status = OccurrenceStatus.SKIPPED.name, updatedAtMs = nowMs),
         )
         cancelReminders(occurrenceId)
+        return previous
+    }
+
+    /**
+     * Reverses a skip: the row must still be SKIPPED, and [previousStatus]
+     * must still be skippable (PLANNED or MISSED). Does not re-arm reminders
+     * — leftover Skip cancelled them on purpose, and a six-second undo
+     * must not invent a ping the lifter already dismissed.
+     */
+    suspend fun restoreSkippedOccurrence(
+        occurrenceId: String,
+        previousStatus: OccurrenceStatus,
+        nowMs: Long = time.nowMillis(),
+    ) {
+        if (previousStatus.name !in SKIPPABLE) return
+        val current = dao.getOccurrence(occurrenceId) ?: return
+        if (current.status != OccurrenceStatus.SKIPPED.name) return
+        dao.upsertOccurrence(
+            current.copy(status = previousStatus.name, updatedAtMs = nowMs),
+        )
     }
 
     /** Reminders belong to one occurrence; a caller that settles it elsewhere clears them here. */

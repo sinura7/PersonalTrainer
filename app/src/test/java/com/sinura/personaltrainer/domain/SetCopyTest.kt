@@ -1,7 +1,9 @@
 package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SetCopyTest {
@@ -34,6 +36,48 @@ class SetCopyTest {
     @Test
     fun aWeightedLiftWithNoWeightOnIsJustReps() {
         assertEquals("8 reps", SetCopy.setLine(0.0, 8, LoadClass.BODYWEIGHT_ADDED, WeightUnit.KG))
+    }
+
+    @Test
+    fun aLoadedZeroReadsAsNoWeightNotZeroPounds() {
+        assertEquals(
+            "no weight × 13",
+            SetCopy.setLine(0.0, 13, LoadClass.LOADED, WeightUnit.LBS),
+        )
+        assertEquals(
+            "no weight × 13",
+            SetCopy.setLine(0.0, 13, LoadClass.LOADED, WeightUnit.KG),
+        )
+        assertEquals("Weight, no weight", SetCopy.weightWellSpoken(WeightMeaning.LIFTED, 0.0, WeightUnit.KG))
+        assertFalse(SetCopy.weightKeypadHelper(LoadClass.LOADED, allowsZero = true).contains("bodyweight"))
+        assertTrue(SetCopy.weightKeypadHelper(LoadClass.BODYWEIGHT_ASSISTED, allowsZero = true).startsWith("0 means no assistance."))
+    }
+
+    @Test
+    fun aWalkingLungeAtZeroReadsAsRepsNotFivePounds() {
+        assertEquals(
+            "13 reps",
+            SetCopy.setLine(0.0, 13, LoadClass.BODYWEIGHT_ADDED, WeightUnit.LBS),
+        )
+        assertEquals(
+            "Added weight, no weight, bodyweight",
+            SetCopy.weightWellSpoken(WeightMeaning.ADDED, 0.0, WeightUnit.LBS),
+        )
+        assertEquals(
+            "Weight 5 lbs",
+            SetCopy.weightWellSpoken(WeightMeaning.LIFTED, WeightConverter.toKg(5.0, WeightUnit.LBS), WeightUnit.LBS),
+        )
+        assertFalse(
+            SetCopy.weightWellSpoken(WeightMeaning.ADDED, 0.0, WeightUnit.LBS).contains("5 lbs"),
+        )
+        assertEquals(
+            "0 is no weight (bodyweight). Vest, belt or plate. Leave empty for bodyweight only.",
+            SetCopy.weightKeypadHelper(LoadClass.BODYWEIGHT_ADDED, allowsZero = true),
+        )
+        assertEquals(
+            "No negatives; up to two decimals. 87.5 or 87,5.",
+            SetCopy.weightKeypadHelper(LoadClass.LOADED, allowsZero = false),
+        )
     }
 
     @Test
@@ -100,5 +144,30 @@ class SetCopyTest {
     @Test
     fun nothingLoggedSaysNothing() {
         assertNull(SetCopy.bodyweightLine(null, WeightUnit.KG))
+    }
+
+    @Test
+    fun tableExtrasNameTheSetThenRpe() {
+        assertEquals("Set 3", SetCopy.tableExtras(3, null))
+        assertEquals("Set 3 · RPE 8", SetCopy.tableExtras(3, 8))
+        assertEquals("WU 1 · RPE 8", SetCopy.tableExtras("WU 1", 8))
+        assertEquals("Extra 1", SetCopy.tableExtras("Extra 1", null))
+    }
+
+    @Test
+    fun aHoldReadsAsSecondsNotAFakeRep() {
+        assertEquals("30s", SetCopy.setLine(0.0, 0, LoadClass.BODYWEIGHT, WeightUnit.KG, durationSeconds = 30))
+        assertEquals(
+            "20 kg × 40s",
+            SetCopy.setLine(20.0, 0, LoadClass.LOADED, WeightUnit.KG, durationSeconds = 40),
+        )
+    }
+
+    @Test
+    fun aTimedStrengthSetKeepsRepsAndAppendsTheClock() {
+        assertEquals(
+            "100 kg × 5 · 12s",
+            SetCopy.setLine(100.0, 5, LoadClass.LOADED, WeightUnit.KG, durationSeconds = 12),
+        )
     }
 }

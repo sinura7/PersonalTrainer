@@ -5,6 +5,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.sinura.personaltrainer.R
@@ -58,6 +59,8 @@ private fun style(
     lineHeight = lineHeight,
     letterSpacing = letterSpacing,
     fontFeatureSettings = TABULAR,
+    // Mirror layout independently from the language of a value/label pair.
+    textDirection = TextDirection.Content,
 )
 
 /**
@@ -87,8 +90,21 @@ object InstrumentType {
     /** Screen titles. */
     val display = style(SpaceGrotesk, FontWeight.Bold, 28.sp, 32.sp, (-0.3).sp)
 
-    /** Card titles, exercise names. */
+    /** Card titles, exercise names in lists. */
     val title = style(Inter, FontWeight.SemiBold, 16.sp, 20.sp)
+
+    /**
+     * The current exercise's name on the active workout: the loudest words on the
+     * floor after the two numerals, so a lifter walking up to the phone knows what
+     * it is showing before reading anything else.
+     */
+    val heroTitle = style(Inter, FontWeight.SemiBold, 24.sp, 28.sp, (-0.2).sp)
+
+    /**
+     * The commit button's verb. Louder than [title] because it is the one filled
+     * action on the floor, quieter than a numeral because the numbers are the point.
+     */
+    val commit = style(Inter, FontWeight.SemiBold, 20.sp, 24.sp)
 
     /** Prose and helper text. */
     val body = style(Inter, FontWeight.Normal, 14.sp, 20.sp)

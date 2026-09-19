@@ -46,6 +46,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.StrengthEntry
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -281,7 +282,7 @@ internal fun ComposerSaveDock(
 private fun StrengthAdder(
     catalog: List<ExerciseOption>,
     onAdd: (Exercise, Double, Int) -> Unit,
-    onCreate: (String, String) -> Unit = { _, _ -> },
+    onCreate: (String, String, LoadType) -> Unit = { _, _, _ -> },
     created: Exercise? = null,
     onCreatedHandled: () -> Unit = {},
     /** A Create-row failure, shown inside the sheet that asked — a banner behind a modal is invisible. */
@@ -419,7 +420,7 @@ private fun StrengthAdder(
                         pickerOpen = false
                     }
                     is ExercisePickerEvent.Created ->
-                        onCreate(event.name, event.muscleGroup)
+                        onCreate(event.name, event.muscleGroup, event.loadType)
                     // Multi-add taps are written as they land (#201), so SINGLE_ADD never
                     // sees a Toggled; the arm is here only to keep the when exhaustive.
                     is ExercisePickerEvent.Toggled -> Unit

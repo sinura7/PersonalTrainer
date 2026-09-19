@@ -5,7 +5,7 @@ import com.sinura.personaltrainer.activity.DiscardActivity
 import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.repository.ActivityRepository
-import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
@@ -22,6 +22,7 @@ import com.sinura.personaltrainer.timer.CardioTimerPersistence
 import com.sinura.personaltrainer.timer.RestTimerGateway
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
+import com.sinura.personaltrainer.workout.CompleteTraining
 import com.sinura.personaltrainer.workout.DiscardWorkout
 import com.sinura.personaltrainer.workout.FinishWorkout
 import com.sinura.personaltrainer.workout.StartLiveCardio
@@ -69,6 +70,7 @@ interface AppDependencies {
     val restTimerController: RestTimerGateway
     val workoutDraftCache: WorkoutDraftCache
     val finishWorkout: FinishWorkout
+    val completeTraining: CompleteTraining
     val discardWorkout: DiscardWorkout
     val trainingInsights: TrainingInsightsPublisher
     val pendingWeekSuggestion: MutableStateFlow<Boolean>
@@ -79,7 +81,7 @@ interface AppDependencies {
     val startTrainingDay: StartTrainingDay
     val startLiveCardio: StartLiveCardio
     val startOccurrence: StartOccurrence
-    val backupRepository: BackupRepository
+    val backupService: BackupService
     val activityRepository: ActivityRepository
     val completedTrainingRepository: CompletedTrainingRepository
     val confirmActivity: ConfirmActivity

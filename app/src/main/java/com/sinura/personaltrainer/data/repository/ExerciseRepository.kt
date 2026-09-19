@@ -10,10 +10,12 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.domain.CatalogMeta
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseUsage
 import com.sinura.personaltrainer.domain.LikeEscaper
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleCredit
 import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.domain.MuscleNormalizer
@@ -136,6 +138,7 @@ class ExerciseRepository(
         name: String,
         muscleGroup: String,
         notes: String = "",
+        loadType: LoadType = LoadType.EXTERNAL,
     ): SaveExerciseResult {
         val trimmedName = name.trim()
         val nameKey = MuscleNormalizer.nameKeyOf(trimmedName)
@@ -151,6 +154,8 @@ class ExerciseRepository(
                 muscleGroup = group,
                 notes = notes.trim(),
                 isCustom = true,
+                equipment = loadType.defaultEquipment,
+                loadType = loadType,
                 muscles = MuscleNormalizer.deriveCredits(group),
             )
             exerciseDao.insert(exercise.toEntity())
@@ -164,6 +169,7 @@ class ExerciseRepository(
         name: String,
         muscleGroup: String,
         notes: String,
+        loadType: LoadType? = null,
     ): SaveExerciseResult? {
         val trimmedName = name.trim()
         val nameKey = MuscleNormalizer.nameKeyOf(trimmedName)
@@ -174,11 +180,15 @@ class ExerciseRepository(
                 return@writeExercise SaveExerciseResult.DuplicateName(clash.toDomain())
             }
             val group = muscleGroup.trim().ifBlank { existing.muscleGroup }
+            val nextLoad = loadType ?: LoadType.fromStorage(existing.loadType)
+            val nextEquipment = nextLoad.kitFor(EquipmentType.fromStorage(existing.equipment))
             val updated = existing.copy(
                 name = trimmedName,
                 muscleGroup = group,
                 notes = notes.trim(),
                 nameKey = nameKey,
+                loadType = nextLoad.name,
+                equipment = nextEquipment.name,
             )
             exerciseDao.update(updated)
             val credits = MuscleNormalizer.deriveCredits(group)

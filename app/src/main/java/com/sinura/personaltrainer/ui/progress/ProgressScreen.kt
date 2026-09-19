@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,22 +30,27 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.BodyExplorer
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.BodyHeatCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.RecommendationIntent
 import com.sinura.personaltrainer.domain.RecommendationIntents
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.ExerciseRow
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceGroup
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
@@ -100,6 +104,7 @@ fun ProgressScreen(
                 // A read failed; nothing was written and nothing needs starting. The remedy is
                 // to ask again, which is why this branch no longer offers "Start workout".
                 EmptyState(
+                    scene = EmptyScene.RETRY,
                     title = "Couldn’t load the map",
                     body = "Every set you have logged is still in your history — only the map " +
                         "failed to build.",
@@ -175,6 +180,18 @@ fun ProgressScreen(
                             }
                         }
                     }
+                    if (state.firstLifts.isNotEmpty()) {
+                        item(key = "first-lifts-header") {
+                            GymSectionHeader(BodyHeatCopy.FIRST_LIFTS)
+                        }
+                        item(key = "first-lifts") {
+                            BodyExplorerLifts(
+                                lifts = state.firstLifts,
+                                onOpenExercise = onOpenExercise,
+                                modifier = Modifier.testTag(BodyTags.FIRST_LIFTS),
+                            )
+                        }
+                    }
                     item(key = "muscles-header") {
                         GymSectionHeader("Muscles")
                     }
@@ -184,9 +201,11 @@ fun ProgressScreen(
                                 if (index > 0) HairlineDivider()
                                 MuscleHeatRow(
                                     load = load,
+                                    window = snap.window,
                                     selected = selected == load.muscle,
                                     onClick = { selectedName = load.muscle.name },
                                     unit = unit,
+                                    doorway = !snap.hasAnyWorkingSets,
                                 )
                             }
                         }
@@ -227,10 +246,17 @@ fun ProgressScreen(
 
     selected?.let { muscle ->
         val snap = snapshot ?: emptySnapshot(state.window)
+        val explorerLifts = if (!snap.hasAnyWorkingSets) {
+            BodyExplorer.forMuscle(muscle, state.catalog, state.coachPrefs)
+        } else {
+            emptyList()
+        }
         MuscleDetailSheet(
             load = snap.load(muscle),
             unit = unit,
             windowLabel = state.window.label,
+            hasAnyWorkingSets = snap.hasAnyWorkingSets,
+            explorerLifts = explorerLifts,
             onDismiss = { selectedName = null },
             onOpenExercise = { exerciseId ->
                 selectedName = null
@@ -277,12 +303,9 @@ internal fun BodyWindowPicker(
                 modifier = Modifier.testTag(BodyTags.START_SHEET),
             )
         }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
+        InstrumentChoiceGroup {
             HeatWindow.entries.forEach { entry ->
-                InstrumentChip(
+                InstrumentChoiceChip(
                     label = entry.shortLabel,
                     selected = window == entry,
                     onClick = { onSelectWindow(entry) },
@@ -299,10 +322,13 @@ private fun MuscleDetailSheet(
     load: MuscleLoadSummary,
     unit: WeightUnit,
     windowLabel: String,
+    hasAnyWorkingSets: Boolean,
+    explorerLifts: List<Exercise>,
     onDismiss: () -> Unit,
     onOpenExercise: (String) -> Unit,
     onFindLifts: () -> Unit,
 ) {
+    val exploring = !hasAnyWorkingSets && load.exercises.isEmpty()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -328,54 +354,55 @@ private fun MuscleDetailSheet(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
-            ) {
-                val column = SetCopy.workColumn(load.work, unit)
-                MetricCluster(
-                    value = column.value,
-                    label = column.label,
-                    modifier = Modifier.weight(1f),
-                    valueStyle = InstrumentType.numeralLg,
-                    horizontalAlignment = Alignment.Start,
-                )
-                MetricCluster(
-                    value = load.workingSets.toString(),
-                    label = "sets",
-                    modifier = Modifier.weight(1f),
-                    valueStyle = InstrumentType.numeralLg,
-                    horizontalAlignment = Alignment.Start,
-                )
-                MetricCluster(
-                    value = load.sessionCount.toString(),
-                    label = "sessions",
-                    modifier = Modifier.weight(1f),
-                    valueStyle = InstrumentType.numeralLg,
-                    horizontalAlignment = Alignment.Start,
-                )
+            if (!exploring) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space6),
+                ) {
+                    val column = SetCopy.workColumn(load.work, unit)
+                    MetricCluster(
+                        value = column.value,
+                        label = column.label,
+                        modifier = Modifier.weight(1f),
+                        valueStyle = InstrumentType.numeralLg,
+                        horizontalAlignment = Alignment.Start,
+                    )
+                    MetricCluster(
+                        value = load.workingSets.toString(),
+                        label = "sets",
+                        modifier = Modifier.weight(1f),
+                        valueStyle = InstrumentType.numeralLg,
+                        horizontalAlignment = Alignment.Start,
+                    )
+                    MetricCluster(
+                        value = load.sessionCount.toString(),
+                        label = "sessions",
+                        modifier = Modifier.weight(1f),
+                        valueStyle = InstrumentType.numeralLg,
+                        horizontalAlignment = Alignment.Start,
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Kicker("Last trained", modifier = Modifier.weight(1f))
+                    Text(
+                        recencyLabel(load),
+                        style = InstrumentType.bodyStrong,
+                        color = TextPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Kicker("Last trained", modifier = Modifier.weight(1f))
+            if (load.exercises.isNotEmpty()) {
                 Text(
-                    recencyLabel(load),
-                    style = InstrumentType.bodyStrong,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (load.exercises.isEmpty()) {
-                Text(
-                    "Nothing in this window maps to ${load.muscle.displayName.lowercase()}.",
-                    style = InstrumentType.body,
+                    text = BodyHeatCopy.ATTRIBUTION_NOTE,
+                    style = InstrumentType.caption,
                     color = TextSecondary,
                 )
-            } else {
                 GymSectionHeader("Contributors")
                 GroupedList {
                     load.exercises.forEachIndexed { index, exercise ->
@@ -390,6 +417,22 @@ private fun MuscleDetailSheet(
                         }
                     }
                 }
+            } else if (explorerLifts.isNotEmpty()) {
+                GymSectionHeader(BodyHeatCopy.liftsThatTrain(load.muscle))
+                BodyExplorerLifts(
+                    lifts = explorerLifts,
+                    onOpenExercise = onOpenExercise,
+                )
+            } else {
+                Text(
+                    text = if (exploring) {
+                        BodyHeatCopy.findLiftsInLibrary(load.muscle)
+                    } else {
+                        "Nothing in this window maps to ${load.muscle.displayName.lowercase()}."
+                    },
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
             }
             SecondaryGymButton(
                 text = "Find ${load.muscle.catalogLabel.lowercase()} lifts",
@@ -400,6 +443,31 @@ private fun MuscleDetailSheet(
                         contentDescription =
                             "Find ${load.muscle.catalogLabel.lowercase()} lifts"
                     },
+            )
+        }
+    }
+}
+
+/**
+ * Pictured catalog lifts Body can open before any set is logged.
+ *
+ * Not a Start Volt: each row opens that lift's page. Library stays a push
+ * from Find lifts, not a tab.
+ */
+@Composable
+internal fun BodyExplorerLifts(
+    lifts: List<Exercise>,
+    onOpenExercise: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    GroupedList(modifier = modifier) {
+        lifts.forEachIndexed { index, exercise ->
+            if (index > 0) HairlineDivider()
+            ExerciseRow(
+                exercise = exercise,
+                onClick = { onOpenExercise(exercise.id) },
+                tag = exercise.equipment.label,
+                modifier = Modifier.testTag(BodyTags.explorerLift(exercise.id)),
             )
         }
     }

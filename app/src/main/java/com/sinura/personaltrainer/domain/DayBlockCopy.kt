@@ -9,17 +9,25 @@ package com.sinura.personaltrainer.domain
  * says the same thing on every Home surface, and so the lines can be
  * asserted without a composition.
  *
- * A block has a title, up to [STILL_LIMIT] stills, the numbered session
- * order, and a meta line. A block that is not simply planned adds a status
- * word at the foot, beside Start when it can still be started.
+ * A block has a title, one still-and-name row per lift up to [ROW_LIMIT],
+ * and a meta line. A session of seven (Upper A) names all seven. Past
+ * eight, the rest is `+N` on its own last line. A block that is not
+ * simply planned adds a status word at the foot, beside Start when it
+ * can still be started.
  */
 object DayBlockCopy {
-    /** How many of the session's lifts a block names and pictures; the meta line carries the rest. */
-    const val STILL_LIMIT = 4
+    /**
+     * How many lifts a block pictures beside their names. Typical sessions
+     * fit; a longer one ends in "+N" so Home cannot become a novel.
+     */
+    const val ROW_LIMIT = 8
 
     data class Lines(
-        /** "1 Squat · 2 Row", then "· +2" past [STILL_LIMIT]. Null without lifts. */
-        val names: String?,
+        /**
+         * Numbered lifts in session order, one string per pictured lift
+         * (`"1 Squat"`), then `"+2"` past [ROW_LIMIT]. Empty without lifts.
+         */
+        val names: List<String>,
         /**
          * "2 lifts · about 13 min". For an empty planned block, what it is
          * instead: "No lifts yet" for strength, "Ready" for cardio.
@@ -65,7 +73,7 @@ object DayBlockCopy {
             modality == ScheduleModality.STRENGTH -> SessionOrderCopy.EMPTY_PREVIEW
             else -> SessionOrderCopy.READY
         }
-        return Lines(names = null, meta = empty, status = status(status), settled = settled)
+        return Lines(names = emptyList(), meta = empty, status = status(status), settled = settled)
     }
 
     /**
@@ -79,18 +87,29 @@ object DayBlockCopy {
     )
 
     /**
-     * The session order under the stills, numbered like the picker. Only
-     * the lifts that have a still are named; the meta line carries the
-     * count, so a longer session ends in "+N" rather than repeating it.
+     * The session order, numbered like the picker, one pictured lift per
+     * entry. A middot sentence wrapped mid-name; a 4-up still strip
+     * duplicated the names that sat under it. Rows carry the still, so a
+     * typical session can name every lift. Past [ROW_LIMIT] the last entry
+     * is "+N" rather than repeating the count the meta line already has.
      */
-    fun names(names: List<String>, limit: Int = STILL_LIMIT): String? {
-        if (names.isEmpty()) return null
+    fun names(names: List<String>, limit: Int = ROW_LIMIT): List<String> {
+        if (names.isEmpty()) return emptyList()
         val cap = limit.coerceAtLeast(1)
         val shown = names.take(cap).mapIndexed { index, name -> "${index + 1} $name" }
-            .joinToString(" · ")
         val rest = names.size - cap
-        return if (rest > 0) "$shown · +$rest" else shown
+        return if (rest > 0) shown + "+$rest" else shown
     }
+
+    /**
+     * The "+N" remainder, or null when every lift fits on a row. The card
+     * draws this on its own line under the pictured rows.
+     */
+    fun extra(names: List<String>, limit: Int = ROW_LIMIT): String? =
+        names(names, limit).lastOrNull()?.takeIf { EXTRA.matches(it) }
+
+    /** True when [line] is the remainder (`"+3"`), not a numbered lift. */
+    fun isExtra(line: String): Boolean = EXTRA.matches(line)
 
     /** "2 lifts · about 13 min". Also the last line of the start confirm. */
     fun meta(count: Int, minutes: Int?): String {
@@ -102,4 +121,6 @@ object DayBlockCopy {
         OccurrenceStatus.MISSED -> "Missed"
         else -> SessionOrderCopy.settledLabel(status)
     }
+
+    private val EXTRA = Regex("""^\+\d+$""")
 }

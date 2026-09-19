@@ -10,7 +10,7 @@ on:
     # that have no Android SDK and cannot reach Google's Maven, so the branch build is
     # the only thing that ever compiles that code — verifying it only once it reaches
     # trunk would mean reviewing it blind right up to the merge.
-    branches: [trunk, 'claude/**', 'cursor/**']
+    branches: [trunk, 'claude/**', 'cursor/**', 'codex/**']
   pull_request:
   workflow_dispatch:
 
@@ -45,6 +45,10 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          # The hosted image already carries the SDK packages. The action's default also asks
+          # sdkmanager for the retired `tools` package, which now fails before any project step.
+          packages: ''
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
@@ -164,6 +168,9 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          # Match the blocking lane: do not request sdkmanager's retired `tools` package.
+          packages: ''
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0

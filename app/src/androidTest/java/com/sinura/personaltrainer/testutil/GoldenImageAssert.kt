@@ -6,9 +6,8 @@ import android.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.test.platform.app.InstrumentationRegistry
-import java.io.File
-import java.io.FileInputStream
 import java.util.Locale
+import java.io.IOException
 import kotlin.math.abs
 import org.junit.Assert.fail
 
@@ -84,35 +83,53 @@ object GoldenImageAssert {
     fun assertMatches(name: String, actualImage: ImageBitmap) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val actual = actualImage.asAndroidBitmap()
+        // Renderer baselines are explicit. Never silently fall back to another
+        // host's PNG or let a missing reference become a passing/skipped test.
+        val profile = InstrumentationRegistry.getArguments().getString("goldenProfile", "legacy")
+        require(profile in setOf("legacy", "windows-swiftshader37")) { "Unknown golden profile: $profile" }
+        val asset = if (profile == "legacy") "$AssetFolder/$name.png" else "$AssetFolder/$profile/$name.png"
         if (InstrumentationRegistry.getArguments().getString("recordGoldens").toBoolean()) {
             val path = writeArtifact(name, "recorded", actual)
             println("GOLDEN_RECORDED $path")
             return
         }
 
-        val expected = checkNotNull(instrumentation.context.assets
-            .open("$AssetFolder/$name.png")
-            .use(BitmapFactory::decodeStream)) {
-            "Golden $name decoded to null"
+        val expected = try {
+            checkNotNull(instrumentation.context.assets.open(asset).use(BitmapFactory::decodeStream)) {
+                "Golden $name decoded to null"
+            }
+        } catch (missing: IOException) {
+            val actualPath = writeArtifact(name, "actual", actual)
+            throw AssertionError("Required golden missing: $asset; review actual=$actualPath before recording a reference", missing)
         }
+        try {
+            if (expected.width != actual.width || expected.height != actual.height) {
+                val actualPath = writeArtifact(name, "actual", actual)
+                val expectedPath = writeArtifact(name, "expected", expected)
+                fail("Golden $name dimensions changed: ${expected.width}×${expected.height} to ${actual.width}×${actual.height}; expected=$expectedPath actual=$actualPath")
+            }
+            val diff = compare(expected, actual)
+            if (diff.matches) return
 
-        val diff = compare(expected, actual)
-        if (diff.matches) return
-
-        val actualPath = writeArtifact(name, "actual", actual)
-        val diffPath = writeArtifact(name, "diff", diffBitmap(expected, actual))
-        val rounding = if (diff.roundingPixels == 0) {
-            ""
-        } else {
-            " ${diff.roundingPixels} pixel(s) within the ${ROUNDING_LEVELS}-level " +
-                "rounding allowance (budget $ROUNDING_BUDGET)."
+            val actualPath = writeArtifact(name, "actual", actual)
+            val expectedPath = writeArtifact(name, "expected", expected)
+            val difference = diffBitmap(expected, actual)
+            val diffPath = try { writeArtifact(name, "diff", difference) } finally { difference.recycle() }
+            val rounding = if (diff.roundingPixels == 0) {
+                ""
+            } else {
+                " ${diff.roundingPixels} pixel(s) within the ${ROUNDING_LEVELS}-level " +
+                    "rounding allowance (budget $ROUNDING_BUDGET)."
+            }
+            fail(
+                "Golden $name changed: ${diff.differentPixels}/${diff.totalPixels} " +
+                    "pixels (${String.format(Locale.US, "%.3f", diff.ratio * 100)}%), " +
+                    "bounds=[${diff.left},${diff.top}..${diff.right},${diff.bottom}].$rounding " +
+                    "expected=$expectedPath actual=$actualPath diff=$diffPath",
+            )
+        } finally {
+            expected.recycle()
         }
-        fail(
-            "Golden $name changed: ${diff.differentPixels}/${diff.totalPixels} " +
-                "pixels (${String.format(Locale.US, "%.3f", diff.ratio * 100)}%), " +
-                "bounds=[${diff.left},${diff.top}..${diff.right},${diff.bottom}].$rounding " +
-                "actual=$actualPath diff=$diffPath",
-        )
     }
 
     fun compare(expected: ImageBitmap, actual: ImageBitmap): PixelDiff =
@@ -127,10 +144,11 @@ object GoldenImageAssert {
         }
         val width = expected.width
         val height = expected.height
-        val expectedPixels = IntArray(width * height)
-        val actualPixels = IntArray(width * height)
-        expected.getPixels(expectedPixels, 0, width, 0, 0, width, height)
-        actual.getPixels(actualPixels, 0, width, 0, 0, width, height)
+        // Bitmaps already own the image storage. Read one scanline at a time:
+        // duplicating two full frames on the managed heap exhausted the API 29
+        // test process before it could report an actual visual difference.
+        val expectedPixels = IntArray(width)
+        val actualPixels = IntArray(width)
 
         var count = 0
         var rounding = 0
@@ -139,23 +157,25 @@ object GoldenImageAssert {
         var top = height
         var right = -1
         var bottom = -1
-        for (index in expectedPixels.indices) {
-            val before = expectedPixels[index]
-            val after = actualPixels[index]
-            if (before == after) continue
-            if (withinRounding(before, after)) rounding++ else count++
-            moved++
-            val x = index % width
-            val y = index / width
-            left = minOf(left, x)
-            top = minOf(top, y)
-            right = maxOf(right, x)
-            bottom = maxOf(bottom, y)
+        for (y in 0 until height) {
+            expected.getPixels(expectedPixels, 0, width, 0, y, width, 1)
+            actual.getPixels(actualPixels, 0, width, 0, y, width, 1)
+            for (x in 0 until width) {
+                val before = expectedPixels[x]
+                val after = actualPixels[x]
+                if (before == after) continue
+                if (withinRounding(before, after)) rounding++ else count++
+                moved++
+                left = minOf(left, x)
+                top = minOf(top, y)
+                right = maxOf(right, x)
+                bottom = maxOf(bottom, y)
+            }
         }
         return PixelDiff(
             differentPixels = count,
             roundingPixels = rounding,
-            totalPixels = expectedPixels.size,
+            totalPixels = width * height,
             left = if (moved == 0) -1 else left,
             top = if (moved == 0) -1 else top,
             right = right,
@@ -176,41 +196,25 @@ object GoldenImageAssert {
     private fun diffBitmap(expected: Bitmap, actual: Bitmap): Bitmap {
         val width = actual.width
         val height = actual.height
-        val expectedPixels = IntArray(width * height)
-        val actualPixels = IntArray(width * height)
-        expected.getPixels(expectedPixels, 0, width, 0, 0, width, height)
-        actual.getPixels(actualPixels, 0, width, 0, 0, width, height)
-        val diff = IntArray(width * height) { index ->
-            if (expectedPixels[index] == actualPixels[index]) {
-                Color.TRANSPARENT
-            } else {
-                Color.rgb(255, 0, 85)
+        val expectedPixels = IntArray(width)
+        val actualPixels = IntArray(width)
+        val diff = IntArray(width)
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        for (y in 0 until height) {
+            expected.getPixels(expectedPixels, 0, width, 0, y, width, 1)
+            actual.getPixels(actualPixels, 0, width, 0, y, width, 1)
+            for (x in 0 until width) {
+                diff[x] = if (expectedPixels[x] == actualPixels[x]) {
+                    Color.TRANSPARENT
+                } else {
+                    Color.rgb(255, 0, 85)
+                }
             }
+            bitmap.setPixels(diff, 0, width, 0, y, width, 1)
         }
-        return Bitmap.createBitmap(diff, width, height, Bitmap.Config.ARGB_8888)
+        return bitmap
     }
 
-    private fun writeArtifact(name: String, suffix: String, bitmap: Bitmap): String {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val root = checkNotNull(context.getExternalFilesDir(null))
-        val folder = File(root, AssetFolder).apply { mkdirs() }
-        val file = File(folder, "$name-$suffix.png")
-        file.outputStream().use { output ->
-            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)) {
-                "Could not encode ${file.absolutePath}"
-            }
-        }
-        // connectedAndroidTest uninstalls both APKs after the run, which also
-        // deletes their external-files directories. Copy through UiAutomation
-        // (the shell identity) so a recorded/mismatch artifact survives long
-        // enough for `adb pull`.
-        val persistent = "/sdcard/Download/${file.name}"
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        instrumentation.uiAutomation
-            .executeShellCommand("cp ${file.absolutePath} $persistent")
-            .use { descriptor ->
-                FileInputStream(descriptor.fileDescriptor).use { it.readBytes() }
-            }
-        return persistent
-    }
+    private fun writeArtifact(name: String, suffix: String, bitmap: Bitmap): String =
+        NativeArtifacts.write("$name-$suffix", bitmap)
 }

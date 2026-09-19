@@ -15,9 +15,13 @@ import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.EditorPhase
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LiftCart
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleGroups
+import com.sinura.personaltrainer.domain.PastedSession
+import com.sinura.personaltrainer.domain.PastedUnmatched
 import com.sinura.personaltrainer.domain.PendingPick
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineEditorLoad
@@ -27,6 +31,11 @@ import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.RoutineTargetsOutcome
 import com.sinura.personaltrainer.domain.RoutineWriteOutcome
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WorkoutPaste
+import com.sinura.personaltrainer.domain.WorkoutPasteCopy
+import com.sinura.personaltrainer.domain.WorkoutPastePlan
+import com.sinura.personaltrainer.domain.WorkoutPasteRest
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
@@ -37,6 +46,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -63,6 +73,7 @@ private const val ERR_TARGET_RULE = "targetRule"
 private const val ERR_REMOVE_LIFT = "removeLift"
 private const val ERR_REORDER = "reorder"
 private const val ERR_ROUTINE = "routine"
+private const val ERR_PASTE = "paste"
 
 data class RoutineEditorUiState(
     val isLoading: Boolean = true,
@@ -103,6 +114,10 @@ data class RoutineEditorUiState(
      * without saving these. Null until Back fails; cleared when the next attempt starts.
      */
     val unsavedOnBack: RoutineExitOutcome.Unsaved? = null,
+    val unmatched: List<PastedUnmatched> = emptyList(),
+    val createdFromPaste: List<String> = emptyList(),
+    val pasting: Boolean = false,
+    val unmatchedPick: PastedUnmatched? = null,
 ) {
     /**
      * The other lifts in this one's family, minus what the routine already holds.
@@ -147,6 +162,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val swapItemId = MutableStateFlow<String?>(null)
     private val pendingPicks = MutableStateFlow<List<PendingPick>>(emptyList())
     private val exitState = MutableStateFlow(ExitState())
+    private val pasteState = MutableStateFlow(PasteUi())
 
     /**
      * Picker writes run one at a time, in tap order. Two taps on the same row are an add
@@ -264,13 +280,15 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             },
             swapItemId,
             pendingPicks,
-        ) { sources, swapTarget, pending ->
+            pasteState,
+        ) { sources, swapTarget, pending, paste ->
             val (incoming, extra) = sources
             CatalogExtras(
                 catalog = LiftCart.mergeSources(incoming, extra),
                 extra = extra,
                 swapItemId = swapTarget,
                 pending = pending,
+                paste = paste,
             )
         },
     ) { core, extras, catalogExtras ->
@@ -295,10 +313,14 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 pending = catalogExtras.pending,
             ),
             error = extras.error,
-            addingLifts = catalogExtras.pending.isNotEmpty(),
+            addingLifts = catalogExtras.pending.isNotEmpty() || catalogExtras.paste.pasting,
             saving = extras.exit.saving,
             saveError = extras.exit.saveError,
             unsavedOnBack = extras.exit.unsavedOnBack,
+            unmatched = catalogExtras.paste.unmatched,
+            createdFromPaste = catalogExtras.paste.createdNames,
+            pasting = catalogExtras.paste.pasting,
+            unmatchedPick = catalogExtras.paste.unmatchedPick,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -394,6 +416,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
          * than reading the unparseable box as "leave this one alone" (UX06).
          */
         invalidReason: String? = null,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ) {
         stagedTargets[itemId] = StagedTargets(
             targetSets = targetSets,
@@ -401,6 +425,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             targetWeightKg = targetWeightKg,
             restSeconds = restSeconds,
             invalidReason = invalidReason,
+            targetSeconds = targetSeconds,
+            targetSecondsMax = targetSecondsMax,
         )
     }
 
@@ -437,7 +463,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 cleared = true
                 val kept = staged.copy(invalidReason = null, targetWeightKg = storedWeightKg)
                 if (kept.targetSets == null && kept.targetReps == null &&
-                    kept.targetWeightKg == null && kept.restSeconds == null
+                    kept.targetWeightKg == null && kept.restSeconds == null &&
+                    kept.targetSeconds == null
                 ) {
                     null
                 } else {
@@ -525,6 +552,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             storedReps = stored.targetReps,
             storedWeightKg = stored.targetWeightKg,
             storedRestSeconds = stored.restSeconds,
+            typedSeconds = staged.targetSeconds,
+            typedSecondsMax = staged.targetSecondsMax,
+            storedSeconds = stored.targetSeconds,
+            storedSecondsMax = stored.targetSecondsMax,
+            hold = HoldWork.isHold(stored.exercise) || staged.targetSeconds != null,
         )
         if (pending == null) {
             // Identical to what is stored, so there is nothing to write and nothing to keep.
@@ -543,6 +575,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             targetReps = pending.targetReps,
             targetWeightKg = pending.targetWeightKg,
             restSeconds = pending.restSeconds,
+            targetSeconds = pending.targetSeconds,
+            targetSecondsMax = pending.targetSecondsMax,
         )
         // Dropped only once it is stored. A failed write is kept so that Save and Back are one
         // more chance to land it — dropping it here is how a typed target disappears quietly,
@@ -808,7 +842,172 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         // The typed query is the only thing closing the sheet throws away. The lifts are
         // already on the routine, which is the whole point: a tap outside the sheet used to
         // empty a cart the owner had just built by hand, and the list started again.
-        if (!visible) searchQuery.value = ""
+        if (!visible) {
+            searchQuery.value = ""
+            if (pasteState.value.unmatchedPick != null) {
+                pasteState.update { it.copy(unmatchedPick = null) }
+            }
+        }
+    }
+
+    /**
+     * Read a written workout and fill this routine. Extra sessions in the
+     * same paste become more routines. Nothing is invented.
+     */
+    fun importPaste(text: String) {
+        val started = error.mark()
+        if (leaving) return
+        if (text.isBlank()) {
+            error.fail(source = ERR_PASTE, message = WorkoutPasteCopy.EMPTY)
+            return
+        }
+        launchWrite {
+            pasteState.update { it.copy(pasting = true) }
+            try {
+                val catalog = container.exerciseRepository.observeAll().first()
+                if (catalog.isEmpty()) {
+                    error.fail(source = ERR_PASTE, message = WorkoutPasteCopy.EMPTY_LIBRARY)
+                    return@launchWrite
+                }
+                val plan = WorkoutPaste.parseAndMatch(text, catalog)
+                WorkoutPaste.unreadableReason(text, plan)?.let { reason ->
+                    error.fail(source = ERR_PASTE, message = reason)
+                    return@launchWrite
+                }
+                val currentId = ensureRoutineId() ?: return@launchWrite
+                val first = plan.sessions.first()
+                applyPastedSession(currentId, first, plan)
+                val extras = mutableListOf<String>()
+                val idsByName = mutableMapOf(first.name to currentId)
+                for (session in plan.sessions.drop(1)) {
+                    val created = container.routineRepository.create(
+                        session.name,
+                        plan.combinedNotes(session),
+                    )
+                    applyPastedLifts(created.id, session)
+                    extras += session.name
+                    idsByName[session.name] = created.id
+                }
+                pinPastedWeek(plan, idsByName)
+                val strengthBlocks = plan.strengthSessions()
+                val strengthMisses = strengthBlocks.flatMap { session ->
+                    session.unmatched.map { miss ->
+                        miss.copy(
+                            sessionName = session.name.takeIf { strengthBlocks.size > 1 },
+                        )
+                    }
+                }
+                pasteState.update {
+                    PasteUi(
+                        unmatched = strengthMisses,
+                        createdNames = extras,
+                    )
+                }
+                if (strengthMisses.isNotEmpty()) {
+                    error.fail(
+                        source = ERR_PASTE,
+                        message = WorkoutPasteCopy.pasteIssues(strengthMisses),
+                    )
+                } else {
+                    error.clearFrom(source = ERR_PASTE, before = started)
+                    error.clearFrom(source = ERR_SAVE, before = started)
+                }
+            } catch (thrown: CancellationException) {
+                throw thrown
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "importPaste failed", thrown)
+                error.fail(source = ERR_PASTE, message = WorkoutPasteCopy.FAILED)
+            } finally {
+                pasteState.update { it.copy(pasting = false) }
+            }
+        }
+    }
+
+    fun requestUnmatchedPick(item: PastedUnmatched) {
+        if (leaving || missing) return
+        pasteState.update { it.copy(unmatchedPick = item) }
+        setPickerVisible(true)
+    }
+
+    fun resolveUnmatched(exercise: Exercise) {
+        val pending = pasteState.value.unmatchedPick ?: return
+        val defaults = AddDefaults.forExercise(exercise)
+        val scheme = pending.scheme
+        pasteState.update {
+            it.copy(
+                unmatchedPick = null,
+                unmatched = it.unmatched.filterNot { row ->
+                    row.raw == pending.raw && row.names == pending.names
+                },
+            )
+        }
+        setPickerVisible(false)
+        addExercise(
+            exercise = exercise,
+            targetSets = scheme?.storedSets ?: defaults.sets,
+            targetReps = if (scheme?.isTimed == true) {
+                HoldWork.HOLD_REPS_PLACEHOLDER
+            } else {
+                scheme?.storedReps ?: defaults.reps
+            },
+            targetWeightKg = null,
+            restSeconds = scheme?.let { WorkoutPasteRest.forLift(exercise, it) } ?: defaults.restSeconds,
+            targetSeconds = if (scheme?.isTimed == true) scheme.storedSeconds else defaults.seconds,
+            targetSecondsMax = if (scheme?.isTimed == true) scheme.storedSecondsMax else defaults.secondsMax,
+        )
+    }
+
+    private suspend fun applyPastedSession(id: String, session: PastedSession, plan: WorkoutPastePlan) {
+        val notesText = plan.combinedNotes(session)
+        name.value = session.name
+        notes.value = notesText
+        persistDraft()
+        container.routineRepository.updateDetails(id, session.name, notesText)
+        applyPastedLifts(id, session)
+    }
+
+    private suspend fun pinPastedWeek(plan: WorkoutPastePlan, idsByName: Map<String, String>) {
+        if (plan.weekPins.isEmpty()) return
+        if (container.scheduleRepository.slots().isNotEmpty()) return
+        val pinDays = setOf(
+            Weekday.MONDAY,
+            Weekday.TUESDAY,
+            Weekday.THURSDAY,
+            Weekday.FRIDAY,
+            Weekday.SATURDAY,
+        )
+        try {
+            plan.weekPins.forEach { pin ->
+                if (pin.weekday !in pinDays) return@forEach
+                pin.sessionNames.forEach { sessionName ->
+                    val id = idsByName[sessionName] ?: return@forEach
+                    container.scheduleRepository.pin(
+                        routineId = id,
+                        focusKind = null,
+                        anchorDay = pin.weekday,
+                    )
+                }
+            }
+        } catch (thrown: CancellationException) {
+            throw thrown
+        } catch (thrown: Exception) {
+            AppLog.w(TAG, "paste week pins failed", thrown)
+        }
+    }
+
+    private suspend fun applyPastedLifts(id: String, session: PastedSession) {
+        session.lifts.forEach { lift ->
+            container.routineRepository.addExercise(
+                routineId = id,
+                exercise = lift.exercise,
+                targetSets = lift.targetSets,
+                targetReps = lift.targetReps,
+                targetWeightKg = null,
+                restSeconds = lift.restSeconds,
+                targetSeconds = lift.targetSeconds,
+                targetSecondsMax = lift.targetSecondsMax,
+            )
+        }
     }
 
     /**
@@ -862,7 +1061,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // to see the write that finished a moment ago, not the state before it.
             val row = storedRow(id, exercise.id)
             if (adding && row == null) {
-                val defaults = AddDefaults.forExercise(exercise)
+                val defaults = AddDefaults.forExercise(
+                    exercise,
+                    goal = container.preferencesRepository.coachPreferences.first().goal,
+                )
                 container.routineRepository.addExercise(
                     routineId = id,
                     exercise = exercise,
@@ -870,6 +1072,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     targetReps = defaults.reps,
                     targetWeightKg = null,
                     restSeconds = defaults.restSeconds,
+                    targetSeconds = defaults.seconds,
+                    targetSecondsMax = defaults.secondsMax,
                 )
             } else if (!adding && row != null) {
                 container.routineRepository.removeExercise(row.id, id)
@@ -922,6 +1126,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ) {
         val started = error.mark()
         if (missing) {
@@ -948,6 +1154,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                     targetReps = targetReps,
                     targetWeightKg = targetWeightKg,
                     restSeconds = restSeconds,
+                    targetSeconds = targetSeconds,
+                    targetSecondsMax = targetSecondsMax,
                 )
                 if (!leaving) {
                     showPicker.value = false
@@ -964,7 +1172,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
     }
 
-    fun createAndSelect(name: String, muscleGroup: String) {
+    fun createAndSelect(name: String, muscleGroup: String, loadType: LoadType = LoadType.EXTERNAL) {
         val started = error.mark()
         if (leaving) return
         if (name.isBlank()) {
@@ -973,7 +1181,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
         launchWrite {
             try {
-                when (val result = container.exerciseRepository.createCustom(name, muscleGroup)) {
+                when (val result = container.exerciseRepository.createCustom(
+                    name,
+                    muscleGroup,
+                    loadType = loadType,
+                )) {
                     is SaveExerciseResult.DuplicateName ->
                         error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
                     is SaveExerciseResult.MissingMuscle ->
@@ -1011,8 +1223,14 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ): RoutineWriteOutcome {
-        if (targetSets < 1 || targetReps < 1) {
+        val hold = targetSeconds != null
+        if (targetSets < 1 || (!hold && targetReps < 1)) {
+            return RoutineWriteOutcome.Rejected(RoutineSaveCopy.TARGETS_REJECTED)
+        }
+        if (hold && (targetSeconds ?: 0) < HoldWork.MIN_SECONDS) {
             return RoutineWriteOutcome.Rejected(RoutineSaveCopy.TARGETS_REJECTED)
         }
         val id = ensureRoutineId() ?: return RoutineWriteOutcome.Failed
@@ -1024,6 +1242,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 targetReps = targetReps,
                 targetWeightKg = targetWeightKg,
                 restSeconds = restSeconds,
+                targetSeconds = targetSeconds,
+                targetSecondsMax = targetSecondsMax,
             )
             RoutineWriteOutcome.Stored
         }.getOrElse { thrown ->
@@ -1154,6 +1374,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val targetWeightKg: Double?,
         val restSeconds: Int?,
         val invalidReason: String? = null,
+        val targetSeconds: Int? = null,
+        val targetSecondsMax: Int? = null,
     )
 
     private data class EditorCore(
@@ -1169,6 +1391,14 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         val extra: List<Exercise>,
         val swapItemId: String?,
         val pending: List<PendingPick>,
+        val paste: PasteUi,
+    )
+
+    private data class PasteUi(
+        val unmatched: List<PastedUnmatched> = emptyList(),
+        val createdNames: List<String> = emptyList(),
+        val pasting: Boolean = false,
+        val unmatchedPick: PastedUnmatched? = null,
     )
 
     private data class EditorFlags(

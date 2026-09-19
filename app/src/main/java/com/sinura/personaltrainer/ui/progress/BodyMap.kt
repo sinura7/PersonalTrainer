@@ -1,7 +1,5 @@
 package com.sinura.personaltrainer.ui.progress
 
-import androidx.compose.animation.animateColorAsState
-import com.sinura.personaltrainer.ui.theme.instrumentTween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,21 +39,23 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.BodyHeatSnapshot
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.MuscleLoadCalculator
 import com.sinura.personaltrainer.domain.MuscleLoadSummary
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.BodyView
 import com.sinura.personaltrainer.ui.components.FIGURE_ASPECT
-import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceGroup
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.MuscleStill
 import com.sinura.personaltrainer.ui.components.drawTemperFigure
 import com.sinura.personaltrainer.ui.components.hotspotsFor
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
-import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.SteelDim
 import com.sinura.personaltrainer.ui.theme.Surface1
@@ -152,30 +151,31 @@ fun BodyMapCard(
         // The view switch used to float over the figure's top-left corner and read as part
         // of the drawing (DESIGN_AUDIT B-05). A control that changes the whole picture gets
         // its own strip under the panel, beside what the picture was built from.
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
-            BodyView.entries.forEach { option ->
-                InstrumentChip(
-                    label = option.label,
-                    selected = view == option,
-                    onClick = { onViewChange(option) },
-                    modifier = Modifier.testTag(
-                        if (option == BodyView.FRONT) BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK,
-                    ),
-                )
+            InstrumentChoiceGroup {
+                BodyView.entries.forEach { option ->
+                    InstrumentChoiceChip(
+                        label = option.label,
+                        selected = view == option,
+                        onClick = { onViewChange(option) },
+                        modifier = Modifier.testTag(
+                            if (option == BodyView.FRONT) BodyTags.VIEW_FRONT else BodyTags.VIEW_BACK,
+                        ),
+                    )
+                }
             }
             if (facts != null) {
                 Text(
                     facts,
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .testTag(BodyTags.FACTS),
                     style = InstrumentType.caption,
                     color = TextSecondary,
-                    textAlign = TextAlign.End,
+                    textAlign = TextAlign.Start,
                 )
             }
         }
@@ -184,8 +184,8 @@ fun BodyMapCard(
 
 /**
  * Colour is never the only channel here: each swatch carries its band as a kicker, and the
- * rows below state the volume as a numeral. "Rest" is on the scale rather than off it, so a
- * muscle with no work in the window still has a name for what it is showing.
+ * rows below state the volume as a numeral. "No work" is explicit because the empty colour
+ * says nothing about recovery or readiness.
  */
 @Composable
 fun HeatLegend(modifier: Modifier = Modifier) {
@@ -198,23 +198,19 @@ fun HeatLegend(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Kicker("Load")
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LegendSwatch("Rest", heatColor(0f))
-                LegendSwatch("Low", heatColor(0.22f))
-                LegendSwatch("Moderate", heatColor(0.5f))
-                LegendSwatch("High", heatColor(0.95f))
-            }
+            LegendSwatch("No work", heatColor(0f))
+            LegendSwatch("Low", heatColor(MuscleLoadCalculator.FRACTION_TOUCHED))
+            LegendSwatch(
+                "Productive",
+                heatColor(MuscleLoadCalculator.FRACTION_PRODUCTIVE),
+            )
+            LegendSwatch("High", heatColor(MuscleLoadCalculator.FRACTION_HIGH))
         }
         Text(
             BodyHeatCopy.LEGEND_CAPTION,
             style = InstrumentType.caption,
             color = TextTertiary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            maxLines = 2,
         )
     }
 }
@@ -237,47 +233,52 @@ private fun LegendSwatch(label: String, color: Color) {
 /**
  * One muscle, as a readout.
  *
- * The trailing edge — the slot the eye lands on and the only column that lines up down the
- * list — used to hold the band word, which the swatch beside the name already says in
- * colour. The volume it duplicated was buried mid-sentence in "4 sets · 3,120 kg · 2 days
- * ago". The numbers now hold the columns and the sentence is gone.
+ * The leading still is that body part on the Temper figure. Live load stays
+ * on the silhouette and in the trailing numerals. First launch keeps
+ * [BodyHeatCopy.SEE_LIFTS] on the trailing edge.
  */
 @Composable
 fun MuscleHeatRow(
     load: MuscleLoadSummary,
+    window: HeatWindow,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     unit: WeightUnit = LocalWeightUnit.current,
+    /**
+     * First launch: the row is a doorway to the lifts that train this muscle,
+     * not a 0/0 readout that looks broken.
+     */
+    doorway: Boolean = false,
 ) {
-    val fill by animateColorAsState(
-        targetValue = heatColor(load.heat),
-        animationSpec = instrumentTween(Motion.BASE),
-        label = "row-${load.muscle.name}",
-    )
-    val spoken = muscleRowSpoken(load, unit)
+    val spoken = muscleRowSpoken(load, window, unit, doorway)
     InstrumentRow(
         title = load.muscle.displayName,
         modifier = modifier
             .background(if (selected) SurfacePressed else Color.Transparent)
             .testTag(BodyTags.muscle(load.muscle))
             .semantics(mergeDescendants = true) { contentDescription = spoken },
-        subtitle = recencyLabel(load),
+        subtitle = muscleRowSubtitle(load, window),
         onClick = onClick,
         leading = {
-            Box(
-                modifier = Modifier
-                    .size(width = HEAT_SWATCH_WIDTH, height = HEAT_SWATCH_HEIGHT)
-                    .background(fill)
-                    .clearAndSetSemantics { },
-            )
+            MuscleStill(muscle = load.muscle)
         },
     ) {
-        MetricCluster(value = load.workingSets.toString(), label = "sets")
-        // Reps for a muscle trained only with bodyweight lifts. "0 kg" beside a real set
-        // count would read as the app having failed to notice the work.
-        val column = SetCopy.workColumn(load.work, unit)
-        MetricCluster(value = column.value, label = column.label)
+        if (doorway) {
+            Text(
+                text = BodyHeatCopy.SEE_LIFTS,
+                style = InstrumentType.bodyStrong,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        } else {
+            MetricCluster(value = load.workingSets.toString(), label = "sets")
+            // Reps for a muscle trained only with bodyweight lifts. "0 kg" beside a real set
+            // count would read as the app having failed to notice the work.
+            val column = SetCopy.workColumn(load.work, unit)
+            MetricCluster(value = column.value, label = column.label)
+        }
     }
 }
 
@@ -288,12 +289,25 @@ fun recencyLabel(load: MuscleLoadSummary): String = when (val days = load.daysSi
     else -> "$days days ago"
 }
 
+/** Keeps period load and lifetime recency visibly separate in the same compact row. */
+fun muscleRowSubtitle(load: MuscleLoadSummary, window: HeatWindow): String =
+    "${window.shortLabel}: ${load.band.legendLabel.lowercase()} · ${recencyLabel(load)}"
+
 /** One TalkBack name for the reliable 48 dp muscle row (FND-023). */
-fun muscleRowSpoken(load: MuscleLoadSummary, unit: WeightUnit): String {
+fun muscleRowSpoken(
+    load: MuscleLoadSummary,
+    window: HeatWindow,
+    unit: WeightUnit,
+    doorway: Boolean = false,
+): String {
+    if (doorway) {
+        return "${load.muscle.displayName}, ${window.label}: no work, ${recencyLabel(load)}. " +
+            "Tap to see the lifts that train it."
+    }
     val column = SetCopy.workColumn(load.work, unit)
-    return "${load.muscle.displayName}, ${recencyLabel(load)}, " +
-        "${load.band.legendLabel} load, ${load.workingSets} sets, " +
-        "${column.value} ${column.label}"
+    return "${load.muscle.displayName}, ${window.label}: " +
+        "${load.band.legendLabel.lowercase()} load, ${load.workingSets} credited sets, " +
+        "${column.value} ${column.label}, ${recencyLabel(load)}"
 }
 
 object BodyTags {
@@ -311,8 +325,11 @@ object BodyTags {
     const val START_SHEET = "body-start-sheet"
     const val FACTS = "body-facts"
     const val SHOW_MONTH = "body-show-month"
+    const val FIRST_LIFTS = "body-first-lifts"
 
     fun muscle(muscle: CanonicalMuscle): String = "body-muscle-${muscle.name}"
+
+    fun explorerLift(exerciseId: String): String = "body-explorer-lift-$exerciseId"
 
     fun window(window: HeatWindow): String = when (window) {
         HeatWindow.DAY -> WINDOW_DAY
@@ -322,5 +339,3 @@ object BodyTags {
 }
 
 private val LEGEND_DOT = 10.dp
-private val HEAT_SWATCH_WIDTH = 10.dp
-private val HEAT_SWATCH_HEIGHT = 32.dp

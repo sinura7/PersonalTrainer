@@ -190,6 +190,8 @@ data class BackupRoutineExercise(
     val targetReps: Int,
     val targetWeightKg: Double?,
     val restSeconds: Int,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 data class BackupSession(
@@ -212,6 +214,8 @@ data class BackupSessionExercise(
     val targetReps: Int,
     val targetWeightKg: Double?,
     val restSeconds: Int,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 data class BackupSetLog(
@@ -224,6 +228,7 @@ data class BackupSetLog(
     val rpe: Int?,
     val isWarmup: Boolean,
     val completedAt: Long,
+    val durationSeconds: Int? = null,
 )
 
 data class BackupCapturedTime(

@@ -14,8 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.MoreVert
@@ -44,12 +42,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.domain.AddDefaults
+import com.sinura.personaltrainer.domain.AddToRoutineCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LibraryFamily
+import com.sinura.personaltrainer.domain.LoadTypeCopy
 import com.sinura.personaltrainer.domain.MuscleGroups
-import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.ui.components.AddToRoutineSheet
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseRow
@@ -61,7 +61,6 @@ import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.OutlinedMarks
-import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -212,6 +211,7 @@ fun ExerciseLibraryScreen(
                     if (state.visibleExercises.isEmpty() && state.needsAttention.isEmpty()) {
                         val filtered = state.exercises.isNotEmpty()
                         EmptyState(
+                            scene = EmptyScene.CATALOG,
                             title = if (filtered) "No matches" else "Library is empty",
                             body = if (filtered) {
                                 "Clear search or filters, or add a custom lift."
@@ -372,13 +372,14 @@ fun ExerciseLibraryScreen(
     state.addToRoutine?.let { exercise ->
         AddToRoutineSheet(
             exercise = exercise,
-            routines = state.routines,
+            destinations = AddToRoutineCopy.destinations(state.routines, exercise.id),
+            emptyBody = AddToRoutineCopy.EMPTY_LIBRARY,
             onSelect = viewModel::addToRoutine,
+            onDismiss = viewModel::dismissAddToRoutine,
             onCreateRoutine = {
                 viewModel.dismissAddToRoutine()
                 onCreateRoutine()
             },
-            onDismiss = viewModel::dismissAddToRoutine,
         )
     }
 }
@@ -464,10 +465,11 @@ private fun LibraryRow(
     ExerciseRow(
         exercise = exercise,
         onClick = onOpen,
-        // Equipment is the thing that distinguishes eight bench presses from each other, so it
-        // is what the tag says. "Custom" still wins on the user's own lifts: which of these is
-        // mine is a more urgent question than what it is loaded with.
-        tag = if (exercise.isCustom) "Custom" else exercise.equipment.label,
+        // Equipment is the thing that distinguishes eight bench presses from each other.
+        // Load sits next to it when the kit does not already say plates-versus-stack
+        // (E-12). "Custom" still wins on the user's own lifts, with the load named when it
+        // is not the plates default.
+        tag = LoadTypeCopy.libraryTag(exercise),
     ) {
         IconButton(onClick = onAddToRoutine) {
             Icon(
@@ -538,70 +540,6 @@ private fun SheetActionRow(label: String, color: Color, onClick: () -> Unit) {
         Text(label, style = InstrumentType.title, color = color)
     }
 }
-
-/**
- * Picking a routine is a task, so it gets a sheet.
- *
- * It used to be an [AlertDialog] whose options were bare left-aligned text buttons — an
- * alert asking a question it had no business asking. Alerts confirm; sheets do work.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun AddToRoutineSheet(
-    exercise: Exercise,
-    routines: List<Routine>,
-    onSelect: (String) -> Unit,
-    onCreateRoutine: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = Metrics.space7),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space4),
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = Metrics.gutter),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-            ) {
-                Text("Add ${exercise.name}", style = InstrumentType.title, color = TextPrimary)
-                Text(
-                    if (routines.isEmpty()) {
-                        "No routines yet. Create one first, then add this lift."
-                    } else {
-                        AddDefaults.landingCopy(exercise)
-                    },
-                    style = InstrumentType.body,
-                    color = TextSecondary,
-                )
-            }
-            if (routines.isEmpty()) {
-                PrimaryGymButton(
-                    text = "Create routine",
-                    onClick = onCreateRoutine,
-                    modifier = Modifier.padding(horizontal = Metrics.gutter),
-                )
-            } else {
-                Column {
-                    HairlineDivider(startIndent = 0.dp)
-                    routines.forEachIndexed { index, routine ->
-                        InstrumentRow(
-                            title = routine.name,
-                            subtitle = liftCountLabel(routine.exercises.size),
-                            onClick = { onSelect(routine.id) },
-                        )
-                        if (index < routines.lastIndex) HairlineDivider()
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun liftCountLabel(count: Int): String =
-    if (count == 1) "1 lift" else "$count lifts"
 
 object LibraryTags {
     const val BACK = "library-back"

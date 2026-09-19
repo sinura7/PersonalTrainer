@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CustomWeekDayMark
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
@@ -75,7 +76,7 @@ fun CustomWeekScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val finished by viewModel.finished.collectAsStateWithLifecycle()
-    var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedRequest by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingFullWeek by rememberSaveable { mutableStateOf(false) }
     var confirmLeave by rememberSaveable { mutableStateOf(false) }
     val restDays = CustomWeekPolicy.restDayCount(state.days)
@@ -142,7 +143,7 @@ fun CustomWeekScreen(
                 filled = state.days.filter { it.value.isNotEmpty() }.keys,
                 preferred = state.preferredDays,
                 onSelect = { day ->
-                    expandedId = null
+                    expandedRequest = null
                     viewModel.selectDay(day)
                 },
             )
@@ -151,11 +152,8 @@ fun CustomWeekScreen(
             }
 
             val lifts = state.selectedLifts
-            LaunchedEffect(state.selectedDay, lifts.map { it.id }) {
-                if (expandedId != null && lifts.none { it.id == expandedId }) {
-                    expandedId = null
-                }
-            }
+            // Derived rather than corrected — see RoutineEditorScreen.
+            val expandedId = expandedRequest?.takeIf { id -> lifts.any { it.id == id } }
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(bottom = Metrics.space4),
@@ -164,6 +162,7 @@ fun CustomWeekScreen(
                 if (lifts.isEmpty()) {
                     item {
                         EmptyState(
+                            scene = EmptyScene.RACK,
                             title = "No lifts on ${state.selectedDay.shortLabel()}",
                             body = SessionOrderCopy.EMPTY_WEEK_BODY,
                             actionLabel = "Add lifts",
@@ -186,20 +185,22 @@ fun CustomWeekScreen(
                                     reps = item.targetReps,
                                     restSeconds = item.restSeconds,
                                     targetWeightKg = item.targetWeightKg,
+                                    targetSeconds = item.targetSeconds,
+                                    targetSecondsMax = item.targetSecondsMax,
                                 )
                             },
                             selectedId = expandedId,
                             onSelect = { id ->
-                                expandedId = if (expandedId == id) null else id
+                                expandedRequest = if (expandedId == id) null else id
                             },
                             onMoveEarlier = { id -> viewModel.moveLift(id, -1) },
                             onMoveLater = { id -> viewModel.moveLift(id, 1) },
                             onRemove = { id ->
-                                if (expandedId == id) expandedId = null
+                                if (expandedId == id) expandedRequest = null
                                 viewModel.removeLift(id)
                             },
-                            onStageTargets = { id, sets, reps, rest, kg, invalid ->
-                                viewModel.stageTargets(id, sets, reps, rest, kg, invalid)
+                            onStageTargets = { id, sets, reps, rest, kg, invalid, seconds, secondsMax ->
+                                viewModel.stageTargets(id, sets, reps, rest, kg, invalid, seconds, secondsMax)
                             },
                             onCommitTargets = { },
                             onForgetTargetRule = { id -> viewModel.forgetTargetRule(id) },
@@ -273,7 +274,7 @@ fun CustomWeekScreen(
                     is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
                     is ExercisePickerEvent.Selected -> Unit
                     is ExercisePickerEvent.Created ->
-                        viewModel.createAndSelect(event.name, event.muscleGroup)
+                        viewModel.createAndSelect(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> viewModel.togglePicked(event.exercise)
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()

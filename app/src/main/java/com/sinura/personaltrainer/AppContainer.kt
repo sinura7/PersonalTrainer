@@ -2,8 +2,19 @@ package com.sinura.personaltrainer
 
 import android.content.Context
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import com.sinura.personaltrainer.update.AndroidDebugApkInstaller
+import com.sinura.personaltrainer.update.DataStoreDebugUpdateCache
+import com.sinura.personaltrainer.update.DebugUpdateChecker
+import com.sinura.personaltrainer.update.DebugUpdateMonitor
+import com.sinura.personaltrainer.update.DebugUpdatePort
+import com.sinura.personaltrainer.update.DisabledDebugUpdate
+import com.sinura.personaltrainer.update.HttpUrlConnectionDebugApkFetcher
+import com.sinura.personaltrainer.update.HttpUrlConnectionDebugUpdateHttp
+import com.sinura.personaltrainer.update.debugUpdateDataStore
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
@@ -19,7 +30,7 @@ import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.timer.SharedPrefsCardioTimerPersistence
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
-import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
 import com.sinura.personaltrainer.data.repository.ExerciseRepository
@@ -37,6 +48,7 @@ import com.sinura.personaltrainer.timer.RestTimerController
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
+import com.sinura.personaltrainer.workout.CompleteTraining
 import com.sinura.personaltrainer.workout.DiscardWorkout
 import com.sinura.personaltrainer.workout.FinishWorkout
 import com.sinura.personaltrainer.workout.StartLiveCardio
@@ -48,6 +60,32 @@ class AppContainer(context: Context) : AppDependencies {
     override val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
     override val computeDispatcher: CoroutineDispatcher = Dispatchers.Default
     override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime
+
+    /**
+     * Temper Debug only. Gym-floor is [DisabledDebugUpdate]: it never talks to
+     * GitHub and never nags. The tap path downloads the debug APK and hands it
+     * to Android's installer; it does not skip the system install sheet.
+     */
+    val debugUpdate: DebugUpdatePort = if (BuildConfig.DEBUG) {
+        val cache = DataStoreDebugUpdateCache(context.debugUpdateDataStore)
+        DebugUpdateMonitor(
+            checker = DebugUpdateChecker(
+                http = HttpUrlConnectionDebugUpdateHttp(),
+                cache = cache,
+                enabled = true,
+                installedVersionCode = BuildConfig.VERSION_CODE,
+                nowMillis = { System.currentTimeMillis() },
+                isOnline = { NetworkChecker(context).isOnline() },
+            ),
+            cache = cache,
+            fetcher = HttpUrlConnectionDebugApkFetcher(),
+            installer = AndroidDebugApkInstaller(context),
+            scope = CoroutineScope(SupervisorJob() + ioDispatcher),
+            ioDispatcher = ioDispatcher,
+        )
+    } else {
+        DisabledDebugUpdate
+    }
 
     private val database: TemperDatabase = TemperDatabase.create(context)
 
@@ -65,7 +103,7 @@ class AppContainer(context: Context) : AppDependencies {
         // A lambda because plannerRepository is built further down this file; it is only ever
         // called long after construction.
         onOccurrenceCompleted = { plannerRepository.cancelRemindersFor(it) },
-        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
+        restoreBlocksStart = { backupService.restoreBlocksStart() },
     )
 
     override val exerciseRepository: ExerciseRepository = ExerciseRepository(
@@ -93,7 +131,7 @@ class AppContainer(context: Context) : AppDependencies {
         database,
         database.workoutDao(),
         dbMaintenance,
-        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
+        restoreBlocksStart = { backupService.restoreBlocksStart() },
     )
     override val completedTrainingRepository: CompletedTrainingRepository =
         CompletedTrainingRepository(workoutRepository, activityRepository, time)
@@ -177,6 +215,12 @@ class AppContainer(context: Context) : AppDependencies {
     override val finishActivity: FinishActivity = FinishActivity(activityRepository, time)
     override val cardioTimerPersistence: SharedPrefsCardioTimerPersistence =
         SharedPrefsCardioTimerPersistence(context)
+    override val completeTraining: CompleteTraining = CompleteTraining(
+        strengthFinish = finishWorkout,
+        activityConfirm = confirmActivity,
+        activityFinish = finishActivity,
+        cardioTimerPersistence = cardioTimerPersistence,
+    )
     override val startLiveCardio: StartLiveCardio = StartLiveCardio(
         startLiveActivity = startLiveActivity,
         cardioTimerPersistence = cardioTimerPersistence,
@@ -190,7 +234,7 @@ class AppContainer(context: Context) : AppDependencies {
     override val backupPassphraseSealer: BackupPassphraseSealer =
         KeystoreBackupPassphraseSealer()
 
-    override val backupRepository: BackupRepository = BackupRepository(
+    override val backupService: BackupService = BackupService(
         localBackupRepository = LocalBackupRepository(
             database = database,
             activityDao = database.activityDao(),

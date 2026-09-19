@@ -62,14 +62,20 @@ class DriveRestClient(
             {"name":"$fileName","mimeType":"application/json","parents":["$folderId"],"appProperties":{"app":"${BackupJson.APP_ID}","kind":"backup"}}
         """.trimIndent()
         val boundary = "ptbackup${System.currentTimeMillis()}"
+        // RFC 2046 §5.1.1: the CRLF before every boundary line belongs to the boundary, not to
+        // the part, so it is always written. This used to skip it when the payload already
+        // ended in "\n" — and every backup does, since BackupJson and the envelope both end
+        // their text with one — which put "\n--boundary--" on the wire. Drive's parser looks
+        // for "\r\n--boundary--", found nothing, and refused every upload since Live 60
+        // with "Missing end boundary in multipart body". A payload's own trailing newline
+        // is part content and is kept.
         val payload = buildString {
             append("--").append(boundary).append("\r\n")
             append("Content-Type: application/json; charset=UTF-8\r\n\r\n")
             append(metadata).append("\r\n")
             append("--").append(boundary).append("\r\n")
             append("Content-Type: application/json\r\n\r\n")
-            append(json)
-            if (!json.endsWith("\n")) append("\r\n")
+            append(json).append("\r\n")
             append("--").append(boundary).append("--\r\n")
         }
         val body = request(

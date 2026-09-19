@@ -18,6 +18,8 @@ class HistoryStrongerTest {
         assertTrue(screen.contains("showMonth = monthExpanded"))
         assertTrue(screen.contains("progress = state.horizonProgress"))
         assertTrue(screen.contains("HistoryTags.MOVED_MOST"))
+        assertTrue(screen.contains("EmptyScene.LOG"))
+        assertTrue(screen.contains("HistoryCopy.EMPTY_TITLE"))
 
         val calendar = readOwned("ui/history/TrainingCalendarCard.kt")
         assertTrue(calendar.contains("showMonth"))

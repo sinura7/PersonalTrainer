@@ -13,8 +13,17 @@ class MotionPolicyTest {
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.DRAW))
         assertEquals(Motion.FAST, Motion.durationMs(reduced = false, fullMs = Motion.FAST))
         assertEquals(Motion.TAP, Motion.durationMs(reduced = false, fullMs = Motion.TAP))
+        assertEquals(Motion.FIELD_MS, Motion.TAP)
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.FIELD_MS))
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.TICK_MS))
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.FLASH_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.ROW_SETTLE_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.CLOCK_SWAP_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.CARD_SWAP_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.DRAFT_SETTLE_MS))
+        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.PR_ACCENT_DELAY_MS))
+        assertEquals(180, Motion.ROW_SETTLE_MS)
+        assertEquals(120, Motion.PR_ACCENT_DELAY_MS)
     }
 
     @Test
@@ -28,7 +37,7 @@ class MotionPolicyTest {
         assertTrue(status.contains("instrumentTween(Motion.FAST)"))
         assertTrue(status.contains("recordEnter()"))
         assertTrue(status.contains("Motion.STATUS_DWELL_MS"))
-        val rest = readOwned("ui/components/Common.kt")
+        val rest = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(rest.contains("instrumentLinear(Motion.TICK_MS)"))
         assertTrue(rest.contains("Motion.PULSE_MS"))
         val lists = listOf(
@@ -57,6 +66,7 @@ class MotionPolicyTest {
         assertTrue(motion.contains("STATUS_DWELL_MS"))
         assertTrue(motion.contains("FINISHED_DWELL_MS"))
         assertTrue(motion.contains("RECORD_STAGGER_MS"))
+        assertEquals(6_000L, Motion.STATUS_DWELL_MS)
         assertTrue(motion.contains("PULSE_MS"))
         assertTrue(motion.contains("TICK_MS"))
         assertTrue(readOwned("ui/theme/Motion.kt").contains("instrumentAnimateItem"))

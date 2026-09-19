@@ -31,6 +31,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -144,6 +145,48 @@ class ActivityDetailViewModelTest {
         val loaded = withTimeout(TestWaits.FLOW_MS) { vm.uiState.first { !it.isLoading && !it.failed } }
         assertEquals(session.id, loaded.session?.id)
         assertEquals(1, deps.activityRepository.all().size)
+    }
+
+    @Test
+    fun notesPersistAndDeleteRemovesTheRow() = runBlocking {
+        val now = JvmTime.captureNow()
+        val write = deps.confirmActivity(
+            ActivityDraft(
+                status = ActivityStatus.COMPLETED,
+                origin = ActivityOrigin.BACKDATED,
+                title = "Easy run",
+                performedStart = now,
+                performedEnd = now,
+                blocks = listOf(runBlock()),
+            ),
+            now,
+        )
+        val session = (write as ActivityWrite.Accepted).session
+        val vm = createViewModel(session.id)
+        vm.uiState.awaitFirst { !it.isLoading && it.session != null }
+
+        vm.setNotes("felt easy")
+        vm.persistNotesForExit()
+        val stored = withTimeout(TestWaits.FLOW_MS) {
+            var notes: String? = null
+            while (notes != "felt easy") {
+                notes = deps.activityRepository.get(session.id)?.notes
+            }
+            notes
+        }
+        assertEquals("felt easy", stored)
+
+        vm.deleteSession()
+        withTimeout(TestWaits.FLOW_MS) { vm.deleted.first { it } }
+        assertNull(deps.activityRepository.get(session.id))
+    }
+
+    @Test
+    fun theScreenHasNoSetRepairOrRepeat() {
+        val names = ActivityDetailViewModel::class.java.methods.map { it.name }.toSet()
+        assertFalse(names.contains("updateSet"))
+        assertFalse(names.contains("repeatSession"))
+        assertFalse(names.contains("addSet"))
     }
 
     private fun createViewModel(activityId: String): ActivityDetailViewModel =

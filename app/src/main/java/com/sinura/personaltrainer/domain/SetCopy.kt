@@ -14,19 +14,41 @@ object SetCopy {
      * and is not decoration, because the same field on an assisted lift reads `8 reps −20 kg`
      * and means the opposite thing about how hard the set was.
      */
-    fun setLine(weightKg: Double, reps: Int, loadClass: LoadClass, unit: WeightUnit): String {
+    fun setLine(
+        weightKg: Double,
+        reps: Int,
+        loadClass: LoadClass,
+        unit: WeightUnit,
+        durationSeconds: Int? = null,
+        entryPrecision: Boolean = false,
+    ): String {
+        fun Double.loadLabel(): String = if (entryPrecision) WorkoutWeightCopy.label(this, unit) else toWeightLabel(unit)
+        val held = durationSeconds?.takeIf { it > 0 }
         val safeReps = reps.coerceAtLeast(0)
+        if (held != null && safeReps < 1) {
+            val clock = HoldWork.formatRange(held)
+            val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
+            return when (loadClass) {
+                LoadClass.LOADED -> "${load?.loadLabel() ?: NO_WEIGHT} × $clock"
+                LoadClass.BODYWEIGHT -> clock
+                LoadClass.BODYWEIGHT_ADDED ->
+                    if (load == null) clock else "$clock +${load.loadLabel()}"
+                LoadClass.BODYWEIGHT_ASSISTED ->
+                    if (load == null) clock else "$clock −${load.loadLabel()}"
+            }
+        }
         val load = weightKg.takeIf { it.isFinite() && it > 0.0 }
-        return when (loadClass) {
-            LoadClass.LOADED -> "${(load ?: 0.0).toWeightLabel(unit)} × $safeReps"
+        val repsLine = when (loadClass) {
+            LoadClass.LOADED -> "${load?.loadLabel() ?: NO_WEIGHT} × $safeReps"
             LoadClass.BODYWEIGHT -> repsLabel(safeReps)
             LoadClass.BODYWEIGHT_ADDED ->
                 if (load == null) repsLabel(safeReps)
-                else "${repsLabel(safeReps)} +${load.toWeightLabel(unit)}"
+                else "${repsLabel(safeReps)} +${load.loadLabel()}"
             LoadClass.BODYWEIGHT_ASSISTED ->
                 if (load == null) repsLabel(safeReps)
-                else "${repsLabel(safeReps)} −${load.toWeightLabel(unit)}"
+                else "${repsLabel(safeReps)} −${load.loadLabel()}"
         }
+        return if (held == null) repsLine else "$repsLine · ${HoldWork.formatRange(held)}"
     }
 
     /**
@@ -56,6 +78,40 @@ object SetCopy {
         WeightMeaning.NONE -> null
         WeightMeaning.ADDED -> "Vest, belt or plate. Leave empty for bodyweight only."
         WeightMeaning.ASSISTANCE -> "How much the machine took off. More assist is an easier set."
+    }
+
+    /**
+     * TalkBack for the weight well. 0 is a chosen value, not a missing 5 lb plate.
+     */
+    fun weightWellSpoken(
+        meaning: WeightMeaning,
+        weightKg: Double,
+        unit: WeightUnit,
+        entryPrecision: Boolean = false,
+    ): String {
+        if (!weightKg.isFinite() || weightKg <= 0.0) {
+            return when (meaning) {
+                WeightMeaning.ASSISTANCE -> "${meaning.fieldLabel}, no assistance"
+                WeightMeaning.LIFTED -> "${meaning.fieldLabel}, $NO_WEIGHT"
+                WeightMeaning.ADDED, WeightMeaning.NONE -> "${meaning.fieldLabel}, $NO_WEIGHT, $BODYWEIGHT_LOAD"
+            }
+        }
+        val shown = if (entryPrecision) WorkoutWeightCopy.number(weightKg, unit) else WeightConverter.formatDisplayNumber(
+            WeightConverter.toDisplayValue(weightKg, unit),
+        )
+        return "${meaning.fieldLabel} $shown ${unit.suffix}"
+    }
+
+    fun weightKeypadHelper(loadClass: LoadClass, allowsZero: Boolean): String {
+        val base = weightFieldHint(loadClass)
+            ?: "No negatives; up to two decimals. 87.5 or 87,5."
+        if (!allowsZero) return base
+        val zero = when (loadClass.weightMeaning) {
+            WeightMeaning.LIFTED -> "0 means no external load."
+            WeightMeaning.ASSISTANCE -> "0 means no assistance."
+            WeightMeaning.ADDED, WeightMeaning.NONE -> "0 is $NO_WEIGHT ($BODYWEIGHT_LOAD)."
+        }
+        return "$zero $base"
     }
 
     /**
@@ -96,9 +152,28 @@ object SetCopy {
         return "$from → $to · $sign$delta"
     }
 
+    /**
+     * The quiet line under a set in [the one set table] — number, then RPE
+     * when it was logged. Warm-up is a mark on the row, not a second word
+     * here, so the workout log and a finished session say the same thing.
+     */
+    fun tableExtras(setNumber: Int, rpe: Int?): String =
+        tableExtras(ordinal = "Set $setNumber", rpe = rpe)
+
+    /**
+     * Floor rows pass a derived ordinal (`WU 1`, `Set 2 of 4`, `Extra 1`).
+     * History still names the stored number through [tableExtras] `(setNumber)`.
+     */
+    fun tableExtras(ordinal: String, rpe: Int?): String = buildList {
+        add(ordinal)
+        rpe?.let { add("RPE $it") }
+    }.joinToString(" · ")
+
     private fun repsLabel(reps: Int): String = if (reps == 1) "1 rep" else "$reps reps"
 
     const val NOTHING_YET = "—"
+    const val NO_WEIGHT = "no weight"
+    const val BODYWEIGHT_LOAD = "bodyweight"
 }
 
 /** One number and its unit, for a fixed-width readout. */

@@ -6,6 +6,12 @@
 # for `./gradlew testDebugUnitTest` + `assembleDebug` — the Robolectric and
 # instrumented tests only run under Gradle (see docs/DEVELOPMENT.md).
 #
+# The static half no longer depends on being remembered. `:app:staticChecks` in
+# app/build.gradle.kts runs this script with PT_STATIC_ONLY=1, and every Test
+# task depends on that, so `./gradlew testDebugUnitTest` fails on a broken
+# ratchet whether or not anyone ran this by hand first. Running it directly is
+# still the faster loop, and the only way to get the JVM test lane below.
+#
 # The tests need a directory of seven jars, plus Gson to enable the backup lane
 # (see tools/run-domain-tests.sh header). If $PT_JARS / build/test-jars is
 # absent, this script assembles it by symlinking jars found in the Gradle module
@@ -161,7 +167,9 @@ for c in "check-internal-imports.py" \
          "test_checker_skips.py" \
          "test_lambda_arity.py" \
          "test_unbounded_waits.py" \
-         "test_cancellation.py"; do
+         "test_cancellation.py" \
+         "test_debug_drop.py" \
+         "test_version_ratchet.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"

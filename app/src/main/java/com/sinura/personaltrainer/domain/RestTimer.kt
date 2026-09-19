@@ -83,7 +83,15 @@ class RestTimerClaimLedger {
 }
 
 object RestTimer {
-    val PRESETS_SECONDS: List<Int> = listOf(60, 90, 120)
+    val PRESETS_SECONDS: List<Int> = listOf(30, 60, 90, 120, 180)
+
+    const val NUDGE_SECONDS = 15
+
+    fun nudgeSeconds(currentSeconds: Int, deltaSeconds: Int): Int =
+        (currentSeconds + deltaSeconds).coerceIn(
+            RestTimerPreferences.MIN_SECONDS,
+            RestTimerPreferences.MAX_SECONDS,
+        )
 
     /**
      * Whole seconds left, rounded UP, never negative.
@@ -101,9 +109,9 @@ object RestTimer {
     }
 
     /**
-     * Wall-clock instant the rest hits zero. Notification chronometers
-     * ([android.app.Notification.Builder.setWhen]) use this base, not elapsed
-     * realtime.
+     * Wall-clock instant the rest hits zero. The live shade Chronometer
+     * ([android.app.Notification.Builder.setWhen]) uses this base only
+     * while seconds remain (A-03). Frozen `0:00` does not.
      */
     fun endsAtWallClockMillis(
         endsAtElapsedRealtime: Long,
@@ -120,6 +128,20 @@ object RestTimer {
         val seconds = safe % 60
         return "%d:%02d".format(minutes, seconds)
     }
+
+    /**
+     * Shade and collapsed-notification copy. Never a minus: [formatClock]
+     * clamps, and overtime is a later "+0:12 overdue" state, not "-0:12".
+     */
+    fun remainingCopy(remainingSeconds: Int): String =
+        "${formatClock(remainingSeconds)} remaining"
+
+    /**
+     * Lock-screen countdown (ADR-012) is a live Chronometer only while time
+     * remains. At zero the shade must freeze — a countdown whose base is
+     * already past paints `-0:01` until the card is cancelled (A-03).
+     */
+    fun usesLiveChronometer(remainingSeconds: Int): Boolean = remainingSeconds > 0
 
     /**
      * How much of the ring is still filled. Full at the start of a rest, empty at zero.
@@ -150,11 +172,13 @@ object RestTimer {
     fun secondsToStart(
         exerciseRestSeconds: Int?,
         preferences: RestTimerPreferences,
+        prescribedSeconds: Int? = null,
     ): Int {
+        val prescribed = prescribedSeconds?.takeIf { it > 0 }
         val fromExercise = exerciseRestSeconds?.takeIf { it > 0 }
         val fromLast = preferences.lastPresetSeconds
         val fromDefault = preferences.defaultRestSeconds
-        return (fromExercise ?: fromLast ?: fromDefault)
+        return (prescribed ?: fromExercise ?: fromLast ?: fromDefault)
             .coerceIn(RestTimerPreferences.MIN_SECONDS, RestTimerPreferences.MAX_SECONDS)
     }
 

@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 enum class RecommendationPriority {
     HIGH,
@@ -81,7 +80,7 @@ data class CoachInputs(
     val preferences: CoachPreferences = CoachPreferences.DEFAULT,
     val unit: WeightUnit = WeightUnit.KG,
     val nowMs: Long,
-    val time: TimePort = JvmTime,
+    val time: TimePort,
     val zoneId: String = time.defaultZoneId(),
     /**
      * The first day of the user's week. The deload signal buckets volume into calendar weeks,
@@ -143,6 +142,9 @@ object RecommendationEngine {
         val deload = deloadSignal(inputs)
         // Both say "do less", so only the more specific one is worth the slot.
         val rest = if (deload == null) restSignal(inputs) else null
+        // Same destination as deload; do not spend a second card on it.
+        val stall = if (deload == null) stallSignal(inputs) else null
+        val volume = if (deload == null) volumeRamp(inputs) else null
         val imbalances = imbalances(inputs)
         val suppressedByImbalance = buildSet {
             imbalances.forEach { rec ->
@@ -155,7 +157,7 @@ object RecommendationEngine {
         val neglected = neglectedMuscles(inputs).filter { it.actionMuscle !in suppressedByImbalance }
 
         return rank(
-            listOfNotNull(deload, rest) +
+            listOfNotNull(deload, rest, stall, volume) +
                 imbalances +
                 neglected +
                 listOfNotNull(coreCoverageGap(inputs)) +
@@ -350,6 +352,53 @@ object RecommendationEngine {
         )
     }
 
+    internal fun stallSignal(inputs: CoachInputs): TrainingRecommendation? {
+        val finding = StallSignal.detect(inputs.history) ?: return null
+        val rec = TrainingRecommendation(
+            id = "stall-${finding.exerciseId}",
+            kicker = KICKER_PROGRESSION,
+            title = "${finding.exerciseName}: no progress in ${finding.sessionsHeld} sessions",
+            reason = "Top sets of ${finding.exerciseName} have not improved across " +
+                "${finding.sessionsHeld} finished sessions. Schedule a lighter week.",
+            priority = RecommendationPriority.ATTENTION,
+            action = RecommendationAction.MARK_LIGHTER_WEEK,
+            actionExerciseId = finding.exerciseId,
+            actionExerciseName = finding.exerciseName,
+            rankScore = 50,
+        )
+        return rec.copy(trace = RuleTrace.forStall(finding, inputs.nowMs))
+    }
+
+    internal fun volumeRamp(inputs: CoachInputs): TrainingRecommendation? {
+        val finding = VolumeRamp.detect(
+            history = inputs.history,
+            nowMs = inputs.nowMs,
+            time = inputs.time,
+            zoneId = inputs.zoneId,
+            exerciseCatalog = inputs.exerciseCatalog,
+        ) ?: return null
+        val rec = TrainingRecommendation(
+            id = "volume-ramp-${finding.muscle.name}",
+            kicker = KICKER_LOAD,
+            title = "${finding.muscle.displayName} can take more volume",
+            reason = "${finding.muscle.displayName} ran ${finding.lastWeekSets} sets last week, " +
+                "all under RPE 8; ${finding.suggestedSets} would be productive.",
+            priority = RecommendationPriority.INFO,
+            action = RecommendationAction.OPEN_BODY_MAP,
+            actionMuscle = finding.muscle,
+            rankScore = 20,
+        )
+        val endDay = inputs.time.civilDate(inputs.nowMs, inputs.zoneId).epochDay
+        return rec.copy(
+            trace = RuleTrace.forVolumeRamp(
+                finding = finding,
+                nowMs = inputs.nowMs,
+                evidenceStartEpochDay = endDay - VolumeRamp.LOOKBACK_DAYS + 1L,
+                evidenceEndEpochDay = endDay,
+            ),
+        )
+    }
+
     // -----------------------------------------------------------------------
     // Plumbing
     // -----------------------------------------------------------------------
@@ -407,12 +456,14 @@ object RecommendationEngine {
             TrainingGoal.STRENGTH -> when {
                 recommendation.id == "progression-ready" -> 10
                 recommendation.id.startsWith("deload") -> 10
+                recommendation.id.startsWith("stall-") -> 10
                 else -> 0
             }
             TrainingGoal.HYPERTROPHY -> when {
                 recommendation.id.startsWith("imbalance") -> 10
                 recommendation.id.startsWith("neglect") -> 10
                 recommendation.id == "coverage-core" -> 10
+                recommendation.id.startsWith("volume-ramp-") -> 10
                 else -> 0
             }
             TrainingGoal.RESILIENCE -> when {

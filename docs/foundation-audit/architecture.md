@@ -1,5 +1,19 @@
 # Architecture and data-flow map
 
+> **Superseded as a description of the app. 23 August 2026.**
+>
+> Read [`architecture/CURRENT_STRUCTURE.md`](../architecture/CURRENT_STRUCTURE.md)
+> instead. Every row of the table below marked "current" was current when this
+> was written and several are not now — most importantly the persistence line,
+> which names Room v2 on `TrainerDatabase` with nine entities. Phase 5 cut the
+> app to `TemperDatabase`, which is at v4 with 21 entities; navigation is five
+> tabs, not four; and the "no cardio domain" sentence at the end of §1 was
+> undone by ADR-007's activity model.
+>
+> This file stays because the data-flow diagrams and the layer-ownership
+> reasoning are what the foundation program was planned against, and a reader
+> tracing why a decision was made needs the state it was made in.
+
 ## 1. Current foundation
 
 Temper is a single-module native Android application:

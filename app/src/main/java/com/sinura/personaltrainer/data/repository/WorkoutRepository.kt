@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toExerciseSetEntry
+import com.sinura.personaltrainer.data.mapper.toHistoryStills
 import com.sinura.personaltrainer.data.mapper.toRecordSet
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
@@ -18,6 +19,7 @@ import com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration
 import com.sinura.personaltrainer.domain.RecordSet
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
+import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
@@ -25,11 +27,12 @@ import com.sinura.personaltrainer.domain.ExerciseSetEntry
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.FinishedSessionEdits
 import com.sinura.personaltrainer.domain.HistoryKind
-import com.sinura.personaltrainer.domain.IncrementTable
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.PersonalRecords
+import com.sinura.personaltrainer.domain.RecordsCalculator
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionBasis
@@ -38,7 +41,6 @@ import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RepeatSessionPlan
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineExercise
-import com.sinura.personaltrainer.domain.LighterWeekModifier
 import com.sinura.personaltrainer.domain.RpeModifier
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.DataHealthCopy
@@ -46,10 +48,17 @@ import com.sinura.personaltrainer.domain.SessionActivity
 import com.sinura.personaltrainer.domain.SessionEditRules
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.IdPort
+import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkingSetCandidate
 import com.sinura.personaltrainer.domain.WorkoutSession
-import java.util.UUID
+import com.sinura.personaltrainer.domain.WorkoutSetSave
+import com.sinura.personaltrainer.domain.WorkoutSetValues
+import com.sinura.personaltrainer.domain.WorkoutSetSaveResolution
+import kotlinx.coroutines.CancellationException
+import com.sinura.personaltrainer.util.IdFactory
+import com.sinura.personaltrainer.util.JvmTime
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -84,6 +93,18 @@ class WorkoutRepository(
      * [RestoreJournal.blocksStart].
      */
     private val restoreBlocksStart: () -> Boolean = { false },
+    /**
+     * The clock every write here stamps from, and the source of every id it mints.
+     *
+     * Defaulted in the data layer because naming [JvmTime] is this layer's job — `domain/`
+     * used to carry the same default and so could not be compiled without the Android-backed
+     * adapter behind it. Injected rather than called directly so a test can decide what "now"
+     * is: fourteen sites in this file reached for `time.nowMillis()` and
+     * `UUID.randomUUID()` on their own, which is why nothing about a logged set's stamp or a
+     * session's id was reproducible.
+     */
+    private val time: TimePort = JvmTime,
+    private val ids: IdPort = IdFactory.Uuid,
 ) {
     private suspend fun <T> serialized(block: suspend () -> T): T =
         dbMaintenance?.withMaintenanceLock(block) ?: block()
@@ -127,7 +148,12 @@ class WorkoutRepository(
     fun observeSessionSummaries(): Flow<List<SessionSummary>> =
         workoutDao.observeFinishedWorkGeneration()
             .distinctUntilChanged()
-            .mapLatest { workoutDao.sessionSummaries().map { it.toDomainSummary() } }
+            .mapLatest {
+                val stills = workoutDao.sessionStills().toHistoryStills()
+                workoutDao.sessionSummaries().map { row ->
+                    row.toDomainSummary(stills[row.id].orEmpty())
+                }
+            }
 
     fun observeSessionSummariesHealth(): Flow<DataHealth<List<SessionSummary>>> =
         observeSessionSummaries().observeHealth("workout history")
@@ -215,6 +241,15 @@ class WorkoutRepository(
             .observeHealth("the active session")
             .presentValues()
 
+    /**
+     * The session row as [DataHealth], so session detail can tell a thrown
+     * read from a row that is not there. [observeSession] still swallows
+     * [DataHealth.Unavailable] for callers that only want present values.
+     */
+    fun observeSessionHealth(id: String): Flow<DataHealth<WorkoutSession?>> =
+        workoutDao.observeSession(id).map { it?.toDomain() }
+            .observeHealth("this session")
+
     fun observeInProgress(): Flow<WorkoutSession?> =
         workoutDao.observeInProgressSession().map { it?.toSummary() }
             .observeHealth("the in-progress session")
@@ -244,9 +279,9 @@ class WorkoutRepository(
             serialized {
             refuseIfRestoreOpen()?.let { return@serialized it }
             refuseIfOtherLive()?.let { return@serialized it }
-            val now = System.currentTimeMillis()
+            val now = time.nowMillis()
             val session = WorkoutSessionEntity(
-                id = UUID.randomUUID().toString(),
+                id = ids.newId(),
                 routineId = routine.id,
                 routineName = routine.name,
                 date = now,
@@ -257,7 +292,7 @@ class WorkoutRepository(
             )
             val exercises = routine.exercises.mapIndexed { index, item ->
                 SessionExerciseEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = ids.newId(),
                     sessionId = session.id,
                     exerciseId = item.exercise.id,
                     sortOrder = index,
@@ -265,6 +300,8 @@ class WorkoutRepository(
                     targetReps = item.targetReps,
                     targetWeightKg = item.targetWeightKg,
                     restSeconds = item.restSeconds,
+                    targetSeconds = item.targetSeconds,
+                    targetSecondsMax = item.targetSecondsMax,
                 )
             }
             startInserted(session, exercises)
@@ -299,10 +336,10 @@ class WorkoutRepository(
             serialized {
             refuseIfRestoreOpen()?.let { return@serialized it }
             refuseIfOtherLive()?.let { return@serialized it }
-            val now = System.currentTimeMillis()
+            val now = time.nowMillis()
             val focus = focusTitle?.trim().orEmpty()
             val session = WorkoutSessionEntity(
-                id = UUID.randomUUID().toString(),
+                id = ids.newId(),
                 routineId = null,
                 routineName = focus.ifBlank { "Free workout" },
                 date = now,
@@ -336,8 +373,8 @@ class WorkoutRepository(
             return RepeatOutcome.Failed("That session is still in progress.")
         }
 
-        val now = System.currentTimeMillis()
-        val newId = UUID.randomUUID().toString()
+        val now = time.nowMillis()
+        val newId = ids.newId()
         val session = WorkoutSessionEntity(
             id = newId,
             // Never carry a dangling foreign key: the routine may have been deleted since.
@@ -351,7 +388,7 @@ class WorkoutRepository(
         )
         val exercises = RepeatSessionPlan.from(source).mapIndexed { index, item ->
             SessionExerciseEntity(
-                id = UUID.randomUUID().toString(),
+                id = ids.newId(),
                 sessionId = newId,
                 exerciseId = item.exerciseId,
                 sortOrder = index,
@@ -360,6 +397,8 @@ class WorkoutRepository(
                 // The progression hint owns weight; a copied one would only contradict it.
                 targetWeightKg = null,
                 restSeconds = item.restSeconds,
+                targetSeconds = item.targetSeconds,
+                targetSecondsMax = item.targetSecondsMax,
             )
         }
 
@@ -423,22 +462,27 @@ class WorkoutRepository(
         targetReps: Int,
         targetWeightKg: Double?,
         restSeconds: Int,
+        targetSeconds: Int? = null,
+        targetSecondsMax: Int? = null,
     ) {
         database.withTransaction {
             val current = workoutDao.getSession(sessionId) ?: return@withTransaction
             if (current.session.finishedAt != null) return@withTransaction
             if (current.exercises.any { it.exercise.id == exercise.id }) return@withTransaction
             val nextOrder = workoutDao.maxSessionExerciseOrder(sessionId) + 1
+            val hold = HoldWork.isHold(exercise)
             workoutDao.upsertSessionExercise(
                 SessionExerciseEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = ids.newId(),
                     sessionId = sessionId,
                     exerciseId = exercise.id,
                     sortOrder = nextOrder,
                     targetSets = targetSets.coerceAtLeast(1),
-                    targetReps = targetReps.coerceAtLeast(1),
+                    targetReps = if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else targetReps.coerceAtLeast(1),
                     targetWeightKg = targetWeightKg?.takeIf { it > 0.0 },
                     restSeconds = restSeconds.coerceAtLeast(0),
+                    targetSeconds = if (hold) HoldWork.countdownSeconds(targetSeconds) else null,
+                    targetSecondsMax = if (hold) targetSecondsMax else null,
                 ),
             )
         }
@@ -447,22 +491,43 @@ class WorkoutRepository(
     /**
      * Takes a lift out of a live session, provided nothing has been logged against it.
      *
-     * This method existed with no guards and no callers at all — a one-liner that would happily
-     * delete a lift out from under sets that were already recorded against it. The guards are
-     * in [SessionEditRules] so they are testable, and the whole thing runs in a transaction so
-     * the check and the delete cannot be separated by a set landing between them.
+     * Returns the row that left so the caller can offer Undo for ~6s. The
+     * guards are in [SessionEditRules], and the check and the delete run in
+     * one transaction so a set cannot land between them.
      */
-    suspend fun removeExerciseFromSession(sessionId: String, itemId: String) {
-        database.withTransaction {
+    suspend fun removeExerciseFromSession(sessionId: String, itemId: String): RemovedLift {
+        return database.withTransaction {
             val current = workoutDao.getSession(sessionId) ?: error(SessionEditRules.ITEM_MISSING)
-            val item = current.exercises.firstOrNull { it.item.id == itemId }
+            val row = current.exercises.firstOrNull { it.item.id == itemId }
             val refusal = SessionEditRules.refusalForRemove(
                 sessionFinished = current.session.finishedAt != null,
-                itemExists = item != null,
-                loggedSetCount = current.sets.count { it.set.exerciseId == item?.item?.exerciseId },
+                itemExists = row != null,
+                loggedSetCount = current.sets.count { it.set.exerciseId == row?.item?.exerciseId },
             )
             if (refusal != null) error(refusal)
+            val existing = row!!.item
+            val name = row.exercise.name
             workoutDao.deleteSessionExercise(itemId)
+            RemovedLift(item = existing, name = name)
+        }
+    }
+
+    /**
+     * Puts a removed lift back with the same id and sort order.
+     *
+     * No-ops if the session has since finished or gone, if this row is
+     * already there, or if that lift is already on the session under a
+     * new row (the lifter added it again during the undo window).
+     */
+    suspend fun restoreExerciseToSession(removed: RemovedLift) {
+        database.withTransaction {
+            val current = workoutDao.getSession(removed.item.sessionId) ?: return@withTransaction
+            if (current.session.finishedAt != null) return@withTransaction
+            if (current.exercises.any { it.item.id == removed.item.id }) return@withTransaction
+            if (current.exercises.any { it.item.exerciseId == removed.item.exerciseId }) {
+                return@withTransaction
+            }
+            workoutDao.upsertSessionExercise(removed.item)
         }
     }
 
@@ -491,14 +556,24 @@ class WorkoutRepository(
             workoutDao.deleteSessionExercise(itemId)
             workoutDao.upsertSessionExercise(
                 SessionExerciseEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = ids.newId(),
                     sessionId = sessionId,
                     exerciseId = replacement.id,
                     sortOrder = existing.sortOrder,
                     targetSets = existing.targetSets,
-                    targetReps = existing.targetReps,
+                    targetReps = if (HoldWork.isHold(replacement)) {
+                        HoldWork.HOLD_REPS_PLACEHOLDER
+                    } else {
+                        existing.targetReps
+                    },
                     targetWeightKg = null,
                     restSeconds = existing.restSeconds,
+                    targetSeconds = if (HoldWork.isHold(replacement)) {
+                        existing.targetSeconds ?: HoldWork.DEFAULT_SECONDS
+                    } else {
+                        null
+                    },
+                    targetSecondsMax = if (HoldWork.isHold(replacement)) existing.targetSecondsMax else null,
                 ),
             )
         }
@@ -511,48 +586,176 @@ class WorkoutRepository(
         reps: Int,
         rpe: Int?,
         isWarmup: Boolean,
+        durationSeconds: Int? = null,
     ): LoggedSet {
-        // Count-then-insert must be one Room transaction. Two overlapping logSet calls
-        // (or a log overlapping a delete/renumber) used to both read the same count and
-        // write the same setNumber — duplicate numbers under concurrency or process death.
-        val entity = database.withTransaction {
-            val current = workoutDao.getSession(sessionId)
+        val saved = saveSet(WorkoutSetSave(
+            sessionId = sessionId,
+            exerciseId = exerciseId,
+            setId = ids.newId(),
+            completedAt = time.nowMillis(),
+            values = WorkoutSetValues(weightKg, reps, rpe, isWarmup, durationSeconds),
+        ), requireExerciseMembership = false)
+        return LoggedSet(setId = saved.row.id, records = saved.records)
+    }
+
+    /**
+     * The existing primary key is the operation identity. Count, ownership check,
+     * insert/edit and ordinal calculation share a transaction. A repeated command
+     * acknowledges its row; equal values with a different ID remain a new set.
+     */
+    suspend fun saveSet(command: WorkoutSetSave): SavedWorkoutSet =
+        saveSet(command, requireExerciseMembership = true)
+
+    // The legacy importer/fixture facade also supports historical sets without a plan row.
+    // Interactive pending commands require the selected lift to remain in the live session.
+    private suspend fun saveSet(command: WorkoutSetSave, requireExerciseMembership: Boolean): SavedWorkoutSet {
+        val saved = database.withTransaction {
+            val existing = workoutDao.getSet(command.setId)
+            val current = workoutDao.getSession(command.sessionId)
                 ?: error("This workout is no longer available.")
-            if (current.session.finishedAt != null) {
+            if (existing != null && matchesSavedCommand(existing, command, current)) {
+                return@withTransaction savedResult(existing, current, alreadySaved = true)
+            }
+            if (existing != null && (!command.editing || !matchesOriginal(existing, command))) {
+                throw SetSaveConflict()
+            }
+            if (command.editing && existing == null) throw SetSaveConflict()
+            if (existing == null && requireExerciseMembership &&
+                current.exercises.none { it.exercise.id == command.exerciseId }
+            ) throw SetSaveConflict()
+            if (!command.editing && current.session.finishedAt != null) {
                 error("This workout is already finished.")
             }
-            if (reps < 1) error("Reps must be at least 1.")
-            val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
-            if (violation != null) error(violation)
-            val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
-            val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
-            val safeReps = reps.coerceAtLeast(1)
-            val completedAt = System.currentTimeMillis()
+            val values = command.values
+            val hold = current.exercises.any {
+                it.exercise.id == command.exerciseId &&
+                    HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
+            }
+            val duration = values.durationSeconds?.takeIf { it > 0 }
+                ?: existing?.durationSeconds
+            val load = liftLoadOf(current, command.exerciseId)
+            SetLogRules.validate(
+                weightKg = values.weightKg,
+                reps = values.reps,
+                isWarmup = values.isWarmup,
+                loadType = load.loadType,
+                durationSeconds = duration,
+                isHold = hold,
+                equipment = load.equipment,
+                movementKey = load.movementKey,
+            )?.let { error(it) }
             val row = SetLogEntity(
-                id = UUID.randomUUID().toString(),
-                sessionId = sessionId,
-                exerciseId = exerciseId,
-                setNumber = nextNumber,
-                weightKg = safeWeight,
-                reps = safeReps,
-                rpe = rpe,
-                isWarmup = isWarmup,
-                completedAt = completedAt,
+                id = command.setId,
+                sessionId = command.sessionId,
+                exerciseId = command.exerciseId,
+                setNumber = existing?.setNumber
+                    ?: (current.sets.count { it.set.exerciseId == command.exerciseId } + 1),
+                weightKg = values.weightKg,
+                reps = if (hold) 0 else values.reps,
+                rpe = values.rpe,
+                isWarmup = values.isWarmup,
+                completedAt = existing?.completedAt ?: command.completedAt,
+                durationSeconds = duration,
             )
-            workoutDao.insertSet(row)
-            row
+            if (existing == null) workoutDao.insertSet(row) else workoutDao.updateSet(row)
+            savedResult(row, current, alreadySaved = false)
         }
-        return LoggedSet(
-            setId = entity.id,
-            records = if (entity.isWarmup) {
-                // A warm-up is preparation, not work. It is excluded from volume, from the
-                // heat map and from records, and announcing one as a PR would be a lie.
+        // Enrichment is not persistence. A failed record query after commit must
+        // never turn a durable set into a failed save or invite a second insert.
+        val row = saved.row
+        val records = if (saved.alreadySaved || command.editing || row.isWarmup || row.reps < 1) {
+            emptySet()
+        } else {
+            try {
+                recordsBrokenBy(
+                    exerciseId = row.exerciseId,
+                    sessionId = row.sessionId,
+                    weightKg = row.weightKg,
+                    reps = row.reps,
+                    completedAt = row.completedAt,
+                    setNumber = row.setNumber,
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                AppLog.w("PT/WorkoutRepo", "Set saved; record feedback could not be read", failure)
                 emptySet()
+            }
+        }
+        return saved.copy(records = records)
+    }
+
+    /** A read error propagates; it must not be interpreted as an absent set. */
+    suspend fun inspectSetSave(command: WorkoutSetSave): WorkoutSetSaveResolution = database.withTransaction {
+        val existing = workoutDao.getSet(command.setId)
+        val current = workoutDao.getSession(command.sessionId)
+        if (existing != null) {
+            if (matchesSavedCommand(existing, command, current)) return@withTransaction WorkoutSetSaveResolution.SAVED
+            return@withTransaction if (command.editing && matchesOriginal(existing, command)) {
+                WorkoutSetSaveResolution.UNSAVED
             } else {
-                recordsBrokenBy(exerciseId, sessionId, entity.weightKg, entity.reps, entity.completedAt)
-            },
+                WorkoutSetSaveResolution.CONFLICT
+            }
+        }
+        if (command.editing || current == null || current.session.finishedAt != null ||
+            current.exercises.none { it.exercise.id == command.exerciseId }
+        ) {
+            WorkoutSetSaveResolution.CONFLICT
+        } else {
+            WorkoutSetSaveResolution.UNSAVED
+        }
+    }
+
+    private fun matchesSavedCommand(row: SetLogEntity, command: WorkoutSetSave, current: SessionWithDetails?): Boolean {
+        val hold = current?.exercises?.any {
+            it.exercise.id == command.exerciseId &&
+                HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
+        } == true
+        val storedValues = command.values.copy(
+            reps = if (hold) 0 else command.values.reps,
+            durationSeconds = command.values.durationSeconds?.takeIf { it > 0 }
+                ?: row.durationSeconds.takeIf { command.editing },
+        )
+        return row.sessionId == command.sessionId && row.exerciseId == command.exerciseId &&
+            row.completedAt == command.completedAt && valuesOf(row) == storedValues
+    }
+
+    private fun matchesOriginal(row: SetLogEntity, command: WorkoutSetSave): Boolean =
+        row.sessionId == command.sessionId && row.exerciseId == command.exerciseId &&
+            row.completedAt == command.completedAt && valuesOf(row) == command.original
+
+    private fun valuesOf(row: SetLogEntity) = WorkoutSetValues(
+        weightKg = row.weightKg, reps = row.reps, rpe = row.rpe,
+        isWarmup = row.isWarmup, durationSeconds = row.durationSeconds,
+    )
+
+    private fun savedResult(
+        row: SetLogEntity,
+        current: SessionWithDetails,
+        alreadySaved: Boolean,
+    ): SavedWorkoutSet {
+        val preceding = current.sets.map { it.set }.filter {
+            it.exerciseId == row.exerciseId && it.id != row.id && it.setNumber < row.setNumber
+        }
+        return SavedWorkoutSet(
+            row = row,
+            workingOrdinal = preceding.count { !it.isWarmup } + if (row.isWarmup) 0 else 1,
+            warmupOrdinal = preceding.count { it.isWarmup } + if (row.isWarmup) 1 else 0,
+            targetSets = current.exercises.firstOrNull { it.exercise.id == row.exerciseId }?.item?.targetSets ?: 0,
+            alreadySaved = alreadySaved,
         )
     }
+
+    data class SavedWorkoutSet(
+        val row: SetLogEntity,
+        val workingOrdinal: Int,
+        val warmupOrdinal: Int,
+        val targetSets: Int,
+        val alreadySaved: Boolean,
+        val records: Set<PersonalRecordKind> = emptySet(),
+    )
+
+    class SetSaveConflict : IllegalStateException("This set changed or was removed. Review your saved sets before continuing.")
 
     suspend fun updateSet(
         setId: String,
@@ -560,27 +763,40 @@ class WorkoutRepository(
         reps: Int,
         rpe: Int?,
         isWarmup: Boolean,
+        durationSeconds: Int? = null,
     ) {
         val current = workoutDao.getSet(setId) ?: error("That set is no longer available.")
         // Deliberately no finished-guard: correcting a mistyped weight in last week's
         // session is the point. The copy below touches neither completedAt nor setNumber,
         // so the set keeps the day it happened on and its place in the exercise — which is
         // what stops an edit from re-dating a personal record or heating the wrong week.
-        if (reps < 1) error("Reps must be at least 1.")
+        val timedSeconds = durationSeconds?.takeIf { it > 0 } ?: current.durationSeconds
+        val session = workoutDao.getSession(current.sessionId)
+        val holdLift = session?.exercises?.any {
+            it.exercise.id == current.exerciseId &&
+                HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
+        } == true
+        if (!holdLift && reps < 1) error("Reps must be at least 1.")
+        val load = liftLoadOf(session, current.exerciseId)
         val violation = SetLogRules.validate(
             weightKg,
             reps,
             isWarmup,
-            loadTypeOf(workoutDao.getSession(current.sessionId), current.exerciseId),
+            load.loadType,
+            durationSeconds = timedSeconds,
+            isHold = holdLift,
+            equipment = load.equipment,
+            movementKey = load.movementKey,
         )
         if (violation != null) error(violation)
         val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else current.weightKg
         workoutDao.updateSet(
             current.copy(
                 weightKg = safeWeight,
-                reps = reps.coerceAtLeast(1),
+                reps = if (holdLift) 0 else reps.coerceAtLeast(1),
                 rpe = rpe,
                 isWarmup = isWarmup,
+                durationSeconds = timedSeconds,
             ),
         )
     }
@@ -608,6 +824,7 @@ class WorkoutRepository(
                 rpe = deleted.rpe,
                 isWarmup = deleted.isWarmup,
                 completedAt = deleted.completedAt,
+                durationSeconds = deleted.durationSeconds,
             )
         }
     }
@@ -633,6 +850,7 @@ class WorkoutRepository(
                     rpe = set.rpe,
                     isWarmup = set.isWarmup,
                     completedAt = set.completedAt,
+                    durationSeconds = set.durationSeconds,
                 ),
             )
             renumber(set.sessionId, set.exerciseId)
@@ -670,13 +888,21 @@ class WorkoutRepository(
             val session = current.session
             val finishedAt = session.finishedAt ?: error("This workout is still in progress.")
             if (reps < 1) error("Reps must be at least 1.")
-            val violation = SetLogRules.validate(weightKg, reps, isWarmup, loadTypeOf(current, exerciseId))
+            val load = liftLoadOf(current, exerciseId)
+            val violation = SetLogRules.validate(
+                weightKg,
+                reps,
+                isWarmup,
+                load.loadType,
+                equipment = load.equipment,
+                movementKey = load.movementKey,
+            )
             if (violation != null) error(violation)
             val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
             val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
             workoutDao.insertSet(
                 SetLogEntity(
-                    id = UUID.randomUUID().toString(),
+                    id = ids.newId(),
                     sessionId = sessionId,
                     exerciseId = exerciseId,
                     setNumber = nextNumber,
@@ -727,19 +953,20 @@ class WorkoutRepository(
     }
 
     suspend fun finishSession(sessionId: String, notes: String) {
-        val current = workoutDao.getSession(sessionId)?.session
+        // One targeted UPDATE, for the reason WorkoutDao.updateSessionNotes gives: reading the
+        // whole row and writing it all back makes every column a hostage to whatever wrote in
+        // between. Only startedAt is read, and it never changes once the session exists.
+        val startedAt = workoutDao.sessionStartedAt(sessionId)
             ?: error("This workout is no longer available.")
-        if (current.finishedAt != null) return
-        val finishedAt = System.currentTimeMillis()
-        val duration = TimeUnit.MILLISECONDS.toMinutes(finishedAt - current.startedAt)
+        val finishedAt = time.nowMillis()
+        val duration = TimeUnit.MILLISECONDS.toMinutes(finishedAt - startedAt)
             .toInt()
             .coerceAtLeast(1)
-        workoutDao.updateSession(
-            current.copy(
-                notes = notes.trim(),
-                durationMinutes = duration,
-                finishedAt = finishedAt,
-            ),
+        workoutDao.finishSession(
+            id = sessionId,
+            notes = notes.trim(),
+            durationMinutes = duration,
+            finishedAt = finishedAt,
         )
     }
 
@@ -751,10 +978,23 @@ class WorkoutRepository(
      * validation check becomes a reason not to validate. Null when the session or the lift is
      * gone, which [SetLogRules] treats as externally loaded — the stricter reading.
      */
-    private fun loadTypeOf(session: SessionWithDetails?, exerciseId: String): LoadType? =
-        session?.exercises
+    private fun liftLoadOf(session: SessionWithDetails?, exerciseId: String): LiftLoad {
+        val row = session?.exercises
             ?.firstOrNull { it.item.exerciseId == exerciseId }
-            ?.let { LoadType.fromStorage(it.exercise.loadType) }
+            ?.exercise
+            ?: return LiftLoad(null, null, null)
+        return LiftLoad(
+            loadType = LoadType.fromStorage(row.loadType),
+            equipment = EquipmentType.fromStorage(row.equipment),
+            movementKey = row.movementKey,
+        )
+    }
+
+    private data class LiftLoad(
+        val loadType: LoadType?,
+        val equipment: EquipmentType?,
+        val movementKey: String?,
+    )
 
     private val loadClassByExercise = mutableMapOf<String, LoadClass>()
 
@@ -777,7 +1017,10 @@ class WorkoutRepository(
      * Last finished sessions that contain this lift, newest first.
      *
      * One batched read shared by the hint, the RPE window, and last
-     * performance so a lift switch is not ten small queries.
+     * performance so a lift switch is not ten small queries. The default
+     * is [RpeModifier.RPE_HOLD_SESSIONS]. [StallSignal] reads finished
+     * history itself — it needs [StallSignal.STALL_SESSIONS], which is
+     * larger — rather than raising this default.
      */
     private suspend fun lastFinishedWork(
         exerciseId: String,
@@ -819,6 +1062,7 @@ class WorkoutRepository(
         loadType: LoadType?,
         unit: WeightUnit,
         lighterWeek: Boolean = false,
+        equipment: EquipmentType? = null,
     ): ProgressionHint? {
         val sessions = lastFinishedWork(exerciseId, excludeSessionId)
         val lastSessionSets = sessions.firstOrNull() ?: return null
@@ -830,26 +1074,20 @@ class WorkoutRepository(
         val resolvedTarget = targetReps.takeIf { it > 0 }
             ?: workoutDao.lastTargetReps(exerciseId)
             ?: topSet.reps
-        val hint = ProgressionCalculator.hint(
+        // Hitting the target reps at RPE 9 and hitting them at RPE 6 are the same event to the
+        // calculator, and only one of them means "ready for more".
+        return ProgressionCalculator.adjusted(
             exerciseId = exerciseId,
             exerciseName = exerciseName,
             lastWeightKg = topSet.weightKg,
             lastWorkingReps = topSet.reps,
             targetReps = resolvedTarget,
-            // The lift decides the size of the jump and the unit decides its shape. An unknown
-            // load type — a custom, or a row from a backup this build predates — is treated as
-            // loadable, because refusing to suggest anything is worse than suggesting 2.5 kg.
-            displayStep = IncrementTable.displayStep(loadType ?: LoadType.EXTERNAL, unit),
             loadType = loadType,
             unit = unit,
+            rpeEvidenceNewestFirst = sessions.map { sets -> rpeOfTopSet(sets, loadClass) },
+            lighterWeek = lighterWeek,
+            equipment = equipment,
         )
-        // Hitting the target reps at RPE 9 and hitting them at RPE 6 are the same event to the
-        // calculator, and only one of them means "ready for more".
-        val afterRpe = RpeModifier.apply(
-            hint,
-            sessions.map { sets -> rpeOfTopSet(sets, loadClass) },
-        )
-        return LighterWeekModifier.apply(afterRpe, lighterWeek)
     }
 
     /**
@@ -883,6 +1121,7 @@ class WorkoutRepository(
                     weightKg = set.weightKg,
                     reps = set.reps,
                     completedAt = set.completedAt,
+                    rpe = set.rpe,
                 ),
                 sessionName = set.sessionName,
                 sessionPerformedAtMs = set.sessionDate,
@@ -890,7 +1129,7 @@ class WorkoutRepository(
         }
         if (entries.isEmpty()) return null
         return ExerciseHistoryBuilder
-            .fromEntries(exerciseId, entries, loadClassOf(exerciseId))
+            .fromEntries(exerciseId, entries, loadClassOf(exerciseId), time)
             .sessions
             .firstOrNull()
     }
@@ -911,9 +1150,16 @@ class WorkoutRepository(
         weightKg: Double,
         reps: Int,
         completedAt: Long,
+        setNumber: Int,
     ): Set<PersonalRecordKind> {
-        val row = workoutDao.recordPriorsBefore(exerciseId, sessionId, weightKg, completedAt)
-        return PersonalRecords.detect(
+        val row = workoutDao.recordPriorsBefore(
+            exerciseId = exerciseId,
+            sessionId = sessionId,
+            weightKg = weightKg,
+            completedAt = completedAt,
+            setNumber = setNumber,
+        )
+        return RecordsCalculator.detect(
             candidate = ExerciseSetRecord(
                 setId = "",
                 sessionId = "",
@@ -947,6 +1193,7 @@ class WorkoutRepository(
                         weightKg = row.weightKg,
                         reps = row.reps,
                         completedAt = row.completedAt,
+                        rpe = row.rpe,
                     )
                 }
                 .toList()
@@ -957,6 +1204,12 @@ class WorkoutRepository(
     data class LoggedSet(
         val setId: String,
         val records: Set<PersonalRecordKind>,
+    )
+
+    /** Everything needed to put a removed lift back in the same slot. */
+    data class RemovedLift(
+        val item: SessionExerciseEntity,
+        val name: String,
     )
 
     /** Everything needed to put a deleted set back exactly as it was. */
@@ -970,6 +1223,7 @@ class WorkoutRepository(
         val rpe: Int?,
         val isWarmup: Boolean,
         val completedAt: Long,
+        val durationSeconds: Int? = null,
     )
 
     suspend fun readyForProgression(
@@ -1000,25 +1254,21 @@ class WorkoutRepository(
                 lastSessionSets.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
                 loadClass.weightMeaning,
             ) ?: return@forEach
-            val hint = ProgressionCalculator.hint(
+            // The RPE rule downgrades a grinding lift to HOLD, which drops it out of
+            // this list automatically — "ready to progress" must not name a lift the
+            // in-workout strip is simultaneously telling you to hold.
+            val adjusted = ProgressionCalculator.adjusted(
                 exerciseId = item.exercise.id,
                 exerciseName = item.exercise.name,
                 lastWeightKg = topSet.weightKg,
                 lastWorkingReps = topSet.reps,
                 targetReps = item.targetReps,
-                displayStep = IncrementTable.displayStep(item.exercise.loadType, unit),
                 loadType = item.exercise.loadType,
                 unit = unit,
-            )
-            val recentRpes = sessionsNewestFirst.take(RpeModifier.RPE_HOLD_SESSIONS).map { (_, sets) ->
-                rpeOfTopSet(sets, loadClass)
-            }
-            // The RPE rule downgrades a grinding lift to HOLD, which drops it out of
-            // this list automatically — "ready to progress" must not name a lift the
-            // in-workout strip is simultaneously telling you to hold.
-            val adjusted = LighterWeekModifier.apply(
-                RpeModifier.apply(hint, recentRpes),
-                lighterWeek,
+                rpeEvidenceNewestFirst = sessionsNewestFirst.take(RpeModifier.RPE_HOLD_SESSIONS)
+                    .map { (_, sets) -> rpeOfTopSet(sets, loadClass) },
+                lighterWeek = lighterWeek,
+                equipment = item.exercise.equipment,
             )
             if (adjusted.action == ProgressionAction.INCREASE) {
                 hints += adjusted
@@ -1040,7 +1290,9 @@ class WorkoutRepository(
         }?.rpe
     }
 
-    private fun SessionSummaryRow.toDomainSummary(): SessionSummary = SessionSummary(
+    private fun SessionSummaryRow.toDomainSummary(
+        stills: List<Exercise> = emptyList(),
+    ): SessionSummary = SessionSummary(
         id = id,
         routineId = routineId,
         routineName = routineName,
@@ -1050,6 +1302,7 @@ class WorkoutRepository(
         workingSets = workingSets,
         volumeKg = volumeKg,
         localEpochDay = com.sinura.personaltrainer.util.JvmTime.civilDate(date).epochDay,
+        stills = stills,
     )
 
     private fun ExerciseRecordPriorsRow.toPriors(): PersonalRecords.RecordPriors =

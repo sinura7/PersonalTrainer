@@ -43,9 +43,6 @@ interface TrainingBlockDao {
     @Query("SELECT * FROM training_blocks WHERE isCurrent = 0 ORDER BY startEpochDay ASC")
     fun observePast(): Flow<List<TrainingBlockEntity>>
 
-    @Query("SELECT * FROM training_blocks WHERE isCurrent = 0 ORDER BY startEpochDay ASC")
-    suspend fun getPast(): List<TrainingBlockEntity>
-
     @Query("SELECT COUNT(*) FROM training_blocks")
     suspend fun count(): Int
 

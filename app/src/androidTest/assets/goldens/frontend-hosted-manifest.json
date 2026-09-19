@@ -1,0 +1,349 @@
+{
+  "packet": "F1",
+  "profile": "legacy",
+  "sourceCommit": "881957717df016bbed9deb83f88fd9e682c3c9ad",
+  "sourceSha256": {
+    "app/src/androidTest/java/com/sinura/personaltrainer/testutil/GoldenCapture.kt": "a38bf3650880bcff73a92f9d74fdc0efeef60000d0760c01fd25fe95fe566b26",
+    "app/src/androidTest/java/com/sinura/personaltrainer/testutil/GoldenImageAssert.kt": "bf432c154febe6b35b3bedf381e02f10004737454673cd046ea0dcd0c8a0e6a7",
+    "app/src/androidTest/java/com/sinura/personaltrainer/timer/ExactAlarmCapabilityInstrumentedTest.kt": "734890a88cd2bc09d8ecd872053beef078a04b8646e3627e2493e08bd651f8a9",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/ProductionScreensPassInstrumentedTest.kt": "4b18b5dcb7e9efdc3fba4e2a25f2aaa7e8f354f38b994a5eabec2244d973d57a",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/components/FrontendControlsInstrumentedTest.kt": "c17028c0df47597541589002d7a1da90fbaa9ba06f86287b0b90e800c67e816d",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/navigation/FrontendShellInstrumentedTest.kt": "de77ae9fc032ee5fc60e861c869ae48cd3103a503fef189da11288b2ec58b855",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/preview/FloorGoldenTest.kt": "e7d969e1a7b9bf1639f89975927c7e48033c1f880cad1d0c6432002f34cb1a85",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/preview/FrontendBaselineCaptureTest.kt": "99f4c5295d2e725cd0366f1a6667677a41afb005ff10af55ee75ab0565c9010f",
+    "app/src/debug/java/com/sinura/personaltrainer/ui/preview/ComponentStateGallery.kt": "b969ff473c34f3c6d295d88dcbe6597517a0b8aba604166c331a816e7613dcba",
+    "app/src/main/java/com/sinura/personaltrainer/domain/LiveBarCopy.kt": "81daa2e7112eff67f15e43b253be30cf7875b0e6c0ac9b4979456c56eb834c05",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/ConfirmActionDialog.kt": "a4152eb039eb2806b9c7bbc31ddeb7d0defc9b74b04de347b8f49e96f385d548",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/GymButtons.kt": "6536f6c8dc55de878c65c58e1e2b65aedc0a39b0c69dc9d2b7b3cd146f88f5bf",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/InstrumentChip.kt": "fc9e78174615345264bb5edb7e1fc4426eaf6b4ae2e9ef410d56bc96d1dc7d9b",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/InstrumentSelection.kt": "14de6f75a10704087ff35f911ac99a5d6225c4d6e91708e2858843905f0d9f3a",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/InstrumentSwitch.kt": "393d2588e2a1462b6863ca80ef11f0c979eb131bdca58e0dc6f49591e42f3d47",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/LoadTypeChips.kt": "1f76dc4480b0388b0b5dbbfd9f677ab3555eb1a4a98e0ca05755445717c83bcd",
+    "app/src/main/java/com/sinura/personaltrainer/ui/components/ScreenHeader.kt": "da16304dbcbbc39e21d8f052c01e551be059fff449559c8d2dac3d2536f55a9b",
+    "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryScreen.kt": "1e76f4b9fa83968693e791dd77c8ba4bc72e2aeaa958f197f11dfa03139b0c7b",
+    "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt": "888e57c61e2d68a11a404ac53edefc5f21371d86c346c4f6097dff08afe8a342",
+    "app/src/main/java/com/sinura/personaltrainer/ui/navigation/LiveSessionBar.kt": "c4bb57ecd4f6edf11fe471ef9e9d33d040fc2e9a3bdb8b739272b670845c9086",
+    "app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt": "5315347639ae8944c83e8fbc49ba804b6135aac2d4b402c5303a22f740fdcf57",
+    "app/src/main/java/com/sinura/personaltrainer/ui/progress/ProgressScreen.kt": "a35788cd76827e1d479758e58fce713284e9abb5da0385c4deaa1b514a3a65fe",
+    "app/src/main/java/com/sinura/personaltrainer/ui/theme/LogLoopScale.kt": "e6792c74610f18114fee668c7926284ca52749abf76ffc3bf327b9e4ec5eaf91",
+    "app/src/main/java/com/sinura/personaltrainer/ui/theme/Metrics.kt": "d5d4614d945ca54e68be92087b40e5d1f1a0f3a4737940827b87b2483bb77fbe",
+    "app/src/main/java/com/sinura/personaltrainer/ui/theme/Shape.kt": "76ca36ac4809f1860f06ab043ea30856b23436b2449ab61887aa216e7e19a054",
+    "app/src/main/java/com/sinura/personaltrainer/ui/theme/Type.kt": "042eb573bc209581e83a916d084031e395a36b7e7528e6524aebe109b8d64cc0",
+    "app/src/test/java/com/sinura/personaltrainer/data/local/OnboardingApplierTest.kt": "72856bba58e049a25e30b30c9a2e64e45b975f79a0748e591d053a7efa56b77c",
+    "app/src/test/java/com/sinura/personaltrainer/ui/theme/LogLoopScaleTest.kt": "50562a5b9d0d5216c77e0f117342cbcd129ef623d721ee9ef93c94d90ec91a78",
+    "app/src/test/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModelTest.kt": "5c5bd24162feda819ccb96afac066d15efd1212b356bcb7f1672563730eeea8f"
+  },
+  "origin": "Actual captures from hosted PR run 35192689967, independently reproduced pixel-for-pixel in push run 35192657616",
+  "runUrls": [
+    "https://github.com/sinura7/PersonalTrainer/actions/runs/35192689967",
+    "https://github.com/sinura7/PersonalTrainer/actions/runs/35192657616"
+  ],
+  "device": {
+    "api": 29,
+    "arch": "x86_64",
+    "definition": "Nexus 5X",
+    "pixels": [
+      1080,
+      1920
+    ],
+    "densityDpi": 420,
+    "renderer": "swiftshader_indirect",
+    "host": "ubuntu-latest",
+    "animations": 0,
+    "configurationSource": ".github/workflows/ci.yml and hosted emulator log",
+    "systemImageRevision": "not captured",
+    "emulatorVersion": "37.1.11.0 (build_id 15917651), gfxstream backend"
+  },
+  "fixtureConfiguration": "Same native F1 tests and logical viewport/font/inset matrix as windows-swiftshader37/frontend-manifest.json; static synthetic data and clocks",
+  "acceptanceReason": "Initial hosted-renderer references for new controls and complete shell. All32 manually reviewed, independently reproduced. Does not replace Windows references or accept old9workout differences.",
+  "images": [
+    {
+      "name": "frontend-controls-disabled-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "9c50528e9e501df0ce9b97e92fbb211faad356b2492c5a9aa4768b74797b6589"
+    },
+    {
+      "name": "frontend-controls-focused-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "d806ccd83aacc6ebb0ac59a584d7082b1f98a33259c5d948b4db0f20955294df"
+    },
+    {
+      "name": "frontend-controls-pressed-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "ed7332e1011ff0c5da0553d319aaf6075b929c8ef164c4c32d7f065f7b3c75e1"
+    },
+    {
+      "name": "frontend-controls-ready-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "c227bc558e2a1a0d31dda2f8d2ee84dd53a8bac0a7c9fdfdd4dd90db669e349f"
+    },
+    {
+      "name": "frontend-controls-saving-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "8ff9e296ffbf9cd1bfe10fcf5361b9453258153f35aff7fbb9273d1d26b19ee4"
+    },
+    {
+      "name": "frontend-controls-selection-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "3fd557e998c381abdcb7e828a12e3636f54a2c15a60a023b5a854b09b8343ac2"
+    },
+    {
+      "name": "frontend-controls-selection-font20-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "identicalPixels": true,
+      "sha256": "cf8a1ee652d3ed113c60d8341570f940c2cd6cdbafa8560146eef300ff05e526"
+    },
+    {
+      "name": "frontend-shell-360x640-font10-ltr-motion-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "identicalPixels": true,
+      "sha256": "18ab5b3dc2daebf74ac6c2754af061930eff737fe6b9f0b994e5c38d97a2f717"
+    },
+    {
+      "name": "frontend-shell-360x640-font16-ltr-motion-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "identicalPixels": true,
+      "sha256": "6ea3561e1224fa2f8710a3d28799658db22022b97a42f8e81b53e826891efa9c"
+    },
+    {
+      "name": "frontend-shell-360x640-font20-ltr-motion-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "identicalPixels": true,
+      "sha256": "dbc6de583704a7d1e65b9aebd646288697fadee24f4676608a8204ea83f61bd3"
+    },
+    {
+      "name": "frontend-shell-360x640-font20-ltr-motion-gesture-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "identicalPixels": true,
+      "sha256": "88005e031016522b5097363db26bfd75da2a8ed71cdcaa32fc759995284583b2"
+    },
+    {
+      "name": "frontend-shell-360x640-font20-ltr-motion-long-error-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "identicalPixels": true,
+      "sha256": "5e9140476be08a25beb40b42af5547a42d9b89e6a0079027abe409e76587724c"
+    },
+    {
+      "name": "frontend-shell-360x640-font20-ltr-motion-three-button-api29.png",
+      "pixels": [
+        945,
+        1680
+      ],
+      "identicalPixels": true,
+      "sha256": "e82b02306cd53300cf97e4af08512d1517f1c2d9261b3c8ec678f1941c794624"
+    },
+    {
+      "name": "frontend-shell-360x800-font10-ltr-motion-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "622979b4762505a5cf0975941b18d4cfb42e77622afce45bb03e50885df2c6f4"
+    },
+    {
+      "name": "frontend-shell-360x800-font10-ltr-still-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "622979b4762505a5cf0975941b18d4cfb42e77622afce45bb03e50885df2c6f4"
+    },
+    {
+      "name": "frontend-shell-360x800-font10-rtl-motion-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "e0bb164853a93539813ad793bae995f0de33edc895a8e615351391840050f7f3"
+    },
+    {
+      "name": "frontend-shell-360x800-font16-ltr-motion-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "c2eec672419a051ffa2c576995a6db811a8e4050038ec275659bd994fbb72f41"
+    },
+    {
+      "name": "frontend-shell-360x800-font20-ltr-motion-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "f77df9c1b3906aebee23814bdf26692182f473882918feebf1c12cabe0d04d31"
+    },
+    {
+      "name": "frontend-shell-360x800-font20-rtl-motion-api29.png",
+      "pixels": [
+        778,
+        1730
+      ],
+      "identicalPixels": true,
+      "sha256": "f01834156d3a42b903bf8c879b563c5db157eedc630708032c94ef82ed09fb8e"
+    },
+    {
+      "name": "frontend-shell-412x840-font10-ltr-motion-api29.png",
+      "pixels": [
+        847,
+        1727
+      ],
+      "identicalPixels": true,
+      "sha256": "b1fb8028359b207c04ed9aa17663bcbdef2871c18c3341b480267ad34f652ab2"
+    },
+    {
+      "name": "frontend-shell-412x840-font16-ltr-motion-api29.png",
+      "pixels": [
+        847,
+        1727
+      ],
+      "identicalPixels": true,
+      "sha256": "cdf85634880517e1aae98ccb1fac5ae504caf401d359b3353f34de4667f914b1"
+    },
+    {
+      "name": "frontend-shell-412x840-font20-ltr-motion-api29.png",
+      "pixels": [
+        847,
+        1727
+      ],
+      "identicalPixels": true,
+      "sha256": "0b504a20e684159dcbc39d508834b41be06f385789eed1be30d83aa64d3a1aaa"
+    },
+    {
+      "name": "frontend-shell-600x840-font10-ltr-motion-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "identicalPixels": true,
+      "sha256": "b3873f62302c72438424bd07eb851a80d80766e7273eee79aea3610363b11696"
+    },
+    {
+      "name": "frontend-shell-600x840-font16-ltr-motion-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "identicalPixels": true,
+      "sha256": "c42f6cb646724fb13f19c3d053a2175df65eb2479ab5ea30e5a520e8360b8f8b"
+    },
+    {
+      "name": "frontend-shell-600x840-font20-ltr-motion-api29.png",
+      "pixels": [
+        1080,
+        1512
+      ],
+      "identicalPixels": true,
+      "sha256": "923fc9d83a298af0a57629fface4bf1070296b3a3cb5d903293c6b01393b402d"
+    },
+    {
+      "name": "frontend-shell-640x360-font10-ltr-motion-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "identicalPixels": true,
+      "sha256": "29eb4a27f014680c94949f2f53639fe9da479ba132b5df907966bb4e0c2a1624"
+    },
+    {
+      "name": "frontend-shell-640x360-font16-ltr-motion-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "identicalPixels": true,
+      "sha256": "79df64bbf9ca7b1e6728b4b5fe7c369c2f4c329d278ec6ce36f4211fdf0fedbb"
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "identicalPixels": true,
+      "sha256": "f43e65dcd832845350fdb3869ddd136b31fa2b88ad0c893c3dc7f69e83cf53c7"
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-cardio-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "identicalPixels": true,
+      "sha256": "a73c538cd8f7cc0c8ecbd416e89d6663f103bd0f6f91184d1f6124b174b27d94"
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-gesture-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "identicalPixels": true,
+      "sha256": "9abf8311c26189e542d7ca80aa8659df76295fd2e7d4f95010bfd9e4541192e6"
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-long-error-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "identicalPixels": true,
+      "sha256": "7110bbf61ea109f2f8cfc8f28d8a7249d6628d8961dab04c3077ab3b99774d07"
+    },
+    {
+      "name": "frontend-shell-640x360-font20-ltr-motion-three-button-api29.png",
+      "pixels": [
+        1080,
+        608
+      ],
+      "identicalPixels": true,
+      "sha256": "37005c71a213446f7dec5d5d1c00aebad02a37a373d0e2a717f57879aca4a8f8"
+    }
+  ]
+}

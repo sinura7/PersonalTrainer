@@ -20,12 +20,10 @@ MANIFEST = os.path.join(ROOT, "app/src/main/AndroidManifest.xml")
 CATALOG = os.path.join(ROOT, "gradle/libs.versions.toml")
 WRAPPER = os.path.join(ROOT, "gradle/wrapper/gradle-wrapper.properties")
 ROBOLECTRIC = os.path.join(ROOT, "app/src/test/resources/robolectric.properties")
-CORE_TOOLCHAIN = os.path.join(ROOT, "app/src/main/java/com/sinura/personaltrainer/toolchain/CoreToolchain.kt")
-COMPOSE_TOOLCHAIN = os.path.join(ROOT, "app/src/main/java/com/sinura/personaltrainer/toolchain/ComposeToolchain.kt")
-PERSISTENCE_TOOLCHAIN = os.path.join(
-    ROOT,
-    "app/src/main/java/com/sinura/personaltrainer/toolchain/PersistenceToolchain.kt",
-)
+TOOLCHAIN_DIR = "app/src/test/java/com/sinura/personaltrainer/toolchain"
+CORE_TOOLCHAIN = os.path.join(ROOT, f"{TOOLCHAIN_DIR}/CoreToolchain.kt")
+COMPOSE_TOOLCHAIN = os.path.join(ROOT, f"{TOOLCHAIN_DIR}/ComposeToolchain.kt")
+PERSISTENCE_TOOLCHAIN = os.path.join(ROOT, f"{TOOLCHAIN_DIR}/PersistenceToolchain.kt")
 SCHEMA_V1 = os.path.join(
     ROOT,
     "app/schemas/com.sinura.personaltrainer.data.local.TrainerDatabase/1.json",

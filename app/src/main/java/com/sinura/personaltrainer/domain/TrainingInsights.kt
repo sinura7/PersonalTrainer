@@ -1,10 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
-import com.sinura.personaltrainer.util.recoverWith
-
-private const val TAG = "PT/Insights"
-
 /** Which part of the analytics pass failed, so a screen can say so instead of showing zeroes. */
 enum class InsightFailure {
     /** The muscle heat snapshot could not be built; [TrainingInsights.snapshot] is null. */
@@ -78,7 +73,7 @@ data class TrainingInsightsInput(
     val unit: WeightUnit,
     val window: HeatWindow,
     val nowMs: Long,
-    val time: TimePort = JvmTime,
+    val time: TimePort,
     val zoneId: String = time.defaultZoneId(),
     /** Progress has no week plan to show; skipping it keeps a wide history window cheap. */
     val includeWeekPlan: Boolean = true,
@@ -92,7 +87,15 @@ data class TrainingInsightsInput(
  * correctly.
  */
 object TrainingInsightsCalculator {
-    fun compute(input: TrainingInsightsInput): TrainingInsights {
+    /**
+     * [onStageFailure] is handed the name of a stage that threw and the throwable, so the
+     * layer that owns logging can record it. Defaulted rather than required because the
+     * degrade behaviour is the same either way — see [recoverStage].
+     */
+    fun compute(
+        input: TrainingInsightsInput,
+        onStageFailure: (String, Throwable) -> Unit = { _, _ -> },
+    ): TrainingInsights {
         val failures = linkedSetOf<InsightFailure>()
 
         val todayEpochDay = input.time.civilDate(input.nowMs, input.zoneId).epochDay
@@ -104,7 +107,7 @@ object TrainingInsightsCalculator {
             hint.copy(trace = hint.trace ?: RuleTrace.forHint(hint, input.nowMs, todayEpochDay))
         }
 
-        val snapshot = recoverWith(TAG, "The muscle heat snapshot", null) {
+        val snapshot = recoverStage("The muscle heat snapshot", onStageFailure) {
             MuscleLoadCalculator.snapshot(
                 sessions = input.history,
                 window = input.window,
@@ -135,10 +138,9 @@ object TrainingInsightsCalculator {
         // so flipping a window chip changes the numbers on the map and nothing about the
         // advice. It is also independent of the snapshot's success: a failed heat computation
         // used to blank the recommendations as collateral damage.
-        val recommendations: List<TrainingRecommendation> = recoverWith(
-            TAG,
+        val recommendations: List<TrainingRecommendation> = recoverStage(
             "The training recommendations",
-            null,
+            onStageFailure,
         ) {
             val basis = MuscleLoadCalculator.coachBasis(
                 sessions = input.history,
@@ -190,7 +192,7 @@ object TrainingInsightsCalculator {
         val weekPlan = if (!input.includeWeekPlan) {
             null
         } else {
-            recoverWith(TAG, "The weekly schedule plan", null) {
+            recoverStage("The weekly schedule plan", onStageFailure) {
                 val derived = WeekDerivation.derive(
                     slots = input.slots,
                     history = input.history,
@@ -237,11 +239,12 @@ object TrainingInsightsCalculator {
         weekStart: Weekday,
         exerciseCatalog: Map<String, Exercise>,
         lastLoggedAtByExerciseId: Map<String, Long>,
-        time: TimePort = JvmTime,
+        time: TimePort,
+        onStageFailure: (String, Throwable) -> Unit = { _, _ -> },
     ): TrainingInsights {
         if (insights.snapshot?.window == window) return insights
         val failures = insights.failures.toMutableSet()
-        val snapshot = recoverWith(TAG, "The muscle heat snapshot", null) {
+        val snapshot = recoverStage("The muscle heat snapshot", onStageFailure) {
             MuscleLoadCalculator.snapshot(
                 sessions = insights.history,
                 window = window,

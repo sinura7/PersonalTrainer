@@ -7,15 +7,20 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.AuxiliaryPacks
+import com.sinura.personaltrainer.domain.CardioCopy
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.DayBlockOrder
 import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.ExtraEquipment
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
+import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
@@ -30,6 +35,7 @@ import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.workout.DiscardOutcome
+import com.sinura.personaltrainer.workout.StartCardioOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
 import com.sinura.personaltrainer.workout.StartOccurrenceOutcome
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,23 +66,33 @@ data class HomeUiState(
     val error: String? = null,
     val missedWorkPrompt: Boolean = false,
     val overdueCount: Int = 0,
-    /** False until a plan or custom week is accepted. Home shows the get-started sheet. */
+    /** False until a plan or custom week is accepted. Home stays quiet, not a sheet. */
     val setupComplete: Boolean = true,
     val bodyweightCheckInDue: Boolean = false,
     val latestBodyweightKg: Double? = null,
     val occurrences: List<com.sinura.personaltrainer.domain.ScheduleOccurrence> = emptyList(),
     val rules: List<com.sinura.personaltrainer.domain.ScheduleRule> = emptyList(),
     val weekStartEpochDay: Long = 0L,
+    val suggestedExtraEquipment: ExtraEquipment = ExtraEquipment.MIXED,
 ) {
     /** True for a live workout or live cardio — Home's filled Volt hides for both. */
     val sessionLive: Boolean get() = inProgress != null || liveActivity != null
 }
+
+/** A leftover Skip, held only long enough for the undo host to offer it back. */
+data class SkippedDayOffer(
+    val occurrenceId: String,
+    val previousStatus: OccurrenceStatus,
+    val title: String,
+)
 
 class HomeViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
     private val actionError = MutableStateFlow<String?>(null)
+    private val undoableSkip = MutableStateFlow<SkippedDayOffer?>(null)
+    val skippedDay: StateFlow<SkippedDayOffer?> = undoableSkip.asStateFlow()
 
     val uiState: StateFlow<HomeUiState> = combine(
         container.trainingInsights.observeShared(),
@@ -95,13 +111,20 @@ class HomeViewModel @JvmOverloads constructor(
                 ) { occurrences, rules, decisions -> Triple(occurrences, rules, decisions) },
             ) { lighterStart, planner -> lighterStart to planner },
             combine(
-                container.preferencesRepository.schedulePreferences,
-                container.preferencesRepository.preferredDays,
-                container.preferencesRepository.bodyweightLog,
-                container.preferencesRepository.bodyweightCheckInWeekday,
-                container.preferencesRepository.onboardingComplete,
-            ) { preferences, preferredDays, log, checkIn, setupComplete ->
-                HomeCadence(preferences, preferredDays, log, checkIn, setupComplete)
+                combine(
+                    container.preferencesRepository.schedulePreferences,
+                    container.preferencesRepository.preferredDays,
+                    container.preferencesRepository.bodyweightLog,
+                    container.preferencesRepository.bodyweightCheckInWeekday,
+                    container.preferencesRepository.onboardingComplete,
+                ) { preferences, preferredDays, log, checkIn, setupComplete ->
+                    HomeCadence(preferences, preferredDays, log, checkIn, setupComplete)
+                },
+                container.preferencesRepository.coachPreferences,
+            ) { cadence, coach ->
+                cadence.copy(
+                    suggestedExtra = ExtraEquipment.fromPreferences(coach.availableEquipment),
+                )
             },
         ) { planner, cadence -> planner to cadence },
     ) { insights, livePair, error, extras ->
@@ -158,6 +181,7 @@ class HomeViewModel @JvmOverloads constructor(
             occurrences = occurrences,
             rules = rules,
             weekStartEpochDay = weekStart,
+            suggestedExtraEquipment = cadence.suggestedExtra,
         )
     }
         // Same reason as Plan: this transform walks every finished session to build the logged
@@ -266,35 +290,103 @@ class HomeViewModel @JvmOverloads constructor(
      */
     fun startFreeWorkout() {
         viewModelScope.launch {
-            when (val outcome = container.workoutRepository.startFreeWorkoutSafely()) {
-                is StartSessionOutcome.Started -> {
-                    // Cleared only on a real start: a Blocked free tap must not unbind
-                    // the planned session that is still running.
+            openWorkout(container.workoutRepository.startFreeWorkoutSafely(), freeDay())
+        }
+    }
+
+    fun startRoutine(routineId: String) {
+        viewModelScope.launch {
+            val routine = container.routineRepository.getById(routineId)
+            if (routine == null) {
+                actionError.value = "That routine is no longer available."
+                return@launch
+            }
+            if (routine.exercises.isEmpty()) {
+                actionError.value = SessionOrderCopy.NEED_A_LIFT
+                return@launch
+            }
+            openWorkout(
+                container.workoutRepository.startRoutineSafely(routine),
+                freeDay(title = routine.name, routineId = routine.id),
+            )
+        }
+    }
+
+    fun startCardio(type: CardioType) {
+        viewModelScope.launch {
+            when (
+                val outcome = container.startLiveCardio(
+                    type = type,
+                    now = time.captureNow(),
+                    title = CardioCopy.name(type),
+                )
+            ) {
+                is StartCardioOutcome.Open -> {
                     PendingOccurrence.forget(container)
                     actionError.value = null
-                    _navigateToSession.value = outcome.session.id
+                    _navigateToCardio.value = outcome.sessionId
                 }
-                is StartSessionOutcome.Blocked ->
-                    _blockedByInProgress.value = BlockedStart(
-                        day = SuggestedTrainingDay(
-                            epochDay = todayEpochDay(),
-                            dayOfWeek = Weekday.fromEpochDay(todayEpochDay()),
-                            isRest = false,
-                            focusKind = SessionFocusKind.FULL_BODY,
-                            focusTitle = "Free workout",
-                            routineId = null,
-                            routineName = "Free workout",
-                            reason = "",
-                            emphasisMuscles = emptyList(),
-                            confidence = ScheduleConfidence.HIGH,
-                        ),
-                        sessionId = outcome.inProgress.id,
-                    )
-                is StartSessionOutcome.Unavailable ->
-                    actionError.value = outcome.message
+                is StartCardioOutcome.Rejected ->
+                    actionError.value = outcome.reason
             }
         }
     }
+
+    fun startAux(packId: String) {
+        viewModelScope.launch {
+            val pack = AuxiliaryPacks.byId(packId) ?: return@launch
+            val routineId = AuxiliaryBlocks.ensureRoutine(
+                pack,
+                container.routineRepository,
+                container.exerciseRepository,
+            )
+            val routine = container.routineRepository.getById(routineId)
+            if (routine == null || routine.exercises.isEmpty()) {
+                actionError.value = SessionOrderCopy.NEED_A_LIFT
+                return@launch
+            }
+            openWorkout(
+                container.workoutRepository.startRoutineSafely(routine),
+                freeDay(title = pack.title, routineId = routine.id),
+            )
+        }
+    }
+
+    private suspend fun openWorkout(
+        outcome: StartSessionOutcome,
+        blockedDay: SuggestedTrainingDay,
+    ) {
+        when (outcome) {
+            is StartSessionOutcome.Started -> {
+                PendingOccurrence.forget(container)
+                actionError.value = null
+                _navigateToSession.value = outcome.session.id
+            }
+            is StartSessionOutcome.Blocked ->
+                _blockedByInProgress.value = BlockedStart(
+                    day = blockedDay,
+                    sessionId = outcome.inProgress.id,
+                )
+            is StartSessionOutcome.Unavailable ->
+                actionError.value = outcome.message
+        }
+    }
+
+    private fun freeDay(
+        title: String = "Free workout",
+        routineId: String? = null,
+    ) = SuggestedTrainingDay(
+        epochDay = todayEpochDay(),
+        dayOfWeek = Weekday.fromEpochDay(todayEpochDay()),
+        isRest = false,
+        focusKind = SessionFocusKind.FULL_BODY,
+        focusTitle = title,
+        routineId = routineId,
+        routineName = title,
+        reason = "",
+        emphasisMuscles = emptyList(),
+        confidence = ScheduleConfidence.HIGH,
+    )
 
     fun applyMissedWork(choice: MissedWorkChoice) {
         viewModelScope.launch {
@@ -428,10 +520,39 @@ class HomeViewModel @JvmOverloads constructor(
                 val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
                     ?: return@runCatching
                 if (!MoveToToday.isLeftover(occurrence, todayEpochDay())) return@runCatching
-                container.plannerRepository.skipOccurrence(occurrenceId)
+                val previous = container.plannerRepository.skipOccurrence(occurrenceId)
+                    ?: return@runCatching
+                val title = DailyAgenda.forDay(
+                    epochDay = occurrence.localEpochDay,
+                    occurrences = listOf(occurrence),
+                    rules = container.plannerRepository.rules(),
+                    routineNames = uiState.value.routines.associate { it.id to it.name },
+                ).first().title
+                undoableSkip.value = SkippedDayOffer(
+                    occurrenceId = occurrenceId,
+                    previousStatus = previous,
+                    title = title,
+                )
             }.onSuccess { actionError.value = null }
                 .onFailure { actionError.value = "Could not skip that session. Try again." }
         }
+    }
+
+    fun undoSkipOccurrence() {
+        val pending = undoableSkip.value ?: return
+        undoableSkip.value = null
+        viewModelScope.launch {
+            runCatching {
+                container.plannerRepository.restoreSkippedOccurrence(
+                    occurrenceId = pending.occurrenceId,
+                    previousStatus = pending.previousStatus,
+                )
+            }.onFailure { actionError.value = "Could not restore that session. Try again." }
+        }
+    }
+
+    fun onUndoOfferHandled() {
+        undoableSkip.value = null
     }
 
     fun addDaySession(epochDay: Long, add: HomeDayAdd, once: Boolean) {
@@ -492,10 +613,6 @@ class HomeViewModel @JvmOverloads constructor(
         }
     }
 
-    fun addExtra(epochDay: Long, packId: String) {
-        addDaySession(epochDay, HomeDayAdd.Aux(packId), once = true)
-    }
-
     fun moveDayBlock(items: List<AgendaItem>, occurrenceId: String, delta: Int) {
         viewModelScope.launch {
             val from = items.indexOfFirst { it.occurrence.id == occurrenceId }
@@ -547,6 +664,7 @@ class HomeViewModel @JvmOverloads constructor(
         val bodyweightLog: List<com.sinura.personaltrainer.domain.BodyweightEntry>,
         val checkInWeekday: Weekday?,
         val setupComplete: Boolean,
+        val suggestedExtra: ExtraEquipment = ExtraEquipment.MIXED,
     )
 }
 

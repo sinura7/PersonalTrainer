@@ -21,6 +21,7 @@ import com.sinura.personaltrainer.domain.HorizonProgress
 import com.sinura.personaltrainer.domain.HorizonTotals
 import com.sinura.personaltrainer.domain.PrSummaryRow
 import com.sinura.personaltrainer.domain.RecordSet
+import com.sinura.personaltrainer.domain.RecordsCalculator
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -28,7 +29,6 @@ import com.sinura.personaltrainer.domain.TrainingMonth
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.groupHistoryByMonth
-import com.sinura.personaltrainer.domain.standingRecords
 import com.sinura.personaltrainer.domain.toHistoryEntry
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.ErrorSlot
@@ -169,7 +169,7 @@ class HistoryViewModel @JvmOverloads constructor(
                 stale = list.stale || activities.stale || workoutRecords.stale || activityRecords.stale,
                 summaries = allSummaries,
                 monthGroups = groupHistoryByMonth(allSummaries.map { it.toHistoryEntry() }),
-                records = standingRecords(workoutRecords.value + activityRecords.value),
+                records = RecordsCalculator.standing(workoutRecords.value + activityRecords.value),
                 weekStart = preferences.weekStart,
                 pastBlocks = settings.second,
                 projections = DailyProjectionBuilder.project(allSummaries),

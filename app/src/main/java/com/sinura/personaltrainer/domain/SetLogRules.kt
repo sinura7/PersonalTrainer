@@ -5,6 +5,7 @@ object SetLogRules {
         "Enter a weight for working sets. Use warm-up for 0 kg."
     const val INVALID_WEIGHT = "Weight must be zero or greater."
     const val INVALID_REPS = "Reps must be at least 1."
+    const val INVALID_HOLD = "Hold at least 1 second."
 
     /**
      * @param loadType how the lift is loaded. Null — a custom, or a row from a backup this
@@ -21,9 +22,24 @@ object SetLogRules {
         reps: Int,
         isWarmup: Boolean,
         loadType: LoadType? = null,
+        durationSeconds: Int? = null,
+        isHold: Boolean = false,
+        equipment: EquipmentType? = null,
+        movementKey: String? = null,
     ): String? {
         if (!weightKg.isFinite() || weightKg < 0.0) return INVALID_WEIGHT
-        if (!isWarmup && weightKg == 0.0 && requiresWeight(loadType)) return ZERO_WORKING_WEIGHT
+        if (
+            !isWarmup &&
+            weightKg == 0.0 &&
+            requiresWeight(loadType, equipment, movementKey)
+        ) {
+            return ZERO_WORKING_WEIGHT
+        }
+        if (isHold) {
+            val held = durationSeconds ?: 0
+            if (held < 1) return INVALID_HOLD
+            return null
+        }
         if (reps < 1) return INVALID_REPS
         return null
     }
@@ -33,16 +49,22 @@ object SetLogRules {
      *
      * BODYWEIGHT has nothing to add. BODYWEIGHT_PLUS *can* take added load but does not have
      * to — an unweighted pull-up is a complete set. ASSISTED counts assistance subtracted, so
-     * zero assistance is the hardest version, not a missing entry.
+     * zero assistance is the hardest version, not a missing entry. EXTERNAL dumbbell lunges
+     * and step-ups are the same lift with empty hands — see [UnloadedLoad].
      */
-    fun requiresWeight(loadType: LoadType?): Boolean = when (loadType) {
-        LoadType.EXTERNAL, LoadType.STACK, null -> true
-        LoadType.BODYWEIGHT, LoadType.BODYWEIGHT_PLUS, LoadType.ASSISTED -> false
-    }
+    fun requiresWeight(
+        loadType: LoadType?,
+        equipment: EquipmentType? = null,
+        movementKey: String? = null,
+    ): Boolean = !UnloadedLoad.allowsZeroWorkingWeight(loadType, equipment, movementKey)
 
-    fun isUserMessage(message: String): Boolean =
+    fun isFieldMessage(message: String): Boolean =
         message == ZERO_WORKING_WEIGHT ||
             message == INVALID_WEIGHT ||
             message == INVALID_REPS ||
+            message == INVALID_HOLD
+
+    fun isUserMessage(message: String): Boolean =
+        isFieldMessage(message) ||
             message.startsWith("This workout")
 }

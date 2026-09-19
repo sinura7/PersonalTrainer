@@ -11,13 +11,12 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.RestCompleteCue
+import com.sinura.personaltrainer.domain.RestTick
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 
 object RestTimerAlerts {
     private val COMPLETE_PATTERN = longArrayOf(0, 140, 90, 140, 90, 320)
-
-    /** One short pulse per tick — felt, not a second cue. */
-    private const val TICK_PULSE_MS = 40L
 
     internal val CUE_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_ALARM)
@@ -38,16 +37,35 @@ object RestTimerAlerts {
     }
 
     /**
+     * Settings Play. Same bundled `rest_done` on the alarm stream as
+     * [announce] at 0:00 — not a second asset, not a system ringtone first.
+     *
+     * Sound is forced on so the row is never silent. Vibration still
+     * follows the live switch.
+     */
+    fun preview(
+        context: Context,
+        preferences: RestTimerPreferences,
+        createPlayer: (Context, Int, AudioAttributes) -> MediaPlayer? = ::createWithAttributes,
+    ) {
+        announce(context, RestCompleteCue.previewPreferences(preferences), createPlayer)
+    }
+
+    /**
      * One of the last five seconds (R-04). The click is the caller's — the
      * [RestTickPlayer] the service keeps loaded — so this stays the policy:
      * Last five seconds is the off switch, and Sound and Vibration gate the
      * two halves exactly as they gate the cue.
+     *
+     * [second] picks the pulse: light on 5 and 4, heavier on 3, 2, 1
+     * ([RestTick.pulseMs]). Complete stays [announce]'s waveform.
      *
      * @return whether the tick was on, whatever the two halves then did.
      */
     fun tick(
         context: Context,
         preferences: RestTimerPreferences,
+        second: Int = RestTick.FIRST,
         click: () -> Unit,
     ): Boolean {
         if (!preferences.tickEnabled) return false
@@ -61,10 +79,37 @@ object RestTimerAlerts {
         if (preferences.vibrationEnabled) {
             vibrate(
                 context,
-                VibrationEffect.createOneShot(TICK_PULSE_MS, VibrationEffect.DEFAULT_AMPLITUDE),
+                VibrationEffect.createOneShot(
+                    RestTick.pulseMs(second),
+                    VibrationEffect.DEFAULT_AMPLITUDE,
+                ),
             )
         }
         return true
+    }
+
+    /**
+     * Hold target reached: one short alarm-stream beep, never the rest-done
+     * two-note cue (HA-18 / HA-27).
+     */
+    fun holdTargetTone(
+        context: Context,
+        soundEnabled: Boolean,
+    ) {
+        if (!soundEnabled) return
+        try {
+            val tone = android.media.ToneGenerator(AudioManager.STREAM_ALARM, 80)
+            tone.startTone(android.media.ToneGenerator.TONE_PROP_BEEP, 80)
+            android.os.Handler(context.mainLooper).postDelayed({
+                try {
+                    tone.release()
+                } catch (_: Exception) {
+                    // Already gone.
+                }
+            }, 120L)
+        } catch (_: Exception) {
+            // Sound is optional. Never fail the hold clock.
+        }
     }
 
     private fun playSound(

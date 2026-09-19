@@ -19,12 +19,17 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExtraEquipment
+import com.sinura.personaltrainer.domain.HomeStartCopy
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
@@ -41,6 +46,7 @@ import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
+import com.sinura.personaltrainer.ui.plan.ExtraEquipmentTags
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import org.junit.Rule
@@ -77,8 +83,6 @@ class HomePassInstrumentedTest {
                 reason = "Chest is due.",
                 sessionLive = false,
                 hasRoutines = true,
-                onSuggestWeek = {},
-                onReplayAnswers = {},
                 onPrimary = {},
                 onStartFree = {},
             )
@@ -103,8 +107,6 @@ class HomePassInstrumentedTest {
                 sessionLive = false,
                 hasRoutines = true,
                 routines = listOf(PUSH_ROUTINE),
-                onSuggestWeek = {},
-                onReplayAnswers = {},
                 onPrimary = { started = true },
                 onStartFree = {},
             )
@@ -133,8 +135,6 @@ class HomePassInstrumentedTest {
                 sessionLive = false,
                 hasRoutines = true,
                 routines = listOf(PUSH_ROUTINE),
-                onSuggestWeek = {},
-                onReplayAnswers = {},
                 onPrimary = { started = true },
                 onStartFree = {},
             )
@@ -182,7 +182,8 @@ class HomePassInstrumentedTest {
         compose.onNodeWithText("Start Push").assertDoesNotExist()
         compose.onNodeWithText("Start Cardio").assertDoesNotExist()
         compose.onNodeWithText(SessionOrderCopy.AGENDA_SEPARATE).assertIsDisplayed()
-        compose.onNodeWithText("1 Squat · 2 Row").assertIsDisplayed()
+        compose.onNodeWithText("1 Squat").assertIsDisplayed()
+        compose.onNodeWithText("2 Row").assertIsDisplayed()
     }
 
     @Test
@@ -224,54 +225,92 @@ class HomePassInstrumentedTest {
         compose.onNodeWithText("7 AM", substring = true).assertDoesNotExist()
         compose.onNodeWithContentDescription("Move Cardio down").assertIsDisplayed()
         compose.onNodeWithContentDescription("Move Push up").assertIsDisplayed()
-        compose.onNodeWithTag(HomeTags.ADD).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Add").assertIsDisplayed()
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithText(PlanDayCopy.ADD).assertDoesNotExist()
     }
 
     @Test
-    fun addUnderTodayOpensWarmUpPacks() {
+    fun startSheetOffersFreeRoutinesCardioAndExtra() {
         setConstrainedContent(fontScale = 1f) {
-            DailyAgendaCard(
-                items = listOf(STRENGTH_ITEM),
-                sessionLive = false,
-                onStartOccurrence = {},
-                onStartFree = {},
+            HomeStartSheet(
                 routines = listOf(PUSH_ROUTINE),
-                today = TODAY,
-                canEditDay = true,
+                onDismiss = {},
+                onStartFree = {},
+                onStartRoutine = {},
+                onStartCardio = {},
+                onStartExtra = {},
             )
         }
-        compose.onNodeWithTag(HomeTags.ADD).performClick()
-        compose.onNodeWithText(PlanDayCopy.AUXILIARY).performClick()
-        compose.onNodeWithText("Golf warm-up").assertIsDisplayed()
-        compose.onNodeWithText("Lower-body warm-up").assertIsDisplayed()
-        compose.onNodeWithText("Shoulder warm-up").assertIsDisplayed()
-        compose.onNodeWithText("Stretch").assertIsDisplayed()
+        compose.onNodeWithTag(HomeStartTags.SHEET).assertIsDisplayed()
+        compose.onNodeWithText(HomeStartCopy.FREE).assertIsDisplayed()
+        compose.onNodeWithText(HomeStartCopy.ROUTINE).assertIsDisplayed()
+        compose.onNodeWithText(HomeStartCopy.CARDIO).assertIsDisplayed()
+        compose.onNodeWithText(HomeStartCopy.EXTRA).assertIsDisplayed()
+        compose.onNodeWithText(PlanDayCopy.ADD).assertDoesNotExist()
     }
 
     @Test
-    fun addUnderTodayAsksJustTodayOrEveryWeekday() {
-        var addedOnce: Boolean? = null
+    fun startSheetFreeStartsImmediately() {
+        var started = false
         setConstrainedContent(fontScale = 1f) {
-            DailyAgendaCard(
-                items = listOf(STRENGTH_ITEM),
-                sessionLive = false,
-                onStartOccurrence = {},
-                onStartFree = {},
-                routines = listOf(PUSH_ROUTINE),
-                today = TODAY,
-                epochDay = TODAY,
-                canEditDay = true,
-                onNewWorkout = { once -> addedOnce = once },
+            HomeStartSheet(
+                routines = emptyList(),
+                onDismiss = {},
+                onStartFree = { started = true },
+                onStartRoutine = {},
+                onStartCardio = {},
+                onStartExtra = {},
             )
         }
-        compose.onNodeWithTag(HomeTags.ADD).performClick()
-        compose.onNodeWithText(PlanDayCopy.WORKOUT).performClick()
-        compose.onNodeWithText(PlanDayCopy.NEW_WORKOUT).performClick()
-        compose.onNodeWithText(PlanDayCopy.JUST_TODAY).assertIsDisplayed()
-        compose.onNodeWithText(PlanDayCopy.everyWeekday(Weekday.fromEpochDay(TODAY))).assertIsDisplayed()
-        compose.onNodeWithText(PlanDayCopy.JUST_TODAY).performClick()
-        org.junit.Assert.assertEquals(true, addedOnce)
+        compose.onNodeWithTag(HomeStartTags.FREE).performClick()
+        org.junit.Assert.assertTrue(started)
+    }
+
+    @Test
+    fun startSheetExtraShowsPackPictures() {
+        setConstrainedContent(fontScale = 1f) {
+            HomeStartSheet(
+                routines = emptyList(),
+                onDismiss = {},
+                onStartFree = {},
+                onStartRoutine = {},
+                onStartCardio = {},
+                onStartExtra = {},
+            )
+        }
+        compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        compose.onNodeWithText(ExtraEquipment.PICK.uppercase()).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.NONE.label).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.MACHINES.label).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(ExtraEquipment.MIXED.label).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Golf warm-up").assertDoesNotExist()
+        compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.MIXED)).performClick()
+        // Expand the native sheet before traversing the longer pack list.
+        compose.onNodeWithTag(HomeStartTags.SHEET).performTouchInput { swipeUp() }
+        compose.onNodeWithText("Golf warm-up").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Lower-body warm-up").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Shoulder warm-up").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Stretch").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun startSheetExtraNoneHidesMachineCore() {
+        setConstrainedContent(fontScale = 1f) {
+            HomeStartSheet(
+                routines = emptyList(),
+                onDismiss = {},
+                onStartFree = {},
+                onStartRoutine = {},
+                onStartCardio = {},
+                onStartExtra = {},
+            )
+        }
+        compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
+        compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.NONE)).performClick()
+        compose.onNodeWithText("Dead bugs, planks, an ab wheel. No machine.")
+            .performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Crunches and leg raises. Not a static hold.", substring = true)
+            .assertDoesNotExist()
     }
 
     @Test
@@ -290,7 +329,7 @@ class HomePassInstrumentedTest {
     }
 
     @Test
-    fun emptyEditableDayPutsAddUnderToday() {
+    fun emptyEditableDayHasNoAddRow() {
         setConstrainedContent(fontScale = 1f) {
             DailyAgendaCard(
                 items = emptyList(),
@@ -301,9 +340,10 @@ class HomePassInstrumentedTest {
                 canEditDay = true,
             )
         }
-        compose.onNodeWithTag(HomeTags.ADD).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Add").assertIsDisplayed()
+        compose.onNodeWithText(PlanDayCopy.ADD).assertDoesNotExist()
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
+        compose.onNodeWithText(HomeStartCopy.EMPTY_BODY).assertIsDisplayed()
     }
 
     @Test
@@ -367,14 +407,10 @@ class HomePassInstrumentedTest {
                 reason = null,
                 sessionLive = false,
                 hasRoutines = true,
-                onSuggestWeek = {},
-                onReplayAnswers = {},
                 onPrimary = {},
                 onStartFree = {},
             )
         }
-        compose.onNodeWithTag(HomeTags.REPLAY).assertIsDisplayed()
-        compose.onNodeWithContentDescription(WeekTwoCopy.VOLT).assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
         compose.onNodeWithContentDescription("Start a workout").assertIsDisplayed()
     }

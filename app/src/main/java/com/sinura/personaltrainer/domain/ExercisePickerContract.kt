@@ -43,12 +43,23 @@ data class ExercisePickerState(
                 results + siblings + listOfNotNull(suggestion),
             ),
         )
+
+    /**
+     * Same ten groups Body lists, in Body's order. The sheet adds All in front.
+     * Search already narrowed [results]; this then keeps lifts that train [muscle].
+     */
+    fun visibleFor(muscle: CanonicalMuscle?): List<Exercise> =
+        LibraryFilter.apply(results, muscle)
 }
 
 sealed class ExercisePickerEvent {
     data class QueryChanged(val query: String) : ExercisePickerEvent()
     data class Selected(val exercise: Exercise) : ExercisePickerEvent()
-    data class Created(val name: String, val muscleGroup: String) : ExercisePickerEvent()
+    data class Created(
+        val name: String,
+        val muscleGroup: String,
+        val loadType: LoadType = LoadType.EXTERNAL,
+    ) : ExercisePickerEvent()
     /** A tap in [ExercisePickerMode.MULTI_ADD]: adds the lift, or takes it back out. */
     data class Toggled(val exercise: Exercise) : ExercisePickerEvent()
     data object Dismissed : ExercisePickerEvent()

@@ -81,7 +81,12 @@ abstract class TemperDatabase : AppRoomDatabase() {
             )
                 // No fallbackToDestructiveMigration, here or ever: a migration
                 // bug must fail closed, not silently erase training history.
-                .addMigrations(MIGRATION_TEMPER_1_2, MIGRATION_TEMPER_2_3, MIGRATION_TEMPER_3_4)
+                .addMigrations(
+                    MIGRATION_TEMPER_1_2,
+                    MIGRATION_TEMPER_2_3,
+                    MIGRATION_TEMPER_3_4,
+                    MIGRATION_TEMPER_4_5,
+                )
                 .build()
         }
     }

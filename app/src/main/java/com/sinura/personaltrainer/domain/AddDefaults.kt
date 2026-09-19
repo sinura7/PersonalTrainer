@@ -27,9 +27,14 @@ data class TargetDefaults(
     val sets: Int,
     val reps: Int,
     val restSeconds: Int,
+    val seconds: Int? = null,
+    val secondsMax: Int? = null,
 ) {
     /** The line the add-to-routine sheet shows before anything is written. */
-    fun previewLine(): String = "$sets × $reps · ${RestTimer.formatClock(restSeconds)}"
+    fun previewLine(): String {
+        val work = seconds?.let { HoldWork.formatRange(it, secondsMax) } ?: reps.toString()
+        return "$sets × $work · ${RestTimer.formatClock(restSeconds)}"
+    }
 }
 
 /**
@@ -41,10 +46,12 @@ data class TargetDefaults(
  * enough rest. The user could always fix it, which is exactly the problem — the app was making
  * them correct a guess it had no reason to make badly.
  *
- * Two axes decide it. [LoadType] says how the resistance behaves: a selectorized stack moves in
- * fixed pin jumps and rewards higher reps, bodyweight has no jumps at all. Compound-ness says
- * how much of you is working — and it is derived from the junction credits rather than stored,
- * because a lift that meaningfully loads a second muscle already says so in its credits.
+ * Four axes decide it. [LoadType] says how the resistance behaves. Compound-ness
+ * says how much of you is working. [LiftRole] says where the lift sits in the
+ * session. [TrainingGoal] shifts the landing reps and rest — Muscle up and shorter,
+ * Strength the reverse — without adding or removing a rule, and only for a row
+ * being added now. A goal changed on a Tuesday never rewrites a routine the user
+ * already wrote. Nothing about the goal enters [SetMicroRecCalculator].
  *
  * These are opinions, not physiology. They are here so the app has one opinion instead of one
  * number pretending not to be an opinion.
@@ -54,8 +61,25 @@ object AddDefaults {
     fun isCompound(exercise: Exercise): Boolean =
         exercise.muscles.drop(1).any { it.weight >= COMPOUND_SECONDARY_WEIGHT }
 
-    fun forExercise(exercise: Exercise, role: LiftRole = LiftRole.PRIMARY): TargetDefaults =
-        forExercise(exercise.loadType, isCompound(exercise), role)
+    fun forExercise(exercise: Exercise, role: LiftRole = LiftRole.PRIMARY, goal: TrainingGoal = TrainingGoal.GENERAL): TargetDefaults {
+        if (HoldWork.isHold(exercise)) {
+            return TargetDefaults(
+                sets = 2,
+                reps = HoldWork.HOLD_REPS_PLACEHOLDER,
+                restSeconds = WorkoutPasteRest.ACCESSORY_SECONDS,
+                seconds = HoldWork.DEFAULT_SECONDS,
+            )
+        }
+        // Empty-hands dumbbell lunges / step-ups log as BODYWEIGHT_PLUS so 0 kg
+        // is a complete set. Their session dose stays the EXTERNAL compound
+        // row they had before that recategorization — 3 × 5 / 150 as a
+        // primary, 3 × 8 / 90 as an accessory — so generated Lower days do not
+        // quietly move from 8 to 9 reps.
+        val loadForDose =
+            if (UnloadedLoad.sizesLikeExternalCompound(exercise)) LoadType.EXTERNAL
+            else exercise.loadType
+        return forExercise(loadForDose, isCompound(exercise), role, goal)
+    }
 
     /**
      * What the add-to-routine sheet says this lift will land as.
@@ -63,13 +87,14 @@ object AddDefaults {
      * The old sentence named no numbers. "3 × 5" as a universal line was a lie after
      * per-lift defaults shipped. This is the actual row [forExercise] will write.
      */
-    fun landingCopy(exercise: Exercise): String =
-        "Lands at ${forExercise(exercise).previewLine()} — editable on the routine."
+    fun landingCopy(exercise: Exercise, goal: TrainingGoal = TrainingGoal.GENERAL): String =
+        "Lands at ${forExercise(exercise, goal = goal).previewLine()} — editable on the routine."
 
     fun forExercise(
         loadType: LoadType?,
         isCompound: Boolean,
         role: LiftRole = LiftRole.PRIMARY,
+        goal: TrainingGoal = TrainingGoal.GENERAL,
     ): TargetDefaults {
         val primary = when (loadType) {
             LoadType.EXTERNAL ->
@@ -88,8 +113,29 @@ object AddDefaults {
             // afternoon.
             null -> FALLBACK
         }
-        return if (role == LiftRole.PRIMARY) primary else accessory(primary)
+        val byRole = if (role == LiftRole.PRIMARY) primary else accessory(primary)
+        return applyGoal(byRole, goal)
     }
+
+    /**
+     * Goal moves the numbers the rules will later read. It does not add or
+     * remove a rule. See ADR-025.
+     */
+    private fun applyGoal(defaults: TargetDefaults, goal: TrainingGoal): TargetDefaults =
+        when (goal) {
+            TrainingGoal.HYPERTROPHY -> defaults.copy(
+                reps = (defaults.reps + GOAL_REP_STEP).coerceAtMost(GOAL_MAX_REPS),
+                restSeconds = (defaults.restSeconds - GOAL_REST_SHIFT).coerceAtLeast(GOAL_MIN_REST),
+            )
+            TrainingGoal.STRENGTH -> defaults.copy(
+                reps = (defaults.reps - GOAL_REP_STEP).coerceAtLeast(GOAL_MIN_REPS),
+                restSeconds = (defaults.restSeconds + GOAL_REST_SHIFT).coerceAtMost(GOAL_MAX_REST),
+            )
+            TrainingGoal.ATHLETIC,
+            TrainingGoal.RESILIENCE,
+            TrainingGoal.GENERAL,
+            -> defaults
+        }
 
     /**
      * The same lift, done later in the session.
@@ -112,4 +158,11 @@ object AddDefaults {
     private const val ACCESSORY_MAX_REPS = 12
     private const val ACCESSORY_REST_CUT = 60
     private const val ACCESSORY_MIN_REST = 60
+
+    private const val GOAL_REP_STEP = 2
+    private const val GOAL_MAX_REPS = 15
+    private const val GOAL_MIN_REPS = 3
+    private const val GOAL_REST_SHIFT = 30
+    private const val GOAL_MIN_REST = 60
+    private const val GOAL_MAX_REST = 210
 }

@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BodyHeatCopyTest {
@@ -25,5 +26,30 @@ class BodyHeatCopyTest {
     fun nothingFinishedYetHasNoFactsLine() {
         // EMPTY_LOG already says it; a line of zeros under it would say it twice.
         assertNull(BodyHeatCopy.facts(HeatWindow.CURRENT_WEEK, windowSessions = 0, daysSinceLastFinished = null))
+    }
+
+    @Test
+    fun emptyLogTeachesTheNextTap() {
+        assertTrue(BodyHeatCopy.EMPTY_LOG.startsWith("Tap a muscle"))
+        assertTrue(BodyHeatCopy.EMPTY_LOG.contains("lifts that train it"))
+        assertEquals("Lifts that train the figure", BodyHeatCopy.FIRST_LIFTS)
+        assertEquals("See lifts", BodyHeatCopy.SEE_LIFTS)
+        assertEquals("Lifts that train chest", BodyHeatCopy.liftsThatTrain(CanonicalMuscle.CHEST))
+        assertEquals(
+            "Find the lifts that train chest.",
+            BodyHeatCopy.findLiftsInLibrary(CanonicalMuscle.CHEST),
+        )
+    }
+
+    @Test
+    fun mapCopyDoesNotClaimRecoveryAndExplainsCreditedSets() {
+        assertEquals("No work", HeatBand.UNTRAINED.legendLabel)
+        assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("Completed-set muscle load"))
+        assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("not calendar"))
+        assertTrue(BodyHeatCopy.LEGEND_CAPTION.contains("recovery"))
+        assertTrue(BodyHeatCopy.WINDOW_CAPTION.contains("No colour"))
+        assertTrue(BodyHeatCopy.WINDOW_CAPTION.contains("not recovered"))
+        assertTrue(BodyHeatCopy.ATTRIBUTION_NOTE.contains("Secondary muscles"))
+        assertTrue(BodyHeatCopy.ATTRIBUTION_NOTE.contains("exceed unique sets"))
     }
 }

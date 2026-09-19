@@ -57,7 +57,7 @@ These are not optional polish. They are part of the product.
 | **R-03** | Rest timer plays a **completion sound** that means “next set starts now” | Generic system notification ringtone via `RestTimerAlerts`, skipped if ringer is silent | ✅ 9 Sep 2026 — bundled `res/raw/rest_done.ogg` through `RestSound`, played on the alarm stream (`RestTimerAlerts.CUE_ATTRIBUTES`, `USAGE_ALARM`) |
 | **R-04** | **Last 5 seconds tick** as a warning | Not implemented. No in-app or service tick | ✅ 10 Sep 2026 — `RestTick` (5, 4, 3, 2, 1) posted by `RestTimerService` per boundary; a click (`res/raw/rest_tick.wav` through `RestTickPlayer`, alarm stream) and a 40 ms pulse (`RestTimerAlerts.tick`); Settings **Last five seconds** toggle. Phone awake only; doze keeps the completion cue |
 | **R-05** | Rest timer **hovering popup on the phone home screen** so remaining time is visible without opening the app | Foreground notification + chronometer only. No overlay / bubble / widget **— Superseded — see §10.2 banner; the notification + last-5s ticks are the home-screen presence.** | ✅ 9 Sep 2026 — superseded — no launcher overlay; see §10.2 banner |
-| **R-06** | Rest timer **must not go negative** | Domain clock clamps to `0`. System notification `Chronometer` countdown can overshoot after `setWhen` is in the past. Users see negatives | **P0** |
+| **R-06** | Rest timer **must not go negative** | Domain clock clamps to `0`. System notification `Chronometer` countdown can overshoot after `setWhen` is in the past. Users see negatives | ✅ 11 Sep 2026 — live Chronometer only while seconds remain (ADR-012 lock-screen); at zero the shade freezes `0:00 remaining` (`RestTimer.remainingCopy`, `RestTimerNotifications.runningNotification`) then Done. Never a minus |
 | **R-07** | **Delete a routine, then create one, must not crash** | Editor auto-inserts `"Untitled routine"` on `routine/new`, `leave()` deletes the empty stub, ViewModel can keep a deleted id. Reported crash on recreate | **P0** |
 | **R-08** | Routines include **machines** as a real format (not just free-weight names in a text list) | Catalog mixes “Leg Press” / “Lat Pulldown” as names only. No equipment type, no machine grouping, no machine card design | ✅ 9 Sep 2026 — `EquipmentType` (`BARBELL`…`MACHINE`…`BODYWEIGHT`) on `Exercise.equipment` (`Models.kt`), shown as the row tag in `RoutineEditorScreen`, carried in `BackupJson` |
 
@@ -136,6 +136,8 @@ When `endAtWall` is in the past, the system Chronometer keeps counting **through
 - Prefer a custom `contentText` (`1:24 remaining`) updated every second from the service, always `coerceAtLeast(0)`.
 - Never show a minus in-app, in the overlay, or in the shade. Overtime, if we add it later, is a **separate** “+0:12 overdue” state, never `-0:12`.
 
+**Closed 11 Sep 2026.** Live lock-screen countdown stays a Chronometer while time remains (ADR-012). The instant remaining hits 0, `RestTimerNotifications` posts a frozen `0:00 remaining` card (`usesLiveChronometer` is false — no `setUsesChronometer`, custom Chronometer stopped) and `RestTimerService.handleDeadline` does that freeze *before* the async complete, so Samsung’s lingering row cannot paint a minus. Copy is `RestTimer.remainingCopy`. Overlay rest stays superseded.
+
 ### A-04 — Notification permission can be denied with no recovery  [P0 for gym use]
 
 `RequestRestNotificationPermission` fires once on Active Workout. If the user denies, rest still “runs” in process but the home-screen clock and completion alert are gone. There is no Settings deep-link, no in-workout explanation, no retry.
@@ -158,7 +160,7 @@ The theme is a green Material 3 scheme (`Forest` / `Leaf` / `Lime` / `Sand` / `I
 
 `Type.kt` only overrides `headlineLarge/Medium`, `titleLarge/Medium`, `bodyLarge/Medium`, `labelLarge`. Screens use `headlineSmall` and `displayMedium` / `displaySmall`, which fall through to stock Material defaults. No display face for the rest clock. No tabular numbers, so `1:08` and `1:11` jitter. No tracked labels (`REST`, `WEIGHT`, `REPS` should be a dedicated `labelSmall` + letter-spacing token).
 
-**Need:** a real scale — Display (clock), Numeric (weight/reps, tabular), Title, Body, Label, Overline. Prefer one distinctive family for display (e.g. a condensed grotesque) and a readable grotesque for UI. Do not ship system SansSerif as the brand.
+**Need:** a real scale — Display (clock), Numeric (weight/reps, tabular), Title, Body, Label, Overline. Prefer one distinctive family for display (e.g. a condensed grotesque) and a readable grotesque for UI. Do not ship system SansSerif as the brand. **— Closed 11 Sep 2026: already Instrument — `InstrumentType` is numeralHero (clock) / tabular `tnum` / title / body / kicker; Space Grotesk + Inter. Confirmed, not redrawn (D-08).**
 
 ### D-02 — Color is “gym green,” not a language  [P1]
 
@@ -167,13 +169,13 @@ Dark mode is the gym mode and should be designed first. Current dark surface (`#
 - Cards and background are too close; hierarchy collapses.
 - Lime-on-forest is used for everything primary. Rest-done, rest-running, error, and progression all need **distinct** roles.
 - No token for heat, PR, warm-up, machine vs free weight, rest warning (last 5s).
-- Light theme exists but is unloved. If we keep it, it must match the same components, not look like a different app.
+- Light theme exists but is unloved. If we keep it, it must match the same components, not look like a different app. **— Closed 11 Sep 2026: already Instrument — `Color.kt` roles Pit / Surface / Volt / PrGold / Warn / Danger / RestCyan / Heat; dark-only ADR-005. Confirmed, not redrawn (D-08).**
 
 ### D-03 — Shape, elevation, and spacing are default Material  [P1]
 
 `PrimaryGymButton` is 64dp / 16dp radius. Cards are stock. Screen padding is a repeated `20.dp` magic number. No radius scale, no card treatment that feels like a plate or a machine plate. No consistent section gap.
 
-**Need:** 4/8/12/16/24/32 spacing tokens. Card radius 20–24 for lift cards, 28+ for the rest clock. Hairline borders on dark cards instead of relying on elevation (elevation disappears on AMOLED).
+**Need:** 4/8/12/16/24/32 spacing tokens. Card radius 20–24 for lift cards, 28+ for the rest clock. Hairline borders on dark cards instead of relying on elevation (elevation disappears on AMOLED). **— Closed 11 Sep 2026: already Instrument — `Metrics` 4–32 grid + hairline, `Radius` xs–lg, no elevation. Confirmed, not redrawn (D-08).**
 
 ### D-04 — No image or illustration layer  [P1]
 
@@ -182,9 +184,14 @@ There are no exercise assets, no empty-state illustrations, no branded mark beyo
 **Partly closed, Phase 8 (21 Aug).** Every lift now has a picture: a body figure with its
 trained muscles lit and an equipment badge, on picker rows, library rows, the detail header and
 the in-workout chips. It is *drawn*, not shipped — Compose `DrawScope` against the Heat and
-outline tokens — so there are still no exercise **assets**, and there never need to be. What
-this row asked for beyond that is still open: **empty-state illustrations** and a **branded
-mark** are untouched and unowned by any phase.
+outline tokens — so there are still no exercise **assets**, and there never need to be.
+
+**Closed 11 Sep 2026.** The branded mark is `TemperMark` (About, gallery). Empty
+states no longer reuse that still: `EmptyState` takes `EmptyScene` (rack / plan /
+catalog / log / gone / retry) and `EmptyIllustration` draws it — compact and full.
+Teaching scenes carry a Volt plus. History's empty log is the same component, not
+a lone sentence. Lift pictures stay keyed stills (ADR-022); this row does not
+open the Phase 8 pictured grid.
 
 ### D-05 — Motion language is missing  [P2]
 
@@ -192,7 +199,7 @@ No rest-ring animation, no tick pulse on last 5s, no settle on log-set, no chip 
 
 ### D-06 — Haptics are one waveform  [P1]
 
-`RestTimerAlerts` uses a single complete pattern. Need a small palette: tick (light), last-3s (medium), complete (strong), log-set (click), error (double). Respect system haptic intensity.
+`RestTimerAlerts` uses a single complete pattern. Need a small palette: tick (light), last-3s (medium), complete (strong), log-set (click), error (double). Respect system haptic intensity. **— Closed 11 Sep 2026: `Haptics` is tick (`CLOCK_TICK`) / warn last-3s (`CONTEXT_CLICK`) / commit log-set / reject double (`postDelayed`) / celebrate PR. Rest 5–4 is `RestTick.LIGHT_PULSE_MS`; 3–1 is `WARN_PULSE_MS` (`RestTimerAlerts.tick`, `RestTick.isWarn`). Complete stays `COMPLETE_PATTERN`. The system haptic setting is the off switch.**
 
 ### D-07 — Iconography is stock outlined Material  [P2]
 
@@ -214,6 +221,8 @@ Missing, all required for a designed app:
 - `NumericKeypad` or tap-to-type on the big numbers (steppers alone are slow for 87.5)
 - Overlay / bubble rest clock
 - Skeleton loaders that match card layout (not a lone spinner)
+
+**Closed 11 Sep 2026.** The inventory is named and shared: `ExerciseThumb`, `ExerciseRow`, `LiftCard` (workout + History `FilledLiftCard`), `EquipmentChip` (the MachineCard), `SetTable` (one history), `GymDialog` (`ConfirmActionDialog` delegates), `SectionHeader`, tap-to-type `NumberEntryDialog`, `ScreenSkeleton` (what `ScreenLoading` draws). Overlay rest clock stays superseded (§10.2). Library and the picker stay `ExerciseRow`.
 
 ### D-09 — Loading, error, empty are inconsistent  [P2]
 
@@ -240,12 +249,12 @@ These apply to every screen.
 | ID | Rule | Now | Priority |
 |---|---|---|---|
 | G-01 | Primary tap targets ≥ 48×48, gym primaries ≥ 56dp | Steppers are large (good). Chips, delete icons, RPE chips are finger-fussy | ✅ 9 Sep 2026 — `Metrics.touchMin` 48 dp, `rowMin` / `control` 56 dp, `commit` 72 dp are the only sizes the design system offers (ADR-005, FND-023) |
-| G-02 | One-handed: primary actions in the lower half during a session | Rest card is **first** in the scroll; log set is mid-list; finish is at the bottom. On a tall phone the clock eats the fold | P1 |
+| G-02 | One-handed: primary actions in the lower half during a session | Rest card is **first** in the scroll; log set is mid-list; finish is at the bottom. On a tall phone the clock eats the fold | ✅ 11 Sep 2026 — `RestDock` sits in `Scaffold.bottomBar` immediately above `LogBar` (`ActiveWorkoutScreen`, tag `workout-rest-idle` / `workout-log-set`). Finish stays in the header: it is not a mid-set act. Landscape still hides idle rest (`LandscapeChrome.hideIdleRest`) |
 | G-03 | Keyboard never covers the thing you opened the sheet to pick | Add-lift focuses the search field immediately; IME covers the catalog | ✅ 9 Sep 2026 — `ExercisePickerSheet` no longer auto-focuses the search (no `FocusRequester`); the sheet is nine-tenths of the screen with the catalog under a pinned search |
 | G-04 | No duplicate information competing for the same decision | Last set card **and** “This exercise” both show the same set with Edit/Delete | ✅ 9 Sep 2026 — one `Last set ·` line (`RestFloorCopy`) and no second history block in `ActiveWorkoutScreen` |
-| G-05 | Never surprise-start rest | Rest card is always mounted, so tapping `1:00` after a warm-up feels like auto-start | P1 |
+| G-05 | Never surprise-start rest | Rest card is always mounted, so tapping `1:00` after a warm-up feels like auto-start | ✅ 16 Sep 2026 — idle rest is the same 56 dp instrument at rest: dim `REST` kicker, dim `numeralMd` planned clock, empty track, and `Start`. Spoken “Rest is not running.” After a warm-up the kicker says `WARM-UP`. Bright `numeralMd` stays off idle. |
 | G-06 | Chips show a picture + short name, not a paragraph | Workout lift chips are full names only (`Barbell Back Squat`) and truncate badly | ✅ 9 Sep 2026 — `SessionLiftStrip` chips are a still plus a short name |
-| G-07 | Destructive actions confirm with the object name and consequence | Mostly done. Finish vs discard vs keep is still easy to mis-tap (discard is the confirm button) | ✅ 9 Sep 2026 — `LeaveWorkoutDialog` / `LeaveCardioDialog` keep Keep primary and Discard in danger ink; Library asks `Delete ${exercise.name}?` |
+| G-07 | Destructive actions confirm with the object name and consequence | Mostly done. Finish vs discard vs keep is still easy to mis-tap (discard is the confirm button) | ✅ 12 Sep 2026 — X / back is go-Home with the session live. Finish opens `EndWorkoutDialog` (**Save as is** / **Leave without saving**). Discard still has its named confirm. `LeaveCardioDialog` is unchanged on cardio |
 | G-08 | Offline is the default; network is backup only | True. Do not regress | — |
 | G-09 | Units are a setting, not a fake toggle in the header | Home “Units · kg” looks like it flips units; it opens Settings | ✅ 9 Sep 2026 — weight unit is a Settings row (`SettingsScreen`, `viewModel.weightUnit`); nothing in a header toggles it |
 | G-10 | Sounds have meaning: tick = hurry up, tone = stand up | One generic notification sound | ✅ 10 Sep 2026 — tick = `rest_tick.wav` on 5–1 (`RestTick`), tone = `rest_done.ogg` at zero (`RestSound`); two sounds, two meanings |
@@ -292,7 +301,7 @@ whoever reads this table next.
 | ID | Issue | Priority |
 |---|---|---|
 | S-01 | When a session is in progress the screen correctly hides new starts. Good. The resume button is then a **third** resume path from Home | P2 |
-| S-02 | Routine cards are text. Need first three lift thumbs + machine mix | P1 |
+| S-02 | Routine cards are text. Need first three lift thumbs + machine mix **— Closed 11 Sep 2026: Start Options `RoutineRow` is a `GymCard` with the first three `ExerciseThumb` stills (`RoutineCardCopy.STILL_LIMIT`) and the kit mix (`RoutineCardCopy.mix`)** | P1 |
 | S-03 | Free workout has no personality. It should still feel like walking onto the floor (empty rack + add lift) | P2 |
 | S-04 | Empty routines CTA should create a routine, not only send you away | P2 |
 
@@ -303,21 +312,21 @@ This screen **is** the app. It is currently a vertical form: rest card, chip row
 | ID | Issue | Priority |
 |---|---|---|
 | W-01 | Rest card always occupies the top, even when idle. It should collapse to a slim “Rest 1:30” control until running or just finished **— Closed 9 Sep 2026: idle rest is a 56 dp control (`LandscapeChrome.REST_IDLE_DP`, tag `workout-rest-idle`), hidden outright in landscape** | P1 |
-| W-02 | Warm-up + visible rest + preset chips feels like rest already started (device walkthrough) | P1 |
+| W-02 | Warm-up + visible rest + preset chips feels like rest already started (device walkthrough) | ✅ 11 Sep 2026 — idle dock and floor say `Not running`; the floor ring is empty until Start; chips stay duration pickers under that kicker (`RestIdleCopy`) |
 | W-03 | Add-lift sheet: search field auto-focuses; keyboard covers the default catalog. **Show the pictured grid first.** Search is explicit (icon), not auto-IME **— Closed 9 Sep 2026: `ExercisePickerSheet`: nine-tenths height, search pinned and not auto-focused, catalog with stills beneath; the create row appears only when nothing matches** | P1 |
 | W-04 | Picker rows are name + muscle. **Image required** (R-01) **— Closed 9 Sep 2026: `ExerciseThumb` on every picker row (`ExercisePickerSheet.kt`)** | P1 |
 | W-05 | Picker always shows “Muscle group for new exercise” — create-mode chrome on every search **— Closed 9 Sep 2026: the permanent muscle-group field is gone; muscle chips sit on the create row, which exists only when the query matches nothing** | P1 |
-| W-06 | Lift chips have no thumb, no set progress (`2/5`), no rest badge **— Partly closed 9 Sep 2026: stills closed (`SessionLiftStrip`); set progress and rest badge still open** | P1 |
+| W-06 | Lift chips have no thumb, no set progress (`2/5`), no rest badge **— Closed 11 Sep 2026: still (`ExerciseThumb`), `2/5` (`LiftChipCopy.marks`), and a rest badge (`LiftChipCopy`) on `WorkoutLiftCard`; live rest is remaining time in RestCyan** | P1 |
 | W-07 | “No lifts yet” vs missing selection — see A-01 | P0 |
 | W-08 | Duplicate set history: **Last set this lift** and **This exercise** list the same latest set with two Edit/Delete pairs **— Closed 9 Sep 2026: one `Last set ·` line (`RestFloorCopy`); the second block is gone** | P1 |
 | W-09 | Only the latest set is editable in the list; the last-set card also edits it. One place | P1 | ✅ Any logged set is selectable now, and selection reveals the two actions. The gate was `if (isLatest)` in `SetRow` alone — `editSet(setId)`/`deleteSet(setId)` already resolved a row by id, and `updateSet` already preserved `completedAt` and `setNumber` so a revision cannot re-date a record. `isLatest` still earns its keep: it draws the Volt rail |
 | W-10 | Suggestion card is large and pushes the steppers down. Collapse to one line: `Last 100 × 5 → 102.5` + Use **— Closed 9 Sep 2026: the suggestion is one in-set line (`SetMicroRecCopy.line`, `RestFloorCopy`)** | P1 |
-| W-11 | Warm-up is a switch with no visual change to the log button (`Log warm-up` vs `Log set`) | P1 |
-| W-12 | RPE 6–10 as chips is fine; it sits between reps and Log, adding scroll before the primary tap | P2 |
+| W-11 | Warm-up is a switch with no visual change to the log button (`Log warm-up` vs `Log set`) **— Closed 11 Sep 2026: `LogBarCopy.commit` is `Log set ·` vs `Log warm-up ·` plus the draft (`WorkoutLogBar`)** | P1 |
+| W-12 | RPE 6–10 as chips is fine; it sits between reps and Log, adding scroll before the primary tap | P2 | ✅ 12 Sep 2026 — chips stay optional; the row names last logged RPE for that lift (`RpeCopy.blurb`) instead of a generic 6–9 explainer |
 | W-13 | Session notes on the live logging screen are in the way. Move to finish or a overflow | P2 |
-| W-14 | Finish is disabled until a set is logged (good). Discard is the **confirm** button on the leave dialog; Keep and exit is dismiss. Invert: Keep is default, Discard is the destructive text action | P1 | ✅ `LeaveWorkoutDialog`: **Keep and exit** is the `PrimaryGymButton`, "Discard this workout instead" is a `DangerGymButton` beneath it, stacked full-width; `LeaveCardioDialog` matches. Row was stale when re-read 9 Sep 2026 |
-| W-15 | Close icon means leave, not discard — but it opens a dialog whose primary is Discard. Easy to kill a session | P1 | ✅ Same dialog: Close opens Keep-first; Discard is the danger act, never the default |
-| W-16 | No “next lift” preview. After last set of a lift, the UI should offer the next routine lift with picture **— Closed 9 Sep 2026: finishing a prescribed lift offers the next unfinished one (`advanceToNextLift`, `#185`)** | P1 |
+| W-14 | Finish is disabled until a set is logged (good). Discard is the **confirm** button on the leave dialog; Keep and exit is dismiss. Invert: Keep is default, Discard is the destructive text action | P1 | ✅ 12 Sep 2026 — X / back is go-Home, no popup. Finish owns **Save as is** / **Leave without saving** (`EndWorkoutDialog`) |
+| W-15 | Close icon means leave, not discard — but it opens a dialog whose primary is Discard. Easy to kill a session | P1 | ✅ 12 Sep 2026 — X / back jumps to Home; session stays live (in-progress bar + rest notification). Discard is Finish → Leave without saving |
+| W-16 | No “next lift” preview. After last set of a lift, the UI should offer the next routine lift with picture **— Closed 9 Sep 2026: finishing a prescribed lift offers the next unfinished one (`advanceToNextLift`, `#185`). 12 Sep 2026: selected lift is a pinned box (`SelectedLiftDock`) so picture + name + planned work + rest cannot hide under the dock** | P1 |
 | W-17 | No plate math, no bar + plates graphic | P2 |
 | W-18 | No rest-per-set history (how long they actually rested) | P3 |
 | W-19 | No supersets / circuits / alternating | P3 |
@@ -349,17 +358,17 @@ Images on the lift switcher. Rest becomes a full-screen-feeling card only while 
 | T-03 | No distinct “stand up” stinger separate from the shade notification **— Closed 9 Sep 2026: the cue is its own `MediaPlayer` on `USAGE_ALARM` (`RestTimerAlerts`), separate from the shade notification** | P1 |
 | T-04 | Silent ringer skips sound entirely. Offer a workout override (media/alarm stream) with an explicit setting, default off **— Closed 9 Sep 2026: by decision: the cue rides the alarm stream, which a silent ringer does not mute; sound has its own toggle (`setRestSoundEnabled`) rather than a media override** | P1 |
 | T-05 | Vibration is only on complete. Add tick pulses on 5–1 **— Closed 10 Sep 2026: `RestTimerAlerts.tick` — a 40 ms `createOneShot` pulse per tick under the Vibration toggle** | P1 |
-| T-06 | Notification Chronometer can go negative (A-03) | P0 |
+| T-06 | Notification Chronometer can go negative (A-03) **— Closed 11 Sep 2026: live Chronometer only while time remains; at zero the shade is frozen `0:00 remaining` then Done** | P0 |
 | T-07 | No overlay / bubble on the launcher (R-05). See §8 **— Superseded — see §10.2 banner.** **— Closed 9 Sep 2026: superseded — see §10.2 banner** | P1 |
 | T-08 | Home rest card and in-workout card can disagree for a frame (different collectors) | P2 |
 | T-09 | Presets are only 60/90/120. Need 30s (accessories) and 180s (heavy compounds) | P2 |
 | T-10 | Custom parse is good (`90` / `1:30`). Dialog chrome is generic | P2 |
 | T-11 | Skipping rest should feel immediate (haptic + card collapse). | P2 |
-| T-12 | Rest does not auto-start after warm-up (correct). UI does not make that obvious | P1 |
+| T-12 | Rest does not auto-start after warm-up (correct). UI does not make that obvious | ✅ 11 Sep 2026 — `RestTimer.shouldStartAfterLog` still refuses warm-ups; idle copy names it (`RestIdleCopy.afterWarmupHint`, dock `Warm-up · 1:00`) |
 | T-13 | Per-lift rest from the routine is in `secondsToStart` but the big card always looks like a global timer | P2 |
 | T-14 | Done notification copy “Back to the bar.” is good. Channel still uses the generic sound | P2 |
 | T-15 | `-15` / `+15` / Skip on the notification are unlabeled icon-less text. Fine. Keep them  | — |
-| T-16 | Samsung battery Unrestricted is documented in SETUP. In-app, first rest should mention “Allow unrestricted battery or the clock dies” | P1 |
+| T-16 | Samsung battery Unrestricted is documented in SETUP. In-app, first rest should mention “Allow unrestricted battery or the clock dies” | ✅ 11 Sep 2026 — first running rest shows `RestBatteryCopy.SENTENCE` on the dock and floor until Got it (`REST_BATTERY_HINT`, device-local). No overlay permission |
 | T-17 | No in-app tick audio while the activity is visible (service only alerts on complete) **— Closed 10 Sep 2026: the service ticks whenever rest runs with the process alive, in-app and in the shade alike (`RestTickPlayer`, alarm stream)** | P1 |
 
 ### 6.5 Routines list
@@ -382,7 +391,7 @@ This is the second most important design surface after Active Workout. Today it 
 | E-01 | Auto-create untitled + delete on leave (A-02) | P0 |
 | E-02 | Title is always “Edit routine,” including on create | P2 |
 | E-03 | Save is a separate button from adding lifts. Users expect autosave **— Closed 9 Sep 2026: targets are staged and flushed (`stageTargets` / `commitTargets` / `flushStagedTargets`) and details persist on exit (`persistDetailsOnExit`); there is no Save gate on adding lifts** | P1 |
-| E-04 | Targets are tiny `OutlinedTextField`s. Use the same large steppers as the workout, or a compact stepper row | P1 |
+| E-04 | Targets are tiny `OutlinedTextField`s. Use the same large steppers as the workout, or a compact stepper row **— Closed 11 Sep 2026: expanded editor cards use a 2×2 of `NumeralWell` plates (`CompactTargetFields`), same tap-to-type `NumberEntryDialog` as the workout; no `OutlinedTextField` on the card** | P1 |
 | E-05 | No lift image on the row **— Closed 9 Sep 2026: `SessionLiftStrip` still on every editor row** | P1 |
 | E-06 | No equipment / machine field (R-08) **— Closed 9 Sep 2026: `Exercise.equipment` shown as the row tag (`RoutineEditorScreen`)** | P1 |
 | E-07 | Reorder by two arrow buttons. Need drag handle | P2 |
@@ -390,7 +399,7 @@ This is the second most important design surface after Active Workout. Today it 
 | E-09 | Add-exercise picker is the same text sheet as the workout (W-03–W-05) **— Closed 9 Sep 2026: one `ExercisePickerSheet` serves the workout, the editor and the Library (`ExerciseRow` is shared by design)** | P1 |
 | E-10 | Pending default targets (3×5, 90s) are invisible until after add | P2 |
 | E-11 | Notes field is a second text box on a gym-programming screen. Collapse | P2 |
-| E-12 | No way to mark a lift bodyweight / assisted / machine stack vs plates | P1 |
+| E-12 | No way to mark a lift bodyweight / assisted / machine stack vs plates **— Closed 11 Sep 2026: custom create/edit carries `LoadType` chips (`LoadTypeChipRow`); picker create writes the chosen load (`ExercisePickerEvent.Created`); editor/library/swap rows name plates vs stack (`LoadTypeCopy.rowTag`); a bodyweight card has no kilogram well** | P1 |
 | E-13 | No supersets | P3 |
 | E-14 | Cannot preview “how this routine will look on the floor” | P2 |
 
@@ -404,7 +413,7 @@ This is the second most important design surface after Active Workout. Today it 
 | L-02 | Cards are dense admin (Custom/Built-in, Add to routine, edit, delete) | P1 | ✅ the row carries one action; edit and delete moved behind an overflow |
 | L-03 | Muscle chips only. Need **equipment chips**: Barbell, Dumbbell, Cable, Machine, Smith, Bodyweight | P1 | ✅ 7 — a second chip row, AND-combining with the muscle row |
 | L-04 | Built-in notes are empty. No setup cues, no machine instructions | P2 | ❌ not done. The packet made cues explicitly optional and never blocking; 98 rows of authored coaching text is its own piece of work |
-| L-05 | Add-to-routine dialog is a list of text buttons, defaults 3×5 with no preview | P1 | ⚠️ 7 — the defaults now fit the lift (`AddDefaults`). The dialog itself is unchanged and still previews nothing |
+| L-05 | Add-to-routine dialog is a list of text buttons, defaults 3×5 with no preview | P1 | ✅ 11 Sep 2026 — `AddToRoutineSheet` is a landing `GymCard` (still, Work/Rest from `AddDefaults`) plus destination `GymCard`s with the first three stills (`AddToRoutineCopy`); Library and the lift page share it |
 | L-06 | Creating a routine from this dialog dumps you into the broken `routine/new` path (A-02) | P0 | ✅ the path itself was repaired earlier — `RoutineEditorPolicy` drops the `new` sentinel instead of inserting eagerly, and the editor has an explicit MISSING phase. Not re-verified on device in Phase 7 |
 | L-07 | Search + chips + FAB is standard. Grid of pictured tiles would match R-01/R-02 | P1 | ⚠️ 7 — search and filtering now scale to 98 (escaped LIKE, nicknames, family grouping, equipment chips). The pictured **grid** is Phase 8 |
 | L-08 | Custom-only edit/delete is correct. Built-ins still need a detail page (image, muscles, equipment, last weight) | P1 | ✅ every lift opens its detail page; the image is Phase 8 |
@@ -416,7 +425,7 @@ This is the second most important design surface after Active Workout. Today it 
 | ID | Issue | Priority |
 |---|---|---|
 | B-01 | Schematic hotspots, not an anatomical illustration. Fine as v1, not “high class” | P2 |
-| B-02 | Empty until history — the tab is a dead end on first launch | P1 |
+| B-02 | Empty until history — the tab is a dead end on first launch **— Closed 11 Sep 2026: first-launch Body names catalog lifts (`BodyExplorer.coverage`) under the figure; a muscle with no logged work opens the lifts that train it (`BodyExplorer.forMuscle`) instead of an empty sheet. No Start Volt. Library stays pushed.** | P1 |
 | B-03 | Recommendations can still read generic. They should name **lifts you already have** with pictures **— Naming closed 21 Aug 2026 (Phase 5): every muscle-targeted card resolves one lift the owner already has, preferring routines over recent history and filtered by the equipment they say they own, and taps through to that lift. Pictures remain open (Phase 8).** | P1 |
 | B-04 | Home dots + this tab tell the same story twice | P2 |
 | B-05 | Front/back toggle is easy to miss **— Closed 9 Sep 2026: the Front / Back chips sit in their own strip under the figure, beside a facts line that says what the figure was built from ("3 sessions this week · last finished yesterday"); an empty Day or Week offers **Show this month** in one tap.** | P2 |
@@ -434,10 +443,10 @@ This is the second most important design surface after Active Workout. Today it 
 
 | ID | Issue | Priority |
 |---|---|---|
-| I-01 | List of text cards. No lift thumbs, no weekly chart, no PRs **— PRs closed 21 Aug 2026 (Phase 6a): a Records section at the foot of History shows the standing bests, one per lift, newest first, each tapping through to that lift. Thumbnails remain open (Phase 8); the weekly chart is not planned.** **— Partly closed 9 Sep 2026: calendar and horizon readout closed (H1, 3 Sep 2026); lift thumbs on the list still open** | P1 |
+| I-01 | List of text cards. No lift thumbs, no weekly chart, no PRs **— PRs closed 21 Aug 2026 (Phase 6a): a Records section at the foot of History shows the standing bests, one per lift, newest first, each tapping through to that lift. The weekly chart is not planned.** **— Calendar and horizon readout closed (H1, 3 Sep 2026).** **— Closed 11 Sep 2026: History list cards picture the first three lifts (`HistoryCardCopy.STILL_LIMIT`, `SessionLogRow`)** | P1 |
 | I-02 | Volume as a single number is opaque without a sparkline | P2 |
 | I-03 | No calendar heat, no compare-to-last **— Calendar half closed 21 Aug 2026 (Phase 6a): the training calendar sits above the log, days are grouped by month with a pinned month header, and a day holding more than one session opens a sheet instead of silently picking the first. Compare-to-last remains open.** | P2 |
-| I-04 | Session detail is grouped text. Should look like a filled program sheet | P1 |
+| I-04 | Session detail is grouped text. Should look like a filled program sheet **— Closed 11 Sep 2026: `FilledLiftCard` is the program/floor card filled in (CountBadge, still, Work/Rest/Load, `SetCopy.setLine` table); Edit still opens the repair sheet** | P1 |
 | I-05 | Cannot favorite a session into a routine | P2 |
 | I-06 | No photos / gym notes media | P3 |
 | I-07 | Duration is minutes stored on finish — confirm it is real elapsed time, not a stub | P2 |
@@ -446,7 +455,7 @@ This is the second most important design surface after Active Workout. Today it 
 
 | ID | Issue | Priority |
 |---|---|---|
-| N-01 | Rest sound/vibrate toggles exist; no preview button (“play complete cue”) | P1 |
+| N-01 | Rest sound/vibrate toggles exist; no preview button (“play complete cue”) **— Closed 11 Sep 2026: Settings Rest timer row `Play complete cue` (`RestCompleteCue.TITLE`, tag `settings-play-complete-cue`) calls `RestTimerAlerts.preview` — the same bundled `rest_done.ogg` on the alarm stream as 0:00. Sound is forced on for the sample so the row is never silent; vibration follows the switch** | P1 |
 | N-02 | No last-5s tick toggle (will need one) **— Closed 10 Sep 2026: the Last five seconds row under Rest timer (`RestTick.TITLE`, `setRestTickEnabled`), device-local, not in the backup document** | P1 |
 | N-03 | No overlay permission row (will need one) **— Superseded — no overlay permission row will be added; see §10.2 banner.** **— Closed 9 Sep 2026: superseded — see §10.2 banner** | P1 |
 | N-04 | Backup is solid conceptually. Restore needs a brutal confirm (it already should; verify copy) **— Closed 9 Sep 2026: restore previews (`RestorePreview`), confirms (`confirmRestore`) and refuses while a session is live (`BackupRepository.refuseIfLive`)** | P1 |
@@ -626,7 +635,7 @@ Document Samsung: overlay + Unrestricted battery + notification channel importan
 6. Rest card is always on; warm-up makes it confusing.
 7. Leave dialog’s primary action is Discard.
 8. Resume can show an empty session (A-01).
-9. Rest in the shade can read negative (A-03).
+9. Rest in the shade can read negative (A-03). **Closed 11 Sep 2026: frozen `0:00 remaining`, never a minus.**
 10. History is a receipt, not a story.
 
 The steppers, keep-screen-on, single in-progress session, and FGS rest are the parts that already understand the gym. Everything around them still understands a CRUD app.
@@ -715,7 +724,7 @@ Wear and a plate calculator will matter. They are not the current hole. Images, 
 
 1. **A-01** Resume always shows the real lifts and sets.
 2. **A-02** Routine create/delete lifecycle; no untitled stubs; no crash.
-3. **A-03** Timer never displays negative anywhere.
+3. **A-03** Timer never displays negative anywhere. **Closed 11 Sep 2026.**
 4. **A-04 / Q-10** Notification permission with recovery.
 5. **A-05** 0 kg working-set rule.
 

@@ -21,6 +21,7 @@ class HistoryCopyTest {
         assertEquals("All", AnalyticsHorizon.ALL_TIME.label)
         assertEquals("session", HistoryCopy.sessionsLabel(1))
         assertEquals("sessions", HistoryCopy.sessionsLabel(0))
+        assertEquals("No sessions yet", HistoryCopy.EMPTY_TITLE)
         assertEquals(HistoryCopy.EMPTY_LOG, "Finished sessions land here.")
         assertEquals("Month", HistoryCopy.CALENDAR_MONTH)
         assertEquals("Moved most", HistoryCopy.MOVED_MOST)
@@ -29,7 +30,8 @@ class HistoryCopyTest {
         assertEquals("Today", BodyHeatCopy.windowTitle(HeatWindow.DAY))
         assertEquals("This week", BodyHeatCopy.windowTitle(HeatWindow.CURRENT_WEEK))
         assertEquals("This month", BodyHeatCopy.windowTitle(HeatWindow.CURRENT_MONTH))
-        assertEquals(BodyHeatCopy.EMPTY_LOG, "Finished sets light the figure.")
+        assertTrue(BodyHeatCopy.EMPTY_LOG.startsWith("Tap a muscle"))
+        assertTrue(BodyHeatCopy.EMPTY_LOG.contains("Finished sets light the figure"))
         assertFalse(BodyHeatCopy.WINDOW_CAPTION.contains("Start", ignoreCase = true))
     }
 }

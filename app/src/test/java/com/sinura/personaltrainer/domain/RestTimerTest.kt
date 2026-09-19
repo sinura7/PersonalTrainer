@@ -47,6 +47,22 @@ class RestTimerTest {
     }
 
     @Test
+    fun remainingCopyNeverShowsAMinus() {
+        assertEquals("0:00 remaining", RestTimer.remainingCopy(-12))
+        assertEquals("0:00 remaining", RestTimer.remainingCopy(0))
+        assertEquals("1:24 remaining", RestTimer.remainingCopy(84))
+        assertFalse(RestTimer.remainingCopy(-90).contains("-"))
+    }
+
+    @Test
+    fun liveChronometerOnlyWhileTimeRemains() {
+        assertTrue(RestTimer.usesLiveChronometer(1))
+        assertTrue(RestTimer.usesLiveChronometer(90))
+        assertFalse(RestTimer.usesLiveChronometer(0))
+        assertFalse(RestTimer.usesLiveChronometer(-1))
+    }
+
+    @Test
     fun sweepFractionIsFullAtStartAndEmptyAtZero() {
         assertEquals(1f, RestTimer.sweepFraction(90, 90), 0.0001f)
         assertEquals(0.5f, RestTimer.sweepFraction(45, 90), 0.0001f)
@@ -69,8 +85,9 @@ class RestTimerTest {
     }
 
     @Test
-    fun autoStartPrefersExerciseThenLastPresetThenDefault() {
+    fun autoStartPrefersPrescribedThenExerciseThenLastPresetThenDefault() {
         val prefs = RestTimerPreferences(defaultRestSeconds = 120, lastPresetSeconds = 60)
+        assertEquals(150, RestTimer.secondsToStart(90, prefs, prescribedSeconds = 150))
         assertEquals(90, RestTimer.secondsToStart(90, prefs))
         assertEquals(60, RestTimer.secondsToStart(null, prefs))
         assertEquals(120, RestTimer.secondsToStart(0, RestTimerPreferences(defaultRestSeconds = 120)))
@@ -90,6 +107,20 @@ class RestTimerTest {
         // Condensed bar + floor page must not "helpfully" rest after the lift is done.
         assertFalse(RestTimer.shouldStartAfterLog(isWarmup = false, workingSetsAfterLog = 3, targetSets = 3))
         assertFalse(RestTimer.shouldStartAfterLog(isWarmup = true, workingSetsAfterLog = 0, targetSets = 3))
+    }
+
+    @Test
+    fun presetsAreTheFiveGymLengths() {
+        assertEquals(listOf(30, 60, 90, 120, 180), RestTimer.PRESETS_SECONDS)
+        assertEquals(15, RestTimer.NUDGE_SECONDS)
+    }
+
+    @Test
+    fun nudgeStepsFifteenSecondsInsideTheRestRange() {
+        assertEquals(75, RestTimer.nudgeSeconds(90, -15))
+        assertEquals(105, RestTimer.nudgeSeconds(90, 15))
+        assertEquals(RestTimerPreferences.MIN_SECONDS, RestTimer.nudgeSeconds(15, -15))
+        assertEquals(RestTimerPreferences.MAX_SECONDS, RestTimer.nudgeSeconds(30 * 60, 15))
     }
 
     @Test

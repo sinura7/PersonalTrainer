@@ -1,0 +1,299 @@
+{
+  "packet": "F2",
+  "baseCommit": "97d08ca458a9823f4cd6b62bea78a84be9b14084",
+  "recordedUtc": "2026-09-17T09:34:35.192336+00:00",
+  "status": "F2 integrated; F3 and physical milestone acceptance remain outstanding",
+  "goldenManifestSha256": "c271485e817bcb68ff7737612de4f4199fe72b4580e0058f55536735ab495f6b",
+  "localGate": {
+    "command": ".\\tools\\dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+    "exitCode": 0,
+    "duration": "2m 24s",
+    "unitCounts": {
+      "tests": 2537,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "unitReportFiles": 393,
+    "logSha256": "a13235f3080b9463e4ab7e556c92b35c25cc551e81ef201b8af3e68ff1cadb52",
+    "staticChecks": "passed; no checker ceiling or pixel allowance raised",
+    "debugBuild": "passed",
+    "lint": "passed",
+    "instrumentedApk": "passed"
+  },
+  "native": [
+    {
+      "runId": "20260917-090559673",
+      "counts": {
+        "tests": 81,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "6a5e659319ddec61974c2a6e41592b8bc6a87fc3f91eea3e89842a3fb0c19d79"
+      ],
+      "profile": {
+        "profile": "temper-tests-api29",
+        "serial": "emulator-5554",
+        "systemImage": "system-images;android-29;default;x86_64",
+        "imageRevision": "8",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T09:05:59.6586198Z"
+      },
+      "captures": 9,
+      "scope": "38 F2 and 32 F1 pixel comparisons; six entry journeys, two existing workout journeys and shared-control/shell checks",
+      "logSha256": "8cad61d2dd7a47ed5e1d6e68655a6b80fe6779e3387635d5ab33c75df4d0dbe1"
+    },
+    {
+      "runId": "20260917-091640157",
+      "counts": {
+        "tests": 44,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "3b2cee7897cf1e3f503c5637946668c97b9740342a7d6d192597b20df322e6f1"
+      ],
+      "profile": {
+        "profile": "temper-tests-api36",
+        "serial": "emulator-5556",
+        "systemImage": "system-images;android-36;default;x86_64",
+        "imageRevision": "2",
+        "fingerprint": "Android/sdk_phone64_x86_64/emu64x:16/BE2A.250530.026.D1/13818094:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T09:16:40.1374278Z"
+      },
+      "captures": 43,
+      "scope": "38 viewport geometry/capture checks and six real-window entry journeys; no cross-API pixel comparison",
+      "logSha256": "bd79bc5fe87a18a5f1b2af9fb39ab0f7327307390762e7042f8146558ebbeee7"
+    },
+    {
+      "runId": "20260917-092014184",
+      "counts": {
+        "tests": 44,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "ca64a6132b792ef56b2b453fc7203f986ee66e82606608920bc65d1909b02ef4"
+      ],
+      "profile": {
+        "profile": "temper-tests-api26",
+        "serial": "emulator-5558",
+        "systemImage": "system-images;android-26;default;x86_64",
+        "imageRevision": "1",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:8.0.0/OSR1.180418.004/4931640:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T09:20:14.1823347Z"
+      },
+      "captures": 41,
+      "scope": "38 viewport checks and five journeys passed; landscape observation failed because UiAutomation returned null; corrected journey run follows",
+      "logSha256": "7adf125f3d59ffd8e1f4c552c294814ea6d91cad5fbefd2c50e5c2fffbc50872"
+    },
+    {
+      "runId": "20260917-092400978",
+      "counts": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "9922f240fd02077344e7402151c9d7a091b976059a59f34851f13854d97f4f76"
+      ],
+      "profile": {
+        "profile": "temper-tests-api26",
+        "serial": "emulator-5558",
+        "systemImage": "system-images;android-26;default;x86_64",
+        "imageRevision": "1",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:8.0.0/OSR1.180418.004/4931640:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T09:24:00.9619137Z"
+      },
+      "captures": 5,
+      "scope": "All six real-window journeys after native screencap fallback; no missing captures",
+      "logSha256": "b450a915fd9d491510fa40b6c572277b4117b6c7de511a3ee4d23ab89688a8fd"
+    },
+    {
+      "runId": "20260917-092751486",
+      "counts": {
+        "tests": 44,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "50feebb58cc13a06451a5250999f57d52e5d9d4088d50c54ffbecad43f30bd78"
+      ],
+      "profile": {
+        "profile": "temper-tests-api29",
+        "serial": "emulator-5554",
+        "systemImage": "system-images;android-29;default;x86_64",
+        "imageRevision": "8",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T09:27:51.4842796Z"
+      },
+      "captures": 5,
+      "scope": "Final 38 Windows reference comparisons and six real-window journeys after test-only corrections",
+      "logSha256": "94b4c4ed2ee6c38e0685825f1051621228358eb3cbcd95c6e6b1a8f140aae252"
+    }
+  ],
+  "postCaptureHarnessCorrection": {
+    "reason": "Integer-pixel minimum assertion; retain captures before assertions; API35+ test host matches MainActivity dark/transparent edge-to-edge policy. API29 reference window and rounding allowance unchanged.",
+    "files": {
+      "app/src/androidTest/java/com/sinura/personaltrainer/testutil/GoldenCapture.kt": "afb79cd22f9a1e610c393532b39aaafd524cb0e05e9303c279b091967017f6be",
+      "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutEntryLayoutInstrumentedTest.kt": "e853b3d535e7f48df1e658cc7cdda76b0ce7be2f04177b6c778744feee16ffc8",
+      "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutEntryJourneyInstrumentedTest.kt": "872e2df1f5d2bd8058f269cc82e91caceda733c79de75097800282c2db8eb441"
+    },
+    "reviews": "Independent and adversarial passes found no blocker; original recording hashes preserved"
+  },
+  "correctedLocalGate": {
+    "command": ".\\tools\\dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+    "exitCode": 0,
+    "duration": "1m21s",
+    "logSha256": "c79fcacb8ef490b84f69a6c625269646f32147c21e4efa554e07f0b09f80cb08",
+    "note": "Static checks reran; unchanged unit/build/lint outputs reused. Instrumented-source corrections were compiled and executed on devices."
+  },
+  "hostedInitial": {
+    "runs": [
+      "35203773061",
+      "35203754406"
+    ],
+    "sourceCommit": "bfc4781e699af844a4e114e43c68f4d49b1a20c4",
+    "requiredCheck": "Tests, lint, debug build passed",
+    "nativeTests": 180,
+    "nativeFailures": 47,
+    "failureBreakdown": {
+      "missingNewReferences": 38,
+      "legacyWorkoutReferencesAssignedF3": 9
+    },
+    "acceptedReferenceCount": 38,
+    "reproducedWithinExistingAllowance": 38,
+    "referenceManifestSha256": "2f360655e5ca352ba7f3a2deacd92f01ad320a69b2639225614b6f03f88accee"
+  },
+  "reviews": {
+    "independent": "Approved source and platform; final comparison, hosted and integrated conditions satisfied",
+    "adversarial": "Approved source and platform; final comparison, hosted and integrated conditions satisfied"
+  },
+  "outstanding": [
+    "F3: derived primary action, operation-specific retry, completion/timing/switcher/resume, transparent conversion rounding and accurate draft/commit display, constrained error/timing context, replacement of legacy workout references",
+    "Physical milestone acceptance: TalkBack, normal phone settings, haptics/notifications, release-equivalent performance and stable-signer upgrade"
+  ],
+  "integration": {
+    "pullRequest": 350,
+    "commit": "579642b6d3737276510b6eab476c29ab71d9fcfc",
+    "cleanWorktreeBeforeGate": true,
+    "localGate": {
+      "exitCode": 0,
+      "duration": "1m 24s",
+      "unitTests": 2537,
+      "note": "Static checks reran; unchanged unit/build/lint results reused.",
+      "logSha256": "17667b24fa1507f50727655cd3f2184d97de3041f3690fb092bf82cca6c7c575"
+    },
+    "native": {
+      "runId": "20260917-095008398",
+      "counts": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "2c368b4a3784eae93c1b4a388e9a291bd0076a1b43b6ed1af02947a0e4b9fe60"
+      ],
+      "profile": {
+        "profile": "temper-tests-api29",
+        "serial": "emulator-5554",
+        "systemImage": "system-images;android-29;default;x86_64",
+        "imageRevision": "8",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T09:50:08.3838821Z"
+      },
+      "captures": 5
+    }
+  },
+  "hostedFinal": {
+    "run": "35205895682",
+    "sourceCommit": "fa56cce2dab59d51326dec887db261d3532544b3",
+    "requiredCheck": "Tests, lint, debug build passed",
+    "nativeTests": 180,
+    "nativeFailures": 9,
+    "skipped": 0,
+    "reportSha256": "849907c817d8090b74efd8b9cff7014c69bcf9151bc124c63a0ba5bba5da1dac",
+    "newWorkoutReferences": {
+      "tests": 38,
+      "failures": 0
+    },
+    "newWorkoutJourneys": {
+      "tests": 6,
+      "failures": 0
+    },
+    "onlyFailures": "Nine obsolete FloorGolden references assigned to F3; no F2 comparison or functional failure"
+  }
+}

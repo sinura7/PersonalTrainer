@@ -16,6 +16,7 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +27,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -56,30 +56,43 @@ class RestTimerViewModel @JvmOverloads constructor(
     private val restTotal = MutableStateFlow(RestTimerPreferences.DEFAULT_SECONDS)
     private val hint = MutableStateFlow<ProgressionHint?>(null)
     private val lighterWeek = MutableStateFlow(false)
-    private val sessionResolved = MutableStateFlow(false)
-
-    private val session: StateFlow<WorkoutSession?> =
-        container.workoutRepository.observeSession(sessionId)
-            .onEach { sessionResolved.value = true }
-            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val sessionReader = WorkoutSessionReader(container.workoutRepository, sessionId, viewModelScope)
 
     init {
-        if (sessionId.isBlank()) {
-            sessionResolved.value = true
-        }
         viewModelScope.launch {
             runCatchingCancellable {
-                val current = session.value ?: run {
-                    sessionResolved.first { it }
-                    session.value
-                }
+                val current = sessionReader.observations.first {
+                    it.loadState == SessionLoadState.FOUND || it.loadState == SessionLoadState.MISSING
+                }.session
                 val prefs = container.preferencesRepository.restTimerPreferences.first()
                 val exerciseId = resolveExerciseId(current)
                 val planned = current?.exercises?.firstOrNull { it.exercise.id == exerciseId }
-                restTotal.value = RestTimer.secondsToStart(planned?.restSeconds, prefs)
                 if (current != null && exerciseId != null && !current.isFinished) {
                     hint.value = loadHint(current, exerciseId)
                 }
+                val unit = container.preferencesRepository.weightUnit.first()
+                val cached = container.workoutDraftCache.get(sessionId)
+                val rec = workoutMicroRec(
+                    session = current,
+                    selectedExerciseId = exerciseId,
+                    draft = ActiveExerciseDraft(
+                        weightKg = cached?.weightKg ?: 0.0,
+                        reps = (cached?.reps ?: 5).coerceAtLeast(1),
+                        rpe = cached?.rpe,
+                        isWarmup = cached?.isWarmup ?: false,
+                    ),
+                    hint = hint.value,
+                    editingSetId = null,
+                    lighterWeek = lighterWeek.value,
+                    unit = unit,
+                    nowMs = time.nowMillis(),
+                    todayEpochDay = todayEpochDay(),
+                )
+                restTotal.value = RestTimer.secondsToStart(
+                    planned?.restSeconds,
+                    prefs,
+                    prescribedSeconds = rec?.restSeconds,
+                )
             }.onFailure { AppLog.w(TAG, "Loading rest floor context failed", it) }
         }
         viewModelScope.launch {
@@ -96,32 +109,41 @@ class RestTimerViewModel @JvmOverloads constructor(
     }
 
     val uiState: StateFlow<RestTimerScreenState> = combine(
-        session,
-        sessionResolved,
+        sessionReader.observations,
         combine(
-            restTimer.remainingSeconds,
-            restTimer.snapshot,
-            restTotal,
-            restTimer.lastCompletedTimerId,
-            restTimer.persistenceHealthy,
-        ) { remaining, snapshot, planned, completedId, healthy ->
-            RestTimerUiState(
-                remainingSeconds = remaining,
-                totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
-                running = snapshot.running,
-                completedTimerId = completedId,
-                persistenceHealthy = healthy,
+            combine(
+                restTimer.remainingSeconds,
+                restTimer.snapshot,
+                restTotal,
+                restTimer.lastCompletedTimerId,
+                restTimer.persistenceHealthy,
+            ) { remaining, snapshot, planned, completedId, healthy ->
+                RestTimerUiState(
+                    remainingSeconds = remaining,
+                    totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
+                    running = snapshot.running,
+                    completedTimerId = completedId,
+                    persistenceHealthy = healthy,
+                )
+            },
+            container.preferencesRepository.restBatteryHintShown,
+            restTimer.exactAlarmAttempt,
+        ) { rest, shown, attempt ->
+            rest.copy(
+                batteryHint = rest.running && !shown,
+                exactAlarmBestEffort = attempt == ExactAlarmAttempt.BEST_EFFORT,
             )
         },
         combine(hint, lighterWeek, container.preferencesRepository.weightUnit) { currentHint, lighter, unit ->
             Triple(currentHint, lighter, unit)
         },
-    ) { current, resolved, rest, extras ->
+    ) { read, rest, extras ->
+        val current = read.session
         val (currentHint, lighter, unit) = extras
         val missing = current == null || current.isFinished
         RestTimerScreenState(
             loadState = when {
-                !resolved && sessionId.isNotBlank() -> SessionLoadState.LOADING
+                read.loadState != SessionLoadState.FOUND -> read.loadState
                 missing -> SessionLoadState.MISSING
                 else -> SessionLoadState.FOUND
             },
@@ -153,6 +175,7 @@ class RestTimerViewModel @JvmOverloads constructor(
                     selectedExerciseId = exerciseId,
                     unit = unit,
                     nextLine = rec?.let { SetMicroRecCopy.line(it, loadClass, unit) },
+                    prescribedSeconds = rec?.restSeconds,
                 )
             },
         )
@@ -164,6 +187,10 @@ class RestTimerViewModel @JvmOverloads constructor(
 
     fun skipRest() {
         restTimer.stop()
+    }
+
+    fun retrySession() {
+        sessionReader.retry()
     }
 
     fun adjustRest(deltaSeconds: Int) {
@@ -188,10 +215,16 @@ class RestTimerViewModel @JvmOverloads constructor(
             RestTimerPreferences.MIN_SECONDS,
             RestTimerPreferences.MAX_SECONDS,
         )
+        restTimer.start(seconds, sessionId)
         viewModelScope.launch {
             container.preferencesRepository.setLastRestPresetSeconds(seconds)
             container.preferencesRepository.markRestAlarmEligible()
-            restTimer.start(seconds, sessionId)
+        }
+    }
+
+    fun acknowledgeRestBatteryHint() {
+        viewModelScope.launch {
+            container.preferencesRepository.markRestBatteryHintShown()
         }
     }
 
@@ -221,6 +254,7 @@ class RestTimerViewModel @JvmOverloads constructor(
             loadType = planned?.exercise?.loadType,
             unit = unit,
             lighterWeek = lighter,
+            equipment = planned?.exercise?.equipment,
         )
     }
 }

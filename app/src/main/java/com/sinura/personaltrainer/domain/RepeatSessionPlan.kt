@@ -6,6 +6,8 @@ data class RepeatItem(
     val targetSets: Int,
     val targetReps: Int,
     val restSeconds: Int,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 /**
@@ -47,10 +49,17 @@ object RepeatSessionPlan {
                 } else {
                     plannedItem?.targetSets?.coerceAtLeast(1) ?: 1
                 },
-                targetReps = working.lastOrNull()?.reps
-                    ?: plannedItem?.targetReps
-                    ?: FALLBACK_REPS,
+                targetReps = if (plannedItem?.targetSeconds != null) {
+                    HoldWork.HOLD_REPS_PLACEHOLDER
+                } else {
+                    working.lastOrNull()?.reps
+                        ?: plannedItem?.targetReps
+                        ?: FALLBACK_REPS
+                },
                 restSeconds = plannedItem?.restSeconds ?: FALLBACK_REST_SECONDS,
+                targetSeconds = working.lastOrNull()?.durationSeconds
+                    ?: plannedItem?.targetSeconds,
+                targetSecondsMax = plannedItem?.targetSecondsMax,
             )
         }
     }

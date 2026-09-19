@@ -155,4 +155,50 @@ class SessionOrderCopyTest {
             ),
         )
     }
+
+    @Test
+    fun filledCountAndSpokenMatchTheFloorCard() {
+        assertEquals("3/3", SessionOrderCopy.filledCount(3, 3))
+        assertEquals("4", SessionOrderCopy.filledCount(4, 0))
+        assertEquals("3 × 5", SessionOrderCopy.workValue(3, 5))
+        assertEquals(
+            "1. Squat. Quads. 3/3. 3 × 5. Rest 1:30. 100 kg",
+            SessionOrderCopy.filledSpoken(
+                number = 1,
+                name = "Squat",
+                muscleGroup = "Quads",
+                workingLogged = 3,
+                targetSets = 3,
+                targetReps = 5,
+                restClock = "1:30",
+                load = "100 kg",
+            ),
+        )
+        assertEquals(
+            "2. Hang. 4 sets",
+            SessionOrderCopy.filledSpoken(
+                number = 2,
+                name = "Hang",
+                muscleGroup = "",
+                workingLogged = 4,
+                targetSets = 0,
+                targetReps = 0,
+                restClock = null,
+                load = null,
+            ),
+        )
+        assertEquals(
+            "3. Curl. 1 set",
+            SessionOrderCopy.filledSpoken(
+                number = 3,
+                name = "Curl",
+                muscleGroup = "",
+                workingLogged = 1,
+                targetSets = 0,
+                targetReps = 0,
+                restClock = null,
+                load = null,
+            ),
+        )
+    }
 }

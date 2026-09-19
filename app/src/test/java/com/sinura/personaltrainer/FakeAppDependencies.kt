@@ -27,8 +27,9 @@ import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.repository.ActivityRepository
-import com.sinura.personaltrainer.data.repository.BackupRepository
+import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.timer.CardioTimerPersistence
 import com.sinura.personaltrainer.timer.PersistedCardioTimer
@@ -54,6 +55,7 @@ import com.sinura.personaltrainer.timer.RestTimerGateway
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
+import com.sinura.personaltrainer.workout.CompleteTraining
 import com.sinura.personaltrainer.workout.DiscardWorkout
 import com.sinura.personaltrainer.workout.FinishWorkout
 import com.sinura.personaltrainer.workout.StartLiveCardio
@@ -116,6 +118,11 @@ class FakeAppDependencies(
      */
     activityDaoDecorator: (ActivityDao) -> ActivityDao = { it },
     /**
+     * Wraps the workout DAO before the repository sees it. Session-detail
+     * read-fault tests hand in a delegate whose observe throws on demand.
+     */
+    workoutDaoDecorator: (WorkoutDao) -> WorkoutDao = { it },
+    /**
      * Replaces the reminder cleanup that runs after an activity commits. Null keeps the
      * production wiring; a throwing one reproduces the cleanup failure R06 is about.
      */
@@ -162,9 +169,9 @@ class FakeAppDependencies(
     override val workoutRepository: WorkoutRepository =
         WorkoutRepository(
             database,
-            database.workoutDao(),
+            workoutDaoDecorator(database.workoutDao()),
             dbMaintenance,
-            restoreBlocksStart = { backupRepository.restoreBlocksStart() },
+            restoreBlocksStart = { backupService.restoreBlocksStart() },
         )
     private val prefsContext = IsolatedAppContext(context.applicationContext)
     private val prefsScope = CoroutineScope(SupervisorJob() + prefsDispatcher)
@@ -189,7 +196,7 @@ class FakeAppDependencies(
             occurrenceCleanup?.invoke(occurrenceId)
                 ?: plannerRepository.cancelRemindersFor(occurrenceId)
         },
-        restoreBlocksStart = { backupRepository.restoreBlocksStart() },
+        restoreBlocksStart = { backupService.restoreBlocksStart() },
     )
     override val completedTrainingRepository: CompletedTrainingRepository =
         CompletedTrainingRepository(workoutRepository, activityRepository, time)
@@ -231,6 +238,12 @@ class FakeAppDependencies(
         restTimer = restTimerController,
         draftCache = workoutDraftCache,
     )
+    override val completeTraining: CompleteTraining = CompleteTraining(
+        strengthFinish = finishWorkout,
+        activityConfirm = confirmActivity,
+        activityFinish = finishActivity,
+        cardioTimerPersistence = cardioTimerPersistence,
+    )
     override val discardWorkout: DiscardWorkout = DiscardWorkout(
         workoutRepository = workoutRepository,
         restTimer = restTimerController,
@@ -271,7 +284,7 @@ class FakeAppDependencies(
         onBeforeRestore = {},
         safetySnapshotDir = safetySnapshotDir,
     )
-    override val backupRepository: BackupRepository = BackupRepository(
+    override val backupService: BackupService = BackupService(
         localBackupRepository = localBackupRepository,
         preferencesRepository = preferencesRepository,
         dbMaintenance = dbMaintenance,

@@ -3,7 +3,11 @@
 - **Status:** Accepted
 - **Date:** 1 September 2026
 - **Amended:** 10 September 2026 — §7 says what "Save keeps the program"
-  means when a write does not land (UX04 batch A, owner decision D16)
+  means when a write does not land (UX04 batch A, owner decision D16).
+  13 September 2026 — §2–§3: Home's filled Volt opens a start sheet
+  (free / Plan routine / cardio / Extra). Home Add is gone. Plan still
+  adds. Extra asks what equipment is here, then matching packs.
+- **Supersedes:** [ADR-018](ADR-018-home-start-confirm.md) §4 only the
 - **Supersedes:** [ADR-018](ADR-018-home-start-confirm.md) §4 only the
   reading that Home's filled Volt **names** the next planned block;
   [ADR-020](ADR-020-warmup-extras.md) §3 only the reading that Home's
@@ -56,27 +60,27 @@ authorize that work.
    control is the routine, not a second filled button. Done, skipped,
    and moved rows stay readouts. Plan still does not Start.
 
-2. **Home's filled Volt is Start a workout.** That starts a free
-   session the lifter fills as they go. It is not today's plan and
-   does not mark a Plan row DONE. It is not `StartOptionsSheet`.
-   Body / History / Plan still host that sheet. While a session is
-   live, the bar is the way back and the Volt hides. While the
-   missed-work prompt's Keep-the-dates is the screen's Volt, Start a
-   workout goes quiet (same rule as ADR-018 quiet start). The empty
-   first-visit Generate schedule Volt is unchanged.
+2. **Home's filled Volt is Start a workout.** That opens a sheet of
+   starts, not two Home buttons and not `StartOptionsSheet` (Body /
+   History / Plan still host that sheet for log-or-cardio). The sheet
+   is: **Start a free workout** (empty live session, same as the old
+   immediate Volt); **Select a routine** (named Plan routines, not the
+   generator — tap starts that routine); **Cardio** then the live-52
+   picture cards (Walk, Run / sprints, Ride, Row, Swim, Hike); **Extra**
+   then **what equipment is here** (Bodyweight (none) / Free weights / Machines / Mixed;
+   Settings kit is a suggestion they can override), then the matching
+   warm-up / mobility pictures. None of those mint a Plan row.
+   While a session is live, the bar is the way back and the Volt hides.
+   While the missed-work prompt's Keep-the-dates is the screen's Volt,
+   Start a workout goes quiet (same rule as ADR-018 quiet start). There
+   is no Get started sheet.
 
-3. **Home + sits under Today.** After the last planned row — or as
-   the only item under Today when the day is empty — a quiet **Add**
-   row opens the add picker (workout / cardio / extra). It is not at
-   the bottom of the page. It is not a second filled Volt.
+3. **Home has no Add row.** Plan Add session stays weekly and still asks
+   what to put on that weekday. Recurrence of existing rules does not
+   change from Home.
 
-4. **Home add asks keep.** After a concrete pick, Home asks **Just
-   today** or **Every {weekday}**. Just today mints this week's
-   occurrence and disables the rule so later weeks stay empty (the
-   ADR-020 once path, now for workout and cardio as well as extras).
-   Every {weekday} writes an enabled rule. Plan Add session stays
-   weekly and does not show this choice. Recurrence of existing rules
-   does not change when someone adds a different block.
+4. *(Removed 13 September 2026.)* Home no longer adds a session from this
+   screen, so it does not ask just-today vs every this weekday.
 
 5. **Still open can be skipped.** Skip marks that leftover
    `SKIPPED`. Recurrence is unchanged. Next week still gets the
@@ -105,8 +109,8 @@ authorize that work.
 ## Consequences
 
 - Feature packets do not restore a filled `Start {planned title}` as
-  Home's Volt, dump `StartOptionsSheet` onto Home, or put Add extra
-  back under the fold as the only Home add.
+  Home's Volt, dump `StartOptionsSheet` onto Home, or put an Add row
+  back under Today. Home Start is the sheet in §2.
 - Treating Stretch as today's start while a workout row is still
   planned remains a defect (ADR-018 §5). The row starts Stretch; the
   Volt does not name it.
@@ -117,9 +121,9 @@ authorize that work.
 - Does tapping a planned Home row start immediately? No. Confirm, then
   start.
 - Is Home's filled Volt `Start {planned title}`? No. It is
-  **Start a workout** (freestyle).
-- Does Add sit under Today? Yes. Not at the bottom of the page.
-- Can Home add a workout for just today? Yes. Plan add stays weekly.
+  **Start a workout**, and that tap opens the §2 sheet.
+- Does Add sit under Today? No. Plan still adds.
+- Does **Start a free workout** on the sheet start immediately? Yes.
 - Can a Still open leftover be skipped? Yes. Recurrence unchanged.
 - Are Plan routines expanded by default? No.
 - Is there a Save when creating a routine that has lifts? Yes.

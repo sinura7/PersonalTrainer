@@ -35,9 +35,6 @@ object NumericEntry {
 
     enum class Ime { NEXT, DONE }
 
-    /** Sets → Reps → Rest → Weight. */
-    val ROUTINE_EDITOR_CHAIN = listOf(Ime.NEXT, Ime.NEXT, Ime.NEXT, Ime.DONE)
-
     /** Weight → Reps. */
     val COMPOSER_STRENGTH_CHAIN = listOf(Ime.NEXT, Ime.DONE)
 
@@ -65,6 +62,9 @@ object NumericEntry {
         if (whole < 1 || whole > MAX_REPS) return null
         return whole
     }
+
+    /** Seconds or `mm:ss`, the same range as [HoldWork.parseRange]. */
+    fun parseHoldSeconds(input: String): Int? = HoldWork.parseRange(input)?.minSeconds
 
     /**
      * Digits, with an optional decimal separator followed by one or two more.

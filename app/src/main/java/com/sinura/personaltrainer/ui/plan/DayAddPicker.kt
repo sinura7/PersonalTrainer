@@ -1,12 +1,18 @@
 package com.sinura.personaltrainer.ui.plan
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -17,9 +23,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.ExtraEquipment
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.ScheduleKind
@@ -28,11 +43,17 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
+import com.sinura.personaltrainer.ui.components.PickerStill
+import com.sinura.personaltrainer.ui.components.ThumbSize
+import com.sinura.personaltrainer.ui.components.cardioPickerArtwork
+import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.Radius
+import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
@@ -44,7 +65,6 @@ private enum class PendingKeep { NONE, NEW_WORKOUT, WORKOUT, CARDIO, AUX }
  * Shared add picker for Plan day (always weekly) and Home (asks just-today
  * vs every this weekday). [askKeep] is the Home path.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun DayAddPicker(
     picking: DayPicker,
@@ -59,6 +79,7 @@ fun DayAddPicker(
     onNewWorkout: (Boolean) -> Unit,
     onAddCardio: (CardioType, Boolean) -> Unit,
     onAddAux: (String, Boolean) -> Unit,
+    suggestedKit: ExtraEquipment = ExtraEquipment.MIXED,
 ) {
     var pendingKind by rememberSaveable { mutableStateOf(PendingKeep.NONE.name) }
     var pendingWorkoutId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -153,11 +174,10 @@ fun DayAddPicker(
                         color = TextPrimary,
                     )
                 } else {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                        ScheduleKind.planCardioTypes.forEach { type ->
-                            InstrumentChip(
-                                label = PlanDayCopy.cardioPickLabel(type),
-                                selected = false,
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                        items(ScheduleKind.planCardioTypes, key = { it.name }) { type ->
+                            CardioPickCard(
+                                type = type,
                                 onClick = {
                                     keepOr(
                                         runWeekly = { onAddCardio(type, false) },
@@ -184,6 +204,7 @@ fun DayAddPicker(
                     )
                 },
                 onCancel = onCancel,
+                suggestedKit = suggestedKit,
             )
             DayPicker.WORKOUT -> {
                 GroupedList {
@@ -249,4 +270,47 @@ fun DayAddPicker(
             }
         }
     }
+}
+
+@Composable
+internal fun CardioPickCard(
+    type: CardioType,
+    onClick: () -> Unit,
+) {
+    val view = LocalView.current
+    val shape = RoundedCornerShape(Radius.md)
+    val label = PlanDayCopy.cardioPickLabel(type)
+    Column(
+        modifier = Modifier
+            .width(ThumbSize.cardioCard)
+            .clip(shape)
+            .background(Surface2)
+            .border(Metrics.hairline, Hairline, shape)
+            .clickable(role = Role.Button, onClick = {
+                Haptics.tick(view)
+                onClick()
+            })
+            .padding(Metrics.space2)
+            .testTag(CardioPickTags.card(type))
+            .semantics { contentDescription = label },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        PickerStill(
+            art = cardioPickerArtwork(type),
+            size = ThumbSize.cardioStill,
+        )
+        Text(
+            label,
+            style = InstrumentType.bodyStrong,
+            color = TextPrimary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+object CardioPickTags {
+    fun card(type: CardioType): String = "cardio-pick-${type.name.lowercase()}"
 }

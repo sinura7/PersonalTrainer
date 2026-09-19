@@ -54,6 +54,19 @@ class NumericEntryTest {
         assertEquals(NumericEntry.WEIGHT_NEGATIVE, typed.messageOrNull)
         assertNull(typed.valueOrNull)
         assertEquals(50.0, NumericEntry.typedWeightKg("50", WeightUnit.KG).valueOrNull!!, 0.0001)
+        assertNull(NumericEntry.parseWeightKg("-1", WeightUnit.LBS))
+        assertNull(NumericEntry.parseWeightKg("-0.5", WeightUnit.KG))
+    }
+
+    @Test
+    fun keypadAcceptsZeroAsAWeight() {
+        assertEquals(0.0, NumericEntry.parseWeightKg("0", WeightUnit.KG)!!, 0.0001)
+        assertEquals(0.0, NumericEntry.parseWeightKg("0", WeightUnit.LBS)!!, 0.0001)
+        assertEquals(0.0, NumericEntry.parseWeightKg("0.0", WeightUnit.LBS)!!, 0.0001)
+        assertEquals(0.0, NumericEntry.parseWeightKg("0,0", WeightUnit.KG)!!, 0.0001)
+        val typed = NumericEntry.typedWeightKg("0", WeightUnit.LBS)
+        assertTrue(typed is NumericEntry.Typed.Valid)
+        assertEquals(0.0, typed.valueOrNull!!, 0.0001)
     }
 
     // UX06-AC02: text with two separators or an exponent never becomes some other number.
@@ -119,15 +132,6 @@ class NumericEntryTest {
     @Test
     fun nextThenDoneIsTheNumericChain() {
         assertEquals(
-            listOf(
-                NumericEntry.Ime.NEXT,
-                NumericEntry.Ime.NEXT,
-                NumericEntry.Ime.NEXT,
-                NumericEntry.Ime.DONE,
-            ),
-            NumericEntry.ROUTINE_EDITOR_CHAIN,
-        )
-        assertEquals(
             listOf(NumericEntry.Ime.NEXT, NumericEntry.Ime.DONE),
             NumericEntry.COMPOSER_STRENGTH_CHAIN,
         )
@@ -141,13 +145,12 @@ class NumericEntryTest {
         )
         assertEquals(NumericEntry.Ime.DONE, NumericEntry.CUSTOM_REST)
         assertEquals(NumericEntry.Ime.DONE, NumericEntry.LIVE_CARDIO_DISTANCE)
-        assertTrue(readUi("routines/SessionLiftStrip.kt").contains("ROUTINE_EDITOR_CHAIN"))
         assertTrue(readUi("activity/ActivityComposerScreen.kt").contains("COMPOSER_STRENGTH_CHAIN"))
         assertTrue(readUi("activity/ActivityComposerScreen.kt").contains("COMPOSER_CARDIO_CHAIN"))
         assertTrue(readUi("activity/LiveCardioScreen.kt").contains("LIVE_CARDIO_DISTANCE"))
-        assertTrue(readUi("components/Common.kt").contains("CUSTOM_REST"))
-        assertTrue(readUi("settings/SettingsScreen.kt").contains("PASSWORD_CHAIN"))
-        assertTrue(readUi("components/Common.kt").contains("KeyboardType.Number"))
+        assertTrue(readUi("components/RestTimerUi.kt").contains("CUSTOM_REST"))
+        assertTrue(readUi("settings/BackupDialogs.kt").contains("PASSWORD_CHAIN"))
+        assertTrue(readUi("components/NumberEntryDialog.kt").contains("KeyboardType.Number"))
     }
 
     private fun readUi(relative: String): String {
@@ -207,6 +210,15 @@ class NumericEntryTest {
         assertNull(NumericEntry.parseReps("5.5"))
         assertNull(NumericEntry.parseReps(""))
         assertNull(NumericEntry.parseReps("x"))
+    }
+
+    @Test
+    fun readsHoldSecondsAndClock() {
+        assertEquals(30, NumericEntry.parseHoldSeconds("30"))
+        assertEquals(30, NumericEntry.parseHoldSeconds("0:30"))
+        assertEquals(90, NumericEntry.parseHoldSeconds("1:30"))
+        assertNull(NumericEntry.parseHoldSeconds("abc"))
+        assertNull(NumericEntry.parseHoldSeconds("2"))
     }
 
     @Test

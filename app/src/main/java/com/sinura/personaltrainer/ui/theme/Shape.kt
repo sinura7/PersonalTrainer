@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -19,6 +20,9 @@ import androidx.compose.ui.unit.dp
  * year still lands in this family without anyone remembering to say so.
  */
 object Radius {
+    /** Circular selection markers and fully rounded tracks. */
+    val full = CircleShape
+
     /** Chips, tags, calendar cells. */
     val xs: Dp = 8.dp
 

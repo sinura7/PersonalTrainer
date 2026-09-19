@@ -1,14 +1,16 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.domain.Coach
+import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.LoggedSetView
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetMicroRec
-import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
+import com.sinura.personaltrainer.domain.toMicroRec
 
-/** Same `suggest()` inputs on the log and the rest floor. */
+/** Same Coach.decide inputs on the log and the rest floor. */
 internal fun workoutMicroRec(
     session: WorkoutSession?,
     selectedExerciseId: String?,
@@ -20,6 +22,7 @@ internal fun workoutMicroRec(
     nowMs: Long,
     todayEpochDay: Long,
     wantAnotherSet: Boolean = false,
+    historySets: List<ExerciseSetRecord> = emptyList(),
 ): SetMicroRec? {
     if (session == null) return null
     val exerciseId = session.resolveSelectedExerciseId(selectedExerciseId) ?: return null
@@ -36,11 +39,12 @@ internal fun workoutMicroRec(
     val lastAny = sets.maxByOrNull { it.completedAt }
     // Warm-up drafts are not a preview of the next working set.
     val draftRpe = draft.rpe.takeUnless { draft.isWarmup }
-    return SetMicroRecCalculator.suggest(
+    val decision = Coach.decide(
         setMicroRecInputs(
             editing = editingSetId != null,
             loadType = planned?.exercise?.loadType,
             unit = unit,
+            equipment = planned?.exercise?.equipment,
             targetSets = planned?.targetSets ?: 0,
             targetReps = planned?.targetReps ?: 5,
             targetWeightKg = planned?.targetWeightKg,
@@ -55,6 +59,15 @@ internal fun workoutMicroRec(
             todayEpochDay = todayEpochDay,
             allowExtra = wantAnotherSet,
             rpeIntent = true,
+            historyWorking = historySets.map { set ->
+                LoggedSetView(
+                    weightKg = set.weightKg,
+                    reps = set.reps,
+                    rpe = set.rpe,
+                    isWarmup = false,
+                )
+            },
         ),
     )
+    return decision?.toMicroRec()
 }

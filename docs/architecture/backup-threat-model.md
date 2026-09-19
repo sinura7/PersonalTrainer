@@ -74,7 +74,7 @@ encryption.
 | Logcat | Not persisted by the app | `PT/<Component>` breadcrumbs | No | No |
 
 User-backup JSON exclusions: in-progress sessions and their sets; `seed_meta`;
-`REST_LAST_PRESET`; `REST_TICK`; `REST_ALARM_ELIGIBLE`; Drive email, folder id, and
+`REST_LAST_PRESET`; `REST_TICK`; `REST_ALARM_ELIGIBLE`; `REST_BATTERY_HINT`; Drive email, folder id, and
 backup/restore stamps; rest-timer runtime state.
 
 ## 4. Channels

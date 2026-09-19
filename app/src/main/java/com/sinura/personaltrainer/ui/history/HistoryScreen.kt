@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,6 +42,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.HistoryKind
@@ -61,14 +61,15 @@ import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.InstrumentChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceChip
+import com.sinura.personaltrainer.ui.components.InstrumentChoiceGroup
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
-import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
-import com.sinura.personaltrainer.ui.navigation.LiveBarKind
+import com.sinura.personaltrainer.domain.LiveBarCopy
+import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
@@ -142,6 +143,7 @@ fun HistoryScreen(
                 }
                 state.unavailable -> {
                     EmptyState(
+                        scene = EmptyScene.RETRY,
                         title = DataHealthCopy.HISTORY_TITLE,
                         body = DataHealthCopy.HISTORY_BODY,
                         actionLabel = DataHealthCopy.RETRY,
@@ -216,10 +218,11 @@ fun HistoryScreen(
                         }
                         if (state.summaries.isEmpty()) {
                             item(key = "empty-log") {
-                                Text(
-                                    HistoryCopy.EMPTY_LOG,
-                                    style = InstrumentType.body,
-                                    color = TextSecondary,
+                                EmptyState(
+                                    scene = EmptyScene.LOG,
+                                    title = HistoryCopy.EMPTY_TITLE,
+                                    body = HistoryCopy.EMPTY_LOG,
+                                    compact = true,
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .testTag(HistoryTags.EMPTY)
@@ -258,6 +261,7 @@ fun HistoryScreen(
                                         workingSets = entry.workingSets,
                                         work = entry.work,
                                         durationMinutes = entry.durationMinutes,
+                                        stills = entry.stills,
                                         onClick = {
                                             if (entry.kind == HistoryKind.ACTIVITY) {
                                                 onOpenActivity(entry.id)
@@ -385,12 +389,9 @@ internal fun HorizonPicker(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
+        InstrumentChoiceGroup {
             AnalyticsHorizon.entries.forEach { entry ->
-                InstrumentChip(
+                InstrumentChoiceChip(
                     label = entry.label,
                     selected = horizon == entry,
                     onClick = { onSelect(entry) },
@@ -541,6 +542,7 @@ private fun DaySessionsSheet(
                         workingSets = summary.workingSets,
                         work = SetWork(volumeKg = summary.volumeKg, bodyweightReps = 0),
                         durationMinutes = summary.durationMinutes,
+                        stills = summary.stills,
                         onClick = {
                             if (summary.kind == HistoryKind.ACTIVITY) {
                                 onOpenActivity(summary.id)

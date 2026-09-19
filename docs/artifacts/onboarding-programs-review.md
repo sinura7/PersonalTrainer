@@ -7684,8 +7684,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 4 days · Muscle → Upper / Lower
 
@@ -7706,8 +7706,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 4 days · Athletic → Upper / Lower
 
@@ -7728,8 +7728,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Plank | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 4 days · Resilience → Upper / Lower
 
@@ -7772,8 +7772,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 5 days · Strength → Upper / Lower
 
@@ -7794,8 +7794,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 5 days · Muscle → Upper / Lower
 
@@ -7816,8 +7816,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 5 days · Athletic → Upper / Lower
 
@@ -7838,8 +7838,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Plank | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 5 days · Resilience → Upper / Lower
 
@@ -7882,8 +7882,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 6 days · Strength → Upper / Lower
 
@@ -7904,8 +7904,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 6 days · Muscle → Upper / Lower
 
@@ -7926,8 +7926,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 6 days · Athletic → Upper / Lower
 
@@ -7948,8 +7948,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Plank | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 6 days · Resilience → Upper / Lower
 
@@ -7992,8 +7992,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 7 days · Strength → Upper / Lower
 
@@ -8014,8 +8014,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 7 days · Muscle → Upper / Lower
 
@@ -8036,8 +8036,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 7 days · Athletic → Upper / Lower
 
@@ -8058,8 +8058,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Plank | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### New to lifting · 7 days · Resilience → Upper / Lower
 
@@ -8102,8 +8102,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 4 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 120s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 10 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
 
 ### On and off · 1 day · Strength → Full Body
 
@@ -8145,7 +8145,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 2 | Push-Up | Bodyweight | 4 × 5 | 150s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
+| 5 | Wall Sit | Bodyweight | 3 × 11 | 90s |
 
 ### On and off · 1 day · Resilience → Full Body
 
@@ -8221,7 +8221,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 2 | Dip | Bodyweight | 4 × 8 | 90s |
 | 3 | Pull-Up | Bodyweight | 3 × 10 | 60s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
-| 5 | Push-Up | Bodyweight | 3 × 11 | 60s |
+| 5 | Doorway Chest Stretch | Bodyweight | 3 × 12 | 60s |
 
 ### On and off · 2 days · Athletic → Full Body
 
@@ -8235,7 +8235,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 2 | Push-Up | Bodyweight | 4 × 5 | 150s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
+| 5 | Wall Sit | Bodyweight | 3 × 11 | 90s |
 
 **Full Body B**
 
@@ -8293,7 +8293,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 2 | Dip | Bodyweight | 4 × 6 | 120s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
-| 5 | Push-Up | Bodyweight | 3 × 11 | 60s |
+| 5 | Doorway Chest Stretch | Bodyweight | 3 × 12 | 60s |
 
 ### On and off · 3 days · Strength → Full Body
 
@@ -8341,7 +8341,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 2 | Dip | Bodyweight | 3 × 8 | 90s |
 | 3 | Pull-Up | Bodyweight | 3 × 10 | 60s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
-| 5 | Push-Up | Bodyweight | 3 × 11 | 60s |
+| 5 | Doorway Chest Stretch | Bodyweight | 3 × 12 | 60s |
 
 ### On and off · 3 days · Athletic → Full Body
 
@@ -8355,7 +8355,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 2 | Push-Up | Bodyweight | 3 × 5 | 150s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
+| 5 | Wall Sit | Bodyweight | 3 × 11 | 90s |
 
 **Full Body B**
 
@@ -8413,7 +8413,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 | 2 | Dip | Bodyweight | 3 × 6 | 120s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
-| 5 | Push-Up | Bodyweight | 3 × 11 | 60s |
+| 5 | Doorway Chest Stretch | Bodyweight | 3 × 12 | 60s |
 
 ### On and off · 4 days · Strength → Upper / Lower
 
@@ -8435,9 +8435,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 180s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
-| 5 | Plank | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
 
 ### On and off · 4 days · Muscle → Upper / Lower
 
@@ -8459,9 +8459,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
-| 5 | Plank | Bodyweight | 3 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 4 days · Athletic → Upper / Lower
 
@@ -8483,9 +8483,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 150s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 5 | Plank | Bodyweight | 3 × 12 | 90s |
 
 ### On and off · 4 days · Resilience → Upper / Lower
 
@@ -8531,9 +8531,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
-| 5 | Plank | Bodyweight | 3 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
 
 ### On and off · 5 days · Strength → Upper / Lower
 
@@ -8555,9 +8555,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 180s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
-| 5 | Plank | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
 
 ### On and off · 5 days · Muscle → Upper / Lower
 
@@ -8579,9 +8579,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
-| 5 | Plank | Bodyweight | 3 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
 
 ### On and off · 5 days · Athletic → Upper / Lower
 
@@ -8603,9 +8603,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 150s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 5 | Plank | Bodyweight | 3 × 12 | 90s |
 
 ### On and off · 5 days · Resilience → Upper / Lower
 
@@ -8651,9 +8651,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
-| 5 | Plank | Bodyweight | 3 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
 
 ### On and off · 6 days · Strength → Upper / Lower
 
@@ -8675,9 +8675,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 180s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
-| 5 | Plank | Bodyweight | 2 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 90s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
 
 ### On and off · 6 days · Muscle → Upper / Lower
 
@@ -8699,9 +8699,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
-| 5 | Plank | Bodyweight | 2 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
 
 ### On and off · 6 days · Athletic → Upper / Lower
 
@@ -8723,9 +8723,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 150s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
-| 4 | Plank | Bodyweight | 2 × 12 | 90s |
-| 5 | Hanging Leg Raise | Bodyweight | 2 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 90s |
+| 5 | Plank | Bodyweight | 2 × 12 | 90s |
 
 ### On and off · 6 days · Resilience → Upper / Lower
 
@@ -8771,9 +8771,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 60s |
-| 5 | Plank | Bodyweight | 2 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 60s |
 
 ### On and off · 7 days · Strength → Upper / Lower
 
@@ -8795,9 +8795,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 180s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
-| 5 | Plank | Bodyweight | 2 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 90s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
 
 ### On and off · 7 days · Muscle → Upper / Lower
 
@@ -8819,9 +8819,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
-| 5 | Plank | Bodyweight | 2 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
 
 ### On and off · 7 days · Athletic → Upper / Lower
 
@@ -8843,9 +8843,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 150s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
-| 4 | Plank | Bodyweight | 2 × 12 | 90s |
-| 5 | Hanging Leg Raise | Bodyweight | 2 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 90s |
+| 5 | Plank | Bodyweight | 2 × 12 | 90s |
 
 ### On and off · 7 days · Resilience → Upper / Lower
 
@@ -8891,9 +8891,9 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 5 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 60s |
-| 5 | Plank | Bodyweight | 2 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 60s |
 
 ### Training regularly · 1 day · Strength → Full Body
 
@@ -8923,7 +8923,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
 | 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
 | 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 60s |
 
 ### Training regularly · 1 day · Athletic → Full Body
 
@@ -8937,8 +8937,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 2 | Push-Up | Bodyweight | 4 × 5 | 150s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
-| 6 | Inverted Row | Bodyweight | 3 × 11 | 90s |
+| 5 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
 
 ### Training regularly · 1 day · Resilience → Full Body
 
@@ -8968,7 +8968,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
 | 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
 | 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 60s |
 
 ### Training regularly · 2 days · Strength → Full Body
 
@@ -9009,7 +9009,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
 | 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
 | 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 60s |
 
 **Full Body B**
 
@@ -9019,7 +9019,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 2 | Dip | Bodyweight | 4 × 8 | 90s |
 | 3 | Pull-Up | Bodyweight | 3 × 10 | 60s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
-| 5 | Push-Up | Bodyweight | 3 × 11 | 60s |
+| 5 | Doorway Chest Stretch | Bodyweight | 3 × 12 | 60s |
 | 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 2 days · Athletic → Full Body
@@ -9034,8 +9034,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 2 | Push-Up | Bodyweight | 4 × 5 | 150s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
-| 6 | Inverted Row | Bodyweight | 3 × 11 | 90s |
+| 5 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
 
 **Full Body B**
 
@@ -9046,7 +9046,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 90s |
 | 5 | Plank | Bodyweight | 3 × 12 | 90s |
-| 6 | Push-Up | Bodyweight | 3 × 11 | 90s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 90s |
 
 ### Training regularly · 2 days · Resilience → Full Body
 
@@ -9087,7 +9087,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
 | 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
 | 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 60s |
 
 **Full Body B**
 
@@ -9097,7 +9097,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 2 | Dip | Bodyweight | 4 × 6 | 120s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
-| 5 | Push-Up | Bodyweight | 3 × 11 | 60s |
+| 5 | Doorway Chest Stretch | Bodyweight | 3 × 12 | 60s |
 | 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 3 days · Strength → Full Body
@@ -9139,7 +9139,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
 | 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
 | 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 60s |
 
 **Full Body B**
 
@@ -9149,7 +9149,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 2 | Dip | Bodyweight | 3 × 8 | 90s |
 | 3 | Pull-Up | Bodyweight | 3 × 10 | 60s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
-| 5 | Push-Up | Bodyweight | 3 × 11 | 60s |
+| 5 | Doorway Chest Stretch | Bodyweight | 3 × 12 | 60s |
 | 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 3 days · Athletic → Full Body
@@ -9164,8 +9164,8 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 2 | Push-Up | Bodyweight | 3 × 5 | 150s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
-| 6 | Inverted Row | Bodyweight | 3 × 11 | 90s |
+| 5 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 90s |
 
 **Full Body B**
 
@@ -9176,7 +9176,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 90s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 90s |
 | 5 | Plank | Bodyweight | 3 × 12 | 90s |
-| 6 | Push-Up | Bodyweight | 3 × 11 | 90s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 90s |
 
 ### Training regularly · 3 days · Resilience → Full Body
 
@@ -9217,7 +9217,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Inverted Row | Bodyweight | 3 × 11 | 60s |
 | 4 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
 | 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Diamond Push-Up | Bodyweight | 3 × 11 | 60s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 60s |
 
 **Full Body B**
 
@@ -9227,7 +9227,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 2 | Dip | Bodyweight | 3 × 6 | 120s |
 | 3 | Pull-Up | Bodyweight | 3 × 9 | 60s |
 | 4 | Bodyweight Squat | Bodyweight | 3 × 11 | 60s |
-| 5 | Push-Up | Bodyweight | 3 × 11 | 60s |
+| 5 | Doorway Chest Stretch | Bodyweight | 3 × 12 | 60s |
 | 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 4 days · Strength → Upper / Lower
@@ -9251,10 +9251,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 180s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
-| 5 | Plank | Bodyweight | 3 × 12 | 90s |
-| 6 | Push-Up | Bodyweight | 3 × 11 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
+| 6 | Deep Squat Hold | Bodyweight | 3 × 11 | 90s |
 
 ### Training regularly · 4 days · Muscle → Upper / Lower
 
@@ -9277,10 +9277,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
-| 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 4 days · Athletic → Upper / Lower
 
@@ -9303,10 +9303,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 150s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 90s |
-| 6 | Side Plank | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 5 | Plank | Bodyweight | 3 × 12 | 90s |
+| 6 | Deep Squat Hold | Bodyweight | 3 × 11 | 90s |
 
 ### Training regularly · 4 days · Resilience → Upper / Lower
 
@@ -9332,7 +9332,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
 | 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 | 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
-| 6 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 60s |
 
 ### Training regularly · 4 days · General → Upper / Lower
 
@@ -9355,10 +9355,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
-| 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 5 days · Strength → Upper / Lower
 
@@ -9381,10 +9381,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 180s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
-| 5 | Plank | Bodyweight | 3 × 12 | 90s |
-| 6 | Push-Up | Bodyweight | 3 × 11 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 90s |
+| 6 | Deep Squat Hold | Bodyweight | 3 × 11 | 90s |
 
 ### Training regularly · 5 days · Muscle → Upper / Lower
 
@@ -9407,10 +9407,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
-| 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 10 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 5 days · Athletic → Upper / Lower
 
@@ -9433,10 +9433,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 150s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 90s |
-| 4 | Plank | Bodyweight | 3 × 12 | 90s |
-| 5 | Hanging Leg Raise | Bodyweight | 3 × 12 | 90s |
-| 6 | Side Plank | Bodyweight | 3 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 90s |
+| 5 | Plank | Bodyweight | 3 × 12 | 90s |
+| 6 | Deep Squat Hold | Bodyweight | 3 × 11 | 90s |
 
 ### Training regularly · 5 days · Resilience → Upper / Lower
 
@@ -9462,7 +9462,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Back Extension | Bodyweight | 3 × 10 | 60s |
 | 4 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
 | 5 | Decline Sit-Up | Bodyweight | 3 × 10 | 60s |
-| 6 | Single-Leg Calf Raise | Bodyweight | 3 × 10 | 60s |
+| 6 | Wall Sit | Bodyweight | 3 × 11 | 60s |
 
 ### Training regularly · 5 days · General → Upper / Lower
 
@@ -9485,10 +9485,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 3 × 9 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
-| 5 | Plank | Bodyweight | 3 × 12 | 60s |
-| 6 | Hanging Leg Raise | Bodyweight | 3 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 3 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 3 × 9 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 3 × 9 | 60s |
+| 6 | Plank | Bodyweight | 3 × 12 | 60s |
 
 ### Training regularly · 6 days · Strength → Upper / Lower
 
@@ -9511,10 +9511,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 180s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
-| 5 | Plank | Bodyweight | 2 × 12 | 90s |
-| 6 | Push-Up | Bodyweight | 2 × 11 | 90s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 90s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
+| 6 | Deep Squat Hold | Bodyweight | 2 × 11 | 90s |
 
 ### Training regularly · 6 days · Muscle → Upper / Lower
 
@@ -9537,10 +9537,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
-| 5 | Plank | Bodyweight | 2 × 12 | 60s |
-| 6 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
+| 6 | Plank | Bodyweight | 2 × 12 | 60s |
 
 ### Training regularly · 6 days · Athletic → Upper / Lower
 
@@ -9563,10 +9563,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 150s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
-| 4 | Plank | Bodyweight | 2 × 12 | 90s |
-| 5 | Hanging Leg Raise | Bodyweight | 2 × 12 | 90s |
-| 6 | Side Plank | Bodyweight | 2 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 90s |
+| 5 | Plank | Bodyweight | 2 × 12 | 90s |
+| 6 | Deep Squat Hold | Bodyweight | 2 × 11 | 90s |
 
 ### Training regularly · 6 days · Resilience → Upper / Lower
 
@@ -9592,7 +9592,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
 | 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
 | 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
-| 6 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
+| 6 | Wall Sit | Bodyweight | 2 × 11 | 60s |
 
 ### Training regularly · 6 days · General → Upper / Lower
 
@@ -9615,10 +9615,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 60s |
-| 5 | Plank | Bodyweight | 2 × 12 | 60s |
-| 6 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 60s |
+| 6 | Plank | Bodyweight | 2 × 12 | 60s |
 
 ### Training regularly · 7 days · Strength → Upper / Lower
 
@@ -9641,10 +9641,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 180s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
-| 5 | Plank | Bodyweight | 2 × 12 | 90s |
-| 6 | Push-Up | Bodyweight | 2 × 11 | 90s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 90s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 90s |
+| 6 | Deep Squat Hold | Bodyweight | 2 × 11 | 90s |
 
 ### Training regularly · 7 days · Muscle → Upper / Lower
 
@@ -9667,10 +9667,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
-| 5 | Plank | Bodyweight | 2 × 12 | 60s |
-| 6 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 10 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
+| 6 | Plank | Bodyweight | 2 × 12 | 60s |
 
 ### Training regularly · 7 days · Athletic → Upper / Lower
 
@@ -9693,10 +9693,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 5 | 150s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 90s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 90s |
-| 4 | Plank | Bodyweight | 2 × 12 | 90s |
-| 5 | Hanging Leg Raise | Bodyweight | 2 × 12 | 90s |
-| 6 | Side Plank | Bodyweight | 2 × 12 | 90s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 90s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 90s |
+| 5 | Plank | Bodyweight | 2 × 12 | 90s |
+| 6 | Deep Squat Hold | Bodyweight | 2 × 11 | 90s |
 
 ### Training regularly · 7 days · Resilience → Upper / Lower
 
@@ -9722,7 +9722,7 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 | 3 | Back Extension | Bodyweight | 2 × 10 | 60s |
 | 4 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
 | 5 | Decline Sit-Up | Bodyweight | 2 × 10 | 60s |
-| 6 | Single-Leg Calf Raise | Bodyweight | 2 × 10 | 60s |
+| 6 | Wall Sit | Bodyweight | 2 × 11 | 60s |
 
 ### Training regularly · 7 days · General → Upper / Lower
 
@@ -9745,10 +9745,10 @@ _Mon_ _Tue_ _Wed_ **Thu** _Fri_ _Sat_ _Sun_ — 1 training day, 6 lifts across 1
 |---|---|---|---|---|
 | 1 | Bodyweight Squat | Bodyweight | 3 × 8 | 90s |
 | 2 | Nordic Ham Curl | Bodyweight | 3 × 12 | 60s |
-| 3 | Back Extension | Bodyweight | 2 × 9 | 60s |
-| 4 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 60s |
-| 5 | Plank | Bodyweight | 2 × 12 | 60s |
-| 6 | Hanging Leg Raise | Bodyweight | 2 × 12 | 60s |
+| 3 | Wall Sit | Bodyweight | 2 × 11 | 60s |
+| 4 | Back Extension | Bodyweight | 2 × 9 | 60s |
+| 5 | Single-Leg Calf Raise | Bodyweight | 2 × 9 | 60s |
+| 6 | Plank | Bodyweight | 2 × 12 | 60s |
 
 ## Emphasis
 

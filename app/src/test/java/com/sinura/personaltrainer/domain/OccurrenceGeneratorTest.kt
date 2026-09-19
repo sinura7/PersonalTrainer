@@ -88,6 +88,26 @@ class OccurrenceGeneratorTest {
     }
 
     @Test
+    fun saturdayEveningTodayStillMintsTodaysOccurrence() {
+        val saturday = CivilDate(2026, 9, 12)
+        val weekStart = saturday.previousOrSame(Weekday.MONDAY)
+        val evening = java.time.ZonedDateTime
+            .of(2026, 9, 12, 21, 0, 0, 0, java.time.ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli()
+        val time = com.sinura.personaltrainer.testutil.FrozenTime(evening, zone)
+        val rules = listOf(
+            rule("r-sat", Weekday.SATURDAY, hour = 18, createdAtMs = evening),
+        )
+        val week = OccurrenceGenerator.generateWeek(
+            weekStart, rules, emptyList(), time, zone, evening,
+            todayEpochDay = saturday.epochDay,
+            nowMinutes = 21 * 60,
+        )
+        assertEquals(listOf(saturday.epochDay), week.map { it.localEpochDay })
+    }
+
+    @Test
     fun thursdayEveningNewRuleSkipsEarlierDaysAndLastMonthRuleDoesNot() {
         val thursday = CivilDate(2026, 8, 20)
         val zone = "UTC"

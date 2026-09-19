@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * A lift.
@@ -32,6 +31,8 @@ data class RoutineExercise(
     val targetReps: Int,
     val targetWeightKg: Double?,
     val restSeconds: Int,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 data class Routine(
@@ -52,6 +53,8 @@ data class SessionExercise(
     val targetReps: Int,
     val targetWeightKg: Double?,
     val restSeconds: Int,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )
 
 data class SetLog(
@@ -65,6 +68,7 @@ data class SetLog(
     val rpe: Int?,
     val isWarmup: Boolean,
     val completedAt: Long,
+    val durationSeconds: Int? = null,
 )
 
 data class WorkoutSession(
@@ -109,6 +113,10 @@ data class WorkoutSession(
         var bodyweightReps = 0
         sets.forEach { set ->
             if (set.isWarmup) return@forEach
+            val duration = set.durationSeconds
+            // Holds are time, not kilograms. A strength set that also
+            // carried a stopwatch still moved the bar — count it.
+            if (duration != null && duration > 0 && set.reps < 1) return@forEach
             val work = SetWork.of(
                 weightKg = set.weightKg,
                 reps = set.reps,
@@ -135,7 +143,7 @@ data class WorkoutSession(
         listOf(date, finishedAt ?: 0L, startedAt).firstOrNull { it > 0L } ?: 0L
 
     fun performedEpochDay(
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
     ): Long = time.civilDate(performedAtMs(), zoneId).epochDay
 
@@ -152,6 +160,55 @@ data class WorkoutSession(
         sets.filter { it.exerciseId == exerciseId }.sortedBy { it.setNumber }
 
     fun hasLifts(): Boolean = exercises.isNotEmpty() || sets.isNotEmpty()
+
+    /**
+     * The session as a filled program sheet: one card per prescribed lift, in
+     * cart order, with the sets that were actually logged written in. Lifts that
+     * were on the plan but never touched still appear, empty — that is the sheet
+     * as programmed, not a receipt of only what got a number.
+     *
+     * When the session has no exercise rows (an older free workout that only
+     * stored sets), the distinct logged lifts are synthesised in first-seen
+     * order so history still has cards to show.
+     */
+    fun filledLifts(): List<FilledSessionLift> {
+        if (exercises.isNotEmpty()) {
+            return exercises.mapIndexed { index, row ->
+                FilledSessionLift(
+                    number = index + 1,
+                    exercise = row.exercise,
+                    targetSets = row.targetSets,
+                    targetReps = row.targetReps,
+                    targetWeightKg = row.targetWeightKg,
+                    restSeconds = row.restSeconds,
+                    targetSeconds = row.targetSeconds,
+                    targetSecondsMax = row.targetSecondsMax,
+                    sets = setsFor(row.exercise.id),
+                )
+            }
+        }
+        return sets.map { it.exerciseId to it.exerciseName }
+            .distinctBy { it.first }
+            .mapIndexed { index, (id, name) ->
+                FilledSessionLift(
+                    number = index + 1,
+                    exercise = Exercise(
+                        id = id,
+                        name = name,
+                        muscleGroup = "",
+                        notes = "",
+                        isCustom = true,
+                    ),
+                    targetSets = 0,
+                    targetReps = 0,
+                    targetWeightKg = null,
+                    restSeconds = 0,
+                    targetSeconds = null,
+                    targetSecondsMax = null,
+                    sets = setsFor(id),
+                )
+            }
+    }
 
     /**
      * Resume must never treat a stale selected id as an empty workout.
@@ -185,15 +242,8 @@ data class WorkoutSession(
      * only one — and the caller must then leave the selection alone. Advancing to a lift that
      * is already done would be worse than not advancing at all.
      */
-    fun nextUnfinishedExerciseAfter(exerciseId: String): String? {
-        val ids = exercises.map { it.exercise.id }
-        val from = ids.indexOf(exerciseId)
-        if (from < 0) return null
-        // Search forward from the next lift, then wrap: a lift skipped earlier in the session
-        // is still owed, and the alternative is stranding it with no way back but a manual tap.
-        val order = (1 until ids.size).map { step -> ids[(from + step) % ids.size] }
-        return order.firstOrNull { !isTargetMet(it) }
-    }
+    fun nextUnfinishedExerciseAfter(exerciseId: String): String? =
+        WorkoutAdvance.nextUnfinishedExerciseId(this, exerciseId)
 
     fun resolveSelectedExerciseId(preferredId: String?): String? {
         val exerciseIds = exercises.map { it.exercise.id }
@@ -243,6 +293,17 @@ data class ProgressionHint(
      */
     val loadType: LoadType? = null,
     val trace: RuleTrace? = null,
+    /**
+     * Next session's reps. On a loaded lift inside the 1–2-rep hold window this is one more
+     * than [lastReps], capped at [targetReps]. [RpeModifier] and [LighterWeekModifier] reset it
+     * to [lastReps] so a grind or a deload does not add a rep.
+     */
+    val suggestedReps: Int = lastReps,
+    /**
+     * Kit in hand, so [IncrementTable] can give a dumbbell its own jump
+     * rather than the barbell's. Null means the table keys off [loadType] only.
+     */
+    val equipment: EquipmentType? = null,
 )
 
 enum class ProgressionAction {

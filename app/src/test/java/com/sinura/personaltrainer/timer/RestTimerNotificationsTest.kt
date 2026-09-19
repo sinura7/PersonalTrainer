@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -55,10 +56,33 @@ class RestTimerNotificationsTest {
         assertTrue(notification.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER))
         assertTrue(notification.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN))
         assertEquals(91_000L, notification.`when`)
+        assertEquals("1:30 remaining", notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString())
         assertEquals(Notification.VISIBILITY_PUBLIC, notification.visibility)
         assertEquals(Notification.CATEGORY_STOPWATCH, notification.category)
         assertNotNull(notification.contentIntent)
         assertNull(notification.fullScreenIntent)
+    }
+
+    @Test
+    fun runningNotificationFreezesAtZeroInsteadOfCountingThrough() {
+        RestTimerNotifications.ensureChannels(context)
+        val notification = RestTimerNotifications.runningNotification(
+            context = context,
+            state = RestTimerSnapshot(
+                running = true,
+                endsAtElapsedRealtime = 90_000L,
+                totalSeconds = 90,
+                sessionId = "session-1",
+                timerId = "timer-1",
+            ),
+            nowElapsedRealtime = 120_000L,
+            nowWallClockMillis = 1_000L,
+        )
+        assertFalse(notification.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER))
+        assertEquals("0:00 remaining", notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString())
+        assertFalse(
+            notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.contains("-") == true,
+        )
     }
 
     @Test

@@ -17,7 +17,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 /**
  * What to do when system back leaves a live cardio session.
  *
- * Same stacked anatomy as [LeaveWorkoutDialog]: Leave running is the gym-floor leave
+ * Same stacked anatomy as [EndWorkoutDialog]: Leave running is the gym-floor leave
  * (the session stays live, the bar is the way back) and is the one Volt. Stay is a
  * real control. Discard is Danger ink, never a second Volt slab, and the caller still
  * routes it through its own named confirm so destroy is never one tap.

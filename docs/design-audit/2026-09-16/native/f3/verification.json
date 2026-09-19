@@ -1,0 +1,264 @@
+{
+  "packet": "F3",
+  "baseCommit": "579642b6d3737276510b6eab476c29ab71d9fcfc",
+  "status": "Merged; local, hosted, integrated and native checks passed. Debug 79 preparation; physical acceptance pending.",
+  "referenceManifestSha256": "2d4f65d94cb76cb17fe94986cb1cbd103b5923eaebafeca930709c1286ec6b0f",
+  "native": [
+    {
+      "runId": "20260917-113801193",
+      "counts": {
+        "tests": 94,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "5cd672edfcaf46476e877d5941e1d3505122422a580309c59741373b4272e87e"
+      ],
+      "profile": {
+        "profile": "temper-tests-api29",
+        "serial": "emulator-5554",
+        "systemImage": "system-images;android-29;default;x86_64",
+        "imageRevision": "8",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T11:38:01.1762461Z"
+      },
+      "captures": 91,
+      "purpose": "recording and interaction checks; not fresh comparison acceptance"
+    },
+    {
+      "runId": "20260917-115421489",
+      "counts": {
+        "tests": 222,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "e6280184870694d857e252e4927542209a75fbf441fe2603007d9eccb9bc5d44"
+      ],
+      "profile": {
+        "profile": "temper-tests-api29",
+        "serial": "emulator-5554",
+        "systemImage": "system-images;android-29;default;x86_64",
+        "imageRevision": "8",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T11:54:21.4720611Z"
+      },
+      "captures": 17,
+      "purpose": "Fresh complete API 29 native regression and pixel comparison, including IME Done and saved-state custom-rest restoration"
+    },
+    {
+      "runId": "20260917-133750885",
+      "counts": {
+        "tests": 86,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "7ccf26ae1f310cb6aa37c4138df5f20a3da94b742eb54b2dff6d578d331c8e73"
+      ],
+      "profile": {
+        "profile": "temper-tests-api36",
+        "serial": "emulator-5556",
+        "systemImage": "system-images;android-36;default;x86_64",
+        "imageRevision": "2",
+        "fingerprint": "Android/sdk_phone64_x86_64/emu64x:16/BE2A.250530.026.D1/13818094:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T13:37:50.8825874Z"
+      },
+      "captures": 82,
+      "purpose": "API 36 workout layout and interaction checks; observations, not API 29 pixel comparisons"
+    },
+    {
+      "runId": "20260917-134724036",
+      "counts": {
+        "tests": 86,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "56e5eb8526f646616e37be08ffe77a875a185f48c2c20620bd1c2f96bb980a32"
+      ],
+      "profile": {
+        "profile": "temper-tests-api26",
+        "serial": "emulator-5558",
+        "systemImage": "system-images;android-26;default;x86_64",
+        "imageRevision": "1",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:8.0.0/OSR1.180418.004/4931640:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T13:47:24.0330405Z"
+      },
+      "captures": 82,
+      "purpose": "API 26 workout layout/interaction compatibility; before final terminal-rest guard; no API 29 pixel comparison"
+    },
+    {
+      "runId": "20260917-135849036",
+      "counts": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reportSha256": [
+        "017a996e05920a78e50c57665607809f1ed77b06a1cb66b338031cc553b811bc"
+      ],
+      "profile": {
+        "profile": "temper-tests-api26",
+        "serial": "emulator-5558",
+        "systemImage": "system-images;android-26;default;x86_64",
+        "imageRevision": "1",
+        "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:8.0.0/OSR1.180418.004/4931640:userdebug/test-keys",
+        "density": "Physical density: 420",
+        "size": "Physical size: 1080x1920",
+        "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+        "renderer": "swiftshader_indirect",
+        "fontScale": 1.0,
+        "animations": 0,
+        "locale": "en-US",
+        "timeZone": "America/Toronto",
+        "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+        "goldenProfile": "windows-swiftshader37",
+        "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+        "capturedUtc": "2026-09-17T13:58:49.0179518Z"
+      },
+      "captures": 8,
+      "purpose": "Final source 5b598e34 native journeys after terminal-rest guard: log, completion, correction, timing, IME and restoration"
+    }
+  ],
+  "localGate": "Full gate 12 passed 2,579 tests, zero failures/errors/skips; clean merged gate passed, reusing unchanged unit/build outputs.",
+  "outstanding": [
+    "Publish and verify stable-signer Debug 79",
+    "Owner S26 Ultra phone trial, TalkBack, background timing and upgrade retention",
+    "Physical performance traces and remaining whole-app acceptance in F11"
+  ],
+  "visualReview": "API 36 all 82 captures reviewed; API 26 focused completion, small/enlarged, landscape, rest and all overlay captures reviewed. No new blocking layout defect. API 26 landscape system screenshots retain documented compositor letterboxing.",
+  "reviews": {
+    "independent": "Source clear; platform/hosted/integration acceptance remains",
+    "adversarial": "Source clear after terminal-rest fix; both gated Finish/Discard regressions passed in full gate 9"
+  },
+  "platformObservations": [
+    {
+      "file": "frontend-workout-window-custom-rest-landscape-font20-api26.png",
+      "sha256": "7e38c166cf012a474805f1f467be48e4affb8e5912fc7cf5bc4ff01814a22c4d",
+      "api": 26
+    },
+    {
+      "file": "frontend-workout-window-switch-timing-confirm-font20-api26.png",
+      "sha256": "45d52222162fb9a80d561e7a906fe880ef2c0d4ad35d90ba88ab74f2a8106f7b",
+      "api": 26
+    },
+    {
+      "file": "frontend-completion-640x360-font20-next-api26.png",
+      "sha256": "cd369396aaeea131c915524278b2f6943b0a7e4ae2b302810c4f31a5ad4c998f",
+      "api": 26
+    },
+    {
+      "file": "frontend-workout-window-custom-rest-landscape-font20-api36.png",
+      "sha256": "f3ca9f4483126e40aee756ec25c3d128a2908d99a3b1f9998559c42b16f1b877",
+      "api": 36
+    },
+    {
+      "file": "frontend-workout-window-switch-timing-confirm-font20-api36.png",
+      "sha256": "304ccbadfb1b33cbc80896f86b6632a7629e540fe24aebc37ee475f5acab2e16",
+      "api": 36
+    },
+    {
+      "file": "frontend-completion-640x360-font20-next-api36.png",
+      "sha256": "8e2c4038d2c491d39199a41c20890dac8d40b6436bb59f4dc5dac751e36e1639",
+      "api": 36
+    }
+  ],
+  "hostedReferenceReview": {
+    "runs": [
+      "https://github.com/sinura7/PersonalTrainer/actions/runs/35230444274",
+      "https://github.com/sinura7/PersonalTrainer/actions/runs/35230416832"
+    ],
+    "references": 81,
+    "comparison": "independent runs within unchanged allowance",
+    "freshComparison": "222/222 passed in run 35233146057 at exact PR head 53f5490b"
+  },
+  "mergeCommit": "db83acc29df4c8e983d6218618859b7bd18f4b47",
+  "integratedNative": {
+    "runId": "20260917-151011345",
+    "counts": {
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "reportSha256": [
+      "cf51840027710c6a5947a6c4424940492f53a10c8899617a4a8608a7b4dda1f0"
+    ],
+    "profile": {
+      "profile": "temper-tests-api26",
+      "serial": "emulator-5558",
+      "systemImage": "system-images;android-26;default;x86_64",
+      "imageRevision": "1",
+      "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:8.0.0/OSR1.180418.004/4931640:userdebug/test-keys",
+      "density": "Physical density: 420",
+      "size": "Physical size: 1080x1920",
+      "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+      "renderer": "swiftshader_indirect",
+      "fontScale": 1.0,
+      "animations": 0,
+      "locale": "en-US",
+      "timeZone": "America/Toronto",
+      "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+      "goldenProfile": "windows-swiftshader37",
+      "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+      "capturedUtc": "2026-09-17T15:10:11.3257271Z"
+    },
+    "captures": 8
+  },
+  "hostedFinal": {
+    "commit": "53f5490b06718b266007c170250b864b80a591e9",
+    "required": "Both runs 35233146057 and 35233138094 passed Tests, lint, debug build",
+    "nativePass": "35233146057: 222/222, zero failures/skips",
+    "nonblockingDifference": "35233138094: 221/222; only rest 360x640 font1 running golden differed at two text-edge pixels (425,398), (425,399), channel deltas 5 and 7. Eight other pixels within existing one-level allowance. Visually reviewed; unchanged fixture/geometry, no functional failure. Comparator and reference unchanged."
+  }
+}

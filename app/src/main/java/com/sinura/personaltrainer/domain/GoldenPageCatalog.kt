@@ -7,6 +7,14 @@ package com.sinura.personaltrainer.domain
  * pages, a component gallery, and the three ThemeGallery previews. Recording
  * those PNGs stays an owner emulator gate on `temper-tests-api29`.
  *
+ * Packet H named six 360×800 floor states. The image-led redesign
+ * records working, warmup, rest, hold, success, error, completion,
+ * font-2.0, and reduced-motion on `temper-tests-api29`. F3 replaces the
+ * old live-clock renders with frozen integration frames of shipping components,
+ * measured at 360×800 dp. Native route/journey suites verify their wiring.
+ * Those nine names are in [committed]. No caller may add a
+ * `GoldenImageAssert` `assertMatches` on a name that is not.
+ *
  * Asset path: `app/src/androidTest/assets/goldens/{name}.png`.
  */
 object GoldenPageCatalog {
@@ -16,6 +24,10 @@ object GoldenPageCatalog {
     const val THEME_COLOUR_ROLES = "theme-colour-roles-api29"
     const val THEME_INSTRUMENT_TOKENS = "theme-instrument-tokens-api29"
     const val THEME_TYPE_RAMP = "theme-type-ramp-api29"
+
+    /** Recording profile for every floor state below: 360×800, populated. */
+    const val FLOOR_WIDTH_DP = 360
+    const val FLOOR_HEIGHT_DP = 800
 
     val gymFloorPageIds: List<String> = listOf(
         "home",
@@ -39,16 +51,42 @@ object GoldenPageCatalog {
     )
 
     /**
-     * Goldens that are committed today. The substrate gallery is not a page
-     * golden — it proves the harness, not Home or Settings.
+     * Image-led floor states at 360×800: working, warmup, rest, hold,
+     * success, error, completion, plus font-2.0 and reduced-motion
+     * variants. F3 records compact identity and derived actions with pinned clocks.
      */
-    val committed: Set<String> = setOf(SUBSTRATE_GALLERY)
+    val floorStateIds: List<String> = listOf(
+        "working",
+        "warmup",
+        "rest",
+        "hold",
+        "success",
+        "error",
+        "completion",
+        "font20",
+        "reduced-motion",
+    )
+
+    fun floorAssetName(state: String): String = "active-strength-$state-$PROFILE_SUFFIX"
+
+    val requiredFloorStateGoldens: List<String> =
+        floorStateIds.map { floorAssetName(it) }
+
+    /**
+     * Goldens that are committed today. The substrate gallery is not a page
+     * golden — it proves the harness, not Home or Settings. Floor states combine
+     * shipping components with immutable fixture state; they are not route tests.
+     */
+    val committed: Set<String> = setOf(SUBSTRATE_GALLERY) + requiredFloorStateGoldens.toSet()
 
     val missingPageGoldens: List<String>
         get() = requiredPageGoldens.filterNot { it in committed }
 
     val missingSupportingGoldens: List<String>
         get() = requiredSupportingGoldens.filterNot { it in committed }
+
+    val missingFloorStateGoldens: List<String>
+        get() = requiredFloorStateGoldens.filterNot { it in committed }
 
     fun isCommitted(name: String): Boolean = name in committed
 }

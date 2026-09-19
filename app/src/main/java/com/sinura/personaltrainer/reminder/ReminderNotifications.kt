@@ -26,6 +26,7 @@ object ReminderNotifications {
     const val EXTRA_OCCURRENCE_ID = "occurrence_id"
     const val EXTRA_REVIEW_OCCURRENCE_ID = "review_occurrence_id"
     const val EXTRA_DELIVERY_ID = "delivery_id"
+    private const val ALARM_NOTIFICATION_ID = 0x71A1
 
     fun ensureChannel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
@@ -67,6 +68,34 @@ object ReminderNotifications {
             .build()
         try {
             manager.notify(occurrence.id.hashCode(), notification)
+        } catch (_: Exception) {
+            // Permission denied after the check, or the manager is gone.
+        }
+    }
+
+    /**
+     * Per-day Settings alarm. Rest alerts stay on their own channel.
+     * When a planned session exists, Start opens it; otherwise the tap
+     * just opens Home.
+     */
+    fun showWorkoutAlarm(context: Context, occurrenceId: String?, title: String) {
+        val app = context.applicationContext
+        if (!canNotify(app)) return
+        ensureChannel(app)
+        val manager = app.getSystemService(NotificationManager::class.java) ?: return
+        val builder = NotificationCompat.Builder(app, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_stat_timer)
+            .setContentTitle("Time to train")
+            .setContentText(title)
+            .setAutoCancel(true)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setContentIntent(openHome(app))
+        if (occurrenceId != null) {
+            builder.setContentIntent(openApp(app, occurrenceId))
+            builder.addAction(0, "Start", startApp(app, occurrenceId, "alarm-$occurrenceId"))
+        }
+        try {
+            manager.notify(ALARM_NOTIFICATION_ID, builder.build())
         } catch (_: Exception) {
             // Permission denied after the check, or the manager is gone.
         }
@@ -129,6 +158,17 @@ object ReminderNotifications {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_REVIEW_OCCURRENCE_ID, occurrenceId)
         }
+
+    private fun openHome(context: Context): PendingIntent {
+        return PendingIntent.getActivity(
+            context,
+            ALARM_NOTIFICATION_ID,
+            Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
 
     private fun startApp(
         context: Context,

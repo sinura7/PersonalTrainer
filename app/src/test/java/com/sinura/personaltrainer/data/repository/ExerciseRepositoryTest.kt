@@ -8,6 +8,8 @@ import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.domain.CatalogMeta
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -52,8 +54,41 @@ class ExerciseRepositoryTest {
         assertEquals("Quads", saved.muscleGroup)
         assertTrue(saved.isCustom)
         assertEquals(MuscleNormalizer.deriveCredits("Quads"), saved.muscles)
+        assertEquals(LoadType.EXTERNAL, saved.loadType)
         val row = deps.database.exerciseDao().getById(saved.id)
         assertEquals(MuscleNormalizer.nameKeyOf("My Squat"), row?.nameKey)
+    }
+
+    @Test
+    fun createCustomStoresTheChosenLoadAndItsDefaultKit() = runBlocking {
+        val result = repository.createCustom(
+            name = "My dip",
+            muscleGroup = "Chest",
+            loadType = LoadType.ASSISTED,
+        )
+        val saved = (result as SaveExerciseResult.Saved).exercise
+        assertEquals(LoadType.ASSISTED, saved.loadType)
+        assertEquals(EquipmentType.MACHINE, saved.equipment)
+        val row = deps.database.exerciseDao().getById(saved.id)
+        assertEquals("ASSISTED", row?.loadType)
+        assertEquals("MACHINE", row?.equipment)
+    }
+
+    @Test
+    fun updateCustomCanReclassifyLoadWithoutRenaming() = runBlocking {
+        val saved = (repository.createCustom(name = "Hang", muscleGroup = "Chest") as SaveExerciseResult.Saved)
+            .exercise
+        assertEquals(LoadType.EXTERNAL, saved.loadType)
+        val updated = repository.updateCustom(
+            id = saved.id,
+            name = "Hang",
+            muscleGroup = "Chest",
+            notes = "",
+            loadType = LoadType.BODYWEIGHT,
+        ) as SaveExerciseResult.Saved
+        assertEquals(LoadType.BODYWEIGHT, updated.exercise.loadType)
+        assertEquals(EquipmentType.BODYWEIGHT, updated.exercise.equipment)
+        assertEquals(LoadType.BODYWEIGHT, repository.getById(saved.id)?.loadType)
     }
 
     @Test

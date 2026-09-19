@@ -15,7 +15,31 @@ object RuleTraceCopy {
         trace.thresholds.forEach { threshold ->
             add("${thresholdLabel(threshold.name)}: ${threshold.value}")
         }
+        if (trace.alternatives.isNotEmpty()) {
+            add("Alternatives considered: ${trace.alternatives.joinToString(", ")}")
+        }
     }
+
+    /**
+     * Why sheet order (report §5.12): Call, Evidence, Rule, Threshold, Rest,
+     * Alternatives. Actions live on the dialog, not in these lines.
+     */
+    fun whySheet(trace: RuleTrace): List<String> = buildList {
+        factValue(trace, "call")?.let { add("Call: $it") }
+        factValue(trace, "lastSet")?.let { add("Evidence: Last set: $it") }
+        val rule = factValue(trace, "rule") ?: reasonLabel(trace.reasonCodes.firstOrNull().orEmpty())
+        if (rule.isNotBlank()) add("Rule: $rule")
+        trace.thresholds.firstOrNull()?.let { threshold ->
+            add("Threshold: ${thresholdLabel(threshold.name)}: ${threshold.value}")
+        }
+        factValue(trace, "rest")?.let { add("Rest: $it") }
+        if (trace.alternatives.isNotEmpty()) {
+            add("Alternatives considered: ${trace.alternatives.joinToString(", ")}")
+        }
+    }
+
+    private fun factValue(trace: RuleTrace, name: String): String? =
+        trace.facts.firstOrNull { it.name == name }?.value?.takeIf { it.isNotBlank() }
 
     fun reasonLabel(code: String): String = when (code) {
         RecommendationEngine.KICKER_BALANCE -> "Balance"
@@ -31,6 +55,9 @@ object RuleTraceCopy {
         SetMicroRecCalculator.SKIP_RPE_HOLD -> "No RPE · hold"
         SetMicroRecCalculator.SKIP_RPE_DROP -> "No RPE · drop"
         SetMicroRecCalculator.CLOSE_HOLD -> "Close. Hold."
+        SetMicroRecCalculator.CLIMB_REPS -> "Add a rep"
+        RuleTrace.STALL -> "No progress"
+        RuleTrace.VOLUME_RAMP -> "More volume"
         SetMicroRecCalculator.FAILED_DROP -> "Missed target"
         SetMicroRecCalculator.LIFT_DONE -> "This lift is done"
         SetMicroRecCalculator.FIRST_SET -> "First set"
@@ -48,17 +75,35 @@ object RuleTraceCopy {
         "title" -> "Call"
         "reason" -> "Because"
         "exercise" -> "Lift"
+        "muscle" -> "Muscle"
         "lastWeightKg" -> "Last weight (kg)"
         "suggestedWeightKg" -> "Suggested weight (kg)"
         "lastReps" -> "Last reps"
+        "suggestedReps" -> "Suggested reps"
+        "sessionsHeld" -> "Sessions held"
+        "lastWeekSets" -> "Last week sets"
+        "suggestedSets" -> "Suggested sets"
         "nextWeightKg" -> "Next weight (kg)"
         "nextReps" -> "Next reps"
         "nextRpe" -> "Next RPE"
+        "lastRpe" -> "Last RPE"
+        "lastSet" -> "Last set"
+        "increment" -> "Increment"
+        "rest" -> "Rest"
+        "call" -> "Call"
+        "rule" -> "Rule"
         else -> humanizeKey(name)
     }
 
     fun thresholdLabel(name: String): String = when (name) {
         "targetReps" -> "Target reps"
+        "stallSessions" -> "Stall after"
+        "rpeCeiling" -> "RPE ceiling"
+        "addSets" -> "Add sets"
+        "highMinSets" -> "High band"
+        "targetSets" -> "Target sets"
+        "increment" -> "Increment"
+        "rpeHold" -> "Hold at average RPE"
         else -> humanizeKey(name)
     }
 

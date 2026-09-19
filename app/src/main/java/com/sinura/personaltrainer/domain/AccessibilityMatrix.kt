@@ -33,8 +33,8 @@ object AccessibilityMatrix {
             id = "home",
             title = "Home",
             states = requiredStates,
-            voltAction = "Start a workout (freestyle). Planned rows confirm, then start.",
-            talkBackNotes = "Settings is a tab. Home week strip picks the day. Planned rows open a start confirm, and a row skipped today still opens one. A day block is one button: title, order and count, then its state or Start on the foot; Skip and Up / Down sit inside it. The filled Volt is Start a workout. Leftovers confirm as Do it today and can Skip. Day blocks have no clocks; Up / Down rearranges them. Add sits under Today and asks just-today vs every this weekday. This week, Library, Goals and the ready-to-progress list stay off this screen.",
+            voltAction = "Start a workout (sheet: free / routine / cardio / Extra). Planned rows confirm, then start.",
+            talkBackNotes = "Settings is a tab. Home week strip picks the day. Selected day is filled, not faint type. Planned rows open a start confirm, and a row skipped today still opens one. A day block is one button: title, order and count, then its state or Start on the foot; Skip and Up / Down sit inside it. The filled Volt is Start a workout and opens a sheet: free, a Plan routine, cardio, or Extra. Extra asks what equipment is here, then shows matching warm-up and mobility pictures. There is no Get started sheet and no Add row on Home. Day blocks have no clocks; Up / Down rearranges them. This week, Library, Goals and the ready-to-progress list stay off this screen.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -42,15 +42,15 @@ object AccessibilityMatrix {
             title = "Body",
             states = requiredStates,
             voltAction = "None. Body is a readout; Start lives on Home.",
-            talkBackNotes = "Map is an illustration. Muscle rows are the 48 dp target. Log or start cardio opens the start sheet.",
+            talkBackNotes = "Map is an illustration. Muscle rows are the 48 dp target. Before any sets, Body names catalog lifts and a muscle opens the lifts that train it. Log or start cardio opens the start sheet.",
             automatedEvidence = true,
         ),
         PagePass(
             id = "plan",
             title = "Plan",
             states = requiredStates,
-            voltAction = "Add session — recovery stays quiet unless confirming a proposed week",
-            talkBackNotes = "Library, Add session, and Log or start cardio are named. Planned Start is Home. The sheet is not a second Volt. Routines start collapsed. Lighter is a quiet chip. Settings is a tab, not a header gear. Reminders live on Settings.",
+            voltAction = "Add session",
+            talkBackNotes = "Library, Add session, and Log or start cardio are named. Planned Start is Home. The sheet is not a second Volt. Routines start collapsed behind Show routines. Generator lives on Settings. Settings is a tab, not a header gear. Reminders live on Settings.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -58,7 +58,7 @@ object AccessibilityMatrix {
             title = "Plan day",
             states = requiredStates,
             voltAction = "Add session",
-            talkBackNotes = "Back and Add session are named. Session rows open the editor. Up / Down rearranges the day's blocks. Remove deletes. No clocks, Start, Swap, or Unpin.",
+            talkBackNotes = "Back and Add session are named. Session rows open the editor. Up / Down rearranges the day's blocks. Remove deletes. Extra asks what equipment is here before the warm-up pictures. No clocks, Start, Swap, or Unpin.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -82,7 +82,7 @@ object AccessibilityMatrix {
             title = "Settings",
             states = requiredStates,
             voltAction = "Export to file",
-            talkBackNotes = "Settings is a tab. Back is gone. Weight and hours sit at the top. Reminders (opt-out and quiet hours) live here. Export is the page's Volt. Restore is never the gym act. Share diagnostics is quiet.",
+            talkBackNotes = "Settings is a tab. The root is a short index of rows. Display, Reminders, Week generator, Rest timer, Backup, and About open focused screens. Back is gone on the index. Reminders are per-day workout alarms with a scroll time and AM/PM. The week generator lives on its own Settings screen. Export is Backup's Volt. Restore is never the gym act. Share diagnostics is quiet.",
             automatedEvidence = true,
         ),
         PagePass(
@@ -90,7 +90,7 @@ object AccessibilityMatrix {
             title = "Active strength",
             states = requiredStates,
             voltAction = "Log set",
-            talkBackNotes = "Rest is not announced every second. Process restore keeps the set.",
+            talkBackNotes = "TalkBack order is header with its progress line, exercise identity, Details, Working/Warm-up, the stats row (Last set, Best set and Volume), weight, reps, effort, next set, set history chips, companion, commit. The progress line is spoken once as words; the segmented bar is decorative. In landscape the header is one row whose title is the plan's words, spoken with the routine name. Once the planned sets are done the commit says Next exercise and speaks the next lift's name in full; portrait also draws it on the second line, capped. The identity is one button that says current, name, lift number, working sets done, equipment and the set context, and ends in Switch exercise; exercise pictures remain decorative. Switch exercise is explicit and Details opens the exercise; Session summary in the overflow separates elapsed time and session totals from exercise progress. Each stat cell speaks its value, and Last set is a Use last time button only while it shows last time's set. Weight, Added weight, and Assistance retain their meanings; zero external load is not called bodyweight, and a bodyweight lift has no weight column. Numeric fields expose Decrease, Increase, and Type actions and select the current value when opened; the round plates say the step and unit. Working/Warm-up and RPE have radio semantics with Easy and Max effort ends; a recommended RPE is spoken as recommended, never selected. RPE help is always available; Clear or the selected choice removes effort, and a warm-up says why the track is hidden. Warm-up presets and Use last time are value-application buttons; the next set suggestion is supporting text with Why and Apply, and Apply never saves. Saving a warm-up returns to Working. Set history chips speak ordinal, set and state and open edit/delete menus; Edit opens labeled working and warm-up rows with edit/delete menus; the current set is a ringed chip and Add set is explicit. Ordinary saves retain the entry position; edits deliberately reveal entry. Commit names its verb, payload and disabled reason. A saved receipt is announced once and the saved chip says so, while timer ticks remain silent. The rest card names its target and the minus 15, plus 15 and Skip actions; Time this set and Start rest are distinct named actions, and a finished rest announces Back to the bar once. Error/undo shares the companion with access to an active clock. Undo honors the accessibility timeout. Font 1.6 and above shrinks the identity picture, stacks weight above reps and reflows choices and values. Reduced motion snaps geometry; dwell and announcements stay.",
             automatedEvidence = true,
         ),
         PagePass(

@@ -135,28 +135,31 @@ object RestTimerNotifications {
     ): Notification {
         val appContext = context.applicationContext
         val remaining = state.remainingSeconds(nowElapsedRealtime).coerceAtLeast(0)
-        val remainingLabel = RestTimer.formatClock(remaining)
-        val whenMillis = RestTimer.endsAtWallClockMillis(
-            endsAtElapsedRealtime = state.endsAtElapsedRealtime,
+        val live = RestTimer.usesLiveChronometer(remaining)
+        val compact = restRemoteViews(
+            context = appContext,
+            layoutId = R.layout.notification_rest_running,
+            state = state,
+            remainingSeconds = remaining,
             nowElapsedRealtime = nowElapsedRealtime,
-            nowWallClockMillis = nowWallClockMillis,
         )
-        val compact = restRemoteViews(appContext, R.layout.notification_rest_running, state)
-        val expanded = restRemoteViews(appContext, R.layout.notification_rest_running_big, state)
-        return NotificationCompat.Builder(appContext, CHANNEL_RUNNING)
+        val expanded = restRemoteViews(
+            context = appContext,
+            layoutId = R.layout.notification_rest_running_big,
+            state = state,
+            remainingSeconds = remaining,
+            nowElapsedRealtime = nowElapsedRealtime,
+        )
+        val builder = NotificationCompat.Builder(appContext, CHANNEL_RUNNING)
             .setSmallIcon(R.drawable.ic_stat_timer)
             .setContentTitle("Rest")
-            .setContentText("$remainingLabel remaining")
+            .setContentText(RestTimer.remainingCopy(remaining))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setUsesChronometer(true)
-            .setChronometerCountDown(true)
-            .setShowWhen(true)
-            .setWhen(whenMillis)
             .setCustomContentView(compact)
             .setCustomBigContentView(expanded)
             .setCustomHeadsUpContentView(expanded)
@@ -166,7 +169,23 @@ object RestTimerNotifications {
             .addAction(0, "+15s", serviceIntent(appContext, RestTimerService.ACTION_ADD_15, 12))
             .addAction(0, "Skip", serviceIntent(appContext, RestTimerService.ACTION_SKIP, 13))
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-            .build()
+        if (live) {
+            val whenMillis = RestTimer.endsAtWallClockMillis(
+                endsAtElapsedRealtime = state.endsAtElapsedRealtime,
+                nowElapsedRealtime = nowElapsedRealtime,
+                nowWallClockMillis = nowWallClockMillis,
+            )
+            builder
+                .setUsesChronometer(true)
+                .setChronometerCountDown(true)
+                .setShowWhen(true)
+                .setWhen(whenMillis)
+        } else {
+            // Frozen 0:00. A live countdown whose base is already past paints
+            // minus seconds in the shade until the card is cancelled (A-03).
+            builder.setUsesChronometer(false).setShowWhen(false)
+        }
+        return builder.build()
     }
 
     fun openAppIntent(context: Context, sessionId: String?): PendingIntent {
@@ -217,10 +236,20 @@ object RestTimerNotifications {
         context: Context,
         layoutId: Int,
         state: RestTimerSnapshot,
+        remainingSeconds: Int,
+        nowElapsedRealtime: Long,
     ): RemoteViews {
         val views = RemoteViews(context.packageName, layoutId)
-        views.setChronometerCountDown(R.id.rest_chrono, true)
-        views.setChronometer(R.id.rest_chrono, state.endsAtElapsedRealtime, null, true)
+        val clock = RestTimer.formatClock(remainingSeconds)
+        views.setTextViewText(R.id.rest_chrono, clock)
+        if (RestTimer.usesLiveChronometer(remainingSeconds)) {
+            views.setChronometerCountDown(R.id.rest_chrono, true)
+            views.setChronometer(R.id.rest_chrono, state.endsAtElapsedRealtime, null, true)
+        } else {
+            views.setChronometerCountDown(R.id.rest_chrono, true)
+            views.setChronometer(R.id.rest_chrono, nowElapsedRealtime, null, false)
+            views.setTextViewText(R.id.rest_chrono, clock)
+        }
         return views
     }
 

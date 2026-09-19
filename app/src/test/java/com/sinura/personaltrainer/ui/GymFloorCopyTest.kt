@@ -4,8 +4,8 @@ import com.sinura.personaltrainer.domain.AccessibilityMatrix
 import com.sinura.personaltrainer.domain.ActivityDetailCopy
 import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.ui.library.LibraryTags
-import com.sinura.personaltrainer.ui.navigation.LiveBarCopy
-import com.sinura.personaltrainer.ui.navigation.LiveBarKind
+import com.sinura.personaltrainer.domain.LiveBarCopy
+import com.sinura.personaltrainer.domain.LiveBarKind
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

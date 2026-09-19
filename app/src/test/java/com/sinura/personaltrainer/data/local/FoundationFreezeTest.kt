@@ -22,6 +22,14 @@ class FoundationFreezeTest {
         val schema = source("app/schemas/com.sinura.personaltrainer.data.local.TemperDatabase/1.json")
         assertTrue(schema.readText().contains("\"identityHash\": \"a07cac89e03d333eff3c9566d8c5a637\""))
         assertTrue(schema.readText().contains("activity_sessions"))
+        val upgrade = source(
+            "app/src/test/java/com/sinura/personaltrainer/data/local/UpgradeInPlaceTest.kt",
+        ).readText()
+        assertTrue(upgrade.contains("TemperDatabase.create"))
+        assertFalse(upgrade.contains("TrainerDatabase.create"))
+        val gradle = source("app/build.gradle.kts").readText()
+        assertTrue(gradle.contains("applicationIdSuffix = \".debug\""))
+        assertFalse(gradle.contains("applicationIdSuffix = \".debug.\$debugLiveCode\""))
     }
 
     private fun source(relative: String): File {

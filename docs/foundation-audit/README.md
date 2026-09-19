@@ -1,12 +1,24 @@
 # Temper foundation audit
 
+> **This is a dated audit, not a description of the app today.** It was
+> written before the Phase 5 foundation cutover and much of what it calls
+> "current" is not: it describes Room v2 on `TrainerDatabase` with nine
+> entities, a four-tab bar, and no cardio domain. The app is on
+> `TemperDatabase` v4 with 21 entities, five tabs, and a full activity model.
+> For what the code is now, read
+> [`architecture/CURRENT_STRUCTURE.md`](../architecture/CURRENT_STRUCTURE.md).
+> This package keeps its value as the record of what the audit found and why
+> the foundation program was scoped the way it was — tier 4 of the authority
+> ladder in [ADR-001](../architecture/ADR-001-documentation-authority.md), and
+> nothing above it.
+
 **Audit date:** 23 August 2026  
 **Audited revision:** `trunk` at `248439680024`  
 **Scope:** Current product, every user-facing surface, component system, runtime and data
 architecture, quality posture, and fit for the agreed Android-first fitness platform.
 
-This package is the canonical current-state map. It does not replace the historical
-[19 August audit](../AUDIT.md), and it is not an implementation roadmap.
+It does not replace the historical [19 August audit](../AUDIT.md), and it is not an
+implementation roadmap.
 
 ## Product direction used as the evaluation bar
 

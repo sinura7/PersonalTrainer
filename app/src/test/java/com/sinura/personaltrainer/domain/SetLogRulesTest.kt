@@ -45,6 +45,14 @@ class SetLogRulesTest {
         assertFalse(SetLogRules.requiresWeight(LoadType.BODYWEIGHT))
         assertFalse("an unweighted pull-up is a complete set", SetLogRules.requiresWeight(LoadType.BODYWEIGHT_PLUS))
         assertFalse("zero assistance is the hardest version", SetLogRules.requiresWeight(LoadType.ASSISTED))
+        assertFalse(
+            "a walking lunge with empty hands is a complete set",
+            SetLogRules.requiresWeight(LoadType.EXTERNAL, EquipmentType.DUMBBELL, "lunge"),
+        )
+        assertTrue(
+            "a dumbbell bench still needs a number",
+            SetLogRules.requiresWeight(LoadType.EXTERNAL, EquipmentType.DUMBBELL, "bench-press"),
+        )
     }
 
     @Test
@@ -55,6 +63,26 @@ class SetLogRulesTest {
                 SetLogRules.validate(weightKg = 0.0, reps = 8, isWarmup = false, loadType = loadType),
             )
         }
+        assertNull(
+            SetLogRules.validate(
+                weightKg = 0.0,
+                reps = 13,
+                isWarmup = false,
+                loadType = LoadType.EXTERNAL,
+                equipment = EquipmentType.DUMBBELL,
+                movementKey = "lunge",
+            ),
+        )
+        assertNull(
+            SetLogRules.validate(
+                weightKg = 0.0,
+                reps = 10,
+                isWarmup = false,
+                loadType = LoadType.EXTERNAL,
+                equipment = EquipmentType.DUMBBELL,
+                movementKey = "step-up",
+            ),
+        )
     }
 
     @Test
@@ -94,4 +122,28 @@ class SetLogRulesTest {
         }
     }
 
+    @Test
+    fun aHoldWithoutSecondsIsRefusedEvenIfRepsSayOne() {
+        assertEquals(
+            SetLogRules.INVALID_HOLD,
+            SetLogRules.validate(
+                weightKg = 0.0,
+                reps = 1,
+                isWarmup = false,
+                loadType = LoadType.BODYWEIGHT,
+                durationSeconds = null,
+                isHold = true,
+            ),
+        )
+        assertNull(
+            SetLogRules.validate(
+                weightKg = 0.0,
+                reps = 0,
+                isWarmup = false,
+                loadType = LoadType.BODYWEIGHT,
+                durationSeconds = 1,
+                isHold = true,
+            ),
+        )
+    }
 }

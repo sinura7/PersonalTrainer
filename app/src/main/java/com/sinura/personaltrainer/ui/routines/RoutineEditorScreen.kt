@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -30,12 +31,16 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.LoadTypeCopy
+import com.sinura.personaltrainer.domain.PastedUnmatched
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.WorkoutPasteCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.NotesKind
@@ -45,6 +50,7 @@ import com.sinura.personaltrainer.ui.components.ExerciseRow
 import com.sinura.personaltrainer.ui.components.FieldComplaint
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -65,7 +71,8 @@ fun RoutineEditorScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingRemoveId by rememberSaveable { mutableStateOf<String?>(null) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
-    var expandedLiftId by rememberSaveable { mutableStateOf<String?>(null) }
+    var expandedLiftRequest by rememberSaveable { mutableStateOf<String?>(null) }
+    var pasteText by rememberSaveable { mutableStateOf("") }
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
 
     // Back is state, not a callback: leaving first deletes the empty stub routine, and if the
@@ -103,6 +110,7 @@ fun RoutineEditorScreen(
             // The opening read threw. Retry re-runs hydration; the header's back arrow is the way
             // out — the same shape History uses for an unreadable list.
             EmptyState(
+                scene = EmptyScene.RETRY,
                 title = DataHealthCopy.ROUTINE_EDITOR_TITLE,
                 body = DataHealthCopy.ROUTINE_EDITOR_BODY,
                 actionLabel = DataHealthCopy.RETRY,
@@ -115,6 +123,7 @@ fun RoutineEditorScreen(
         }
         if (state.missing) {
             EmptyState(
+                scene = EmptyScene.GONE,
                 title = "Routine missing",
                 body = "This routine was deleted. Create a new one from the list.",
                 actionLabel = "Back to routines",
@@ -127,11 +136,12 @@ fun RoutineEditorScreen(
         }
 
         val exercises = state.routine?.exercises.orEmpty()
-        LaunchedEffect(exercises.map { it.id }) {
-            if (expandedLiftId != null && exercises.none { it.id == expandedLiftId }) {
-                expandedLiftId = null
-            }
-        }
+        // Derived, not corrected after the fact. This was a LaunchedEffect keyed on
+        // `exercises.map { it.id }` that nulled the request once the lift it named had gone —
+        // a new list allocated on every recomposition to drive a side effect whose whole job
+        // was to undo state that should never have been readable. A row that is not in the
+        // list cannot be the expanded one, so it is not one.
+        val expandedLiftId = expandedLiftRequest?.takeIf { id -> exercises.any { it.id == id } }
 
         LazyColumn(
             modifier = Modifier
@@ -147,6 +157,27 @@ fun RoutineEditorScreen(
         ) {
             item(key = "name") {
                 RoutineTitleField(name = state.name, onNameChange = viewModel::onNameChange)
+            }
+            state.createdFromPaste.takeIf { it.isNotEmpty() }?.let { names ->
+                item(key = "paste-created") {
+                    Text(
+                        WorkoutPasteCopy.alsoCreated(names),
+                        style = InstrumentType.caption,
+                        color = TextTertiary,
+                        modifier = Modifier.padding(top = Metrics.space2),
+                    )
+                }
+            }
+            if (exercises.isEmpty()) {
+                item(key = "paste") {
+                    PasteWorkoutBlock(
+                        text = pasteText,
+                        enabled = !state.addingLifts && !state.pasting,
+                        pasting = state.pasting,
+                        onTextChange = { pasteText = it },
+                        onConfirm = { viewModel.importPaste(pasteText) },
+                    )
+                }
             }
             // Every complaint this screen can raise goes to the banner, which owns the only
             // dismiss on the screen.
@@ -164,11 +195,24 @@ fun RoutineEditorScreen(
             // is routed by the family that raised it. A message is not a place.
             state.error
                 ?.takeUnless { state.showExercisePicker }
-                ?.let { message -> item(key = "error") { GymErrorBanner(message, onDismiss = viewModel::dismissError) } }
+                ?.let { message ->
+                    item(key = "error") {
+                        GymErrorBanner(
+                            message = message,
+                            onDismiss = viewModel::dismissError,
+                            title = if (state.unmatched.isNotEmpty()) {
+                                WorkoutPasteCopy.ISSUE_TITLE
+                            } else {
+                                "Something failed"
+                            },
+                        )
+                    }
+                }
 
             if (exercises.isEmpty()) {
                 item(key = "empty") {
                     EmptyState(
+                        scene = EmptyScene.RACK,
                         title = "Add your first lift",
                         body = SessionOrderCopy.EMPTY_EDITOR_BODY,
                         actionLabel = "Add lifts",
@@ -196,11 +240,13 @@ fun RoutineEditorScreen(
                                 reps = item.targetReps,
                                 restSeconds = item.restSeconds,
                                 targetWeightKg = item.targetWeightKg,
+                                targetSeconds = item.targetSeconds,
+                                targetSecondsMax = item.targetSecondsMax,
                             )
                         },
                         selectedId = expandedLiftId,
                         onSelect = { id ->
-                            expandedLiftId = if (expandedLiftId == id) null else id
+                            expandedLiftRequest = if (expandedLiftId == id) null else id
                         },
                         onMoveEarlier = { id -> viewModel.moveExercise(id, -1) },
                         onMoveLater = { id -> viewModel.moveExercise(id, 1) },
@@ -210,8 +256,8 @@ fun RoutineEditorScreen(
                             exerciseId != null && state.swapCandidates(exerciseId).isNotEmpty()
                         },
                         onSwap = { id -> viewModel.requestSwap(id) },
-                        onStageTargets = { id, sets, reps, rest, kg, invalid ->
-                            viewModel.stageTargets(id, sets, reps, kg, rest, invalid)
+                        onStageTargets = { id, sets, reps, rest, kg, invalid, seconds, secondsMax ->
+                            viewModel.stageTargets(id, sets, reps, kg, rest, invalid, seconds, secondsMax)
                         },
                         onCommitTargets = { id -> viewModel.commitTargets(id) },
                         onForgetTargetRule = { id -> viewModel.forgetTargetRule(id) },
@@ -229,6 +275,15 @@ fun RoutineEditorScreen(
                             .padding(top = Metrics.space2)
                             .testTag(RoutineEditorTags.ADD_LIFTS),
                         height = Metrics.touchMin,
+                    )
+                }
+            }
+            if (state.unmatched.isNotEmpty()) {
+                item(key = "unmatched") {
+                    UnmatchedPasteBlock(
+                        items = state.unmatched,
+                        enabled = !state.addingLifts,
+                        onPick = viewModel::requestUnmatchedPick,
                     )
                 }
             }
@@ -250,8 +305,12 @@ fun RoutineEditorScreen(
             state = ExercisePickerState(
                 query = state.searchQuery,
                 results = state.searchResults,
-                title = "Add lifts",
-                mode = ExercisePickerMode.MULTI_ADD,
+                title = if (state.unmatchedPick != null) WorkoutPasteCopy.PICK else "Add lifts",
+                mode = if (state.unmatchedPick != null) {
+                    ExercisePickerMode.SINGLE_ADD
+                } else {
+                    ExercisePickerMode.MULTI_ADD
+                },
                 selectedOrder = state.pickedIds,
                 catalog = state.catalog,
                 error = state.error,
@@ -259,9 +318,9 @@ fun RoutineEditorScreen(
             onEvent = { event ->
                 when (event) {
                     is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
-                    is ExercisePickerEvent.Selected -> Unit
+                    is ExercisePickerEvent.Selected -> viewModel.resolveUnmatched(event.exercise)
                     is ExercisePickerEvent.Created ->
-                        viewModel.createAndSelect(event.name, event.muscleGroup)
+                        viewModel.createAndSelect(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> viewModel.togglePicked(event.exercise)
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
@@ -290,7 +349,8 @@ fun RoutineEditorScreen(
             confirmLabel = "Remove",
             destructive = true,
             onConfirm = {
-                if (expandedLiftId == itemId) expandedLiftId = null
+                // No need to clear the expanded row: it is derived from the list, so a lift
+                // that is no longer on the routine is no longer the expanded one.
                 viewModel.removeExercise(itemId)
                 pendingRemoveId = null
             },
@@ -337,6 +397,73 @@ object RoutineEditorTags {
     const val ADD_LIFTS = "routine-editor-add-lifts"
     const val SAVE = "routine-editor-save"
     const val SAVE_ERROR = "routine-editor-save-error"
+    const val PASTE_FIELD = "routine-editor-paste-field"
+    const val PASTE_CONFIRM = "routine-editor-paste-confirm"
+    const val UNMATCHED = "routine-editor-unmatched"
+}
+
+@Composable
+private fun PasteWorkoutBlock(
+    text: String,
+    enabled: Boolean,
+    pasting: Boolean,
+    onTextChange: (String) -> Unit,
+    onConfirm: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(top = Metrics.space4),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        Kicker(WorkoutPasteCopy.FIELD_LABEL)
+        Text(WorkoutPasteCopy.HINT, style = InstrumentType.caption, color = TextTertiary)
+        OutlinedTextField(
+            value = text,
+            onValueChange = onTextChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(RoutineEditorTags.PASTE_FIELD),
+            enabled = enabled,
+            minLines = 6,
+        )
+        PrimaryGymButton(
+            text = if (pasting) WorkoutPasteCopy.PASTING else WorkoutPasteCopy.CONFIRM,
+            onClick = onConfirm,
+            enabled = enabled,
+            height = Metrics.touchMin,
+            modifier = Modifier.testTag(RoutineEditorTags.PASTE_CONFIRM),
+        )
+    }
+}
+
+@Composable
+private fun UnmatchedPasteBlock(
+    items: List<PastedUnmatched>,
+    enabled: Boolean,
+    onPick: (PastedUnmatched) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .padding(top = Metrics.space4)
+            .testTag(RoutineEditorTags.UNMATCHED),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+    ) {
+        Kicker(WorkoutPasteCopy.UNMATCHED)
+        Text(WorkoutPasteCopy.UNMATCHED_BODY, style = InstrumentType.caption, color = TextTertiary)
+        items.forEach { item ->
+            InstrumentRow(
+                title = item.displayLine(),
+                subtitle = item.reason,
+                onClick = if (enabled && item.canPick) ({ onPick(item) }) else null,
+                trailing = if (item.canPick) {
+                    {
+                        Text(WorkoutPasteCopy.PICK, style = InstrumentType.bodyStrong, color = Volt)
+                    }
+                } else {
+                    null
+                },
+            )
+        }
+    }
 }
 
 /**
@@ -461,7 +588,7 @@ private fun SwapExerciseSheet(
                         ExerciseRow(
                             exercise = exercise,
                             onClick = { onSelect(exercise) },
-                            tag = exercise.equipment.label,
+                            tag = LoadTypeCopy.rowTag(exercise),
                         )
                         if (index < siblings.lastIndex) HairlineDivider()
                     }

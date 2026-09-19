@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * One position in the training cycle, as the app reasons about it.
@@ -65,7 +64,7 @@ object WeekDerivation {
         history: List<WorkoutSession>,
         preferences: SchedulePreferences,
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
     ): DerivedWeek {
         val prefs = preferences.sanitized()

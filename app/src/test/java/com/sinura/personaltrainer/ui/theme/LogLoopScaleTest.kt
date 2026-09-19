@@ -38,11 +38,10 @@ class LogLoopScaleTest {
     }
 
     @Test
-    fun liveBarClusterHidesWhenTilesStack() {
-        assertFalse(LogLoopScale.hideLiveBarCluster(1.0f))
+    fun tilesStackAtAccessibilityScale() {
+        assertFalse(LogLoopScale.stackTiles(1.0f))
         assertFalse(LogLoopScale.stackTiles(1.59f))
-        assertTrue(LogLoopScale.hideLiveBarCluster(1.6f))
         assertTrue(LogLoopScale.stackTiles(1.6f))
-        assertTrue(LogLoopScale.hideLiveBarCluster(2.0f))
+        assertTrue(LogLoopScale.stackTiles(2.0f))
     }
 }

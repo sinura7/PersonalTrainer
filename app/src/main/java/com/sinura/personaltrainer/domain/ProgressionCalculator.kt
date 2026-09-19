@@ -80,7 +80,16 @@ object ProgressionCalculator {
         displayStep: Double?,
         loadType: LoadType?,
         unit: WeightUnit,
+        equipment: EquipmentType? = null,
     ): ProgressionHint {
+        val decided = action(lastWorkingReps, targetReps)
+        // Loaded hold: one more rep at the same weight, capped at the target. Bodyweight
+        // already has its own +1 path; a missing step here must not invent one.
+        val suggestedReps = if (decided == ProgressionAction.HOLD && displayStep != null) {
+            (lastWorkingReps + 1).coerceAtMost(targetReps.coerceAtLeast(1))
+        } else {
+            lastWorkingReps
+        }
         return ProgressionHint(
             exerciseId = exerciseId,
             exerciseName = exerciseName,
@@ -95,8 +104,53 @@ object ProgressionCalculator {
                 weightMeaning = LoadClass.of(loadType).weightMeaning,
                 unit = unit,
             ),
-            action = action(lastWorkingReps, targetReps),
+            action = decided,
             loadType = loadType,
+            suggestedReps = suggestedReps,
+            equipment = equipment,
+        )
+    }
+
+    /**
+     * The load suggestion after the two modifiers that can hold it.
+     *
+     * The three callers used to assemble [hint] → [RpeModifier.apply] →
+     * [LighterWeekModifier.apply] by hand. That is one decision written three
+     * times, and a later rung would have to be added in all three. The RPE
+     * evidence is a parameter because they source it differently and must keep
+     * doing so: next-session callers pass prior sessions' top-set RPEs;
+     * in-set callers pass this session's logged RPEs.
+     */
+    fun adjusted(
+        exerciseId: String,
+        exerciseName: String,
+        lastWeightKg: Double,
+        lastWorkingReps: Int,
+        targetReps: Int,
+        loadType: LoadType?,
+        unit: WeightUnit,
+        rpeEvidenceNewestFirst: List<Int?>,
+        lighterWeek: Boolean,
+        equipment: EquipmentType? = null,
+    ): ProgressionHint {
+        val hint = hint(
+            exerciseId = exerciseId,
+            exerciseName = exerciseName,
+            lastWeightKg = lastWeightKg,
+            lastWorkingReps = lastWorkingReps,
+            targetReps = targetReps,
+            displayStep = IncrementTable.displayStep(
+                loadType ?: LoadType.EXTERNAL,
+                unit,
+                equipment,
+            ),
+            loadType = loadType,
+            unit = unit,
+            equipment = equipment,
+        )
+        return LighterWeekModifier.apply(
+            RpeModifier.apply(hint, rpeEvidenceNewestFirst),
+            lighterWeek,
         )
     }
 }

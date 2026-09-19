@@ -6,6 +6,10 @@
 **Baseline audit:** [foundation-audit/README.md](foundation-audit/README.md)  
 **Audited revision this program starts from:** `trunk` at `508c4b8`
 
+**Active frontend work:** [Frontend redesign](FRONTEND_REDESIGN.md), approved
+16 September 2026 under [ADR-026](architecture/ADR-026-frontend-redesign.md).
+It retains this program's data and product guarantees and refines UI behavior.
+
 This file is the executable program. Accepted ADRs are the decisions it
 may not violate. Historical [ROADMAP.md](ROADMAP.md), Jobs 1–6, and
 `docs/archive/` explain how the strength logger was built. They are not
@@ -48,7 +52,7 @@ Supporting decisions that later packets also treat as closed:
 - Missed work keeps recurrence unchanged and asks once ([ADR-012](architecture/ADR-012-rest-and-reminders.md)).
 - KMP and cloud sync have start gates and do not begin because they are interesting ([ADR-003](architecture/ADR-003-shipping-platform.md), [ADR-009](architecture/ADR-009-backup-privacy-sync.md)).
 - FND-037 is a numbering gap, not a finding ([ADR-013](architecture/ADR-013-finding-dispositions.md)).
-- Plan is a schedule workshop; Start is Home. A weekday is a pushed page of workout / cardio / auxiliary blocks. Hours stay in the model as a sort key; Home and Plan do not show clocks ([ADR-015](architecture/ADR-015-plan-day-blocks.md), [ADR-017](architecture/ADR-017-home-week-board.md), [ADR-020](architecture/ADR-020-warmup-extras.md)). Warm-up packs (golf / lower / upper / shoulder) are extras. Plan add is weekly. Home Add sits under Today and asks just-today vs every this weekday ([ADR-021](architecture/ADR-021-home-start-and-day-add.md)). Home's filled Volt is Start a workout; a planned row confirm starts that session.
+- Plan is a schedule workshop; Start is Home. A weekday is a pushed page of workout / cardio / auxiliary blocks. Hours stay in the model as a sort key; Home and Plan do not show clocks ([ADR-015](architecture/ADR-015-plan-day-blocks.md), [ADR-017](architecture/ADR-017-home-week-board.md), [ADR-020](architecture/ADR-020-warmup-extras.md)). Warm-up packs (golf / lower / upper / shoulder) are extras. Plan add is weekly. Home has no Add row: **Start a workout** opens a sheet (free / Plan routine / cardio / Extra) ([ADR-021](architecture/ADR-021-home-start-and-day-add.md)). A planned row confirm starts that session.
 - Settings display, weekly weigh-in, and equipment filters share the questionnaire store; Goals UI is gone; reminder prefs live on Settings; Home is the day’s board with a week picker ([ADR-016](architecture/ADR-016-settings-home-trim.md), [ADR-017](architecture/ADR-017-home-week-board.md)). Home planned rows and the empty-week leftover Volt confirm before start ([ADR-018](architecture/ADR-018-home-start-confirm.md)). A leftover session can move onto today ([ADR-019](architecture/ADR-019-move-to-today.md)).
 
 There is **no remaining TBD** that would change schema, scheduling, privacy,
@@ -79,7 +83,7 @@ deload sets, overlay rest clock, subscription-gating the local core.
 
 ## 4. Universal packet protocol
 
-Every packet is one throwaway `cursor/<slug>-b87f` branch and one PR into
+Every packet is one throwaway `codex/<slug>` branch (ADR-026) and one PR into
 `trunk`, except the Phase 0 documentation train (this phase) and the
 uninterrupted Phase 5 cutover train ([ADR-002](architecture/ADR-002-execution-protocol.md)).
 

@@ -8,10 +8,13 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.domain.ExactAlarmAttempt
+import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
+import com.sinura.personaltrainer.ui.theme.Motion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -79,18 +82,16 @@ class RestTimerViewModelTest {
         assertEquals("Squat", state.floor.exerciseName)
         assertNull(state.floor.lastSetLine)
 
-        // Wait for the number startSelectedRest will actually read. It takes restTotal.value
-        // (RestTimerViewModel:179), which the init coroutine seeds only after a DataStore
-        // read (:78-81) — and the barrier above resolves as soon as the session lands, which
-        // happens while that read is still in flight. Start the rest in that window and it
-        // uses the 90 s default instead of this fixture's 75, so the assertion below fails on
-        // the value rather than hanging. uiState.rest.totalSeconds is restTotal while idle.
-        vm.awaitState { it.rest.totalSeconds == 75 }
+        // Wait for the number startSelectedRest will actually read. Prefill seeds
+        // restTotal from the prescribed starting rest (150 for a heavy five), not
+        // the 75 stamped on the routine. Start before that lands and the clock
+        // is the 90 s default.
+        vm.awaitState { it.rest.totalSeconds == 150 }
         vm.startSelectedRest()
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         val rest = deps.restTimerStore.current()
         assertEquals(fixture.session.id, rest.sessionId)
-        assertEquals(75, rest.totalSeconds)
+        assertEquals(150, rest.totalSeconds)
 
         vm.skipRest()
         assertFalse(deps.restTimerStore.current().running)
@@ -102,8 +103,12 @@ class RestTimerViewModelTest {
         val workout = createWorkoutViewModel(fixture.session.id)
         workout.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
         workout.logSet()
+        workout.awaitState { !it.logging }
+        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+        dispatcher.scheduler.runCurrent()
+        dispatcher.scheduler.advanceUntilIdle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
 
         val floor = createViewModel(fixture.session.id)
         val state = floor.awaitState {
@@ -112,7 +117,7 @@ class RestTimerViewModelTest {
                 it.floor.sessionTargetLine != null
         }
         assertEquals("Last set · 100 kg × 5", state.floor.lastSetLine)
-        assertEquals("Next: 100 kg × 5 · RPE 8", state.floor.sessionTargetLine)
+        assertEquals("Next: 100 kg × 5", state.floor.sessionTargetLine)
         assertTrue(state.rest.running)
         assertEquals(fixture.session.id, deps.restTimerStore.current().sessionId)
 
@@ -143,7 +148,7 @@ class RestTimerViewModelTest {
         val vm = createViewModel(fixture.session.id)
         vm.awaitState { it.loadState == SessionLoadState.FOUND }
         vm.startSelectedRest()
-        deps.restTimerStore.snapshot.first { it.running }
+        awaitRestRunning()
         vm.adjustRest(15)
         assertTrue(deps.restTimerStore.current().totalSeconds >= 90)
         vm.skipRest()
@@ -180,7 +185,21 @@ class RestTimerViewModelTest {
         withTimeout(TestWaits.FLOW_MS) {
             workout.restTimerState.first { it.totalSeconds == 105 && !it.running }
         }
-        assertEquals(105, floor.uiState.value.rest.totalSeconds)
+        // The floor's uiState is its own combine of the same clock and can publish a beat
+        // after the workout's flow just awaited; wait on it rather than read it.
+        assertEquals(105, floor.awaitState { it.rest.totalSeconds == 105 }.rest.totalSeconds)
+    }
+
+    @Test
+    fun exactDeniedSurfacesBestEffortNeverPrecise() = runBlocking {
+        val fixture = seedWorkout(restSeconds = 90)
+        deps.setExactAlarmAttempt(ExactAlarmAttempt.BEST_EFFORT)
+        val vm = createViewModel(fixture.session.id)
+        val state = vm.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.rest.exactAlarmBestEffort
+        }
+        assertTrue(state.rest.exactAlarmBestEffort)
+        assertFalse(RestHonestyCopy.EXACT_DENIED.contains("precise", ignoreCase = true))
     }
 
     private fun createViewModel(sessionId: String): RestTimerViewModel =
@@ -196,6 +215,10 @@ class RestTimerViewModelTest {
             savedStateHandle = SavedStateHandle(mapOf("sessionId" to sessionId)),
             container = deps,
         ).also(workoutViewModels::add)
+
+    private suspend fun awaitRestRunning() {
+        withTimeout(TestWaits.FLOW_MS) { deps.restTimerStore.snapshot.first { it.running } }
+    }
 
     private suspend fun RestTimerViewModel.awaitState(
         predicate: (RestTimerScreenState) -> Boolean,

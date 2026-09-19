@@ -4,16 +4,22 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -22,25 +28,28 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sinura.personaltrainer.domain.ClockFormat
+import com.sinura.personaltrainer.domain.DayReminder
 import com.sinura.personaltrainer.domain.ReminderCopy
 import com.sinura.personaltrainer.domain.ReminderPreferences
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
+import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.InstrumentSwitch
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 /**
- * Session reminder opt-out and quiet hours. Lives on Settings (ADR-017).
- * Session hours stay on the Plan day.
+ * Per-day workout reminder alarms. Quiet hours stay secondary.
+ * Rest-timer notifications stay on Rest, unchanged.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ReminderPrefsSection(
     preferences: ReminderPreferences,
@@ -48,17 +57,31 @@ fun ReminderPrefsSection(
     notificationsEnabled: Boolean,
     onOptOut: (Boolean) -> Unit,
     onQuietHours: (Int, Int) -> Unit,
+    onSetDayAlarm: (Weekday, Int, Int) -> Unit,
+    onClearDayAlarm: (Weekday) -> Unit,
     onOpenNotificationSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val enabled = !preferences.optOut
+    var editing by remember {
+        mutableStateOf(preferences.dayAlarms.keys.firstOrNull())
+    }
+    var quietOpen by rememberSaveable { mutableStateOf(false) }
+    val selected = editing?.takeIf { it in preferences.dayAlarms }
+        ?: preferences.dayAlarms.keys.firstOrNull()
+    val reminder = selected?.let { preferences.dayAlarms[it] } ?: DayReminder(7, 0)
     Column(
         modifier = modifier
             .testTag(REMINDERS_TAG)
-            .padding(top = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
+            .fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
     ) {
-        Kicker("Reminders")
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+        ) {
         if (enabled && !notificationsEnabled) {
             GymNoticeBanner(
                 title = ReminderCopy.PERMISSION_TITLE,
@@ -77,52 +100,142 @@ fun ReminderPrefsSection(
                     InstrumentSwitch(checked = enabled, onCheckedChange = null)
                 },
             )
-            HairlineDivider()
-            Column(
-                modifier = Modifier.padding(
-                    start = Metrics.space4,
-                    end = Metrics.space4,
-                    top = Metrics.space3,
-                    bottom = Metrics.space4,
-                ),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
-            ) {
-                Text(
-                    ReminderCopy.quietHoursLine(
-                        preferences.quietStartHour,
-                        preferences.quietEndHour,
-                        clockFormat,
-                    ),
-                    style = InstrumentType.body,
-                    color = TextSecondary,
-                )
-                Kicker(ReminderCopy.QUIET_START)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    ReminderCopy.startChoices(preferences.quietStartHour).forEach { hour ->
-                        InstrumentChip(
-                            label = ReminderCopy.hourLabel(hour, clockFormat),
-                            selected = preferences.quietStartHour == hour,
-                            onClick = { onQuietHours(hour, preferences.quietEndHour) },
+            if (enabled) {
+                Weekday.entries.forEach { day ->
+                    HairlineDivider()
+                    val on = day in preferences.dayAlarms
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        InstrumentRow(
+                            title = day.titleLabel(),
+                            subtitle = if (on) {
+                                val stored = preferences.dayAlarms.getValue(day)
+                                ReminderCopy.timeLabel(stored.hour, stored.minute, clockFormat)
+                            } else {
+                                ReminderCopy.DAY_OFF
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag(reminderDayTag(day)),
+                            selected = on && day == selected,
+                            onClick = {
+                                if (on) {
+                                    editing = day
+                                } else {
+                                    onSetDayAlarm(day, reminder.hour, reminder.minute)
+                                    editing = day
+                                }
+                            },
                         )
-                    }
-                }
-                Kicker(ReminderCopy.QUIET_END)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    ReminderCopy.endChoices(preferences.quietEndHour).forEach { hour ->
-                        InstrumentChip(
-                            label = ReminderCopy.hourLabel(hour, clockFormat),
-                            selected = preferences.quietEndHour == hour,
-                            onClick = { onQuietHours(preferences.quietStartHour, hour) },
+                        InstrumentSwitch(
+                            checked = on,
+                            onCheckedChange = { checked ->
+                                if (checked) {
+                                    onSetDayAlarm(day, reminder.hour, reminder.minute)
+                                    editing = day
+                                } else {
+                                    onClearDayAlarm(day)
+                                    if (editing == day) editing = null
+                                }
+                            },
+                            modifier = Modifier.padding(end = Metrics.space4),
                         )
                     }
                 }
             }
         }
+        if (enabled && preferences.dayAlarms.isEmpty()) {
+            Text(
+                ReminderCopy.ALARM_EMPTY,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+        }
+        if (enabled) {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
+                GroupedList {
+                    InstrumentRow(
+                        title = "Quiet hours",
+                        subtitle = ReminderCopy.quietHoursLine(
+                            preferences.quietStartHour,
+                            preferences.quietEndHour,
+                            clockFormat,
+                        ),
+                        onClick = { quietOpen = !quietOpen },
+                    )
+                }
+                if (quietOpen) {
+                    Text(
+                        ReminderCopy.QUIET_CAPTION,
+                        style = InstrumentType.caption,
+                        color = TextTertiary,
+                    )
+                    GymSectionHeader(title = ReminderCopy.QUIET_START, compact = true)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        ReminderCopy.startChoices(preferences.quietStartHour).forEach { hour ->
+                            InstrumentChip(
+                                label = ReminderCopy.hourLabel(hour, clockFormat),
+                                selected = preferences.quietStartHour == hour,
+                                onClick = { onQuietHours(hour, preferences.quietEndHour) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                    GymSectionHeader(title = ReminderCopy.QUIET_END, compact = true)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        ReminderCopy.endChoices(preferences.quietEndHour).forEach { hour ->
+                            InstrumentChip(
+                                label = ReminderCopy.hourLabel(hour, clockFormat),
+                                selected = preferences.quietEndHour == hour,
+                                onClick = { onQuietHours(preferences.quietStartHour, hour) },
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
+        }
         Text(
-            "Best-effort. Not exact alarms. Times for each session are on the day page.",
+            ReminderCopy.REST_STAYS_ON_REST,
             style = InstrumentType.caption,
             color = TextTertiary,
         )
+        }
+        if (enabled && selected != null && preferences.dayAlarms.isNotEmpty()) {
+            val day = selected
+            GymCard {
+                GymSectionHeader(
+                    title = "${ReminderCopy.TIME} · ${day.titleLabel()}",
+                    compact = true,
+                )
+                Text(
+                    ReminderCopy.timeLabel(
+                        reminder.hour,
+                        reminder.minute,
+                        clockFormat,
+                    ),
+                    style = InstrumentType.numeralMd,
+                    color = TextPrimary,
+                )
+                key(day) {
+                    ReminderTimeWheel(
+                        hour = reminder.hour,
+                        minute = reminder.minute,
+                        onTime = { hour, minute ->
+                            onSetDayAlarm(day, hour, minute)
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -161,3 +274,9 @@ fun openAppNotificationSettings(context: Context) {
 }
 
 const val REMINDERS_TAG = "plan-reminders"
+const val REMINDER_TIME_WHEEL = "reminder-time-wheel"
+const val REMINDER_TIME_HOUR = "reminder-time-hour"
+const val REMINDER_TIME_MINUTE = "reminder-time-minute"
+const val REMINDER_TIME_PERIOD = "reminder-time-period"
+
+fun reminderDayTag(day: Weekday): String = "reminder-day-${day.name}"

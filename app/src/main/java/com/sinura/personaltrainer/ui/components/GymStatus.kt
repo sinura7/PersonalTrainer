@@ -37,7 +37,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.TalkBackPolicy
+import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.DangerContainer
 import com.sinura.personaltrainer.ui.theme.GoldContainer
@@ -121,11 +123,12 @@ fun GymErrorBanner(
     modifier: Modifier = Modifier,
     onRetry: (() -> Unit)? = null,
     onDismiss: (() -> Unit)? = null,
+    title: String = "Something failed",
 ) {
     InstrumentBanner(
         accent = Danger,
         container = DangerContainer,
-        title = "Something failed",
+        title = title,
         body = message,
         modifier = modifier,
         icon = {
@@ -143,6 +146,9 @@ fun GymErrorBanner(
  * Status used to be an unstyled string in the accent colour dropped into the middle of a
  * scrolling form — it shifted the layout when it appeared and then stayed there forever,
  * because nothing ever cleared it.
+ *
+ * Packet G: the dwell is a parameter. The undo host passes the accessibility-extended dwell;
+ * every other banner keeps the 6 s base.
  */
 @Composable
 fun GymStatusBanner(
@@ -151,11 +157,13 @@ fun GymStatusBanner(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
     onDismissed: (() -> Unit)? = null,
+    bannerKey: Any? = message,
+    dwellMs: Long = Motion.STATUS_DWELL_MS,
 ) {
-    var visible by remember(message) { mutableStateOf(true) }
-    var acted by remember(message) { mutableStateOf(false) }
-    LaunchedEffect(message) {
-        delay(Motion.STATUS_DWELL_MS)
+    var visible by remember(bannerKey) { mutableStateOf(true) }
+    var acted by remember(bannerKey) { mutableStateOf(false) }
+    LaunchedEffect(bannerKey) {
+        delay(dwellMs)
         visible = false
         if (!acted) onDismissed?.invoke()
     }
@@ -182,6 +190,38 @@ fun GymStatusBanner(
             },
         )
     }
+}
+
+/**
+ * Packet 5: the one undo host. Dwells ~6s ([Motion.STATUS_DWELL_MS]) and
+ * always labels the reversal [UndoHostCopy.ACTION]. Cheap destructives
+ * (delete set, remove lift, skip day) offer this; finish, discard, and
+ * leaving a live workout still ask first.
+ *
+ * Packet G: the host shows the top of a LIFO queue. [offerKey] restarts the dwell per
+ * offer so undoing — or timing out — reveals the next one underneath, and [dwellMs] carries
+ * the accessibility-extended timeout.
+ */
+@Composable
+fun GymUndoHost(
+    message: String,
+    onUndo: () -> Unit,
+    onDismissed: () -> Unit,
+    modifier: Modifier = Modifier,
+    offerKey: Any = message,
+    dwellMs: Long = Motion.STATUS_DWELL_MS,
+) {
+    GymStatusBanner(
+        message = message,
+        modifier = modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+        },
+        actionLabel = UndoHostCopy.ACTION,
+        onAction = onUndo,
+        onDismissed = onDismissed,
+        bannerKey = offerKey,
+        dwellMs = dwellMs,
+    )
 }
 
 /**
@@ -260,14 +300,50 @@ fun PersonalRecordBanner(
             InstrumentBanner(
                 accent = PrGold,
                 container = GoldContainer,
-                title = headline,
-                body = detail,
+                title = PersonalRecordCopy.BANNER,
+                body = "$headline · $detail",
                 icon = {
-                    Icon(OutlinedMarks.EmojiEvents, contentDescription = null, tint = PrGold)
+                    Icon(
+                        OutlinedMarks.EmojiEvents,
+                        contentDescription = PersonalRecordCopy.BANNER,
+                        tint = PrGold,
+                    )
                 },
                 onDismiss = onDismiss,
             )
         }
+    }
+}
+
+/**
+ * Packet F: durable Log success. Polite live region once. Rest is not.
+ */
+@Composable
+fun GymReceiptBanner(
+    message: String,
+    onDismissed: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var visible by remember(message) { mutableStateOf(true) }
+    LaunchedEffect(message) {
+        delay(Motion.STATUS_DWELL_MS)
+        visible = false
+        onDismissed()
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(instrumentTween(Motion.ROW_SETTLE_MS)),
+        exit = fadeOut(instrumentTween(Motion.FAST)),
+        modifier = modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+        },
+    ) {
+        InstrumentBanner(
+            accent = Volt,
+            container = Surface2,
+            title = message,
+            body = null,
+        )
     }
 }
 
@@ -276,9 +352,10 @@ fun PersonalRecordBanner(
 fun GymNoticeBanner(
     title: String,
     body: String,
-    actionLabel: String,
-    onAction: () -> Unit,
     modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    onDismiss: (() -> Unit)? = null,
 ) {
     InstrumentBanner(
         accent = Warn,
@@ -288,6 +365,7 @@ fun GymNoticeBanner(
         modifier = modifier,
         actionLabel = actionLabel,
         onAction = onAction,
+        onDismiss = onDismiss,
     )
 }
 

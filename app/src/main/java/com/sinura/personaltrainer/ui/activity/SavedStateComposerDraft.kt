@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.activity
 import android.os.Bundle
 import androidx.lifecycle.SavedStateHandle
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.DraftStore
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LoadType
@@ -22,7 +23,14 @@ import com.sinura.personaltrainer.domain.MuscleCredit
  * Bounded by construction — a composer holds a handful of lines — so it stays well inside
  * the transaction limit saved instance state is subject to.
  */
-class SavedStateComposerDraft(private val handle: SavedStateHandle) {
+data class ComposerDraftSnapshot(
+    val title: String,
+    val epochDay: Long,
+    val strength: List<ComposerStrengthLine>,
+    val cardio: List<ComposerCardioLine>,
+)
+
+class SavedStateComposerDraft(private val handle: SavedStateHandle) : DraftStore<ComposerDraftSnapshot> {
     /** True once anything was written. Distinguishes "empty draft" from "no draft yet". */
     fun exists(): Boolean = handle.contains(KEY_TITLE)
 
@@ -35,6 +43,26 @@ class SavedStateComposerDraft(private val handle: SavedStateHandle) {
 
     fun cardio(): List<ComposerCardioLine> =
         handle.get<ArrayList<Bundle>>(KEY_CARDIO)?.mapNotNull { cardioFrom(it) }.orEmpty()
+
+    override fun read(): ComposerDraftSnapshot? {
+        if (!exists()) return null
+        val day = epochDay() ?: return null
+        return ComposerDraftSnapshot(
+            title = title(),
+            epochDay = day,
+            strength = strength(),
+            cardio = cardio(),
+        )
+    }
+
+    override fun write(value: ComposerDraftSnapshot) {
+        write(
+            title = value.title,
+            epochDay = value.epochDay,
+            strength = value.strength,
+            cardio = value.cardio,
+        )
+    }
 
     fun write(
         title: String,
@@ -49,7 +77,7 @@ class SavedStateComposerDraft(private val handle: SavedStateHandle) {
     }
 
     /** After an accepted save or a deliberate leave: the next composer must open clean. */
-    fun clear() {
+    override fun clear() {
         handle.remove<String>(KEY_TITLE)
         handle.remove<Long>(KEY_EPOCH_DAY)
         handle.remove<ArrayList<Bundle>>(KEY_STRENGTH)

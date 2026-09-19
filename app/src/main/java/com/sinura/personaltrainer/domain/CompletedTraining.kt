@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * A finished piece of training, whichever store holds it.
@@ -25,7 +24,7 @@ data class CompletedTraining(
 }
 
 fun WorkoutSession.toCompletedTraining(
-    time: TimePort = JvmTime,
+    time: TimePort,
     zoneId: String = time.defaultZoneId(),
 ): CompletedTraining? {
     if (!isFinished) return null

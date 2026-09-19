@@ -43,6 +43,15 @@ object Metrics {
     /** Between a section's kicker and its content. */
     val kickerGap: Dp = space2
 
+    /** Tab marks and Settings row marks. */
+    val icon: Dp = 24.dp
+
+    /** Trailing chevron on an index row. Smaller than [icon] so the title keeps the eye. */
+    val chevron: Dp = 16.dp
+
+    /** Hairline indent under a leading [icon] in an InstrumentRow. */
+    val rowIconHairline: Dp = space4 + icon + space3
+
     val hairline: Dp = 1.dp
 
     /** A border that has to read as a state, not just an edge: selected, or being edited. */
@@ -51,14 +60,76 @@ object Metrics {
     /** Absolute minimum touch target. */
     val touchMin: Dp = 48.dp
 
+    /** Persistent chrome shares lines in short windows to leave usable content. */
+    val compactWindowHeight: Dp = 400.dp
+    val inputDialogMaxWidth: Dp = 560.dp
+
+    /**
+     * One snap-wheel numeral. Rest length (Packet E still) and reminder
+     * / onboarding wheels keep this row. Floor weight and reps left it.
+     */
+    val wheelRow: Dp = space8
+
+    /** Packet B: left/right plates on the gym-floor weight and reps wells. */
+    val stepperPlateWidth: Dp = 64.dp
+
+    /** Weight plates. Same height as [commit]. */
+    val stepperWeightHeight: Dp = 72.dp
+
+    /** Reps / hold-draft plates. Bodyweight reps use [stepperWeightHeight]. */
+    val stepperRepsHeight: Dp = 64.dp
+
+    /** Center numeral well on the gym floor. */
+    val stepperNumeralMinWidth: Dp = 152.dp
+
     /** A list row with a value on the trailing edge. */
     val rowMin: Dp = 56.dp
 
     /** Buttons and controls that get used mid-session. */
     val control: Dp = 56.dp
 
+    /** Packet C: Finish / Discard in the workout header. Plan ≥ 64 × 48. */
+    val headerActMin: Dp = 64.dp
+
+    /**
+     * Image-led exercise hero. 112 dp is four times the previous 56 dp
+     * still area, not 224 dp (sixteen times). Landscape uses a shorter
+     * still so the wells stay on a 360 dp-tall bench phone.
+     */
+    val exerciseHeroImage: Dp = 112.dp
+    /** Compact identity on the active workout; artwork remains uncropped. */
+    val workoutIdentityImage: Dp = 64.dp
+    val exerciseHeroImageLandscape: Dp = 88.dp
+    val exerciseHeroMin: Dp = 128.dp
+
+    /**
+     * Equipment glyph beside hero copy. Never a percentage of the still,
+     * and never larger than this when it does overlay a smaller thumb.
+     */
+    val equipmentGlyph: Dp = 24.dp
+
+    /** Reserved dock rows so Log's bottom edge does not jump. */
+    val logTimerRow: Dp = control
+    val logContextRail: Dp = control
+
     /** The one action worth a bigger target than anything else: logging a set. */
     val commit: Dp = 72.dp
+
+    /** Round − / + plates beside the hero numerals on the active workout. */
+    val stepperRound: Dp = control
+
+    /** The rest card's small countdown ring, and its stroke. */
+    val restRingSmall: Dp = 48.dp
+    val ringStroke: Dp = 4.dp
+
+    /** Segmented session progress under the workout title. */
+    val progressTrack: Dp = space1
+
+    /** Numbered marker on a set-history chip, and the ring around the current set. */
+    val setMarker: Dp = 28.dp
+
+    /** Small help affordance (the RPE question mark). Target stays [touchMin]. */
+    val helpMark: Dp = 20.dp
 
     /** Bottom-of-list clearance so a floating action never covers the last row. */
     val fabClearance: Dp = 88.dp

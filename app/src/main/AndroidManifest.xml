@@ -83,6 +83,10 @@
             android:exported="false" />
 
         <receiver
+            android:name=".reminder.WorkoutAlarmReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".reminder.ReminderRebuildReceiver"
             android:exported="false">
             <intent-filter>

@@ -2235,7 +2235,7 @@ forbid, and hosted runners are still not the gate. The same missing
 checksums fail `./gradlew testDebugUnitTest assembleDebug` — the gate this
 program does name — on any machine, the owner's included; CI is only where
 it was finally visible. `docs/DEVELOPMENT.md:220` and
-`docs/HANDOFF-2026-08-29.md` both claimed the account had no runner and that
+`docs/archive/handoffs/HANDOFF-2026-08-29.md` both claimed the account had no runner and that
 every run died in seconds before checkout. Both were false, both are
 corrected, and the false version is why nine runs were read as noise. J3
 carries no **Proof** line, which by this plan's own rule at `:25-26` makes

@@ -7,9 +7,10 @@ import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 /**
  * Rebuilds future WorkManager reminders after reboot or a zone change.
@@ -21,21 +22,25 @@ class ReminderRebuildReceiver : BroadcastReceiver() {
         if (!ReminderRebuild.shouldHandle(action)) return
         val app = context.applicationContext as? PersonalTrainerApp ?: return
         val pending = goAsync()
+        // Scoped to this broadcast, not to the process — see ReminderActionReceiver.
+        val scope = CoroutineScope(SupervisorJob() + app.container.ioDispatcher)
         scope.launch {
             try {
                 app.container.plannerRepository.rebuildReminders()
+                val reminderPrefs = app.container.preferencesRepository.reminderPreferences.first()
+                WorkoutAlarmScheduler.rebuild(app, reminderPrefs, app.container.time)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
                 AppLog.w(TAG, "Reminder rebuild failed", error)
             } finally {
                 pending.finish()
+                scope.cancel()
             }
         }
     }
 
     private companion object {
         const val TAG = "PT/ReminderRebuild"
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 }

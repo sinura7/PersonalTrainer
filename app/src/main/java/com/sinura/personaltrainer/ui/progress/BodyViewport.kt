@@ -8,8 +8,8 @@ import com.sinura.personaltrainer.ui.theme.Metrics
  *
  * The figure used to be a fixed 440 dp panel, so on a 360×640 phone the
  * silhouette was cut and every muscle row sat below the fold. Height now
- * tracks the screen; the legend sits above the figure; Front/Back chips
- * overlay the panel so they do not add a second 48 dp row.
+ * tracks the screen, the legend sits above the figure, and the Front/Back
+ * switch sits below it without covering anatomy.
  *
  * Arithmetic is font-1.0 token math, the same method F6 used for Home.
  * 640 includes the tab bar ([TAB_BAR_DP], matching `AppNav`).
@@ -19,8 +19,8 @@ object BodyViewport {
     const val SHORT_HEIGHT_DP = 640
     const val TAB_BAR_DP = 64
 
-    const val FIGURE_FRACTION = 0.45f
-    const val FIGURE_MIN_DP = 300
+    const val FIGURE_FRACTION = 0.44f
+    const val FIGURE_MIN_DP = 280
     const val FIGURE_MAX_DP = 440
 
     /** [InstrumentType.kicker] line height at font 1.0. */
@@ -40,7 +40,7 @@ object BodyViewport {
             dp(Metrics.space2)
 
     fun legendHeightDp(): Int =
-        KICKER_LINE_DP + dp(Metrics.space1) + CAPTION_LINE_DP
+        KICKER_LINE_DP + dp(Metrics.space1) + (CAPTION_LINE_DP * 2)
 
     fun mapHeightDp(screenHeightDp: Int): Int =
         legendHeightDp() + dp(Metrics.space2) + figureHeightDp(screenHeightDp)

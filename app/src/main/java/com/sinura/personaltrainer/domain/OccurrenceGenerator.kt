@@ -55,7 +55,7 @@ object OccurrenceGenerator {
             val date = weekStart.nextOrSame(rule.weekday)
             if ((rule.id to date.epochDay) in existingKeys) continue
             val zoneId = rule.resolveZoneId(deviceZoneId)
-            if (skipNewBehindNow(rule, date, time, zoneId, todayEpochDay, nowMinutes)) continue
+            if (skipNewBehindNow(rule, date, time, zoneId, todayEpochDay)) continue
             val captured = time.resolveLocal(
                 CivilDateTime(date, rule.hour, rule.minute),
                 zoneId,
@@ -80,9 +80,9 @@ object OccurrenceGenerator {
     }
 
     /**
-     * A rule created after [date] began must not mint a row already
-     * behind now. Last month's Monday rule still records Monday when
-     * the week rolls over.
+     * A rule created after a past [date] began must not mint that past
+     * day. Today always mints — hours are a sort key, not a gate.
+     * Last month's Monday rule still records Monday when the week rolls over.
      */
     private fun skipNewBehindNow(
         rule: ScheduleRule,
@@ -90,11 +90,14 @@ object OccurrenceGenerator {
         time: TimePort,
         zoneId: String,
         todayEpochDay: Long,
-        nowMinutes: Int,
     ): Boolean {
-        val behindNow = date.epochDay < todayEpochDay ||
-            (date.epochDay == todayEpochDay && rule.minutesOfDay < nowMinutes)
-        if (!behindNow) return false
+        // Past days of this week stay skipped for a rule minted after they
+        // began — adding Wednesday on Thursday must not invent Monday.
+        // Today always mints. Hours are a sort key (ADR-020), not a "too
+        // late to train" gate: pinning Saturday at 21:00 used to skip the
+        // 18:00 default and leave Home/Plan on Rest while Routines listed
+        // the program.
+        if (date.epochDay >= todayEpochDay) return false
         val newToThatDay = rule.createdAtMs >= time.startOfDayMillis(date, zoneId)
         return newToThatDay
     }

@@ -24,12 +24,12 @@ object CatalogMeta {
         id to Entry(sortRank, searchTerms)
 
     private val ROWS: Map<String, Entry> = mapOf(
-        meta("ex-barbell-back-squat", 100, setOf("squat")),   // Barbell Back Squat
+        meta("ex-barbell-back-squat", 100, setOf("squat", "back squat")),   // Barbell Back Squat
         meta("ex-conventional-deadlift", 105, setOf("deadlift", "dl")),   // Conventional Deadlift
         meta("ex-barbell-bench-press", 110, setOf("bench", "bp")),   // Barbell Bench Press
         meta("ex-overhead-press", 115, setOf("ohp", "military press", "strict press")),   // Overhead Press
         meta("ex-barbell-row", 120, emptySet()),   // Barbell Row
-        meta("ex-pull-up", 125, emptySet()),   // Pull-Up
+        meta("ex-pull-up", 125, setOf("weighted pull-up", "weighted pullup")),   // Pull-Up
         // Directly behind the lift it leads to, and one rank apart rather than the usual
         // five: the assisted machines were added after the ladder was laid out, and moving
         // ninety-eight ranks to keep the spacing tidy would change the order of every
@@ -49,23 +49,23 @@ object CatalogMeta {
         meta("ex-walking-lunge", 180, emptySet()),   // Walking Lunge
         meta("ex-goblet-squat", 185, emptySet()),   // Goblet Squat
         meta("ex-trap-bar-deadlift", 190, emptySet()),   // Trap Bar Deadlift
-        meta("ex-seated-dumbbell-press", 195, emptySet()),   // Seated Dumbbell Press
+        meta("ex-seated-dumbbell-press", 195, setOf("db shoulder press", "dumbbell shoulder press", "db press")),   // Seated Dumbbell Press
         meta("ex-lateral-raise", 200, emptySet()),   // Lateral Raise
-        meta("ex-face-pull", 205, emptySet()),   // Face Pull
+        meta("ex-face-pull", 205, setOf("face pulls")),   // Face Pull
         meta("ex-pendlay-row", 210, emptySet()),   // Pendlay Row
         meta("ex-one-arm-dumbbell-row", 215, emptySet()),   // One-Arm Dumbbell Row
         meta("ex-leg-curl", 220, emptySet()),   // Leg Curl
         meta("ex-leg-extension", 225, emptySet()),   // Leg Extension
         meta("ex-standing-calf-raise", 230, emptySet()),   // Standing Calf Raise
-        meta("ex-barbell-curl", 235, emptySet()),   // Barbell Curl
+        meta("ex-barbell-curl", 235, setOf("curl")),   // Barbell Curl
         meta("ex-dumbbell-curl", 240, emptySet()),   // Dumbbell Curl
-        meta("ex-tricep-pushdown", 245, setOf("rope pushdown", "cable pushdown")),   // Tricep Pushdown
+        meta("ex-tricep-pushdown", 245, setOf("rope pushdown", "cable pushdown", "triceps pushdown")),   // Tricep Pushdown
         meta("ex-skull-crusher", 250, setOf("lying triceps extension", "french press")),   // Skull Crusher
         meta("ex-close-grip-bench-press", 255, emptySet()),   // Close-Grip Bench Press
         meta("ex-chest-fly", 260, emptySet()),   // Chest Fly
         meta("ex-push-up", 265, emptySet()),   // Push-Up
-        meta("ex-plank", 270, emptySet()),   // Plank
-        meta("ex-hanging-leg-raise", 275, setOf("hlr")),   // Hanging Leg Raise
+        meta("ex-plank", 270, setOf("weighted plank")),   // Plank
+        meta("ex-hanging-leg-raise", 275, setOf("hlr", "hanging knee raise", "knee raise")),   // Hanging Leg Raise
         meta("ex-cable-crunch", 280, emptySet()),   // Cable Crunch
         meta("ex-incline-dumbbell-bench-press", 300, setOf("incline db press")),   // Incline Dumbbell Bench Press
         meta("ex-machine-chest-press", 305, setOf("chest press machine")),   // Machine Chest Press
@@ -77,7 +77,7 @@ object CatalogMeta {
         meta("ex-smith-machine-bench-press", 330, setOf("smith bench")),   // Smith Machine Bench Press
         meta("ex-t-bar-row", 335, setOf("tbar")),   // T-Bar Row
         meta("ex-machine-seated-row", 340, setOf("row machine")),   // Machine Seated Row
-        meta("ex-chest-supported-dumbbell-row", 345, setOf("seal row")),   // Chest-Supported Dumbbell Row
+        meta("ex-chest-supported-dumbbell-row", 345, setOf("seal row", "chest-supported row", "chest supported row")),   // Chest-Supported Dumbbell Row
         meta("ex-inverted-row", 350, setOf("bodyweight row")),   // Inverted Row
         meta("ex-close-grip-lat-pulldown", 355, setOf("neutral grip pulldown")),   // Close-Grip Lat Pulldown
         meta("ex-straight-arm-pulldown", 360, setOf("lat prayer")),   // Straight-Arm Pulldown
@@ -125,7 +125,7 @@ object CatalogMeta {
         meta("ex-machine-crunch", 605, setOf("ab machine")),   // Machine Crunch
         meta("ex-decline-sit-up", 610, setOf("situp")),   // Decline Sit-Up
         meta("ex-side-plank", 615, emptySet()),   // Side Plank
-        meta("ex-ab-wheel-rollout", 620, setOf("ab rollout")),   // Ab Wheel Rollout
+        meta("ex-ab-wheel-rollout", 620, setOf("ab rollout", "ab wheel")),   // Ab Wheel Rollout
         meta("ex-dead-bug", 625, setOf("deadbug")),   // Dead Bug
         meta("ex-russian-twist", 630, emptySet()),   // Russian Twist
         meta("ex-farmer-s-carry", 635, setOf("farmers walk", "farmer walk")),   // Farmer's Carry
@@ -153,10 +153,24 @@ object CatalogMeta {
         meta("ex-hyper-pro-external-rotator", 745, setOf("rotator cuff")),
         meta("ex-hyper-pro-russian-twist", 750, setOf("hp twist")),
         meta("ex-hyper-pro-woodchop", 755, setOf("wood chop", "chop")),
-        meta("ex-hyper-pro-calf-stretch", 760, setOf("calf mobility")),
-        meta("ex-hyper-pro-couch-stretch", 765, setOf("hip flexor stretch", "couch")),
-        meta("ex-hyper-pro-elephant-walk", 770, setOf("elephant", "hamstring stretch")),
-        meta("ex-hyper-pro-incline-pigeon", 775, setOf("pigeon", "hip stretch")),
+        meta("ex-hyper-pro-calf-stretch", 760, setOf("hp calf", "hyper pro calf")),
+        meta("ex-hyper-pro-couch-stretch", 765, setOf("hp couch", "hyper pro couch")),
+        meta("ex-hyper-pro-elephant-walk", 770, setOf("elephant")),
+        meta("ex-hyper-pro-incline-pigeon", 775, setOf("incline pigeon", "hp pigeon")),
+        meta("ex-dead-hang", 780, setOf("deadhang")),
+        meta("ex-scapular-hang", 785, setOf("scap hang")),
+        meta("ex-wall-sit", 790, setOf("wallsit")),
+        meta("ex-deep-squat-hold", 795, setOf("deep squat", "assisted squat hold")),
+        meta("ex-y-hold", 800, setOf("y hold")),
+        meta("ex-doorway-chest-stretch", 805, setOf("doorway stretch", "thoracic openers", "chest stretch")),
+        meta("ex-floor-woodchop", 810, setOf("woodchop", "floor chop", "rotation")),
+        meta("ex-couch-stretch", 815, setOf("hip flexor stretch", "couch", "couch stretch")),
+        meta("ex-pigeon-stretch", 820, setOf("pigeon", "hip stretch")),
+        meta("ex-calf-stretch", 825, setOf("calf mobility", "calf stretch")),
+        meta("ex-90-90-hips", 830, setOf("90/90", "90/90 hips", "90 90 hips", "ninety ninety")),
+        meta("ex-ankle-rocks", 835, setOf("ankle rocks", "ankle mobility")),
+        meta("ex-joint-circles", 840, setOf("cars", "joint circles", "articular rotations", "controlled articular rotations")),
+        meta("ex-hamstring-stretch", 845, setOf("hamstring stretch", "floor hamstring")),
     )
 
     /** Display order among built-ins; customs sort last. */

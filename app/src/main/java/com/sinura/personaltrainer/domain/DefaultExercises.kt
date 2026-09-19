@@ -41,9 +41,25 @@ data class SeedExercise(
  * v7 writes [SeedExercise.imageKey] on every built-in (drawable name = frozen id with
  * hyphens turned to underscores). No new lifts. Family stills stay the fallback for
  * customs. Body unlit/heat stills are not this bump.
+ *
+ * v8 adds only the holds and stretches the paste-routine corpus names that
+ * were missing. It does not re-seed or wipe. Dedicated stills for those
+ * six rows landed with the Extra ChatGPT pack (no catalog bump).
+ *
+ * v9 adds the floor Extra names the Saturday stretch list needed
+ * (couch, pigeon, calf, 90/90, ankle rocks, joint circles, floor
+ * woodchop, hamstring stretch). Additive upsert. Dedicated stills for
+ * those eight rows landed with the Extra ChatGPT pack (no catalog bump).
+ *
+ * v10 recategorizes walking lunges, reverse lunges, Bulgarian split
+ * squats, and dumbbell step-ups as BODYWEIGHT_PLUS. They were EXTERNAL,
+ * so a working set at 0 kg was refused as a typo and the floor landed
+ * on a 5 lb plate. Empty hands is a complete set on those lifts; added
+ * dumbbells stay optional, same as Russian Twist. No new lifts. No
+ * Room bump.
  */
 object DefaultExercises {
-    const val CATALOG_VERSION = 7
+    const val CATALOG_VERSION = 10
 
     /**
      * The family vocabulary. Batch 1 shipped 23 families and batch 2 adds three; a later batch
@@ -65,6 +81,8 @@ object DefaultExercises {
         // Batch 5 (v6): Freak Athlete Hyper Pro laundry list.
         "reverse-hyper", "glute-ham-raise", "reverse-nordic", "ql-raise",
         "elephant-walk", "couch-stretch", "pigeon",
+        // Batch 7 (v9): floor Extra stretches / CARs.
+        "joint-circles",
     )
 
     fun catalog(): List<SeedExercise> = CATALOG
@@ -87,12 +105,12 @@ object DefaultExercises {
         ),
         seed(
             id = "ex-bulgarian-split-squat", name = "Bulgarian Split Squat", muscleGroup = "Quads",
-            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "lunge",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "lunge",
             primary = "quadriceps", secondaries = listOf("glutes" to 0.50, "hamstrings" to 0.25),
         ),
         seed(
             id = "ex-walking-lunge", name = "Walking Lunge", muscleGroup = "Quads",
-            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "lunge",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "lunge",
             primary = "quadriceps", secondaries = listOf("glutes" to 0.50, "hamstrings" to 0.25),
         ),
         seed(
@@ -440,12 +458,12 @@ object DefaultExercises {
         ),
         seed(
             id = "ex-reverse-lunge", name = "Reverse Lunge", muscleGroup = "Quads",
-            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "lunge",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "lunge",
             primary = "quadriceps", secondaries = listOf("glutes" to 0.50, "hamstrings" to 0.25),
         ),
         seed(
             id = "ex-dumbbell-step-up", name = "Dumbbell Step-Up", muscleGroup = "Quads",
-            equipment = EquipmentType.DUMBBELL, loadType = LoadType.EXTERNAL, movementKey = "step-up",
+            equipment = EquipmentType.DUMBBELL, loadType = LoadType.BODYWEIGHT_PLUS, movementKey = "step-up",
             primary = "quadriceps", secondaries = listOf("glutes" to 0.50),
         ),
         seed(
@@ -887,6 +905,151 @@ object DefaultExercises {
             movementKey = "twist",
             primary = "core",
             secondaries = listOf("shoulders" to 0.25),
+        ),
+
+        // Batch 6 (v8): named in the owner paste corpus and missing from the
+        // catalog. Appended, never reordered. Dedicated stills in drawable-nodpi.
+        seed(
+            id = "ex-dead-hang",
+            name = "Dead Hang",
+            muscleGroup = "Back",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "pull-up",
+            primary = "back",
+            secondaries = listOf("core" to 0.25),
+        ),
+        seed(
+            id = "ex-scapular-hang",
+            name = "Scapular Hang",
+            muscleGroup = "Back",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "pull-up",
+            primary = "back",
+            secondaries = listOf("shoulders" to 0.50),
+        ),
+        seed(
+            id = "ex-wall-sit",
+            name = "Wall Sit",
+            muscleGroup = "Quads",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "squat",
+            primary = "quadriceps",
+            secondaries = listOf("glutes" to 0.50),
+        ),
+        seed(
+            id = "ex-deep-squat-hold",
+            name = "Deep Squat Hold",
+            muscleGroup = "Quads",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "squat",
+            primary = "quadriceps",
+            secondaries = listOf("glutes" to 0.50),
+        ),
+        seed(
+            id = "ex-y-hold",
+            name = "Y-Hold",
+            muscleGroup = "Shoulders",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "rear-delt",
+            primary = "shoulders",
+            secondaries = listOf("back" to 0.50),
+        ),
+        seed(
+            id = "ex-doorway-chest-stretch",
+            name = "Doorway Chest Stretch",
+            muscleGroup = "Chest",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "chest-fly",
+            primary = "chest",
+            secondaries = listOf("shoulders" to 0.25),
+        ),
+
+        // Batch 7 (v9): floor Extra names. Appended, never reordered.
+        seed(
+            id = "ex-floor-woodchop",
+            name = "Floor Woodchop",
+            muscleGroup = "Core",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "twist",
+            primary = "core",
+            secondaries = listOf("shoulders" to 0.25),
+        ),
+        seed(
+            id = "ex-couch-stretch",
+            name = "Couch Stretch",
+            muscleGroup = "Quads",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "couch-stretch",
+            primary = "quadriceps",
+            secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-pigeon-stretch",
+            name = "Pigeon Stretch",
+            muscleGroup = "Glutes",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "pigeon",
+            primary = "glutes",
+            secondaries = listOf("hamstrings" to 0.25),
+        ),
+        seed(
+            id = "ex-calf-stretch",
+            name = "Calf Stretch",
+            muscleGroup = "Calves",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "calf-raise",
+            primary = "calves",
+            secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-90-90-hips",
+            name = "90/90 Hips",
+            muscleGroup = "Glutes",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "pigeon",
+            primary = "glutes",
+            secondaries = listOf("hamstrings" to 0.25),
+        ),
+        seed(
+            id = "ex-ankle-rocks",
+            name = "Ankle Rocks",
+            muscleGroup = "Calves",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "calf-raise",
+            primary = "calves",
+            secondaries = emptyList(),
+        ),
+        seed(
+            id = "ex-joint-circles",
+            name = "Joint Circles",
+            muscleGroup = "Shoulders",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "joint-circles",
+            primary = "shoulders",
+            secondaries = listOf("core" to 0.25),
+        ),
+        seed(
+            id = "ex-hamstring-stretch",
+            name = "Hamstring Stretch",
+            muscleGroup = "Hamstrings",
+            equipment = EquipmentType.BODYWEIGHT,
+            loadType = LoadType.BODYWEIGHT,
+            movementKey = "elephant-walk",
+            primary = "hamstrings",
+            secondaries = emptyList(),
         ),
     )
 

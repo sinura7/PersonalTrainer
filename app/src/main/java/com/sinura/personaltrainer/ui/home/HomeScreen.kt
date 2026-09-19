@@ -28,6 +28,7 @@ import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MastheadCopy
 import com.sinura.personaltrainer.domain.PlanDayCopy
+import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -36,6 +37,7 @@ import com.sinura.personaltrainer.domain.leftoverLiftNames
 import com.sinura.personaltrainer.domain.nextSessionReason
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
+import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
@@ -48,6 +50,8 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.update.DebugUpdateBanner
+import com.sinura.personaltrainer.ui.update.rememberDebugUpdatePort
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -58,8 +62,6 @@ fun HomeScreen(
     onOpenRoutine: (String) -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
-    onGenerateSchedule: () -> Unit = {},
-    onBuildWeek: () -> Unit = {},
     pendingOccurrenceStartId: String? = null,
     onPendingOccurrenceConsumed: () -> Unit = {},
     pendingOccurrenceReviewId: String? = null,
@@ -102,10 +104,9 @@ fun HomeScreen(
         onPendingOccurrenceReviewConsumed()
     }
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
+    val skippedDay by viewModel.skippedDay.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val sessionLive = state.sessionLive
-    var starterDismissed by rememberSaveable { mutableStateOf(false) }
-    val showStarter = !state.setupComplete && !starterDismissed && !sessionLive
     var weighingIn by rememberSaveable { mutableStateOf(false) }
 
     // Starting a planned day while another session is live is a question, not something the
@@ -141,24 +142,6 @@ fun HomeScreen(
         )
     }
 
-    if (showStarter) {
-        GetStartedSheet(
-            onGenerate = {
-                starterDismissed = true
-                onGenerateSchedule()
-            },
-            onBuild = {
-                starterDismissed = true
-                onBuildWeek()
-            },
-            onWorkout = {
-                starterDismissed = true
-                viewModel.startFreeWorkout()
-            },
-            onDismiss = { starterDismissed = true },
-        )
-    }
-
     if (state.isLoading) {
         ScreenLoading()
         return
@@ -170,6 +153,8 @@ fun HomeScreen(
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
     val reviewOccurrenceId by viewModel.reviewOccurrenceId.collectAsStateWithLifecycle()
     val focusEpochDay by viewModel.focusEpochDay.collectAsStateWithLifecycle()
+    val debugUpdate = rememberDebugUpdatePort()
+    val updateUi by debugUpdate.ui.collectAsStateWithLifecycle()
     LaunchedEffect(weekStart, today) {
         val end = weekStart + 6
         if (selectedEpochDay !in weekStart..end) {
@@ -236,6 +221,34 @@ fun HomeScreen(
             emptyList()
         }
     }
+    var startSheet by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(sessionLive) {
+        if (sessionLive) startSheet = false
+    }
+
+    if (startSheet && !sessionLive) {
+        HomeStartSheet(
+            routines = state.routines,
+            onDismiss = { startSheet = false },
+            onStartFree = {
+                startSheet = false
+                viewModel.startFreeWorkout()
+            },
+            onStartRoutine = { routineId ->
+                startSheet = false
+                viewModel.startRoutine(routineId)
+            },
+            onStartCardio = { type ->
+                startSheet = false
+                viewModel.startCardio(type)
+            },
+            onStartExtra = { packId ->
+                startSheet = false
+                viewModel.startAux(packId)
+            },
+            suggestedKit = state.suggestedExtraEquipment,
+        )
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -277,6 +290,15 @@ fun HomeScreen(
                 GymErrorBanner(message, onDismiss = viewModel::dismissError)
             }
         }
+        skippedDay?.let { skipped ->
+            item {
+                GymUndoHost(
+                    message = UndoHostCopy.daySkipped(skipped.title),
+                    onUndo = viewModel::undoSkipOccurrence,
+                    onDismissed = viewModel::onUndoOfferHandled,
+                )
+            }
+        }
         if (state.missedWorkPrompt) {
             item {
                 com.sinura.personaltrainer.ui.plan.MissedWorkCard(
@@ -304,6 +326,15 @@ fun HomeScreen(
                 )
             }
         }
+        if (updateUi.showBanner) {
+            item {
+                DebugUpdateBanner(
+                    ui = updateUi,
+                    onInstall = debugUpdate::install,
+                    onDismiss = debugUpdate::dismissBanner,
+                )
+            }
+        }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
                 when (HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen)) {
@@ -311,12 +342,11 @@ fun HomeScreen(
                         items = selectedAgenda,
                         sessionLive = sessionLive,
                         onStartOccurrence = viewModel::startOccurrence,
-                        onStartFree = { viewModel.startFreeWorkout() },
+                        onStartFree = { startSheet = true },
                         routines = state.routines,
                         kicker = dayKicker,
                         stillOpen = stillOpen,
                         today = today,
-                        epochDay = selectedEpochDay,
                         quietStart = state.missedWorkPrompt,
                         canEditDay = selectedEpochDay >= today,
                         confirmOccurrenceId = reviewOccurrenceId,
@@ -325,34 +355,6 @@ fun HomeScreen(
                             viewModel.moveDayBlock(selectedAgenda, occurrenceId, delta)
                         },
                         onSkipOccurrence = viewModel::skipOccurrence,
-                        onAddWorkout = { routineId, once ->
-                            viewModel.addDaySession(
-                                selectedEpochDay,
-                                HomeDayAdd.Workout(routineId),
-                                once,
-                            )
-                        },
-                        onNewWorkout = { once ->
-                            viewModel.addDaySession(
-                                selectedEpochDay,
-                                HomeDayAdd.NewWorkout,
-                                once,
-                            )
-                        },
-                        onAddCardio = { type, once ->
-                            viewModel.addDaySession(
-                                selectedEpochDay,
-                                HomeDayAdd.Cardio(type),
-                                once,
-                            )
-                        },
-                        onAddAux = { packId, once ->
-                            viewModel.addDaySession(
-                                selectedEpochDay,
-                                HomeDayAdd.Aux(packId),
-                                once,
-                            )
-                        },
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
                         day = leftoverDay,
@@ -365,21 +367,11 @@ fun HomeScreen(
                         routines = state.routines,
                         quietStart = state.missedWorkPrompt,
                         setupComplete = state.setupComplete,
-                        offerSetupActions = !showStarter,
-                        onGenerateSchedule = onGenerateSchedule,
-                        onBuildWeek = onBuildWeek,
-                        onSuggestWeek = {
-                            viewModel.requestWeekSuggestion()
-                            onOpenPlan()
-                        },
-                        onReplayAnswers = {
-                            viewModel.requestAnswerReplay()
-                            onOpenPlan()
-                        },
                         onPrimary = {
                             leftoverDay?.takeUnless { it.isRest }?.let(viewModel::startSuggestedDay)
                         },
-                        onStartFree = { viewModel.startFreeWorkout() },
+                        onStartFree = { startSheet = true },
+                        onOpenPlan = onOpenPlan,
                     )
                 }
             }
@@ -450,15 +442,8 @@ internal fun HomeMasthead(
 object HomeTags {
     const val START = "home-start"
     const val FREE = "home-free-start"
-    const val REPLAY = "home-replay"
-    const val GET_STARTED = "home-get-started"
-    const val GENERATE = "home-generate-schedule"
-    const val BUILD_WEEK = "home-build-week"
-    const val STARTER_WORKOUT = "home-starter-workout"
     const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"
     const val STILL_OPEN = "home-still-open"
-    const val ADD = "home-add"
-    const val ADD_EXTRA = ADD
     const val SESSION = "home-session-start"
 
     fun agendaRow(occurrenceId: String): String = "home-agenda-$occurrenceId"

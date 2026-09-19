@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -119,5 +120,20 @@ class ProgressViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         val marked = deps.preferencesRepository.lighterWeekStartEpochDay.first()
         assertEquals(expected, marked)
+    }
+
+    @Test
+    fun firstLaunchNamesCatalogLifts() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        deps.dbMaintenance.seedCatalog()
+        dispatcher.scheduler.advanceUntilIdle()
+        viewModel = ProgressViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val state = viewModel!!.uiState.awaitFirst { !it.isLoading && it.firstLifts.isNotEmpty() }
+        assertEquals("ex-barbell-back-squat", state.firstLifts.first().id)
+        assertTrue(state.snapshot?.hasAnyWorkingSets != true)
+        assertEquals(4, state.firstLifts.size)
     }
 }

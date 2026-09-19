@@ -12,7 +12,6 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -60,8 +59,7 @@ fun recordEnter(): EnterTransition =
     if (LocalReducedMotion.current) {
         fadeIn(snap())
     } else {
-        scaleIn(initialScale = 0.92f, animationSpec = Motion.celebrate()) +
-            fadeIn(tween(Motion.FAST))
+        fadeIn(tween(Motion.FAST))
     }
 
 @Suppress("ModifierFactoryExtensionFunction") // animateItem is LazyItemScope-only
@@ -83,6 +81,9 @@ fun LazyItemScope.instrumentAnimateItem(): Modifier =
 object Motion {
     /** Press feedback and chip selection. */
     const val TAP = 90
+
+    /** Packet D: RPE / warm-up chip fill and check settle. Same length as [TAP]. */
+    const val FIELD_MS = TAP
 
     /** Colour changes, small reveals. */
     const val FAST = 150
@@ -107,10 +108,28 @@ object Motion {
     const val RECORD_STAGGER_MS = 140L
 
     /** How long a status banner stays readable. Not collapsed by reduced motion. */
-    const val STATUS_DWELL_MS = 2_600L
+    const val STATUS_DWELL_MS = 6_000L
 
     /** Gold flash on a finished rest before the dock returns to idle. */
     const val FINISHED_DWELL_MS = 3_500L
+
+    /** Clock row swap after a mode change. Reduced motion snaps this to 0. */
+    const val CLOCK_SWAP_MS = 180
+
+    /** Use on the recommendation strip: draft only, not Log success. */
+    const val DRAFT_SETTLE_MS = 150
+
+    /** New logged row settle before rest motion. Reduced motion snaps this to 0. */
+    const val ROW_SETTLE_MS = 180
+
+    /** Current-lift card swap after Next. Reduced motion snaps this to 0. */
+    const val CARD_SWAP_MS = 240
+
+    /** Gold accent after Log success on a personal record (HA-24). */
+    const val PR_ACCENT_DELAY_MS = 120
+
+    /** 0:00 → Back to the bar. Reduced motion snaps this to 0. */
+    const val REST_DONE_MS = 240
 
     fun durationMs(reduced: Boolean, fullMs: Int): Int = if (reduced) 0 else fullMs
 

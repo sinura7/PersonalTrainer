@@ -15,6 +15,435 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 18 Sep 2026 — Active workout logging screen redesigned to the owner's
+> reference ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)):
+> progress header, image-led identity, Last/Best/Volume, hero numerals, RPE,
+> Next set with Why/Apply, set history chips, rest card, two-line Log set.
+> Business rules, timer and persistence untouched; floor goldens owed a
+> re-record on `temper-tests-api29`. Live 81 carries it for the phone check:
+> `debugLiveCode` 81; suffix from `python3 tools/debug-drop-plan.py`.
+>
+> 17 Sep 2026 — Live 80: Google Drive backup works again. Every backup
+> text ends in a newline, and the upload skipped the CRLF that must precede
+> the closing multipart boundary, so Drive refused every upload since Live 60
+> ("Missing end boundary in multipart body"). Manual and after-workout
+> backups both land now. `debugLiveCode` 80; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 16 Sep 2026 — Live 77: idle rest on the 56 dp instrument bar (duration
+> sheet, Time-set in-bar) on `trunk`.
+> `debugLiveCode` 77; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 16 Sep 2026 — Idle rest is the same 56 dp instrument bar as running rest
+> (dim numeral, empty track, Start). Duration presets, Custom, and
+> planned ±15 live in a sheet. Time set is a 48 dp mark in the idle bar.
+> Gym-floor `appVersionCode` stays 1. No Obtainium drop in this packet.
+>
+> 16 Sep 2026 — Live 76: compact gym-floor rest / hold / set instrument bar on
+> `trunk`.
+> `debugLiveCode` 76; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 16 Sep 2026 — Compact gym-floor rest / hold / set instrument bar on
+> `trunk`. One 56 dp countdown-fill row; REST no longer collides with
+> the coach line at 360×800. Gym-floor `appVersionCode` stays 1.
+>
+> 16 Sep 2026 — Live 75: image-led gym floor (112 dp exercise hero) on
+> `trunk`.
+> `debugLiveCode` 75; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 16 Sep 2026 — Image-led gym floor: 112 dp exercise hero, compact
+> Warm-up row, stable timer / context / Log dock. Zero-weight copy
+> stays “no weight”. Gym-floor `appVersionCode` stays 1.
+>
+> 16 Sep 2026 — Live 74: working weight 0 for Walking Lunge and 63 other
+> catalog lifts on `trunk`.
+> `debugLiveCode` 74; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 16 Sep 2026 — Working weight 0 is a first-class value for bodyweight
+> and empty-hands dumbbell lifts (Walking Lunge and the rest of that
+> catalog set). Loaded barbell / dumbbell still default as before.
+> Gym-floor `appVersionCode` stays 1. Live 74 is the Obtainium drop.
+>
+> 15 Sep 2026 — Live 73: floor packet H goldens / accessibility final pass
+> on `trunk`. Final drop of the workout-entry plan.
+> `debugLiveCode` 73; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet H: goldens catalog wiring, TalkBack matrix,
+> RPE recommended spoken word, 360/font/reduced-motion/H4 ratchets on
+> `trunk`. Program complete pending owner's physical TalkBack + alarm pass.
+> Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 72: floor packet G set-row overflow, Skip for now,
+> LIFO undo on `trunk`.
+> `debugLiveCode` 72; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet G: set-row overflow, Skip for now, LIFO undo
+> with TalkBack dwell and process restore on `trunk`. Next Kotlin is
+> Packet H (goldens/a11y evidence only). Live 72 is the Obtainium drop.
+>
+> 15 Sep 2026 — Live 71: floor packet F receipt, named Next / Finish,
+> Coach.decide on `trunk`.
+> `debugLiveCode` 71; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet F: receipt, named Next / Finish, Coach.decide
+> in the entry, Why + Keep my numbers. Next Kotlin is Packet G. Live 71
+> is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 70: floor packet E one dock clock, rest presets,
+> hold and stopwatch on `trunk`.
+> `debugLiveCode` 70; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Live 69: floor packet D RPE, warm-up ramp, and ordinals
+> on `trunk`.
+> `debugLiveCode` 69; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet E: one dock clock, rest presets / ±15 /
+> Custom, hold and stopwatch recover from elapsed realtime. Next Kotlin
+> is Packet F. Live 70 is the Obtainium drop. Gym-floor
+> `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Floor packet D: RPE always on working drafts, warm-up
+> ramp chips, visible WU / Set n of target / Extra ordinals. Next Kotlin
+> is Packet E. Live 69 is the Obtainium drop. Gym-floor
+> `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 68: floor packet C one current lift, switcher, and
+> minute telemetry on `trunk`.
+> `debugLiveCode` 68; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet C: one current lift, lift switcher, per-lift
+> drafts in SavedStateHandle, minute telemetry, notes off the log loop.
+> Next Kotlin is Packet D. Live 68 is the Obtainium drop. Gym-floor
+> `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 67: floor packet B gym-floor steppers on `trunk`.
+> `debugLiveCode` 67; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet B: gym-floor weight / reps / hold draft are
+> plates + tap-to-type. Live wheels stay on Extra/paste, reminder,
+> onboarding, and rest length. Next Kotlin is Packet C.
+> Live 67 is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 66: floor packet A gym-floor entry state on `trunk`.
+> `debugLiveCode` 66; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet A: gym-floor entry state (committed wheels,
+> lift ready/dirty, re-tap no-op, empty dock, hide Start next, Log haptic
+> after save, Finish needs a set). Appearance waits for packet B.
+> Live 66 is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Workout-entry experience report is a recommendation
+> only (not law): [workout-entry-experience-report.md](workout-entry-experience-report.md).
+>
+> 15 Sep 2026 — Workout-entry implementation plan (Packets A–H, docs only,
+> no drop): [workout-entry-implementation-plan.md](workout-entry-implementation-plan.md).
+> Packet B is on `trunk`. Next Kotlin is Packet C.
+> Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 65: floor packet 5 undo host plus progression
+> engine (`Coach.decide` ladder) on `trunk`.
+> `debugLiveCode` 65; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Progression engine packets 0–9: one `Coach.decide()`
+> ladder, rep climb on a close hold, stall card (lighter week only),
+> prescribed starting rest, extra-set invite, goal as an AddDefaults
+> axis, per-kit increments, warm-up ramp, weekly volume as a card.
+> Live 65 is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Floor packet 5: one undo host (~6s) for delete set,
+> remove lift, and skip day. Finish, discard, and leave still ask.
+> Live 65 is the Obtainium drop. Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 64: floor packet 4 (HOLD / +N / BACK OFF kicker
+> with Why; weight, reps/time, RPE, rest glyphs) on `trunk`.
+> `debugLiveCode` 64; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet 4: HOLD / +N / BACK OFF kicker sits on the
+> Next line with Why still opening the trace. Weight, reps/time, RPE,
+> and rest glyphs replace those floor labels. Live 64 is the Obtainium
+> drop. Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 63: floor packet 3 (optional set stopwatch in the
+> dock timer slot) on `trunk`. `debugLiveCode` 63; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet 3: optional set stopwatch in the dock
+> timer slot (count-up). Unused leaves duration blank; used writes
+> seconds beside reps. Does not cancel a pending rest alarm. Does not
+> bump live 62. Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 62: floor packet 2 (instrument strip, timer dock,
+> inline rest wheel, one clock two modes) on `trunk`. `debugLiveCode` 62;
+> suffix from `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet 2: read-only instrument strip (elapsed ·
+> sets · volume · rest/hold state) taps open the timer; LogBar owns the
+> timer slot, Next/Another, and the one Volt Log set; rest length is an
+> inline SnapValueWheel; one clock (rest down / set up). Does not bump
+> live 61. Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Live 61: floor packet 1 (RPE fit, standing Next/Another,
+> 6s dwell) plus Extra ChatGPT stills on `trunk`. `debugLiveCode` 61;
+> suffix from `python3 tools/debug-drop-plan.py`.
+>
+> 15 Sep 2026 — Floor packet 1: RPE 6–10 fit at 360/font 2.0 with Warm-up
+> outside the track; standing Next lift / Another set (no dwell
+> auto-advance); status banner dwell ~6s. Does not bump live 60.
+> Gym-floor `appVersionCode` stays 1.
+>
+> 15 Sep 2026 — Extra ChatGPT stills replace the fourteen family
+> stand-ins (`ex_floor_woodchop` through `ex_doorway_chest_stretch`).
+> Does not bump live 60. Gym-floor `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — Live 60: floor snap-scroll weight and reps wheels on
+> `trunk`. `debugLiveCode` 60; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 14 Sep 2026 — Gym floor weight and reps are snap-scroll wheels
+> (plate steps 2.5 kg / 5 lbs, reps by 1, holds in seconds). Does
+> not bump live 59. Gym-floor `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — Live 59: floor card restack (header ⋮, weight then reps)
+> and in-app APK download/install on `trunk`. `debugLiveCode` 59; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 14 Sep 2026 — debug-live.yml skips the obsolete SDK `tools` package so
+> the live 59 drop can restore the stable signer. Gym-floor
+> `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — GymNoticeBanner keeps modifier as the first optional
+> parameter so lintDebug can publish live 59. Gym-floor `appVersionCode`
+> stays 1.
+>
+> 14 Sep 2026 — Floor card: overflow ⋮ on the identity row; compact
+> weight row then reps row. Does not bump live 58. Gym-floor
+> `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — Temper Debug downloads the new package in-app and hands it
+> to Android's installer. Does not bump live 58. Gym-floor does not install
+> GitHub APKs. Obtainium is not a required step.
+>
+> 14 Sep 2026 — Live 58: compact gym-floor chrome (one current lift,
+> one Log set) on `trunk`. `debugLiveCode` 58; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 14 Sep 2026 — Gym floor chrome is compact: one current-lift copy
+> (the expanded card), idle rest as a quiet line, Log set as the one
+> Volt. Does not bump live 57. Gym-floor `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — Live 57: Create a routine paste reads `Lower A (strength)**`
+> and quotes whole-text fails, plus Home still+name rows from live 56
+> on `trunk`. `debugLiveCode` 57; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 14 Sep 2026 — Create a routine paste reads `Lower A (strength)**`
+> without a `##` heading (leftover `**` stripped). A blob that is still
+> not a workout quotes why (no session name / no numbered lifts). Does
+> not bump live 56. Gym-floor `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — Live 56: Home session cards picture each lift beside its
+> name, and Create a routine paste quotes failing lines and fills
+> Upper/Lower on `trunk`. `debugLiveCode` 56; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 14 Sep 2026 — Create a routine paste quotes the failing line (unknown
+> name, bad dose, two lifts, hold vs reps) and fills Allen's numbered
+> Upper A / Lower A / Upper B / Lower B. Does not bump live 55.
+> Gym-floor `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — Home session cards (and the empty-agenda leftover head)
+> picture each lift beside its number and name. The 4-up still strip is
+> gone. A typical session (Upper A, 7) names every lift; past eight rows
+> the rest is `+N`. Title, `7 lifts · about 60 min`, and Start stay.
+> Does not bump live 55. Gym-floor `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — Live 55: Extra forty locked combos after kit pick,
+> tab and Settings glyphs, and numbered Home session lifts on
+> `trunk`. `debugLiveCode` 55; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 14 Sep 2026 — Extra recommends forty locked combos after Bodyweight
+> (none) / Free weights / Machines / Mixed. Catalog v9 adds eight floor
+> stretch names. Does not bump live 54. Gym-floor `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — Bottom tabs and Settings index rows use Allen's glyphs
+> (house, calendar, stick figure, list+clock, gear; nine row leftovers).
+> Tint on draw. Debug Update / Log / Foundation keep their current marks.
+> Does not bump live 54. Gym-floor `appVersionCode` stays 1.
+>
+> 14 Sep 2026 — Home session cards (and the empty-agenda leftover head) name
+> lifts as a numbered list, one pictured lift per line, remainder `+N`
+> on its own line. Stills, `7 lifts · about 60 min`, and Start stay.
+> Does not bump live 54. Gym-floor `appVersionCode` stays 1.
+>
+> 13 Sep 2026 — Live 54: Extra asks what equipment is here (None /
+> Free weights / Machines / Mixed), then matching warm-up and mobility
+> packs with pictures on `trunk`. `debugLiveCode` 54; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 13 Sep 2026 — Extra asks what equipment is here (None / Free weights /
+> Machines / Mixed), then shows matching warm-up and mobility packs.
+> Settings kit is a suggestion. Does not bump live 53. Gym-floor
+> `appVersionCode` stays 1.
+>
+> 13 Sep 2026 — Live 53: one Start a workout sheet (no Add row) and
+> hold set timer (Dead Hang is SETS + TIME; floor Start hold is a
+> countdown, then rest) on `trunk`. `debugLiveCode` 53; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 13 Sep 2026 — Hold set timer: Dead Hang and other static holds
+> use TIME in the editor and a work countdown on the floor. Rest
+> still starts after the set. Temper `v4 → v5` adds hold seconds;
+> gym-floor `appVersionCode` stays 1. Does not bump live 52.
+>
+> 13 Sep 2026 — Home: one **Start a workout** sheet (free / Plan routine /
+> cardio pictures / Extra pictures). Add row gone. Plan still adds.
+> Does not bump live 52. Gym-floor `appVersionCode` stays 1.
+>
+> 13 Sep 2026 — Live 52: Extra/cardio pictures, Body stills, Add-lifts
+> muscle chips, and paste-to-routine on `trunk`. `debugLiveCode` 52;
+> suffix from `python3 tools/debug-drop-plan.py`.
+>
+> 13 Sep 2026 — Extra and cardio pickers show pictures: horizontal cardio
+> cards (Walk, Run / sprints, Ride, Row, Swim, Hike) and a catalog still
+> on each warm-up and mobility row. Does not bump live 51.
+>
+> 13 Sep 2026 — Paste a written workout on Create a routine. Temper
+> reads the lifts, sets, reps, rest, timed holds, alternatives, weekly
+> layout, and progression. Timed work is not stored as reps. Catalog v8
+> adds only the named holds that were missing. Does not bump live 51.
+> Gym-floor `appVersionCode` stays 1.
+>
+> 13 Sep 2026 — Body muscle rows carry a Temper still of that body part.
+> Does not bump live 51. Gym-floor `appVersionCode` stays 1.
+>
+> 13 Sep 2026 — Add lifts: horizontal muscle chips (All plus Body's ten
+> groups). Chest hides a back squat; search still works inside the filter.
+> Does not bump live 51.
+>
+> 13 Sep 2026 — Live 51: Temper Debug notices a newer live drop and offers a
+> quiet prompt on `trunk`. `debugLiveCode` 51; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 13 Sep 2026 — Temper Debug notices a newer live drop and offers a quiet
+> prompt. Does not bump live 50. Gym-floor does not check debug pre-releases.
+> Android's install safety gate is unchanged.
+>
+> 13 Sep 2026 — Live 50: Settings layout polish (icons, three groups,
+> Log/Foundation under About) on `trunk`. `debugLiveCode` 50; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 13 Sep 2026 — Settings rows carry Temper marks. Log and Foundation
+> sit under About in debug. Week generator is sectioned. Does not bump live 49.
+>
+> 13 Sep 2026 — Live 49: Settings as an index of focused screens
+> on `trunk`. `debugLiveCode` 49; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 13 Sep 2026 — Settings is an index of rows. Week generator and Reminders
+> are focused screens under Settings. Reminder time is a scroll wheel with
+> AM/PM, not hour chips. Does not bump live 48.
+>
+> 12 Sep 2026 — Live 48: Home, Plan, and Settings from the 12 Sep phone shots
+> on `trunk`. `debugLiveCode` 48; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 12 Sep 2026 — Home / Plan / Settings: Saturday pin shows on Home and Plan
+> today; Get started sheet is gone; reminder alarms and the week generator
+> live in Settings. Does not bump live 47.
+>
+> 12 Sep 2026 — Live 47: History survives an Obtainium update of Temper Debug
+> on `trunk`. `debugLiveCode` 47; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 12 Sep 2026 — History must survive an Obtainium update of Temper Debug
+> (`com.sinura.personaltrainer.debug`). Upgrade proof is on `temper.db`.
+> Does not bump live 46. Gym-floor `appVersionCode` stays 1.
+>
+> 12 Sep 2026 — Live 46: floor phone-check and A-03 on
+> `trunk`. `debugLiveCode` 46; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 11 Sep 2026 — Live 45: D-04 and D-08 on
+> `trunk`. `debugLiveCode` 45; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 11 Sep 2026 — Live 44: L-05 and D-06 on
+> `trunk`. `debugLiveCode` 44; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 11 Sep 2026 — Live 43: W-06 and W-11 on
+> `trunk`. `debugLiveCode` 43; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 11 Sep 2026 — Live 42: E-12 and I-01 on
+> `trunk`. `debugLiveCode` 42; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 11 Sep 2026 — Live 41: I-04, S-02, and E-04 on
+> `trunk`. `debugLiveCode` 41; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 11 Sep 2026 — Live 40: B-02, G-02, G-05/W-02/T-12, and T-16 on
+> `trunk`. `debugLiveCode` 40; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 11 Sep 2026 — T-16: first rest names unrestricted battery so the clock
+> does not die on Samsung. Inherits live 39; does not bump it.
+>
+> 11 Sep 2026 — G-05 / W-02 / T-12: idle rest says Not running. A warm-up
+> names that rest did not start. Planned duration is a label, not a
+> countdown. Inherits live 39; does not bump it.
+>
+> 11 Sep 2026 — G-02: rest Start/Skip and Log set sit in the lower dock
+> during a session. Finish stays in the header. Inherits live 39; does
+> not bump it.
+>
+> 11 Sep 2026 — B-02: first-launch Body is a gym wall, not an empty figure.
+> Catalog lifts sit under the silhouette; a muscle with no history opens
+> the lifts that train it. No Start Volt. Inherits live 39; does not bump it.
+>
+> 11 Sep 2026 — Live 39: architecture stack, R18 steps 3–4, and N-01
+> (Play complete cue) on `trunk`. `debugLiveCode` 39; suffix from
+> `python3 tools/debug-drop-plan.py`.
+>
+> 11 Sep 2026 — N-01: Settings Rest timer has **Play complete cue**.
+> The row calls `RestTimerAlerts.preview`, the same bundled
+> `rest_done.ogg` on the alarm stream as 0:00. Sound is forced on for
+> the sample so the row is never dead; vibration follows the switch.
+> Does not bump 38. Does not start B-02.
+>
+> 11 Sep 2026 — R18 step four: activity-edit capability split (notes and
+> delete on completed activities; set repair and repeat stay refused),
+> five use-case extractions (`CompleteTraining`, `RecordsCalculator`,
+> `ProtectBackup`/`OpenBackup`, `DraftStore`, live-bar finish through
+> the façade), and the seven-row parity table. Inherits live 38; does
+> not bump it. Next is not a numbered R18 step 5 — R17 measurement,
+> TalkBack, DESIGN_AUDIT.
+>
+> 11 Sep 2026 — Live 38: architecture stack `#232`–`#238` on `trunk`.
+> `debugLiveCode` 38; suffix from `python3 tools/debug-drop-plan.py`.
+>
+> 10 Sep 2026 — R18 step three: both completed-training detail screens share
+> `CompletedTrainingDetailLoad` (load / missing / failed; `retry()`). A
+> thrown session read is unavailable, not "no longer on this phone".
+> `#226` shipped live 37 as `debug-live-2026-09-10-9`. This packet
+> inherits 38 and does not bump it.
+>
 > 10 Sep 2026 — Live 37: `#202` is on `trunk` (the lift page reads both
 > stores). Obtainium still offers 36 until the number rises. This packet
 > is that rise. `#225` is on `trunk` (Drive refusal copy) and rides this
@@ -728,7 +1157,7 @@ one tell the truth and offer one act. Living plan: [UX_PAGE_PASS.md](UX_PAGE_PAS
 workout in mind → short path → the app builds the week. P0–P4 are on `trunk`
 (shared-structure figure, emphasis, Athletic, preview copy, later fills /
 Suggest honours emphasis). Phone gates remain the owner's.
-[JOB2_ACTION_PLAN.md](JOB2_ACTION_PLAN.md). P5 sex waits for a real sentence.
+[JOB2_ACTION_PLAN.md](archive/jobs/JOB2_ACTION_PLAN.md). P5 sex waits for a real sentence.
 P6 catalog is won't — families already exist.
 
 **Job 3 · code-done on `trunk` (22 Aug 2026).** Replay stored answers
@@ -736,26 +1165,26 @@ without creating routines; lighter-week marker (HOLD, not scaled sets);
 Home / Plan / setup ViewModel JVM tests; debug is
 `com.sinura.personaltrainer.debug`. Phone gates remain the owner's
 (unpin+replay, Tune+HOLD, two icons). Packets, gates, won'ts:
-[JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
+[JOB3_ACTION_PLAN.md](archive/jobs/JOB3_ACTION_PLAN.md).
 
 **Job 4 · code-done on `trunk` (22 Aug 2026).** Deload card marks this
 week; Home replay when routines exist; Settings / History / Progress
 JVM contracts; Backup caption and Finish helper tell the truth before
 the tap. Phone gates remain the owner's (card+HOLD, Home replay,
 Backup/Finish copy). Packets, gates, won'ts:
-[JOB4_ACTION_PLAN.md](JOB4_ACTION_PLAN.md).
+[JOB4_ACTION_PLAN.md](archive/jobs/JOB4_ACTION_PLAN.md).
 
 **Job 5 · code-done on `trunk`.** Rest cue, plates, type-in, pounds
 default, font-scale 2.0, prompted backup, and `ci.yml` listing
 `trunk` are on `trunk`. Phone gates remain the owner's. GitHub
 runners are not a test lane. Room v3, fifth tab, LLM, rename, sex,
 and catalog seed stay signed won't. Packets, gates, won'ts:
-[JOB5_ACTION_PLAN.md](JOB5_ACTION_PLAN.md).
+[JOB5_ACTION_PLAN.md](archive/jobs/JOB5_ACTION_PLAN.md).
 
 **Job 6 (superseded as current program, 24 Aug 2026).** Regroup for the
 four-tab logger. Leftover P0–P8 are on `trunk`. Phone-week floor finding
 (RPE explainer and sticky rest dock) landed in `2484396`. Job 6 is no
-longer the current program. [JOB6_REGROUP.md](JOB6_REGROUP.md) is
+longer the current program. [JOB6_REGROUP.md](archive/jobs/JOB6_REGROUP.md) is
 historical leftover paper. Current work:
 [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
 
@@ -988,4 +1417,4 @@ control marks this week; progression HOLDs load. Do not rediscover this
 as an open hole.
 
 **Chosen: A** (historical). Named as Job 3 / P2 in
-[JOB3_ACTION_PLAN.md](JOB3_ACTION_PLAN.md).
+[JOB3_ACTION_PLAN.md](archive/jobs/JOB3_ACTION_PLAN.md).

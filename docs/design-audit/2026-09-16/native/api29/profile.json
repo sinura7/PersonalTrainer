@@ -1,0 +1,18 @@
+{
+  "profile": "temper-tests-api29",
+  "serial": "emulator-5554",
+  "systemImage": "system-images;android-29;default;x86_64",
+  "imageRevision": "8",
+  "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+  "density": "Physical density: 420",
+  "size": "Physical size: 1080x1920",
+  "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+  "renderer": "swiftshader_indirect",
+  "fontScale": 1.0,
+  "animations": 0,
+  "locale": "en-US",
+  "timeZone": "America/Toronto",
+  "clockPolicy": "Real civil clock for observations; legacy floor timers remain live (controlled-clock replacement in F3)",
+  "goldenProfile": "windows-swiftshader37",
+  "capturedUtc": "2026-09-17T03:33:33.5855427Z"
+}

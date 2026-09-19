@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 import kotlin.math.max
 
 object MuscleLoadCalculator {
@@ -45,7 +44,7 @@ object MuscleLoadCalculator {
         sessions: List<WorkoutSession>,
         window: HeatWindow,
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
         exerciseCatalog: Map<String, Exercise> = emptyMap(),
         weekStart: Weekday = Weekday.MONDAY,
@@ -200,7 +199,7 @@ object MuscleLoadCalculator {
     fun coachBasis(
         sessions: List<WorkoutSession>,
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
         exerciseCatalog: Map<String, Exercise> = emptyMap(),
         lastTrainedByMuscle: Map<CanonicalMuscle, Long> = emptyMap(),
@@ -254,7 +253,7 @@ object MuscleLoadCalculator {
     fun daysSince(
         lastTrainedAtMs: Long?,
         nowMs: Long,
-        time: TimePort = JvmTime,
+        time: TimePort,
         zoneId: String = time.defaultZoneId(),
     ): Int? {
         if (lastTrainedAtMs == null) return null

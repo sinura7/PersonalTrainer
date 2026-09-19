@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -87,7 +88,10 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
             return
         }
         viewModelScope.launch {
-            val defaults = AddDefaults.forExercise(exercise)
+            val defaults = AddDefaults.forExercise(
+                exercise,
+                goal = container.preferencesRepository.coachPreferences.first().goal,
+            )
             runCatchingCancellable {
                 container.routineRepository.addExercise(
                     routineId = routineId,
@@ -130,6 +134,7 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
                 // From the library row, which this screen already has: a push-up's history is
                 // counted in reps and a bench press's in kilograms.
                 loadClass = LoadClass.of(exercise?.loadType),
+                time = time,
                 // The tonnage weeks have to start where the planner's weeks start, or "this
                 // week's volume" means two different spans in two places in the same app.
                 weekStart = preferences.weekStart,

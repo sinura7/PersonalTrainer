@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import com.sinura.personaltrainer.util.JvmTime
 
 /**
  * One finished session without its set graph (P8.1 / FND-010).
@@ -22,10 +21,11 @@ data class SessionSummary(
     val cardioSeconds: Long = 0L,
     val cardioDistanceMeters: Double? = null,
     val kind: HistoryKind = HistoryKind.WORKOUT,
+    val stills: List<Exercise> = emptyList(),
 )
 
 fun WorkoutSession.toSummary(
-    time: TimePort = JvmTime,
+    time: TimePort,
     zoneId: String = time.defaultZoneId(),
 ): SessionSummary = SessionSummary(
     id = id,
@@ -37,6 +37,7 @@ fun WorkoutSession.toSummary(
     workingSets = workingSetCount(),
     volumeKg = work().volumeKg,
     localEpochDay = performedEpochDay(time, zoneId),
+    stills = HistoryCardCopy.stills(exercises.map { it.exercise }),
 )
 
 fun ActivitySession.toSummary(): SessionSummary = SessionSummary(
@@ -53,6 +54,7 @@ fun ActivitySession.toSummary(): SessionSummary = SessionSummary(
     cardioDistanceMeters = cardioBlocks.sumOf { it.distanceMeters ?: 0.0 }
         .takeIf { it > 0.0 },
     kind = HistoryKind.ACTIVITY,
+    stills = HistoryCardCopy.stillsFromBlocks(blocks),
 )
 
 /** Newest finished session, including ones older than the heat window. */
@@ -124,6 +126,7 @@ fun SessionSummary.toHistoryEntry(): HistoryEntry = HistoryEntry(
     cardioMinutes = (cardioSeconds / 60L).toInt(),
     work = SetWork(volumeKg = volumeKg, bodyweightReps = 0),
     durationMinutes = durationMinutes,
+    stills = stills,
 )
 
 /** Lightweight stub so week derivation can match routine/focus without sets. */

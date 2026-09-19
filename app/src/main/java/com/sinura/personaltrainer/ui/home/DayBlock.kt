@@ -1,14 +1,18 @@
 package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -17,6 +21,7 @@ import com.sinura.personaltrainer.domain.DayBlockCopy
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -32,9 +37,9 @@ import com.sinura.personaltrainer.ui.theme.Volt
  * row was an [com.sinura.personaltrainer.ui.components.InstrumentRow] — a
  * title, a one-line order and that trailing word — which is how a settings
  * list looks, not a session. This is the same control drawn as what it is:
- * a bordered block with the session's first four stills, the order under
- * them, the count and the estimate, and Start (or Do it today) on the foot
- * where the row's trailing word was.
+ * a bordered block with each lift as a still beside its number and name,
+ * the count and the estimate, and Start (or Do it today) on the foot where
+ * the row's trailing word was.
  *
  * Separate blocks on purpose. A day's sessions are independent — cardio,
  * then the main session, then a pack, each finished on its own
@@ -99,9 +104,9 @@ fun DayBlock(
 }
 
 /**
- * The head of a block — title, stills, order, meta — emitted into the
- * enclosing card's column. Shared with the empty-agenda leftover card so
- * both today-surfaces draw a session the same way.
+ * The head of a block — title, still-and-name rows, meta — emitted into
+ * the enclosing card's column. Shared with the empty-agenda leftover card
+ * so both today-surfaces draw a session the same way.
  *
  * Done and moved blocks go quiet in ink. The stills stay as they are: a
  * still is the lift's identity, not the day's state (ADR-022).
@@ -121,22 +126,12 @@ fun DayBlockHead(
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
     )
-    if (exercises.isNotEmpty()) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            exercises.take(DayBlockCopy.STILL_LIMIT).forEach { exercise ->
-                ExerciseThumb(exercise = exercise)
-            }
-        }
-    }
-    lines.names?.let { names ->
-        // Two lines: four full lift names do not fit one line at 360 dp, and the
-        // stills above only say which lifts, not in what order.
-        Text(
-            names,
-            style = InstrumentType.body,
-            color = meta,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+    if (lines.names.isNotEmpty()) {
+        SessionLiftRows(
+            labels = lines.names,
+            exercises = exercises,
+            nameColor = ink,
+            extraColor = meta,
         )
     }
     lines.meta?.let { line ->
@@ -144,6 +139,72 @@ fun DayBlockHead(
             line,
             style = InstrumentType.caption,
             color = meta,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * One pictured lift per row: still on the left, number and name to the
+ * right. Stills are one width, digits are tabular, so 1 / 2 / 3 / 4 read
+ * as a list. A 4-up still strip duplicated those names. Remainder `+N`
+ * is its own last line.
+ */
+@Composable
+private fun SessionLiftRows(
+    labels: List<String>,
+    exercises: List<Exercise>,
+    nameColor: Color,
+    extraColor: Color,
+) {
+    val extra = labels.lastOrNull()?.takeIf { DayBlockCopy.isExtra(it) }
+    val rows = if (extra != null) labels.dropLast(1) else labels
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        rows.forEachIndexed { index, label ->
+            SessionLiftRow(
+                exercise = exercises.getOrNull(index),
+                label = label,
+                color = nameColor,
+            )
+        }
+        extra?.let { line ->
+            Text(
+                line,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = ThumbSize.row + Metrics.space2),
+                style = InstrumentType.body,
+                color = extraColor,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SessionLiftRow(
+    exercise: Exercise?,
+    label: String,
+    color: Color,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        if (exercise != null) {
+            ExerciseThumb(exercise = exercise)
+        } else {
+            Spacer(Modifier.size(ThumbSize.row))
+        }
+        Text(
+            label,
+            modifier = Modifier.weight(1f),
+            style = InstrumentType.body,
+            color = color,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

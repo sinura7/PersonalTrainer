@@ -8,7 +8,17 @@ package com.sinura.personaltrainer.ui.workout
  */
 object LogLoopBringIntoView {
     const val ANCHOR_TAG = WorkoutTestTags.SET_ENTRY
+    /** Packet C: after resume or a lift switch, the one card is at list offset 0. */
+    fun entryListIndex(): Int = 0
 
-    fun shouldBringIntoView(previousSetCount: Int, nextSetCount: Int): Boolean =
-        previousSetCount in 0 until nextSetCount
+    /**
+     * ADR-027: an edit scrolls the entry itself under the header, not the identity. The
+     * floor's list is exercise-header, stats, then the entry, so the numerals are item 2.
+     */
+    fun editRevealIndex(): Int = 2
+
+    fun shouldScrollEntryToTop(
+        previousLiftId: String?,
+        nextLiftId: String?,
+    ): Boolean = nextLiftId != null && previousLiftId != nextLiftId
 }

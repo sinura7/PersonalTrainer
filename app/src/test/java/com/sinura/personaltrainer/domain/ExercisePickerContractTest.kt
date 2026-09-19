@@ -51,6 +51,9 @@ class ExercisePickerContractTest {
         assertEquals(1, LiftCart.cartNumber(multi.selectedOrder, squat.id))
         val created = ExercisePickerEvent.Created("Good morning", "Hamstrings")
         assertEquals("Good morning", created.name)
+        assertEquals(LoadType.EXTERNAL, created.loadType)
+        val bodyweight = ExercisePickerEvent.Created("Push-up", "Chest", LoadType.BODYWEIGHT)
+        assertEquals(LoadType.BODYWEIGHT, bodyweight.loadType)
         // Multi-add has no confirm event: a tap is the write, and Dismissed is the way out.
         assertEquals(ExercisePickerEvent.Dismissed, ExercisePickerEvent.Dismissed)
     }
@@ -95,5 +98,63 @@ class ExercisePickerContractTest {
         )
         assertEquals(listOf(squat), state.cart)
         assertEquals(setOf("ex-1"), state.selectedIds)
+    }
+
+    @Test
+    fun chestHidesBackSquat() {
+        val catalog = pickerCatalog()
+        val chest = picker(catalog).visibleFor(CanonicalMuscle.CHEST)
+        assertTrue(chest.none { it.id == "ex-barbell-back-squat" })
+        assertTrue(chest.any { it.id == "ex-barbell-bench-press" })
+        assertEquals(catalog, picker(catalog).visibleFor(null))
+        val tagged = picker(
+            listOf(
+                squat,
+                squat.copy(id = "ex-bench", name = "Barbell Bench Press", muscleGroup = "Chest"),
+            ),
+        ).visibleFor(CanonicalMuscle.CHEST)
+        assertTrue(tagged.none { it.id == squat.id })
+        assertTrue(tagged.any { it.muscleGroup == "Chest" })
+    }
+
+    @Test
+    fun searchInsideChestStillFindsBench() {
+        val searched = pickerCatalog().filter { it.name.contains("press", ignoreCase = true) }
+        val chest = picker(searched, query = "press").visibleFor(CanonicalMuscle.CHEST)
+        assertTrue(chest.any { it.id == "ex-barbell-bench-press" })
+        assertTrue(chest.none { it.id == "ex-overhead-press" })
+        assertTrue(chest.none { it.id == "ex-barbell-back-squat" })
+    }
+
+    @Test
+    fun muscleChipsMatchBody() {
+        assertEquals(
+            listOf(
+                "Chest", "Back", "Shoulders", "Biceps", "Triceps",
+                "Quadriceps", "Hamstrings", "Glutes", "Calves", "Core",
+            ),
+            CanonicalMuscle.bodyMapOrder.map { it.displayName },
+        )
+    }
+
+    private fun picker(results: List<Exercise>, query: String = "") = ExercisePickerState(
+        query = query,
+        results = results,
+        title = "Add lifts",
+        mode = ExercisePickerMode.MULTI_ADD,
+    )
+
+    private fun pickerCatalog(): List<Exercise> = DefaultExercises.catalog().map { seed ->
+        Exercise(
+            id = seed.id,
+            name = seed.name,
+            muscleGroup = seed.muscleGroup,
+            notes = "",
+            isCustom = false,
+            equipment = seed.equipment,
+            loadType = seed.loadType,
+            movementKey = seed.movementKey,
+            muscles = seed.credits,
+        )
     }
 }

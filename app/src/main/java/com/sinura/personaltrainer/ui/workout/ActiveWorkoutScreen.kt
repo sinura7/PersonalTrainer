@@ -1,156 +1,90 @@
 package com.sinura.personaltrainer.ui.workout
 
-import android.Manifest
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
-import android.provider.Settings
+
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.sinura.personaltrainer.ui.components.TemperIcons
-import kotlin.math.roundToInt
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import java.text.DateFormat
-import java.util.Date
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.sinura.personaltrainer.logging.AppLog
-import com.sinura.personaltrainer.domain.DayLabel
-import com.sinura.personaltrainer.domain.ExerciseSessionSummary
-import com.sinura.personaltrainer.domain.PersonalRecordKind
-import com.sinura.personaltrainer.domain.ProgressionCopy
-import com.sinura.personaltrainer.domain.ProgressionHint
-import com.sinura.personaltrainer.domain.RestNotificationCopy
-import com.sinura.personaltrainer.domain.RestTimer
-import com.sinura.personaltrainer.domain.RpeCopy
-import com.sinura.personaltrainer.domain.SetCopy
-import com.sinura.personaltrainer.domain.SetMicroRec
-import com.sinura.personaltrainer.domain.SetMicroRecCalculator
-import com.sinura.personaltrainer.domain.SetMicroRecCopy
-import com.sinura.personaltrainer.domain.SetWork
-import com.sinura.personaltrainer.domain.SessionExercise
-import com.sinura.personaltrainer.domain.SessionOrderCopy
-import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.CurrentLiftCopy
+import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.FloorCompactChrome
+import com.sinura.personaltrainer.domain.FloorTimedModeResolver
+import com.sinura.personaltrainer.domain.FloorTimerCue
+import com.sinura.personaltrainer.domain.FloorTimerSurface
+import com.sinura.personaltrainer.domain.FloorWeightPresets
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
-import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.LogCommitFeedback
+import com.sinura.personaltrainer.domain.PersonalRecordCopy
+import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.SetOrdinalCopy
+import com.sinura.personaltrainer.domain.SetStopwatchCopy
+import com.sinura.personaltrainer.domain.SetWork
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
+import com.sinura.personaltrainer.domain.WarmupRamp
+import com.sinura.personaltrainer.domain.WeightDraftSource
 import com.sinura.personaltrainer.domain.WorkoutAdvance
-import com.sinura.personaltrainer.domain.WorkoutCopy
-import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.domain.WorkoutProgressCalculator
+import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
-import com.sinura.personaltrainer.ui.components.CountBadge
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
-import com.sinura.personaltrainer.ui.components.ExerciseThumb
-import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
-import com.sinura.personaltrainer.ui.components.GymStatusBanner
+import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.InstrumentChip
-import com.sinura.personaltrainer.ui.components.InstrumentMenu
-import com.sinura.personaltrainer.ui.components.InstrumentRow
-import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.LeaveWorkoutDialog
-import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.components.ScreenHeader
-import com.sinura.personaltrainer.ui.components.RestDock
 import com.sinura.personaltrainer.ui.components.ScreenLoading
-import com.sinura.personaltrainer.ui.components.SecondaryGymButton
-import com.sinura.personaltrainer.ui.components.SetEntryPanel
-import com.sinura.personaltrainer.ui.components.ThumbSize
-import com.sinura.personaltrainer.ui.theme.Danger
-import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
-import com.sinura.personaltrainer.ui.theme.Pit
-import com.sinura.personaltrainer.ui.theme.Radius
-import com.sinura.personaltrainer.ui.theme.RestCyan
-import com.sinura.personaltrainer.ui.theme.Surface1
-import com.sinura.personaltrainer.ui.theme.Surface2
-import com.sinura.personaltrainer.ui.theme.TextPrimary
-import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.TextTertiary
-import com.sinura.personaltrainer.ui.theme.Volt
-import com.sinura.personaltrainer.ui.theme.VoltDim
+import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
-
-private const val TAG = "PT/ActiveWorkoutScreen"
 
 /** Stable semantics for the critical device journey; copy remains free to improve. */
 object WorkoutTestTags {
+    fun weightPreset(source: WeightDraftSource) = "workout-weight-preset-${source.name.lowercase()}"
+    /** A set's chip on the floor; the saved-sets sheet's rows keep [setOptions], so both can be open at once. */
+    fun setChip(setId: String) = "workout-set-chip-$setId"
     const val CONTENT = "workout-content"
     const val LOG_SET = "workout-log-set"
     const val FINISH = "workout-finish"
@@ -159,14 +93,63 @@ object WorkoutTestTags {
     const val SET_ENTRY = "workout-set-entry"
     const val REST_BAR = "workout-rest-bar"
     const val REST_IDLE = "workout-rest-idle"
+    const val REST_MINUS = "workout-rest-minus"
+    const val REST_PLUS = "workout-rest-plus"
+    const val REST_SKIP = "workout-rest-skip"
+    const val HOLD_CLOCK = "workout-hold-clock"
     const val MICRO_REC = "workout-micro-rec"
     const val MICRO_REC_APPLY = "workout-micro-rec-apply"
     const val MICRO_REC_WHY = "workout-micro-rec-why"
+    const val NEXT_SET = "workout-next-set"
     const val NEXT = "workout-next"
+    const val DOCK_FINISH = "workout-dock-finish"
+    const val ANOTHER_SET = "workout-another-set"
+    const val RPE_TRACK = "workout-rpe-track"
+    const val RPE_HELPER = "workout-rpe-helper"
+    const val RPE_CLEAR = "workout-clear-rpe"
+    const val RPE_WARMUP_REASON = "workout-rpe-warmup-reason"
+    const val SET_CONTEXT = "workout-set-context"
+    const val SET_TYPE = "workout-set-type"
+    const val WORKING_CHIP = "workout-working-choice"
+    const val WARMUP_CHIP = "workout-warmup-chip"
+    const val WARMUP_RAMP = "workout-warmup-ramp"
+    const val START_SET_CLOCK = "workout-start-set-clock"
+    const val STOP_SET_CLOCK = "workout-stop-set-clock"
     const val ADD_SET = "workout-add-set"
-    const val LAST_TIME = "workout-last-time"
+    const val SET_HISTORY = "workout-set-history"
+    const val CURRENT_SET = "workout-current-set"
+    const val VIEW_SETS = "workout-view-sets"
+    const val SAVED_SETS_SHEET = "workout-saved-sets-sheet"
+    const val SELECTED_LIFT = "workout-selected-lift"
+    const val START_REST = "workout-start-rest"
+    const val DISCARD = "workout-discard"
+    const val DOCK_ADD_LIFT = "workout-dock-add-lift"
+    const val LIFT_OPTIONS = "workout-lift-options"
+    const val LIFT_SWITCHER = "workout-lift-switcher"
+    const val SWITCHER_ADD_LIFT = "workout-switcher-add-lift"
+    const val TIMER_ROW = "workout-timer-row"
+    const val COMPANION_CLOCK = "workout-companion-clock"
+    const val CANCEL_EDIT = "workout-cancel-edit"
+    const val ERROR_DETAILS = "workout-error-details"
+    const val REST_DURATION_SHEET = "workout-rest-duration-sheet"
+    const val SHEET_START_SET_CLOCK = "workout-sheet-start-set-clock"
+    const val SESSION_NOTES = "workout-session-notes"
+    const val WEIGHT_STEPPER = "workout-weight-stepper"
+    const val REPS_STEPPER = "workout-reps-stepper"
+    const val HOLD_STEPPER = "workout-hold-stepper"
+    const val PROGRESS_LINE = "workout-progress-line"
+    const val PROGRESS_BAR = "workout-progress-bar"
+    const val DETAILS = "workout-details"
+    const val STATS_ROW = "workout-stats"
+    const val STAT_LAST = "workout-stat-last"
+    const val STAT_BEST = "workout-stat-best"
+    const val STAT_VOLUME = "workout-stat-volume"
     fun liftCard(exerciseId: String) = "workout-lift-card-$exerciseId"
-    fun lastTimeChip(setId: String) = "workout-last-time-$setId"
+    fun liftSets(exerciseId: String) = "workout-lift-sets-$exerciseId"
+    fun liftRest(exerciseId: String) = "workout-lift-rest-$exerciseId"
+    fun liftSwitcherRow(exerciseId: String) = "workout-lift-switcher-$exerciseId"
+    fun setOptions(setId: String) = "workout-set-options-$setId"
+    fun rpeChoice(value: Int) = "workout-rpe-$value"
 }
 
 @Composable
@@ -174,54 +157,114 @@ fun ActiveWorkoutScreen(
     onExit: () -> Unit,
     onFinished: (String) -> Unit,
     onOpenRest: (String) -> Unit = {},
+    onOpenExercise: (String) -> Unit = {},
     viewModel: ActiveWorkoutViewModel = viewModel(),
     restNotificationsEnabledOverride: Boolean? = null,
 ) {
+    // Use the space assigned by our parent, including embedded / constrained
+    // windows. The host window can be portrait while this surface is landscape.
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        ActiveWorkoutContent(
+            onExit = onExit, onFinished = onFinished, onOpenRest = onOpenRest, onOpenExercise = onOpenExercise,
+            viewModel = viewModel, restNotificationsEnabledOverride = restNotificationsEnabledOverride,
+            landscape = LandscapeChrome.isLandscape(
+                widthDp = maxWidth.value.roundToInt(), heightDp = maxHeight.value.roundToInt(),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun ActiveWorkoutContent(
+    onExit: () -> Unit,
+    onFinished: (String) -> Unit,
+    onOpenRest: (String) -> Unit,
+    onOpenExercise: (String) -> Unit,
+    viewModel: ActiveWorkoutViewModel,
+    restNotificationsEnabledOverride: Boolean?,
+    landscape: Boolean,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val rest by viewModel.restTimerState.collectAsStateWithLifecycle()
+    val restState = viewModel.restTimerState.collectAsStateWithLifecycle()
+    val holdState = viewModel.holdTimer.collectAsStateWithLifecycle()
+    val stopwatchState = viewModel.setStopwatch.collectAsStateWithLifecycle()
     val microRec by viewModel.microRec.collectAsStateWithLifecycle()
+    val exerciseHistory by viewModel.exerciseHistory.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
-    val windowDp = LocalWindowInfo.current.containerDpSize
-    val landscape = LandscapeChrome.isLandscape(
-        widthDp = windowDp.width.value.roundToInt(),
-        heightDp = windowDp.height.value.roundToInt(),
-    )
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
-    val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
-    val pendingAdvance by viewModel.pendingAdvance.collectAsStateWithLifecycle()
-    var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    val undoEntries by viewModel.undoEntries.collectAsStateWithLifecycle()
+    val undoDwellMs by viewModel.undoDwellMs.collectAsStateWithLifecycle()
+    val primaryState = viewModel.primaryAction.collectAsStateWithLifecycle()
+    val logReceipt by viewModel.logReceipt.collectAsStateWithLifecycle()
+    val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
+    var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var liftSwitcherOpen by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
-    var confirmRemoveLift by rememberSaveable { mutableStateOf(false) }
+    var sessionSummaryOpen by rememberSaveable { mutableStateOf(false) }
+    var finishNotesOpen by rememberSaveable { mutableStateOf(false) }
+    var setsOpen by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.entryLocked) {
+        if (state.entryLocked) {
+            confirmEnd = false
+            confirmDiscard = false
+            liftSwitcherOpen = false
+            setsOpen = false
+            viewModel.setPickerVisible(false)
+            viewModel.cancelPendingLiftSwitch()
+        }
+    }
     val restNotificationsEnabled = restNotificationsEnabledOverride
         ?: rememberRestNotificationsEnabled()
     val session = state.session
     val selected = session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId }
-    val workingLogged = selected?.let { lift ->
-        session.setsFor(lift.exercise.id).count { !it.isWarmup }
-    } ?: 0
-    val liftComplete = WorkoutAdvance.liftComplete(
-        workingLogged = workingLogged,
-        targetSets = selected?.targetSets ?: 0,
-        wantAnother = extraSetRequested,
-    )
-    val nextExerciseId = WorkoutAdvance.nextExerciseId(
-        session?.exercises.orEmpty().map { it.exercise.id },
-        state.selectedExerciseId,
-    )
-    val showNext = liftComplete && nextExerciseId != null && state.editingSetId == null
-    // Resolved from the session the screen already holds; the dock names the lift the tap moves
-    // to rather than saying only "Next".
-    val nextExerciseName = nextExerciseId
-        ?.let { id -> session?.exercises?.firstOrNull { it.exercise.id == id }?.exercise?.name }
-        .orEmpty()
-    // Keyed on the session, not recomputed per frame: the header below it redraws every second
-    // as the elapsed clock ticks, and this walks every set of the workout.
+    val logged = remember(session, selected) {
+        selected?.let { lift -> session?.setsFor(lift.exercise.id) }.orEmpty()
+    }
+    val afterWarmup = logged.maxByOrNull { it.completedAt }?.isWarmup == true
+    val advance = remember(session, state.selectedExerciseId, extraSetRequested, state.editingSetId, state.draft.isWarmup) {
+        WorkoutAdvance.forSelection(
+            session = session,
+            selectedExerciseId = state.selectedExerciseId,
+            wantAnother = extraSetRequested || state.draft.isWarmup,
+            editing = state.editingSetId != null,
+        )
+    }
+    val workingLogged = advance.workingLogged
+    val progress = remember(session, state.selectedExerciseId) {
+        WorkoutProgressCalculator.of(session = session, selectedExerciseId = state.selectedExerciseId)
+    }
     val sessionWork = remember(session) { session?.work() ?: SetWork.NONE }
     val unit = LocalWeightUnit.current
     val view = LocalView.current
+    val receiptDwell = LocalAccessibilityManager.current?.calculateRecommendedTimeoutMillis(
+        originalTimeoutMillis = Motion.STATUS_DWELL_MS,
+        containsIcons = false,
+        containsText = true,
+        containsControls = false,
+    ) ?: Motion.STATUS_DWELL_MS
+    LaunchedEffect(logReceipt, receiptDwell) {
+        val receipt = logReceipt ?: return@LaunchedEffect
+        // The saved chip may be outside the lazy viewport. Announce the durable
+        // result once here, never from a timer tick or a chip entering composition.
+        @Suppress("DEPRECATION")
+        view.announceForAccessibility(receipt.line)
+        delay(receiptDwell)
+        viewModel.onLogReceiptShown()
+    }
+    val context = LocalContext.current
     val listState = rememberLazyListState()
+    LaunchedEffect(state.loadState, state.selectedExerciseId) {
+        if (state.loadState != SessionLoadState.FOUND) return@LaunchedEffect
+        if (state.selectedExerciseId != null) {
+            listState.scrollToItem(LogLoopBringIntoView.entryListIndex())
+        }
+    }
+    // An edit deliberately reveals the entry; ordinary saves keep the viewport where it is.
+    LaunchedEffect(state.editingSetId) {
+        if (state.editingSetId != null) listState.animateScrollToItem(LogLoopBringIntoView.editRevealIndex())
+    }
 
     DisposableEffect(Unit) {
         view.keepScreenOn = true
@@ -237,21 +280,27 @@ fun ActiveWorkoutScreen(
         val reason = exitRequested ?: return@LaunchedEffect
         viewModel.onExitHandled()
         when (reason) {
-            is WorkoutExit.Finished -> onFinished(reason.sessionId)
+            is WorkoutExit.Finished -> {
+                Haptics.commit(view)
+                onFinished(reason.sessionId)
+            }
             WorkoutExit.Discarded -> onExit()
         }
     }
 
-    // One leave path: system back behaves exactly like the top-bar X. Previously back popped
-    // silently, skipping the notes flush in persistDraftForExit, so the two exits from the
-    // same screen did different things. Only armed while a session is actually loaded, so
-    // back still works normally on the loading and missing states.
-    BackHandler(enabled = state.session != null) { confirmLeave = true }
+    // Back goes Home with the session still live. Finish is the explicit end
+    // (save as is / leave without saving). Both flush the draft.
+    fun keepAndExit() {
+        viewModel.persistDraftForExit()
+        onExit()
+    }
+    BackHandler(enabled = state.session != null) { keepAndExit() }
 
     // Always composed, unlike the bottom bar. An error raised while no lift is selected —
     // a failed create from the picker in an empty free workout — previously had no reader at
     // all: it was written to state and rendered nowhere.
-    val logBarVisible = session != null && selected != null
+    val logBarVisible = state.loadState == SessionLoadState.FOUND && session != null &&
+        (selected != null || state.save.pending)
 
     // The record's haptics and its acknowledgement live here rather than inside the banner:
     // the banner is a list item, and logging the set that breaks a record also scrolls the
@@ -259,15 +308,74 @@ fun ActiveWorkoutScreen(
     // beats fire once and the record is always cleared.
     LaunchedEffect(personalRecord) {
         if (personalRecord == null) return@LaunchedEffect
-        Haptics.celebrate(view)
+        delay(Motion.PR_ACCENT_DELAY_MS.toLong())
+        Haptics.recordAccent(view)
         delay(PERSONAL_RECORD_DWELL_MS)
         viewModel.onPersonalRecordShown()
+    }
+
+    // Log's success haptic fires after the durable write, from the commit feedback, never
+    // from the tap: a press that does not save must not feel like one that did.
+    LaunchedEffect(viewModel) {
+        viewModel.logFeedback.collect { feedback ->
+            when (feedback) {
+                LogCommitFeedback.SUCCESS -> Haptics.commit(view)
+                LogCommitFeedback.REJECT -> Haptics.reject(view)
+            }
+        }
+    }
+
+    // Packet G (HA-22/HA-23): a destructive landing warns lightly *after* the write;
+    // a landed undo confirms. Failures and expiries stay silent.
+    LaunchedEffect(viewModel) {
+        viewModel.deleteFeedback.collect { feedback ->
+            when (feedback) {
+                DeleteFeedback.DELETED, DeleteFeedback.REMOVED -> Haptics.warn(view)
+                DeleteFeedback.UNDO -> Haptics.commit(view)
+            }
+        }
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.floorTimerCue.collect { cue ->
+            when (cue) {
+                FloorTimerCue.HoldStarted -> Haptics.warn(view)
+                is FloorTimerCue.HoldTarget -> {
+                    Haptics.holdDone(view)
+                    RestTimerAlerts.holdTargetTone(context, cue.soundEnabled)
+                }
+                FloorTimerCue.StopwatchStarted -> Haptics.tickLight(view)
+                FloorTimerCue.StopwatchStopped -> Haptics.warn(view)
+            }
+        }
+    }
+
+    val loadClass = LoadClass.of(selected?.exercise?.loadType)
+    // Derived and deduplicated: the primary action re-emits every second while a hold or
+    // the set clock runs, and only the dock reads it live. The rest of the floor moves
+    // only when the plan flips between logging and advancing.
+    val plannedComplete by remember(primaryState) {
+        derivedStateOf {
+            val kind = primaryState.value.kind
+            kind == WorkoutPrimaryKind.NEXT_EXERCISE || kind == WorkoutPrimaryKind.FINISH
+        }
+    }
+    val setContext = when {
+        state.editingSetId != null -> "Editing saved set"
+        plannedComplete -> "Planned sets complete"
+        else -> SetOrdinalCopy.draftLine(
+            isWarmup = state.draft.isWarmup,
+            warmupLogged = logged.count { it.isWarmup },
+            workingLogged = workingLogged,
+            targetSets = selected?.targetSets ?: 0,
+        )
     }
 
     Scaffold(
         snackbarHost = {
             val errorBanner = state.error != null && !logBarVisible
-            if (errorBanner || deletedSet != null || pendingAdvance != null) {
+            val undoTop = undoEntries.lastOrNull()?.offer.takeIf { !logBarVisible }
+            if (errorBanner || undoTop != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -277,29 +385,15 @@ fun ActiveWorkoutScreen(
                     if (errorBanner) {
                         GymErrorBanner(message = state.error!!)
                     }
-                    // The dwell, the way out and the fade are the banner's own: it waits
-                    // Motion.STATUS_DWELL_MS, calls onDismissed only if the action was not
-                    // taken, and animates through instrumentTween, which snaps under reduced
-                    // motion. So the offer to move on is a banner, not a bespoke timer.
-                    pendingAdvance?.let { advance ->
-                        GymStatusBanner(
-                            message = "${advance.finishedName} done · next ${advance.nextName}",
-                            actionLabel = "Stay here",
-                            onAction = { viewModel.stayOnCurrentExercise() },
-                            onDismissed = { viewModel.advanceNow() },
-                        )
-                    }
-                    deletedSet?.let { removed ->
-                        GymStatusBanner(
-                            message = "Set deleted · " + SetCopy.setLine(
-                                removed.weightKg,
-                                removed.reps,
-                                LoadClass.of(selected?.exercise?.loadType),
-                                unit,
-                            ),
-                            actionLabel = "Undo",
-                            onAction = { viewModel.undoDeleteSet() },
-                            onDismissed = { viewModel.onUndoOfferHandled() },
+                    // Undo dwell honours the accessibility timeout. Advance is not a
+                    // banner: Next exercise / Add another set stand in the dock until chosen.
+                    undoTop?.let { offer ->
+                        GymUndoHost(
+                            message = offer.message,
+                            onUndo = viewModel::undoTopOffer,
+                            onDismissed = viewModel::onUndoOfferExpired,
+                            offerKey = offer.key,
+                            dwellMs = undoDwellMs,
                         )
                     }
                 }
@@ -308,47 +402,168 @@ fun ActiveWorkoutScreen(
         topBar = {
             WorkoutHeader(
                 routineName = session?.routineName ?: "Workout",
-                startedAt = session?.startedAt,
-                workingSets = session?.sets?.count { !it.isWarmup } ?: 0,
-                work = sessionWork,
-                unit = unit,
-                canFinish = session != null && session.sets.isNotEmpty(),
+                progress = progress,
+                canFinish = state.canFinish,
+                showDiscard = state.showDiscard,
                 compact = LandscapeChrome.compactHeader(landscape),
-                onExit = { confirmLeave = true },
-                onFinish = {
-                    Haptics.commit(view)
-                    viewModel.finishWorkout()
+                onExit = { keepAndExit() },
+                onFinish = { confirmEnd = true },
+                onDiscard = { confirmDiscard = true },
+                overflow = selected?.let { lift ->
+                    {
+                        LiftOverflowMenu(
+                            liftId = lift.id,
+                            canEdit = logged.isEmpty(),
+                            onSwap = viewModel::requestSwap,
+                            onRemove = viewModel::removeSelectedLift,
+                            onNotes = { notesOpen = true },
+                            onSummary = { sessionSummaryOpen = true },
+                            onSkip = viewModel::skipForNow,
+                            onSwitch = { liftSwitcherOpen = true },
+                            enabled = !state.entryLocked,
+                        )
+                    }
                 },
             )
         },
         bottomBar = {
-            if (logBarVisible) {
-                LogBar(
-                    editing = state.editingSetId != null,
-                    logging = state.logging,
-                    error = state.error,
-                    draftLabel = SetCopy.setLine(state.draft.weightKg, state.draft.reps, LoadClass.of(selected?.exercise?.loadType), unit),
-                    microRec = microRec.takeUnless {
-                        showNext || LandscapeChrome.foldMicroRecIntoCard(landscape)
-                    },
-                    loadClass = LoadClass.of(selected?.exercise?.loadType),
-                    unit = unit,
-                    showNext = showNext,
-                    nextExerciseName = nextExerciseName,
-                    onLog = {
-                        Haptics.commit(view)
-                        viewModel.logSet()
-                    },
-                    onNext = {
-                        nextExerciseId?.let(viewModel::advanceToNextLift)
-                    },
-                    onCancelEdit = viewModel::cancelEdit,
-                    onApplyMicroRec = viewModel::applyMicroRec,
-                )
+            // Read ticking values inside the dock's composition scope. The screen,
+            // exercise identity, and history chips do not subscribe to each tick.
+            val rest = restState.value
+            val holdTimer = holdState.value
+            val setStopwatch = stopwatchState.value
+            val primaryAction = primaryState.value
+            val holdLift = selected?.exercise?.let { HoldWork.isHold(it) } == true
+            val offerSetClock = FloorTimedModeResolver.offerSetClock(
+                mode = FloorTimerSurface.mode(
+                    holdRunning = holdTimer.running,
+                    stopwatchRunning = setStopwatch.running,
+                    hasLifts = session?.hasLifts() == true,
+                    restRunning = rest.running,
+                    restComplete = rest.completedTimerId != null && !rest.running,
+                    holdActive = holdTimer.running || holdTimer.targetReached,
+                ),
+                isHoldLift = holdLift,
+            ) && state.offerSetClock
+            val showNext = primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE
+            val showFinish = primaryAction.kind == WorkoutPrimaryKind.FINISH
+            val showAnother = (showNext || showFinish) && !state.entryLocked
+            // The timer slot, advance choice, and Log set share one dock so a one-handed
+            // thumb reaches every control. Finish stays in the header — it is not a mid-set act.
+            val emptySession = state.loadState == SessionLoadState.FOUND && session != null &&
+                !session.hasLifts() && !state.save.pending &&
+                FloorCompactChrome.emptySessionHidesTimerDock()
+            val showRest = state.loadState == SessionLoadState.FOUND && state.showRest
+            if (emptySession || showRest || logBarVisible) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (logBarVisible || emptySession) Modifier
+                            else Modifier.navigationBarsPadding(),
+                        ),
+                ) {
+                    if (emptySession) {
+                        PinnedDock(
+                            volt = {
+                                PrimaryGymButton(
+                                    text = "Add exercise",
+                                    onClick = { viewModel.performPrimary(primaryAction) },
+                                    enabled = primaryAction.enabled,
+                                    modifier = Modifier.testTag(WorkoutTestTags.DOCK_ADD_LIFT),
+                                    height = Metrics.commit,
+                                )
+                            },
+                        )
+                    } else if (logBarVisible) {
+                        WorkoutDock(
+                            state = WorkoutDockState(
+                                primaryAction = primaryAction,
+                                // The verb stays short in every orientation. Portrait names the next
+                                // lift on the commit's capped supporting line; a 360 dp landscape has
+                                // no room for a second line there, so it only speaks it.
+                                verb = primaryAction.verb(includeNextName = false),
+                                payload = primaryAction.payload(unit = unit, loadClass = loadClass)
+                                    ?: primaryAction.nextName.takeIf { !landscape && primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
+                                spokenPayload = primaryAction.nextName.takeIf { primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
+                                editing = state.editingSetId != null,
+                                logging = state.logging,
+                                canLog = state.canLog,
+                                savePending = state.save.pending,
+                                error = state.error,
+                                suggestionUnavailable = state.suggestionUnavailable,
+                                showAnother = showAnother,
+                                undoMessage = undoEntries.lastOrNull()?.offer?.message,
+                                undoKey = undoEntries.lastOrNull()?.offer?.key,
+                                undoDwellMs = undoDwellMs,
+                                timer = WorkoutDockTimer(
+                                    show = showRest,
+                                    restRemainingSeconds = rest.remainingSeconds,
+                                    restTotalSeconds = rest.totalSeconds,
+                                    restRunning = rest.running,
+                                    restCompletedTimerId = rest.completedTimerId,
+                                    hideIdleRest = LandscapeChrome.hideIdleRest(landscape),
+                                    afterWarmup = afterWarmup,
+                                    batteryHint = rest.batteryHint,
+                                    holdRunning = holdTimer.running,
+                                    holdElapsedSeconds = holdTimer.elapsedSeconds,
+                                    holdRemainingSeconds = holdTimer.remainingSeconds,
+                                    holdTotalSeconds = holdTimer.totalSeconds,
+                                    holdTargetReached = holdTimer.targetReached,
+                                    stopwatchRunning = setStopwatch.running,
+                                    stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
+                                    offerSetClock = offerSetClock,
+                                    persistenceHealthy = rest.persistenceHealthy,
+                                    exactBestEffort = rest.exactAlarmBestEffort,
+                                    notificationsEnabled = restNotificationsEnabled,
+                                ),
+                            ),
+                            events = WorkoutDockEvents(
+                                onPrimary = { action ->
+                                    val accepted = viewModel.performPrimary(action)
+                                    if (accepted && action.kind == WorkoutPrimaryKind.FINISH) confirmEnd = true
+                                    if (accepted && action.kind == WorkoutPrimaryKind.NEXT_EXERCISE) Haptics.warn(view)
+                                    accepted
+                                },
+                                onEditFailedSave = viewModel::editFailedSave,
+                                onCancelEdit = viewModel::cancelEdit,
+                                onDismissError = viewModel::dismissError,
+                                onAnotherSet = {
+                                    Haptics.tick(view)
+                                    viewModel.requestExtraSet()
+                                },
+                                onUndo = viewModel::undoTopOffer,
+                                onUndoDismissed = viewModel::onUndoOfferExpired,
+                                onSkipRest = viewModel::skipRest,
+                                onStartRest = viewModel::startSelectedRest,
+                                onSelectRestDuration = viewModel::selectRestDuration,
+                                onNudgeRest = viewModel::nudgeRest,
+                                onCustomRest = viewModel::selectCustomRest,
+                                onStartSetClock = viewModel::startSetStopwatch,
+                                onStopSetClock = viewModel::stopSetStopwatch,
+                                onDismissRestBatteryHint = viewModel::acknowledgeRestBatteryHint,
+                                onOpenRest = { session?.id?.let(onOpenRest) },
+                                onOpenNotifications = { openRestNotificationSettings(context) },
+                            ),
+                        )
+                    }
+                }
             }
         },
     ) { padding ->
         when {
+            state.loadState == SessionLoadState.FAILED -> {
+                EmptyState(
+                    scene = EmptyScene.GONE,
+                    title = "Workout unavailable",
+                    body = "Your workout could not be read. Your draft is kept. Retry, or close this screen and return later.",
+                    actionLabel = "Retry",
+                    onAction = viewModel::retrySession,
+                    compact = true,
+                    modifier = Modifier.padding(padding).padding(Metrics.gutter),
+                )
+            }
+
             state.isLoading -> {
                 ScreenLoading(modifier = Modifier.padding(padding))
             }
@@ -359,6 +574,7 @@ fun ActiveWorkoutScreen(
                 // notification. It must offer a way out — this used to be an unreachable
                 // branch behind a spinner that never resolved.
                 EmptyState(
+                    scene = EmptyScene.GONE,
                     title = "Workout missing",
                     body = "This session was finished, discarded, or replaced by a restore. " +
                         "Nothing was lost from your history.",
@@ -375,21 +591,6 @@ fun ActiveWorkoutScreen(
                         .fillMaxSize()
                         .padding(padding),
                 ) {
-                    // Outside the scroll on purpose. See RestDock.
-                    if (!restNotificationsEnabled) {
-                        RestNotificationRecoveryRow()
-                    }
-                    RestDock(
-                        remainingSeconds = rest.remainingSeconds,
-                        totalSeconds = rest.totalSeconds,
-                        running = rest.running,
-                        completedTimerId = rest.completedTimerId,
-                        hideWhenIdle = LandscapeChrome.hideIdleRest(landscape),
-                        onSkip = viewModel::skipRest,
-                        onStart = viewModel::startSelectedRest,
-                        onOpenRest = { session.id.let(onOpenRest) },
-                    )
-
                     LazyColumn(
                         state = listState,
                         modifier = Modifier
@@ -403,95 +604,293 @@ fun ActiveWorkoutScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(Metrics.space4),
                     ) {
-                        personalRecord?.let { moment ->
-                            item(key = "pr-moment") {
-                                PersonalRecordBanner(
-                                    headline = personalRecordHeadline(moment),
-                                    detail = "${moment.exerciseName.ifBlank { "This lift" }} · " +
-                                        SetCopy.setLine(moment.weightKg, moment.reps, LoadClass.of(selected?.exercise?.loadType), unit),
-                                    onDismiss = viewModel::onPersonalRecordShown,
-                                )
-                            }
-                        }
                         if (!session.hasLifts()) {
                             item(key = "empty-lifts") {
                                 EmptyState(
+                                    scene = EmptyScene.RACK,
                                     title = "Add a lift",
                                     body = SessionOrderCopy.EMPTY_SESSION_BODY,
-                                    actionLabel = "Add a lift",
-                                    onAction = { viewModel.setPickerVisible(true) },
                                     compact = true,
                                 )
                             }
                         } else {
-                            itemsIndexed(
-                                items = session.exercises,
-                                key = { _, lift -> "lift-${lift.id}" },
-                            ) { index, lift ->
-                                val isSelected = lift.exercise.id == state.selectedExerciseId
-                                val logged = session.setsFor(lift.exercise.id)
-                                WorkoutLiftCard(
-                                    card = WorkoutLiftCardState(
-                                        lift = lift,
-                                        number = index + 1,
-                                        selected = isSelected,
-                                        loggedSets = logged,
-                                        latestSetId = logged.maxByOrNull { it.completedAt }?.id,
-                                        editingSetId = state.editingSetId.takeIf { isSelected },
-                                        lastPerformance = state.lastPerformance.takeIf { isSelected },
-                                        hint = state.hint.takeIf { isSelected },
-                                        draftWeightKg = state.draft.weightKg,
-                                        draftReps = state.draft.reps,
+                            selected?.let { currentLift ->
+                                val currentIndex = session.exercises.indexOfFirst {
+                                    it.exercise.id == currentLift.exercise.id
+                                }.coerceAtLeast(0)
+                                val entryEnabled = !state.entryLocked
+                                val hold = HoldWork.isHold(currentLift.exercise)
+                                item(key = "exercise-header") {
+                                    ExerciseHeader(
+                                        lift = currentLift,
+                                        number = currentIndex + 1,
+                                        total = session.exercises.size,
+                                        workingLogged = workingLogged,
+                                        setContext = setContext,
                                         draftWarmup = state.draft.isWarmup,
-                                        draftRpe = state.draft.rpe,
-                                        microRec = microRec.takeIf { isSelected },
-                                        unit = unit,
-                                        canEdit = logged.isEmpty(),
-                                        showAddSet = isSelected &&
-                                            WorkoutAdvance.liftComplete(
-                                                workingLogged = logged.count { !it.isWarmup },
-                                                targetSets = lift.targetSets,
-                                                wantAnother = false,
-                                            ),
-                                    ),
-                                    events = WorkoutLiftCardEvents(
-                                        onSelect = { viewModel.selectExercise(lift.exercise.id) },
-                                        onSwap = viewModel::requestSwap,
-                                        onRemove = { confirmRemoveLift = true },
-                                        onWeightKgChange = viewModel::setWeight,
-                                        onRepsAdjust = viewModel::adjustReps,
-                                        onRepsChange = viewModel::setReps,
-                                        onApplyLastTime = viewModel::applyLastTimeSet,
                                         onWarmup = viewModel::setWarmup,
+                                        onOpenSwitcher = { liftSwitcherOpen = true },
+                                        onDetails = { onOpenExercise(currentLift.exercise.id) },
+                                        enabled = entryEnabled,
+                                    )
+                                }
+                                item(key = "stats") {
+                                    val stats = remember(session, currentLift.exercise.id, state.lastPerformance, exerciseHistory, unit) {
+                                        ExerciseFloorStatsCalculator.of(
+                                            session = session,
+                                            exerciseId = currentLift.exercise.id,
+                                            lastPerformance = state.lastPerformance,
+                                            priorHistory = exerciseHistory,
+                                            unit = unit,
+                                        )
+                                    }
+                                    Column {
+                                        HairlineDivider(startIndent = 0.dp)
+                                        ExerciseStatsRow(
+                                            stats = stats,
+                                            unit = unit,
+                                            onApplyLastSet = if (entryEnabled) viewModel::applyLastTimeSet else null,
+                                        )
+                                        HairlineDivider(startIndent = 0.dp)
+                                    }
+                                }
+                                item(key = "entry") {
+                                    val holdTimer = holdState.value
+                                    val lastKg = state.hint?.lastWeightKg ?: state.lastPerformance?.topSet?.weightKg
+                                    val sourceLabel = FloorWeightPresets.source(
+                                        currentKg = state.draft.weightKg,
+                                        plannedKg = currentLift.targetWeightKg,
+                                        lastKg = lastKg,
+                                        suggestedKg = state.hint?.suggestedWeightKg,
+                                    )?.label
+                                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                                        WeightRepsEditor(
+                                            enabled = entryEnabled,
+                                            weightKg = state.draft.weightKg,
+                                            reps = state.draft.reps,
+                                            unit = unit,
+                                            loadClass = loadClass,
+                                            loadType = currentLift.exercise.loadType,
+                                            equipment = currentLift.exercise.equipment,
+                                            movementKey = currentLift.exercise.movementKey,
+                                            plated = currentLift.exercise.equipment == EquipmentType.BARBELL,
+                                            hold = hold,
+                                            holdSeconds = state.draft.durationSeconds ?: currentLift.targetSeconds,
+                                            holdRunning = holdTimer.running,
+                                            holdRemainingSeconds = holdTimer.remainingSeconds,
+                                            sourceLabel = sourceLabel,
+                                            plannedKg = currentLift.targetWeightKg,
+                                            lastKg = lastKg,
+                                            onWeightKgChange = viewModel::setWeight,
+                                            onRepsChange = viewModel::setReps,
+                                            onSecondsChange = viewModel::setHoldSeconds,
+                                        )
+                                        if (state.draft.isWarmup) {
+                                            val workingKg = WarmupRamp.workingWeightKg(
+                                                draftKg = state.draft.weightKg,
+                                                draftIsWarmup = true,
+                                                workingLogged = workingLogged,
+                                                targetKg = currentLift.targetWeightKg,
+                                                suggestedKg = state.hint?.suggestedWeightKg,
+                                                lastKg = lastKg,
+                                                loadType = currentLift.exercise.loadType,
+                                                equipment = currentLift.exercise.equipment,
+                                                movementKey = currentLift.exercise.movementKey,
+                                            )
+                                            val ramp = if (workingLogged == 0) {
+                                                WarmupRamp.sets(
+                                                    workingWeightKg = workingKg,
+                                                    loadType = currentLift.exercise.loadType,
+                                                    unit = unit,
+                                                    equipment = currentLift.exercise.equipment,
+                                                )
+                                            } else {
+                                                emptyList()
+                                            }
+                                            WarmupRampRow(
+                                                enabled = entryEnabled,
+                                                ramp = ramp,
+                                                emphasisIndex = WarmupRamp.nextUnusedIndex(
+                                                    ramp = ramp,
+                                                    loggedWarmupKg = logged.filter { it.isWarmup }.map { it.weightKg },
+                                                ),
+                                                unit = unit,
+                                                onApplyRamp = viewModel::applyWarmupRamp,
+                                            )
+                                        }
+                                    }
+                                }
+                                item(key = "rpe") {
+                                    RpeSelector(
+                                        enabled = entryEnabled,
+                                        warmup = state.draft.isWarmup,
+                                        rpe = state.draft.rpe,
+                                        recommendedRpe = microRec?.nextRpe,
                                         onRpe = viewModel::setRpe,
-                                        onApplySuggested = viewModel::applySuggestedWeight,
-                                        onEditSet = viewModel::editSet,
-                                        onDeleteSet = viewModel::deleteSet,
-                                        onAddSet = viewModel::requestExtraSet,
-                                    ),
-                                )
-                            }
-                            item(key = "add-lift") {
-                                SecondaryGymButton(
-                                    text = "Add a lift",
-                                    onClick = { viewModel.setPickerVisible(true) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                )
+                                    )
+                                }
+                                val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }
+                                if (rec != null) {
+                                    item(key = "next-set") {
+                                        val applied = rec.isApplied(
+                                            weightKg = state.draft.weightKg,
+                                            reps = state.draft.reps,
+                                            rpe = state.draft.rpe,
+                                            unit = unit,
+                                        )
+                                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                                            HairlineDivider(startIndent = 0.dp)
+                                            NextSetRecommendation(
+                                                rec = rec,
+                                                loadClass = loadClass,
+                                                unit = unit,
+                                                applied = applied,
+                                                enabled = entryEnabled,
+                                                onApply = viewModel::applyMicroRec,
+                                            )
+                                        }
+                                    }
+                                }
+                                item(key = "set-history") {
+                                    val current = if (state.editingSetId != null || plannedComplete) {
+                                        null
+                                    } else {
+                                        CurrentSetMark(
+                                            mark = SetOrdinalCopy.draftMark(state.draft.isWarmup, workingLogged),
+                                            label = setContext,
+                                        )
+                                    }
+                                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                                        HairlineDivider(startIndent = 0.dp)
+                                        SetHistoryStrip(
+                                            sets = logged,
+                                            targetSets = currentLift.targetSets,
+                                            loadClass = loadClass,
+                                            unit = unit,
+                                            editingSetId = state.editingSetId,
+                                            receiptSetId = logReceipt?.setId,
+                                            current = current,
+                                            showAddSet = WorkoutAdvance.cardOffersAnotherSet(logged, currentLift.targetSets) &&
+                                                !extraSetRequested && state.editingSetId == null,
+                                            enabled = entryEnabled,
+                                            onEdit = viewModel::editSet,
+                                            onDelete = viewModel::deleteSet,
+                                            onOpenAll = { setsOpen = true },
+                                            onAddSet = {
+                                                Haptics.tick(view)
+                                                viewModel.requestExtraSet()
+                                            },
+                                        )
+                                    }
+                                }
                             }
                         }
-
-                        item(key = "notes") {
-                            NotesBlock(
-                                notes = state.notes,
-                                expanded = notesOpen,
-                                onToggle = { notesOpen = !notesOpen },
-                                onChange = viewModel::setNotes,
-                            )
+                        personalRecord?.let { moment ->
+                            item(key = "pr-moment") {
+                                PersonalRecordBanner(
+                                    headline = PersonalRecordCopy.headline(moment.kinds),
+                                    detail = "${moment.exerciseName.ifBlank { "This lift" }} · " +
+                                        SetCopy.setLine(moment.weightKg, moment.reps, loadClass, unit),
+                                    onDismiss = viewModel::onPersonalRecordShown,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    if (setsOpen && selected != null) {
+        WorkoutSetsSheet(
+            exerciseName = selected.exercise.name,
+            sets = logged,
+            latestSetId = WorkoutAdvance.latestSetId(logged),
+            editingSetId = state.editingSetId,
+            targetSets = selected.targetSets,
+            loadClass = loadClass,
+            unit = unit,
+            showAddSet = WorkoutAdvance.cardOffersAnotherSet(logged, selected.targetSets) && !extraSetRequested,
+            onEdit = { setsOpen = false; viewModel.editSet(it) },
+            onDelete = { setsOpen = false; viewModel.deleteSet(it) },
+            onAddSet = { setsOpen = false; viewModel.requestExtraSet() },
+            onDismiss = { setsOpen = false },
+        )
+    }
+
+    if (liftSwitcherOpen && session != null && session.hasLifts()) {
+        WorkoutSwitcherClock(rest = restState) { rest ->
+            LiftSwitcherSheet(
+                lifts = session.exercises.mapIndexed { index, lift ->
+                    val isCurrent = lift.exercise.id == state.selectedExerciseId
+                    LiftSwitcherRow(
+                        lift = lift,
+                        number = index + 1,
+                        workingLogged = session.setsFor(lift.exercise.id).count { !it.isWarmup },
+                        restSeconds = if (isCurrent) {
+                            lift.restSeconds.takeIf { it > 0 } ?: rest.totalSeconds
+                        } else {
+                            lift.restSeconds
+                        },
+                        restRunning = isCurrent && rest.running,
+                        restRemainingSeconds = rest.remainingSeconds,
+                        current = isCurrent,
+                    )
+                },
+                onSelect = { exerciseId ->
+                    liftSwitcherOpen = false
+                    viewModel.selectExercise(exerciseId)
+                },
+                onDismiss = { liftSwitcherOpen = false },
+                onAddLift = {
+                    liftSwitcherOpen = false
+                    viewModel.setPickerVisible(true)
+                },
+            )
+        }
+    }
+
+    pendingLiftSwitch?.let {
+        ConfirmActionDialog(
+            title = SetStopwatchCopy.SWITCH_TITLE,
+            body = SetStopwatchCopy.SWITCH_BODY,
+            confirmLabel = SetStopwatchCopy.SWITCH_CONFIRM,
+            onConfirm = viewModel::confirmStopTimingAndSwitch,
+            onDismiss = viewModel::cancelPendingLiftSwitch,
+        )
+    }
+
+    if (sessionSummaryOpen && session != null) {
+        WorkoutSessionSummary(
+            routineName = session.routineName ?: "Workout",
+            startedAt = session.startedAt,
+            workingSets = session.sets.count { !it.isWarmup },
+            warmups = session.sets.count { it.isWarmup },
+            work = sessionWork,
+            unit = unit,
+            onDismiss = { sessionSummaryOpen = false },
+        )
+    }
+
+    if (notesOpen) {
+        AlertDialog(
+            onDismissRequest = { notesOpen = false },
+            title = { Text(CurrentLiftCopy.SESSION_NOTES, style = InstrumentType.title) },
+            text = {
+                NotesBlock(
+                    notes = state.notes,
+                    expanded = true,
+                    onToggle = { notesOpen = false },
+                    onChange = viewModel::setNotes,
+                    modifier = Modifier.testTag(WorkoutTestTags.SESSION_NOTES),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { notesOpen = false }) {
+                    Text("Done", style = InstrumentType.bodyStrong)
+                }
+            },
+        )
     }
 
     if (state.showExercisePicker) {
@@ -510,7 +909,7 @@ fun ActiveWorkoutScreen(
                     is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
                     is ExercisePickerEvent.Selected -> viewModel.addExercise(event.exercise)
                     is ExercisePickerEvent.Created ->
-                        viewModel.createAndAddExercise(event.name, event.muscleGroup)
+                        viewModel.createAndAddExercise(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> Unit
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
                     ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
@@ -519,37 +918,22 @@ fun ActiveWorkoutScreen(
         )
     }
 
-    if (confirmLeave) {
-        // X, system back, and Finish-disabled empty sessions all land here. Keep is the
-        // gym-floor leave; Discard still opens the named confirm below.
-        LeaveWorkoutDialog(
-            onKeepAndExit = {
-                confirmLeave = false
-                viewModel.persistDraftForExit()
-                onExit()
+    if (confirmEnd) {
+        EndWorkoutDialog(
+            loggedSets = session?.sets?.size ?: 0,
+            notes = state.notes,
+            notesExpanded = finishNotesOpen,
+            onToggleNotes = { finishNotesOpen = !finishNotesOpen },
+            onNotesChange = viewModel::setNotes,
+            onSave = {
+                confirmEnd = false
+                viewModel.finishWorkout()
             },
-            onStay = { confirmLeave = false },
             onDiscardInstead = {
-                confirmLeave = false
+                confirmEnd = false
                 confirmDiscard = true
             },
-            onDismiss = { confirmLeave = false },
-        )
-    }
-
-    if (confirmRemoveLift) {
-        val name = selected?.exercise?.name ?: "this lift"
-        ConfirmActionDialog(
-            title = "Remove $name?",
-            body = "It comes out of this session's plan. Nothing logged is affected — this lift " +
-                "has no sets yet.",
-            confirmLabel = "Remove",
-            destructive = true,
-            onConfirm = {
-                confirmRemoveLift = false
-                viewModel.removeSelectedLift()
-            },
-            onDismiss = { confirmRemoveLift = false },
+            onDismiss = { confirmEnd = false },
         )
     }
 
@@ -574,1040 +958,16 @@ fun ActiveWorkoutScreen(
     }
 }
 
-private fun personalRecordHeadline(moment: PersonalRecordMoment): String = when {
-    // REPS first: it is the only record a bodyweight lift can break, so anything that outranks
-    // it here would leave the banner saying "most reps at this weight" about a push-up, whose
-    // weight is nothing.
-    PersonalRecordKind.REPS in moment.kinds -> "Most reps ever"
-    PersonalRecordKind.WEIGHT in moment.kinds -> "Heaviest ever"
-    PersonalRecordKind.ESTIMATED_ONE_REP_MAX in moment.kinds -> "Strongest set ever"
-    else -> "Most reps at this weight"
-}
 
-/**
- * The session's own chrome, carrying the session's own telemetry.
- *
- * This used to be a stock app bar spending its entire width on a routine name and a close
- * icon: the most data-driven screen in the product had less live information in its header
- * than a notes app, and the duration of a workout was computed for the first time only
- * after it had ended.
- *
- * Finish moved up here too. It was the last item of the scrolling content, so ending a
- * session meant scrolling to the bottom of a layout designed for mid-set logging — and then
- * confirming a dialog whose own body text admitted nothing was at stake. Finishing is safe,
- * non-destructive, and followed immediately by a summary that *is* the confirmation, so it
- * now happens on one tap.
- */
+private const val PERSONAL_RECORD_DWELL_MS = Motion.STATUS_DWELL_MS
+
+/** A suggestion counts as applied once the entry matches it to within a rounding hair. */
+
+/** Keep the optional switcher's clock subscription out of the parent screen. */
 @Composable
-private fun WorkoutHeader(
-    routineName: String,
-    startedAt: Long?,
-    workingSets: Int,
-    work: SetWork,
-    unit: WeightUnit,
-    canFinish: Boolean,
-    compact: Boolean,
-    onExit: () -> Unit,
-    onFinish: () -> Unit,
+private fun WorkoutSwitcherClock(
+    rest: androidx.compose.runtime.State<RestTimerUiState>,
+    content: @Composable (RestTimerUiState) -> Unit,
 ) {
-    var elapsedSeconds by remember { mutableIntStateOf(0) }
-    LaunchedEffect(startedAt) {
-        if (startedAt == null) return@LaunchedEffect
-        while (true) {
-            elapsedSeconds = ((System.currentTimeMillis() - startedAt) / 1_000L)
-                .coerceAtLeast(0L)
-                .toInt()
-            delay(1_000L)
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Pit)
-            .padding(start = Metrics.space2, end = Metrics.space4, bottom = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        ScreenHeader(
-            title = routineName,
-            onBack = onExit,
-            backIcon = Icons.Outlined.Close,
-            backDescription = "Exit workout",
-            paintBackground = false,
-            contentPadding = PaddingValues(0.dp),
-            trailing = {
-                TextButton(
-                    onClick = onFinish,
-                    enabled = canFinish,
-                    modifier = Modifier.testTag(WorkoutTestTags.FINISH),
-                ) {
-                    Text(
-                        "Finish",
-                        style = InstrumentType.bodyStrong,
-                        color = if (canFinish) TextPrimary else TextTertiary,
-                    )
-                }
-            },
-        )
-        if (!compact && !canFinish) {
-            Text(
-                "Log a set to finish.",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(end = Metrics.space4),
-                style = InstrumentType.caption,
-                color = TextTertiary,
-                textAlign = TextAlign.End,
-            )
-        }
-        if (!compact) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = Metrics.space2),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
-        ) {
-            MetricCluster(
-                value = RestTimer.formatClock(elapsedSeconds),
-                label = "elapsed",
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier.weight(1f),
-            )
-            MetricCluster(
-                value = workingSets.toString(),
-                label = "sets",
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier.weight(1f),
-            )
-            val column = SetCopy.workColumn(work, unit)
-            MetricCluster(
-                value = column.value,
-                label = column.label,
-                horizontalAlignment = Alignment.Start,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        }
-    }
+    content(rest.value)
 }
-
-/**
- * The one action that matters, and the values it is about to commit.
- *
- * The button is pinned while the entry panel scrolls, so after reviewing the set list a
- * lifter could face a full-width commit button whose payload was nowhere on screen. Echoing
- * the draft in the label means the tap is never blind.
- *
- * Scaffold's bottomBar draws edge-to-edge. The tab bar is gone on this route, so this
- * dock owns the system-nav inset the same way the tab bar and live bar already do —
- * otherwise Log sits under the three-button nav / gesture pill.
- */
-@Composable
-private fun LogBar(
-    editing: Boolean,
-    logging: Boolean,
-    error: String?,
-    draftLabel: String,
-    microRec: SetMicroRec?,
-    loadClass: LoadClass,
-    unit: WeightUnit,
-    showNext: Boolean,
-    /** Only read when [showNext] is true; blank falls back to the bare word. */
-    nextExerciseName: String,
-    onLog: () -> Unit,
-    onNext: () -> Unit,
-    onCancelEdit: () -> Unit,
-    onApplyMicroRec: () -> Unit,
-) {
-    PinnedDock(
-        prelude = {
-            error?.let {
-                Text(it, style = InstrumentType.body, color = Danger)
-            }
-            if (editing) {
-                TextButton(
-                    onClick = onCancelEdit,
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .heightIn(min = Metrics.touchMin),
-                ) {
-                    Text("Cancel edit", style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-            }
-            microRec?.let { rec ->
-                MicroRecLine(
-                    rec = rec,
-                    loadClass = loadClass,
-                    unit = unit,
-                    onApply = onApplyMicroRec,
-                )
-            }
-        },
-        volt = {
-            val nextAct = showNext && !editing
-            PrimaryGymButton(
-                text = when {
-                    editing -> "Save $draftLabel"
-                    nextAct -> WorkoutCopy.nextLift(nextExerciseName)
-                    else -> "Log $draftLabel"
-                },
-                onClick = if (nextAct) onNext else onLog,
-                enabled = !logging,
-                modifier = Modifier.testTag(
-                    if (nextAct) WorkoutTestTags.NEXT else WorkoutTestTags.LOG_SET,
-                ),
-                height = Metrics.commit,
-                hapticFeedback = nextAct || editing,
-                // The drawn label may run out of room; what is spoken never does.
-                contentDescription = if (nextAct) WorkoutCopy.nextSpoken(nextExerciseName) else null,
-            )
-        },
-    )
-}
-
-@Composable
-private fun MicroRecLine(
-    rec: SetMicroRec,
-    loadClass: LoadClass,
-    unit: WeightUnit,
-    onApply: () -> Unit,
-) {
-    var showWhy by rememberSaveable(rec.reasonCode, rec.nextWeightKg, rec.nextReps, rec.nextRpe) {
-        mutableStateOf(false)
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        SetMicroRecCopy.caption(rec)?.let { caption ->
-            Text(
-                caption,
-                style = InstrumentType.caption,
-                color = TextTertiary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
-            Text(
-                SetMicroRecCopy.line(rec, loadClass, unit),
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(WorkoutTestTags.MICRO_REC),
-                style = InstrumentType.bodyStrong,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            TextButton(
-                onClick = { showWhy = true },
-                modifier = Modifier
-                    .heightIn(min = Metrics.touchMin)
-                    .testTag(WorkoutTestTags.MICRO_REC_WHY),
-            ) {
-                Text(
-                    "Why",
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                )
-            }
-            if (rec.showApply && !rec.previewOnly) {
-                TextButton(
-                    onClick = onApply,
-                    modifier = Modifier
-                        .heightIn(min = Metrics.touchMin)
-                        .testTag(WorkoutTestTags.MICRO_REC_APPLY),
-                ) {
-                    Text("Use", style = InstrumentType.bodyStrong, color = Volt)
-                }
-            }
-        }
-    }
-    if (showWhy) {
-        ConfirmActionDialog(
-            title = "Why",
-            body = SetMicroRecCopy.whyLines(rec).joinToString("\n"),
-            confirmLabel = "OK",
-            onConfirm = { showWhy = false },
-            onDismiss = { showWhy = false },
-            dismissLabel = null,
-        )
-    }
-}
-
-private data class WorkoutLiftCardState(
-    val lift: SessionExercise,
-    val number: Int,
-    val selected: Boolean,
-    val loggedSets: List<SetLog>,
-    val latestSetId: String?,
-    val editingSetId: String?,
-    val lastPerformance: ExerciseSessionSummary?,
-    val hint: ProgressionHint?,
-    val draftWeightKg: Double,
-    val draftReps: Int,
-    val draftWarmup: Boolean,
-    val draftRpe: Int?,
-    val microRec: SetMicroRec?,
-    val unit: WeightUnit,
-    val canEdit: Boolean,
-    val showAddSet: Boolean,
-)
-
-private data class WorkoutLiftCardEvents(
-    val onSelect: () -> Unit,
-    val onSwap: () -> Unit,
-    val onRemove: () -> Unit,
-    val onWeightKgChange: (Double) -> Unit,
-    val onRepsAdjust: (Int) -> Unit,
-    val onRepsChange: (Int) -> Unit,
-    val onApplyLastTime: (Double, Int) -> Unit,
-    val onWarmup: (Boolean) -> Unit,
-    val onRpe: (Int?) -> Unit,
-    val onApplySuggested: () -> Unit,
-    val onEditSet: (String) -> Unit,
-    val onDeleteSet: (String) -> Unit,
-    val onAddSet: () -> Unit,
-)
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun WorkoutLiftCard(
-    card: WorkoutLiftCardState,
-    events: WorkoutLiftCardEvents,
-) {
-    val lift = card.lift
-    val number = card.number
-    val selected = card.selected
-    val loggedSets = card.loggedSets
-    val latestSetId = card.latestSetId
-    val editingSetId = card.editingSetId
-    val lastPerformance = card.lastPerformance
-    val hint = card.hint
-    val draftWeightKg = card.draftWeightKg
-    val draftReps = card.draftReps
-    val draftWarmup = card.draftWarmup
-    val draftRpe = card.draftRpe
-    val microRec = card.microRec
-    val unit = card.unit
-    val canEdit = card.canEdit
-    val showAddSet = card.showAddSet
-    val onSelect = events.onSelect
-    val onSwap = events.onSwap
-    val onRemove = events.onRemove
-    val onWeightKgChange = events.onWeightKgChange
-    val onRepsAdjust = events.onRepsAdjust
-    val onRepsChange = events.onRepsChange
-    val onApplyLastTime = events.onApplyLastTime
-    val onWarmup = events.onWarmup
-    val onRpe = events.onRpe
-    val onApplySuggested = events.onApplySuggested
-    val onEditSet = events.onEditSet
-    val onDeleteSet = events.onDeleteSet
-    val onAddSet = events.onAddSet
-    val workingLogged = loggedSets.count { !it.isWarmup }
-    val targetSets = lift.targetSets
-    val entryRequester = remember { BringIntoViewRequester() }
-    var previousSetCount by remember(lift.id) { mutableIntStateOf(-1) }
-    // A card that has just become the selected one carries the entry wells with it, so the
-    // same requester that keeps a logged set on screen is what moves the loop to the next
-    // lift. bringIntoView animates, which is the difference between arriving at the next
-    // exercise and being teleported to it; the guard on `wasSelected` keeps first composition
-    // and resume from scrolling a session the lifter has not touched yet.
-    var wasSelected by remember(lift.id) { mutableStateOf(selected) }
-    LaunchedEffect(lift.id, loggedSets.size, selected) {
-        val count = loggedSets.size
-        val grew = LogLoopBringIntoView.shouldBringIntoView(previousSetCount, count)
-        previousSetCount = count
-        val becameSelected = selected && !wasSelected
-        wasSelected = selected
-        if (grew || becameSelected) {
-            entryRequester.bringIntoView()
-        }
-    }
-    val shape = RoundedCornerShape(Radius.sm)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = Metrics.rowMin)
-            .clip(shape)
-            .background(if (selected) VoltDim else Surface2)
-            .border(
-                if (selected) Metrics.emphasisBorder else Metrics.hairline,
-                if (selected) Volt else Hairline,
-                shape,
-            ),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onSelect)
-                .testTag(WorkoutTestTags.liftCard(lift.exercise.id))
-                .semantics(mergeDescendants = true) {
-                    this.selected = selected
-                }
-                .padding(Metrics.space3),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
-            CountBadge(number = number, selected = selected)
-            ExerciseThumb(
-                exercise = lift.exercise,
-                size = ThumbSize.header,
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    lift.exercise.name,
-                    style = InstrumentType.title,
-                    color = TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (lift.exercise.muscleGroup.isNotBlank()) {
-                    Text(
-                        lift.exercise.muscleGroup,
-                        style = InstrumentType.caption,
-                        color = TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Text(
-                if (targetSets > 0) "$workingLogged/$targetSets" else workingLogged.toString(),
-                style = InstrumentType.numeralSm,
-                color = TextPrimary,
-                maxLines = 1,
-            )
-        }
-        if (selected) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        start = Metrics.space3,
-                        end = Metrics.space3,
-                        bottom = Metrics.space3,
-                    ),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space4),
-            ) {
-                CurrentLiftHeader(
-                    lift = lift,
-                    workingLogged = workingLogged,
-                    unit = unit,
-                    canEdit = canEdit,
-                    rec = microRec,
-                    onSwap = onSwap,
-                    onRemove = onRemove,
-                    showName = false,
-                    modifier = Modifier.testTag(WorkoutTestTags.CURRENT_LIFT),
-                )
-                lastPerformance?.let { last ->
-                    LastTimeStrip(
-                        summary = last,
-                        unit = unit,
-                        loadClass = LoadClass.of(lift.exercise.loadType),
-                        onApplySet = onApplyLastTime,
-                    )
-                }
-                hint?.let { next ->
-                    ProgressionStrip(
-                        hint = next,
-                        unit = unit,
-                        onApply = onApplySuggested,
-                    )
-                }
-                SetEntryPanel(
-                    weightKg = draftWeightKg,
-                    reps = draftReps,
-                    onWeightKgChange = onWeightKgChange,
-                    onRepsAdjust = onRepsAdjust,
-                    onRepsChange = onRepsChange,
-                    unit = unit,
-                    loadClass = LoadClass.of(lift.exercise.loadType),
-                    plated = lift.exercise.equipment == EquipmentType.BARBELL,
-                    modifier = Modifier
-                        .testTag(LogLoopBringIntoView.ANCHOR_TAG)
-                        .bringIntoViewRequester(entryRequester),
-                )
-                SecondaryLogOptions(
-                    warmup = draftWarmup,
-                    rpe = draftRpe,
-                    onWarmup = onWarmup,
-                    onRpe = onRpe,
-                )
-                if (loggedSets.isNotEmpty()) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    ) {
-                        Kicker("Sets")
-                        LoggedSetsPanel(
-                            sets = loggedSets,
-                            latestSetId = latestSetId,
-                            editingSetId = editingSetId,
-                            loadClassOf = { LoadClass.of(lift.exercise.loadType) },
-                            showAddSet = showAddSet,
-                            onEdit = onEditSet,
-                            onDelete = onDeleteSet,
-                            onAddSet = onAddSet,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CurrentLiftHeader(
-    lift: SessionExercise,
-    workingLogged: Int,
-    unit: WeightUnit,
-    canEdit: Boolean,
-    rec: SetMicroRec?,
-    onSwap: () -> Unit,
-    onRemove: () -> Unit,
-    modifier: Modifier = Modifier,
-    showName: Boolean = true,
-) {
-    val targetSets = lift.targetSets.coerceAtLeast(1)
-    val targetReps = lift.targetReps.coerceAtLeast(1)
-    var menuOpen by rememberSaveable(lift.id) { mutableStateOf(false) }
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        if (showName || canEdit) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (showName) {
-                    Text(
-                        lift.exercise.name,
-                        modifier = Modifier.weight(1f),
-                        style = InstrumentType.display,
-                        color = TextPrimary,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-                if (canEdit) {
-                    Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(
-                                Icons.Outlined.MoreVert,
-                                contentDescription = "Lift options",
-                                tint = TextSecondary,
-                            )
-                        }
-                        InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Swap lift…", style = InstrumentType.bodyStrong, color = TextPrimary)
-                                },
-                                onClick = {
-                                    menuOpen = false
-                                    onSwap()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text("Remove lift", style = InstrumentType.bodyStrong, color = Danger)
-                                },
-                                onClick = {
-                                    menuOpen = false
-                                    onRemove()
-                                },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        SetDots(completed = workingLogged, target = targetSets)
-        val liveRec = rec?.takeIf { it.reasonCode != SetMicroRecCalculator.LIFT_DONE }
-        val loadClass = LoadClass.of(lift.exercise.loadType)
-        val liveWeightLabel = liveRec?.nextWeightKg
-            ?.takeIf { it > 0.0 && loadClass.weightMeaning != com.sinura.personaltrainer.domain.WeightMeaning.NONE }
-            ?.toWeightLabel(unit)
-        Text(
-            WorkoutCopy.setProgress(
-                workingLogged = workingLogged,
-                targetSets = targetSets,
-                targetReps = targetReps,
-                targetWeightLabel = lift.targetWeightKg?.takeIf { it > 0.0 }?.toWeightLabel(unit),
-                liveReps = liveRec?.nextReps,
-                liveWeightLabel = liveWeightLabel,
-            ),
-            style = InstrumentType.caption,
-            color = TextSecondary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun SetDots(completed: Int, target: Int) {
-    val total = maxOf(target, completed)
-    Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        repeat(total) { index ->
-            Box(
-                modifier = Modifier
-                    .size(Metrics.space2)
-                    .clip(CircleShape)
-                    // Progress, not an action. Volt on this screen is reserved for the
-                    // things that are live or about to be tapped.
-                    .background(if (index < completed) TextSecondary else Hairline),
-            )
-        }
-    }
-}
-
-/**
- * What this lift looked like last time, in full.
- *
- * Complementary to [ProgressionStrip], not a duplicate of it: the strip states the decision
- * ("top set 100 kg x 5, add 2.5"), this states the evidence — every working set of the last
- * session, so a lifter can see that the top set came after two easy ones or at the end of a
- * grind, which is the difference between adding weight and repeating it.
- */
-@Composable
-private fun LastTimeStrip(
-    summary: ExerciseSessionSummary,
-    unit: WeightUnit,
-    loadClass: LoadClass,
-    onApplySet: (weightKg: Double, reps: Int) -> Unit,
-) {
-    val view = LocalView.current
-    val relative = remember(summary.performedAtMs) {
-        DayLabel.relative(summary.performedAtMs, System.currentTimeMillis())
-    }
-    val absolute = remember(summary.performedAtMs) {
-        DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))
-    }
-    Column(
-        modifier = Modifier.testTag(WorkoutTestTags.LAST_TIME),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-    ) {
-        Kicker("Last time · ${relative ?: absolute}")
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            items(summary.sets, key = { it.setId }) { set ->
-                val line = SetCopy.setLine(set.weightKg, set.reps, loadClass, unit)
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(Radius.xs))
-                        .background(Surface1)
-                        .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.xs))
-                        .clickable(role = Role.Button, onClick = {
-                            Haptics.tick(view)
-                            onApplySet(set.weightKg, set.reps)
-                        })
-                        .testTag(WorkoutTestTags.lastTimeChip(set.setId))
-                        .semantics {
-                            contentDescription = "Use last time $line"
-                        }
-                        .padding(horizontal = Metrics.space3, vertical = Metrics.space2),
-                ) {
-                    Text(
-                        line,
-                        style = InstrumentType.numeralSm,
-                        color = TextSecondary,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ProgressionStrip(
-    hint: ProgressionHint,
-    unit: WeightUnit,
-    onApply: () -> Unit,
-) {
-    // The sentence lives in the domain so this strip and the coach card cannot disagree about
-    // the same lift, and so a bodyweight lift is told to add a rep rather than a kilogram.
-    val reason = ProgressionCopy.stripReason(hint, unit)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(Radius.md))
-            .background(Surface2)
-            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.md))
-            .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-    ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-            // Labelled "Top set" because that is now literally what these numbers
-            // are: the heaviest working set of the last session, not the last logged.
-            Text(
-                "Top set ${hint.lastWeightKg.toWeightLabel(unit)} × ${hint.lastReps}  →  ${hint.suggestedWeightKg.toWeightLabel(unit)}",
-                style = InstrumentType.numeralSm,
-                color = TextPrimary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                reason,
-                style = InstrumentType.caption,
-                color = TextSecondary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        TextButton(
-            onClick = onApply,
-            modifier = Modifier.heightIn(min = Metrics.touchMin),
-        ) {
-            Text("Use", style = InstrumentType.bodyStrong, color = Volt)
-        }
-    }
-}
-
-@Composable
-private fun SecondaryLogOptions(
-    warmup: Boolean,
-    rpe: Int?,
-    onWarmup: (Boolean) -> Unit,
-    onRpe: (Int?) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            item(key = "warmup") {
-                InstrumentChip(
-                    label = "Warm-up",
-                    selected = warmup,
-                    onClick = { onWarmup(!warmup) },
-                )
-            }
-            item(key = "rpe-label") {
-                Kicker("RPE", modifier = Modifier.padding(horizontal = Metrics.space2))
-            }
-            items((6..10).toList()) { value ->
-                InstrumentChip(
-                    label = value.toString(),
-                    selected = rpe == value,
-                    onClick = { onRpe(if (rpe == value) null else value) },
-                )
-            }
-        }
-        Text(
-            RpeCopy.BLURB,
-            style = InstrumentType.caption,
-            color = TextTertiary,
-        )
-    }
-}
-
-@Composable
-private fun LoggedSetsPanel(
-    sets: List<SetLog>,
-    latestSetId: String?,
-    editingSetId: String?,
-    loadClassOf: (SetLog) -> LoadClass,
-    showAddSet: Boolean,
-    onEdit: (String) -> Unit,
-    onDelete: (String) -> Unit,
-    onAddSet: () -> Unit,
-) {
-    if (sets.isEmpty()) return
-    // Which row is showing its actions. The actions used to hang off `isLatest`, so the
-    // fourth set of a lift could be revised and the first three could not — the numbers were
-    // on screen, and the only way to correct a mistyped set 1 was to delete back to it.
-    // Selection is view state, not session state: it is deliberately not persisted, and a set
-    // that disappears under it (deleted here, or by a restore) releases it below.
-    var selectedSetId by rememberSaveable { mutableStateOf<String?>(null) }
-    val selected = selectedSetId?.takeIf { id -> sets.any { it.id == id } }
-    LaunchedEffect(sets, editingSetId) {
-        if (selectedSetId != null && sets.none { it.id == selectedSetId }) selectedSetId = null
-        // The edit sheet owns the row while it is open; leaving it selected underneath would
-        // offer Delete on the very set being saved.
-        if (editingSetId != null) selectedSetId = null
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-        GroupedList {
-            sets.forEachIndexed { index, set ->
-                if (index > 0) HairlineDivider()
-                SetRow(
-                    set = set,
-                    isLatest = set.id == latestSetId,
-                    isEditing = editingSetId == set.id,
-                    isSelected = selected == set.id,
-                    loadClass = loadClassOf(set),
-                    onSelect = {
-                        selectedSetId = if (selected == set.id) null else set.id
-                    },
-                    onEdit = {
-                        selectedSetId = null
-                        onEdit(set.id)
-                    },
-                    onDelete = {
-                        selectedSetId = null
-                        onDelete(set.id)
-                    },
-                )
-            }
-        }
-        if (showAddSet) {
-            TextButton(
-                onClick = onAddSet,
-                modifier = Modifier
-                    .heightIn(min = Metrics.touchMin)
-                    .testTag(WorkoutTestTags.ADD_SET),
-            ) {
-                Icon(
-                    Icons.Outlined.Add,
-                    contentDescription = null,
-                    tint = TextSecondary,
-                    modifier = Modifier.size(Metrics.space4),
-                )
-                Text(
-                    "Add set",
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                )
-            }
-        }
-    }
-}
-
-/**
- * A logged set.
- *
- * State is carried by the design rather than narrated in the text. Latest wears a Volt rail.
- * Warm-up wears a cyan tick. Editing is outlined in Volt, matching the log button.
- */
-@Composable
-private fun SetRow(
-    set: SetLog,
-    isLatest: Boolean,
-    isEditing: Boolean,
-    isSelected: Boolean,
-    loadClass: LoadClass,
-    onSelect: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val unit = LocalWeightUnit.current
-    val rowLabel = SetCopy.setLine(set.weightKg, set.reps, loadClass, unit)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = !isEditing, onClick = onSelect)
-            .semantics {
-                selected = isSelected
-                contentDescription = if (isSelected) {
-                    "Set ${set.setNumber}, $rowLabel, selected. Revise or Remove."
-                } else {
-                    "Set ${set.setNumber}, $rowLabel. Tap to revise or remove."
-                }
-            }
-            .then(
-                if (isEditing) {
-                    Modifier.border(Metrics.emphasisBorder, Volt)
-                } else {
-                    Modifier
-                },
-            )
-            .padding(end = Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(width = LATEST_RULE_WIDTH, height = LATEST_RULE_HEIGHT)
-                .background(if (isLatest) Volt else Color.Transparent),
-        )
-        if (set.isWarmup) {
-            Box(
-                modifier = Modifier
-                    .padding(start = Metrics.space2)
-                    .size(WARMUP_TICK)
-                    .clip(CircleShape)
-                    .background(RestCyan)
-                    .semantics { contentDescription = "Warm-up" },
-            )
-        }
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = Metrics.space3, top = Metrics.space3, bottom = Metrics.space3),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-        ) {
-            Text(
-                SetCopy.setLine(set.weightKg, set.reps, loadClass, unit),
-                style = InstrumentType.numeralSm,
-                color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            val extras = buildList {
-                add("Set ${set.setNumber}")
-                set.rpe?.let { add("RPE $it") }
-            }.joinToString(" · ")
-            Text(
-                extras,
-                style = InstrumentType.caption,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (isSelected) {
-            SetRowAction(
-                icon = TemperIcons.Edit,
-                label = "Revise set ${set.setNumber}",
-                tint = TextSecondary,
-                onClick = onEdit,
-            )
-            SetRowAction(
-                icon = TemperIcons.Delete,
-                label = "Remove set ${set.setNumber}",
-                tint = Danger,
-                onClick = onDelete,
-            )
-        }
-    }
-}
-
-/**
- * One action on a selected set row.
- *
- * Symbols, not words: two labelled buttons on every row is most of the row's width at the
- * font scales the log loop supports, and "Delete" set in Danger red next to "Edit" reads as
- * a warning rather than a choice. The plate marks carry the meaning and the label goes to
- * TalkBack, which is where a word is worth more than a glyph.
- */
-@Composable
-private fun SetRowAction(
-    icon: ImageVector,
-    label: String,
-    tint: Color,
-    onClick: () -> Unit,
-) {
-    IconButton(onClick = onClick) {
-        Icon(icon, contentDescription = label, tint = tint)
-    }
-}
-
-/**
- * Asks for POST_NOTIFICATIONS once, then reports whether rest notifications can actually
- * be shown.
- *
- * The result used to be discarded. On Android 13+ a denial silently removes BOTH off-screen
- * rest surfaces — the countdown and the "Rest done" alert — so a pocketed phone shows nothing
- * at all, with no way back: after two denials the system dialog stops appearing entirely.
- * The system dialog has no gym why, so an in-app sentence runs first. Continue launches
- * the permission prompt; Not now leaves the compact recovery row as the way back.
- * The returned flag drives that row (deep link to app notification settings) and
- * re-checks on every resume so it disappears the moment the user grants.
- */
-@Composable
-private fun rememberRestNotificationsEnabled(): Boolean {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    var enabled by remember {
-        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
-    }
-    var showWhy by rememberSaveable { mutableStateOf(false) }
-    var decided by rememberSaveable { mutableStateOf(false) }
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) {
-        enabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
-    }
-
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= 33 && !decided) {
-            val granted = ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS,
-            ) == PackageManager.PERMISSION_GRANTED
-            if (!granted) {
-                showWhy = true
-            }
-        }
-    }
-
-    if (showWhy) {
-        ConfirmActionDialog(
-            title = RestNotificationCopy.TITLE,
-            body = RestNotificationCopy.SENTENCE,
-            confirmLabel = RestNotificationCopy.CONTINUE,
-            dismissLabel = RestNotificationCopy.NOT_NOW,
-            onConfirm = {
-                decided = true
-                showWhy = false
-                if (Build.VERSION.SDK_INT >= 33) {
-                    launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-            },
-            onDismiss = {
-                decided = true
-                showWhy = false
-            },
-        )
-    }
-
-    // Returning from system settings is a resume, not a recomposition — re-read there.
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                enabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
-
-    return enabled
-}
-
-/**
- * Persistent recovery after the one explanation. One identity line and one
- * act — not a viewport-dominating banner (FND-015).
- */
-@Composable
-private fun RestNotificationRecoveryRow(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    InstrumentRow(
-        title = RestNotificationCopy.RECOVERY_TITLE,
-        modifier = modifier.testTag(WorkoutTestTags.NOTIF_RECOVERY),
-        onClick = {
-            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            try {
-                context.startActivity(intent)
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "App notification settings unavailable; falling back", thrown)
-                context.startActivity(
-                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                        .setData(android.net.Uri.fromParts("package", context.packageName, null))
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                )
-            }
-        },
-        trailing = {
-            Text(
-                RestNotificationCopy.RECOVERY_ACTION,
-                style = InstrumentType.bodyStrong,
-                color = Volt,
-                maxLines = 1,
-            )
-        },
-    )
-}
-
-private val LATEST_RULE_WIDTH = 3.dp
-private val LATEST_RULE_HEIGHT = 44.dp
-private val WARMUP_TICK = 6.dp
-
-private const val PERSONAL_RECORD_DWELL_MS = 6_000L

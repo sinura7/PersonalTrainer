@@ -39,7 +39,10 @@ fun PreferenceBlock(
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader("Training days", compact = true)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                items((SchedulePreferences.MIN_DAYS..SchedulePreferences.MAX_DAYS).toList()) { days ->
+                items(
+                    (SchedulePreferences.MIN_DAYS..SchedulePreferences.MAX_DAYS).toList(),
+                    key = { it },
+                ) { days ->
                     InstrumentChip(
                         label = "$days",
                         selected = preferences.trainingDaysPerWeek == days,
@@ -51,7 +54,7 @@ fun PreferenceBlock(
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {
             GymSectionHeader("Split", compact = true)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                items(SplitStyle.entries) { style ->
+                items(SplitStyle.entries, key = { it.name }) { style ->
                     InstrumentChip(
                         label = style.displayName,
                         selected = preferences.splitStyle == style,

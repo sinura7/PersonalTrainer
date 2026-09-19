@@ -11,10 +11,15 @@ import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.repository.RoutineRepository
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WorkoutPasteCopy
+import com.sinura.personaltrainer.domain.WorkoutPasteRest
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
@@ -413,6 +418,20 @@ class RoutineEditorViewModelTest {
             vm.awaitState { it.error == "That name is already in your library" }.error,
         )
         assertTrue(deps.exerciseRepository.observeAll().first().none { it.isCustom })
+    }
+
+    @Test
+    fun createAndSelectPutsABodyweightCustomOnTheRoutine() = runBlocking {
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        vm.setPickerVisible(true)
+        vm.createAndSelect("Push-up", "Chest", LoadType.BODYWEIGHT)
+
+        val saved = awaitRoutine { it.exercises.size == 1 }
+        val lift = saved.exercises.single().exercise
+        assertEquals("Push-up", lift.name)
+        assertEquals(LoadType.BODYWEIGHT, lift.loadType)
+        assertEquals(EquipmentType.BODYWEIGHT, lift.equipment)
     }
 
     @Test
@@ -1292,6 +1311,148 @@ class RoutineEditorViewModelTest {
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
         }
+    }
+
+    @Test
+    fun pasteFillsUpperABenchAndCreatesTheOtherBlocks() = runBlocking {
+        deps.dbMaintenance.seedCatalog()
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        val text = checkNotNull(
+            javaClass.getResource("/weekly-program-reference.md"),
+        ).readText()
+        vm.importPaste(text)
+        val state = vm.awaitState {
+            it.name == "Upper A" &&
+                it.routine?.exercises?.any { row -> row.exercise.id == "ex-barbell-bench-press" } == true &&
+                it.createdFromPaste.isNotEmpty()
+        }
+        val bench = state.routine!!.exercises.first { it.exercise.id == "ex-barbell-bench-press" }
+        assertEquals(4, bench.targetSets)
+        assertEquals(4, bench.targetReps)
+        assertEquals(WorkoutPasteRest.COMPOUND_SECONDS, bench.restSeconds)
+        assertEquals(
+            listOf("Lower A", "Upper B", "Lower B", "Cardio", "Flexibility"),
+            state.createdFromPaste,
+        )
+        val routines = awaitList("pasted routines", deps.routineRepository.observeAll()) { list ->
+            list.any { it.name == "Lower B" && it.exercises.any { row -> row.exercise.id == "ex-front-squat" } } &&
+                list.any { it.name == "Upper A" && it.exercises.any { row -> row.exercise.id == "ex-dead-hang" } }
+        }
+        assertTrue(routines.map { it.name }.containsAll(setOf("Upper A", "Lower A", "Upper B", "Lower B", "Cardio", "Flexibility")))
+        val lowerB = routines.first { it.name == "Lower B" }
+        val squat = lowerB.exercises.first { it.exercise.id == "ex-front-squat" }
+        assertEquals(3, squat.targetSets)
+        assertEquals(8, squat.targetReps)
+        val plank = lowerB.exercises.first { it.exercise.id == "ex-side-plank" }
+        assertEquals(2, plank.targetSets)
+        assertEquals(1, plank.targetReps)
+        assertEquals(20, plank.targetSeconds)
+        assertEquals(40, plank.targetSecondsMax)
+        assertTrue("side plank stored hold seconds as reps: ${plank.targetReps}", plank.targetReps != 20 && plank.targetReps != 40)
+        assertEquals(WorkoutPasteRest.ACCESSORY_SECONDS, plank.restSeconds)
+        val upperA = routines.first { it.name == "Upper A" }
+        assertTrue(upperA.notes.contains("2–3 min"))
+        assertTrue(upperA.notes.contains("Weekly layout") || upperA.notes.contains("Mon — Upper A"))
+        val hang = upperA.exercises.first { it.exercise.id == "ex-dead-hang" }
+        assertEquals(1, hang.targetReps)
+        assertEquals(20, hang.targetSeconds)
+        assertEquals(40, hang.targetSecondsMax)
+        assertTrue("dead hang stored hold seconds as reps: ${hang.targetReps}", hang.targetReps != 20 && hang.targetReps != 40)
+        val slots = withTimeout(TestWaits.FLOW_MS) {
+            deps.scheduleRepository.observeSlots().first { it.any { slot -> slot.anchorDay == Weekday.MONDAY } }
+        }
+        assertEquals(Weekday.MONDAY, slots.first { it.routineId == upperA.id }.anchorDay)
+        assertEquals(
+            Weekday.TUESDAY,
+            slots.first { it.routineId == routines.first { it.name == "Lower A" }.id }.anchorDay,
+        )
+        assertEquals(
+            Weekday.THURSDAY,
+            slots.first { it.routineId == routines.first { it.name == "Upper B" }.id }.anchorDay,
+        )
+        assertEquals(Weekday.FRIDAY, slots.first { it.routineId == lowerB.id }.anchorDay)
+        assertTrue(slots.any { it.anchorDay == Weekday.SATURDAY })
+        assertTrue(slots.none { it.anchorDay == Weekday.WEDNESDAY })
+        assertTrue(slots.none { it.anchorDay == Weekday.SUNDAY })
+    }
+
+    @Test
+    fun pasteQuotesTheFailingLineWhenALiftIsUnknown() = runBlocking {
+        deps.dbMaintenance.seedCatalog()
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        vm.importPaste(
+            """
+            Upper A (strength)
+            1. Not a real lift — 3×8
+            2. Barbell bench press — 4×4–6
+            """.trimIndent(),
+        )
+        val state = vm.awaitState {
+            it.routine?.exercises?.any { row -> row.exercise.id == "ex-barbell-bench-press" } == true &&
+                it.unmatched.isNotEmpty() &&
+                it.error != null
+        }
+        val miss = state.unmatched.single()
+        assertEquals("1. Not a real lift — 3×8", miss.raw)
+        assertTrue(miss.reason, miss.reason.contains("No library lift"))
+        val error = checkNotNull(state.error)
+        assertTrue(error, error.contains("1. Not a real lift — 3×8"))
+        assertTrue(error, error.contains("No library lift"))
+        assertEquals(WorkoutPasteCopy.issue(miss), error)
+        assertTrue(
+            state.routine!!.exercises.any { it.exercise.id == "ex-barbell-bench-press" },
+        )
+    }
+
+    @Test
+    fun pasteFillsPhoneLowerAWithTrailingStars() = runBlocking {
+        deps.dbMaintenance.seedCatalog()
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        val text = checkNotNull(javaClass.getResource("/allen-lower-a-phone-paste.txt")).readText()
+        vm.importPaste(text)
+        val state = vm.awaitState {
+            it.name == "Lower A" &&
+                it.routine?.exercises?.size == 7 &&
+                it.error == null
+        }
+        val ids = state.routine!!.exercises.map { it.exercise.id }
+        assertEquals(
+            listOf(
+                "ex-barbell-back-squat",
+                "ex-romanian-deadlift",
+                "ex-walking-lunge",
+                "ex-leg-curl",
+                "ex-standing-calf-raise",
+                "ex-cable-crunch",
+                "ex-wall-sit",
+            ),
+            ids,
+        )
+        val squat = state.routine!!.exercises.first { it.exercise.id == "ex-barbell-back-squat" }
+        assertEquals(4, squat.targetSets)
+        assertEquals(4, squat.targetReps)
+        val sit = state.routine!!.exercises.first { it.exercise.id == "ex-wall-sit" }
+        assertEquals(2, sit.targetSets)
+        assertEquals(1, sit.targetReps)
+        assertEquals(30, sit.targetSeconds)
+        assertEquals(45, sit.targetSecondsMax)
+    }
+
+    @Test
+    fun garbagePasteQuotesAConcreteReason() = runBlocking {
+        deps.dbMaintenance.seedCatalog()
+        val vm = createViewModel("new")
+        vm.awaitState { !it.isLoading }
+        vm.importPaste("asdf potato")
+        val state = vm.awaitState { it.error != null }
+        val error = checkNotNull(state.error)
+        assertTrue(error, error.contains(WorkoutPasteCopy.NO_SESSION_NAME))
+        assertTrue(error, error.contains(WorkoutPasteCopy.NO_NUMBERED_LIFTS))
+        assertFalse(error, error.contains("Could not read a workout in that text"))
+        assertTrue(state.routine?.exercises.isNullOrEmpty())
     }
 
     private fun createViewModel(

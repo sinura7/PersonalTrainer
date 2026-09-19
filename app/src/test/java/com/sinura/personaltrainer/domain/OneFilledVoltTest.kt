@@ -28,9 +28,9 @@ class OneFilledVoltTest {
     }
 
     @Test
-    fun leftoverFreeStartIsSecondaryWhenRecoveryVoltIsPresent() {
+    fun leftoverFreeStartIsPrimaryWhenThereIsNoRecoveryVolt() {
         assertEquals(
-            FreeStartRank.SECONDARY,
+            FreeStartRank.PRIMARY,
             OneFilledVolt.leftoverFreeStart(
                 sessionLive = false,
                 setupComplete = true,
@@ -53,6 +53,15 @@ class OneFilledVoltTest {
                 sessionLive = true,
                 setupComplete = true,
                 hasRecoveryVolt = true,
+                quietStart = false,
+            ),
+        )
+        assertEquals(
+            FreeStartRank.PRIMARY,
+            OneFilledVolt.leftoverFreeStart(
+                sessionLive = false,
+                setupComplete = false,
+                hasRecoveryVolt = false,
                 quietStart = false,
             ),
         )

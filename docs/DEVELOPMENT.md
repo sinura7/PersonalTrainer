@@ -10,7 +10,7 @@ operational runbook: layout, tests, Windows notes, things that bite you.
 ## Verification and distribution lanes
 
 One table, current as of the 2026-09-06 handoff
-([HANDOFF-2026-09-06.md](HANDOFF-2026-09-06.md) §1 records the exact
+([HANDOFF-2026-09-06.md](archive/handoffs/HANDOFF-2026-09-06.md) §1 records the exact
 environment each batch was verified in). Older evidence files under
 `foundation-program/evidence/` are labelled by commit and date; their
 test counts are what ran *then*, not what runs now.
@@ -19,7 +19,7 @@ test counts are what ran *then*, not what runs now.
 |---|---|---|---|
 | Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | Twenty-one source checkers, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.11+ (`tomllib`) and Java 17 (no SDK) | every commit |
 | JVM lane: `tools/run-domain-tests.sh <jars>` | `domain/`, `util/`, `logging/`, the named workout/timer/diagnostics files and the backup codec, compiled with `kotlinc` against stubs | same | every commit |
-| Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) | SDK machine, or `ci.yml` on a push | merge into `trunk` |
+| Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) — **and the static gate above**, via `:app:staticChecks`, which every `Test` task depends on | SDK machine, or `ci.yml` on a push | merge into `trunk` |
 | Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
 | Instrumented sources: `./gradlew compileDebugAndroidTestKotlin` | The device tests still compile — a test-only change never reaches a device from here, and a broken one would sit unnoticed until an emulator run | same | merge into `trunk` (`ci.yml` runs it) |
 | Hosted `ci.yml`: *Tests, lint, debug build* | The same static gate, unit suite, lint and debug build the local gate runs, on every push and pull request | GitHub-hosted runner | may be a required check on `trunk` ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)); the owner enables it |
@@ -30,7 +30,22 @@ test counts are what ran *then*, not what runs now.
 The merge gate is the JVM gate — static gate, Gradle unit, build — as
 [owner-loop](../.cursor/rules/owner-loop.mdc) says; a packet does not
 wait for a phone check. The phone and emulator lanes gate the signed
-gym-floor release, not the merge. Distribution is Obtainium:
+gym-floor release, not the merge.
+
+**The static gate is no longer something to remember.** `:app:staticChecks`
+runs `tools/preflight.sh` with `PT_STATIC_ONLY=1`, and every Gradle `Test`
+task depends on it, so `./gradlew testDebugUnitTest` fails on a broken
+ratchet whether or not anybody ran preflight by hand. Until 11 Sep 2026 it
+did not: the twenty-odd checkers, the design-token ceilings, the
+unbounded-wait and swallowed-cancellation counts, the supply-chain ledger
+and the version floor were all wired into `preflight.sh` and into
+`ci.yml` — and into nothing that the push gate touched. Running
+`tools/preflight.sh` directly is still the faster loop and the only way to
+get the `run-domain-tests.sh` lane; `-PskipStaticChecks` skips the Gradle
+copy while tightening an inner loop in the IDE, and is not a way through
+the gate.
+
+Distribution is Obtainium:
 Temper Debug from `debug-live-*` pre-releases signed by the stable
 debug signer ([SETUP.md](../SETUP.md) §6), gym-floor Temper from signed
 `v*` releases.
@@ -386,6 +401,30 @@ automation gap.
 
 ## On Windows
 
+For the Windows desktop workspace, use the project launcher from PowerShell:
+
+```powershell
+.\tools\dev-windows.ps1
+.\tools\dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest
+```
+
+The first command checks tool discovery and prints the Gradle version. The second
+runs the local verification tasks, including compilation of the device tests; it
+does not run those tests on a device. The launcher selects JDK 17 from `JAVA_HOME`
+or `%USERPROFILE%\.jdks`, finds SDK platform 36, and exposes Git for Windows shell
+tools and Python 3.11+ (through the `py` launcher) to Gradle. Its environment changes
+are process-local, and its generated Python helper lives in ignored `build/`.
+It does not change Windows settings, signing keys, or the phone installation.
+In a sandboxed desktop session, access to the installed tools and Gradle cache may
+require approval. A successful version check is not evidence the test suite passed.
+
+Verified on 16 September 2026 with Microsoft JDK 17.0.20, Python 3.13, SDK 36,
+and Gradle 8.11.1: all four tasks above passed; the unit-test XML reports contained
+2,536 tests in 393 suites, with zero failures, errors, or skips. No physical-device
+or emulator tests were run. The historical Windows migration limitation below
+did not prevent this checkout's unit suite from passing; do not assume a Linux
+environment is required without reproducing a failure on the current checkout.
+
 The phone lane is Obtainium. This section is only for a Windows host that
 still runs Gradle. It is not how Temper reaches the device.
 
@@ -504,6 +543,63 @@ program those rules point at is [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md).
 
 ## Committing
 
-One packet, one `cursor/<slug>-b87f` branch, one PR into `trunk`. Write
+One packet, one `codex/<slug>` branch, one PR into `trunk` (ADR-026). Write
 commit messages that explain **why**, not what — the diff already says what.
 The existing history is the model to follow.
+
+## Reproducible native lane on Windows
+
+The frontend programme is tracked in [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md).
+`tools/android-emulator.ps1` owns isolated AVDs under ignored `build/android-runtime/avd`.
+It never selects a phone. Start cold-boots its dedicated AVD to establish the
+actual renderer and image. The Windows build wrapper always pins an emulator
+serial, permits explicit full task names, and verifies/cold-boots the target
+before connected tests. Install and start one profile at a time:
+
+```powershell
+.\tools\android-emulator.ps1 -Action Install -Api 29
+.\tools\android-emulator.ps1 -Action Start -Api 29
+$env:ANDROID_SERIAL = 'emulator-5554'
+.\tools\dev-windows.ps1 connectedDebugAndroidTest
+.\tools\android-emulator.ps1 -Action Stop -Api 29
+```
+
+Profiles: API 29 / port 5554 / AOSP x86_64 revision 8; API 36 / port 5556 /
+revision 2; API 26 / port 5558 / revision 1. All use 1080 × 1920 pixels,
+420 dpi, 2 GB RAM, WHPX and SwiftShader. The Windows reference renderer is
+Android Emulator 37.1.11. Start verifies the guest API, renderer binary, image
+mapping, locale and timezone, and resets display/font/animation overrides.
+It writes an environment manifest in
+`build/android-runtime/temper-tests-api<API>.json`. SDK images and the emulator
+may change independently; inspect the manifest before approving new references.
+Installation verifies the pinned command-line tools archive SHA-256 and image
+revision; it does not replace another command-line-tools installation.
+
+The Windows wrapper explicitly selects `goldenProfile=windows-swiftshader37`.
+The legacy Linux references remain separate. Missing references fail; API 29
+pixel tests are intentionally inapplicable to API 26/36. Behavioural tests still
+run on those versions. The rounding allowance remains one colour level on at
+most 256 pixels; it is not widened to hide renderer or product changes.
+
+`FrontendBaselineCaptureTest` runs the real MainActivity/NavHost with two fixture
+sessions (one finished, one live), then captures every main tab. Screenshots are
+written to the emulator's `/sdcard/Download/<run-id>-frontend-baseline-*-api<API>.png`.
+Each run retains a matching profile manifest under `build/android-runtime/runs/`.
+Copies are verified by SHA-256 and names are unique across runs.
+It refuses physical-device execution and dismisses first-launch permission
+explanations through their UI. These whole-device captures use the real civil
+clock and are observation evidence, not deterministic pixel goldens.
+
+For deliberate reference recording, add
+`-Pandroid.testInstrumentationRunnerArguments.recordGoldens=true` and restrict
+the run to the golden classes. Pull and inspect the `*-recorded.png` files,
+remove the run-id prefix and `-recorded` suffix, place accepted images under
+`app/src/androidTest/assets/goldens/windows-swiftshader37/`,
+and run again **without** the record flag. Recording alone is not verification.
+Document the reason for each change and retain the original expected/actual/diff
+artifacts for investigation.
+
+The legacy `GoldenCapture` requests 360 × 800 dp but Android constrains it to
+945 × 1731 pixels on this physical profile (360 × approximately 659 dp).
+Do not claim this is evidence for an 800 dp content height. New frontend layout
+fixtures must establish their actual measured viewport for the required matrix.

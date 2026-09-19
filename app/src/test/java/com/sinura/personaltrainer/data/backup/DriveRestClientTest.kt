@@ -221,6 +221,66 @@ class DriveRestClientTest {
         assertEquals(1, requests)
     }
 
+    /**
+     * Every backup the app writes ends in "\n" (BackupJson and the envelope both append
+     * one), and the client used to treat that newline as the CRLF that must precede the
+     * closing boundary. RFC 2046 §5.1.1 says that CRLF belongs to the boundary, so what
+     * reached Drive was "\n--boundary--", Drive found no end boundary, and every upload
+     * since Live 60 — manual and after each workout — failed with a 400. The wire body is
+     * the thing under test: it is parsed here the way a strict multipart reader parses it.
+     */
+    @Test
+    fun aPayloadEndingInANewlineStillClosesTheMultipartBody() {
+        val payload = "{\n  \"schema\": 5\n}\n"
+        val http = RecordingDriveHttp(listOf({ uploadedJson() }))
+
+        DriveRestClient(http).uploadBackup("token", "folder-1", "temper-backup.json", payload)
+
+        val parts = multipartParts(http)
+        assertEquals(2, parts.size)
+        assertEquals(payload, parts[1].second)
+        assertTrue(parts[0].second.contains("\"name\":\"temper-backup.json\""))
+        assertTrue(parts[0].second.contains("\"parents\":[\"folder-1\"]"))
+    }
+
+    @Test
+    fun aPayloadWithoutATrailingNewlineIsSentByteForByte() {
+        val payload = "{\"schema\":5}"
+        val http = RecordingDriveHttp(listOf({ uploadedJson() }))
+
+        DriveRestClient(http).uploadBackup("token", "folder-1", "temper-backup.json", payload)
+
+        assertEquals(payload, multipartParts(http)[1].second)
+    }
+
+    /**
+     * The one upload's body, split as a strict reader splits it: a boundary line is
+     * "--boundary" at the very start or after CRLF, the closing one is "--boundary--", and
+     * everything between a part's blank line and the next boundary's CRLF is that part.
+     * Fails, rather than guesses, when the end boundary is missing or badly delimited.
+     */
+    private fun multipartParts(http: RecordingDriveHttp): List<Pair<String, String>> {
+        assertEquals(listOf("POST"), http.methods)
+        assertTrue(http.urls.single().contains("uploadType=multipart"))
+        val contentType = checkNotNull(http.contentTypes.single())
+        assertTrue(contentType.startsWith("multipart/related; boundary="))
+        val boundary = contentType.substringAfter("boundary=")
+        val body = checkNotNull(http.bodies.single())
+        val open = "--$boundary\r\n"
+        val close = "\r\n--$boundary--\r\n"
+        assertTrue("body must start with the first boundary line", body.startsWith(open))
+        assertTrue("body must end with a CRLF-delimited closing boundary", body.endsWith(close))
+        val inner = body.removePrefix(open).removeSuffix(close)
+        return inner.split("\r\n--$boundary\r\n").map { part ->
+            val headers = part.substringBefore("\r\n\r\n")
+            val content = part.substringAfter("\r\n\r\n")
+            headers to content
+        }
+    }
+
+    private fun uploadedJson(): String =
+        """{"id":"file-1","name":"temper-backup.json","modifiedTime":"2026-09-17T10:00:00Z"}"""
+
     private fun list(http: DriveHttp): DriveBackupListing = runBlocking {
         DriveRestClient(http = http).listBackups(accessToken = "token", folderId = "folder")
     }
@@ -261,6 +321,8 @@ class DriveRestClientTest {
     private class RecordingDriveHttp(private val pages: List<() -> String>) : DriveHttp {
         val urls = mutableListOf<String>()
         val methods = mutableListOf<String>()
+        val contentTypes = mutableListOf<String?>()
+        val bodies = mutableListOf<String?>()
 
         override fun call(
             accessToken: String,
@@ -271,6 +333,8 @@ class DriveRestClientTest {
         ): String {
             urls += url
             methods += method
+            contentTypes += contentType
+            bodies += body
             val index = urls.size - 1
             check(index < pages.size) { "request ${index + 1} has no canned page: $url" }
             return pages[index]()

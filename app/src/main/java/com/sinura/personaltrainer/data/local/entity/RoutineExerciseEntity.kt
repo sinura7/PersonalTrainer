@@ -33,4 +33,6 @@ data class RoutineExerciseEntity(
     val targetReps: Int,
     val targetWeightKg: Double?,
     val restSeconds: Int,
+    val targetSeconds: Int? = null,
+    val targetSecondsMax: Int? = null,
 )

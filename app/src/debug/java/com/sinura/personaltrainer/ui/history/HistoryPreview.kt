@@ -9,7 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HorizonTotals
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.SessionLogRow
@@ -39,6 +42,7 @@ private fun HistoryPopulatedPreview() {
                 durationMinutes = 48,
                 onClick = {},
                 unit = WeightUnit.KG,
+                stills = HistoryPreviewFixtures.stills,
             )
         }
     }
@@ -74,6 +78,38 @@ private fun HistoryPreviewColumn(content: @Composable () -> Unit) {
 }
 
 internal object HistoryPreviewFixtures {
+    val stills = listOf(
+        Exercise(
+            id = "ex-barbell-back-squat",
+            name = "Barbell Back Squat",
+            muscleGroup = "Quads",
+            notes = "",
+            isCustom = false,
+            equipment = EquipmentType.BARBELL,
+            loadType = LoadType.EXTERNAL,
+            imageKey = "ex_barbell_back_squat",
+        ),
+        Exercise(
+            id = "ex-barbell-bench-press",
+            name = "Barbell Bench Press",
+            muscleGroup = "Chest",
+            notes = "",
+            isCustom = false,
+            equipment = EquipmentType.BARBELL,
+            loadType = LoadType.EXTERNAL,
+            imageKey = "ex_barbell_bench_press",
+        ),
+        Exercise(
+            id = "ex-lat-pulldown",
+            name = "Lat Pulldown",
+            muscleGroup = "Back",
+            notes = "",
+            isCustom = false,
+            equipment = EquipmentType.CABLE,
+            loadType = LoadType.STACK,
+            imageKey = "ex_lat_pulldown",
+        ),
+    )
     val totals = HorizonTotals(
         horizon = AnalyticsHorizon.YEAR,
         startEpochDay = 1,
