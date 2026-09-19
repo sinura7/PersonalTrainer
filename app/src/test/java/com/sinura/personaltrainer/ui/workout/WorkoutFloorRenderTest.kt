@@ -19,6 +19,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
@@ -113,9 +114,13 @@ class WorkoutFloorRenderTest {
             // The first rest of a fresh install shows the battery hint in the companion slot;
             // this frame is about the card underneath it.
             vm.acknowledgeRestBatteryHint()
-            // The clock is the service's; its state reaches the ViewModel through a flow, so
-            // wait for it rather than capture the frame the instant it was started.
+            // The clock is the service's; its state reaches the ViewModel through one flow and
+            // the composition through another, so wait for the card itself to be on screen
+            // rather than capture the frame the instant the clock was started.
             compose.waitUntil(timeoutMillis = 20_000) { vm.restTimerState.value.running }
+            compose.waitUntil(timeoutMillis = 20_000) {
+                compose.onAllNodesWithTag(WorkoutTestTags.REST_BAR).fetchSemanticsNodes().isNotEmpty()
+            }
         }
     }
 
