@@ -19,6 +19,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -350,8 +351,15 @@ private fun ActiveWorkoutContent(
     }
 
     val loadClass = LoadClass.of(selected?.exercise?.loadType)
-    val plannedComplete = primaryState.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE ||
-        primaryState.value.kind == WorkoutPrimaryKind.FINISH
+    // Derived and deduplicated: the primary action re-emits every second while a hold or
+    // the set clock runs, and only the dock reads it live. The rest of the floor moves
+    // only when the plan flips between logging and advancing.
+    val plannedComplete by remember(primaryState) {
+        derivedStateOf {
+            val kind = primaryState.value.kind
+            kind == WorkoutPrimaryKind.NEXT_EXERCISE || kind == WorkoutPrimaryKind.FINISH
+        }
+    }
     val setContext = when {
         state.editingSetId != null -> "Editing saved set"
         plannedComplete -> "Planned sets complete"

@@ -96,10 +96,8 @@ internal fun NextSetRecommendation(
             if (canUse) {
                 QuietButton(
                     text = if (applied) "Applied" else "Apply",
-                    onClick = {
-                        Haptics.tick(view)
-                        onApply()
-                    },
+                    // QuietButton already gives the press its detent; one pulse per tap.
+                    onClick = onApply,
                     modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC_APPLY),
                     enabled = enabled && !applied,
                     leading = if (applied) TemperIcons.Check else null,
