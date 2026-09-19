@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -28,6 +29,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -60,6 +62,12 @@ fun PrimaryGymButton(
     hapticFeedback: Boolean = true,
     disabledReason: String? = null,
     interactionSource: MutableInteractionSource? = null,
+    /**
+     * A second, quieter line under [text]: the payload a commit will write
+     * (`70 lbs × 10 · RPE 9`). The verb stays the button's name; TalkBack reads both.
+     */
+    supporting: String? = null,
+    textStyle: TextStyle = InstrumentType.title,
 ) {
     val view = LocalView.current
     val interactions = interactionSource ?: remember { MutableInteractionSource() }
@@ -90,12 +98,33 @@ fun PrimaryGymButton(
             disabledContentColor = TextDisabled,
         ),
     ) {
-        Text(
-            text,
-            style = InstrumentType.title,
-            color = if (enabled) Pit else TextDisabled,
-            textAlign = TextAlign.Center,
-        )
+        if (supporting.isNullOrBlank()) {
+            Text(
+                text,
+                style = textStyle,
+                color = if (enabled) Pit else TextDisabled,
+                textAlign = TextAlign.Center,
+            )
+        } else {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text,
+                    style = textStyle,
+                    color = if (enabled) Pit else TextDisabled,
+                    textAlign = TextAlign.Center,
+                )
+                Text(
+                    supporting,
+                    style = InstrumentType.bodyStrong,
+                    color = if (enabled) Pit else TextDisabled,
+                    textAlign = TextAlign.Center,
+                    // Capped, so a long payload (the next lift's name) never grows the commit
+                    // into the floor; the whole string stays in semantics.
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 

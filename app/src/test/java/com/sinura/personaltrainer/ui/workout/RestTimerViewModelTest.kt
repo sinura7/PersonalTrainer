@@ -185,7 +185,9 @@ class RestTimerViewModelTest {
         withTimeout(TestWaits.FLOW_MS) {
             workout.restTimerState.first { it.totalSeconds == 105 && !it.running }
         }
-        assertEquals(105, floor.uiState.value.rest.totalSeconds)
+        // The floor's uiState is its own combine of the same clock and can publish a beat
+        // after the workout's flow just awaited; wait on it rather than read it.
+        assertEquals(105, floor.awaitState { it.rest.totalSeconds == 105 }.rest.totalSeconds)
     }
 
     @Test

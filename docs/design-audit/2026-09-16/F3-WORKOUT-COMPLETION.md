@@ -43,6 +43,8 @@ This is not a milestone acceptance or a delivered phone build.
   exception prevents a long name at font scale 2.0 from consuming the content
   viewport. Portrait retains "Next exercise · name". Completion context says
   "Planned sets complete"; "Extra" appears only after requesting another set.
+  (Amended by ADR-027 / F3.1: the verb is short in every orientation; portrait
+  draws the name on the commit's capped supporting line, landscape speaks it.)
 - Landscape uses the surface's measured parent constraints, including embedded
   viewports. Custom rest uses a single inset-aware scrolling dialog; title,
   typed value, validation and actions remain reachable when the IME reduces

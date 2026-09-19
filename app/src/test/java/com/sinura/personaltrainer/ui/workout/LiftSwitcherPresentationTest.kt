@@ -9,9 +9,15 @@ class LiftSwitcherPresentationTest {
     @Test
     fun oneCurrentLiftOpensSessionSwitcherNotLibrary() {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.oneCurrentLiftOnFloor())
+        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.imageLedHero())
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("CurrentLiftCard(") || screen.contains("ExerciseHero("))
+        assertTrue(screen.contains("ExerciseHeader("))
+        assertFalse(screen.contains("CurrentLiftCard("))
         assertTrue(screen.contains("onOpenSwitcher = { liftSwitcherOpen = true }"))
+        assertTrue(
+            "the header overflow offers the same session switcher",
+            screen.contains("onSwitch = { liftSwitcherOpen = true }"),
+        )
         assertTrue(screen.contains("LiftSwitcherSheet("))
         assertFalse(screen.contains("itemsIndexed("))
         assertFalse(screen.contains("items = session.exercises"))
@@ -30,10 +36,15 @@ class LiftSwitcherPresentationTest {
             "Add a lift must not sit in the set loop once a lift exists",
             screen.substring(lazy, switcherAt).contains("SecondaryGymButton"),
         )
-        assertTrue(
-            readOwned("ui/workout/CurrentLiftCard.kt").contains("CurrentLiftCopy.cardSpoken") ||
-                readOwned("ui/workout/CurrentLiftCard.kt").contains("CurrentLiftCopy.heroSpoken"),
-        )
+        val identity = readOwned("ui/workout/ExerciseHeader.kt")
+        assertTrue(identity.contains("CurrentLiftCopy.cardSpoken("))
+        assertTrue(identity.contains("onClickLabel = CurrentLiftCopy.SWITCH, onClick = onOpenSwitcher"))
+        assertTrue(identity.contains(".testTag(WorkoutTestTags.liftCard(lift.exercise.id))"))
+        assertFalse("the identity is not a library row", identity.contains("ExercisePickerSheet"))
+        val overflow = readOwned("ui/workout/WorkoutOverflowMenu.kt")
+        assertTrue(overflow.contains("onSwitch: (() -> Unit)? = null"))
+        assertTrue(overflow.contains("if (onSwitch != null)"))
+        assertTrue(overflow.contains("CurrentLiftCopy.SWITCH"))
     }
 
     @Test
@@ -48,8 +59,14 @@ class LiftSwitcherPresentationTest {
         )
         assertTrue(screen.contains("onNotes = { notesOpen = true }"))
         assertTrue(screen.contains("notes = state.notes"))
-        val overflow = readOwned("ui/workout/CurrentLiftCard.kt")
+        assertTrue(screen.contains("modifier = Modifier.testTag(WorkoutTestTags.SESSION_NOTES)"))
+        assertTrue(screen.contains("onNotesChange = viewModel::setNotes"))
+        val overflow = readOwned("ui/workout/WorkoutOverflowMenu.kt")
         assertTrue(overflow.contains("CurrentLiftCopy.SESSION_NOTES"))
+        assertTrue(overflow.contains("onNotes()"))
+        val identity = readOwned("ui/workout/ExerciseHeader.kt")
+        assertFalse("notes are overflow, not identity", identity.contains("NotesBlock("))
+        assertFalse(identity.contains("SESSION_NOTES"))
         val finish = readOwned("ui/components/EndWorkoutDialog.kt")
         assertTrue(finish.contains("NotesBlock("))
     }

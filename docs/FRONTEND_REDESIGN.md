@@ -37,6 +37,7 @@ because source assertions or JVM tests alone pass.
 | F1 | Typed controls, component gallery, headers, navigation, insets and live bar | Complete — PR #349; integrated unit/native gates passed |
 | F2 | Compact workout identity, entry, warm-ups/RPE, latest sets and dock geometry | Complete — PR #350; integrated unit/native gates passed |
 | F3 | Primary-action state, completion, timing, switcher, retry, undo and resume | Implementation complete — PR #351; integrated checks passed; Milestone A phone acceptance pending |
+| F3.1 | Workout logging screen redesign to the owner's reference ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)): header progress, image-led identity, stats row, hero numerals, RPE track, next-set card, set-history chips, rest card, two-line commit | Implementation complete on `claude/workout-logging-redesign-77hml8`; JVM gate and JVM renders; floor goldens owed a re-record on `temper-tests-api29`; Milestone A phone acceptance pending |
 | F4 | Truthful Home dates, day picker, planned/completed/live/empty states | Pending |
 | F5 | Registered Body heat geometry, viewport, selection and list equivalence | Pending |
 | F6 | Unified History periods, calendar, readable duration and lifetime views | Pending |
@@ -70,11 +71,17 @@ through the existing stable-signing and monotonically increasing version flow.
 
 ## Workout contracts
 
-Order: session header; compact approximately 64 dp exercise identity with
-Switch and overflow; set ordinal and Working/Warm-up; stacked load and
-reps/duration; optional RPE/help; latest saved set/View sets; anchored action.
-Keep session totals out of exercise-specific telemetry. Preserve load meanings
-(lifted, added, assistance, bodyweight, hold) and existing numeric validation.
+Order ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)): session
+header with `Exercise n of N · x of y sets` and one progress segment per lift,
+Finish and the overflow (Switch, Skip, Swap, Remove, notes, summary); 112 dp
+image-led exercise identity (tap to switch) with Details and Working | Warm-up;
+Last set · Best set · Volume (this exercise); weight and reps (or hold time) as
+two hero numerals with round − / + plates, side by side until large text stacks
+them; optional RPE 6–10 with Easy / Max effort ends and help; Next set with
+Why and Apply; today's sets as chips (current ringed, Add set once the plan is
+met, Edit opens the labelled sheet); the dock. Keep session totals out of
+exercise-specific telemetry. Preserve load meanings (lifted, added, assistance,
+bodyweight, hold) and existing numeric validation.
 
 Tap-to-type is visibly available; entry confirms an absolute value and Cancel
 preserves the draft. Large steppers and long press remain. Presets say Use
@@ -90,11 +97,13 @@ explicit extra-set/warm-up intent take precedence over ordinary completion.
 Free lifts stay loggable. Duplicate taps cannot save twice or become Next
 because the label changed. Reopen/edit/delete/undo recompute completion.
 
-Dock: one minimum-56 dp companion row plus minimum-72 dp primary, no empty
-reserved context rail. Error/undo takes companion priority while an active
-timer stays reachable through a compact clock. Success updates latest-set
-content and accessibility, not another tall panel. Receipt expiry does not
-move the primary's bottom edge. Large text may grow controls.
+Dock: one companion slot (the rest card at rest, running or done; the 56 dp
+hold/set bar; or error/undo/honesty with a compact clock) plus the minimum-72 dp
+primary, whose second line names the payload. Error/undo takes companion
+priority while an active timer stays reachable through a compact clock. Success
+marks the saved chip in the set history and announces the receipt once, not
+another tall panel. Receipt expiry does not move the primary's bottom edge.
+Large text may grow controls.
 
 Ordinary logging retains entry position, not bring-into-view on growing
 history. View sets opens full labeled history with edit/delete. Edits reveal

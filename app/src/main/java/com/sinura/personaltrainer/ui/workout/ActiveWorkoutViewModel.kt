@@ -33,6 +33,7 @@ import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
+import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.LoadClass
@@ -290,6 +291,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val draft = MutableStateFlow(ActiveExerciseDraft())
     private val hint = MutableStateFlow<ProgressionHint?>(null)
     private val lastPerformance = MutableStateFlow<ExerciseSessionSummary?>(null)
+
+    /**
+     * Every finished working set of the selected lift from other sessions, so the floor's
+     * Best set is judged against the whole log the way History's records are. Loaded with
+     * the prefill and cleared with it; today's rows are added at read time, never here.
+     */
+    private val priorHistory = MutableStateFlow<List<ExerciseSetRecord>>(emptyList())
+    val exerciseHistory: StateFlow<List<ExerciseSetRecord>> = priorHistory.asStateFlow()
     private val lighterWeek = MutableStateFlow(false)
     private val restTotal = MutableStateFlow(90)
     private val searchQuery = MutableStateFlow("")
@@ -790,6 +799,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             liftReadiness.value = LiftEntryReadiness.READY
         }
         lastPerformance.value = null
+        priorHistory.value = emptyList()
         hint.value = null
         val current = sessionReader.observations.first {
             it.loadState == SessionLoadState.FOUND || it.loadState == SessionLoadState.MISSING
@@ -826,6 +836,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             if (!isCurrentPrefill(exerciseId, generation)) return
             hint.value = progression
             lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
+            if (!isCurrentPrefill(exerciseId, generation)) return
+            priorHistory.value = container.workoutRepository
+                .historyBefore(sessionId, listOf(exerciseId))[exerciseId].orEmpty()
             if (!isCurrentPrefill(exerciseId, generation)) return
             restTotal.value = RestTimer.secondsToStart(
                 planned?.restSeconds,

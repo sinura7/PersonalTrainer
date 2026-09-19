@@ -6,37 +6,54 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Packet 4: HOLD / +N / BACK OFF on the Next row; four glyphs replace
- * weight, reps/time, RPE, and rest labels on the floor.
+ * Packet 4 on the redesigned floor: the next-set call (HOLD / +N / BACK OFF,
+ * now the delta line of [NextSetRecommendation]) sits after entry and effort
+ * with Why still opening the trace; the floor's hero numerals carry word
+ * labels, and the four glyphs stay supporting marks wherever one still sits
+ * beside a label.
  */
 class FloorPacket4KickerGlyphsTest {
     @Test
     fun kickerSitsOnTheEntryStripAndWhyStillOpensTheTrace() {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.progressionKickerInline())
-        val card = readOwned("ui/workout/WorkoutLiftCard.kt")
-        val recAt = card.indexOf("MicroRecLine(")
-        val fieldsAt = card.indexOf("SetEntryPanel(")
+        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
+        val fieldsAt = screen.indexOf("item(key = \"entry\")")
+        val rpeAt = screen.indexOf("item(key = \"rpe\")")
+        val recAt = screen.indexOf("item(key = \"next-set\")")
         assertTrue("entry must precede recommendations", fieldsAt in 0 until recAt)
-        val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        val micro = bar.substring(
-            bar.indexOf("fun MicroRecLine"),
-            bar.indexOf("fun SecondaryLogOptions"),
-        )
-        assertTrue(micro.contains("SetMicroRecCopy.collapsed"))
-        assertTrue(micro.contains("WorkoutTestTags.MICRO_REC_WHY"))
-        assertTrue(micro.contains("SetMicroRecCopy.whyLines"))
-        assertTrue(micro.contains("SetMicroRecCopy.USE_SUGGESTION"))
-        assertTrue(micro.contains("SetMicroRecCopy.KEEP_MY_NUMBERS"))
-        assertFalse("kicker must not be a second Volt", micro.contains("PrimaryGymButton"))
-        assertFalse(
-            "the dock must not host the rec strip",
-            bar.substring(0, bar.indexOf("fun MicroRecLine")).contains("MicroRecLine("),
-        )
+        assertTrue("effort must precede recommendations", rpeAt in fieldsAt until recAt)
+        assertTrue(screen.contains("val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }"))
+        assertTrue(screen.contains("onApply = viewModel::applyMicroRec"))
+        val card = readOwned("ui/workout/NextSetRecommendation.kt")
+        assertTrue(card.contains("if (!SetMicroRecCopy.visibleOnEntry(rec)) return"))
+        assertTrue(card.contains("WorkoutTestTags.NEXT_SET"))
+        assertTrue(card.contains("private const val NEXT_SET_KICKER = \"Next set\""))
+        assertTrue(card.contains("SetMicroRecCopy.numbers(rec, loadClass, unit)"))
+        assertTrue(card.contains("SetMicroRecCopy.deltaLine(rec, loadClass, unit)"))
+        assertTrue(card.contains("SetMicroRecCopy.ruleLine(rec.reasonCode)"))
+        assertTrue(card.contains("WorkoutTestTags.MICRO_REC"))
+        assertTrue(card.contains("contentDescription = \"Next set, \$numbers\""))
+        assertTrue(card.contains("WorkoutTestTags.MICRO_REC_WHY"))
+        assertTrue(card.contains("\"Why this set\""))
+        assertTrue(card.contains("SetMicroRecCopy.whyLines"))
+        assertTrue(card.contains("SetMicroRecCopy.USE_SUGGESTION"))
+        assertTrue(card.contains("SetMicroRecCopy.KEEP_MY_NUMBERS"))
+        assertTrue(card.contains("WorkoutTestTags.MICRO_REC_APPLY"))
+        assertTrue(card.contains("text = if (applied) \"Applied\" else \"Apply\""))
+        assertTrue(card.contains("enabled = enabled && !applied"))
+        assertTrue(card.contains("QuietButton("))
+        assertFalse("kicker must not be a second Volt", card.contains("PrimaryGymButton"))
+        val dock = readOwned("ui/workout/WorkoutDock.kt")
+        assertFalse("the dock must not host the rec card", dock.contains("NextSetRecommendation("))
+        assertFalse(dock.contains("MICRO_REC"))
         val mark = readOwned("ui/workout/SetMicroRecUi.kt")
-        assertTrue(mark.contains("fun ProgressionKickerMark"))
-        assertTrue(mark.contains("WorkoutTestTags.PROGRESSION_KICKER"))
+        assertTrue(mark.contains("fun workoutMicroRec("))
         assertTrue(mark.contains("Coach.decide("))
+        assertTrue(mark.contains("historyWorking = historySets.map"))
         assertFalse(mark.contains("SetMicroRecCalculator.suggest"))
+        assertFalse("the watermark kicker is retired", mark.contains("ProgressionKickerMark"))
+        assertFalse(mark.contains("PROGRESSION_KICKER"))
+        assertFalse(screen.contains("PROGRESSION_KICKER"))
         val copy = readOwned("domain/SetMicroRec.kt")
         assertTrue(copy.contains("object ProgressionKickerCopy"))
         assertTrue(copy.contains("const val HOLD"))
@@ -44,6 +61,10 @@ class FloorPacket4KickerGlyphsTest {
         assertTrue(copy.contains("fun fromHint"))
         assertTrue(copy.contains("fun fromMicroRec"))
         assertTrue(copy.contains("fun collapsed"))
+        assertTrue(copy.contains("fun deltaLine"))
+        assertTrue(copy.contains("ProgressionKickerCopy.PLUS_REP to \"+1 rep\""))
+        assertTrue(copy.contains("ProgressionKickerCopy.HOLD to \"Hold the load\""))
+        assertTrue(copy.contains("ProgressionKickerCopy.BACK_OFF to \"Back off\""))
         assertTrue(copy.contains("RpeModifier") || copy.contains("RPE_HOLD"))
     }
 
@@ -60,6 +81,7 @@ class FloorPacket4KickerGlyphsTest {
         assertTrue(paths.contains("const val FLOOR_REPS_TIME"))
         assertTrue(paths.contains("const val FLOOR_RPE"))
         assertTrue(paths.contains("const val FLOOR_REST"))
+        // The shared entry panel (history's edit sheet) keeps each glyph beside its word label.
         val entry = readOwned("ui/components/SetEntryPanel.kt")
         val compactFn = entry.indexOf("private fun CompactFloorEntry")
         val weightStepper = entry.indexOf("fun WeightStepper")
@@ -71,20 +93,33 @@ class FloorPacket4KickerGlyphsTest {
         assertTrue(floor.contains("label = \"Reps\""))
         assertTrue(floor.contains("label = \"Time\""))
         assertTrue(floor.contains("FloorFieldGlyph("))
-        val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        val rpe = bar.substring(bar.indexOf("fun SecondaryLogOptions"))
-        assertTrue(rpe.contains("Effort · Optional"))
-        assertFalse(rpe.contains("Kicker(\"RPE\")"))
+        // The floor's hero numerals are labelled in words by a Kicker; no glyph stands in for a label.
+        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
+        assertTrue(editor.contains("label = meaning.fieldLabel") && editor.contains("unitLabel = unit.suffix"))
+        assertTrue(editor.contains("label = \"Reps\""))
+        assertTrue(editor.contains("label = if (holdRunning) HoldWork.HOLD_KICKER else \"Time\""))
+        assertTrue(editor.contains("Kicker(text = label, color = TextSecondary, asHeading = false)"))
+        assertFalse("no glyph stands in for a floor label", editor.contains("FloorFieldGlyph"))
+        val rpe = readOwned("ui/workout/RpeSelector.kt")
+        assertTrue(rpe.contains("Kicker(\"RPE\")"))
+        assertFalse(rpe.contains("TemperIcons.FloorRpe"))
+        val rest = readOwned("ui/workout/RestTimerCard.kt")
+        assertTrue(rest.contains("TalkBackPolicy.REST_RUNNING_KICKER"))
+        assertTrue(rest.contains("Kicker(text = kicker, color = accent, asHeading = false)"))
+        assertTrue(rest.contains("WorkoutTestTags.REST_IDLE"))
+        assertFalse(rest.contains("TemperIcons.FloorRest"))
+        // Where a glyph still sits beside a kicker — the HOLD / SET bar and the rest page's
+        // ring — it stays a supporting mark next to the word.
         val dock = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(dock.contains("TemperIcons.FloorRest"))
-        val idleStart = dock.indexOf("fun RestIdleRow")
-        val idleEnd = dock.indexOf("fun RestDurationSheet")
-        val idle = dock.substring(idleStart, idleEnd)
-        assertTrue(idle.contains("TemperIcons.FloorRest"))
-        assertTrue(idle.contains("leadingGlyph"))
-        assertFalse(idle.contains("Kicker(RestIdleCopy.KICKER)"))
         val instrument = dock.substring(dock.indexOf("fun FloorInstrumentBar"), dock.indexOf("fun SetWorkDock"))
+        assertTrue(instrument.contains("leadingGlyph"))
         assertTrue(instrument.contains("FloorFieldGlyph("))
+        assertTrue(instrument.contains("Kicker(kicker, color = accent, asHeading = false)"))
+        val workoutDock = readOwned("ui/workout/WorkoutDock.kt")
+        assertTrue(workoutDock.contains("SetWorkDock("))
+        assertTrue(workoutDock.contains("RestTimerCard("))
+        assertFalse("idle rest is the dock card, not the old instrument row", workoutDock.contains("RestIdleRow("))
     }
 
     private fun readOwned(relative: String): String {

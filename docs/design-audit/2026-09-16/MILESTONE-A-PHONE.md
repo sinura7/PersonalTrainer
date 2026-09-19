@@ -34,6 +34,19 @@ Obtainium **Temper Debug** entry; preserve its data and signing identity.
    by tapping the elapsed time or set count in the activity bar.
 9. Finish and compare the summary, history and saved sets. Reopen the app and
    confirm the result remains saved.
+10. Compare the logging screen against the 18 September reference image
+    ([ADR-027](../../architecture/ADR-027-workout-logging-redesign.md)): the
+    header reads `Exercise n of N · x of y sets` with one bar segment per
+    exercise; the exercise picture, equipment, name, `Set n of T` and
+    Working | Warm-up sit together; Last set, Best set and Volume show this
+    exercise's real numbers; weight and reps are the largest text with round
+    − / + plates; RPE runs 6–10 between Easy and Max effort; Next set shows
+    Why? and Apply, and Apply fills the entry without saving; the set history
+    chips ring the current set and offer Add set once the plan is met; the
+    rest card shows the target and −15 / +15 / Skip; Log set names its payload
+    on a second line, and once the plan is met Next exercise names the next lift
+    there (portrait only). Nothing on the screen is lime except Log set, the
+    selected choice and the progress bar.
 
 ## Device-specific checks
 
@@ -43,6 +56,8 @@ Obtainium **Temper Debug** entry; preserve its data and signing identity.
   elapsed-time continuity, sound and haptics; record battery restrictions.
 - Deny rest notifications and confirm logging remains usable with honest status.
 - With TalkBack, complete value entry, log, View sets, timer and Next exercise.
+  Once the planned sets are done, rotate to landscape: Next exercise shows only
+  its verb there, so confirm TalkBack still speaks the next lift's full name.
   Check focus restoration and that timer ticks do not repeatedly interrupt speech.
 - Record any visible delay with the action and screen. Formal p95 and frame-budget
   targets require traces on a documented physical device; subjective smoothness

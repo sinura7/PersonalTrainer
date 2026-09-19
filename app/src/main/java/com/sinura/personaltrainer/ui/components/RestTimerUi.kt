@@ -44,7 +44,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -79,13 +78,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.sinura.personaltrainer.domain.FloorTimedMode
-import com.sinura.personaltrainer.domain.FloorTimedModeResolver
 import com.sinura.personaltrainer.domain.FloorTimerSurface
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestBatteryCopy
-import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestNotificationCopy
@@ -108,99 +104,9 @@ import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
-import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.ui.theme.instrumentTween
 import com.sinura.personaltrainer.ui.theme.instrumentLinear
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
-import kotlinx.coroutines.delay
-
-/**
- * One clock slot in the lower dock (Packet E).
- *
- * Rest counts down; a running set counts up. Modes never stack. Planned
- * rest is the same instrument at rest; duration editing is a sheet.
- * Overlay rest on the live log stays forbidden (ADR-012).
- */
-@Composable
-fun FloorTimerSlot(
-    remainingSeconds: Int,
-    totalSeconds: Int,
-    restRunning: Boolean,
-    onSkip: () -> Unit,
-    onStart: () -> Unit,
-    modifier: Modifier = Modifier,
-    completedTimerId: String? = null,
-    hideWhenIdle: Boolean = false,
-    afterWarmup: Boolean = false,
-    batteryHint: Boolean = false,
-    onDismissBatteryHint: () -> Unit = {},
-    onOpenRest: () -> Unit = {},
-    onEditRestDuration: () -> Unit = {},
-    holdRunning: Boolean = false,
-    holdElapsedSeconds: Int = 0,
-    holdRemainingSeconds: Int = 0,
-    holdTotalSeconds: Int = 0,
-    holdTargetReached: Boolean = false,
-    stopwatchRunning: Boolean = false,
-    stopwatchElapsedSeconds: Int = 0,
-    offerSetClock: Boolean = false,
-    onStartSetClock: () -> Unit = {},
-    onStopSetClock: () -> Unit = {},
-    onNudgeRest: (Int) -> Unit = {},
-    persistenceHealthy: Boolean = true,
-    notificationsEnabled: Boolean = true,
-    exactAlarmBestEffort: Boolean = false,
-    hasLifts: Boolean = true,
-    onOpenNotifications: () -> Unit = {},
-) {
-    val holdActive = holdRunning || holdTargetReached
-    val mode = FloorTimerSurface.mode(
-        holdRunning = holdRunning,
-        stopwatchRunning = stopwatchRunning,
-        hasLifts = hasLifts,
-        restRunning = restRunning,
-        restComplete = !completedTimerId.isNullOrBlank() && !restRunning,
-        holdActive = holdActive,
-    )
-    val showSetClock = offerSetClock &&
-        FloorTimedModeResolver.offerSetClock(mode, isHoldLift = holdActive)
-    when (mode) {
-        FloorTimedMode.NONE -> Unit
-        FloorTimedMode.HOLD_RUNNING,
-        FloorTimedMode.STOPWATCH_RUNNING,
-        -> {
-            SetWorkDock(
-                elapsedSeconds = if (holdActive) holdElapsedSeconds else stopwatchElapsedSeconds,
-                remainingSeconds = if (holdActive) holdRemainingSeconds else 0,
-                totalSeconds = if (holdActive) holdTotalSeconds else 0,
-                hold = holdActive,
-                targetReached = holdTargetReached,
-                running = holdRunning || stopwatchRunning,
-                onStop = onStopSetClock.takeIf { stopwatchRunning && !holdActive },
-                modifier = modifier.fillMaxWidth(),
-            )
-        }
-        FloorTimedMode.REST_IDLE,
-        FloorTimedMode.REST_RUNNING,
-        FloorTimedMode.REST_COMPLETE,
-        -> RestDock(
-            remainingSeconds = remainingSeconds,
-            totalSeconds = totalSeconds,
-            running = restRunning,
-            onSkip = onSkip,
-            onStart = onStart,
-            modifier = modifier,
-            completedTimerId = completedTimerId,
-            hideWhenIdle = hideWhenIdle,
-            afterWarmup = afterWarmup,
-            onOpenRest = onOpenRest,
-            onEditRestDuration = onEditRestDuration,
-            offerSetClock = showSetClock,
-            onStartSetClock = onStartSetClock,
-            onNudgeRest = onNudgeRest,
-        )
-    }
-}
 
 /**
  * One compact dock instrument: countdown fill behind kicker, time, and
@@ -457,119 +363,6 @@ fun SetWorkDock(
     )
 }
 
-/**
- * The rest clock, pinned in the lower dock above Log set (G-02).
- *
- * Running rest is one [FloorInstrumentBar]: countdown fill, REST + time,
- * and −15 / +15 / Skip. Honesty lives in the context rail so this row
- * cannot collide with the coach line at 360×800. Idle is the same bar at
- * rest. The rest page still owns the 280 dp ring.
- */
-@Composable
-fun RestDock(
-    remainingSeconds: Int,
-    totalSeconds: Int,
-    running: Boolean,
-    onSkip: () -> Unit,
-    onStart: () -> Unit,
-    modifier: Modifier = Modifier,
-    completedTimerId: String? = null,
-    hideWhenIdle: Boolean = false,
-    afterWarmup: Boolean = false,
-    onOpenRest: () -> Unit = {},
-    onEditRestDuration: () -> Unit = {},
-    offerSetClock: Boolean = false,
-    onStartSetClock: () -> Unit = {},
-    onNudgeRest: (Int) -> Unit = {},
-) {
-    var justFinished by remember { mutableStateOf(false) }
-    var flashedTimerId by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(completedTimerId) {
-        if (RestFinishFlash.shouldFlash(completedTimerId, flashedTimerId)) {
-            flashedTimerId = completedTimerId
-            justFinished = true
-        }
-    }
-    LaunchedEffect(running) {
-        if (running) justFinished = false
-    }
-    LaunchedEffect(justFinished) {
-        if (justFinished) {
-            delay(Motion.FINISHED_DWELL_MS)
-            justFinished = false
-        }
-    }
-
-    val safeRemaining = remainingSeconds.coerceAtLeast(0)
-    val urgent = running && safeRemaining <= URGENT_SECONDS
-    val reduceMotion = LocalReducedMotion.current
-    // Composed only while urgent: an infiniteRepeatable never finishes even at
-    // target == initial, so the idle dock otherwise requested a frame every
-    // vsync for the whole 60-90 minute session.
-    val pulseScale: Float by if (urgent && !reduceMotion) {
-        rememberInfiniteTransition(label = "rest-pulse").animateFloat(
-            initialValue = 1f,
-            targetValue = 1.015f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = Motion.PULSE_MS, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-            label = "rest-bar-pulse",
-        )
-    } else {
-        remember { mutableFloatStateOf(1f) }
-    }
-
-    if (!running && !justFinished) {
-        if (hideWhenIdle) return
-        RestIdleRow(
-            totalSeconds = totalSeconds,
-            afterWarmup = afterWarmup,
-            onStart = onStart,
-            onEditDuration = onEditRestDuration,
-            offerSetClock = offerSetClock,
-            onStartSetClock = onStartSetClock,
-            modifier = modifier.fillMaxWidth(),
-        )
-        return
-    }
-
-    // Cyan while the clock runs. Warn in the last ten seconds. Gold only when rest is done —
-    // the same gold as a record, for the finished flash, then the dock returns to idle.
-    val accent = when {
-        justFinished -> PrGold
-        urgent -> Warn
-        else -> RestCyan
-    }
-    val clock = RestTimer.formatClock(if (justFinished) 0 else safeRemaining)
-    val kicker = TalkBackPolicy.restKicker(justFinished)
-    val spoken = buildString {
-        append("$kicker $clock remaining.")
-        if (urgent) append(" Last ten seconds.")
-        append(" Open rest timer.")
-    }
-
-    FloorInstrumentBar(
-        kicker = kicker,
-        clock = clock,
-        progress = RestTimer.sweepFraction(
-            remainingSeconds = if (justFinished) 0 else safeRemaining,
-            totalSeconds = totalSeconds,
-        ),
-        accent = accent,
-        spoken = spoken,
-        testTag = "workout-rest-bar",
-        modifier = modifier.fillMaxWidth(),
-        pulseScale = pulseScale,
-        onClockClick = onOpenRest,
-        liveRegion = TalkBackPolicy.announceRestKicker(justFinished),
-        showRestControls = running,
-        onNudgeRest = onNudgeRest,
-        onSkip = onSkip,
-    )
-}
-
 @Composable
 fun RestBatteryHintRow(
     onDismiss: () -> Unit,
@@ -661,44 +454,6 @@ fun RestHonestyRow(
             )
         }
     }
-}
-
-/**
- * Idle rest on the log: the same instrument as running rest, at rest.
- * Dim REST kicker, dim planned clock, empty track, chevron, Start, and
- * an optional Time-set mark. Presets and ±15 live in [RestDurationSheet].
- */
-@Composable
-fun RestIdleRow(
-    totalSeconds: Int,
-    onStart: () -> Unit,
-    onEditDuration: () -> Unit,
-    modifier: Modifier = Modifier,
-    afterWarmup: Boolean = false,
-    offerSetClock: Boolean = false,
-    onStartSetClock: () -> Unit = {},
-) {
-    val safeTotal = totalSeconds.coerceAtLeast(0)
-    val clock = RestTimer.formatClock(safeTotal)
-    FloorInstrumentBar(
-        kicker = if (afterWarmup) RestIdleCopy.WARMUP_KICKER else TalkBackPolicy.REST_RUNNING_KICKER,
-        clock = clock,
-        progress = 0f,
-        accent = TextSecondary,
-        spoken = RestIdleCopy.dockSpoken(clock, afterWarmup),
-        testTag = "workout-rest-idle",
-        modifier = modifier.fillMaxWidth(),
-        onClockClick = onEditDuration,
-        clockColor = TextSecondary,
-        showChevron = true,
-        leadingGlyph = TemperIcons.FloorRest,
-        glyphTint = TextSecondary,
-        showIdleStart = true,
-        onStart = onStart,
-        startSpoken = RestIdleCopy.startSpoken(safeTotal),
-        offerSetClock = offerSetClock,
-        onStartSetClock = onStartSetClock,
-    )
 }
 
 /**
@@ -821,72 +576,6 @@ fun RestDurationSheet(
                 ok
             },
             onDismiss = { showCustom = false },
-        )
-    }
-}
-
-@Composable
-fun RestIconControl(
-    icon: ImageVector,
-    spoken: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val view = LocalView.current
-    Box(
-        modifier = modifier
-            .widthIn(min = Metrics.touchMin)
-            .heightIn(min = Metrics.touchMin)
-            .clip(RoundedCornerShape(Radius.sm))
-            .background(Surface2)
-            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm))
-            .clickable(role = Role.Button) {
-                Haptics.tick(view)
-                onClick()
-            }
-            .semantics { contentDescription = spoken },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = TextPrimary,
-            modifier = Modifier.size(Metrics.icon),
-        )
-    }
-}
-
-@Composable
-fun RestLinearTrack(
-    remainingSeconds: Int,
-    totalSeconds: Int,
-    accent: Color,
-    modifier: Modifier = Modifier,
-    finished: Boolean = false,
-) {
-    val target = RestTimer.sweepFraction(remainingSeconds, totalSeconds)
-    val progress by animateFloatAsState(
-        targetValue = target,
-        animationSpec = instrumentLinear(Motion.TICK_MS),
-        label = "rest-track",
-    )
-    val sweepColor by animateColorAsState(
-        targetValue = if (finished) PrGold else accent,
-        animationSpec = instrumentTween(Motion.BASE),
-        label = "rest-track-accent",
-    )
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(REST_TRACK_HEIGHT)
-            .clip(RoundedCornerShape(Radius.xs))
-            .background(HairlineStrong),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(progress)
-                .fillMaxHeight()
-                .background(sweepColor),
         )
     }
 }
@@ -1148,8 +837,5 @@ fun CustomRestDialog(
     }
 }
 
-
-private const val URGENT_SECONDS = 10
-private val REST_TRACK_HEIGHT = 4.dp
 private val REST_RING_SIZE = 280.dp
 private val REST_RING_STROKE = 10.dp

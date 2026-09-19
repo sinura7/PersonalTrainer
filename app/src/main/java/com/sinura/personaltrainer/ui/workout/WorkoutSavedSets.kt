@@ -27,7 +27,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.LoadClass
-import com.sinura.personaltrainer.domain.LogReceipt
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -56,47 +55,6 @@ private fun savedSetLabels(sets: List<SetLog>, targetSets: Int): Map<String, Str
     }
 }
 
-@Composable
-internal fun LatestWorkoutSet(
-    sets: List<SetLog>,
-    latestSetId: String?,
-    targetSets: Int,
-    loadClass: LoadClass,
-    unit: WeightUnit,
-    receipt: LogReceipt?,
-    onViewSets: () -> Unit,
-    enabled: Boolean = true,
-) {
-    val saved = sets.firstOrNull { it.id == receipt?.setId }
-    val latest = saved ?: sets.firstOrNull { it.id == latestSetId } ?: sets.lastOrNull() ?: return
-    val labels = remember(sets, targetSets) { savedSetLabels(sets, targetSets) }
-    Row(
-        modifier = Modifier.fillMaxWidth().testTag("workout-latest-saved").padding(vertical = Metrics.space2),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-            Text(
-                "${if (saved != null) "Saved" else "Latest saved"} · ${labels[latest.id]}",
-                modifier = Modifier.testTag(WorkoutTestTags.LOG_RECEIPT),
-                style = InstrumentType.caption,
-                color = if (saved != null) Volt else TextSecondary,
-            )
-            Text(
-                SetCopy.setLine(latest.weightKg, latest.reps, loadClass, unit, durationSeconds = latest.durationSeconds, entryPrecision = true) +
-                    latest.rpe?.let { " · RPE $it" }.orEmpty(),
-                style = InstrumentType.bodyStrong,
-                color = TextPrimary,
-            )
-        }
-        TextButton(
-            enabled = enabled,
-            onClick = onViewSets,
-            modifier = Modifier.heightIn(min = Metrics.touchMin).testTag("workout-view-sets"),
-        ) { Text("View sets", style = InstrumentType.bodyStrong, color = TextPrimary) }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun WorkoutSetsSheet(
@@ -121,7 +79,7 @@ internal fun WorkoutSetsSheet(
         containerColor = Surface3,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(Metrics.gutter).testTag("workout-saved-sets-sheet"),
+            modifier = Modifier.fillMaxWidth().padding(Metrics.gutter).testTag(WorkoutTestTags.SAVED_SETS_SHEET),
             verticalArrangement = Arrangement.spacedBy(Metrics.space3),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

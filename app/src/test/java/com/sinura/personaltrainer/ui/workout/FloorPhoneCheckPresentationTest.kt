@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.workout
 
+import com.sinura.personaltrainer.domain.FloorCompactChrome
 import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -7,7 +8,7 @@ import org.junit.Test
 
 /**
  * Phone-check 12 Sep 2026: X is go-Home, Finish owns save/discard.
- * Start next is gone from the idle rest line; Log set is the Volt.
+ * Start next is gone from the idle rest card; Log set is the Volt.
  */
 class FloorPhoneCheckPresentationTest {
     @Test
@@ -24,22 +25,26 @@ class FloorPhoneCheckPresentationTest {
 
     @Test
     fun idleDockKeepsStartRestWithoutStartNext() {
-        val dock = readOwned("ui/components/RestTimerUi.kt")
-        val idleStart = dock.indexOf("fun RestIdleRow")
-        val idleEnd = dock.indexOf("fun RestDurationSheet")
-        val idle = dock.substring(idleStart, idleEnd)
-        assertFalse(dock.contains("onStartNext"))
+        val card = readOwned("ui/workout/RestTimerCard.kt")
+        assertFalse(card.contains("onStartNext"))
         assertFalse(
             "idle Start next must not be composed",
-            idle.contains("RestIdleCopy.START_NEXT"),
+            card.contains("RestIdleCopy.START_NEXT"),
         )
-        assertTrue(idle.contains("RestIdleCopy.startSpoken"))
-        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.showIdleStartNext())
-        val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertFalse(bar.contains("onStartNextLift"))
-        assertTrue(bar.contains("onStartRest"))
+        assertFalse(card.contains("START_NEXT"))
+        assertTrue(card.contains("RestIdleCopy.startSpoken"))
+        assertTrue(card.contains("private const val START_REST = \"Start rest\""))
+        assertTrue(card.contains("onClick = onStart,"))
+        assertFalse(FloorCompactChrome.showIdleStartNext())
+        val legacy = readOwned("ui/components/RestTimerUi.kt")
+        assertFalse(legacy.contains("onStartNext"))
+        val dock = readOwned("ui/workout/WorkoutDock.kt")
+        assertFalse(dock.contains("onStartNextLift"))
+        assertTrue(dock.contains("val onStartRest: () -> Unit"))
+        assertTrue(dock.contains("onStart = events.onStartRest"))
         val workout = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertFalse(workout.contains("onStartNextLift = viewModel::startNextLift"))
+        assertFalse(workout.contains("startNextLift"))
         assertTrue(workout.contains("onStartRest = viewModel::startSelectedRest"))
     }
 

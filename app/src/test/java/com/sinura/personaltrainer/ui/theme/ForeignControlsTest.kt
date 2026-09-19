@@ -34,7 +34,7 @@ class ForeignControlsTest {
     }
 
     @Test
-    fun threeSwitchesFiveMenusZeroSnackbarHosts() {
+    fun twoSwitchesSevenMenusZeroSnackbarHosts() {
         val switchSites = listOf(
             "ui/settings/RestTimerPrefsSection.kt",
             "ui/reminders/ReminderPrefsSection.kt",
@@ -44,18 +44,28 @@ class ForeignControlsTest {
             assertTrue(path, src.contains("InstrumentSwitch("))
             assertFalse(path, src.contains("material3.Switch"))
         }
+        // The workout floor's three menus — the header ⋮, a saved-set chip, and the
+        // full saved-sets sheet — all go through InstrumentMenu, never Material's own.
         val menuSites = listOf(
             "ui/history/SessionDetailScreen.kt",
-            "ui/workout/CurrentLiftCard.kt",
+            "ui/workout/WorkoutOverflowMenu.kt",
+            "ui/workout/SetHistoryStrip.kt",
+            "ui/workout/WorkoutSavedSets.kt",
             "ui/settings/BackupRestoreSection.kt",
             "ui/components/GymSurfaces.kt",
             "ui/navigation/LiveSessionBar.kt",
         )
+        val materialMenu = Regex("material3\\.DropdownMenu\\b")
         menuSites.forEach { path ->
-            assertTrue(path, readOwned(path).contains("InstrumentMenu("))
+            val src = readOwned(path)
+            assertTrue(path, src.contains("InstrumentMenu("))
+            assertFalse(path, materialMenu.containsMatchIn(src))
         }
+        // Undo on the floor lives in the dock's companion slot while the dock is up, and in
+        // the screen's own host when it is not; neither is a Snackbar.
         val snackbarHosts = listOf(
             "ui/workout/ActiveWorkoutScreen.kt",
+            "ui/workout/WorkoutDock.kt",
             "ui/history/SessionDetailScreen.kt",
             "ui/history/HistoryScreen.kt",
         )
@@ -69,9 +79,10 @@ class ForeignControlsTest {
                     src.contains("GymUndoHost("),
             )
         }
+        assertTrue(readOwned("ui/workout/WorkoutDock.kt").contains("GymUndoHost("))
         assertEquals(2, switchSites.size)
-        assertEquals(5, menuSites.size)
-        assertEquals(3, snackbarHosts.size)
+        assertEquals(7, menuSites.size)
+        assertEquals(4, snackbarHosts.size)
         assertTrue(readOwned("ui/components/InstrumentSwitch.kt").contains("fun InstrumentSwitch("))
         val menu = readOwned("ui/components/InstrumentMenu.kt")
         assertTrue(menu.contains("fun InstrumentMenu("))

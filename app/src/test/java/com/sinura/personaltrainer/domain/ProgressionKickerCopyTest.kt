@@ -152,4 +152,13 @@ class ProgressionKickerCopyTest {
             todayEpochDay = 0L,
         ),
     )
+
+    @Test
+    fun deltaLineSaysHoldWhenTheNumbersRepeatAndNothingOnAFirstSet() {
+        assertEquals("Hold the load", SetMicroRecCopy.deltaLine(rec = rec(SetMicroRecCalculator.QUALITY), loadClass = LoadClass.LOADED, unit = WeightUnit.KG))
+        assertEquals("Hold the load", SetMicroRecCopy.deltaLine(rec = rec(SetMicroRecCalculator.TOP_SET), loadClass = LoadClass.LOADED, unit = WeightUnit.KG))
+        assertNull(SetMicroRecCopy.deltaLine(rec = rec(SetMicroRecCalculator.FIRST_SET), loadClass = LoadClass.LOADED, unit = WeightUnit.KG))
+        assertNull(SetMicroRecCopy.deltaLine(rec = rec(SetMicroRecCalculator.WARMUP_DONE), loadClass = LoadClass.LOADED, unit = WeightUnit.KG))
+        assertEquals("+1 rep", SetMicroRecCopy.deltaLine(rec = rec(SetMicroRecCalculator.CLIMB_REPS), loadClass = LoadClass.LOADED, unit = WeightUnit.KG))
+    }
 }

@@ -607,8 +607,8 @@ class ActiveWorkoutViewModelTest {
             // has happened, the row has not. Asserted, because a test that ran after the write
             // would prove nothing at all. No database read here — it would queue behind the
             // very transaction the gate is holding.
-            assertTrue(vm.uiState.value.logging)
-            assertTrue(vm.uiState.value.entryLocked)
+            val busy = vm.awaitState { it.logging }
+            assertTrue(busy.entryLocked)
             vm.setWeight(110.0)
             vm.setReps(3)
             gate.complete(Unit)
@@ -902,6 +902,9 @@ class ActiveWorkoutViewModelTest {
         val sets = vm.awaitState { it.session?.sets?.size == 5 }.session!!.setsFor(SQUAT)
         val firstWarmup = sets.first { it.isWarmup }
         val firstWorking = sets.first { !it.isWarmup }
+        // Each edit taps after the previous save's tail has released the entry lock;
+        // a tap during that tail is dropped by design (see awaitEntryUnlocked).
+        vm.awaitEntryUnlocked()
         vm.editSet(firstWarmup.id)
         vm.awaitState { it.editingSetId == firstWarmup.id }
         vm.setWeight(45.0)
@@ -910,6 +913,7 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { !it.logging && it.editingSetId == null }
         assertEquals(firstWarmup.id, vm.logReceipt.value?.setId)
         assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("WU 1 logged"))
+        vm.awaitEntryUnlocked()
         vm.editSet(firstWorking.id)
         vm.awaitState { it.editingSetId == firstWorking.id }
         vm.setWeight(75.0)
@@ -918,6 +922,7 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { !it.logging && it.editingSetId == null }
         assertEquals(firstWorking.id, vm.logReceipt.value?.setId)
         assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Set 1 of 3 logged"))
+        vm.awaitEntryUnlocked()
         vm.editSet(firstWorking.id)
         vm.awaitState { it.editingSetId == firstWorking.id }
         vm.setWarmup(true)
@@ -1774,7 +1779,9 @@ class ActiveWorkoutViewModelTest {
         assertNull(deps.workoutRepository.getInProgress())
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
         assertNull(SavedStateWorkoutDraft(handle).read(fixture.session.id))
-        assertTrue(vm.uiState.value.finished)
+        // `finished` is written before the exit request, but uiState is a combine of both
+        // and can publish a beat later than the flow just awaited.
+        assertTrue(vm.awaitState { it.finished }.finished)
 
         vm.onExitHandled()
         assertNull(vm.exitRequested.value)
@@ -1882,9 +1889,12 @@ class ActiveWorkoutViewModelTest {
     fun lastTimeChipFillsWellsFromThatSetAndDoesNotLog() = runBlocking {
         val fixture = seedWorkout(priorWeightKg = 87.5)
         val vm = createViewModel(fixture.session.id)
+        // Prefill can overwrite a typed 100 with the 87.5 kg + step suggestion if we act first.
         val last = checkNotNull(
             vm.awaitState {
+                val suggested = it.hint?.suggestedWeightKg ?: return@awaitState false
                 it.loadState == SessionLoadState.FOUND &&
+                    it.draft.weightKg == suggested &&
                     it.lastPerformance?.sets?.isNotEmpty() == true
             }.lastPerformance,
         )
@@ -2049,17 +2059,21 @@ class ActiveWorkoutViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
         try {
-            vm.awaitPrefilled()
-            assertFalse(vm.uiState.value.canFinish)
-            assertTrue(vm.uiState.value.showDiscard)
+            val ready = vm.awaitPrefilled()
+            assertFalse(ready.canFinish)
+            assertTrue(ready.showDiscard)
             vm.logSet()
-            assertTrue(vm.uiState.value.logging)
-            assertFalse(vm.uiState.value.canFinish)
-            assertFalse(vm.uiState.value.showDiscard)
-            assertFalse(vm.uiState.value.canLog)
+            // The gate holds the insert open, so logging stays raised until it opens; the
+            // combined uiState can publish it a beat after logSet set it.
+            val busy = vm.awaitState { it.logging }
+            assertFalse(busy.canFinish)
+            assertFalse(busy.showDiscard)
+            assertFalse(busy.canLog)
             vm.logSet()
             gate.complete(Unit)
-            val settled = vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
+            // canFinish needs the whole entry lock released, not only `logging`: the save's
+            // tail can still hold it for a beat after the row is in.
+            val settled = vm.awaitState { !it.entryLocked && it.session?.sets?.size == 1 }
             assertTrue(settled.canFinish)
             assertFalse(settled.showDiscard)
             assertEquals(
@@ -2085,7 +2099,7 @@ class ActiveWorkoutViewModelTest {
             vm.logSet()
             vm.logSet()
             gate.complete(Unit)
-            val settled = vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
+            val settled = vm.awaitState { !it.entryLocked && it.session?.sets?.size == 1 }
             assertEquals(
                 1,
                 checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size,
@@ -2107,7 +2121,9 @@ class ActiveWorkoutViewModelTest {
             vm.awaitPrefilled()
             vm.logSet()
             vm.logSet()
-            assertTrue(vm.uiState.value.logging)
+            // The insert is gated, so logging stays raised until the gate opens; the
+            // combined uiState can publish it a beat after logSet set it.
+            assertTrue(vm.awaitState { it.logging }.logging)
             gate.complete(Unit)
             vm.awaitState { !it.logging }
             assertEquals(
@@ -2292,9 +2308,13 @@ class ActiveWorkoutViewModelTest {
         weightKg: Double = 100.0,
         reps: Int = 5,
     ): ActiveWorkoutUiState = awaitState {
+        // Settled, not merely filled: the prefill's tail can still hold the entry lock for a
+        // beat after the draft lands, and the flags a test reads next (canLog, canFinish,
+        // showDiscard) all derive from that lock.
         it.loadState == SessionLoadState.FOUND &&
             it.draft.weightKg == weightKg &&
-            it.draft.reps == reps
+            it.draft.reps == reps &&
+            !it.entryLocked
     }
 
     /**

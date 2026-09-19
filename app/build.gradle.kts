@@ -17,7 +17,7 @@ val appVersionName = "1.0.0"
 // appVersionCode. The two apps are different ids, so they do not share
 // Android's upgrade counter. Obtainium will not offer an update if this
 // stays put — both previous debug-live APKs were versionCode 1.
-val debugLiveCode = 80
+val debugLiveCode = 81
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -256,6 +256,10 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    // Compose UI tests on the JVM: Robolectric's native graphics render the redesigned
+    // workout floor to PNG (see ui/workout/WorkoutFloorRenderTest) where no emulator exists.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.junit)

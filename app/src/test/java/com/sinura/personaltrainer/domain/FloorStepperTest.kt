@@ -182,4 +182,17 @@ class FloorStepperTest {
         assertEquals(1, unique.size)
         assertEquals(WeightDraftSource.PLAN, unique.single().source)
     }
+
+    @Test
+    fun quickFillsOfferOnlyWhatTheEntryDoesNotAlreadyHold() {
+        // The draft is the plan: nothing to offer, so the floor stays quiet.
+        assertTrue(FloorWeightPresets.quickFills(currentKg = 100.0, plannedKg = 100.0, lastKg = 97.5).map { it.source } == listOf(WeightDraftSource.LAST_TIME))
+        assertTrue(FloorWeightPresets.quickFills(currentKg = 100.0, plannedKg = 100.0, lastKg = 100.0).isEmpty())
+        // Nudged off both: plan first, then last time, each as one tap.
+        assertEquals(
+            listOf("Plan 100", "Last 97.5"),
+            FloorWeightPresets.quickFills(currentKg = 102.5, plannedKg = 100.0, lastKg = 97.5).map { it.chipLabel(WeightUnit.KG) },
+        )
+        assertTrue(FloorWeightPresets.quickFills(currentKg = 0.0, plannedKg = null, lastKg = null).isEmpty())
+    }
 }

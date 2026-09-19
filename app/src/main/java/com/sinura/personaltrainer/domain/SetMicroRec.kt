@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.domain
 
+
 /**
  * In-set next-load / next-reps. Local and deterministic (ADR-008).
  *
@@ -76,7 +77,19 @@ data class SetMicroRec(
      */
     val equipment: EquipmentType? = null,
     val loadType: LoadType? = null,
-)
+) {
+    /**
+     * True once the entry already holds this set exactly as Apply would write it, so the
+     * control can read Applied: the same coercions as the ViewModel's applyMicroRec, the
+     * weight compared at the unit's display precision, and the effort matched exactly
+     * (Apply clears a chosen RPE when the suggestion carries none).
+     */
+    fun isApplied(weightKg: Double, reps: Int, rpe: Int?, unit: WeightUnit): Boolean =
+        WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(weightKg, unit)) ==
+            WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(nextWeightKg.coerceAtLeast(0.0), unit)) &&
+            reps == nextReps.coerceAtLeast(1) &&
+            rpe == nextRpe
+}
 
 object SetMicroRecCalculator {
     const val RULE_ID = "micro-rec"
@@ -584,6 +597,27 @@ object SetMicroRecCopy {
 
     fun caption(rec: SetMicroRec): String? =
         if (rec.previewOnly) "If you log this: …" else null
+
+    /**
+     * The change in words for the Next-set card: `+1 rep`, `+5 lbs`, `Hold the load`,
+     * `Back off`. Null when the rec is not a load call.
+     */
+    fun deltaLine(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? {
+        val code = rec.reasonCode
+        // These repeat last set's numbers, whatever the kicker's step label would say.
+        if (code == SetMicroRecCalculator.QUALITY || code == SetMicroRecCalculator.TOP_SET) return "Hold the load"
+        // A first set has nothing to move from.
+        if (code == SetMicroRecCalculator.FIRST_SET || code == SetMicroRecCalculator.WARMUP_DONE) return null
+        val kicker = kicker(rec, loadClass, unit) ?: return null
+        return DELTA_WORDS[kicker] ?: kicker
+    }
+
+    /** The kicker's shorthand said in words; a step label such as `+5` stands as it is. */
+    private val DELTA_WORDS = mapOf(
+        ProgressionKickerCopy.PLUS_REP to "+1 rep",
+        ProgressionKickerCopy.HOLD to "Hold the load",
+        ProgressionKickerCopy.BACK_OFF to "Back off",
+    )
 
     fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.whySheet(rec.trace)
         .ifEmpty { RuleTraceCopy.lines(rec.trace) }

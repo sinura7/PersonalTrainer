@@ -13,7 +13,16 @@ object RpeCopy {
     const val HELPER = "6 = four reps left · 10 = max"
     const val HELPER_DISMISS = "Got it"
     const val WARMUP_REASON = "Warm-up"
+    /** Ends of the 6–10 track. Only the ends: every value already has a spoken meaning. */
+    const val EASY_END = "Easy"
+    const val MAX_END = "Max effort"
+    const val HELP_TITLE = "Effort (RPE)"
+    const val HELP_INTRO =
+        "Optional. Choose how hard your working set felt. Tap the selected value again or Clear to remove it."
     val VALUES: IntRange = 6..10
+
+    /** The help sheet body: one line per value, in gym English. */
+    fun helpBody(): String = HELP_INTRO + "\n\n" + VALUES.joinToString("\n") { "$it · ${meaning(it)}" }
 
     fun blurb(lastRpe: Int?): String {
         val history = lastRpe?.let { "Last time RPE $it. " }.orEmpty()

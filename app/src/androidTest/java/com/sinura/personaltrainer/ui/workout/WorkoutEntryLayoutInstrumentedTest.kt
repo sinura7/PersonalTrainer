@@ -13,7 +13,11 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -113,10 +117,20 @@ class WorkoutEntryLayoutInstrumentedTest(
         assertTrue("scroll content clears dock", content.bottom <= compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).fetchSemanticsNode().boundsInRoot.top + 1)
         assertTrue("entry retains usable scrolling space", content.height / density >= 48)
         if (width == 360 && height == 800 && font == 1f && scenario == "working") {
-            compose.onNodeWithTag("workout-weight-stepper").assertIsDisplayed()
-            compose.onNodeWithTag("workout-reps-stepper").assertIsDisplayed()
+            // The baseline profile shows the whole log loop without a scroll: the header's
+            // progress line, identity with the set-type toggle, the stats row, both hero
+            // numerals and the RPE track.
+            compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertIsDisplayed().assertTextEquals("Exercise 1 of 1 · 0 of 12 sets")
+            compose.onNodeWithTag(WorkoutTestTags.SET_TYPE).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertIsDisplayed()
         }
+        // The companion slot carries the state that needs the room: a failed action's
+        // details, or the undo offer for a deleted set.
+        if (scenario == "error") compose.onNodeWithTag(WorkoutTestTags.ERROR_DETAILS).assertIsDisplayed()
+        if (scenario == "undo") compose.onNodeWithText("Undo").assertIsDisplayed()
         // Essential fields remain reachable even if large text deliberately puts
         // supporting content below the initial viewport.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_ENTRY))
@@ -128,11 +142,20 @@ class WorkoutEntryLayoutInstrumentedTest(
         compose.onNodeWithTag(entryTag).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         if (scenario == "large") {
+            // The hero numeral shows the number alone; its unit sits in the column's label.
+            val number = WorkoutWeightCopy.number(fixture.vm.uiState.value.draft.weightKg, WeightUnit.KG)
             val layouts = mutableListOf<TextLayoutResult>()
-            compose.onNodeWithText(WorkoutWeightCopy.label(fixture.vm.uiState.value.draft.weightKg, WeightUnit.KG), useUnmergedTree = true)
+            compose.onNode(matcher = hasText(number) and hasAnyAncestor(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER)), useUnmergedTree = true)
                 .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
             assertTrue(layouts.isNotEmpty())
             assertFalse("entered value is not clipped", layouts.any { it.hasVisualOverflow })
+        }
+        if (scenario == "latest") {
+            // The saved set is a chip in the set history; once its receipt has been shown it
+            // reads as logged, not saved.
+            val savedChip = hasTestTag(WorkoutTestTags.setChip(fixture.vm.uiState.value.session!!.sets.single().id))
+            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(savedChip)
+            compose.onNode(savedChip and hasContentDescription(value = "logged", substring = true)).assertIsDisplayed()
         }
     }
 

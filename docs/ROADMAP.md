@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 18 Sep 2026 — Active workout logging screen redesigned to the owner's
+> reference ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)):
+> progress header, image-led identity, Last/Best/Volume, hero numerals, RPE,
+> Next set with Why/Apply, set history chips, rest card, two-line Log set.
+> Business rules, timer and persistence untouched; floor goldens owed a
+> re-record on `temper-tests-api29`. Live 81 carries it for the phone check:
+> `debugLiveCode` 81; suffix from `python3 tools/debug-drop-plan.py`.
+>
 > 17 Sep 2026 — Live 80: Google Drive backup works again. Every backup
 > text ends in a newline, and the upload skipped the CRLF that must precede
 > the closing multipart boundary, so Drive refused every upload since Live 60

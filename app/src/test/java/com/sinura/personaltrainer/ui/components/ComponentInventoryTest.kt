@@ -21,6 +21,7 @@ class ComponentInventoryTest {
             "GymSurfaces.kt" to "fun SectionHeader(",
             "NumberEntryDialog.kt" to "fun <T> NumberEntryDialog(",
             "ScreenSkeleton.kt" to "fun ScreenSkeleton(",
+            "QuietButton.kt" to "fun QuietButton(",
         )
         owned.forEach { (file, signature) ->
             assertTrue("$file missing $signature", readOwned(file).contains(signature))
@@ -38,16 +39,47 @@ class ComponentInventoryTest {
 
     @Test
     fun workoutHistoryIsASecondarySheetAndHistoryKeepsItsReusableTable() {
-        val workout = readUi("workout/WorkoutLiftCard.kt")
-        assertTrue(workout.contains("LatestWorkoutSet("))
-        assertTrue(workout.contains("WorkoutSetsSheet("))
-        val current = readUi("workout/CurrentLiftCard.kt")
-        assertTrue(current.contains("ExerciseThumb("))
-        assertTrue(current.contains("LiftOverflowMenu("))
+        // The floor shows today's sets as chips; the full labelled Edit/Delete list stays a
+        // secondary sheet the strip's Edit button opens. Neither is a second table.
+        val strip = readUi("workout/SetHistoryStrip.kt")
+        assertTrue(strip.contains("fun SetHistoryStrip("))
+        assertTrue(strip.contains("WorkoutTestTags.VIEW_SETS"))
+        assertTrue(strip.contains("onClick = onOpenAll"))
+        assertTrue(strip.contains("InstrumentMenu("))
+        assertTrue(strip.contains("SetRowCopy.revise(ordinal)"))
+        assertTrue(strip.contains("SetRowCopy.delete(ordinal)"))
+        assertTrue(strip.contains("FloorStatCopy.compactSet("))
+        assertFalse("the floor strip is chips, not a second table", strip.contains("SetTable("))
+        assertFalse(strip.contains("ModalBottomSheet("))
+        val screen = readUi("workout/ActiveWorkoutScreen.kt")
+        assertTrue(screen.contains("SetHistoryStrip("))
+        assertTrue(screen.contains("WorkoutSetsSheet("))
+        assertFalse("the Latest saved receipt row is gone", screen.contains("LatestWorkoutSet("))
         val logged = readUi("workout/WorkoutSavedSets.kt")
+        assertTrue(logged.contains("fun WorkoutSetsSheet("))
+        assertTrue(logged.contains("ModalBottomSheet("))
         assertTrue(logged.contains("SetCopy.setLine"))
         assertTrue(logged.contains("Edit set"))
         assertTrue(logged.contains("Delete set"))
+        assertFalse(logged.contains("LatestWorkoutSet("))
+        val header = readUi("workout/ExerciseHeader.kt")
+        assertTrue(header.contains("fun ExerciseHeader("))
+        assertTrue(header.contains("ExerciseThumb("))
+        assertTrue(header.contains("Metrics.exerciseHeroImage"))
+        val overflow = readUi("workout/WorkoutOverflowMenu.kt")
+        assertTrue(overflow.contains("fun LiftOverflowMenu("))
+        assertTrue(overflow.contains("InstrumentMenu("))
+        assertTrue(screen.contains("LiftOverflowMenu("))
+        val retired = listOf(
+            "WorkoutLiftCard.kt",
+            "CurrentLiftCard.kt",
+            "WorkoutLogBar.kt",
+            "LoggedSetsPanel.kt",
+            "SelectedLiftDock.kt",
+        )
+        retired.forEach { name ->
+            assertFalse("$name was retired by the floor redesign", exists("ui/workout/$name"))
+        }
         val filled = readUi("history/FilledLiftCard.kt")
         assertTrue(filled.contains("LiftCard("))
         assertTrue(filled.contains("SetTable("))
@@ -64,6 +96,8 @@ class ComponentInventoryTest {
     fun instrumentTokensAlreadyCloseTypeColorAndShape() {
         val type = read("ui/theme/Type.kt")
         assertTrue(type.contains("val numeralHero"))
+        assertTrue(type.contains("val heroTitle"))
+        assertTrue(type.contains("val commit"))
         assertTrue(type.contains("val kicker"))
         assertTrue(type.contains("TABULAR"))
         val color = read("ui/theme/Color.kt")
@@ -79,17 +113,26 @@ class ComponentInventoryTest {
         assertTrue(metrics.contains("val space7"))
         assertTrue(metrics.contains("val hairline"))
         assertTrue(metrics.contains("val gutter"))
+        assertTrue(metrics.contains("val exerciseHeroImage"))
+        assertTrue(metrics.contains("val stepperRound"))
+        assertTrue(metrics.contains("val restRingSmall"))
+        assertTrue(metrics.contains("val ringStroke"))
+        assertTrue(metrics.contains("val progressTrack"))
+        assertTrue(metrics.contains("val setMarker"))
+        assertTrue(metrics.contains("val helpMark"))
     }
 
     private fun readOwned(name: String): String = read("ui/components/$name")
 
     private fun readUi(relative: String): String = read("ui/$relative")
 
-    private fun read(relative: String): String {
-        val roots = listOf(
-            File("app/src/main/java/com/sinura/personaltrainer"),
-            File("../app/src/main/java/com/sinura/personaltrainer"),
-        )
-        return roots.map { File(it, relative) }.first { it.isFile }.readText()
-    }
+    private fun read(relative: String): String =
+        roots.map { File(it, relative) }.first { it.isFile }.readText()
+
+    private fun exists(relative: String): Boolean = roots.any { File(it, relative).isFile }
+
+    private val roots = listOf(
+        File("app/src/main/java/com/sinura/personaltrainer"),
+        File("../app/src/main/java/com/sinura/personaltrainer"),
+    )
 }

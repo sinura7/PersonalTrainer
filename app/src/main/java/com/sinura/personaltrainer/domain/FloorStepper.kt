@@ -88,6 +88,14 @@ object FloorWeightPresets {
         return out
     }
 
+    /**
+     * The one-tap fills worth offering under the weight numeral: the plan and last time,
+     * minus whichever the entry already holds. Empty on the common path, where the draft
+     * is the plan, so the floor stays quiet.
+     */
+    fun quickFills(currentKg: Double, plannedKg: Double?, lastKg: Double?): List<WeightContextAction> =
+        contextActions(plannedKg = plannedKg, lastKg = lastKg).filterNot { sameKg(currentKg, it.weightKg) }
+
     private fun sameKg(currentKg: Double, otherKg: Double?): Boolean {
         if (otherKg == null || !currentKg.isFinite() || !otherKg.isFinite()) return false
         return abs(currentKg - otherKg) < 0.05
