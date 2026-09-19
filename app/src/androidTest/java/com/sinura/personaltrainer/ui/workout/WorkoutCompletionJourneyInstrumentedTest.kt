@@ -9,12 +9,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.sinura.personaltrainer.domain.SetRowCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.GoldenCapture
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
@@ -63,7 +66,8 @@ class WorkoutCompletionJourneyInstrumentedTest {
         val first = fixture.vm.uiState.value.selectedExerciseId
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
-        compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed()
+        // Next needs a tap, and the commit names where it goes.
+        compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed().assertTextContains("Next exercise · ${next.name}")
         assertEquals(first, fixture.vm.uiState.value.selectedExerciseId)
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
@@ -88,9 +92,11 @@ class WorkoutCompletionJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
         val original = session().sets.single()
-        compose.onNodeWithTag("workout-view-sets").performScrollTo().performClick()
-        compose.onNodeWithTag(WorkoutTestTags.setOptions(original.id)).performScrollTo().performClick()
-        compose.onNodeWithText("Delete set").performClick()
+        // The saved chip in the set history is the row itself: its menu carries Revise / Delete.
+        val chip = hasTestTag(WorkoutTestTags.setOptions(original.id))
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(chip)
+        compose.onNode(chip).assertIsDisplayed().performClick()
+        compose.onNodeWithText(SetRowCopy.deleteSet(1)).performClick()
         awaitSets(0)
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         compose.onNodeWithText("Undo").performClick()
@@ -103,12 +109,12 @@ class WorkoutCompletionJourneyInstrumentedTest {
         fixture.seed(exerciseId = "ex-plank", targetSets = 1)
         mount()
         compose.runOnIdle { fixture.vm.setHoldSeconds(com.sinura.personaltrainer.domain.HoldWork.MIN_SECONDS) }
-        compose.onNodeWithText("Start hold").assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed().assertTextContains("Start hold")
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(15_000) { fixture.vm.holdTimer.value.targetReached }
         assertTrue(session().sets.isEmpty())
         assertEquals(WorkoutPrimaryKind.LOG_HOLD, fixture.vm.primaryAction.value.kind)
-        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertTextContains("Log hold").performClick()
         awaitSets(1)
         assertTrue(checkNotNull(session().sets.single().durationSeconds) >= com.sinura.personaltrainer.domain.HoldWork.MIN_SECONDS)
         assertEquals(0, session().sets.single().reps)

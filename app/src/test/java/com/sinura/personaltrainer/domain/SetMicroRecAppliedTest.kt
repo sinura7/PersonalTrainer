@@ -11,22 +11,24 @@ import org.junit.Test
 class SetMicroRecAppliedTest {
     @Test
     fun appliedMeansTheEntryHoldsTheSuggestionAsApplyWouldWriteIt() {
-        val rec = rec(nextWeightKg = 31.75, nextReps = 10, nextRpe = 9)
-        assertTrue(rec.isApplied(weightKg = 31.75, reps = 10, rpe = 9))
-        // A rounded pound value lands within the tolerance.
-        assertTrue(rec.isApplied(weightKg = 31.751, reps = 10, rpe = 9))
-        assertFalse("reps differ", rec.isApplied(weightKg = 31.75, reps = 11, rpe = 9))
-        assertFalse("effort differs", rec.isApplied(weightKg = 31.75, reps = 10, rpe = 8))
-        assertFalse("effort missing", rec.isApplied(weightKg = 31.75, reps = 10, rpe = null))
-        assertFalse("a step away", rec.isApplied(weightKg = 34.0, reps = 10, rpe = 9))
+        val rec = rec(nextWeightKg = WeightConverter.lbsToKg(70.0), nextReps = 10, nextRpe = 9)
+        assertTrue(rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = 9, unit = WeightUnit.LBS))
+        // An off-grid stored kilogram value that displays as the same pounds still counts.
+        assertTrue(rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0) + 0.04, reps = 10, rpe = 9, unit = WeightUnit.LBS))
+        assertFalse("reps differ", rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0), reps = 11, rpe = 9, unit = WeightUnit.LBS))
+        assertFalse("effort differs", rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = 8, unit = WeightUnit.LBS))
+        assertFalse("effort missing", rec.isApplied(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = null, unit = WeightUnit.LBS))
+        assertFalse("a step away", rec.isApplied(weightKg = WeightConverter.lbsToKg(75.0), reps = 10, rpe = 9, unit = WeightUnit.LBS))
     }
 
     @Test
     fun appliedFollowsTheSameCoercionsAsApply() {
-        // Apply never writes fewer than one rep or a negative load, so Applied reads the same way.
+        // Apply never writes fewer than one rep or a negative load, and it clears an effort
+        // the suggestion does not carry, so Applied reads the same way.
         val floor = rec(nextWeightKg = -5.0, nextReps = 0, nextRpe = null)
-        assertTrue(floor.isApplied(weightKg = 0.0, reps = 1, rpe = 7))
-        assertFalse(floor.isApplied(weightKg = 0.0, reps = 0, rpe = null))
+        assertTrue(floor.isApplied(weightKg = 0.0, reps = 1, rpe = null, unit = WeightUnit.KG))
+        assertFalse("a chosen effort would be cleared", floor.isApplied(weightKg = 0.0, reps = 1, rpe = 7, unit = WeightUnit.KG))
+        assertFalse(floor.isApplied(weightKg = 0.0, reps = 0, rpe = null, unit = WeightUnit.KG))
     }
 
     private fun rec(nextWeightKg: Double, nextReps: Int, nextRpe: Int?) = SetMicroRec(

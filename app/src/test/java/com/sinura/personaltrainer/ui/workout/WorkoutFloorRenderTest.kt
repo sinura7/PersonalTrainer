@@ -2,18 +2,17 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -30,7 +29,12 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.io.File
 import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -51,16 +55,20 @@ import org.robolectric.annotation.GraphicsMode
  * also asserts the floor's load-bearing regions exist, so the lane fails loudly if a
  * state stops rendering.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
 class WorkoutFloorRenderTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<ActiveWorkoutViewModel>()
 
     @Before
     fun setUp() {
+        // The ViewModel's scope runs inline on the test thread, as in ActiveWorkoutViewModelTest;
+        // joining it under the real main looper from that same thread would never return.
+        Dispatchers.setMain(UnconfinedTestDispatcher())
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
         runBlocking { deps.preferencesRepository.setWeightUnit(WeightUnit.LBS) }
     }
@@ -71,6 +79,7 @@ class WorkoutFloorRenderTest {
         viewModels.clear()
         deps.restTimerController.stop()
         deps.close()
+        Dispatchers.resetMain()
     }
 
     @Test
@@ -91,6 +100,9 @@ class WorkoutFloorRenderTest {
         render(name = "resting-360x800", vm = vm, expectRest = true) {
             deps.restTimerController.start(totalSeconds = 120, sessionId = vm.uiState.value.session?.id)
             deps.restTimerController.adjust(deltaSeconds = -28)
+            // The first rest of a fresh install shows the battery hint in the companion slot;
+            // this frame is about the card underneath it.
+            vm.acknowledgeRestBatteryHint()
         }
     }
 
@@ -206,17 +218,25 @@ class WorkoutFloorRenderTest {
         compose.waitForIdle()
         drive()
         compose.waitForIdle()
-        compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertExists()
-        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertExists()
-        compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
-        // The list is lazy: at font 2.0 the entry can start below the first frame.
-        if (fontScale < 1.6f) compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
-        if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
-        val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+        // Draw the window's view tree into a bitmap ourselves: Robolectric never delivers
+        // the draw callback that captureToImage waits on.
+        val bitmap = compose.runOnIdle {
+            val decor = compose.activity.window.decorView
+            val out = Bitmap.createBitmap(decor.width.coerceAtLeast(1), decor.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+            decor.draw(Canvas(out))
+            out
+        }
         val out = File("build/floor-renders").apply { mkdirs() }
         FileOutputStream(File(out, "$name.png")).use { stream ->
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
         }
         assertTrue(bitmap.width > 0 && bitmap.height > 0)
+        // Asserted after the frame is on disk, so a failing state still leaves its picture.
+        compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertExists()
+        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertExists()
+        // The list is lazy: landscape and font 2.0 can start the stats and entry below the fold.
+        if (heightDp >= 640) compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
+        if (heightDp >= 640 && fontScale < 1.6f) compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
+        if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
     }
 }

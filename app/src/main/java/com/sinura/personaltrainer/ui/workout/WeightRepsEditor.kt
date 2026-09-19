@@ -1,7 +1,6 @@
 package com.sinura.personaltrainer.ui.workout
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -151,7 +150,8 @@ internal fun WeightRepsEditor(
                     }
                 }
             },
-            label = "${meaning.fieldLabel} (${unit.suffix})",
+            label = meaning.fieldLabel,
+            unitLabel = unit.suffix,
             value = weightNumber,
             sample = WEIGHT_SAMPLE,
             spoken = SetCopy.weightWellSpoken(meaning = meaning, weightKg = weightKg, unit = unit, entryPrecision = true),
@@ -213,8 +213,10 @@ internal fun WeightRepsEditor(
     // The one constraints read on the editor: each numeral learns its column width from
     // here, so nothing beneath asks a lazy parent for intrinsic sizes.
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        // Read once here: the Row and Column scopes below cannot see this scope's maxWidth.
+        val fullWidth = maxWidth
         if (showWeight && !stack) {
-            val columnWidth = maxWidth / 2 - Metrics.space2
+            val columnWidth = fullWidth / 2 - Metrics.space2
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -242,10 +244,10 @@ internal fun WeightRepsEditor(
                 verticalArrangement = Arrangement.spacedBy(Metrics.space3),
             ) {
                 if (showWeight) {
-                    weightColumn(Modifier.fillMaxWidth(), maxWidth)
+                    weightColumn(Modifier.fillMaxWidth(), fullWidth)
                     HairlineDivider(startIndent = Metrics.space7)
                 }
-                workColumn(Modifier.fillMaxWidth(), maxWidth)
+                workColumn(Modifier.fillMaxWidth(), fullWidth)
             }
         }
     }
@@ -258,7 +260,8 @@ internal fun WeightRepsEditor(
         NumberEntryDialog(
             title = meaning.fieldLabel,
             unitLabel = unit.suffix,
-            initial = weightNumber,
+            // Seeded at display precision: what the parser reads and what Set would write.
+            initial = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(weightKg, unit)),
             decimal = true,
             helper = SetCopy.weightKeypadHelper(
                 keypadClass,
@@ -317,13 +320,22 @@ private fun HeroNumeral(
     onType: () -> Unit,
     caption: String?,
     tag: String,
+    unitLabel: String? = null,
     below: (@Composable () -> Unit)? = null,
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     Box(modifier = modifier) {
-        val sampleWidth = with(density) {
+        // The unit rides the numeral's baseline, so it counts toward the widest sample too.
+        val numeralWidth = with(density) {
             measurer.measure(sample, style = InstrumentType.numeralXl, softWrap = false).size.width.toDp()
+        }
+        val sampleWidth = if (unitLabel == null) {
+            numeralWidth
+        } else {
+            numeralWidth + Metrics.space1 + with(density) {
+                measurer.measure(unitLabel, style = InstrumentType.unit, softWrap = false).size.width.toDp()
+            }
         }
         val inline = sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth
         val numeral: @Composable (Modifier) -> Unit = { numeralModifier ->
@@ -351,21 +363,36 @@ private fun HeroNumeral(
                     animationSpec = instrumentTween(Motion.TAP),
                     label = "hero-numeral",
                 ) { shown ->
-                    Text(
-                        shown,
-                        style = InstrumentType.numeralXl,
-                        color = if (enabled) TextPrimary else TextDisabled,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Visible,
-                        textAlign = TextAlign.Center,
-                    )
+                    Row(horizontalArrangement = Arrangement.Center) {
+                        Text(
+                            shown,
+                            modifier = Modifier.alignByBaseline(),
+                            style = InstrumentType.numeralXl,
+                            color = if (enabled) TextPrimary else TextDisabled,
+                            maxLines = 1,
+                            softWrap = false,
+                            overflow = TextOverflow.Visible,
+                            textAlign = TextAlign.Center,
+                        )
+                        if (unitLabel != null) {
+                            Text(
+                                unitLabel,
+                                modifier = Modifier
+                                    .alignByBaseline()
+                                    .padding(start = Metrics.space1),
+                                style = InstrumentType.unit,
+                                color = if (enabled) TextSecondary else TextDisabled,
+                                maxLines = 1,
+                                softWrap = false,
+                            )
+                        }
+                    }
                 }
             }
         }
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             Kicker(text = label, color = TextSecondary, asHeading = false)
             if (inline) {

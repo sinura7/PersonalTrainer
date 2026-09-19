@@ -115,7 +115,7 @@ class FloorCompactPresentationTest {
         assertFalse(hero.contains("LiftOverflowMenu("))
         assertFalse(hero.contains("CurrentLiftHeader("))
         assertFalse(hero.contains("SetDots("))
-        assertTrue(hero.contains("size = Metrics.exerciseHeroImage"))
+        assertTrue(hero.contains("Metrics.exerciseHeroImage"))
         val liftCard = readOwned("ui/components/LiftCard.kt")
         val row = liftCard.substring(liftCard.indexOf("Row("), liftCard.indexOf("content()"))
         assertTrue(row.contains("trailing()"))

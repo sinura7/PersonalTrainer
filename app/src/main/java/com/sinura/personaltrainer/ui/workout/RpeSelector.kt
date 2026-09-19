@@ -134,12 +134,11 @@ internal fun RpeSelector(
                             )
                         }
                     }
-                    if (singleRow) {
-                        Row(modifier = Modifier.fillMaxWidth()) {
-                            Text(RpeCopy.EASY_END, style = InstrumentType.caption, color = TextTertiary)
-                            Spacer(Modifier.weight(1f))
-                            Text(RpeCopy.MAX_END, style = InstrumentType.caption, color = TextTertiary)
-                        }
+                    // The ends stay under the track whether it fits one row or wraps.
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text(RpeCopy.EASY_END, style = InstrumentType.caption, color = TextTertiary)
+                        Spacer(Modifier.weight(1f))
+                        Text(RpeCopy.MAX_END, style = InstrumentType.caption, color = TextTertiary)
                     }
                 }
             }

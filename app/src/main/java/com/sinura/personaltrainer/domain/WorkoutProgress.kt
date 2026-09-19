@@ -64,7 +64,8 @@ object WorkoutProgressCalculator {
             val logged = session.workingSetsFor(id)
             val target = lift.targetSets.coerceAtLeast(0)
             setsDone += logged
-            setsPlanned += maxOf(target, logged)
+            // Only a prescribed lift has a plan; a free lift's sets count as done, not planned.
+            if (target > 0) setsPlanned += maxOf(target, logged)
             // A free lift (no target) has nothing to complete, so it never counts as done;
             // its segment still fills once it has been worked.
             val met = target > 0 && logged >= target

@@ -10,6 +10,8 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -111,8 +113,9 @@ class WorkoutFloorComponentsTest {
         }
         compose.onNodeWithText("Leg Extension").assertIsDisplayed()
         compose.onNodeWithText("MACHINE").assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT).assertIsDisplayed()
-        compose.onNodeWithText("2/3 working sets").assertIsDisplayed()
+        // The identity merges its words into one spoken button; read the parts unmerged.
+        compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("2/3 working sets", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
         compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).assertIsNotSelected().performClick()
         assertEquals(true, warmup)
@@ -143,9 +146,9 @@ class WorkoutFloorComponentsTest {
         )
         var applied: Pair<Double, Int>? = null
         show { ExerciseStatsRow(stats = stats, unit = unit, onApplyLastSet = { kg, reps -> applied = kg to reps }) }
-        compose.onNodeWithText("70 × 9 @ 8").assertIsDisplayed()
-        compose.onNodeWithText("Last time").assertIsDisplayed()
-        compose.onNodeWithText("70 × 9").assertIsDisplayed()
+        // Last time's 70 × 9 is also the standing best, so the value shows twice.
+        compose.onAllNodesWithText("70 × 9").assertCountEquals(2)
+        compose.onNodeWithText("Last time · RPE 8").assertIsDisplayed()
         compose.onNodeWithText("—").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.STAT_LAST).performClick()
         assertEquals(kg70 to 9, applied)
@@ -179,7 +182,8 @@ class WorkoutFloorComponentsTest {
         val step = WeightConverter.formatDisplayNumber(
             IncrementTable.displayStep(LoadType.EXTERNAL, unit, EquipmentType.MACHINE) ?: unit.step,
         )
-        compose.onNodeWithText("WEIGHT (LBS)").assertIsDisplayed()
+        compose.onNodeWithText("WEIGHT").assertIsDisplayed()
+        compose.onNodeWithText("lbs").assertIsDisplayed()
         compose.onNodeWithText("REPS").assertIsDisplayed()
         compose.onNodeWithText("70").assertIsDisplayed()
         compose.onNodeWithText("10").assertIsDisplayed()
@@ -381,8 +385,8 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithText("Saved · Set 2 of 3").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.CURRENT_SET).assertIsDisplayed()
         compose.onNodeWithText("Current").assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.setOptions("set-1")).performClick()
-        compose.onNodeWithText("Revise set 1").performClick()
+        compose.onNodeWithTag(WorkoutTestTags.setChip("set-1")).performClick()
+        compose.onNodeWithText("Revise Set 1 of 3").performClick()
         assertEquals("set-1", edited)
         compose.onNodeWithTag(WorkoutTestTags.ADD_SET).performClick()
         assertEquals(1, added)

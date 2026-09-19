@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -29,9 +29,11 @@ import com.sinura.personaltrainer.domain.FloorStat
 import com.sinura.personaltrainer.domain.FloorStatCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -61,43 +63,57 @@ internal fun ExerciseStatsRow(
     val number = if (stats.work.volumeKg > 0.0) QuantityFormat.formatVolumeNumber(stats.work.volumeKg, unit) else column.value
     val volumeValue = if (nothingYet) SetCopy.NOTHING_YET else "$number ${column.label}"
     val volumeSpoken = if (nothingYet) "Volume this exercise, nothing yet" else "Volume this exercise, $volumeValue"
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .testTag(WorkoutTestTags.STATS_ROW),
-    ) {
-        val lastTime = stats.lastSet.applies
-        StatCell(
-            stat = stats.lastSet,
-            tag = WorkoutTestTags.STAT_LAST,
-            onClick = if (lastTime != null && onApplyLastSet != null) {
-                { onApplyLastSet(lastTime.weightKg, lastTime.reps) }
-            } else {
-                null
-            },
-        )
-        CellRule()
-        StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST)
-        CellRule()
-        StatCell(
-            stat = FloorStat(
-                label = FloorStatCopy.VOLUME,
-                value = volumeValue,
-                detail = FloorStatCopy.VOLUME_DETAIL,
-                spoken = volumeSpoken,
-            ),
-            tag = WorkoutTestTags.STAT_VOLUME,
-        )
+    val lastTime = stats.lastSet.applies
+    val onLast: (() -> Unit)? = if (lastTime != null && onApplyLastSet != null) {
+        { onApplyLastSet(lastTime.weightKg, lastTime.reps) }
+    } else {
+        null
+    }
+    val volume = FloorStat(
+        label = FloorStatCopy.VOLUME,
+        value = volumeValue,
+        detail = FloorStatCopy.VOLUME_DETAIL,
+        spoken = volumeSpoken,
+    )
+    if (LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)) {
+        // Large text: three full-width rows instead of three narrow columns.
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .testTag(WorkoutTestTags.STATS_ROW),
+        ) {
+            StatCell(stat = stats.lastSet, tag = WorkoutTestTags.STAT_LAST, modifier = Modifier.fillMaxWidth(), onClick = onLast)
+            HairlineDivider(startIndent = Metrics.space2)
+            StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.fillMaxWidth())
+            HairlineDivider(startIndent = Metrics.space2)
+            StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min)
+                .testTag(WorkoutTestTags.STATS_ROW),
+        ) {
+            StatCell(stat = stats.lastSet, tag = WorkoutTestTags.STAT_LAST, modifier = Modifier.weight(1f), onClick = onLast)
+            CellRule()
+            StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.weight(1f))
+            CellRule()
+            StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.weight(1f))
+        }
     }
 }
 
 @Composable
-private fun RowScope.StatCell(stat: FloorStat, tag: String, onClick: (() -> Unit)? = null) {
+private fun StatCell(
+    stat: FloorStat,
+    tag: String,
+    modifier: Modifier,
+    onClick: (() -> Unit)? = null,
+) {
     val view = LocalView.current
     Column(
-        modifier = Modifier
-            .weight(1f)
+        modifier = modifier
             .clip(RoundedCornerShape(Radius.sm))
             .then(
                 if (onClick != null) {
@@ -114,25 +130,24 @@ private fun RowScope.StatCell(stat: FloorStat, tag: String, onClick: (() -> Unit
             .semantics(mergeDescendants = true) { contentDescription = stat.spoken },
         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-            Text(stat.label, style = InstrumentType.caption, color = TextSecondary, maxLines = 1)
-            stat.detail?.let { detail ->
-                Text(
-                    detail,
-                    style = InstrumentType.caption,
-                    color = TextTertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        Text(stat.label, style = InstrumentType.caption, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // The value may wrap once rather than lose its reps or effort to an ellipsis.
         Text(
             stat.value,
             style = InstrumentType.numeralSm,
             color = TextPrimary,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+        stat.detail?.let { detail ->
+            Text(
+                detail,
+                style = InstrumentType.caption,
+                color = TextTertiary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

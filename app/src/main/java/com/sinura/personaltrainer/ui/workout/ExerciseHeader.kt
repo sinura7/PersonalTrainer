@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.LoadClass
@@ -85,6 +86,7 @@ internal fun ExerciseHeader(
             style = InstrumentType.heroTitle,
             color = TextPrimary,
             maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             setContext,
@@ -92,23 +94,37 @@ internal fun ExerciseHeader(
             style = InstrumentType.bodyStrong,
             color = TextPrimary,
         )
-        Text(
-            progressLine,
-            modifier = Modifier.testTag(WorkoutTestTags.liftSets(lift.exercise.id)),
-            style = InstrumentType.caption,
-            color = TextSecondary,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                progressLine,
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag(WorkoutTestTags.liftSets(lift.exercise.id)),
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+            QuietButton(
+                text = CurrentLiftCopy.DETAILS,
+                onClick = onDetails,
+                trailing = TemperIcons.Chevron,
+                enabled = enabled,
+                modifier = Modifier.testTag(WorkoutTestTags.DETAILS),
+                spoken = "Exercise details",
+                plain = true,
+            )
+        }
     }
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .testTag(WorkoutTestTags.CURRENT_LIFT),
     ) {
-        val detailsWidth = with(density) {
-            measurer.measure(CurrentLiftCopy.DETAILS, style = InstrumentType.bodyStrong, softWrap = false).size.width.toDp()
-        } + Metrics.space3 * 2 + Metrics.chevron + Metrics.space1
         val wordsWidth = with(density) {
-            (maxWidth - Metrics.exerciseHeroImage - Metrics.space3 - detailsWidth - Metrics.space2).roundToPx()
+            (maxWidth - Metrics.exerciseHeroImage - Metrics.space3).roundToPx()
         }.coerceAtLeast(1)
         val titleLines = measurer.measure(
             lift.exercise.name,
@@ -117,65 +133,23 @@ internal fun ExerciseHeader(
         ).lineCount
         val stacked = density.fontScale >= 1.6f || titleLines > 2
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-            if (stacked) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Row(
-                        modifier = identityModifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        ExerciseThumb(
-                            exercise = lift.exercise,
-                            size = Metrics.workoutIdentityImage,
-                            showBadge = false,
-                            artPadding = Metrics.space1,
-                        )
-                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) { words() }
-                    }
-                    QuietButton(
-                        text = CurrentLiftCopy.DETAILS,
-                        onClick = onDetails,
-                        trailing = TemperIcons.Chevron,
-                        enabled = enabled,
-                        modifier = Modifier.testTag(WorkoutTestTags.DETAILS),
-                        spoken = "Exercise details",
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Row(
-                        modifier = identityModifier.weight(1f),
-                        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        ExerciseThumb(
-                            exercise = lift.exercise,
-                            size = Metrics.exerciseHeroImage,
-                            showBadge = false,
-                            artPadding = Metrics.space2,
-                        )
-                        Column(
-                            modifier = Modifier.padding(top = Metrics.space1),
-                            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-                        ) { words() }
-                    }
-                    QuietButton(
-                        text = CurrentLiftCopy.DETAILS,
-                        onClick = onDetails,
-                        trailing = TemperIcons.Chevron,
-                        enabled = enabled,
-                        modifier = Modifier.testTag(WorkoutTestTags.DETAILS),
-                        spoken = "Exercise details",
-                    )
-                }
+            // The still and the words share one row; Details rides the words' last line, so a
+            // long name has the whole column. Large text or a long name shrinks the still.
+            Row(
+                modifier = identityModifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+                verticalAlignment = Alignment.Top,
+            ) {
+                ExerciseThumb(
+                    exercise = lift.exercise,
+                    size = if (stacked) Metrics.workoutIdentityImage else Metrics.exerciseHeroImage,
+                    showBadge = false,
+                    artPadding = if (stacked) Metrics.space1 else Metrics.space2,
+                )
+                Column(
+                    modifier = Modifier.padding(top = Metrics.space1),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                ) { words() }
             }
             SetTypeToggle(
                 enabled = enabled,

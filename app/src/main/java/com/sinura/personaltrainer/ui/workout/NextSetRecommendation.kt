@@ -21,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -37,11 +38,11 @@ import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
-import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
  * The next set, as the deterministic coach calls it ([SetMicroRec], ADR-008).
@@ -96,7 +97,7 @@ internal fun NextSetRecommendation(
                 QuietButton(
                     text = if (applied) "Applied" else "Apply",
                     onClick = {
-                        Haptics.warn(view)
+                        Haptics.tick(view)
                         onApply()
                     },
                     modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC_APPLY),
@@ -107,13 +108,7 @@ internal fun NextSetRecommendation(
                 )
             }
         }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        val numbersText: @Composable () -> Unit = {
             Text(
                 numbers,
                 modifier = Modifier
@@ -123,19 +118,15 @@ internal fun NextSetRecommendation(
                 color = TextPrimary,
                 maxLines = 2,
             )
-            Box(
-                modifier = Modifier
-                    .width(Metrics.hairline)
-                    .fillMaxHeight()
-                    .padding(vertical = Metrics.space1)
-                    .background(Hairline),
-            )
+        }
+        // The change and the rule, in plain ink: Volt is for what is chosen, not suggested.
+        val change: @Composable (Modifier) -> Unit = { changeModifier ->
             Column(
-                modifier = Modifier.weight(1f),
+                modifier = changeModifier,
                 verticalArrangement = Arrangement.spacedBy(Metrics.space1),
             ) {
                 if (delta != null) {
-                    Text(delta, style = InstrumentType.bodyStrong, color = Volt, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(delta, style = InstrumentType.bodyStrong, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Text(
                     listOfNotNull(reason, target).joinToString(" · "),
@@ -144,6 +135,30 @@ internal fun NextSetRecommendation(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+        }
+        if (LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                numbersText()
+                change(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                numbersText()
+                Box(
+                    modifier = Modifier
+                        .width(Metrics.hairline)
+                        .fillMaxHeight()
+                        .padding(vertical = Metrics.space1)
+                        .background(Hairline),
+                )
+                change(Modifier.weight(1f))
             }
         }
         SetMicroRecCopy.caption(rec)?.let { caption ->
@@ -158,7 +173,7 @@ internal fun NextSetRecommendation(
             dismissLabel = if (canUse && !applied) SetMicroRecCopy.KEEP_MY_NUMBERS else null,
             onConfirm = {
                 if (canUse && !applied) {
-                    Haptics.warn(view)
+                    Haptics.tick(view)
                     onApply()
                 }
                 showWhy = false

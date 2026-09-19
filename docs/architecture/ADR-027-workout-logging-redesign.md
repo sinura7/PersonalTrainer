@@ -35,23 +35,30 @@ that packet's state model and derived primary action and changes the composition
    x of y sets`, one progress segment per lift); exercise identity (112 dp keyed
    still, equipment, name, set ordinal, working count, Details, Working | Warm-up);
    Last set · Best set · Volume (this exercise); weight and reps (or hold time) as
-   two hero numerals with round − / + plates; RPE 6–10 with Easy / Max effort ends
-   and help; Next set (numbers, change, one-line reason, Why, Apply); set history
-   chips with the current set ringed and Add set once the plan is met; the dock
-   with the rest card or hold/set clock and the 72 dp commit.
+   two hero numerals with round − / + plates, the unit riding the weight numeral's
+   baseline; RPE 6–10 with Easy / Max effort ends and help; Next set (numbers,
+   change, one-line reason, Why, Apply); set history chips with the current set
+   ringed and Add set once the plan is met; the dock with the rest card or
+   hold/set clock and the 72 dp commit.
 2. **Every number is derived from saved rows.** Progress is
-   `WorkoutProgressCalculator`; the stats row is `ExerciseFloorStatsCalculator`,
-   whose Best set is the standing-records rule (`PersonalRecords.bests`, most reps
-   where reps are the measure, else estimated 1RM, else heaviest) over finished
-   sets from other sessions plus today's working sets; volume follows
-   `WorkoutSession.work` (working sets only, holds are time). No hardcoded values.
+   `WorkoutProgressCalculator`: only a prescribed lift has a plan, so a free lift's
+   sets count as done but never as planned, and a free lift fills its segment once
+   worked but never counts as complete. The stats row is
+   `ExerciseFloorStatsCalculator`, whose Best set is the standing-records rule
+   (`PersonalRecords.bests`, most reps where reps are the measure, else estimated
+   1RM, else heaviest) over finished sets from other sessions plus today's working
+   sets, holds excluded on both sides, and says `Today` only when a standing record
+   was beaten this session; volume follows `WorkoutSession.work` (working sets
+   only, holds are time). No hardcoded values.
 3. **The ViewModel's contract is unchanged** except for one read-only flow,
    `exerciseHistory`, loaded with the prefill. `WorkoutPrimaryActions.derive`,
    `performPrimary`, logging, editing, undo, `WorkoutAdvance`, the rest gateway,
    `Coach.decide` and `IncrementTable` are called, not copied.
 4. **Apply copies the next set into the entry and never logs.** Once the entry
-   matches, the control reads Applied and stands down. Why opens the rule trace.
-   A suggestion is never rendered as a selection.
+   matches (`SetMicroRec.isApplied`: the same coercions Apply writes, the weight
+   compared at display precision, the effort matched exactly), the control reads
+   Applied and stands down. Why opens the rule trace. A suggestion is never
+   rendered as a selection, and its change line is plain ink, not Volt.
 5. **The rest card is the service's clock at three moods** — running (cyan,
    draining ring, −15 / +15 / Skip), done (gold flash, `Back to the bar`), and at
    rest (dim, planned length, Start rest). Duration editing stays in the sheet;
@@ -67,6 +74,14 @@ that packet's state model and derived primary action and changes the composition
    `app/src/androidTest/assets/goldens` describe the F3 composition and must be
    re-recorded on `temper-tests-api29` before the emulator lane is read as green
    again. JVM renders (`WorkoutFloorRenderTest`) are review artifacts, not goldens.
+9. **Last time is reachable, but no longer a strip.** The F2 floor listed every set
+   of the previous session as tappable chips. The reference has no such row, so:
+   the Last set cell shows last time's final set and applies it on tap until the
+   first set of today lands; the routine's planned load and last time's load
+   return as one-tap `Plan` / `Last` fills under the weight numeral only while the
+   entry holds something else (`FloorWeightPresets.quickFills`); the rest of last
+   session lives behind Details. In landscape the commit's verb stays short and the
+   next lift's name rides its second line.
 
 ## Consequences
 
@@ -76,6 +91,9 @@ that packet's state model and derived primary action and changes the composition
   `NextSetRecommendation`, `SetHistoryStrip`, `RestTimerCard` and `WorkoutDock`.
 - Presentation tests assert the new order and copy; ViewModel and domain tests
   are unchanged in intent. Source-text tests point at the new files.
+- Large system text (1.6 and above) stacks the hero numerals, the stats row, the
+  next-set card's numbers over its change, drops Details under the identity and
+  the rest controls under the clock; the header's progress line may wrap once.
 - Milestone A's phone checklist gains the reference screen; the floor goldens
   are owed a re-record on the emulator profile before they gate anything.
 - No schema, backup, signer, tab or navigation change is authorised by this record.

@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.domain
 
-import kotlin.math.abs
 
 /**
  * In-set next-load / next-reps. Local and deterministic (ADR-008).
@@ -80,18 +79,16 @@ data class SetMicroRec(
     val loadType: LoadType? = null,
 ) {
     /**
-     * True once the entry already holds this set exactly as Apply would write it
-     * (the same coercions as the ViewModel's applyMicroRec), so the control can read Applied.
+     * True once the entry already holds this set exactly as Apply would write it, so the
+     * control can read Applied: the same coercions as the ViewModel's applyMicroRec, the
+     * weight compared at the unit's display precision, and the effort matched exactly
+     * (Apply clears a chosen RPE when the suggestion carries none).
      */
-    fun isApplied(weightKg: Double, reps: Int, rpe: Int?): Boolean =
-        abs(weightKg - nextWeightKg.coerceAtLeast(0.0)) < APPLIED_KG_TOLERANCE &&
+    fun isApplied(weightKg: Double, reps: Int, rpe: Int?, unit: WeightUnit): Boolean =
+        WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(weightKg, unit)) ==
+            WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(nextWeightKg.coerceAtLeast(0.0), unit)) &&
             reps == nextReps.coerceAtLeast(1) &&
-            (nextRpe == null || rpe == nextRpe)
-
-    companion object {
-        /** Under the finest weight step the app can show, so a rounded lb value still matches. */
-        const val APPLIED_KG_TOLERANCE = 0.01
-    }
+            rpe == nextRpe
 }
 
 object SetMicroRecCalculator {
@@ -605,14 +602,23 @@ object SetMicroRecCopy {
      * The change in words for the Next-set card: `+1 rep`, `+5 lbs`, `Hold the load`,
      * `Back off`. Null when the rec is not a load call.
      */
-    fun deltaLine(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? =
-        when (val kicker = kicker(rec, loadClass, unit)) {
+    fun deltaLine(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String? = when (rec.reasonCode) {
+        // These repeat last set's numbers, whatever the kicker's step label would say.
+        SetMicroRecCalculator.QUALITY,
+        SetMicroRecCalculator.TOP_SET,
+        -> "Hold the load"
+        // A first set has nothing to move from.
+        SetMicroRecCalculator.FIRST_SET,
+        SetMicroRecCalculator.WARMUP_DONE,
+        -> null
+        else -> when (val kicker = kicker(rec, loadClass, unit)) {
             null -> null
             ProgressionKickerCopy.PLUS_REP -> "+1 rep"
             ProgressionKickerCopy.HOLD -> "Hold the load"
             ProgressionKickerCopy.BACK_OFF -> "Back off"
             else -> kicker
         }
+    }
 
     fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.whySheet(rec.trace)
         .ifEmpty { RuleTraceCopy.lines(rec.trace) }

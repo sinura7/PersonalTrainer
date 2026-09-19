@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.ProgressSegment
 import com.sinura.personaltrainer.domain.ProgressSegmentState
@@ -140,7 +141,8 @@ internal fun WorkoutHeader(
                         .semantics { contentDescription = spoken },
                     style = InstrumentType.caption,
                     color = TextSecondary,
-                    maxLines = 1,
+                    maxLines = titleLines,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 if (!compact) WorkoutProgressBar(segments = progress.segments)
             }

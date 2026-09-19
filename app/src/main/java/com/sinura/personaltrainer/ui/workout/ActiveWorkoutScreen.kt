@@ -53,6 +53,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.SetWork
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WarmupRamp
 import com.sinura.personaltrainer.domain.WeightDraftSource
 import com.sinura.personaltrainer.domain.WorkoutAdvance
@@ -81,6 +82,8 @@ import kotlinx.coroutines.delay
 /** Stable semantics for the critical device journey; copy remains free to improve. */
 object WorkoutTestTags {
     fun weightPreset(source: WeightDraftSource) = "workout-weight-preset-${source.name.lowercase()}"
+    /** A set's chip on the floor; the saved-sets sheet's rows keep [setOptions], so both can be open at once. */
+    fun setChip(setId: String) = "workout-set-chip-$setId"
     const val CONTENT = "workout-content"
     const val LOG_SET = "workout-log-set"
     const val FINISH = "workout-finish"
@@ -715,13 +718,14 @@ private fun ActiveWorkoutContent(
                                         onRpe = viewModel::setRpe,
                                     )
                                 }
-                                val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup }
+                                val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }
                                 if (rec != null) {
                                     item(key = "next-set") {
                                         val applied = rec.isApplied(
                                             weightKg = state.draft.weightKg,
                                             reps = state.draft.reps,
                                             rpe = state.draft.rpe,
+                                            unit = unit,
                                         )
                                         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
                                             HairlineDivider(startIndent = 0.dp)

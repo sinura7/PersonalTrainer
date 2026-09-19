@@ -48,6 +48,9 @@ object FloorStatCopy {
     const val WARMUP_MARK = "Warm-up"
     /** A last-time hold reaches the floor without its seconds (see [ExerciseSetRecord]); say what it was, not `× 0`. */
     const val HOLD = "Hold"
+    const val DETAIL_JOIN = " · "
+
+    fun rpeDetail(rpe: Int): String = "RPE $rpe"
 
     fun compactSet(
         weightKg: Double,
@@ -119,16 +122,21 @@ object ExerciseFloorStatsCalculator {
     ): FloorStat {
         val latest = today.maxWithOrNull(compareBy<SetLog> { it.completedAt }.thenBy { it.setNumber })
         if (latest != null) {
+            // The effort rides the detail line, so the value stays one short line in its cell.
             val value = FloorStatCopy.compactSet(
-                latest.weightKg, latest.reps, loadClass, unit, latest.rpe, latest.durationSeconds,
+                latest.weightKg, latest.reps, loadClass, unit, null, latest.durationSeconds,
             )
             val spokenSet = FloorStatCopy.spokenSet(
                 latest.weightKg, latest.reps, loadClass, unit, latest.rpe, latest.durationSeconds,
             )
+            val detail = listOfNotNull(
+                FloorStatCopy.WARMUP_MARK.takeIf { latest.isWarmup },
+                latest.rpe?.let { FloorStatCopy.rpeDetail(it) },
+            ).joinToString(FloorStatCopy.DETAIL_JOIN).ifEmpty { null }
             return FloorStat(
                 label = FloorStatCopy.LAST_SET,
                 value = value,
-                detail = if (latest.isWarmup) FloorStatCopy.WARMUP_MARK else null,
+                detail = detail,
                 spoken = if (latest.isWarmup) "Last set, warm-up, $spokenSet" else "Last set, $spokenSet",
             )
         }
@@ -138,15 +146,19 @@ object ExerciseFloorStatsCalculator {
             // not "no weight × 0", and it is not a set the entry can copy.
             val hold = previous.reps < 1
             val value = if (hold) FloorStatCopy.HOLD else {
-                FloorStatCopy.compactSet(previous.weightKg, previous.reps, loadClass, unit, previous.rpe)
+                FloorStatCopy.compactSet(previous.weightKg, previous.reps, loadClass, unit)
             }
             val spoken = if (hold) "a hold" else {
                 FloorStatCopy.spokenSet(previous.weightKg, previous.reps, loadClass, unit, previous.rpe)
             }
+            val detail = listOfNotNull(
+                FloorStatCopy.LAST_TIME,
+                previous.rpe?.takeUnless { hold }?.let { FloorStatCopy.rpeDetail(it) },
+            ).joinToString(FloorStatCopy.DETAIL_JOIN)
             return FloorStat(
                 label = FloorStatCopy.LAST_SET,
                 value = value,
-                detail = FloorStatCopy.LAST_TIME,
+                detail = detail,
                 spoken = "Last set, last time, $spoken",
                 applies = previous.takeUnless { hold },
             )

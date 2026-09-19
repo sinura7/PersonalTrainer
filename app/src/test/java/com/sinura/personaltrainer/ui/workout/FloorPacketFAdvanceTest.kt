@@ -104,8 +104,9 @@ class FloorPacketFAdvanceTest {
         assertTrue(card.contains("title = \"Why this set\""))
         assertTrue(card.contains("body = SetMicroRecCopy.whyLines(rec).joinToString(\"\\n\")"))
         assertTrue(card.contains("WorkoutTestTags.MICRO_REC_WHY"))
-        // Apply and Use suggestion are a light warn, never the commit haptic: nothing was saved.
-        assertTrue(card.contains("Haptics.warn(view)"))
+        // Apply and Use suggestion are a detent, never the commit haptic: nothing was saved.
+        assertTrue(card.contains("Haptics.tick(view)"))
+        assertFalse(card.contains("Haptics.warn(view)"))
         assertFalse(card.contains("Haptics.commit"))
         assertFalse(card.contains("logSet"))
         assertTrue(card.contains("text = if (applied) \"Applied\" else \"Apply\""))

@@ -22,7 +22,7 @@ class FloorPacket4KickerGlyphsTest {
         val recAt = screen.indexOf("item(key = \"next-set\")")
         assertTrue("entry must precede recommendations", fieldsAt in 0 until recAt)
         assertTrue("effort must precede recommendations", rpeAt in fieldsAt until recAt)
-        assertTrue(screen.contains("val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup }"))
+        assertTrue(screen.contains("val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }"))
         assertTrue(screen.contains("onApply = viewModel::applyMicroRec"))
         val card = readOwned("ui/workout/NextSetRecommendation.kt")
         assertTrue(card.contains("if (!SetMicroRecCopy.visibleOnEntry(rec)) return"))
@@ -95,7 +95,7 @@ class FloorPacket4KickerGlyphsTest {
         assertTrue(floor.contains("FloorFieldGlyph("))
         // The floor's hero numerals are labelled in words by a Kicker; no glyph stands in for a label.
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("label = \"\${meaning.fieldLabel} (\${unit.suffix})\""))
+        assertTrue(editor.contains("label = meaning.fieldLabel") && editor.contains("unitLabel = unit.suffix"))
         assertTrue(editor.contains("label = \"Reps\""))
         assertTrue(editor.contains("label = if (holdRunning) HoldWork.HOLD_KICKER else \"Time\""))
         assertTrue(editor.contains("Kicker(text = label, color = TextSecondary, asHeading = false)"))

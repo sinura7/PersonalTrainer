@@ -52,6 +52,7 @@ import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.PrGold
@@ -182,7 +183,8 @@ internal fun RestTimerCard(
             horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
             verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             itemVerticalAlignment = Alignment.CenterVertically,
-            maxItemsInEachRow = 2,
+            // Large text: the −15 / +15 / Skip row drops under the clock instead of squeezing it.
+            maxItemsInEachRow = if (LogLoopScale.stackEntryWells(density.fontScale)) 1 else 2,
         ) {
             Row(
                 modifier = Modifier
@@ -240,13 +242,13 @@ internal fun RestTimerCard(
                     if (running) {
                         RestControl(
                             label = MINUS,
-                            spoken = "Minus 15 seconds",
+                            spoken = "Minus ${RestTimer.NUDGE_SECONDS} seconds",
                             onClick = { onNudge(-RestTimer.NUDGE_SECONDS) },
                             modifier = Modifier.widthIn(min = Metrics.touchMin).testTag(WorkoutTestTags.REST_MINUS),
                         )
                         RestControl(
                             label = PLUS,
-                            spoken = "Plus 15 seconds",
+                            spoken = "Plus ${RestTimer.NUDGE_SECONDS} seconds",
                             onClick = { onNudge(RestTimer.NUDGE_SECONDS) },
                             modifier = Modifier.widthIn(min = Metrics.touchMin).testTag(WorkoutTestTags.REST_PLUS),
                         )
@@ -325,8 +327,8 @@ private fun RestMiniRing(
 }
 
 private const val LAST_SECONDS = 10
-private const val MINUS = "−15"
-private const val PLUS = "+15"
+private val MINUS = "−${RestTimer.NUDGE_SECONDS}"
+private val PLUS = "+${RestTimer.NUDGE_SECONDS}"
 private const val SKIP = "Skip"
 private const val START_REST = "Start rest"
 private const val TARGET = "Target"

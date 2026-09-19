@@ -66,7 +66,7 @@ class FloorPacketHFinalPassTest {
             ).size == 3,
         )
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("label = \"\${meaning.fieldLabel} (\${unit.suffix})\""))
+        assertTrue(editor.contains("label = meaning.fieldLabel") && editor.contains("unitLabel = unit.suffix"))
         assertTrue(editor.contains("val showWeight = meaning != WeightMeaning.NONE"))
     }
 
@@ -154,7 +154,7 @@ class FloorPacketHFinalPassTest {
         assertEquals("Delete its sets first", CurrentLiftCopy.EDIT_BLOCKED_REASON)
         assertEquals("Switch exercise", CurrentLiftCopy.SWITCH)
         val strip = readOwned("ui/workout/SetHistoryStrip.kt")
-        assertTrue(strip.contains("SetRowCopy.actionsForSet("))
+        assertTrue("the chip menu names the chip's own ordinal", strip.contains("SetRowCopy.actionsFor(ordinal)"))
         assertTrue(strip.contains("contentDescription = \"\$ordinal, \$spokenSet, \$state\""))
         val menu = readOwned("ui/workout/WorkoutOverflowMenu.kt")
         assertTrue(menu.contains("contentDescription = \"Workout options\""))

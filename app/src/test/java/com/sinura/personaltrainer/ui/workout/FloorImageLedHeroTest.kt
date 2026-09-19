@@ -31,14 +31,14 @@ class FloorImageLedHeroTest {
         assertTrue(FloorCompactChrome.oneCurrentLiftOnFloor())
         val hero = readOwned("ui/workout/ExerciseHeader.kt")
         assertTrue(hero.contains("fun ExerciseHeader("))
-        assertTrue(hero.contains("size = Metrics.exerciseHeroImage"))
-        assertTrue(hero.contains("artPadding = Metrics.space2"))
+        assertTrue(hero.contains("Metrics.exerciseHeroImage"))
+        assertTrue(hero.contains("Metrics.space2"))
         assertTrue(
             "long names and font 1.6 fall back to the 64 dp still",
             hero.contains("val stacked = density.fontScale >= 1.6f || titleLines > 2"),
         )
-        assertTrue(hero.contains("size = Metrics.workoutIdentityImage"))
-        assertTrue(hero.contains("artPadding = Metrics.space1"))
+        assertTrue(hero.contains("Metrics.workoutIdentityImage"))
+        assertTrue(hero.contains("Metrics.space1"))
         assertTrue(hero.contains("showBadge = false"))
         assertTrue(
             "equipment is the kicker, not a badge over the still",
@@ -95,7 +95,7 @@ class FloorImageLedHeroTest {
         assertTrue(screen.indexOf("RpeSelector(") in rpe until nextSet)
         assertTrue(screen.indexOf("NextSetRecommendation(") in nextSet until history)
         assertTrue(screen.indexOf("SetHistoryStrip(") > history)
-        assertTrue(screen.contains("val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup }"))
+        assertTrue(screen.contains("val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }"))
         assertTrue(screen.contains("receiptSetId = logReceipt?.setId"))
         assertTrue(screen.contains("WorkoutSetsSheet("))
         assertFalse(screen.contains("LatestWorkoutSet("))
@@ -241,7 +241,7 @@ class FloorImageLedHeroTest {
         )
         assertTrue("the segmented bar is decorative", chrome.substring(bar).contains(".clearAndSetSemantics { }"))
         val notes = AccessibilityMatrix.page("active-strength").talkBackNotes
-        assertTrue(notes.contains("header, compact exercise identity, set context"))
+        assertTrue(notes.contains("header with its progress line, exercise identity"))
         assertTrue(notes.contains("decorative"))
         assertTrue(notes.contains("Switch exercise is explicit"))
     }

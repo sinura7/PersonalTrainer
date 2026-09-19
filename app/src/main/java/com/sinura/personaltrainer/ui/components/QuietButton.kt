@@ -50,20 +50,23 @@ fun QuietButton(
     /** Volt ink for a control that reports a live state (Applied). Never a Volt fill. */
     accent: Boolean = false,
     spoken: String? = null,
+    /** No fill or border: a quiet inline link (Details) that still keeps its 48 dp target. */
+    plain: Boolean = false,
 ) {
     val view = LocalView.current
+    // An accented control reports a state (Applied), so it keeps its ink while disabled.
     val ink: Color = when {
-        !enabled -> TextDisabled
         accent -> Volt
+        !enabled -> TextDisabled
         else -> TextPrimary
     }
     Row(
         modifier = modifier
             .heightIn(min = Metrics.touchMin)
             .widthIn(min = Metrics.touchMin)
-            .clip(RoundedCornerShape(Radius.sm))
-            .background(Surface2)
-            .border(Metrics.hairline, if (accent && enabled) Volt else Hairline, RoundedCornerShape(Radius.sm))
+            .clip(RoundedCornerShape(Radius.md))
+            .then(if (plain) Modifier else Modifier.background(Surface2))
+            .then(if (plain) Modifier else Modifier.border(Metrics.hairline, if (accent) Volt else Hairline, RoundedCornerShape(Radius.md)))
             .clickable(enabled = enabled, role = Role.Button) {
                 Haptics.tickLight(view)
                 onClick()

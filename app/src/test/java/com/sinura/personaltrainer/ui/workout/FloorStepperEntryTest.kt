@@ -41,7 +41,7 @@ class FloorStepperEntryTest {
         assertTrue(editor.contains("WeightMeaning.NONE"))
         assertTrue(
             "word kickers, not glyphs",
-            editor.contains("label = \"\${meaning.fieldLabel} (\${unit.suffix})\""),
+            editor.contains("label = meaning.fieldLabel") && editor.contains("unitLabel = unit.suffix"),
         )
         assertTrue(editor.contains("label = \"Reps\""))
         assertTrue(editor.contains("label = if (holdRunning) HoldWork.HOLD_KICKER else \"Time\""))
@@ -152,9 +152,9 @@ class FloorStepperEntryTest {
         assertTrue(row.contains("workColumn(Modifier.weight(1f).padding(start = Metrics.space2), columnWidth)"))
         val column = editor.substring(stacked, typing)
         assertTrue(column.contains("Column("))
-        assertTrue(column.contains("weightColumn(Modifier.fillMaxWidth())"))
+        assertTrue(column.contains("weightColumn(Modifier.fillMaxWidth(), fullWidth)"))
         assertTrue(column.contains("HairlineDivider(startIndent = Metrics.space7)"))
-        assertTrue(column.contains("workColumn(Modifier.fillMaxWidth())"))
+        assertTrue(column.contains("workColumn(Modifier.fillMaxWidth(), fullWidth)"))
         assertTrue(
             "both layouts anchor the log loop",
             row.contains(".testTag(WorkoutTestTags.SET_ENTRY)") && column.contains(".testTag(WorkoutTestTags.SET_ENTRY)"),

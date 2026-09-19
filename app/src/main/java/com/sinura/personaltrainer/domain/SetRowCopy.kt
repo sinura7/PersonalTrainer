@@ -12,4 +12,11 @@ object SetRowCopy {
     fun reviseSet(setNumber: Int): String = "Revise set $setNumber"
 
     fun deleteSet(setNumber: Int): String = "Delete set $setNumber"
+
+    /** The floor's chips carry a derived ordinal (`Set 1 of 4`, `WU 1`, `Extra 1`); the menu says the same. */
+    fun actionsFor(ordinal: String): String = "Actions for $ordinal"
+
+    fun revise(ordinal: String): String = "Revise $ordinal"
+
+    fun delete(ordinal: String): String = "Delete $ordinal"
 }

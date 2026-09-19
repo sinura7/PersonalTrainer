@@ -141,21 +141,21 @@ internal fun SetHistoryStrip(
                         saved = set.id == receiptSetId,
                         enabled = enabled,
                         onClick = { openMenuFor = set.id },
-                        spokenAction = SetRowCopy.actionsForSet(number),
+                        spokenAction = SetRowCopy.actionsFor(ordinal),
                     )
                     InstrumentMenu(
                         expanded = openMenuFor == set.id,
                         onDismissRequest = { openMenuFor = null },
                     ) {
                         DropdownMenuItem(
-                            text = { Text(SetRowCopy.reviseSet(number), style = InstrumentType.bodyStrong, color = TextPrimary) },
+                            text = { Text(SetRowCopy.revise(ordinal), style = InstrumentType.bodyStrong, color = TextPrimary) },
                             onClick = {
                                 openMenuFor = null
                                 onEdit(set.id)
                             },
                         )
                         DropdownMenuItem(
-                            text = { Text(SetRowCopy.deleteSet(number), style = InstrumentType.bodyStrong, color = Danger) },
+                            text = { Text(SetRowCopy.delete(ordinal), style = InstrumentType.bodyStrong, color = Danger) },
                             onClick = {
                                 openMenuFor = null
                                 onDelete(set.id)
@@ -185,7 +185,7 @@ internal fun SetHistoryStrip(
                 Row(
                     modifier = Modifier
                         .heightIn(min = Metrics.touchMin)
-                        .clip(RoundedCornerShape(Radius.sm))
+                        .clip(RoundedCornerShape(Radius.xs))
                         .clickable(enabled = enabled, role = Role.Button, onClick = onAddSet)
                         .padding(horizontal = Metrics.space2)
                         .testTag(WorkoutTestTags.ADD_SET),
@@ -238,10 +238,10 @@ private fun SavedSetChip(
     Row(
         modifier = Modifier
             .heightIn(min = Metrics.touchMin)
-            .clip(RoundedCornerShape(Radius.sm))
-            .then(if (editing) Modifier.border(Metrics.hairline, Volt, RoundedCornerShape(Radius.sm)) else Modifier)
+            .clip(RoundedCornerShape(Radius.xs))
+            .then(if (editing) Modifier.border(Metrics.hairline, Volt, RoundedCornerShape(Radius.xs)) else Modifier)
             .clickable(enabled = enabled, role = Role.Button, onClickLabel = spokenAction, onClick = onClick)
-            .testTag(WorkoutTestTags.setOptions(set.id))
+            .testTag(WorkoutTestTags.setChip(set.id))
             .semantics(mergeDescendants = true) { contentDescription = "$ordinal, $spokenSet, $state" }
             .padding(horizontal = Metrics.space2),
         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),

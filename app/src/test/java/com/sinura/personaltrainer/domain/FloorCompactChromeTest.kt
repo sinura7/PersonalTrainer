@@ -6,8 +6,9 @@ import org.junit.Test
 
 class FloorCompactChromeTest {
     @Test
-    fun expandedCardIsTheOnlyCurrentLiftCopy() {
+    fun exerciseHeaderIsTheOnlyCurrentLiftCopy() {
         assertFalse(FloorCompactChrome.showSelectedLiftDock())
+        assertTrue(FloorCompactChrome.oneCurrentLiftOnFloor())
     }
 
     @Test
@@ -30,8 +31,11 @@ class FloorCompactChromeTest {
     }
 
     @Test
-    fun compactFloorStacksWeightAboveReps() {
-        assertTrue(FloorCompactChrome.stackWeightAboveReps())
+    fun heroNumeralsSitSideBySideUntilTheFontScaleStacksThem() {
+        // ADR-027: weight and reps are two hero numerals split by a hairline. Only
+        // LogLoopScale stacks them, once the system font is too large for the pair.
+        assertFalse(FloorCompactChrome.stackWeightAboveReps())
+        assertTrue(FloorCompactChrome.heroNumeralsSideBySide())
     }
 
     @Test
@@ -50,8 +54,11 @@ class FloorCompactChromeTest {
     fun packet2SplitsInstrumentStripFromDockControls() {
         assertTrue(FloorCompactChrome.headerIsReadOnlyInstrumentStrip())
         assertTrue(FloorCompactChrome.oneClockTwoModes())
+        // HOLD and SET keep the 56 dp instrument bar; rest is its own quiet dock card,
+        // idle and running alike (ADR-027). Duration editing still lives in a sheet.
         assertTrue(FloorCompactChrome.timerIsCompactInstrumentBar())
-        assertTrue(FloorCompactChrome.idleRestIsInstrumentBar())
+        assertFalse(FloorCompactChrome.idleRestIsInstrumentBar())
+        assertTrue(FloorCompactChrome.restIsDockCard())
         assertFalse(FloorCompactChrome.restLengthIsInlineWheel())
     }
 
@@ -68,13 +75,30 @@ class FloorCompactChromeTest {
     }
 
     @Test
-    fun packetFHidesAddSetAndKeepsTheClockOnLiftComplete() {
-        assertTrue(FloorCompactChrome.addSetHiddenOnFloor())
+    fun imageLedHeroCarriesStatsAndSessionProgress() {
+        // ADR-027: the 112 dp still leads the identity, Last set · Best set · Volume sit
+        // under it, and the header's second line plus segmented bar say where the session stands.
+        assertTrue(FloorCompactChrome.imageLedHero())
+        assertTrue(FloorCompactChrome.statsRowUnderIdentity())
+        assertTrue(FloorCompactChrome.headerShowsSessionProgress())
+    }
+
+    @Test
+    fun setHistoryLivesOnTheFloorAndTheClockStaysOnLiftComplete() {
+        // Today's sets are chips on the floor with Add set as the last chip once the plan
+        // is met, so nothing hides Add set any more; the timer row stays reserved so Log
+        // does not jump when a lift completes.
+        assertTrue(FloorCompactChrome.setHistoryOnFloor())
+        assertFalse(FloorCompactChrome.addSetHiddenOnFloor())
         assertFalse(FloorCompactChrome.liftCompleteReplacesClock())
         assertTrue(FloorCompactChrome.logButtonStaysAnchored())
-        assertFalse(FloorCompactChrome.imageLedHero())
         assertTrue(FloorCompactChrome.addLiftLivesInSwitcher())
         assertTrue(FloorCompactChrome.progressionKickerInline())
         assertFalse(FloorCompactChrome.showIdleStartNext())
+    }
+
+    @Test
+    fun cheapDestructivesRunNowAndOfferUndo() {
+        assertTrue(FloorCompactChrome.cheapDestructivesAreUndoable())
     }
 }

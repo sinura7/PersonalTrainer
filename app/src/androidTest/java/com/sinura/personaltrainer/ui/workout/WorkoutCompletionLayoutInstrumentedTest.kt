@@ -11,18 +11,23 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
@@ -108,17 +113,27 @@ class WorkoutCompletionLayoutInstrumentedTest(
             "finish" -> WorkoutTestTags.DOCK_FINISH
             else -> WorkoutTestTags.LOG_SET
         }
-        val button = compose.onNodeWithTag(tag).assertIsDisplayed().assertIsEnabled().fetchSemanticsNode()
+        // The commit says its verb on the first line and, when the tap writes a set, the
+        // payload on the second. Landscape keeps the verb short.
+        val action = fixture.vm.primaryAction.value
+        val verb = action.verb(includeNextName = width <= height)
+        val setPayload = action.payload(unit = WeightUnit.KG, loadClass = LoadClass.LOADED)
+        val button = compose.onNodeWithTag(tag).assertIsDisplayed().assertIsEnabled().assertTextContains(verb).fetchSemanticsNode()
         val root = compose.onNodeWithTag(GoldenCapture.DefaultTag).fetchSemanticsNode()
         val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
         assertEquals(width.toFloat(), root.boundsInRoot.width / root.layoutInfo.density.density, 1f)
         assertEquals(height.toFloat(), root.boundsInRoot.height / root.layoutInfo.density.density, 1f)
         assertTrue(button.boundsInRoot.bottom <= root.boundsInRoot.bottom + 1)
         assertTrue("Scrollable content must retain a full touch target", content.height / root.layoutInfo.density.density >= 48)
-        val label = fixture.vm.primaryAction.value.label(unit = WeightUnit.KG, loadClass = com.sinura.personaltrainer.domain.LoadClass.LOADED, includeNextName = width <= height)
-        val layouts = mutableListOf<TextLayoutResult>()
-        compose.onNodeWithText(label, useUnmergedTree = true).performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-        assertTrue(layouts.isNotEmpty())
+        fun layoutsOf(text: String): List<TextLayoutResult> {
+            val layouts = mutableListOf<TextLayoutResult>()
+            compose.onNode(hasText(text) and hasAnyAncestor(hasTestTag(tag)), useUnmergedTree = true)
+                .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            assertTrue(layouts.isNotEmpty())
+            return layouts
+        }
+        val verbLayouts = layoutsOf(verb)
+        val payloadLayouts = setPayload?.let { layoutsOf(it) }
         val name = "frontend-completion-${width}x$height-font${(font * 10).toInt()}-$scenario-api${Build.VERSION.SDK_INT}"
         val image = GoldenCapture.capture(compose)
         if (Build.VERSION.SDK_INT == 29) GoldenImageAssert.assertMatches(name, image)
@@ -126,20 +141,32 @@ class WorkoutCompletionLayoutInstrumentedTest(
         // Centered Text may keep a paragraph's maximum constraint while its
         // measured width shrinks to content. Compare actual line widths and
         // visible characters, not multiParagraph.width/didOverflowWidth.
-        assertFalse("primary label must not truncate", layouts.any { layout ->
-            layout.didOverflowHeight || (0 until layout.lineCount).any {
-                layout.isLineEllipsized(it) || layout.getLineRight(it) - layout.getLineLeft(it) > layout.size.width + 1f
-            } || layout.getLineEnd(layout.lineCount - 1, visibleEnd = true) != label.length
-        })
+        fun assertNotTruncated(label: String, text: String, layouts: List<TextLayoutResult>) {
+            assertFalse("$label must not truncate", layouts.any { layout ->
+                layout.didOverflowHeight || (0 until layout.lineCount).any {
+                    layout.isLineEllipsized(it) || layout.getLineRight(it) - layout.getLineLeft(it) > layout.size.width + 1f
+                } || layout.getLineEnd(layout.lineCount - 1, visibleEnd = true) != text.length
+            })
+        }
+        assertNotTruncated("primary verb", verb, verbLayouts)
+        if (setPayload != null && payloadLayouts != null) assertNotTruncated("primary payload", setPayload, payloadLayouts)
         if (width > height && scenario == "next") {
-            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag("workout-next-exercise-name"))
-            compose.onNodeWithTag("workout-next-exercise-name").assertIsDisplayed()
+            // Landscape: the next lift's name rides the commit's second line, under the short verb.
+            val nextName = checkNotNull(action.nextName)
+            compose.onNode(hasText(nextName) and hasAnyAncestor(hasTestTag(WorkoutTestTags.NEXT)), useUnmergedTree = true).assertIsDisplayed()
         }
 
         if (scenario == "edit-denied") {
-            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag("workout-cancel-edit"))
-            compose.onNodeWithTag("workout-cancel-edit").assertIsDisplayed().assertIsEnabled().performClick()
+            // With rest alerts denied, the dock's companion slot carries the notification
+            // honesty row (it outranks Cancel edit there), so the edit is announced by the
+            // identity and the commit's verb instead.
+            compose.onNodeWithTag(WorkoutTestTags.NOTIF_RECOVERY).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.liftCard(checkNotNull(fixture.vm.uiState.value.selectedExerciseId)))
+                .assert(hasContentDescription(value = "Editing saved set", substring = true))
+            assertEquals("Save changes", verb)
+            compose.runOnIdle { fixture.vm.cancelEdit() }
             compose.waitUntil(15_000) { fixture.vm.uiState.value.editingSetId == null }
+            assertEquals(60.0, runBlocking(Dispatchers.IO) { repo.getSession(sessionId)!!.sets.single().weightKg }, 0.01)
         }
         if (scenario.startsWith("removed")) {
             compose.onNodeWithTag(tag).performClick()

@@ -18,11 +18,11 @@ class FloorPacketGUndoTest {
     fun setChipsOfferANamedReviseDeleteMenu() {
         val strip = readOwned("ui/workout/SetHistoryStrip.kt")
         assertTrue(strip.contains("InstrumentMenu("))
-        assertTrue(strip.contains("SetRowCopy.actionsForSet("))
-        assertTrue(strip.contains("SetRowCopy.reviseSet("))
-        assertTrue(strip.contains("SetRowCopy.deleteSet("))
+        assertTrue("the menu names the chip's own ordinal", strip.contains("SetRowCopy.actionsFor(ordinal)"))
+        assertTrue(strip.contains("SetRowCopy.revise(ordinal)"))
+        assertTrue(strip.contains("SetRowCopy.delete(ordinal)"))
         assertTrue(strip.contains("Metrics.touchMin"))
-        assertTrue(strip.contains("WorkoutTestTags.setOptions(set.id)"))
+        assertTrue(strip.contains("WorkoutTestTags.setChip(set.id)"))
         assertTrue(strip.contains("onClickLabel = spokenAction"))
         assertTrue(readOwned("ui/workout/ActiveWorkoutScreen.kt").contains("fun setOptions(setId: String)"))
         // No hidden tap-to-select gesture: the chip is the row and its menu is the act.

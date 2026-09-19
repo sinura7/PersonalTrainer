@@ -141,9 +141,15 @@ class ActiveWorkoutJourneyInstrumentedTest {
         // the same controller the Skip button uses, then resume Espresso.
         container.restTimerController.stop()
         awaitCondition("rest skipped") { !container.restTimerStore.current().running }
-        compose.waitUntil(15_000) {
-            compose.onAllNodes(hasTestTag(WorkoutTestTags.MICRO_REC))
-                .fetchSemanticsNodes().isNotEmpty()
+        // The suggestion is a list item under the RPE track, outside the initial viewport
+        // on this profile, so a lazy list composes nothing for it until scrolled. Scroll
+        // the LIST to it, and keep trying while the coach is still deriving the set.
+        awaitCondition("next-set suggestion listed") {
+            compose.waitForIdle()
+            runCatching {
+                compose.onNodeWithTag(WorkoutTestTags.CONTENT)
+                    .performScrollToNode(hasTestTag(WorkoutTestTags.NEXT_SET))
+            }.isSuccess
         }
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed()
@@ -178,7 +184,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
         // performScrollTo needs it already composed, and a taller receipt (two record kinds,
         // or stacked tiles at a large font scale) pushes it outside the composed range.
         compose.onAllNodes(hasScrollAction()).onFirst()
-            .performScrollToNode(hasText("Top set $setLine", substring = true))
+            .performScrollToNode(hasText(text = "Top set $setLine", substring = true))
         compose.onNodeWithText("Top set $setLine").assertIsDisplayed()
         compose.onNodeWithText("Done").assertIsDisplayed()
 
