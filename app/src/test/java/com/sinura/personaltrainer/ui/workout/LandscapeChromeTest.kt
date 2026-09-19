@@ -19,6 +19,9 @@ class LandscapeChromeTest {
         assertTrue(LandscapeChrome.logVisibleInLandscape(restRunning = true))
         val idleBudget = LandscapeChrome.logBudgetDp(360, landscape = true, restRunning = false)
         assertTrue("idle landscape budget $idleBudget", idleBudget >= LandscapeChrome.LOG_MIN_DP)
+        // Running rest is the 72 dp card, not the 56 dp idle row (ADR-027 decision 5).
+        assertEquals(72, LandscapeChrome.REST_CARD_DP)
+        assertEquals(360 - 56 - 72, LandscapeChrome.logBudgetDp(360, landscape = true, restRunning = true))
         assertEquals(240, LandscapeChrome.ringSizeDp(360))
         assertEquals(280, LandscapeChrome.ringSizeDp(800))
     }
@@ -34,10 +37,10 @@ class LandscapeChromeTest {
         assertFalse(chrome.contains("hideSelectedLiftDock"))
         assertFalse(chrome.contains("foldMicroRecIntoCard"))
         assertFalse(workout.contains("SelectedLiftDock("))
-        val dock = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dock.contains("data class WorkoutDockState("))
-        assertTrue(dock.contains("class WorkoutDockEvents("))
-        assertFalse(dock.contains("CartBadge("))
+        val workoutDock = readOwned("ui/workout/WorkoutDock.kt")
+        assertTrue(workoutDock.contains("data class WorkoutDockState("))
+        assertTrue(workoutDock.contains("class WorkoutDockEvents("))
+        assertFalse(workoutDock.contains("CartBadge("))
         val liftCard = readOwned("ui/components/LiftCard.kt")
         assertTrue(liftCard.contains("CountBadge("))
 

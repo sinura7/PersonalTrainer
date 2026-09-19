@@ -35,6 +35,7 @@ class LogLoopBringIntoViewTest {
     @Test
     fun resumeAndLiftSwitchFocusTheEntryNotAVanishedListOffset() {
         assertEquals(0, LogLoopBringIntoView.entryListIndex())
+        assertEquals("header, stats, then the numerals", 2, LogLoopBringIntoView.editRevealIndex())
         assertTrue(LogLoopBringIntoView.shouldScrollEntryToTop(null, "squat"))
         assertTrue(LogLoopBringIntoView.shouldScrollEntryToTop("squat", "row"))
         assertFalse(LogLoopBringIntoView.shouldScrollEntryToTop("squat", "squat"))
@@ -43,7 +44,7 @@ class LogLoopBringIntoViewTest {
         assertTrue(text.contains("listState.scrollToItem(LogLoopBringIntoView.entryListIndex())"))
         assertTrue(
             "an edit reveals the entry; ordinary saves keep the viewport",
-            text.contains("if (state.editingSetId != null) listState.animateScrollToItem(LogLoopBringIntoView.entryListIndex())"),
+            text.contains("if (state.editingSetId != null) listState.animateScrollToItem(LogLoopBringIntoView.editRevealIndex())"),
         )
         assertFalse(text.contains("itemsIndexed("))
         val lazy = text.indexOf("LazyColumn(")

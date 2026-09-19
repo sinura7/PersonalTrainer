@@ -8,14 +8,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -37,8 +35,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.FloorStepper
+import com.sinura.personaltrainer.domain.FloorWeightPresets
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.IncrementTable
 import com.sinura.personaltrainer.domain.LoadClass
@@ -101,6 +101,8 @@ internal fun WeightRepsEditor(
     holdRemainingSeconds: Int,
     sourceLabel: String?,
     onWeightKgChange: (Double) -> Unit,
+    plannedKg: Double? = null,
+    lastKg: Double? = null,
     onRepsChange: (Int) -> Unit,
     onSecondsChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
@@ -124,10 +126,31 @@ internal fun WeightRepsEditor(
     val weightNumber = WorkoutWeightCopy.number(weightKg, unit)
     val plates = if (plated && meaning == WeightMeaning.LIFTED) PlateMath.load(weightKg, unit)?.caption() else null
     val weightField = meaning.fieldLabel.lowercase()
-    val weightColumn: @Composable (Modifier) -> Unit = { columnModifier ->
+    // Plan / Last as one-tap fills, only while the entry holds something else.
+    val quickFills = FloorWeightPresets.quickFills(currentKg = weightKg, plannedKg = plannedKg, lastKg = lastKg)
+    val weightColumn: @Composable (Modifier, Dp) -> Unit = { columnModifier, columnWidth ->
         HeroNumeral(
             modifier = columnModifier,
+            availableWidth = columnWidth,
             enabled = enabled,
+            below = quickFills.takeIf { it.isNotEmpty() }?.let { fills ->
+                {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        fills.forEach { fill ->
+                            InstrumentPreset(
+                                label = fill.chipLabel(unit),
+                                onClick = { onWeightKgChange(fill.weightKg) },
+                                modifier = Modifier.weight(1f).testTag(WorkoutTestTags.weightPreset(fill.source)),
+                                enabled = enabled,
+                                compact = true,
+                            )
+                        }
+                    }
+                }
+            },
             label = "${meaning.fieldLabel} (${unit.suffix})",
             value = weightNumber,
             sample = WEIGHT_SAMPLE,
@@ -147,11 +170,12 @@ internal fun WeightRepsEditor(
         )
     }
     val holdShown = if (holdRunning) holdRemainingSeconds else holdSeconds ?: HoldWork.DEFAULT_SECONDS
-    val workColumn: @Composable (Modifier) -> Unit = { columnModifier ->
+    val workColumn: @Composable (Modifier, Dp) -> Unit = { columnModifier, columnWidth ->
         if (hold) {
             val seconds = holdShown.coerceAtLeast(0)
             HeroNumeral(
                 modifier = columnModifier,
+                availableWidth = columnWidth,
                 enabled = enabled && !holdRunning,
                 label = if (holdRunning) HoldWork.HOLD_KICKER else "Time",
                 value = HoldWork.clock(seconds),
@@ -169,6 +193,7 @@ internal fun WeightRepsEditor(
         } else {
             HeroNumeral(
                 modifier = columnModifier,
+                availableWidth = columnWidth,
                 enabled = enabled,
                 label = "Reps",
                 value = reps.toString(),
@@ -185,35 +210,43 @@ internal fun WeightRepsEditor(
             )
         }
     }
-    if (showWeight && !stack) {
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min)
-                .testTag(WorkoutTestTags.SET_ENTRY),
-        ) {
-            weightColumn(Modifier.weight(1f).padding(end = Metrics.space2))
-            Box(
+    // The one constraints read on the editor: each numeral learns its column width from
+    // here, so nothing beneath asks a lazy parent for intrinsic sizes.
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        if (showWeight && !stack) {
+            val columnWidth = maxWidth / 2 - Metrics.space2
+            Row(
                 modifier = Modifier
-                    .width(Metrics.hairline)
-                    .fillMaxHeight()
-                    .padding(vertical = Metrics.space3)
-                    .background(Hairline),
-            )
-            workColumn(Modifier.weight(1f).padding(start = Metrics.space2))
-        }
-    } else {
-        Column(
-            modifier = modifier
-                .fillMaxWidth()
-                .testTag(WorkoutTestTags.SET_ENTRY),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space3),
-        ) {
-            if (showWeight) {
-                weightColumn(Modifier.fillMaxWidth())
-                HairlineDivider(startIndent = Metrics.space7)
+                    .fillMaxWidth()
+                    .drawBehind {
+                        // The hairline between the numerals, inset from the row's ends.
+                        val inset = Metrics.space3.toPx()
+                        val x = size.width / 2f
+                        drawLine(
+                            color = Hairline,
+                            start = Offset(x, inset),
+                            end = Offset(x, size.height - inset),
+                            strokeWidth = Metrics.hairline.toPx(),
+                        )
+                    }
+                    .testTag(WorkoutTestTags.SET_ENTRY),
+            ) {
+                weightColumn(Modifier.weight(1f).padding(end = Metrics.space2), columnWidth)
+                workColumn(Modifier.weight(1f).padding(start = Metrics.space2), columnWidth)
             }
-            workColumn(Modifier.fillMaxWidth())
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(WorkoutTestTags.SET_ENTRY),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                if (showWeight) {
+                    weightColumn(Modifier.fillMaxWidth(), maxWidth)
+                    HairlineDivider(startIndent = Metrics.space7)
+                }
+                workColumn(Modifier.fillMaxWidth(), maxWidth)
+            }
         }
     }
     if (typingWeight) {
@@ -270,6 +303,7 @@ internal fun WeightRepsEditor(
 @Composable
 private fun HeroNumeral(
     modifier: Modifier,
+    availableWidth: Dp,
     enabled: Boolean,
     label: String,
     value: String,
@@ -283,14 +317,15 @@ private fun HeroNumeral(
     onType: () -> Unit,
     caption: String?,
     tag: String,
+    below: (@Composable () -> Unit)? = null,
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    BoxWithConstraints(modifier = modifier) {
+    Box(modifier = modifier) {
         val sampleWidth = with(density) {
             measurer.measure(sample, style = InstrumentType.numeralXl, softWrap = false).size.width.toDp()
         }
-        val inline = sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= maxWidth
+        val inline = sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth
         val numeral: @Composable (Modifier) -> Unit = { numeralModifier ->
             Box(
                 modifier = numeralModifier
@@ -364,6 +399,7 @@ private fun HeroNumeral(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            below?.invoke()
         }
     }
 }

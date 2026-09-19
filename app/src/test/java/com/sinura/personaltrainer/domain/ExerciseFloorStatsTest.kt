@@ -109,8 +109,8 @@ class ExerciseFloorStatsTest {
         assertEquals("10 reps", FloorStatCopy.compactSet(weightKg = 0.0, reps = 10, loadClass = LoadClass.BODYWEIGHT, unit = unit))
         assertEquals("10 reps +20 @ 8", FloorStatCopy.compactSet(weightKg = WeightConverter.lbsToKg(20.0), reps = 10, loadClass = LoadClass.BODYWEIGHT_ADDED, unit = unit, rpe = 8))
         assertEquals("10 reps −20", FloorStatCopy.compactSet(weightKg = WeightConverter.lbsToKg(20.0), reps = 10, loadClass = LoadClass.BODYWEIGHT_ASSISTED, unit = unit))
-        assertEquals("0:30", FloorStatCopy.compactSet(weightKg = 0.0, reps = 0, loadClass = LoadClass.BODYWEIGHT, unit = unit, durationSeconds = 30))
-        assertEquals("20 × 0:30", FloorStatCopy.compactSet(weightKg = WeightConverter.lbsToKg(20.0), reps = 0, loadClass = LoadClass.LOADED, unit = unit, durationSeconds = 30))
+        assertEquals("30s", FloorStatCopy.compactSet(weightKg = 0.0, reps = 0, loadClass = LoadClass.BODYWEIGHT, unit = unit, durationSeconds = 30))
+        assertEquals("20 × 30s", FloorStatCopy.compactSet(weightKg = WeightConverter.lbsToKg(20.0), reps = 0, loadClass = LoadClass.LOADED, unit = unit, durationSeconds = 30))
         assertEquals("10 reps", FloorStatCopy.compactSet(weightKg = 0.0, reps = 10, loadClass = LoadClass.LOADED, unit = unit))
     }
 

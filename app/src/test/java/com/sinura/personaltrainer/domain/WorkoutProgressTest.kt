@@ -56,7 +56,7 @@ class WorkoutProgressTest {
         assertEquals(0, progress.setsPlanned)
         assertEquals("Exercise 2 of 2 · 2 sets logged", WorkoutProgressCalculator.headline(progress))
         assertEquals(1f, progress.segments[0].fraction)
-        assertEquals(ProgressSegmentState.UPCOMING, progress.segments[0].state)
+        assertEquals("a worked free lift fills its segment", ProgressSegmentState.DONE, progress.segments[0].state)
         val single = WorkoutProgressCalculator.of(session = session.copy(sets = listOf(set(exerciseId = "curl", number = 1))), selectedExerciseId = "dip")
         assertEquals("Exercise 2 of 2 · 1 set logged", WorkoutProgressCalculator.headline(single))
         val fresh = WorkoutProgressCalculator.of(session = session.copy(sets = emptyList()), selectedExerciseId = "curl")

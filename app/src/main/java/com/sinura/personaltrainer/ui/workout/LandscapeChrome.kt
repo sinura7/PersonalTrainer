@@ -7,7 +7,8 @@ package com.sinura.personaltrainer.ui.workout
  * Chrome alone used to exceed a 360 dp landscape height, so the log was
  * off-screen on a phone on a bench. Compact header, hide idle rest, and
  * scale the rest ring to `min(280, height − 120)`. Rest still counts as chrome in [logBudgetDp]
- * after G-02 moved it into the lower dock with Log set.
+ * after G-02 moved it into the lower dock with Log set: the idle row is 56 dp and the
+ * running rest card (ADR-027) is 72 dp.
  */
 object LandscapeChrome {
     const val LANDSCAPE_WIDTH_DP = 640
@@ -17,6 +18,7 @@ object LandscapeChrome {
     const val HEADER_ROW_DP = 56
     const val METRICS_ROW_DP = 40
     const val REST_IDLE_DP = 56
+    const val REST_CARD_DP = 72
     const val LOG_MIN_DP = 96
 
     fun isLandscape(widthDp: Int, heightDp: Int): Boolean = widthDp > heightDp
@@ -34,7 +36,11 @@ object LandscapeChrome {
         restRunning: Boolean,
     ): Int {
         var chrome = HEADER_ROW_DP
-        if (!(hideIdleRest(landscape) && !restRunning)) chrome += REST_IDLE_DP
+        if (restRunning) {
+            chrome += REST_CARD_DP
+        } else if (!hideIdleRest(landscape)) {
+            chrome += REST_IDLE_DP
+        }
         return heightDp - chrome
     }
 

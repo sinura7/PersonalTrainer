@@ -184,7 +184,8 @@ object ExerciseFloorStatsCalculator {
                 )
             }
             .toList()
-        val records = PersonalRecords.bests(priorHistory + todayRecords, loadClass)
+        // History rows carry no duration, so a finished hold arrives as reps 0: not a record.
+        val records = PersonalRecords.bests(priorHistory.filter { it.reps >= 1 } + todayRecords, loadClass)
         val best = records[PersonalRecordKind.REPS]
             ?: records[PersonalRecordKind.ESTIMATED_ONE_REP_MAX]
             ?: records[PersonalRecordKind.WEIGHT]
@@ -196,7 +197,9 @@ object ExerciseFloorStatsCalculator {
             )
         }
         val value = FloorStatCopy.compactSet(best.weightKg, best.reps, loadClass, unit)
-        val today = todayRecords.any { it.setId == best.setId }
+        // "Today" means a standing record was beaten this session; with nothing to beat,
+        // the kind of record is the more useful word.
+        val today = priorHistory.isNotEmpty() && todayRecords.any { it.setId == best.setId }
         return FloorStat(
             label = FloorStatCopy.BEST_SET,
             value = value,

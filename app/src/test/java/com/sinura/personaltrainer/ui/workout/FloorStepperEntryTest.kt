@@ -22,7 +22,7 @@ class FloorStepperEntryTest {
         assertTrue(editor.contains("plateHeight = Metrics.stepperRound"))
         assertTrue(
             "plates sit beside the numeral only when the widest sample fits with them",
-            editor.contains("val inline = sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= maxWidth"),
+            editor.contains("val inline = sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth"),
         )
         assertTrue(editor.contains("rememberTextMeasurer"))
         assertTrue(editor.contains("private const val WEIGHT_SAMPLE = \"888.8\""))
@@ -146,10 +146,10 @@ class FloorStepperEntryTest {
         assertTrue(stacked in 0 until typing)
         val row = editor.substring(sideBySide, stacked)
         assertTrue(row.contains("Row("))
-        assertTrue(row.contains(".height(IntrinsicSize.Min)"))
-        assertTrue(row.contains("weightColumn(Modifier.weight(1f).padding(end = Metrics.space2))"))
-        assertTrue("a hairline splits the two numerals", row.contains(".width(Metrics.hairline)"))
-        assertTrue(row.contains("workColumn(Modifier.weight(1f).padding(start = Metrics.space2))"))
+        assertTrue("no intrinsic pass over the lazy parent", row.contains(".drawBehind {"))
+        assertTrue(row.contains("weightColumn(Modifier.weight(1f).padding(end = Metrics.space2), columnWidth)"))
+        assertTrue("a hairline splits the two numerals", row.contains("strokeWidth = Metrics.hairline.toPx()"))
+        assertTrue(row.contains("workColumn(Modifier.weight(1f).padding(start = Metrics.space2), columnWidth)"))
         val column = editor.substring(stacked, typing)
         assertTrue(column.contains("Column("))
         assertTrue(column.contains("weightColumn(Modifier.fillMaxWidth())"))

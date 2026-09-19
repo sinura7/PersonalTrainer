@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimer
@@ -156,13 +157,16 @@ internal fun RestTimerCard(
         offerSetClock -> listOf(SetStopwatchCopy.START, START_REST)
         else -> listOf(START_REST)
     }
-    val controlsWidth = controls.sumOf { label ->
-        maxOf(
-            with(density) { Metrics.touchMin.roundToPx() },
-            measurer.measure(label, style = InstrumentType.bodyStrong, softWrap = false).size.width +
-                with(density) { (Metrics.space2 * 2).roundToPx() },
-        )
-    } + with(density) { (Metrics.space1 * controls.size).roundToPx() }
+    // Measured once per control set and text scale, not on every one-second tick.
+    val controlsWidth = remember(controls, density, measurer) {
+        controls.sumOf { label ->
+            maxOf(
+                with(density) { Metrics.touchMin.roundToPx() },
+                measurer.measure(label, style = InstrumentType.bodyStrong, softWrap = false).size.width +
+                    with(density) { (Metrics.space2 * 2).roundToPx() },
+            )
+        } + with(density) { (Metrics.space1 * controls.size).roundToPx() }
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -218,7 +222,13 @@ internal fun RestTimerCard(
                             )
                         }
                     }
-                    Text(caption, style = InstrumentType.caption, color = TextSecondary, maxLines = 1)
+                    Text(
+                        caption,
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             if (controls.isNotEmpty()) {

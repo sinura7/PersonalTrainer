@@ -1,5 +1,7 @@
 package com.sinura.personaltrainer.domain
 
+import kotlin.math.abs
+
 /**
  * In-set next-load / next-reps. Local and deterministic (ADR-008).
  *
@@ -76,7 +78,21 @@ data class SetMicroRec(
      */
     val equipment: EquipmentType? = null,
     val loadType: LoadType? = null,
-)
+) {
+    /**
+     * True once the entry already holds this set exactly as Apply would write it
+     * (the same coercions as the ViewModel's applyMicroRec), so the control can read Applied.
+     */
+    fun isApplied(weightKg: Double, reps: Int, rpe: Int?): Boolean =
+        abs(weightKg - nextWeightKg.coerceAtLeast(0.0)) < APPLIED_KG_TOLERANCE &&
+            reps == nextReps.coerceAtLeast(1) &&
+            (nextRpe == null || rpe == nextRpe)
+
+    companion object {
+        /** Under the finest weight step the app can show, so a rounded lb value still matches. */
+        const val APPLIED_KG_TOLERANCE = 0.01
+    }
+}
 
 object SetMicroRecCalculator {
     const val RULE_ID = "micro-rec"

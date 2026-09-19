@@ -106,9 +106,9 @@ internal data class WorkoutDockEvents(
  *
  * The companion is the rest card while resting, the hold or set clock while one runs,
  * and otherwise whichever of error, undo, timer honesty or Cancel edit needs the room —
- * with a compact clock kept reachable beside it. Its minimum height is the commit's, so
- * the Volt's bottom edge does not move as the slot changes hands. Save receipts live
- * in the set history, not here.
+ * with a compact clock kept reachable beside it. The slot never drops below the 56 dp
+ * instrument row (the rest card asks for 72 dp on its own), so the Volt's bottom edge
+ * does not jump as the slot changes hands. Save receipts live in the set history, not here.
  */
 @Composable
 internal fun WorkoutDock(

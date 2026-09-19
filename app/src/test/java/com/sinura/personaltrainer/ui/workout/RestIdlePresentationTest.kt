@@ -92,12 +92,12 @@ class RestIdlePresentationTest {
 
     @Test
     fun firstRestMentionsUnrestrictedBattery() {
-        val dock = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(dock.contains("RestBatteryCopy.SENTENCE"))
-        assertTrue(dock.contains("RestBatteryHintRow"))
-        val companion = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(companion.contains("batteryHint = timer.batteryHint"))
-        assertTrue(companion.contains("onDismissBatteryHint = events.onDismissRestBatteryHint"))
+        val ui = readOwned("ui/components/RestTimerUi.kt")
+        assertTrue(ui.contains("RestBatteryCopy.SENTENCE"))
+        assertTrue(ui.contains("RestBatteryHintRow"))
+        val dock = readOwned("ui/workout/WorkoutDock.kt")
+        assertTrue(dock.contains("batteryHint = timer.batteryHint"))
+        assertTrue(dock.contains("onDismissBatteryHint = events.onDismissRestBatteryHint"))
         val floor = readOwned("ui/workout/RestTimerScreen.kt")
         assertTrue(floor.contains("RestHonestyCopy.pick("))
         assertTrue(floor.contains("RestHonestyRow("))

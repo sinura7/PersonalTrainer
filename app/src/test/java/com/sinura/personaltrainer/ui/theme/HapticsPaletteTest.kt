@@ -35,6 +35,11 @@ class HapticsPaletteTest {
             "Compose must not fire RestTick haptics",
             rest.contains("if (RestTick.isWarn"),
         )
+        val restCard = readOwned("ui/workout/RestTimerCard.kt")
+        assertFalse(
+            "the dock's rest card must not fire RestTick haptics either",
+            restCard.contains("RestTick.isWarn"),
+        )
 
         val alerts = readOwned("timer/RestTimerAlerts.kt")
         assertTrue(alerts.contains("RestTick.pulseMs(second)"))
@@ -60,15 +65,26 @@ class HapticsPaletteTest {
         assertTrue(workout.contains("Motion.PR_ACCENT_DELAY_MS"))
         assertFalse(workout.contains("Haptics.celebrate"))
         assertTrue(workout.contains("logFeedback"))
-        val onLogStart = workout.indexOf("onLog = {")
-        val onLogEnd = workout.indexOf("onNext = {")
-        assertTrue(onLogStart >= 0 && onLogEnd > onLogStart)
-        val onLog = workout.substring(onLogStart, onLogEnd)
+        assertTrue(workout.contains("LogCommitFeedback.SUCCESS -> Haptics.commit(view)"))
+        assertTrue(workout.contains("LogCommitFeedback.REJECT -> Haptics.reject(view)"))
+        // The dock's Volt hands the act to the view model through onPrimary; commit and
+        // reject arrive from logFeedback after the durable write, never from the tap.
+        val onPrimaryStart = workout.indexOf("onPrimary = { action ->")
+        val onPrimaryEnd = workout.indexOf("onEditFailedSave =")
+        assertTrue(onPrimaryStart >= 0 && onPrimaryEnd > onPrimaryStart)
+        val onPrimary = workout.substring(onPrimaryStart, onPrimaryEnd)
         assertFalse(
             "Log press must not commit before the write",
-            onLog.contains("Haptics.commit"),
+            onPrimary.contains("Haptics.commit"),
         )
-        assertFalse(onLog.contains("Haptics.reject"))
+        assertFalse(onPrimary.contains("Haptics.reject"))
+        val dock = readOwned("ui/workout/WorkoutDock.kt")
+        assertTrue(
+            "the Volt's own press haptic stays off so the commit is the write's",
+            dock.contains("hapticFeedback = false"),
+        )
+        assertFalse(dock.contains("Haptics.commit"))
+        assertFalse(dock.contains("Haptics.reject"))
     }
 
     @Test
@@ -86,11 +102,20 @@ class HapticsPaletteTest {
         val chip = readOwned("ui/components/InstrumentChip.kt")
         assertTrue(chip.contains("Haptics.tick(view)"))
         assertTrue(chip.contains("Motion.FIELD_MS"))
-        val card = readOwned("ui/workout/WorkoutLiftCard.kt")
-        assertTrue(card.contains("InstrumentChoiceChip("))
-        assertTrue(card.contains("label = \"Warm-up\""))
-        val bar = readOwned("ui/workout/WorkoutLogBar.kt")
-        assertTrue(bar.contains("InstrumentChoiceChip("))
+        // Working | Warm-up and the RPE track are InstrumentChip radios: the tick comes
+        // from the chip itself on the field settle, never from a caller.
+        val header = readOwned("ui/workout/ExerciseHeader.kt")
+        assertTrue(header.contains("fun SetTypeToggle("))
+        assertTrue(header.contains("InstrumentChip("))
+        assertTrue(header.contains("label = \"Working\""))
+        assertTrue(header.contains("label = \"Warm-up\""))
+        assertTrue(header.contains("role = Role.RadioButton"))
+        assertFalse(header.contains("Haptics."))
+        val rpe = readOwned("ui/workout/RpeSelector.kt")
+        assertTrue(rpe.contains("InstrumentChip("))
+        assertTrue(rpe.contains("RpeCopy.VALUES.forEach"))
+        assertTrue(rpe.contains("role = Role.RadioButton"))
+        assertFalse(rpe.contains("Haptics."))
     }
 
     @Test

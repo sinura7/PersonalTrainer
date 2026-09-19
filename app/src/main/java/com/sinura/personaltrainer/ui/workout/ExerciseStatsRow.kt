@@ -54,22 +54,13 @@ internal fun ExerciseStatsRow(
     /** Copies last time's set into the entry when the Last set cell is showing one. Never logs. */
     onApplyLastSet: ((weightKg: Double, reps: Int) -> Unit)? = null,
 ) {
-    val volumeValue: String
-    val volumeSpoken: String
-    when {
-        stats.work.volumeKg > 0.0 -> {
-            volumeValue = "${QuantityFormat.formatVolumeNumber(stats.work.volumeKg, unit)} ${unit.suffix}"
-            volumeSpoken = "Volume this exercise, $volumeValue"
-        }
-        stats.work.bodyweightReps > 0 -> {
-            volumeValue = "${stats.work.bodyweightReps} reps"
-            volumeSpoken = "Volume this exercise, $volumeValue"
-        }
-        else -> {
-            volumeValue = SetCopy.NOTHING_YET
-            volumeSpoken = "Volume this exercise, nothing yet"
-        }
-    }
+    // The measure and its label are the domain's (the same column History shows); only the
+    // thousands grouping is this platform's.
+    val column = stats.volumeColumn(unit)
+    val nothingYet = column.value == SetCopy.NOTHING_YET
+    val number = if (stats.work.volumeKg > 0.0) QuantityFormat.formatVolumeNumber(stats.work.volumeKg, unit) else column.value
+    val volumeValue = if (nothingYet) SetCopy.NOTHING_YET else "$number ${column.label}"
+    val volumeSpoken = if (nothingYet) "Volume this exercise, nothing yet" else "Volume this exercise, $volumeValue"
     Row(
         modifier = modifier
             .fillMaxWidth()

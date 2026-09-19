@@ -54,7 +54,7 @@ import org.robolectric.annotation.Config
  * a warm-up shows no RPE track, a bodyweight lift has no weight column).
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = Application::class)
+@Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
 class WorkoutFloorComponentsTest {
     @get:Rule val compose = createComposeRule()
 

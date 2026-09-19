@@ -206,8 +206,11 @@ class WorkoutFloorRenderTest {
         compose.waitForIdle()
         drive()
         compose.waitForIdle()
-        compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
+        compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertExists()
+        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
+        // The list is lazy: at font 2.0 the entry can start below the first frame.
+        if (fontScale < 1.6f) compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
         if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
         val out = File("build/floor-renders").apply { mkdirs() }

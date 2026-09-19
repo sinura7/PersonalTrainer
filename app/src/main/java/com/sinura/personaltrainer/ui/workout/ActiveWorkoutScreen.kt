@@ -54,6 +54,7 @@ import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WarmupRamp
+import com.sinura.personaltrainer.domain.WeightDraftSource
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutProgressCalculator
 import com.sinura.personaltrainer.timer.RestTimerAlerts
@@ -74,12 +75,12 @@ import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 /** Stable semantics for the critical device journey; copy remains free to improve. */
 object WorkoutTestTags {
+    fun weightPreset(source: WeightDraftSource) = "workout-weight-preset-${source.name.lowercase()}"
     const val CONTENT = "workout-content"
     const val LOG_SET = "workout-log-set"
     const val FINISH = "workout-finish"
@@ -258,7 +259,7 @@ private fun ActiveWorkoutContent(
     }
     // An edit deliberately reveals the entry; ordinary saves keep the viewport where it is.
     LaunchedEffect(state.editingSetId) {
-        if (state.editingSetId != null) listState.animateScrollToItem(LogLoopBringIntoView.entryListIndex())
+        if (state.editingSetId != null) listState.animateScrollToItem(LogLoopBringIntoView.editRevealIndex())
     }
 
     DisposableEffect(Unit) {
@@ -468,7 +469,9 @@ private fun ActiveWorkoutContent(
                             state = WorkoutDockState(
                                 primaryAction = primaryAction,
                                 verb = primaryAction.verb(includeNextName = !landscape),
-                                payload = primaryAction.payload(unit = unit, loadClass = loadClass),
+                                // Landscape keeps the verb short; the next lift's name rides the second line.
+                                payload = primaryAction.payload(unit = unit, loadClass = loadClass)
+                                    ?: primaryAction.nextName.takeIf { landscape && primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
                                 editing = state.editingSetId != null,
                                 logging = state.logging,
                                 canLog = state.canLog,
@@ -662,6 +665,8 @@ private fun ActiveWorkoutContent(
                                             holdRunning = holdTimer.running,
                                             holdRemainingSeconds = holdTimer.remainingSeconds,
                                             sourceLabel = sourceLabel,
+                                            plannedKg = currentLift.targetWeightKg,
+                                            lastKg = lastKg,
                                             onWeightKgChange = viewModel::setWeight,
                                             onRepsChange = viewModel::setReps,
                                             onSecondsChange = viewModel::setHoldSeconds,
@@ -713,9 +718,11 @@ private fun ActiveWorkoutContent(
                                 val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup }
                                 if (rec != null) {
                                     item(key = "next-set") {
-                                        val applied = abs(state.draft.weightKg - rec.nextWeightKg) < APPLIED_KG_TOLERANCE &&
-                                            state.draft.reps == rec.nextReps &&
-                                            (rec.nextRpe == null || state.draft.rpe == rec.nextRpe)
+                                        val applied = rec.isApplied(
+                                            weightKg = state.draft.weightKg,
+                                            reps = state.draft.reps,
+                                            rpe = state.draft.rpe,
+                                        )
                                         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
                                             HairlineDivider(startIndent = 0.dp)
                                             NextSetRecommendation(
@@ -940,7 +947,6 @@ private fun ActiveWorkoutContent(
 private const val PERSONAL_RECORD_DWELL_MS = Motion.STATUS_DWELL_MS
 
 /** A suggestion counts as applied once the entry matches it to within a rounding hair. */
-private const val APPLIED_KG_TOLERANCE = 0.01
 
 /** Keep the optional switcher's clock subscription out of the parent screen. */
 @Composable

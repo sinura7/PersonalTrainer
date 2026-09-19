@@ -65,7 +65,10 @@ object WorkoutProgressCalculator {
             val target = lift.targetSets.coerceAtLeast(0)
             setsDone += logged
             setsPlanned += maxOf(target, logged)
-            val met = session.isTargetMet(id)
+            // A free lift (no target) has nothing to complete, so it never counts as done;
+            // its segment still fills once it has been worked.
+            val met = target > 0 && logged >= target
+            val worked = target == 0 && logged > 0
             if (met) exercisesDone += 1
             val fraction = when {
                 target > 0 -> (logged.toFloat() / target).coerceIn(0f, 1f)
@@ -77,6 +80,7 @@ object WorkoutProgressCalculator {
                 state = when {
                     id == selected -> ProgressSegmentState.CURRENT
                     met -> ProgressSegmentState.DONE
+                    worked -> ProgressSegmentState.DONE
                     else -> ProgressSegmentState.UPCOMING
                 },
                 fraction = fraction,
