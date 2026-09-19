@@ -607,8 +607,8 @@ class ActiveWorkoutViewModelTest {
             // has happened, the row has not. Asserted, because a test that ran after the write
             // would prove nothing at all. No database read here — it would queue behind the
             // very transaction the gate is holding.
-            assertTrue(vm.uiState.value.logging)
-            assertTrue(vm.uiState.value.entryLocked)
+            val busy = vm.awaitState { it.logging }
+            assertTrue(busy.entryLocked)
             vm.setWeight(110.0)
             vm.setReps(3)
             gate.complete(Unit)
@@ -2059,17 +2059,21 @@ class ActiveWorkoutViewModelTest {
         val gate = CompletableDeferred<Unit>()
         val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
         try {
-            vm.awaitPrefilled()
-            assertFalse(vm.uiState.value.canFinish)
-            assertTrue(vm.uiState.value.showDiscard)
+            val ready = vm.awaitPrefilled()
+            assertFalse(ready.canFinish)
+            assertTrue(ready.showDiscard)
             vm.logSet()
-            assertTrue(vm.uiState.value.logging)
-            assertFalse(vm.uiState.value.canFinish)
-            assertFalse(vm.uiState.value.showDiscard)
-            assertFalse(vm.uiState.value.canLog)
+            // The gate holds the insert open, so logging stays raised until it opens; the
+            // combined uiState can publish it a beat after logSet set it.
+            val busy = vm.awaitState { it.logging }
+            assertFalse(busy.canFinish)
+            assertFalse(busy.showDiscard)
+            assertFalse(busy.canLog)
             vm.logSet()
             gate.complete(Unit)
-            val settled = vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
+            // canFinish needs the whole entry lock released, not only `logging`: the save's
+            // tail can still hold it for a beat after the row is in.
+            val settled = vm.awaitState { !it.entryLocked && it.session?.sets?.size == 1 }
             assertTrue(settled.canFinish)
             assertFalse(settled.showDiscard)
             assertEquals(
@@ -2095,7 +2099,7 @@ class ActiveWorkoutViewModelTest {
             vm.logSet()
             vm.logSet()
             gate.complete(Unit)
-            val settled = vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
+            val settled = vm.awaitState { !it.entryLocked && it.session?.sets?.size == 1 }
             assertEquals(
                 1,
                 checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size,
@@ -2304,9 +2308,13 @@ class ActiveWorkoutViewModelTest {
         weightKg: Double = 100.0,
         reps: Int = 5,
     ): ActiveWorkoutUiState = awaitState {
+        // Settled, not merely filled: the prefill's tail can still hold the entry lock for a
+        // beat after the draft lands, and the flags a test reads next (canLog, canFinish,
+        // showDiscard) all derive from that lock.
         it.loadState == SessionLoadState.FOUND &&
             it.draft.weightKg == weightKg &&
-            it.draft.reps == reps
+            it.draft.reps == reps &&
+            !it.entryLocked
     }
 
     /**
