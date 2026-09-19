@@ -135,7 +135,14 @@ class WorkoutFloorRenderTest {
         val vm = openLegExtension(loggedSets = twoSetsLogged())
         render(name = "editing-360x800", vm = vm) {
             val setId = vm.uiState.value.session?.sets?.firstOrNull()?.id
-            if (setId != null) vm.editSet(setId)
+            if (setId != null) {
+                vm.editSet(setId)
+                // Opening an edit reads the stored row, so the frame must wait for the edit
+                // to be open rather than capture the instant the tap was made.
+                compose.waitUntil(timeoutMillis = 20_000) {
+                    vm.uiState.value.editingSetId == setId && !vm.uiState.value.entryLocked
+                }
+            }
         }
     }
 
