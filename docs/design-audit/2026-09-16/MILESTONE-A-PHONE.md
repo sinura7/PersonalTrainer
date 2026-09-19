@@ -44,7 +44,8 @@ Obtainium **Temper Debug** entry; preserve its data and signing identity.
     Why? and Apply, and Apply fills the entry without saving; the set history
     chips ring the current set and offer Add set once the plan is met; the
     rest card shows the target and −15 / +15 / Skip; Log set names its payload
-    on a second line. Nothing on the screen is lime except Log set, the
+    on a second line, and once the plan is met Next exercise names the next lift
+    there (portrait only). Nothing on the screen is lime except Log set, the
     selected choice and the progress bar.
 
 ## Device-specific checks
@@ -55,6 +56,8 @@ Obtainium **Temper Debug** entry; preserve its data and signing identity.
   elapsed-time continuity, sound and haptics; record battery restrictions.
 - Deny rest notifications and confirm logging remains usable with honest status.
 - With TalkBack, complete value entry, log, View sets, timer and Next exercise.
+  Once the planned sets are done, rotate to landscape: Next exercise shows only
+  its verb there, so confirm TalkBack still speaks the next lift's full name.
   Check focus restoration and that timer ticks do not repeatedly interrupt speech.
 - Record any visible delay with the action and screen. Formal p95 and frame-budget
   targets require traces on a documented physical device; subjective smoothness

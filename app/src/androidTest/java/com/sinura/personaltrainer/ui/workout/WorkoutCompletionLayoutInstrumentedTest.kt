@@ -158,7 +158,18 @@ class WorkoutCompletionLayoutInstrumentedTest(
             val nextName = checkNotNull(action.nextName)
             compose.onNodeWithTag(tag).assert(hasContentDescription(nextName, substring = true))
             val drawnName = compose.onNode(matcher = hasText(nextName) and hasAnyAncestor(hasTestTag(tag)), useUnmergedTree = true)
-            if (width <= height) drawnName.assertIsDisplayed() else drawnName.assertDoesNotExist()
+            if (width <= height) {
+                drawnName.assertIsDisplayed()
+                // The cap is two lines, and the ellipsis lands inside the lift's own words, never
+                // inside the fixture prefix: the name cannot fit one line at any portrait profile.
+                val liftWords = nextName.indexOf(" · ") + " · ".length
+                assertTrue(
+                    "next lift's name must keep two lines and show its own words",
+                    layoutsOf(nextName).all { layout -> layout.lineCount == 2 && layout.getLineEnd(1, visibleEnd = true) > liftWords },
+                )
+            } else {
+                drawnName.assertDoesNotExist()
+            }
         }
 
         if (scenario == "edit-denied") {

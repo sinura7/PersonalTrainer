@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
@@ -19,6 +20,8 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -184,11 +187,26 @@ class WorkoutFloorRenderTest {
         assertCommitNamesTheNextLift(drawn = false)
     }
 
-    /** The commit keeps its short verb and speaks the next lift's name; portrait also draws it, capped. */
+    /**
+     * The commit keeps its short verb and speaks the next lift's name; portrait also draws it,
+     * capped at two lines with the ellipsis inside the lift's own words, never inside the prefix.
+     */
     private fun assertCommitNamesTheNextLift(drawn: Boolean) {
         compose.onNodeWithTag(WorkoutTestTags.NEXT).assert(hasContentDescription(NEXT_LIFT_NAME, substring = true))
         val onScreen = compose.onNode(hasText(NEXT_LIFT_NAME) and hasAnyAncestor(hasTestTag(WorkoutTestTags.NEXT)), useUnmergedTree = true)
-        if (drawn) onScreen.assertIsDisplayed() else onScreen.assertDoesNotExist()
+        if (!drawn) {
+            onScreen.assertDoesNotExist()
+            return
+        }
+        onScreen.assertIsDisplayed()
+        val layouts = mutableListOf<TextLayoutResult>()
+        onScreen.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        assertTrue(layouts.isNotEmpty())
+        val liftWords = NEXT_LIFT_NAME.indexOf(" · ") + " · ".length
+        assertTrue(
+            "next lift's name must keep two lines and show its own words, was ${layouts.map { it.lineCount to it.getLineEnd(1, visibleEnd = true) }}",
+            layouts.all { it.lineCount == 2 && it.getLineEnd(1, visibleEnd = true) > liftWords },
+        )
     }
 
     /** The emulator lane's rule: the scrolling floor keeps a full touch target under the dock. */
