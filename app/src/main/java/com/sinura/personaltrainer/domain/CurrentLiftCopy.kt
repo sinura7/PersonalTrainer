@@ -16,6 +16,9 @@ object CurrentLiftCopy {
     const val SWITCH = "Switch exercise"
     const val DETAILS = "Details"
 
+    /** Landscape keeps the commit's verb short; the next lift is named in the identity instead. */
+    fun nextUp(name: String): String = "Next exercise · $name"
+
     /**
      * Packet G: swap/remove stay visible on a logged lift, disabled with this reason.
      * The lift is part of what happened — take its sets out first, or skip it for now.

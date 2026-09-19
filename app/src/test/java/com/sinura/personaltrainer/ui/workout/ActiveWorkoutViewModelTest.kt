@@ -1774,7 +1774,9 @@ class ActiveWorkoutViewModelTest {
         assertNull(deps.workoutRepository.getInProgress())
         assertNull(deps.workoutDraftCache.get(fixture.session.id))
         assertNull(SavedStateWorkoutDraft(handle).read(fixture.session.id))
-        assertTrue(vm.uiState.value.finished)
+        // `finished` is written before the exit request, but uiState is a combine of both
+        // and can publish a beat later than the flow just awaited.
+        assertTrue(vm.awaitState { it.finished }.finished)
 
         vm.onExitHandled()
         assertNull(vm.exitRequested.value)
@@ -1882,9 +1884,12 @@ class ActiveWorkoutViewModelTest {
     fun lastTimeChipFillsWellsFromThatSetAndDoesNotLog() = runBlocking {
         val fixture = seedWorkout(priorWeightKg = 87.5)
         val vm = createViewModel(fixture.session.id)
+        // Prefill can overwrite a typed 100 with the 87.5 kg + step suggestion if we act first.
         val last = checkNotNull(
             vm.awaitState {
+                val suggested = it.hint?.suggestedWeightKg ?: return@awaitState false
                 it.loadState == SessionLoadState.FOUND &&
+                    it.draft.weightKg == suggested &&
                     it.lastPerformance?.sets?.isNotEmpty() == true
             }.lastPerformance,
         )
@@ -2107,7 +2112,9 @@ class ActiveWorkoutViewModelTest {
             vm.awaitPrefilled()
             vm.logSet()
             vm.logSet()
-            assertTrue(vm.uiState.value.logging)
+            // The insert is gated, so logging stays raised until the gate opens; the
+            // combined uiState can publish it a beat after logSet set it.
+            assertTrue(vm.awaitState { it.logging }.logging)
             gate.complete(Unit)
             vm.awaitState { !it.logging }
             assertEquals(

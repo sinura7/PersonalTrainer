@@ -5,8 +5,9 @@ package com.sinura.personaltrainer.ui.workout
  * Landscape survival for the workout log and the rest floor.
  *
  * Chrome alone used to exceed a 360 dp landscape height, so the log was
- * off-screen on a phone on a bench. Compact header, hide idle rest, and
- * scale the rest ring to `min(280, height − 120)`. Rest still counts as chrome in [logBudgetDp]
+ * off-screen on a phone on a bench. Compact header (one row: the plan's words as the
+ * title, no progress bar), hide idle rest, and scale the rest ring to
+ * `min(280, height − 120)`. Rest still counts as chrome in [logBudgetDp]
  * after G-02 moved it into the lower dock with Log set: the idle row is 56 dp and the
  * running rest card (ADR-027) is 72 dp.
  */

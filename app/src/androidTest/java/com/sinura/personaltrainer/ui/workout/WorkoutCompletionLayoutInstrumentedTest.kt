@@ -23,6 +23,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
@@ -151,9 +152,11 @@ class WorkoutCompletionLayoutInstrumentedTest(
         assertNotTruncated("primary verb", verb, verbLayouts)
         if (setPayload != null && payloadLayouts != null) assertNotTruncated("primary payload", setPayload, payloadLayouts)
         if (width > height && scenario == "next") {
-            // Landscape: the next lift's name rides the commit's second line, under the short verb.
+            // Landscape: the commit keeps its short verb; the next lift's name sits in the
+            // scrolling context under the set context, where it cannot eat the viewport.
             val nextName = checkNotNull(action.nextName)
-            compose.onNode(matcher = hasText(nextName) and hasAnyAncestor(hasTestTag(WorkoutTestTags.NEXT)), useUnmergedTree = true).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.NEXT_EXERCISE_NAME))
+            compose.onNodeWithTag(WorkoutTestTags.NEXT_EXERCISE_NAME).assertIsDisplayed().assertTextContains(nextName, substring = true)
         }
 
         if (scenario == "edit-denied") {

@@ -86,6 +86,7 @@ object WorkoutTestTags {
     /** A set's chip on the floor; the saved-sets sheet's rows keep [setOptions], so both can be open at once. */
     fun setChip(setId: String) = "workout-set-chip-$setId"
     const val CONTENT = "workout-content"
+    const val NEXT_EXERCISE_NAME = "workout-next-exercise-name"
     const val LOG_SET = "workout-log-set"
     const val FINISH = "workout-finish"
     const val NOTIF_RECOVERY = "workout-notif-recovery"
@@ -480,9 +481,7 @@ private fun ActiveWorkoutContent(
                             state = WorkoutDockState(
                                 primaryAction = primaryAction,
                                 verb = primaryAction.verb(includeNextName = !landscape),
-                                // Landscape keeps the verb short; the next lift's name rides the second line.
-                                payload = primaryAction.payload(unit = unit, loadClass = loadClass)
-                                    ?: primaryAction.nextName.takeIf { landscape && primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
+                                payload = primaryAction.payload(unit = unit, loadClass = loadClass),
                                 editing = state.editingSetId != null,
                                 logging = state.logging,
                                 canLog = state.canLog,
@@ -629,6 +628,9 @@ private fun ActiveWorkoutContent(
                                         onOpenSwitcher = { liftSwitcherOpen = true },
                                         onDetails = { onOpenExercise(currentLift.exercise.id) },
                                         enabled = entryEnabled,
+                                        // Landscape keeps the commit's verb short (F3), so the next lift
+                                        // is named here, inside the scrolling context, instead.
+                                        nextName = advance.nextName.takeIf { landscape && plannedComplete },
                                     )
                                 }
                                 item(key = "stats") {

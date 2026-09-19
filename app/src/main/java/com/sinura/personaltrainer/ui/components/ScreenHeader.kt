@@ -44,6 +44,8 @@ fun ScreenHeader(
     // Fixed chrome previews arbitrary saved names; full Text semantics remain.
     // Scrolling page headings can explicitly opt into more lines.
     titleMaxLines: Int = 2,
+    /** Applied to the title text alone, for a tag or spoken form the whole row must not carry. */
+    titleModifier: Modifier = Modifier,
     kickerTitle: Boolean = false,
     subtitle: String? = null,
     paintBackground: Boolean = true,
@@ -78,6 +80,7 @@ fun ScreenHeader(
                 } else {
                     Text(
                         title,
+                        modifier = titleModifier,
                         style = titleStyle,
                         color = TextPrimary,
                         maxLines = titleMaxLines,

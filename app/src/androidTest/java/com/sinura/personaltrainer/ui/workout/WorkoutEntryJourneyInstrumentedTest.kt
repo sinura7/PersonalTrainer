@@ -13,6 +13,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
@@ -145,6 +146,18 @@ class WorkoutEntryJourneyInstrumentedTest {
     private fun sheetOptionsFor(setId: String) =
         hasTestTag(WorkoutTestTags.setOptions(setId)) and hasAnyAncestor(hasTestTag(WorkoutTestTags.SAVED_SETS_SHEET))
 
+    /** The floor is a lazy list: an item below the fold is not composed until scrolled to. */
+    private fun scrollContentTo(tag: String): SemanticsNodeInteraction {
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
+        return compose.onNodeWithTag(tag)
+    }
+
+    /** The saved-sets sheet is lazy too. */
+    private fun sheetRowFor(setId: String): SemanticsNodeInteraction {
+        compose.onNodeWithTag("workout-saved-sets-list").performScrollToNode(sheetOptionsFor(setId))
+        return compose.onNode(sheetOptionsFor(setId))
+    }
+
     private fun captureWindow(state: String) {
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
@@ -165,7 +178,7 @@ class WorkoutEntryJourneyInstrumentedTest {
 
     @Test fun eightSavesKeepEntryAndCommitPositionsAndPersistExactlyTheirPayloads() {
         mount()
-        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performScrollTo()
+        scrollContentTo(WorkoutTestTags.WEIGHT_STEPPER)
         val before = compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).fetchSemanticsNode().boundsInRoot.top
         val buttonBottom = compose.onNodeWithTag(WorkoutTestTags.LOG_SET).fetchSemanticsNode().boundsInRoot.bottom
         repeat(8) { index ->
@@ -193,14 +206,14 @@ class WorkoutEntryJourneyInstrumentedTest {
 
     @Test fun numericEntrySelectsExistingValueValidatesCancelsAndAppliesAbsoluteDecimal() {
         mount(fontScale = 2f)
-        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.WEIGHT_STEPPER).performClick()
         val field = compose.onNodeWithTag(NumberEntryTags.FIELD)
         field.assertIsDisplayed()
         assertEquals(TextRange(0, 2), field.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
         field.performTextReplacement("85,5")
         compose.onNodeWithText("Cancel").performClick()
         assertEquals(60.0, fixture.vm.uiState.value.draft.weightKg, 0.01)
-        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.WEIGHT_STEPPER).performClick()
         field.performTextReplacement("-5")
         compose.onNodeWithText("Set").assertIsNotEnabled()
         compose.waitUntil(10_000) {
@@ -219,12 +232,12 @@ class WorkoutEntryJourneyInstrumentedTest {
 
     @Test fun warmupPresetOnlyChangesDraftAndSavingReturnsToWorkingWithClearEffort() {
         mount()
-        compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.WARMUP_CHIP).performClick()
         // A warm-up has no RPE track, only the reason it is blank.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.RPE_WARMUP_REASON))
         compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertDoesNotExist()
-        compose.onNodeWithTag("workout-warmup-preset-0").performScrollTo().performClick()
+        scrollContentTo("workout-warmup-preset-0").performClick()
         assertTrue(savedSets().isEmpty())
         assertTrue(fixture.vm.uiState.value.draft.isWarmup)
         val warmupWeight = fixture.vm.uiState.value.draft.weightKg
@@ -233,17 +246,17 @@ class WorkoutEntryJourneyInstrumentedTest {
         assertTrue(savedSets().single().isWarmup)
         assertEquals(warmupWeight, savedSets().single().weightKg, 0.01)
         assertFalse(fixture.vm.uiState.value.draft.isWarmup)
-        compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).performScrollTo().assertIsSelected()
-        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(9)).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
+        scrollContentTo(WorkoutTestTags.rpeChoice(9)).performClick()
         assertEquals(9, fixture.vm.uiState.value.draft.rpe)
         compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).performClick()
         assertNull(fixture.vm.uiState.value.draft.rpe)
-        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.rpeChoice(8)).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(2)
         assertNull(fixture.vm.uiState.value.draft.rpe)
         assertEquals(8, savedSets().single { !it.isWarmup }.rpe)
-        compose.onNodeWithTag(WorkoutTestTags.RPE_HELPER).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.RPE_HELPER).performClick()
         compose.onNodeWithText("Effort (RPE)").assertIsDisplayed()
         captureWindow("rpe-help")
         compose.onNodeWithText("Done").performClick()
@@ -253,10 +266,10 @@ class WorkoutEntryJourneyInstrumentedTest {
         mount(fontScale = 2f)
         repeat(2) { compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick(); awaitSets(it + 1) }
         val original = savedSets().first()
-        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.VIEW_SETS).performClick()
         compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed()
         captureWindow("saved-sets-font20")
-        compose.onNode(sheetOptionsFor(original.id)).performScrollTo().performClick()
+        sheetRowFor(original.id).performClick()
         compose.onNodeWithText("Edit set").performClick()
         compose.waitUntil(15_000) { fixture.vm.uiState.value.editingSetId == original.id }
         // Cancel edit stands in the dock's companion slot while a saved set is being
@@ -264,8 +277,8 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.CANCEL_EDIT).assertIsDisplayed().performClick()
         compose.waitUntil(15_000) { fixture.vm.uiState.value.editingSetId == null }
         assertEquals(60.0, savedSets().first { it.id == original.id }.weightKg, 0.01)
-        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performScrollTo().performClick()
-        compose.onNode(sheetOptionsFor(original.id)).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.VIEW_SETS).performClick()
+        sheetRowFor(original.id).performClick()
         compose.onNodeWithText("Edit set").performClick()
         compose.waitUntil(15_000) { fixture.vm.uiState.value.editingSetId == original.id }
         compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsDisplayed().performClick()
@@ -274,8 +287,8 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(15_000) { savedSets().first { it.id == original.id }.weightKg == 70.0 && !fixture.vm.uiState.value.logging }
         assertEquals(2, savedSets().size)
-        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performScrollTo().performClick()
-        compose.onNode(sheetOptionsFor(original.id)).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.VIEW_SETS).performClick()
+        sheetRowFor(original.id).performClick()
         compose.onNodeWithText("Delete set").performClick()
         awaitSets(1)
         compose.onNodeWithText("Undo").performClick()
@@ -297,7 +310,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.runOnIdle { fixture.vm.skipRest() }
         compose.waitUntil(5_000) { !fixture.vm.restTimerState.value.running }
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).performClick()
-        compose.onNodeWithTag(WorkoutTestTags.SHEET_START_SET_CLOCK).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.SHEET_START_SET_CLOCK).performClick()
         compose.waitUntil(5_000) { fixture.vm.setStopwatch.value.running }
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).performClick()
         compose.onNodeWithText("Stop timing").performClick()
@@ -317,7 +330,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.runOnIdle { fixture.vm.startSetStopwatch() }
         compose.waitUntil(5_000) { fixture.vm.setStopwatch.value.running }
         // The exercise identity is the way into the switcher.
-        compose.onNodeWithTag(WorkoutTestTags.liftCard(original)).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.liftCard(original)).performClick()
         compose.onNodeWithTag(WorkoutTestTags.liftSwitcherRow(original)).assertIsDisplayed()
         captureWindow("switcher-font20")
         compose.onNodeWithTag("workout-switcher-list").performScrollToNode(hasTestTag(WorkoutTestTags.liftSwitcherRow(next.id)))
@@ -335,7 +348,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         mount(fontScale = 2f)
         val planned = fixture.vm.restTimerState.value.totalSeconds
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).assertIsDisplayed().performClick()
-        compose.onNodeWithTag(WorkoutTestTags.SHEET_START_SET_CLOCK).performScrollTo().assertIsDisplayed()
+        scrollContentTo(WorkoutTestTags.SHEET_START_SET_CLOCK).assertIsDisplayed()
         compose.onNodeWithText("Custom").performScrollTo().performClick()
         compose.onNodeWithTag(WorkoutTestTags.REST_DURATION_SHEET).assertDoesNotExist()
         compose.onNodeWithText("Custom rest").assertIsDisplayed()
@@ -373,11 +386,11 @@ class WorkoutEntryJourneyInstrumentedTest {
         assertTrue("Actual app window is landscape", bounds.width > bounds.height)
         val sets = savedSets()
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
-        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performScrollTo().performClick()
+        scrollContentTo(WorkoutTestTags.VIEW_SETS).performClick()
         captureWindow("long-sheet-landscape-font20")
         val list = compose.onNodeWithTag("workout-saved-sets-list")
         for (set in listOf(sets.first(), sets.last())) {
-            list.performScrollToNode(hasTestTag(WorkoutTestTags.setChip(set.id)))
+            list.performScrollToNode(hasTestTag(WorkoutTestTags.setOptions(set.id)))
             compose.onNode(sheetOptionsFor(set.id)).assertIsDisplayed().performClick()
             compose.onNodeWithText("Edit set").assertIsDisplayed()
             compose.onNodeWithText("Delete set").assertIsDisplayed()

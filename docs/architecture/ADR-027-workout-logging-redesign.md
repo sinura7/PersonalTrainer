@@ -32,7 +32,9 @@ that packet's state model and derived primary action and changes the composition
 ## Decision
 
 1. **The screen's order is:** session header (back, routine name, `Exercise n of N ·
-   x of y sets`, one progress segment per lift); exercise identity (112 dp keyed
+   x of y sets`, one progress segment per lift; in landscape one row, the plan's
+   words as its title and no bar, so the log keeps `LandscapeChrome`'s budget);
+   exercise identity (112 dp keyed
    still, equipment, name, set ordinal, working count, Details, Working | Warm-up);
    Last set · Best set · Volume (this exercise); weight and reps (or hold time) as
    two hero numerals with round − / + plates, the unit riding the weight numeral's
@@ -93,7 +95,9 @@ that packet's state model and derived primary action and changes the composition
   are unchanged in intent. Source-text tests point at the new files.
 - Large system text (1.6 and above) stacks the hero numerals, the stats row, the
   next-set card's numbers over its change, drops Details under the identity and
-  the rest controls under the clock; the header's progress line may wrap once.
+  the rest controls under the clock; the header's title keeps to one line and its
+  progress line may wrap once. Landscape keeps the commit's verb short, so when the planned sets
+  are done the next lift is named on its own line under the identity instead.
 - Milestone A's phone checklist gains the reference screen; the floor goldens
   are owed a re-record on the emulator profile before they gate anything.
 - No schema, backup, signer, tab or navigation change is authorised by this record.

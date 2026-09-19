@@ -56,6 +56,8 @@ internal fun ExerciseHeader(
     onDetails: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    /** Named under the identity when the commit cannot carry it (landscape). */
+    nextName: String? = null,
 ) {
     val meaning = LoadClass.of(lift.exercise.loadType).weightMeaning
     val equipment = CurrentLiftCopy.secondaryLine(lift.exercise.equipment.label, meaning)
@@ -150,6 +152,19 @@ internal fun ExerciseHeader(
                     modifier = Modifier.padding(top = Metrics.space1),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space1),
                 ) { words() }
+            }
+            // Its own line, outside the switcher's tap target: it names the lift after this one.
+            nextName?.let { name ->
+                Text(
+                    CurrentLiftCopy.nextUp(name),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(WorkoutTestTags.NEXT_EXERCISE_NAME),
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
             SetTypeToggle(
                 enabled = enabled,

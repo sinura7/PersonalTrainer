@@ -237,8 +237,12 @@ class FloorImageLedHeroTest {
         assertTrue(line in 0 until bar)
         assertTrue(
             "the progress line is spoken once",
-            chrome.substring(line, bar).contains(".semantics { contentDescription = spoken }"),
+            chrome.substring(line, bar).contains(".semantics { contentDescription = spokenForm }"),
         )
+        // The same tag and spoken form wherever the plan's words sit: the compact title in
+        // landscape (with the routine name), the caption line in portrait.
+        assertTrue(chrome.contains("titleModifier = if (planAsTitle) progressLine(\"\$routineName. \$spoken\") else Modifier,"))
+        assertTrue(chrome.contains("modifier = progressLine(spoken),"))
         assertTrue("the segmented bar is decorative", chrome.substring(bar).contains(".clearAndSetSemantics { }"))
         val notes = AccessibilityMatrix.page("active-strength").talkBackNotes
         assertTrue(notes.contains("header with its progress line, exercise identity"))

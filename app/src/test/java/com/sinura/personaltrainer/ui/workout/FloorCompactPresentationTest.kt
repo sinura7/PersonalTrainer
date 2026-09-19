@@ -101,7 +101,7 @@ class FloorCompactPresentationTest {
         assertTrue(menu.contains("if (onSwitch != null) {"))
         val header = readOwned("ui/workout/WorkoutHeader.kt")
         assertTrue(header.contains("overflow: (@Composable () -> Unit)? = null"))
-        val trailing = header.substring(header.indexOf("trailing = {"), header.indexOf("if (headline.isNotBlank())"))
+        val trailing = header.substring(header.indexOf("trailing = {"), header.indexOf("if (headline.isNotBlank() && !planAsTitle)"))
         assertTrue(trailing.contains("WorkoutTestTags.FINISH"))
         assertTrue(trailing.contains("WorkoutTestTags.DISCARD"))
         assertTrue(trailing.contains("overflow?.invoke()"))

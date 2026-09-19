@@ -38,7 +38,11 @@ class FloorPacket2ToolbarTest {
             header.contains("WorkoutProgressCalculator.headline(progress)"),
         )
         assertTrue(header.contains(".testTag(WorkoutTestTags.PROGRESS_LINE)"))
-        assertTrue(header.contains("if (!compact) WorkoutProgressBar(segments = progress.segments)"))
+        // Landscape is one row: the plan's words are the title and the bar is dropped.
+        assertTrue(header.contains("val planAsTitle = compact && headline.isNotBlank()"))
+        assertTrue(header.contains("title = if (planAsTitle) headline else routineName,"))
+        assertTrue(header.contains("if (headline.isNotBlank() && !planAsTitle) {"))
+        assertTrue(header.contains("WorkoutProgressBar(segments = progress.segments)"))
         assertTrue(header.contains("WorkoutTestTags.FINISH"))
         assertTrue(header.contains("overflow?.invoke()"))
         val hero = readOwned("ui/workout/ExerciseHeader.kt")

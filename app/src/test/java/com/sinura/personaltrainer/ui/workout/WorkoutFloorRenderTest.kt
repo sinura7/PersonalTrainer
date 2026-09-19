@@ -11,8 +11,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -23,6 +27,7 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWorkoutFixture
+import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.theme.Pit
@@ -147,6 +152,43 @@ class WorkoutFloorRenderTest {
         render(name = "working-800x360-land", vm = vm, widthDp = 800, heightDp = 360)
     }
 
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-xhdpi")
+    fun keepsTheLogReachableWithTheNextLiftPendingAtLargeTextOnAShortScreen() {
+        // The emulator lane's 360 x 640 font 2.0 "next" profile, less its 24 dp status and
+        // navigation bars: one planned set logged, a second lift waiting, and a routine name
+        // that used to take two display-size lines and leave the scrolling floor under 48 dp.
+        val vm = openLegExtension(loggedSets = oneSetLogged(), targetSets = 1, withNextLift = true, routineName = LONG_ROUTINE_NAME)
+        render(name = "next-360x592-font20", vm = vm, widthDp = 360, heightDp = 592, fontScale = 2f) {
+            compose.waitUntil(timeoutMillis = 20_000) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
+        }
+        assertContentKeepsATouchTarget()
+        compose.onNodeWithTag(WorkoutTestTags.NEXT_EXERCISE_NAME).assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "w640dp-h360dp-land-xhdpi")
+    fun namesTheNextLiftInTheIdentityInLandscapeAtLargeText() {
+        // 640 x 360 less the bars: the header must be one row for the floor to keep 48 dp.
+        val vm = openLegExtension(loggedSets = oneSetLogged(), targetSets = 1, withNextLift = true, routineName = LONG_ROUTINE_NAME)
+        render(name = "next-640x312-land-font20", vm = vm, widthDp = 640, heightDp = 312, fontScale = 2f) {
+            compose.waitUntil(timeoutMillis = 20_000) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
+        }
+        assertContentKeepsATouchTarget()
+        // Landscape keeps the commit's verb short, so the next lift is named in the identity.
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.NEXT_EXERCISE_NAME))
+        compose.onNodeWithTag(WorkoutTestTags.NEXT_EXERCISE_NAME)
+            .assertIsDisplayed()
+            .assertTextContains(NEXT_LIFT_NAME, substring = true)
+    }
+
+    /** The emulator lane's rule: the scrolling floor keeps a full touch target under the dock. */
+    private fun assertContentKeepsATouchTarget() {
+        val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode()
+        val heightDp = content.boundsInRoot.height / content.layoutInfo.density.density
+        assertTrue("Scrollable content must retain a full touch target, was $heightDp dp", heightDp >= 48f)
+    }
+
     private fun twoSetsLogged() = listOf(
         TestSetInput(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = 8),
         TestSetInput(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = 9),
@@ -155,19 +197,31 @@ class WorkoutFloorRenderTest {
     private fun threeSetsLogged() = twoSetsLogged() +
         TestSetInput(weightKg = WeightConverter.lbsToKg(70.0), reps = 11, rpe = 9)
 
-    private fun openLegExtension(loggedSets: List<TestSetInput>): ActiveWorkoutViewModel {
+    private fun oneSetLogged() = twoSetsLogged().take(1)
+
+    private fun openLegExtension(
+        loggedSets: List<TestSetInput>,
+        targetSets: Int = 3,
+        withNextLift: Boolean = false,
+        routineName: String = "Lower B",
+    ): ActiveWorkoutViewModel {
         val fixture: TestWorkoutFixture = runBlocking {
             seedTestWorkout(
                 deps = deps,
                 exerciseId = "leg-extension",
                 exerciseName = "Leg Extension",
-                routineName = "Lower B",
-                targetSets = 3,
+                routineName = routineName,
+                targetSets = targetSets,
                 targetReps = 10,
                 targetWeightKg = WeightConverter.lbsToKg(70.0),
                 restSeconds = 120,
                 loggedSets = loggedSets,
-            )
+            ).also { seeded ->
+                if (withNextLift) {
+                    val next = insertTestExercise(deps, id = "romanian-deadlift", name = NEXT_LIFT_NAME, muscleGroup = "Hamstrings")
+                    deps.workoutRepository.addExerciseToSession(seeded.session.id, next, targetSets = 3, targetReps = 8, targetWeightKg = 40.0, restSeconds = 90)
+                }
+            }
         }
         return ActiveWorkoutViewModel(
             application = ApplicationProvider.getApplicationContext(),
@@ -234,9 +288,18 @@ class WorkoutFloorRenderTest {
         // Asserted after the frame is on disk, so a failing state still leaves its picture.
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertExists()
-        // The list is lazy: landscape and font 2.0 can start the stats and entry below the fold.
-        if (heightDp >= 640) compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
+        // The list is lazy: landscape, short screens and font 2.0 can start the stats and
+        // entry below the fold.
+        if (heightDp >= 800 || (heightDp >= 640 && fontScale < 1.6f)) compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
         if (heightDp >= 640 && fontScale < 1.6f) compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
         if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
+    }
+
+    private companion object {
+        /** As long as the emulator lane's custom lift, so the identity has to wrap or trim it. */
+        const val NEXT_LIFT_NAME = "Romanian deadlift with a controlled three-second lowering phase"
+
+        /** As long as the emulator lane's routine, which wraps at display size under font 2.0. */
+        const val LONG_ROUTINE_NAME = "F2 entry fixture · Lower A"
     }
 }

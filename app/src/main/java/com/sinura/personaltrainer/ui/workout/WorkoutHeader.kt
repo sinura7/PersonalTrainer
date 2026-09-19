@@ -18,6 +18,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -33,6 +34,7 @@ import com.sinura.personaltrainer.domain.WorkoutProgressCalculator
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -45,6 +47,10 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
 
 /**
  * Session chrome: back, the routine's name, where the session stands, and Finish.
+ *
+ * Landscape gets the one-row compact form: the plan's words are the title, since the
+ * routine name is context the lifter already has and the row is the header's whole budget
+ * there (`LandscapeChrome.HEADER_ROW_DP`).
  *
  * The second line and the segmented bar are the same numbers said twice — once as
  * words, once as shape — so a lifter walking back to the phone sees how much of the
@@ -64,10 +70,21 @@ internal fun WorkoutHeader(
     overflow: (@Composable () -> Unit)? = null,
 ) {
     // Two lines at display size so a long routine name wraps instead of losing its end;
-    // the compact landscape header keeps to one.
-    val titleLines = if (compact) 1 else 2
+    // large text keeps the title to one, where a second display-size line would eat the
+    // room the log needs.
+    val largeText = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
+    val titleLines = if (compact || largeText) 1 else 2
     val headline = WorkoutProgressCalculator.headline(progress)
     val spoken = WorkoutProgressCalculator.spoken(progress)
+    // The compact landscape header is the one row LandscapeChrome budgets: the plan's
+    // words take the title and the routine name rides their spoken form (Session summary
+    // in the overflow still shows it). Portrait says the routine name at display size and
+    // the plan underneath, twice: as words and as the segmented bar.
+    val planAsTitle = compact && headline.isNotBlank()
+    // One tag for the plan's words wherever they sit; the spoken form differs by row.
+    fun progressLine(spokenForm: String): Modifier = Modifier
+        .testTag(WorkoutTestTags.PROGRESS_LINE)
+        .semantics { contentDescription = spokenForm }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -75,13 +92,14 @@ internal fun WorkoutHeader(
             .padding(bottom = Metrics.space2),
     ) {
         ScreenHeader(
-            title = routineName,
+            title = if (planAsTitle) headline else routineName,
             onBack = onExit,
             backIcon = TemperIcons.Back,
             backDescription = "Exit workout",
             paintBackground = true,
             titleStyle = if (compact) InstrumentType.title else InstrumentType.display,
             titleMaxLines = titleLines,
+            titleModifier = if (planAsTitle) progressLine("$routineName. $spoken") else Modifier,
             subtitle = null,
             contentPadding = PaddingValues(start = Metrics.space2, end = Metrics.space2),
             modifier = Modifier
@@ -128,7 +146,7 @@ internal fun WorkoutHeader(
                 overflow?.invoke()
             },
         )
-        if (headline.isNotBlank()) {
+        if (headline.isNotBlank() && !planAsTitle) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -138,15 +156,14 @@ internal fun WorkoutHeader(
             ) {
                 Text(
                     headline,
-                    modifier = Modifier
-                        .testTag(WorkoutTestTags.PROGRESS_LINE)
-                        .semantics { contentDescription = spoken },
+                    modifier = progressLine(spoken),
                     style = InstrumentType.caption,
                     color = TextSecondary,
-                    maxLines = titleLines,
+                    // Caption size: a second line at large text costs little and keeps "sets".
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (!compact) WorkoutProgressBar(segments = progress.segments)
+                WorkoutProgressBar(segments = progress.segments)
             }
         }
     }
