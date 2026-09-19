@@ -272,16 +272,23 @@ private fun SavedSetChip(
                     )
                 }
             }
-            Text(
-                when {
-                    editing -> EDITING
-                    saved -> "$SAVED · $ordinal"
-                    else -> ordinal
-                },
-                style = InstrumentType.caption,
-                color = if (accent) Volt else TextSecondary,
-                maxLines = 1,
-            )
+            // A resting chip says nothing here: the marker ring beside it already carries
+            // this set's number, so the caption was the same word twice, on every chip, all
+            // session. The ordinal stays in the row's spoken form, which is where a reader
+            // who cannot see the ring gets it.
+            val caption = when {
+                editing -> EDITING
+                saved -> "$SAVED · $ordinal"
+                else -> null
+            }
+            if (caption != null) {
+                Text(
+                    caption,
+                    style = InstrumentType.caption,
+                    color = if (accent) Volt else TextSecondary,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

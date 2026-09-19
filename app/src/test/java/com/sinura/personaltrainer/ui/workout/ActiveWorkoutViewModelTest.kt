@@ -1461,6 +1461,9 @@ class ActiveWorkoutViewModelTest {
         vm.skipRest()
 
         vm.editSet(logged.id)
+        // Opening an edit reads the stored row; typing before it lands is typing into a
+        // draft the open is about to replace with that row's own values.
+        vm.awaitState { it.editingSetId == logged.id }
         vm.setWeight(105.0)
         vm.adjustReps(1)
         vm.logSetAndSettle()

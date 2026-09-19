@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
@@ -61,8 +62,13 @@ fun InstrumentChip(
      */
     leading: (@Composable () -> Unit)? = null,
     /**
-     * History suggestion that is not the selected value. Volt border, no fill,
-     * so a recommended RPE is visible without committing the tap.
+     * History suggestion that is not the selected value: a Volt dot in the chip's corner,
+     * no fill and no Volt edge.
+     *
+     * It used to share the selected state's Volt border, which made a suggestion easy to
+     * read as already applied — a suggestion is never rendered as a selection (ADR-027 §4),
+     * and the design audit of 16 September named this the clearest case of it. The dot is
+     * corner-set rather than a leading glyph so it costs the label no width.
      */
     recommended: Boolean = false,
     /**
@@ -103,7 +109,8 @@ fun InstrumentChip(
             .background(background)
             .border(
                 if (focused) Metrics.emphasisBorder else Metrics.hairline,
-                if (focused || selected || recommended) Volt else Hairline,
+                // A Volt edge means this value is chosen. A suggestion wears the dot below.
+                if (focused || selected) Volt else Hairline,
                 RoundedCornerShape(Radius.xs),
             )
             // selectable, not clickable: this replaced FilterChip everywhere in the app, and
@@ -137,14 +144,27 @@ fun InstrumentChip(
                 } else {
                     Modifier.semantics { contentDescription = spoken }
                 },
-            )
-            .padding(
-                horizontal = if (compact) Metrics.space2 else Metrics.space4,
-                vertical = Metrics.space2,
             ),
         contentAlignment = Alignment.Center,
     ) {
+        if (recommended && !selected) {
+            // Inside the chip's own corner, and outside the label's padding, so the words
+            // keep every pixel they had. Decorative: the spoken form carries "recommended".
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(Metrics.space1)
+                    .size(Metrics.markDot)
+                    .background(if (enabled) Volt else TextDisabled, Radius.full),
+            )
+        }
         Row(
+            // The padding moved off the box and onto the words, which is what leaves the
+            // corner free for the dot above.
+            modifier = Modifier.padding(
+                horizontal = if (compact) Metrics.space2 else Metrics.space4,
+                vertical = Metrics.space2,
+            ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {

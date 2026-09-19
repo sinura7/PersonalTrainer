@@ -131,6 +131,14 @@ object Metrics {
     /** Small help affordance (the RPE question mark). Target stays [touchMin]. */
     val helpMark: Dp = 20.dp
 
+    /**
+     * The mark on a chip the coach suggests but has not selected.
+     *
+     * It sits in the chip's corner rather than beside the label, so five equal RPE chips
+     * still fit across 360 dp at font scale 2.0: a suggestion must not cost width.
+     */
+    val markDot: Dp = 6.dp
+
     /** Bottom-of-list clearance so a floating action never covers the last row. */
     val fabClearance: Dp = 88.dp
 }

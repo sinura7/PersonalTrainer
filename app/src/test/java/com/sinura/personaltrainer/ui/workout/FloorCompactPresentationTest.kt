@@ -45,9 +45,11 @@ class FloorCompactPresentationTest {
         assertFalse(FloorCompactChrome.showIdleStartNext())
         assertFalse(FloorCompactChrome.idleStartNextIsVolt())
         assertTrue(card.contains("spoken = RestIdleCopy.startSpoken(safeTotal)"))
-        assertTrue(card.contains(".testTag(WorkoutTestTags.START_REST)"))
-        assertFalse("idle controls are RestControl marks, not full-width rows", card.contains("TextButton("))
-        assertTrue(card.contains("RestControl("))
+        assertTrue(card.contains("tag = WorkoutTestTags.START_REST"))
+        assertFalse("idle controls are quiet marks, not full-width rows", card.contains("TextButton("))
+        // The three pills became one segmented track; the card names the segments, and
+        // RestSegments itself lives beside RestControl so the card still names no Haptics.
+        assertTrue(card.contains("RestSegments("))
         assertTrue(card.contains("val idle = !running && !justFinished"))
         assertTrue(card.contains("else -> PLANNED"))
         assertTrue(card.contains("else -> RestIdleCopy.dockSpoken(clock, afterWarmup)"))

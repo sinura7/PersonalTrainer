@@ -87,7 +87,8 @@ class WorkoutFloorComponentsTest {
         }
         compose.onNodeWithText("Lower B").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertIsDisplayed()
-        compose.onNodeWithText("Exercise 1 of 2 · 2 of 6 sets").assertIsDisplayed()
+        // The plan line wears the instrument-label voice, which is always uppercase.
+        compose.onNodeWithText("EXERCISE 1 OF 2 · 2 OF 6 SETS").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_BAR).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled()
         compose.onNodeWithContentDescription("Exit workout").assertExists()
@@ -381,7 +382,11 @@ class WorkoutFloorComponentsTest {
         }
         compose.onNodeWithText("SET HISTORY").assertIsDisplayed()
         compose.onNodeWithText("70 × 10 @ 8").assertIsDisplayed()
-        compose.onNodeWithText("Set 1 of 3").assertIsDisplayed()
+        // A resting chip no longer repeats the number its marker ring already shows; the
+        // ordinal stays in the row's spoken form and in the menu that opens from it.
+        compose.onAllNodesWithText("Set 1 of 3").assertCountEquals(0)
+        compose.onNodeWithTag(WorkoutTestTags.setChip("set-1"))
+            .assert(hasContentDescription("Set 1 of 3", substring = true))
         compose.onNodeWithText("Saved · Set 2 of 3").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.CURRENT_SET).assertIsDisplayed()
         compose.onNodeWithText("Current").assertIsDisplayed()

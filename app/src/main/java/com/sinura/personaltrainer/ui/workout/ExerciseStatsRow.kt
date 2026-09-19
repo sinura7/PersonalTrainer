@@ -38,7 +38,6 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.util.QuantityFormat
 
 /**
@@ -130,7 +129,22 @@ private fun StatCell(
             .semantics(mergeDescendants = true) { contentDescription = stat.spoken },
         verticalArrangement = Arrangement.spacedBy(Metrics.space1),
     ) {
-        Text(stat.label, style = InstrumentType.caption, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // The qualifier rides the label rather than a third line of its own. `Warm-up`,
+        // `RPE 9`, `Last time` and `Today` all still appear, and under the same rules; they
+        // simply sit next to the word they qualify instead of under the number. A 110 dp
+        // cell could not hold three stacked lines without the labels folding back anyway.
+        Text(
+            stat.detail?.let { detail -> stat.label + FloorStatCopy.DETAIL_JOIN + detail } ?: stat.label,
+            style = InstrumentType.caption,
+            color = TextSecondary,
+            // Two lines, always. `Best set · Est. 1RM` does not fit a 110 dp cell on one
+            // line and `Last set · RPE 9` does, and a label that is sometimes one line and
+            // sometimes two drops that cell's number below its neighbours' — three numbers
+            // meant to be read across stop being a row at all.
+            minLines = 2,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
         // The value may wrap once rather than lose its reps or effort to an ellipsis.
         Text(
             stat.value,
@@ -139,15 +153,6 @@ private fun StatCell(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        stat.detail?.let { detail ->
-            Text(
-                detail,
-                style = InstrumentType.caption,
-                color = TextTertiary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 

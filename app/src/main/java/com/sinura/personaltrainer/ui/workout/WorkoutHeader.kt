@@ -157,11 +157,15 @@ internal fun WorkoutHeader(
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
                 Text(
-                    headline,
+                    // The instrument-label voice, which is what this line is: a meta label
+                    // over the plan, the same register as REST or LAST 7 DAYS. Uppercased
+                    // at the call site because the kicker style is never set in mixed case.
+                    // The `Kicker` composable itself is not used here: it caps at one line,
+                    // and large text needs the second one to keep the word "sets".
+                    headline.uppercase(),
                     modifier = progressLine(spoken),
-                    style = InstrumentType.caption,
+                    style = InstrumentType.kicker,
                     color = TextSecondary,
-                    // Caption size: a second line at large text costs little and keeps "sets".
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
