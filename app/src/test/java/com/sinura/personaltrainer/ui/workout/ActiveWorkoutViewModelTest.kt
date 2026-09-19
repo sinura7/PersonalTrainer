@@ -902,6 +902,9 @@ class ActiveWorkoutViewModelTest {
         val sets = vm.awaitState { it.session?.sets?.size == 5 }.session!!.setsFor(SQUAT)
         val firstWarmup = sets.first { it.isWarmup }
         val firstWorking = sets.first { !it.isWarmup }
+        // Each edit taps after the previous save's tail has released the entry lock;
+        // a tap during that tail is dropped by design (see awaitEntryUnlocked).
+        vm.awaitEntryUnlocked()
         vm.editSet(firstWarmup.id)
         vm.awaitState { it.editingSetId == firstWarmup.id }
         vm.setWeight(45.0)
@@ -910,6 +913,7 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { !it.logging && it.editingSetId == null }
         assertEquals(firstWarmup.id, vm.logReceipt.value?.setId)
         assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("WU 1 logged"))
+        vm.awaitEntryUnlocked()
         vm.editSet(firstWorking.id)
         vm.awaitState { it.editingSetId == firstWorking.id }
         vm.setWeight(75.0)
@@ -918,6 +922,7 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState { !it.logging && it.editingSetId == null }
         assertEquals(firstWorking.id, vm.logReceipt.value?.setId)
         assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Set 1 of 3 logged"))
+        vm.awaitEntryUnlocked()
         vm.editSet(firstWorking.id)
         vm.awaitState { it.editingSetId == firstWorking.id }
         vm.setWarmup(true)

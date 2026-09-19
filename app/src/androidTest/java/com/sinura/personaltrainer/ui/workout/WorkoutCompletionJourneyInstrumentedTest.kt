@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -68,7 +70,8 @@ class WorkoutCompletionJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
         // Next needs a tap, and the commit names where it goes.
-        compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed().assertTextContains("Next exercise · ${next.name}")
+        compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed().assertTextContains("Next exercise")
+            .assert(hasContentDescription(next.name, substring = true))
         assertEquals(first, fixture.vm.uiState.value.selectedExerciseId)
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()

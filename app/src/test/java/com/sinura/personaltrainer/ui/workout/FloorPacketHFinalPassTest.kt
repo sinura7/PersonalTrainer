@@ -75,7 +75,7 @@ class FloorPacketHFinalPassTest {
         val dock = readOwned("ui/workout/WorkoutDock.kt")
         assertTrue(dock.contains("LogCommitCopy.disabledReason("))
         assertTrue(dock.contains("supporting = state.payload"))
-        assertTrue(dock.contains("val spokenAction = listOfNotNull(state.verb, state.payload).joinToString(\" · \")"))
+        assertTrue(dock.contains("val spokenAction = listOfNotNull(state.verb, state.spokenPayload ?: state.payload).joinToString(\" · \")"))
         assertTrue(dock.contains(".semantics { contentDescription = spokenAction }"))
         assertTrue(LogCommitCopy.LOGGING_WAIT.isNotBlank())
         assertTrue(LogCommitCopy.disabledReason(logging = true, liftReady = true)!!.isNotBlank())

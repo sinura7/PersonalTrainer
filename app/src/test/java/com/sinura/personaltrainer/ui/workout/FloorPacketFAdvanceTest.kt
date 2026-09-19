@@ -76,7 +76,9 @@ class FloorPacketFAdvanceTest {
         assertTrue(action.contains("WorkoutPrimaryKind.FINISH -> \"Finish workout\""))
         assertTrue(action.contains("\"Next exercise · \${nextName.orEmpty()}\""))
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("verb = primaryAction.verb(includeNextName = !landscape)"))
+        assertTrue(screen.contains("verb = primaryAction.verb(includeNextName = false)"))
+        assertTrue(screen.contains("?: primaryAction.nextName.takeIf { !landscape && primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },"))
+        assertTrue(screen.contains("spokenPayload = primaryAction.nextName.takeIf { primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },"))
         assertTrue(screen.contains("payload = primaryAction.payload(unit = unit, loadClass = loadClass)"))
         assertTrue(screen.contains("showFinish"))
         // The "Latest saved" row is gone: the just-saved chip in the set history carries the

@@ -23,7 +23,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
@@ -115,9 +114,11 @@ class WorkoutCompletionLayoutInstrumentedTest(
             else -> WorkoutTestTags.LOG_SET
         }
         // The commit says its verb on the first line and, when the tap writes a set, the
-        // payload on the second. Landscape keeps the verb short.
+        // payload on the second.
         val action = fixture.vm.primaryAction.value
-        val verb = action.verb(includeNextName = width <= height)
+        // The commit keeps its short verb in every orientation; the next lift's name is its
+        // capped supporting line, checked below.
+        val verb = action.verb(includeNextName = false)
         val setPayload = action.payload(unit = WeightUnit.KG, loadClass = LoadClass.LOADED)
         val button = compose.onNodeWithTag(tag).assertIsDisplayed().assertIsEnabled().assertTextContains(verb).fetchSemanticsNode()
         val root = compose.onNodeWithTag(GoldenCapture.DefaultTag).fetchSemanticsNode()
@@ -151,12 +152,13 @@ class WorkoutCompletionLayoutInstrumentedTest(
         }
         assertNotTruncated("primary verb", verb, verbLayouts)
         if (setPayload != null && payloadLayouts != null) assertNotTruncated("primary payload", setPayload, payloadLayouts)
-        if (width > height && scenario == "next") {
-            // Landscape: the commit keeps its short verb; the next lift's name sits in the
-            // scrolling context under the set context, where it cannot eat the viewport.
+        if (scenario == "next") {
+            // The commit speaks the next lift's name in every orientation. Portrait also draws
+            // it on the capped supporting line; landscape has no room for a second line.
             val nextName = checkNotNull(action.nextName)
-            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.NEXT_EXERCISE_NAME))
-            compose.onNodeWithTag(WorkoutTestTags.NEXT_EXERCISE_NAME).assertIsDisplayed().assertTextContains(nextName, substring = true)
+            compose.onNodeWithTag(tag).assert(hasContentDescription(nextName, substring = true))
+            val drawnName = compose.onNode(matcher = hasText(nextName) and hasAnyAncestor(hasTestTag(tag)), useUnmergedTree = true)
+            if (width <= height) drawnName.assertIsDisplayed() else drawnName.assertDoesNotExist()
         }
 
         if (scenario == "edit-denied") {

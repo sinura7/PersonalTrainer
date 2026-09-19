@@ -310,7 +310,8 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.runOnIdle { fixture.vm.skipRest() }
         compose.waitUntil(5_000) { !fixture.vm.restTimerState.value.running }
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).performClick()
-        scrollContentTo(WorkoutTestTags.SHEET_START_SET_CLOCK).performClick()
+        // The timer sheet is its own surface, not an item of the floor's lazy list.
+        compose.onNodeWithTag(WorkoutTestTags.SHEET_START_SET_CLOCK).performScrollTo().performClick()
         compose.waitUntil(5_000) { fixture.vm.setStopwatch.value.running }
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).performClick()
         compose.onNodeWithText("Stop timing").performClick()
@@ -348,7 +349,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         mount(fontScale = 2f)
         val planned = fixture.vm.restTimerState.value.totalSeconds
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).assertIsDisplayed().performClick()
-        scrollContentTo(WorkoutTestTags.SHEET_START_SET_CLOCK).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.SHEET_START_SET_CLOCK).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Custom").performScrollTo().performClick()
         compose.onNodeWithTag(WorkoutTestTags.REST_DURATION_SHEET).assertDoesNotExist()
         compose.onNodeWithText("Custom rest").assertIsDisplayed()

@@ -37,7 +37,9 @@ class WorkoutLogBarTest {
 
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertTrue(screen.contains("WorkoutDock("))
-        assertTrue(screen.contains("verb = primaryAction.verb(includeNextName = !landscape)"))
+        assertTrue(screen.contains("verb = primaryAction.verb(includeNextName = false)"))
+        assertTrue(screen.contains("?: primaryAction.nextName.takeIf { !landscape && primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },"))
+        assertTrue(screen.contains("spokenPayload = primaryAction.nextName.takeIf { primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },"))
         assertTrue(screen.contains("payload = primaryAction.payload(unit = unit, loadClass = loadClass)"))
 
         val warmup = primaryAction(

@@ -164,8 +164,12 @@ internal fun WorkoutFrozenFrame(scenario: String) {
                         WorkoutDock(
                             state = WorkoutDockState(
                                 primaryAction = action,
-                                verb = action.verb(includeNextName = true),
-                                payload = action.payload(unit = unit, loadClass = loadClass),
+                                // Same rule as the route: a short verb, the next lift on the capped
+                                // supporting line (this frame is portrait) and in the spoken form.
+                                verb = action.verb(includeNextName = false),
+                                payload = action.payload(unit = unit, loadClass = loadClass)
+                                    ?: action.nextName.takeIf { action.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
+                                spokenPayload = action.nextName.takeIf { action.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
                                 editing = false, logging = false, canLog = state.canLog, savePending = state.save.pending,
                                 error = error, suggestionUnavailable = false, showAnother = complete,
                                 undoMessage = null, undoKey = null, undoDwellMs = 0L,

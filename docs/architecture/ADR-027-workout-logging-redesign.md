@@ -82,8 +82,9 @@ that packet's state model and derived primary action and changes the composition
    first set of today lands; the routine's planned load and last time's load
    return as one-tap `Plan` / `Last` fills under the weight numeral only while the
    entry holds something else (`FloorWeightPresets.quickFills`); the rest of last
-   session lives behind Details. In landscape the commit's verb stays short and the
-   next lift's name rides its second line.
+   session lives behind Details. The commit's verb stays short in every
+   orientation: portrait draws the next lift's name on the commit's capped
+   supporting line, landscape only speaks it.
 
 ## Consequences
 
@@ -96,8 +97,11 @@ that packet's state model and derived primary action and changes the composition
 - Large system text (1.6 and above) stacks the hero numerals, the stats row, the
   next-set card's numbers over its change, drops Details under the identity and
   the rest controls under the clock; the header's title keeps to one line and its
-  progress line may wrap once. Landscape keeps the commit's verb short, so when the planned sets
-  are done the next lift is named on its own line under the identity instead.
+  progress line may wrap once. The commit's verb stays short in every orientation:
+  once the planned sets are done it says `Next exercise` and speaks the next lift's
+  name in full; portrait also draws the name on the supporting line, capped at two
+  lines, and landscape draws only the verb, so a long name can never grow the dock
+  into the floor.
 - Milestone A's phone checklist gains the reference screen; the floor goldens
   are owed a re-record on the emulator profile before they gate anything.
 - No schema, backup, signer, tab or navigation change is authorised by this record.

@@ -89,7 +89,9 @@ internal fun WorkoutHeader(
         modifier = Modifier
             .fillMaxWidth()
             .background(Pit)
-            .padding(bottom = Metrics.space2),
+            // The compact row is exactly the 56 dp LandscapeChrome budgets; portrait's
+            // progress block carries the gap under it.
+            .then(if (compact) Modifier else Modifier.padding(bottom = Metrics.space2)),
     ) {
         ScreenHeader(
             title = if (planAsTitle) headline else routineName,

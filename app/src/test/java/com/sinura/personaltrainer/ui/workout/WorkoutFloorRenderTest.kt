@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -108,6 +110,9 @@ class WorkoutFloorRenderTest {
             // The first rest of a fresh install shows the battery hint in the companion slot;
             // this frame is about the card underneath it.
             vm.acknowledgeRestBatteryHint()
+            // The clock is the service's; its state reaches the ViewModel through a flow, so
+            // wait for it rather than capture the frame the instant it was started.
+            compose.waitUntil(timeoutMillis = 20_000) { vm.restTimerState.value.running }
         }
     }
 
@@ -163,23 +168,27 @@ class WorkoutFloorRenderTest {
             compose.waitUntil(timeoutMillis = 20_000) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         }
         assertContentKeepsATouchTarget()
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_EXERCISE_NAME).assertDoesNotExist()
+        assertCommitNamesTheNextLift(drawn = true)
     }
 
     @Test
     @Config(qualifiers = "w640dp-h360dp-land-xhdpi")
-    fun namesTheNextLiftInTheIdentityInLandscapeAtLargeText() {
+    fun keepsTheLogReachableWithTheNextLiftPendingInLandscapeAtLargeText() {
         // 640 x 360 less the bars: the header must be one row for the floor to keep 48 dp.
         val vm = openLegExtension(loggedSets = oneSetLogged(), targetSets = 1, withNextLift = true, routineName = LONG_ROUTINE_NAME)
         render(name = "next-640x312-land-font20", vm = vm, widthDp = 640, heightDp = 312, fontScale = 2f) {
             compose.waitUntil(timeoutMillis = 20_000) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         }
         assertContentKeepsATouchTarget()
-        // Landscape keeps the commit's verb short, so the next lift is named in the identity.
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.NEXT_EXERCISE_NAME))
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_EXERCISE_NAME)
-            .assertIsDisplayed()
-            .assertTextContains(NEXT_LIFT_NAME, substring = true)
+        // Landscape has no room for a second commit line, so the name is spoken, not drawn.
+        assertCommitNamesTheNextLift(drawn = false)
+    }
+
+    /** The commit keeps its short verb and speaks the next lift's name; portrait also draws it, capped. */
+    private fun assertCommitNamesTheNextLift(drawn: Boolean) {
+        compose.onNodeWithTag(WorkoutTestTags.NEXT).assert(hasContentDescription(NEXT_LIFT_NAME, substring = true))
+        val onScreen = compose.onNode(hasText(NEXT_LIFT_NAME) and hasAnyAncestor(hasTestTag(WorkoutTestTags.NEXT)), useUnmergedTree = true)
+        if (drawn) onScreen.assertIsDisplayed() else onScreen.assertDoesNotExist()
     }
 
     /** The emulator lane's rule: the scrolling floor keeps a full touch target under the dock. */
@@ -296,8 +305,8 @@ class WorkoutFloorRenderTest {
     }
 
     private companion object {
-        /** As long as the emulator lane's custom lift, so the identity has to wrap or trim it. */
-        const val NEXT_LIFT_NAME = "Romanian deadlift with a controlled three-second lowering phase"
+        /** The emulator lane's custom lift, verbatim: the commit has to cap it, not wrap it. */
+        const val NEXT_LIFT_NAME = "F2 entry fixture · Romanian deadlift with a controlled three-second lowering phase"
 
         /** As long as the emulator lane's routine, which wraps at display size under font 2.0. */
         const val LONG_ROUTINE_NAME = "F2 entry fixture · Lower A"

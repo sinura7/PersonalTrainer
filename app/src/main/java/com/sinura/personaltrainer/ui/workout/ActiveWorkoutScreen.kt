@@ -86,7 +86,6 @@ object WorkoutTestTags {
     /** A set's chip on the floor; the saved-sets sheet's rows keep [setOptions], so both can be open at once. */
     fun setChip(setId: String) = "workout-set-chip-$setId"
     const val CONTENT = "workout-content"
-    const val NEXT_EXERCISE_NAME = "workout-next-exercise-name"
     const val LOG_SET = "workout-log-set"
     const val FINISH = "workout-finish"
     const val NOTIF_RECOVERY = "workout-notif-recovery"
@@ -480,8 +479,13 @@ private fun ActiveWorkoutContent(
                         WorkoutDock(
                             state = WorkoutDockState(
                                 primaryAction = primaryAction,
-                                verb = primaryAction.verb(includeNextName = !landscape),
-                                payload = primaryAction.payload(unit = unit, loadClass = loadClass),
+                                // The verb stays short in every orientation. Portrait names the next
+                                // lift on the commit's capped supporting line; a 360 dp landscape has
+                                // no room for a second line there, so it only speaks it.
+                                verb = primaryAction.verb(includeNextName = false),
+                                payload = primaryAction.payload(unit = unit, loadClass = loadClass)
+                                    ?: primaryAction.nextName.takeIf { !landscape && primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
+                                spokenPayload = primaryAction.nextName.takeIf { primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },
                                 editing = state.editingSetId != null,
                                 logging = state.logging,
                                 canLog = state.canLog,
@@ -628,9 +632,6 @@ private fun ActiveWorkoutContent(
                                         onOpenSwitcher = { liftSwitcherOpen = true },
                                         onDetails = { onOpenExercise(currentLift.exercise.id) },
                                         enabled = entryEnabled,
-                                        // Landscape keeps the commit's verb short (F3), so the next lift
-                                        // is named here, inside the scrolling context, instead.
-                                        nextName = advance.nextName.takeIf { landscape && plannedComplete },
                                     )
                                 }
                                 item(key = "stats") {

@@ -64,10 +64,15 @@ internal data class WorkoutDockTimer(
 
 internal data class WorkoutDockState(
     val primaryAction: WorkoutPrimaryAction,
-    /** First line of the commit: `Log set`, `Next exercise · Leg curl`. */
+    /** First line of the commit: `Log set`, `Next exercise`. */
     val verb: String,
-    /** Second line: what will be written. Null when the action carries no set. */
+    /**
+     * Second line: what will be written (`70 lbs × 10`), or, in portrait once the planned
+     * sets are done, the next lift's name. Null when there is nothing to draw.
+     */
     val payload: String?,
+    /** What the second line says to TalkBack when the screen has no room to draw it (landscape's next lift). */
+    val spokenPayload: String? = null,
     val editing: Boolean,
     val logging: Boolean,
     val canLog: Boolean,
@@ -281,7 +286,7 @@ internal fun WorkoutDock(
         },
         volt = {
             key(action.identity) {
-                val spokenAction = listOfNotNull(state.verb, state.payload).joinToString(" · ")
+                val spokenAction = listOfNotNull(state.verb, state.spokenPayload ?: state.payload).joinToString(" · ")
                 PrimaryGymButton(
                     text = state.verb,
                     supporting = state.payload,

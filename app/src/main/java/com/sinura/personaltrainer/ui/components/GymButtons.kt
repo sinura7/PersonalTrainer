@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -117,7 +118,10 @@ fun PrimaryGymButton(
                     style = InstrumentType.bodyStrong,
                     color = if (enabled) Pit else TextDisabled,
                     textAlign = TextAlign.Center,
+                    // Capped, so a long payload (the next lift's name) never grows the commit
+                    // into the floor; the whole string stays in semantics.
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
