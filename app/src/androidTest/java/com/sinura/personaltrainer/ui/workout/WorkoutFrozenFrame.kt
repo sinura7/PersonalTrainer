@@ -18,7 +18,6 @@ import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
-import com.sinura.personaltrainer.domain.FloorWeightPresets
 import com.sinura.personaltrainer.domain.HoldTimerUiState
 import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.LoadClass
@@ -104,12 +103,6 @@ internal fun WorkoutFrozenFrame(scenario: String) {
         priorHistory = emptyList(),
         unit = unit,
     )
-    val sourceLabel = FloorWeightPresets.source(
-        currentKg = draft.weightKg,
-        plannedKg = lift.targetWeightKg,
-        lastKg = null,
-        suggestedKg = null,
-    )?.label
     val ramp = if (draft.isWarmup && workingLogged == 0) {
         WarmupRamp.sets(
             workingWeightKg = WarmupRamp.workingWeightKg(
@@ -213,7 +206,7 @@ internal fun WorkoutFrozenFrame(scenario: String) {
                                     loadClass = loadClass, loadType = exercise.loadType, equipment = exercise.equipment,
                                     movementKey = exercise.movementKey, plated = exercise.equipment == EquipmentType.BARBELL,
                                     hold = hold, holdSeconds = draft.durationSeconds ?: lift.targetSeconds, holdRunning = hold,
-                                    holdRemainingSeconds = if (hold) 18 else 0, sourceLabel = sourceLabel,
+                                    holdRemainingSeconds = if (hold) 18 else 0,
                                     plannedKg = lift.targetWeightKg, lastKg = null,
                                     onWeightKgChange = {}, onRepsChange = {}, onSecondsChange = {},
                                 )

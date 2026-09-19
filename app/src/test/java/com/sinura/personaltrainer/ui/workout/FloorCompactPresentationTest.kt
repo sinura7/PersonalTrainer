@@ -145,10 +145,11 @@ class FloorCompactPresentationTest {
         assertTrue(editor.contains("tag = WorkoutTestTags.REPS_STEPPER"))
         assertTrue(editor.contains("tag = WorkoutTestTags.HOLD_STEPPER"))
         assertTrue(editor.contains("HoldWork.clock"))
-        assertTrue(editor.contains("meaning.fieldLabel"))
-        assertTrue(editor.contains("label = \"Reps\""))
-        assertTrue(editor.contains("label = if (holdRunning) HoldWork.HOLD_KICKER else \"Time\""))
-        assertTrue(editor.contains("Kicker(text = label, color = TextSecondary, asHeading = false)"))
+        // The wells no longer carry a visible heading; each still names its field to a
+        // screen reader through its own spoken form.
+        assertTrue(editor.contains("SetCopy.weightWellSpoken(meaning = meaning"))
+        assertTrue(editor.contains("spoken = \"Reps \$reps\""))
+        assertTrue(editor.contains("else \"Time \${HoldWork.clock(seconds)}\""))
         assertTrue(editor.contains("RoundPlate(label = \"−\""))
         assertTrue(editor.contains("RoundPlate(label = \"+\""))
         assertTrue(editor.contains("plateWidth = Metrics.stepperRound"))

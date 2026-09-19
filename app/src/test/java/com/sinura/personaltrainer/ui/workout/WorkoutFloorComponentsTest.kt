@@ -174,7 +174,6 @@ class WorkoutFloorComponentsTest {
                 holdSeconds = null,
                 holdRunning = false,
                 holdRemainingSeconds = 0,
-                sourceLabel = "Plan",
                 onWeightKgChange = { weight = it },
                 onRepsChange = { reps = it },
                 onSecondsChange = {},
@@ -183,12 +182,16 @@ class WorkoutFloorComponentsTest {
         val step = WeightConverter.formatDisplayNumber(
             IncrementTable.displayStep(LoadType.EXTERNAL, unit, EquipmentType.MACHINE) ?: unit.step,
         )
-        compose.onNodeWithText("WEIGHT").assertIsDisplayed()
+        // No headings over the wells and no source label under them: the unit beside the
+        // number says which is the weight, and each well still names its field aloud.
+        compose.onAllNodesWithText("WEIGHT").assertCountEquals(0)
+        compose.onAllNodesWithText("REPS").assertCountEquals(0)
+        compose.onAllNodesWithText("Plan").assertCountEquals(0)
         compose.onNodeWithText("lbs").assertIsDisplayed()
-        compose.onNodeWithText("REPS").assertIsDisplayed()
         compose.onNodeWithText("70").assertIsDisplayed()
         compose.onNodeWithText("10").assertIsDisplayed()
-        compose.onNodeWithText("Plan").assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assert(hasContentDescription("Weight 70 lbs"))
+        compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assert(hasContentDescription("Reps 10"))
         compose.onNodeWithContentDescription("Increase reps by 1").performClick()
         assertEquals(11, reps)
         compose.onNodeWithContentDescription("Increase weight by $step lbs").performClick()
@@ -218,7 +221,6 @@ class WorkoutFloorComponentsTest {
                 holdSeconds = null,
                 holdRunning = false,
                 holdRemainingSeconds = 0,
-                sourceLabel = null,
                 onWeightKgChange = {},
                 onRepsChange = {},
                 onSecondsChange = {},
@@ -245,7 +247,6 @@ class WorkoutFloorComponentsTest {
                 holdSeconds = 30,
                 holdRunning = false,
                 holdRemainingSeconds = 0,
-                sourceLabel = null,
                 onWeightKgChange = {},
                 onRepsChange = {},
                 onSecondsChange = {},
@@ -253,8 +254,9 @@ class WorkoutFloorComponentsTest {
         }
         compose.onNodeWithTag(WorkoutTestTags.HOLD_STEPPER).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assertDoesNotExist()
-        compose.onNodeWithText("TIME").assertIsDisplayed()
+        compose.onAllNodesWithText("TIME").assertCountEquals(0)
         compose.onNodeWithText("0:30").assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.HOLD_STEPPER).assert(hasContentDescription("Time 0:30"))
     }
 
     @Test

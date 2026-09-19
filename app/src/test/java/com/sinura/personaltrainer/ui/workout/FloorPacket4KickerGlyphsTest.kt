@@ -93,13 +93,15 @@ class FloorPacket4KickerGlyphsTest {
         assertTrue(floor.contains("label = \"Reps\""))
         assertTrue(floor.contains("label = \"Time\""))
         assertTrue(floor.contains("FloorFieldGlyph("))
-        // The floor's hero numerals are labelled in words by a Kicker; no glyph stands in for a label.
+        // The floor's hero numerals carry no heading at all now, so the rule they had to obey
+        // — a word, never a glyph standing in for one — is kept by there being neither. The
+        // field is still named where it has to be: in the well's spoken form.
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("label = meaning.fieldLabel") && editor.contains("unitLabel = unit.suffix"))
-        assertTrue(editor.contains("label = \"Reps\""))
-        assertTrue(editor.contains("label = if (holdRunning) HoldWork.HOLD_KICKER else \"Time\""))
-        assertTrue(editor.contains("Kicker(text = label, color = TextSecondary, asHeading = false)"))
+        assertTrue(editor.contains("unitLabel = unit.suffix"))
+        assertTrue(editor.contains("SetCopy.weightWellSpoken(meaning = meaning"))
+        assertTrue(editor.contains("spoken = \"Reps \$reps\""))
         assertFalse("no glyph stands in for a floor label", editor.contains("FloorFieldGlyph"))
+        assertFalse("no heading over the hero numerals", editor.contains("Kicker(text = label"))
         val rpe = readOwned("ui/workout/RpeSelector.kt")
         assertTrue(rpe.contains("Kicker(\"RPE\")"))
         assertFalse(rpe.contains("TemperIcons.FloorRpe"))

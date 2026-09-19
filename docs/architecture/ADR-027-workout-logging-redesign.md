@@ -34,7 +34,7 @@ that packet's state model and derived primary action and changes the composition
 1. **The screen's order is:** session header (back, routine name, `Exercise n of N ·
    x of y sets`, one progress segment per lift; in landscape one row, the plan's
    words as its title and no bar, so the log keeps `LandscapeChrome`'s budget);
-   exercise identity (112 dp keyed
+   exercise identity (88 dp keyed
    still, equipment, name, set ordinal, working count, Details, Working | Warm-up);
    Last set · Best set · Volume (this exercise); weight and reps (or hold time) as
    two hero numerals with round − / + plates, the unit riding the weight numeral's
@@ -85,6 +85,45 @@ that packet's state model and derived primary action and changes the composition
    session lives behind Details. The commit's verb stays short in every
    orientation: portrait draws the next lift's name on the commit's capped
    supporting line, landscape only speaks it.
+
+## Amendment — 19 September 2026, the density pass
+
+The owner placed the shipped screen beside the reference and asked for it to be
+scaled down to match. Measured at equal width, ours ran 1,299 dp of content
+against the reference's 698. Two things in this record move; the rest is
+unchanged, and the measurements are recorded here so they are not re-derived.
+
+1. **The keyed still is 88 dp, not 112.** Decision 1 above is amended. The words
+   beside the still measure 110 dp and are what set that row's height, so the
+   larger picture was buying about 2 dp of nothing. At 88 dp the exercise's name
+   gets 24 dp more width (`ExerciseHeader` sizes the words as
+   `maxWidth - exerciseHeroImage - space3`) and a long name wraps a line less
+   often, which is where the height actually comes back.
+
+2. **The `− / +` plates stay at 48 dp, and the entry block stays two rows.**
+   The reference's entry block is 63 dp against ours at 176. The whole gap is
+   the plate row, and it cannot be closed by rearranging: `WeightRepsEditor`
+   puts the plates beside the numeral only when
+   `sampleWidth + (stepperRound + space2) * 2 <= availableWidth`, and at 412 dp
+   the weight column is 182 dp while the widest sample plus two plates needs
+   284 dp. That holds at every size in the numeral ramp — even `numeralMd`
+   (24 sp) leaves it 4 dp short. The reference fits because its plates are
+   roughly 28–32 dp across. `Metrics` sets 48 dp as the floor and says density
+   gains are never taken out of it; the owner chose the floor over the
+   proportions, and the height came out of the headings, the source-label
+   caption and the gaps instead. **Do not reopen this by shrinking a touch
+   target.**
+
+Also settled, and deliberately *not* changed: the `Plan` / `Last` quick fills
+stay (decision 9); `Add set` still arrives once the planned sets are done
+(decision 1), because a mid-plan tap would have been a no-op beside the
+`Current` marker; and the fixed-widest-sample plate rule (decision 7) is
+untouched.
+
+`WorkoutFloorRenderTest.theEntryLoopStaysWithinItsHeightBudget` now measures the
+loop end to end at 360 dp — identity top to set-history bottom — and holds it at
+or under 845 dp. It was 920.5 dp before this pass and is 841.0 dp after. The
+number may be lowered; it may not be raised to make a change fit.
 
 ## Consequences
 

@@ -40,11 +40,11 @@ class FloorStepperEntryTest {
         assertTrue(editor.contains("FloorStepper.nextHoldSeconds"))
         assertTrue(editor.contains("WeightMeaning.NONE"))
         assertTrue(
-            "word kickers, not glyphs",
-            editor.contains("label = meaning.fieldLabel") && editor.contains("unitLabel = unit.suffix"),
+            "the unit rides the weight numeral; no glyph and no heading stand in for it",
+            editor.contains("unitLabel = unit.suffix") && !editor.contains("FloorFieldGlyph"),
         )
-        assertTrue(editor.contains("label = \"Reps\""))
-        assertTrue(editor.contains("label = if (holdRunning) HoldWork.HOLD_KICKER else \"Time\""))
+        assertTrue(editor.contains("spoken = \"Reps \$reps\""))
+        assertTrue(editor.contains("if (holdRunning) \"Hold, \${HoldWork.clock(seconds)} remaining\""))
         assertTrue(editor.contains("CustomAccessibilityAction(decrementSpoken)"))
         assertTrue(editor.contains("CustomAccessibilityAction(incrementSpoken)"))
         assertTrue(editor.contains("CustomAccessibilityAction(typeLabel)"))

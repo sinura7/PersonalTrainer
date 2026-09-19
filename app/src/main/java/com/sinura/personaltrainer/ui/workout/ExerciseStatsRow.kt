@@ -81,11 +81,11 @@ internal fun ExerciseStatsRow(
                 .fillMaxWidth()
                 .testTag(WorkoutTestTags.STATS_ROW),
         ) {
-            StatCell(stat = stats.lastSet, tag = WorkoutTestTags.STAT_LAST, modifier = Modifier.fillMaxWidth(), onClick = onLast)
+            StatCell(stat = stats.lastSet, tag = WorkoutTestTags.STAT_LAST, modifier = Modifier.fillMaxWidth(), alignAcrossCells = false, onClick = onLast)
             HairlineDivider(startIndent = Metrics.space2)
-            StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.fillMaxWidth())
+            StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.fillMaxWidth(), alignAcrossCells = false)
             HairlineDivider(startIndent = Metrics.space2)
-            StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.fillMaxWidth())
+            StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.fillMaxWidth(), alignAcrossCells = false)
         }
     } else {
         Row(
@@ -94,11 +94,11 @@ internal fun ExerciseStatsRow(
                 .height(IntrinsicSize.Min)
                 .testTag(WorkoutTestTags.STATS_ROW),
         ) {
-            StatCell(stat = stats.lastSet, tag = WorkoutTestTags.STAT_LAST, modifier = Modifier.weight(1f), onClick = onLast)
+            StatCell(stat = stats.lastSet, tag = WorkoutTestTags.STAT_LAST, modifier = Modifier.weight(1f), alignAcrossCells = true, onClick = onLast)
             CellRule()
-            StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.weight(1f))
+            StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.weight(1f), alignAcrossCells = true)
             CellRule()
-            StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.weight(1f))
+            StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.weight(1f), alignAcrossCells = true)
         }
     }
 }
@@ -108,6 +108,14 @@ private fun StatCell(
     stat: FloorStat,
     tag: String,
     modifier: Modifier,
+    /**
+     * Hold the label at two lines so the three numbers share a baseline.
+     *
+     * Only the side-by-side row needs it. Stacked, each cell is a full-width row of its own
+     * with nothing to line up against, and reserving the second line would leave a blank one
+     * above every number at exactly the text size that can least afford it.
+     */
+    alignAcrossCells: Boolean,
     onClick: (() -> Unit)? = null,
 ) {
     val view = LocalView.current
@@ -137,11 +145,11 @@ private fun StatCell(
             stat.detail?.let { detail -> stat.label + FloorStatCopy.DETAIL_JOIN + detail } ?: stat.label,
             style = InstrumentType.caption,
             color = TextSecondary,
-            // Two lines, always. `Best set · Est. 1RM` does not fit a 110 dp cell on one
-            // line and `Last set · RPE 9` does, and a label that is sometimes one line and
-            // sometimes two drops that cell's number below its neighbours' — three numbers
-            // meant to be read across stop being a row at all.
-            minLines = 2,
+            // `Best set · Est. 1RM` does not fit a 110 dp cell on one line and
+            // `Last set · RPE 9` does, and a label that is sometimes one line and sometimes
+            // two drops that cell's number below its neighbours' — three numbers meant to be
+            // read across stop being a row at all.
+            minLines = if (alignAcrossCells) 2 else 1,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )

@@ -152,6 +152,38 @@ class WorkoutFloorRenderTest {
         render(name = "first-set-360x800", vm = vm)
     }
 
+    /**
+     * The entry loop's height, as a number that may fall and must not rise.
+     *
+     * The owner's ask is that logging a set fits one screen rather than one and a half. That
+     * is a property of the whole loop — identity, stats, the two numerals, RPE, the set
+     * chips — and no single assertion about a token can hold it: packet 1 passed every test
+     * it had while visibly knocking the three stat numbers out of line. So the loop is
+     * measured end to end at 360 dp, the narrowest phone we support, in a viewport tall
+     * enough that the lazy list composes all of it.
+     *
+     * [LOOP_BUDGET_DP] is this packet's own measurement rounded up. Lower it when work takes
+     * height out; never raise it to make a change fit.
+     */
+    @Test
+    @Config(qualifiers = "w360dp-h1600dp-xhdpi")
+    fun theEntryLoopStaysWithinItsHeightBudget() {
+        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        render(name = "budget-360x1600", vm = vm, heightDp = 1600) {
+            compose.waitUntil(timeoutMillis = 20_000) {
+                compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty()
+            }
+        }
+        val identity = compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).fetchSemanticsNode()
+        val history = compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNode()
+        val loopDp = (history.boundsInRoot.bottom - identity.boundsInRoot.top) /
+            identity.layoutInfo.density.density
+        assertTrue(
+            "the entry loop must stay within $LOOP_BUDGET_DP dp at 360 dp wide, was $loopDp dp",
+            loopDp <= LOOP_BUDGET_DP,
+        )
+    }
+
     @Test
     fun rendersTheFloorAtLargeSystemText() {
         val vm = openLegExtension(loggedSets = twoSetsLogged())
@@ -340,5 +372,13 @@ class WorkoutFloorRenderTest {
 
         /** As long as the emulator lane's routine, which wraps at display size under font 2.0. */
         const val LONG_ROUTINE_NAME = "F2 entry fixture · Lower A"
+
+        /**
+         * Identity top to set-history bottom at 360 dp, with two sets logged.
+         *
+         * Measured after packet 2 at 841.0 dp, from 920.5 dp before it. A ceiling, not a
+         * target: lower it when height comes out, and never raise it so a change can fit.
+         */
+        const val LOOP_BUDGET_DP = 845f
     }
 }
