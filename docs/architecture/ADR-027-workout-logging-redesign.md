@@ -86,11 +86,11 @@ that packet's state model and derived primary action and changes the composition
    orientation: portrait draws the next lift's name on the commit's capped
    supporting line, landscape only speaks it.
 
-## Amendment — 19–20 September 2026, the density and copy pass
+## Amendment — 19–20 September 2026, the density, copy and plate pass
 
 The owner placed the shipped screen beside the reference and asked for it to be
 scaled down to match. Measured at equal width, ours ran 1,299 dp of content
-against the reference's 698. Four things in this record move; the rest is
+against the reference's 698. Five things in this record move; the rest is
 unchanged, and the measurements are recorded here so they are not re-derived.
 
 1. **The keyed still is 88 dp, not 112.** Decision 1 above is amended. The words
@@ -132,9 +132,21 @@ untouched.
    backup file carries and what `fromStorage` reads back. The two are
    deliberately different strings and must never be reconciled.
 
+5. **The − / + plates are drawn smaller than they are pressed.** Amends item 2
+   above, which settled that the plates stay at 48 dp. They still do — but only
+   as the *target*. The circle draws 36 dp inside it
+   (`Metrics.stepperPlateInset`), with a lighter fill (`Surface3`), a harder
+   edge (`HairlineStrong`) and a heavier glyph, because the owner asked for a
+   plate that reads as the point of the moment rather than a quiet neighbour.
+   The floor `Metrics` states is intact: nothing about where a thumb may land
+   changed. `StepperButton` keeps one box when no inset is asked for, so every
+   other caller composes exactly as before. **This is not licence to shrink the
+   target later** — the arithmetic in item 2 still holds, and the reference's
+   proportions still need the numerals to come down, which they have not.
+
 `WorkoutFloorRenderTest.theEntryLoopStaysWithinItsHeightBudget` now measures the
 loop end to end at 360 dp — identity top to set-history bottom — and holds it at
-or under 845 dp. It was 920.5 dp before this pass and is 841.0 dp after. The
+or under 840 dp. It was 920.5 dp before this pass and is 837.0 dp after. The
 number may be lowered; it may not be raised to make a change fit.
 
 ## Consequences

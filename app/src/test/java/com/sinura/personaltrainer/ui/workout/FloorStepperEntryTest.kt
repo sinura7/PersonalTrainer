@@ -123,7 +123,16 @@ class FloorStepperEntryTest {
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
         assertTrue(editor.contains("StepperButton("))
         assertTrue(editor.contains("shape = Radius.full"))
-        assertTrue(editor.contains("textStyle = InstrumentType.numeralMd"))
+        // The plate draws inside its target rather than filling it, so the glyph carries
+        // the weight the circle gave up.
+        assertTrue(editor.contains("textStyle = InstrumentType.commit"))
+        assertTrue(editor.contains("plateInset = Metrics.stepperPlateInset"))
+        assertTrue(editor.contains("emphasis = true"))
+        assertTrue(
+            "the target is the floor and does not move; only the drawing shrank",
+            editor.contains("plateWidth = Metrics.stepperRound") &&
+                readOwned("ui/theme/Metrics.kt").contains("val stepperRound: Dp = touchMin"),
+        )
         assertFalse("the plates never carry their own repeat loop", editor.contains("StepperRepeat"))
         val dialog = readOwned("ui/components/NumberEntryDialog.kt")
         assertTrue(dialog.contains("Haptics.tick(view)"))

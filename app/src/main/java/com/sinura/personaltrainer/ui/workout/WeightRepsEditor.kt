@@ -37,6 +37,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.FloorStepper
 import com.sinura.personaltrainer.domain.FloorWeightPresets
@@ -413,7 +414,10 @@ private fun HeroNumeral(
         }
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+            // No gap of its own. The plate's touch box is 12 dp wider than the circle it
+            // draws, so the whitespace between the numeral and the plates is already there;
+            // adding a second helping only pushed the pair apart.
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             // No heading over the numeral. `WEIGHT` and `REPS` were saying what the unit
             // riding the weight's baseline and the absence of one on the reps already say,
@@ -433,7 +437,8 @@ private fun HeroNumeral(
                 numeral(Modifier.fillMaxWidth())
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space4, Alignment.CenterHorizontally),
+                    // Likewise between the two plates: each already carries 6 dp of its own.
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2, Alignment.CenterHorizontally),
                 ) {
                     RoundPlate(label = "−", spoken = decrementSpoken, enabled = enabled, onClick = onDecrement)
                     RoundPlate(label = "+", spoken = incrementSpoken, enabled = enabled, onClick = onIncrement)
@@ -470,7 +475,11 @@ private fun RoundPlate(
         plateWidth = Metrics.stepperRound,
         plateHeight = Metrics.stepperRound,
         shape = Radius.full,
-        textStyle = InstrumentType.numeralMd,
+        // The glyph carries the emphasis the fill cannot: a heavier − / + on a smaller
+        // circle reads as a control, where a quiet one on a large circle read as a gap.
+        textStyle = InstrumentType.commit,
+        plateInset = Metrics.stepperPlateInset,
+        emphasis = true,
     )
 }
 

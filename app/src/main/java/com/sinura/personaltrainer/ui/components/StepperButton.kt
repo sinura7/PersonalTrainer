@@ -31,14 +31,17 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.StepperRepeat
 import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface2
+import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.SurfacePressed
 import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -67,6 +70,21 @@ fun StepperButton(
     /** Round plates beside the hero numerals pass [com.sinura.personaltrainer.ui.theme.Radius.full]. */
     shape: Shape = RoundedCornerShape(Radius.sm),
     textStyle: TextStyle? = null,
+    /**
+     * How far inside the touch target the plate is actually drawn.
+     *
+     * The circle a thumb aims at and the area that answers it do not have to be the same
+     * box, and on the workout floor they are not: the target stays at
+     * [Metrics.touchMin] while the plate draws smaller, so the control can be tightened
+     * without costing anyone a tap. Zero — every other caller — composes exactly as before.
+     */
+    plateInset: Dp = 0.dp,
+    /**
+     * A plate that is the point of the moment rather than a quiet neighbour: a lighter fill
+     * and a harder edge. Never a Volt fill — this screen has one of those and it is Log set
+     * (ADR-005, ADR-027 §6).
+     */
+    emphasis: Boolean = false,
 ) {
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
@@ -98,7 +116,11 @@ fun StepperButton(
     }
 
     val background by animateColorAsState(
-        targetValue = if (pressed && enabled) SurfacePressed else Surface2,
+        targetValue = when {
+            pressed && enabled -> SurfacePressed
+            emphasis -> Surface3
+            else -> Surface2
+        },
         animationSpec = instrumentTween(Motion.TAP),
         label = "stepper-press",
     )
@@ -110,27 +132,25 @@ fun StepperButton(
             .heightIn(min = if (compact) Metrics.touchMin else Metrics.commit)
             .then(if (compact) Modifier.widthIn(min = Metrics.touchMin) else Modifier)
     }
-    Box(
-        modifier = sized
-            .clip(shape)
-            .background(background)
-            .border(Metrics.hairline, Hairline, shape)
-            .clickable(
-                enabled = enabled,
-                interactionSource = interactionSource,
-                indication = null,
-                role = Role.Button,
-                onClick = {
-                    if (repeatedThisPress) {
-                        repeatedThisPress = false
-                    } else {
-                        onClick()
-                        Haptics.tick(view)
-                    }
-                },
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
+    val press = Modifier.clickable(
+        enabled = enabled,
+        interactionSource = interactionSource,
+        indication = null,
+        role = Role.Button,
+        onClick = {
+            if (repeatedThisPress) {
+                repeatedThisPress = false
+            } else {
+                onClick()
+                Haptics.tick(view)
+            }
+        },
+    )
+    val chrome = Modifier
+        .clip(shape)
+        .background(background)
+        .border(Metrics.hairline, if (emphasis) HairlineStrong else Hairline, shape)
+    val glyph: @Composable () -> Unit = {
         Text(
             label,
             modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
@@ -140,5 +160,23 @@ fun StepperButton(
             maxLines = 2,
             textAlign = TextAlign.Center,
         )
+    }
+    if (plateInset > 0.dp) {
+        // Two boxes: the outer one is the target and owns the press, the hold-to-repeat and
+        // the spoken role; the inner one is everything you can see, inset inside it. Only a
+        // caller that fixed both dimensions can ask for this, which is why `matchParentSize`
+        // is safe here — with nothing else to measure from, a wrapping parent would collapse.
+        Box(modifier = sized.then(press), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier.matchParentSize().padding(plateInset).then(chrome),
+                contentAlignment = Alignment.Center,
+            ) { glyph() }
+        }
+    } else {
+        // One box, exactly as before: callers that size from their own content need the fill
+        // and the border on the box the content measures.
+        Box(modifier = sized.then(chrome).then(press), contentAlignment = Alignment.Center) {
+            glyph()
+        }
     }
 }
