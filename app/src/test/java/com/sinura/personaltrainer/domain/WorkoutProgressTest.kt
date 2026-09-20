@@ -20,8 +20,8 @@ class WorkoutProgressTest {
         assertEquals(1, progress.exercisesDone)
         assertEquals(4, progress.setsDone)
         assertEquals(8, progress.setsPlanned)
-        assertEquals("Exercise 2 of 3 · 4 of 8 sets", WorkoutProgressCalculator.headline(progress))
-        assertEquals("Exercise 2 of 3 · 4 of 8 sets. 1 exercise complete", WorkoutProgressCalculator.spoken(progress))
+        assertEquals("2 of 3 exercises · 4 of 8 sets", WorkoutProgressCalculator.headline(progress))
+        assertEquals("2 of 3 exercises · 4 of 8 sets. 1 exercise complete", WorkoutProgressCalculator.spoken(progress))
         assertEquals(
             listOf(ProgressSegmentState.DONE, ProgressSegmentState.CURRENT, ProgressSegmentState.UPCOMING),
             progress.segments.map { it.state },
@@ -40,7 +40,7 @@ class WorkoutProgressTest {
         val progress = WorkoutProgressCalculator.of(session = session, selectedExerciseId = "squat")
         assertEquals(5, progress.setsDone)
         assertEquals(5, progress.setsPlanned)
-        assertEquals("Exercise 1 of 1 · 5 of 5 sets", WorkoutProgressCalculator.headline(progress))
+        assertEquals("1 of 1 exercise · 5 of 5 sets", WorkoutProgressCalculator.headline(progress))
         assertEquals(ProgressSegmentState.CURRENT, progress.segments.single().state)
         assertEquals(1f, progress.segments.single().fraction)
     }
@@ -54,13 +54,13 @@ class WorkoutProgressTest {
         val progress = WorkoutProgressCalculator.of(session = session, selectedExerciseId = "dip")
         assertEquals(0, progress.exercisesDone)
         assertEquals(0, progress.setsPlanned)
-        assertEquals("Exercise 2 of 2 · 2 sets logged", WorkoutProgressCalculator.headline(progress))
+        assertEquals("2 of 2 exercises · 2 sets logged", WorkoutProgressCalculator.headline(progress))
         assertEquals(1f, progress.segments[0].fraction)
         assertEquals("a worked free lift fills its segment", ProgressSegmentState.DONE, progress.segments[0].state)
         val single = WorkoutProgressCalculator.of(session = session.copy(sets = listOf(set(exerciseId = "curl", number = 1))), selectedExerciseId = "dip")
-        assertEquals("Exercise 2 of 2 · 1 set logged", WorkoutProgressCalculator.headline(single))
+        assertEquals("2 of 2 exercises · 1 set logged", WorkoutProgressCalculator.headline(single))
         val fresh = WorkoutProgressCalculator.of(session = session.copy(sets = emptyList()), selectedExerciseId = "curl")
-        assertEquals("Exercise 1 of 2 · No sets yet", WorkoutProgressCalculator.headline(fresh))
+        assertEquals("1 of 2 exercises · No sets yet", WorkoutProgressCalculator.headline(fresh))
     }
 
     @Test

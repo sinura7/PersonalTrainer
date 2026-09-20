@@ -47,7 +47,8 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.RestControl
+import com.sinura.personaltrainer.ui.components.RestSegment
+import com.sinura.personaltrainer.ui.components.RestSegments
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
@@ -58,7 +59,7 @@ import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.RestCyan
-import com.sinura.personaltrainer.ui.theme.Surface1
+import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Warn
@@ -173,7 +174,10 @@ internal fun RestTimerCard(
             .fillMaxWidth()
             .heightIn(min = Metrics.commit)
             .clip(RoundedCornerShape(Radius.md))
-            .background(Surface1)
+            // One step lighter than the panels around it, so resting reads as a state the
+            // floor is in rather than another card on it. The segments below then recess to
+            // Surface1 inside it, which is the same step read the other way.
+            .background(Surface2)
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.md))
             .testTag(if (idle) WorkoutTestTags.REST_IDLE else WorkoutTestTags.REST_BAR)
             .padding(horizontal = Metrics.space3, vertical = Metrics.space2),
@@ -234,47 +238,47 @@ internal fun RestTimerCard(
                 }
             }
             if (controls.isNotEmpty()) {
-                Row(
+                RestSegments(
                     modifier = Modifier.widthIn(min = with(density) { controlsWidth.toDp() }),
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    if (running) {
-                        RestControl(
-                            label = MINUS,
-                            spoken = "Minus ${RestTimer.NUDGE_SECONDS} seconds",
-                            onClick = { onNudge(-RestTimer.NUDGE_SECONDS) },
-                            modifier = Modifier.widthIn(min = Metrics.touchMin).testTag(WorkoutTestTags.REST_MINUS),
-                        )
-                        RestControl(
-                            label = PLUS,
-                            spoken = "Plus ${RestTimer.NUDGE_SECONDS} seconds",
-                            onClick = { onNudge(RestTimer.NUDGE_SECONDS) },
-                            modifier = Modifier.widthIn(min = Metrics.touchMin).testTag(WorkoutTestTags.REST_PLUS),
-                        )
-                        RestControl(
-                            label = SKIP,
-                            onClick = onSkip,
-                            confirm = true,
-                            modifier = Modifier.widthIn(min = Metrics.touchMin).testTag(WorkoutTestTags.REST_SKIP),
+                    segments = if (running) {
+                        listOf(
+                            RestSegment(
+                                label = MINUS,
+                                spoken = "Minus ${RestTimer.NUDGE_SECONDS} seconds",
+                                tag = WorkoutTestTags.REST_MINUS,
+                                onClick = { onNudge(-RestTimer.NUDGE_SECONDS) },
+                            ),
+                            RestSegment(
+                                label = PLUS,
+                                spoken = "Plus ${RestTimer.NUDGE_SECONDS} seconds",
+                                tag = WorkoutTestTags.REST_PLUS,
+                                onClick = { onNudge(RestTimer.NUDGE_SECONDS) },
+                            ),
+                            RestSegment(
+                                label = SKIP,
+                                spoken = null,
+                                tag = WorkoutTestTags.REST_SKIP,
+                                onClick = onSkip,
+                                confirm = true,
+                            ),
                         )
                     } else {
-                        if (offerSetClock) {
-                            RestControl(
+                        listOfNotNull(
+                            RestSegment(
                                 label = SetStopwatchCopy.START,
                                 spoken = SetStopwatchCopy.START_SPOKEN,
+                                tag = WorkoutTestTags.START_SET_CLOCK,
                                 onClick = onStartSetClock,
-                                modifier = Modifier.widthIn(min = Metrics.touchMin).testTag(WorkoutTestTags.START_SET_CLOCK),
-                            )
-                        }
-                        RestControl(
-                            label = START_REST,
-                            spoken = RestIdleCopy.startSpoken(safeTotal),
-                            onClick = onStart,
-                            modifier = Modifier.widthIn(min = Metrics.touchMin).testTag(WorkoutTestTags.START_REST),
+                            ).takeIf { offerSetClock },
+                            RestSegment(
+                                label = START_REST,
+                                spoken = RestIdleCopy.startSpoken(safeTotal),
+                                tag = WorkoutTestTags.START_REST,
+                                onClick = onStart,
+                            ),
                         )
-                    }
-                }
+                    },
+                )
             }
         }
     }

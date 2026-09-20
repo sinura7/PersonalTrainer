@@ -149,7 +149,7 @@ class IdentityBeforeMetricsInstrumentedTest {
         compose.onNodeWithText(CompactLiftCopy.TARGET_WEIGHT.uppercase())
             .performScrollTo().assertIsDisplayed()
         org.junit.Assert.assertTrue(
-            compose.onAllNodesWithText("lbs").fetchSemanticsNodes().isNotEmpty(),
+            compose.onAllNodesWithText("lb").fetchSemanticsNodes().isNotEmpty(),
         )
         compose.onNodeWithText("kg").assertDoesNotExist()
     }

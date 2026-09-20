@@ -107,6 +107,7 @@ private const val ERR_LOAD = "load"
 private const val ERR_ADD_LIFT = "addLift"
 private const val ERR_REMOVE_LIFT = "removeLift"
 private const val ERR_LOG_SET = "logSet"
+private const val ERR_EDIT_SET = "editSet"
 private const val ERR_DELETE_SET = "deleteSet"
 private const val ERR_UNDO_DELETE = "undoDelete"
 private const val ERR_UNDO_REMOVE = "undoRemove"
@@ -1979,35 +1980,49 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         sessionReader.retry()
     }
 
+    /**
+     * Open a saved set for correction, with its original values read from the stored row.
+     *
+     * The original travels with the save, and [WorkoutRepository.saveSet] refuses an edit
+     * whose original does not match the row. Taking it from [session] instead — a Flow's
+     * cached copy — meant a second correction of the same set, opened before the first had
+     * been published back, carried values one revision old and was rejected as a conflict it
+     * was not. An edit changes no set count, so there was nothing for the screen to wait on
+     * either. The row is read here for the same reason the check reads it.
+     *
+     * Running as an entry mutation is what makes that a rule rather than a shorter window:
+     * [logSetWithDuration] cannot issue a command while [mutating] is raised, so no save can
+     * overtake this read and send the stale original anyway.
+     */
     fun editSet(setId: String) {
-        if (!canChangeEntry()) return
-        val set = session.value?.sets?.firstOrNull { it.id == setId } ?: return
-        // editingSetId is set below and prefill refuses to run while it is, so selecting the
-        // set's lift here cannot overwrite the values being edited.
-        editingSetId.value = set.id
-        editingOriginal = WorkoutSetSave(
-            sessionId = sessionId, exerciseId = set.exerciseId, setId = set.id,
-            completedAt = set.completedAt, values = WorkoutSetValues.from(set),
-        ).also { original ->
-            savedEdit.write(original)
-            draftCache.putEditingOriginal(sessionId, original)
+        launchEntryMutation(source = ERR_EDIT_SET) {
+            val original = container.workoutRepository.editableSet(sessionId, setId)
+                ?: return@launchEntryMutation
+            val values = original.values
+            // editingSetId is set before the lift below, and prefill refuses to run while it
+            // is, so selecting the set's lift cannot overwrite the values being edited.
+            editingSetId.value = original.setId
+            editingOriginal = original.also { saved ->
+                savedEdit.write(saved)
+                draftCache.putEditingOriginal(sessionId, saved)
+            }
+            // Revising a set is not moving on from it.
+            _pendingAdvance.value = null
+            stopHoldTimer()
+            clearSetStopwatch()
+            selectedExerciseId.value = original.exerciseId
+            val hold = session.value?.exercises
+                ?.firstOrNull { it.exercise.id == original.exerciseId }
+                ?.let { HoldWork.isHold(it.exercise) } == true
+            draft.value = ActiveExerciseDraft(
+                weightKg = values.weightKg,
+                reps = if (hold) 0 else values.reps,
+                rpe = values.rpe,
+                isWarmup = values.isWarmup,
+                durationSeconds = values.durationSeconds,
+            )
+            persistDraft()
         }
-        // Revising a set is not moving on from it.
-        _pendingAdvance.value = null
-        stopHoldTimer()
-        clearSetStopwatch()
-        selectedExerciseId.value = set.exerciseId
-        val hold = session.value?.exercises
-            ?.firstOrNull { it.exercise.id == set.exerciseId }
-            ?.let { HoldWork.isHold(it.exercise) } == true
-        draft.value = ActiveExerciseDraft(
-            weightKg = set.weightKg,
-            reps = if (hold) 0 else set.reps,
-            rpe = set.rpe,
-            isWarmup = set.isWarmup,
-            durationSeconds = set.durationSeconds,
-        )
-        persistDraft()
     }
 
     fun cancelEdit() {

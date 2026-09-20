@@ -591,7 +591,7 @@ class SetMicroRecCopyTest {
         val line = SetMicroRecCopy.line(rec, LoadClass.LOADED, WeightUnit.KG)
         assertEquals("Next: 100 kg × 5 · RPE 8", line)
         val why = SetMicroRecCopy.whyLines(rec)
-        assertTrue(why.any { it.contains("Quality set") })
+        assertTrue(why.any { it.contains("Clean set") })
         assertTrue(why.any { it.startsWith("Call:") })
         assertTrue(why.any { it.startsWith("Evidence:") })
         assertTrue(why.any { it.startsWith("Rule:") })

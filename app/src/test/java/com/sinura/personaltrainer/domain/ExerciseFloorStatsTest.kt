@@ -22,7 +22,7 @@ class ExerciseFloorStatsTest {
         assertEquals("Last set", stats.lastSet.label)
         assertEquals("70 × 10", stats.lastSet.value)
         assertEquals("RPE 9", stats.lastSet.detail)
-        assertEquals("Last set, 70 lbs × 10, RPE 9", stats.lastSet.spoken)
+        assertEquals("Last set, 70 lb × 10, RPE 9", stats.lastSet.spoken)
     }
 
     @Test
@@ -42,7 +42,9 @@ class ExerciseFloorStatsTest {
         )
         val withHistory = ExerciseFloorStatsCalculator.of(session = session(sets = emptyList()), exerciseId = "leg-ext", lastPerformance = previous, priorHistory = emptyList(), unit = unit)
         assertEquals("70 × 9", withHistory.lastSet.value)
-        assertEquals("Last time · RPE 8", withHistory.lastSet.detail)
+        // Last session's set names itself on the label; only the effort is left to qualify it.
+        assertEquals("Last time", withHistory.lastSet.label)
+        assertEquals("RPE 8", withHistory.lastSet.detail)
         assertEquals(previous.sets.last(), withHistory.lastSet.applies)
         val heldBefore = previous.copy(sets = listOf(ExerciseSetRecord(setId = "h", sessionId = "old", weightKg = 0.0, reps = 0, completedAt = 3L)))
         val hold = ExerciseFloorStatsCalculator.of(session = session(sets = emptyList()), exerciseId = "leg-ext", lastPerformance = heldBefore, priorHistory = emptyList(), unit = unit)
@@ -68,7 +70,7 @@ class ExerciseFloorStatsTest {
         assertEquals("90 × 5", stats.lastSet.value)
         assertEquals("70 × 10", stats.bestSet.value)
         assertEquals("700", stats.volumeColumn(unit).value)
-        assertEquals("lbs", stats.volumeColumn(unit).label)
+        assertEquals("lb", stats.volumeColumn(unit).label)
     }
 
     @Test

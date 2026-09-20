@@ -566,20 +566,27 @@ object SetMicroRecCopy {
         }
     }
 
+    /**
+     * Why the next set is what it is, in one line: what happened, then what to do.
+     *
+     * Every line takes that shape, so after a few sessions the eye knows where to look
+     * without reading the whole thing — the same sentence in the same place every set. The
+     * reason codes and the rule that picks them are untouched; only the words are here.
+     */
     fun ruleLine(reason: String): String = when (reason) {
         SetMicroRecCalculator.TOP_SET,
         SetMicroRecCalculator.RPE_HOLD,
-        -> "High effort holds the load"
-        SetMicroRecCalculator.QUALITY -> "Quality set holds the load"
-        SetMicroRecCalculator.IN_TANK -> "In the tank — add weight"
+        -> "Hard set — hold the weight"
+        SetMicroRecCalculator.QUALITY -> "Clean set — hold the weight"
+        SetMicroRecCalculator.IN_TANK -> "Had more in you — add weight"
         SetMicroRecCalculator.CLIMB_REPS,
         SetMicroRecCalculator.BW_ADD_REP,
-        -> "Close. Add a rep"
+        -> "Close — add a rep"
         SetMicroRecCalculator.FAILED_DROP,
         SetMicroRecCalculator.SKIP_RPE_DROP,
         SetMicroRecCalculator.BW_DROP_REP,
-        -> "Missed target — back off"
-        SetMicroRecCalculator.CLOSE_HOLD -> "Close. Hold."
+        -> "Missed target — go lighter"
+        SetMicroRecCalculator.CLOSE_HOLD -> "Close — hold the weight"
         else -> RuleTraceCopy.reasonLabel(reason)
     }
 

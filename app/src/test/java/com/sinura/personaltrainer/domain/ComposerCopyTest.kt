@@ -28,9 +28,9 @@ class ComposerCopyTest {
     @Test
     fun weightFieldFollowsTheChosenUnit() {
         assertEquals("Weight kg", ComposerCopy.weightFieldLabel(WeightUnit.KG))
-        assertEquals("Weight lbs", ComposerCopy.weightFieldLabel(WeightUnit.LBS))
+        assertEquals("Weight lb", ComposerCopy.weightFieldLabel(WeightUnit.LBS))
         assertEquals("5 reps · 80 kg", ComposerCopy.strengthLineSubtitle(5, 80.0, WeightUnit.KG))
-        assertEquals("5 reps · 176.5 lbs", ComposerCopy.strengthLineSubtitle(5, 80.0, WeightUnit.LBS))
+        assertEquals("5 reps · 176.5 lb", ComposerCopy.strengthLineSubtitle(5, 80.0, WeightUnit.LBS))
         assertEquals(80.0, readyStrength("80", "5", WeightUnit.KG).weightKg, 0.0)
         assertEquals(102.5, readyStrength("102,5", "5", WeightUnit.KG).weightKg, 0.0001)
         assertEquals(5.5, readyCardio("30", "5,5", DistanceUnit.KM).distanceKm!!, 0.0001)

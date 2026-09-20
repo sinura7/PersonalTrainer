@@ -151,14 +151,13 @@ object ExerciseFloorStatsCalculator {
             val spoken = if (hold) "a hold" else {
                 FloorStatCopy.spokenSet(previous.weightKg, previous.reps, loadClass, unit, previous.rpe)
             }
-            val detail = listOfNotNull(
-                FloorStatCopy.LAST_TIME,
-                previous.rpe?.takeUnless { hold }?.let { FloorStatCopy.rpeDetail(it) },
-            ).joinToString(FloorStatCopy.DETAIL_JOIN)
+            // The cell says what it is showing. Once its qualifier sits on the label line
+            // rather than under the number, `Last set · Last time` would be two names for
+            // one thing; last session's set is simply Last time.
             return FloorStat(
-                label = FloorStatCopy.LAST_SET,
+                label = FloorStatCopy.LAST_TIME,
                 value = value,
-                detail = detail,
+                detail = previous.rpe?.takeUnless { hold }?.let { FloorStatCopy.rpeDetail(it) },
                 spoken = "Last set, last time, $spoken",
                 applies = previous.takeUnless { hold },
             )

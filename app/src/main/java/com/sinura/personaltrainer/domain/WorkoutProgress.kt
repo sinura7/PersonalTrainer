@@ -107,7 +107,13 @@ object WorkoutProgressCalculator {
     fun headline(progress: WorkoutProgress): String {
         val parts = buildList {
             if (progress.exerciseNumber > 0 && progress.exerciseCount > 0) {
-                add("Exercise ${progress.exerciseNumber} of ${progress.exerciseCount}")
+                // The same voice as the branch below, which already counted this way: the
+                // noun last, so `4 of 7 exercises · 2 of 3 sets` reads as two counts of the
+                // same shape rather than a heading followed by one. Singular when there is
+                // one lift, as that branch has always done — `1 of 1 exercises` is not a
+                // sentence this app would say.
+                val noun = if (progress.exerciseCount == 1) "exercise" else "exercises"
+                add("${progress.exerciseNumber} of ${progress.exerciseCount} $noun")
             } else if (progress.exerciseCount > 0) {
                 add(if (progress.exerciseCount == 1) "1 exercise" else "${progress.exerciseCount} exercises")
             }

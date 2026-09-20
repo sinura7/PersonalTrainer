@@ -83,7 +83,7 @@ class UnloadedLoadTest {
             SetCopy.setLine(0.0, 13, LoadClass.of(lunge.loadType), WeightUnit.LBS),
         )
         assertEquals(
-            "13 reps +5 lbs",
+            "13 reps +5 lb",
             SetCopy.setLine(
                 WeightConverter.toKg(5.0, WeightUnit.LBS),
                 13,

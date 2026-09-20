@@ -87,7 +87,8 @@ class WorkoutFloorComponentsTest {
         }
         compose.onNodeWithText("Lower B").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertIsDisplayed()
-        compose.onNodeWithText("Exercise 1 of 2 · 2 of 6 sets").assertIsDisplayed()
+        // The plan line wears the instrument-label voice, which is always uppercase.
+        compose.onNodeWithText("1 OF 2 EXERCISES · 2 OF 6 SETS").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_BAR).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled()
         compose.onNodeWithContentDescription("Exit workout").assertExists()
@@ -173,7 +174,6 @@ class WorkoutFloorComponentsTest {
                 holdSeconds = null,
                 holdRunning = false,
                 holdRemainingSeconds = 0,
-                sourceLabel = "Plan",
                 onWeightKgChange = { weight = it },
                 onRepsChange = { reps = it },
                 onSecondsChange = {},
@@ -182,15 +182,19 @@ class WorkoutFloorComponentsTest {
         val step = WeightConverter.formatDisplayNumber(
             IncrementTable.displayStep(LoadType.EXTERNAL, unit, EquipmentType.MACHINE) ?: unit.step,
         )
-        compose.onNodeWithText("WEIGHT").assertIsDisplayed()
-        compose.onNodeWithText("lbs").assertIsDisplayed()
-        compose.onNodeWithText("REPS").assertIsDisplayed()
+        // No headings over the wells and no source label under them: the unit beside the
+        // number says which is the weight, and each well still names its field aloud.
+        compose.onAllNodesWithText("WEIGHT").assertCountEquals(0)
+        compose.onAllNodesWithText("REPS").assertCountEquals(0)
+        compose.onAllNodesWithText("Plan").assertCountEquals(0)
+        compose.onNodeWithText("lb").assertIsDisplayed()
         compose.onNodeWithText("70").assertIsDisplayed()
         compose.onNodeWithText("10").assertIsDisplayed()
-        compose.onNodeWithText("Plan").assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assert(hasContentDescription("Weight 70 lb"))
+        compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assert(hasContentDescription("Reps 10"))
         compose.onNodeWithContentDescription("Increase reps by 1").performClick()
         assertEquals(11, reps)
-        compose.onNodeWithContentDescription("Increase weight by $step lbs").performClick()
+        compose.onNodeWithContentDescription("Increase weight by $step lb").performClick()
         assertEquals(
             FloorStepper.nextWeightKg(kg70, unit, 1, LoadType.EXTERNAL, EquipmentType.MACHINE),
             checkNotNull(weight),
@@ -217,7 +221,6 @@ class WorkoutFloorComponentsTest {
                 holdSeconds = null,
                 holdRunning = false,
                 holdRemainingSeconds = 0,
-                sourceLabel = null,
                 onWeightKgChange = {},
                 onRepsChange = {},
                 onSecondsChange = {},
@@ -244,7 +247,6 @@ class WorkoutFloorComponentsTest {
                 holdSeconds = 30,
                 holdRunning = false,
                 holdRemainingSeconds = 0,
-                sourceLabel = null,
                 onWeightKgChange = {},
                 onRepsChange = {},
                 onSecondsChange = {},
@@ -252,8 +254,9 @@ class WorkoutFloorComponentsTest {
         }
         compose.onNodeWithTag(WorkoutTestTags.HOLD_STEPPER).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assertDoesNotExist()
-        compose.onNodeWithText("TIME").assertIsDisplayed()
+        compose.onAllNodesWithText("TIME").assertCountEquals(0)
         compose.onNodeWithText("0:30").assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.HOLD_STEPPER).assert(hasContentDescription("Time 0:30"))
     }
 
     @Test
@@ -381,7 +384,11 @@ class WorkoutFloorComponentsTest {
         }
         compose.onNodeWithText("SET HISTORY").assertIsDisplayed()
         compose.onNodeWithText("70 × 10 @ 8").assertIsDisplayed()
-        compose.onNodeWithText("Set 1 of 3").assertIsDisplayed()
+        // A resting chip no longer repeats the number its marker ring already shows; the
+        // ordinal stays in the row's spoken form and in the menu that opens from it.
+        compose.onAllNodesWithText("Set 1 of 3").assertCountEquals(0)
+        compose.onNodeWithTag(WorkoutTestTags.setChip("set-1"))
+            .assert(hasContentDescription("Set 1 of 3", substring = true))
         compose.onNodeWithText("Saved · Set 2 of 3").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.CURRENT_SET).assertIsDisplayed()
         compose.onNodeWithText("Current").assertIsDisplayed()

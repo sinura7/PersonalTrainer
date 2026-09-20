@@ -45,9 +45,11 @@ class FloorCompactPresentationTest {
         assertFalse(FloorCompactChrome.showIdleStartNext())
         assertFalse(FloorCompactChrome.idleStartNextIsVolt())
         assertTrue(card.contains("spoken = RestIdleCopy.startSpoken(safeTotal)"))
-        assertTrue(card.contains(".testTag(WorkoutTestTags.START_REST)"))
-        assertFalse("idle controls are RestControl marks, not full-width rows", card.contains("TextButton("))
-        assertTrue(card.contains("RestControl("))
+        assertTrue(card.contains("tag = WorkoutTestTags.START_REST"))
+        assertFalse("idle controls are quiet marks, not full-width rows", card.contains("TextButton("))
+        // The three pills became one segmented track; the card names the segments, and
+        // RestSegments itself lives beside RestControl so the card still names no Haptics.
+        assertTrue(card.contains("RestSegments("))
         assertTrue(card.contains("val idle = !running && !justFinished"))
         assertTrue(card.contains("else -> PLANNED"))
         assertTrue(card.contains("else -> RestIdleCopy.dockSpoken(clock, afterWarmup)"))
@@ -143,10 +145,11 @@ class FloorCompactPresentationTest {
         assertTrue(editor.contains("tag = WorkoutTestTags.REPS_STEPPER"))
         assertTrue(editor.contains("tag = WorkoutTestTags.HOLD_STEPPER"))
         assertTrue(editor.contains("HoldWork.clock"))
-        assertTrue(editor.contains("meaning.fieldLabel"))
-        assertTrue(editor.contains("label = \"Reps\""))
-        assertTrue(editor.contains("label = if (holdRunning) HoldWork.HOLD_KICKER else \"Time\""))
-        assertTrue(editor.contains("Kicker(text = label, color = TextSecondary, asHeading = false)"))
+        // The wells no longer carry a visible heading; each still names its field to a
+        // screen reader through its own spoken form.
+        assertTrue(editor.contains("SetCopy.weightWellSpoken(meaning = meaning"))
+        assertTrue(editor.contains("spoken = \"Reps \$reps\""))
+        assertTrue(editor.contains("else \"Time \${HoldWork.clock(seconds)}\""))
         assertTrue(editor.contains("RoundPlate(label = \"−\""))
         assertTrue(editor.contains("RoundPlate(label = \"+\""))
         assertTrue(editor.contains("plateWidth = Metrics.stepperRound"))

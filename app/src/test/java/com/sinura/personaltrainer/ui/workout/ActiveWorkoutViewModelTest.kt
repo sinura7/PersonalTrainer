@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
+import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
@@ -40,7 +41,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestDispatcher
@@ -932,6 +936,86 @@ class ActiveWorkoutViewModelTest {
         assertEquals(5, checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size)
     }
 
+    /**
+     * Correcting the same set twice in a row, with the screen's copy of the session behind.
+     *
+     * The save carries the values the edit found, and the repository refuses it unless they
+     * match the stored row. The screen's sets come from a Flow, and a correction changes no
+     * set count, so there is nothing for anyone — test or lifter — to wait on between the
+     * row landing and the Flow republishing it. An edit opened in that window used to carry
+     * values one revision old and come back as "This set changed or was removed", on a set
+     * the lifter had just corrected themselves.
+     *
+     * Freezing the Flow makes that window a fact rather than a race: without the fix this
+     * fails every run, not two in three.
+     */
+    @Test
+    fun aSecondCorrectionOfTheSameSetSavesWhileTheScreensCopyIsBehind() = runBlocking {
+        val fixture = seedWorkout()
+        val paused = MutableStateFlow(false)
+        val vm = createViewModel(fixture.session.id, container = pausableSession(paused))
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.logSetAndSettle()
+        val setId = vm.awaitState { it.session?.sets?.size == 1 }.session!!.sets.single().id
+        val dao = deps.database.workoutDao()
+        assertEquals(100.0, checkNotNull(dao.getSet(setId)).weightKg, 0.0001)
+
+        paused.value = true
+
+        vm.awaitEntryUnlocked()
+        vm.editSet(setId)
+        vm.awaitState { it.editingSetId == setId }
+        vm.setWeight(110.0)
+        vm.logSetAndSettle()
+        // The row moved; the screen's copy did not, and cannot until the Flow is released.
+        assertEquals(110.0, checkNotNull(dao.getSet(setId)).weightKg, 0.0001)
+        assertEquals(100.0, checkNotNull(vm.uiState.value.session?.sets?.single()).weightKg, 0.0001)
+
+        vm.awaitEntryUnlocked()
+        vm.editSet(setId)
+        vm.awaitState { it.editingSetId == setId }
+        vm.setWeight(120.0)
+        vm.logSetAndSettle()
+
+        assertEquals(WorkoutSavePhase.IDLE, vm.uiState.value.save.phase)
+        assertNull(vm.uiState.value.error)
+        assertEquals(120.0, checkNotNull(dao.getSet(setId)).weightKg, 0.0001)
+        assertEquals(1, checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size)
+    }
+
+    /**
+     * The quieter half of the same defect: a set the screen's copy has never carried.
+     *
+     * Reading the original from the observed session meant an Edit tap on a row the Flow had
+     * not published yet found nothing and returned without a word — no edit, no error, a dead
+     * tap. Reading the row answers it.
+     */
+    @Test
+    fun editingOpensForASetTheScreensCopyHasNotSeenYet() = runBlocking {
+        val fixture = seedWorkout()
+        val paused = MutableStateFlow(false)
+        val vm = createViewModel(fixture.session.id, container = pausableSession(paused))
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
+        vm.awaitEntryUnlocked()
+
+        paused.value = true
+        val saved = deps.workoutRepository.logSet(
+            sessionId = fixture.session.id,
+            exerciseId = SQUAT,
+            weightKg = 92.5,
+            reps = 8,
+            rpe = null,
+            isWarmup = false,
+        )
+        assertTrue(vm.uiState.value.session?.sets.isNullOrEmpty())
+
+        vm.editSet(saved.setId)
+
+        val state = vm.awaitState { it.editingSetId == saved.setId }
+        assertEquals(92.5, state.draft.weightKg, 0.0001)
+        assertEquals(8, state.draft.reps)
+    }
+
     @Test
     fun editingHidesMicroRec() = runBlocking {
         val fixture = seedWorkout()
@@ -1377,6 +1461,9 @@ class ActiveWorkoutViewModelTest {
         vm.skipRest()
 
         vm.editSet(logged.id)
+        // Opening an edit reads the stored row; typing before it lands is typing into a
+        // draft the open is about to replace with that row's own values.
+        vm.awaitState { it.editingSetId == logged.id }
         vm.setWeight(105.0)
         vm.adjustReps(1)
         vm.logSetAndSettle()
@@ -2226,6 +2313,17 @@ class ActiveWorkoutViewModelTest {
         }
     }
 
+    /**
+     * A copy of the graph whose session Flow can be frozen, so a test can act in the window
+     * between a row landing in Room and the screen being told about it.
+     */
+    private fun pausableSession(paused: StateFlow<Boolean>): AppDependencies {
+        val repo = WorkoutRepository(deps.database, PausableSessionDao(deps.database.workoutDao(), paused))
+        return object : AppDependencies by deps {
+            override val workoutRepository: WorkoutRepository = repo
+        }
+    }
+
     private fun gatedHistory(
         gate: CompletableDeferred<Unit>,
         fail: Boolean = false,
@@ -2263,6 +2361,19 @@ class ActiveWorkoutViewModelTest {
             gate.await()
             delegate.insertSet(set)
         }
+    }
+
+    /**
+     * Holds each session emission at the door while paused. The row is already in Room; the
+     * screen simply has not been told, which is exactly the state a fast second correction
+     * finds and cannot wait out.
+     */
+    private class PausableSessionDao(
+        private val delegate: WorkoutDao,
+        private val paused: StateFlow<Boolean>,
+    ) : WorkoutDao by delegate {
+        override fun observeSession(id: String): Flow<SessionWithDetails?> =
+            delegate.observeSession(id).onEach { paused.first { !it } }
     }
 
     private class GatedHistoryDao(

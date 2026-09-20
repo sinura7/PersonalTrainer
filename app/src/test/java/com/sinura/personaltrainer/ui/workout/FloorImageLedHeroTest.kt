@@ -24,7 +24,7 @@ import org.junit.Test
 class FloorImageLedHeroTest {
     @Test
     fun imageLedIdentityPreservesUncroppedExerciseArtwork() {
-        assertEquals(112, Metrics.exerciseHeroImage.value.toInt())
+        assertEquals(88, Metrics.exerciseHeroImage.value.toInt())
         assertEquals(64, Metrics.workoutIdentityImage.value.toInt())
         assertEquals(24, Metrics.equipmentGlyph.value.toInt())
         assertTrue(FloorCompactChrome.imageLedHero())

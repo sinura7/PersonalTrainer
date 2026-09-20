@@ -35,18 +35,28 @@ Obtainium **Temper Debug** entry; preserve its data and signing identity.
 9. Finish and compare the summary, history and saved sets. Reopen the app and
    confirm the result remains saved.
 10. Compare the logging screen against the 18 September reference image
-    ([ADR-027](../../architecture/ADR-027-workout-logging-redesign.md)): the
-    header reads `Exercise n of N · x of y sets` with one bar segment per
-    exercise; the exercise picture, equipment, name, `Set n of T` and
-    Working | Warm-up sit together; Last set, Best set and Volume show this
-    exercise's real numbers; weight and reps are the largest text with round
-    − / + plates; RPE runs 6–10 between Easy and Max effort; Next set shows
-    Why? and Apply, and Apply fills the entry without saving; the set history
-    chips ring the current set and offer Add set once the plan is met; the
-    rest card shows the target and −15 / +15 / Skip; Log set names its payload
-    on a second line, and once the plan is met Next exercise names the next lift
-    there (portrait only). Nothing on the screen is lime except Log set, the
-    selected choice and the progress bar.
+    ([ADR-027](../../architecture/ADR-027-workout-logging-redesign.md), as
+    amended 19–20 September): the header reads `N OF M EXERCISES · X OF Y SETS`
+    in small uppercase with one bar segment per exercise; the exercise picture,
+    equipment, name, `Set n of T` and Working | Warm-up sit together, with
+    Details as an outlined pill; Last set, Best set and Volume show this
+    exercise's real numbers, each with its qualifier on the label line
+    (`Last set · RPE 9`, `Best set · Today`) and the three numbers on one
+    baseline; weight and reps are the largest text with round − / + plates and
+    **no heading over them** — the unit beside the weight is what names it, and
+    only a barbell shows a loading line underneath; RPE runs 6–10 between Easy
+    and Max effort; Next set shows Why? and Apply, and Apply fills the entry
+    without saving; the set history chips ring the current set, do **not**
+    repeat its number underneath, and offer Add set once the plan is met; the
+    rest card is a shade lighter than the screen and shows the target with
+    −15 / +15 / Skip as one segmented track; Log set names its payload on a
+    second line, and once the plan is met Next exercise names the next lift
+    there (portrait only). Weights read `lb`, not `lbs`.
+
+    Lime appears in exactly four places: Log set, the selected choice, the
+    progress bar, and a small dot in the corner of the RPE value the coach
+    suggests. That dot is deliberate — a suggestion must never wear the same
+    Volt outline as the value you picked. Anything else lime is a defect.
 
 ## Device-specific checks
 

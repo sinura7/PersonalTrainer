@@ -255,6 +255,9 @@ class WorkoutSaveRecoveryTest {
         val first = active(handle)
         first.uiState.awaitFirst { it.canLog && it.session?.sets?.size == 1 }
         first.editSet(command.setId)
+        // Opening an edit reads the stored row, so the typed weight must follow the open
+        // rather than race it; otherwise the row's own values land on top of it.
+        first.uiState.awaitFirst { it.editingSetId == command.setId }
         first.setWeight(65.0)
         first.clearAndJoinForTest()
         models.remove(first)
@@ -364,6 +367,9 @@ class WorkoutSaveRecoveryTest {
         val first = active(firstHandle)
         first.uiState.awaitFirst { it.canLog && it.session?.sets?.size == 1 }
         first.editSet(command.setId)
+        // Opening an edit reads the stored row, so the typed weight must follow the open
+        // rather than race it; otherwise the row's own values land on top of it.
+        first.uiState.awaitFirst { it.editingSetId == command.setId }
         first.setWeight(65.0)
         first.clearAndJoinForTest()
         models.remove(first)

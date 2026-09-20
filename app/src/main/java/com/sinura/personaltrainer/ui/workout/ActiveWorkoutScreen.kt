@@ -44,7 +44,6 @@ import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.FloorTimedModeResolver
 import com.sinura.personaltrainer.domain.FloorTimerCue
 import com.sinura.personaltrainer.domain.FloorTimerSurface
-import com.sinura.personaltrainer.domain.FloorWeightPresets
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LogCommitFeedback
@@ -602,7 +601,11 @@ private fun ActiveWorkoutContent(
                             top = Metrics.space3,
                             bottom = Metrics.space7,
                         ),
-                        verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+                        // 12, not 16. The floor's blocks are already separated by hairlines
+                        // and by the change of voice between them; the extra four points per
+                        // gap bought no clarity and, over five gaps, pushed the commit off
+                        // the screen. The bottom padding stays: that is the dock's clearance.
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
                     ) {
                         if (!session.hasLifts()) {
                             item(key = "empty-lifts") {
@@ -657,12 +660,6 @@ private fun ActiveWorkoutContent(
                                 item(key = "entry") {
                                     val holdTimer = holdState.value
                                     val lastKg = state.hint?.lastWeightKg ?: state.lastPerformance?.topSet?.weightKg
-                                    val sourceLabel = FloorWeightPresets.source(
-                                        currentKg = state.draft.weightKg,
-                                        plannedKg = currentLift.targetWeightKg,
-                                        lastKg = lastKg,
-                                        suggestedKg = state.hint?.suggestedWeightKg,
-                                    )?.label
                                     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
                                         WeightRepsEditor(
                                             enabled = entryEnabled,
@@ -678,7 +675,6 @@ private fun ActiveWorkoutContent(
                                             holdSeconds = state.draft.durationSeconds ?: currentLift.targetSeconds,
                                             holdRunning = holdTimer.running,
                                             holdRemainingSeconds = holdTimer.remainingSeconds,
-                                            sourceLabel = sourceLabel,
                                             plannedKg = currentLift.targetWeightKg,
                                             lastKg = lastKg,
                                             onWeightKgChange = viewModel::setWeight,
@@ -738,7 +734,7 @@ private fun ActiveWorkoutContent(
                                             rpe = state.draft.rpe,
                                             unit = unit,
                                         )
-                                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
                                             HairlineDivider(startIndent = 0.dp)
                                             NextSetRecommendation(
                                                 rec = rec,
@@ -760,7 +756,7 @@ private fun ActiveWorkoutContent(
                                             label = setContext,
                                         )
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
                                         HairlineDivider(startIndent = 0.dp)
                                         SetHistoryStrip(
                                             sets = logged,

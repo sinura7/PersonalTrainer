@@ -14,9 +14,13 @@ enum class WeightUnit(
         displayName = "Kilograms (kg)",
     ),
     LBS(
+        // `lbs` here and `lb` below on purpose, and the two must never be reconciled:
+        // [storageKey] is what a backup file says and what [fromStorage] reads back, so
+        // moving it would make every backup already written unreadable. Only the shown
+        // unit is the owner's to change.
         storageKey = "lbs",
-        suffix = "lbs",
-        displayName = "Pounds (lbs)",
+        suffix = "lb",
+        displayName = "Pounds (lb)",
     );
 
     /**

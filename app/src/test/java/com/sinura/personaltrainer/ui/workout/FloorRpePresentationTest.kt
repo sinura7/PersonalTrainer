@@ -40,7 +40,20 @@ class FloorRpePresentationTest {
         assertTrue(selector.contains("InstrumentChip("))
         assertTrue(selector.contains("role = Role.RadioButton"))
         assertTrue(selector.contains("selectableGroup()"))
-        assertTrue(readOwned("ui/components/InstrumentChip.kt").contains("Modifier.selectable("))
+        val chip = readOwned("ui/components/InstrumentChip.kt")
+        assertTrue(chip.contains("Modifier.selectable("))
+        // A suggestion is never rendered as a selection (ADR-027 §4). The Volt edge means
+        // chosen; a recommended value wears a dot instead, which is also the non-colour
+        // signal ADR-023 asks for — and, being corner-set, costs the label no width, so
+        // five chips still fit across 360 dp.
+        assertTrue(chip.contains("if (focused || selected) Volt else Hairline"))
+        assertFalse(
+            "a recommended chip must not share the selected chip's Volt edge",
+            chip.contains("focused || selected || recommended"),
+        )
+        assertTrue(chip.contains("if (recommended && !selected) {"))
+        assertTrue(chip.contains(".size(Metrics.markDot)"))
+        assertTrue(chip.contains(".align(Alignment.TopEnd)"))
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertTrue(screen.contains("RpeSelector("))
         assertTrue(screen.contains("warmup = state.draft.isWarmup"))

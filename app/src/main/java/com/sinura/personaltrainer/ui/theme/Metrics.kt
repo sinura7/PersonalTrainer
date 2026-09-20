@@ -92,11 +92,16 @@ object Metrics {
     val headerActMin: Dp = 64.dp
 
     /**
-     * Image-led exercise hero. 112 dp is four times the previous 56 dp
-     * still area, not 224 dp (sixteen times). Landscape uses a shorter
-     * still so the wells stay on a 360 dp-tall bench phone.
+     * Image-led exercise hero. Landscape uses a shorter still so the wells stay on a
+     * 360 dp-tall bench phone.
+     *
+     * 112 dp on the active workout turned out to buy nothing: the words beside the still
+     * measure 110 dp, so they, not the picture, set that row's height. 88 dp costs the row
+     * about 2 dp and gives the exercise's name 24 dp more width, which is where the height
+     * actually comes back — a long name wraps a line less often (ADR-027 decision 1,
+     * amended).
      */
-    val exerciseHeroImage: Dp = 112.dp
+    val exerciseHeroImage: Dp = 88.dp
     /** Compact identity on the active workout; artwork remains uncropped. */
     val workoutIdentityImage: Dp = 64.dp
     val exerciseHeroImageLandscape: Dp = 88.dp
@@ -115,8 +120,14 @@ object Metrics {
     /** The one action worth a bigger target than anything else: logging a set. */
     val commit: Dp = 72.dp
 
-    /** Round − / + plates beside the hero numerals on the active workout. */
-    val stepperRound: Dp = control
+    /**
+     * Round − / + plates beside the hero numerals on the active workout.
+     *
+     * [touchMin], not [control]: this is the floor, and the floor is where the entry loop
+     * needs it to be. Below 48 dp is not on the table — these are pressed mid-set, one
+     * handed, with a bar loaded.
+     */
+    val stepperRound: Dp = touchMin
 
     /** The rest card's small countdown ring, and its stroke. */
     val restRingSmall: Dp = 48.dp
@@ -130,6 +141,14 @@ object Metrics {
 
     /** Small help affordance (the RPE question mark). Target stays [touchMin]. */
     val helpMark: Dp = 20.dp
+
+    /**
+     * The mark on a chip the coach suggests but has not selected.
+     *
+     * It sits in the chip's corner rather than beside the label, so five equal RPE chips
+     * still fit across 360 dp at font scale 2.0: a suggestion must not cost width.
+     */
+    val markDot: Dp = 6.dp
 
     /** Bottom-of-list clearance so a floating action never covers the last row. */
     val fabClearance: Dp = 88.dp

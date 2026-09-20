@@ -56,7 +56,6 @@ import com.sinura.personaltrainer.domain.WorkoutWeightCopy
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentPreset
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.StepperButton
 import com.sinura.personaltrainer.ui.theme.Hairline
@@ -100,7 +99,6 @@ internal fun WeightRepsEditor(
     holdSeconds: Int?,
     holdRunning: Boolean,
     holdRemainingSeconds: Int,
-    sourceLabel: String?,
     onWeightKgChange: (Double) -> Unit,
     onRepsChange: (Int) -> Unit,
     onSecondsChange: (Int) -> Unit,
@@ -153,7 +151,6 @@ internal fun WeightRepsEditor(
                     }
                 }
             },
-            label = meaning.fieldLabel,
             unitLabel = unit.suffix,
             value = weightNumber,
             sample = WEIGHT_SAMPLE,
@@ -168,7 +165,10 @@ internal fun WeightRepsEditor(
                 onWeightKgChange(FloorStepper.nextWeightKg(weightKg, unit, 1, loadType, equipment))
             },
             onType = { typingWeight = true },
-            caption = plates ?: sourceLabel,
+            // Only the bar's loading earns this line. The source label said "Plan" to
+            // confirm a weight the entry already showed; the quick fills below are what
+            // matter when it does not match.
+            caption = plates,
             tag = WorkoutTestTags.WEIGHT_STEPPER,
         )
     }
@@ -181,7 +181,6 @@ internal fun WeightRepsEditor(
                 availableWidth = columnWidth,
                 style = heroStyle,
                 enabled = enabled && !holdRunning,
-                label = if (holdRunning) HoldWork.HOLD_KICKER else "Time",
                 value = HoldWork.clock(seconds),
                 sample = TIME_SAMPLE,
                 spoken = if (holdRunning) "Hold, ${HoldWork.clock(seconds)} remaining" else "Time ${HoldWork.clock(seconds)}",
@@ -200,7 +199,6 @@ internal fun WeightRepsEditor(
                 availableWidth = columnWidth,
                 style = heroStyle,
                 enabled = enabled,
-                label = "Reps",
                 value = reps.toString(),
                 sample = REPS_SAMPLE,
                 spoken = "Reps $reps",
@@ -332,7 +330,6 @@ private fun HeroNumeral(
     availableWidth: Dp,
     style: TextStyle,
     enabled: Boolean,
-    label: String,
     value: String,
     sample: String,
     spoken: String,
@@ -418,7 +415,10 @@ private fun HeroNumeral(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
-            Kicker(text = label, color = TextSecondary, asHeading = false)
+            // No heading over the numeral. `WEIGHT` and `REPS` were saying what the unit
+            // riding the weight's baseline and the absence of one on the reps already say,
+            // and the heading cost the entry loop a line it could not spare. The numeral's
+            // own spoken form still names its field, so TalkBack is unchanged.
             if (inline) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

@@ -15,7 +15,7 @@ class PlateMathTest {
     fun twoFortyFivesASideOnAPoundBar() {
         val targetKg = WeightConverter.toKg(225.0, WeightUnit.LBS)
         val load = PlateMath.load(targetKg, WeightUnit.LBS)!!
-        assertEquals("45 lbs bar + 2×45 / side", load.caption())
+        assertEquals("45 lb bar + 2×45 / side", load.caption())
     }
 
     @Test
@@ -29,7 +29,7 @@ class PlateMathTest {
     fun leftoverThatCannotBePlatedIsNamed() {
         val targetKg = WeightConverter.toKg(47.0, WeightUnit.LBS)
         val load = PlateMath.load(targetKg, WeightUnit.LBS)!!
-        assertEquals("45 lbs bar, and 2 leftover", load.caption())
+        assertEquals("45 lb bar, and 2 leftover", load.caption())
     }
 
     @Test

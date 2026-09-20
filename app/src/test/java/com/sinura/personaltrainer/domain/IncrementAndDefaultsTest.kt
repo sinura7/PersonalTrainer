@@ -20,7 +20,7 @@ class IncrementTableTest {
     @Test
     fun poundUsersStepInPoundsAndTheStoredKilogramsRoundTrip() {
         assertEquals(5.0, IncrementTable.displayStep(LoadType.EXTERNAL, WeightUnit.LBS)!!, 0.001)
-        assertEquals("5 lbs", IncrementTable.stepLabel(LoadType.EXTERNAL, WeightUnit.LBS))
+        assertEquals("5 lb", IncrementTable.stepLabel(LoadType.EXTERNAL, WeightUnit.LBS))
 
         // The recorded defect said "+5.5 lbs" — 2.5 kg converted. What goes into the database is
         // now the pound step converted the other way, so it comes back out as exactly 5.
@@ -41,7 +41,7 @@ class IncrementTableTest {
         assertEquals(5.0, IncrementTable.displayStep(LoadType.STACK, WeightUnit.KG)!!, 0.001)
         assertEquals(10.0, IncrementTable.displayStep(LoadType.STACK, WeightUnit.LBS)!!, 0.001)
         assertEquals("5 kg", IncrementTable.stepLabel(LoadType.STACK, WeightUnit.KG))
-        assertEquals("10 lbs", IncrementTable.stepLabel(LoadType.STACK, WeightUnit.LBS))
+        assertEquals("10 lb", IncrementTable.stepLabel(LoadType.STACK, WeightUnit.LBS))
     }
 
     @Test
@@ -312,7 +312,7 @@ class ProgressionCopyTest {
     @Test
     fun aLoadedLiftIsToldWhatToAdd() {
         assertEquals("Hit target. Add 2.5 kg.", ProgressionCopy.stripReason(hint(LoadType.EXTERNAL), WeightUnit.KG))
-        assertEquals("Hit target. Add 5 lbs.", ProgressionCopy.stripReason(hint(LoadType.EXTERNAL), WeightUnit.LBS))
+        assertEquals("Hit target. Add 5 lb.", ProgressionCopy.stripReason(hint(LoadType.EXTERNAL), WeightUnit.LBS))
     }
 
     @Test

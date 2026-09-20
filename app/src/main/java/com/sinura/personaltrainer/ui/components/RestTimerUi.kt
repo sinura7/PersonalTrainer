@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
@@ -99,6 +100,7 @@ import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.RestCyanDim
+import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -732,6 +734,83 @@ fun RestControl(
             maxLines = 2,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/** One control in a [RestSegments] row. */
+data class RestSegment(
+    val label: String,
+    val spoken: String?,
+    val tag: String,
+    val onClick: () -> Unit,
+    val confirm: Boolean = false,
+)
+
+/**
+ * − / + / Skip as one instrument rather than three loose [RestControl] pills.
+ *
+ * On the dock's rest card those three were separate bordered cards with gaps between them:
+ * a card of cards, read at exactly the moment a lifter is glancing rather than reading. One
+ * recessed track with hairline dividers says the same thing with a quarter of the edges,
+ * and each segment still keeps its own 48 dp target, test tag, spoken form and haptic — the
+ * same `confirm` commit for Skip that [RestControl] gives it.
+ *
+ * It lives here beside [RestControl], not in the card that uses it, because the rest card
+ * is not allowed to name `Haptics` at all: the card reads the timer service's clock and
+ * must never be able to pulse on its own.
+ */
+@Composable
+fun RestSegments(
+    segments: List<RestSegment>,
+    modifier: Modifier = Modifier,
+) {
+    if (segments.isEmpty()) return
+    val view = LocalView.current
+    Row(
+        modifier = modifier
+            .heightIn(min = Metrics.touchMin)
+            .clip(RoundedCornerShape(Radius.sm))
+            .background(Surface1)
+            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        segments.forEachIndexed { index, segment ->
+            if (index > 0) {
+                Box(
+                    modifier = Modifier
+                        .width(Metrics.hairline)
+                        .height(Metrics.touchMin)
+                        .background(Hairline),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .widthIn(min = Metrics.touchMin)
+                    .heightIn(min = Metrics.touchMin)
+                    .clickable(role = Role.Button) {
+                        if (segment.confirm) Haptics.commit(view) else Haptics.tick(view)
+                        segment.onClick()
+                    }
+                    .testTag(segment.tag)
+                    .then(
+                        if (segment.spoken == null) {
+                            Modifier
+                        } else {
+                            Modifier.semantics { contentDescription = segment.spoken }
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    segment.label,
+                    modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
+                    style = InstrumentType.bodyStrong,
+                    color = TextPrimary,
+                    maxLines = 2,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
     }
 }
 

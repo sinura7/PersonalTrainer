@@ -31,10 +31,10 @@ that packet's state model and derived primary action and changes the composition
 
 ## Decision
 
-1. **The screen's order is:** session header (back, routine name, `Exercise n of N ·
+1. **The screen's order is:** session header (back, routine name, `n of N exercises ·
    x of y sets`, one progress segment per lift; in landscape one row, the plan's
    words as its title and no bar, so the log keeps `LandscapeChrome`'s budget);
-   exercise identity (112 dp keyed
+   exercise identity (88 dp keyed
    still, equipment, name, set ordinal, working count, Details, Working | Warm-up);
    Last set · Best set · Volume (this exercise); weight and reps (or hold time) as
    two hero numerals with round − / + plates, the unit riding the weight numeral's
@@ -66,7 +66,7 @@ that packet's state model and derived primary action and changes the composition
    rest (dim, planned length, Start rest). Duration editing stays in the sheet;
    holds and the set stopwatch keep the 56 dp instrument bar; modes never stack.
 6. **Log set stays the one filled Volt** and gains a second line naming its
-   payload (`70 lbs × 10 · RPE 9`). Selected states use a Volt outline on a dim
+   payload (`70 lb × 10 · RPE 9`). Selected states use a Volt outline on a dim
    Volt tint. Coral stays on the muscle stills. Cyan stays on timing.
 7. **Numerals never move their plates.** Whether the − / + plates sit beside a
    hero numeral or beneath it is decided from a fixed widest sample, not the
@@ -85,6 +85,57 @@ that packet's state model and derived primary action and changes the composition
    session lives behind Details. The commit's verb stays short in every
    orientation: portrait draws the next lift's name on the commit's capped
    supporting line, landscape only speaks it.
+
+## Amendment — 19–20 September 2026, the density and copy pass
+
+The owner placed the shipped screen beside the reference and asked for it to be
+scaled down to match. Measured at equal width, ours ran 1,299 dp of content
+against the reference's 698. Four things in this record move; the rest is
+unchanged, and the measurements are recorded here so they are not re-derived.
+
+1. **The keyed still is 88 dp, not 112.** Decision 1 above is amended. The words
+   beside the still measure 110 dp and are what set that row's height, so the
+   larger picture was buying about 2 dp of nothing. At 88 dp the exercise's name
+   gets 24 dp more width (`ExerciseHeader` sizes the words as
+   `maxWidth - exerciseHeroImage - space3`) and a long name wraps a line less
+   often, which is where the height actually comes back.
+
+2. **The `− / +` plates stay at 48 dp, and the entry block stays two rows.**
+   The reference's entry block is 63 dp against ours at 176. The whole gap is
+   the plate row, and it cannot be closed by rearranging: `WeightRepsEditor`
+   puts the plates beside the numeral only when
+   `sampleWidth + (stepperRound + space2) * 2 <= availableWidth`, and at 412 dp
+   the weight column is 182 dp while the widest sample plus two plates needs
+   284 dp. That holds at every size in the numeral ramp — even `numeralMd`
+   (24 sp) leaves it 4 dp short. The reference fits because its plates are
+   roughly 28–32 dp across. `Metrics` sets 48 dp as the floor and says density
+   gains are never taken out of it; the owner chose the floor over the
+   proportions, and the height came out of the headings, the source-label
+   caption and the gaps instead. **Do not reopen this by shrinking a touch
+   target.**
+
+Also settled, and deliberately *not* changed: the `Plan` / `Last` quick fills
+stay (decision 9); `Add set` still arrives once the planned sets are done
+(decision 1), because a mid-plan tap would have been a no-op beside the
+`Current` marker; and the fixed-widest-sample plate rule (decision 7) is
+untouched.
+
+3. **The progress line reads `n of N exercises · x of y sets`, set in the
+   instrument-label voice.** Decision 1 above is amended. The noun goes last so
+   the two counts read as the same shape rather than a heading followed by a
+   count, and it is singular for a one-lift session. The line was prose voice at
+   12 sp and is now the uppercase `kicker` at 11 sp — the same register as REST
+   or LAST 7 DAYS, which is what a meta label over the plan is.
+
+4. **The shown pound unit is `lb`.** `WeightUnit.LBS.suffix` and its
+   `displayName` change; **`storageKey` stays `lbs`**, because it is what a
+   backup file carries and what `fromStorage` reads back. The two are
+   deliberately different strings and must never be reconciled.
+
+`WorkoutFloorRenderTest.theEntryLoopStaysWithinItsHeightBudget` now measures the
+loop end to end at 360 dp — identity top to set-history bottom — and holds it at
+or under 845 dp. It was 920.5 dp before this pass and is 841.0 dp after. The
+number may be lowered; it may not be raised to make a change fit.
 
 ## Consequences
 

@@ -79,7 +79,9 @@ internal fun ExerciseHeader(
             contentDescription = "$spoken. $setContext. ${CurrentLiftCopy.SWITCH}"
             selected = true
         }
-    val words: @Composable () -> Unit = {
+    // `stacked` is decided from the measured title inside BoxWithConstraints below, so it
+    // arrives as an argument rather than being captured.
+    val words: @Composable (stacked: Boolean) -> Unit = { stacked ->
         Kicker(text = equipment, color = TextTertiary, asHeading = false)
         Text(
             lift.exercise.name,
@@ -94,19 +96,10 @@ internal fun ExerciseHeader(
             style = InstrumentType.bodyStrong,
             color = TextPrimary,
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                progressLine,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(WorkoutTestTags.liftSets(lift.exercise.id)),
-                style = InstrumentType.caption,
-                color = TextSecondary,
-            )
+        // An outlined pill, not a plain inline link: Details is the way out of this screen
+        // to everything the floor no longer shows (ADR-027 §9), and a word with a chevron
+        // did not look like a control at arm's length.
+        val details: @Composable () -> Unit = {
             QuietButton(
                 text = CurrentLiftCopy.DETAILS,
                 onClick = onDetails,
@@ -114,8 +107,31 @@ internal fun ExerciseHeader(
                 enabled = enabled,
                 modifier = Modifier.testTag(WorkoutTestTags.DETAILS),
                 spoken = "Exercise details",
-                plain = true,
             )
+        }
+        val progress: @Composable (Modifier) -> Unit = { progressModifier ->
+            Text(
+                progressLine,
+                modifier = progressModifier.testTag(WorkoutTestTags.liftSets(lift.exercise.id)),
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+        }
+        if (stacked) {
+            // ADR-027's consequences promised this and the code never did it: at large text
+            // the words' column is narrow enough that sharing one row squeezes the count and
+            // the control together. Details takes its own line under the identity instead.
+            progress(Modifier.fillMaxWidth())
+            details()
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                progress(Modifier.weight(1f))
+                details()
+            }
         }
     }
     BoxWithConstraints(
@@ -149,7 +165,7 @@ internal fun ExerciseHeader(
                 Column(
                     modifier = Modifier.padding(top = Metrics.space1),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-                ) { words() }
+                ) { words(stacked) }
             }
             SetTypeToggle(
                 enabled = enabled,

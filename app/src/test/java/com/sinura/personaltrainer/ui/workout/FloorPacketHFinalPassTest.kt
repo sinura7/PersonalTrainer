@@ -66,7 +66,7 @@ class FloorPacketHFinalPassTest {
             ).size == 3,
         )
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("label = meaning.fieldLabel") && editor.contains("unitLabel = unit.suffix"))
+        assertTrue(editor.contains("SetCopy.weightWellSpoken(meaning = meaning") && editor.contains("unitLabel = unit.suffix"))
         assertTrue(editor.contains("val showWeight = meaning != WeightMeaning.NONE"))
     }
 

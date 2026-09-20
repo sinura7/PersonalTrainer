@@ -685,6 +685,27 @@ class WorkoutRepository(
         return saved.copy(records = records)
     }
 
+    /**
+     * The saved set as [saveSet] will see it, for an edit about to be opened.
+     *
+     * An edit carries the values it found, and [matchesOriginal] compares them against the
+     * row. A caller that reads its original from an observed session instead is reading a
+     * Flow's cached copy, which can still be a revision behind its own write: correct a set
+     * and immediately correct it again, and the second command carries the values from before
+     * the first, so a save that should land is refused as a conflict it is not. The row is the
+     * only source that cannot disagree with the check.
+     */
+    suspend fun editableSet(sessionId: String, setId: String): WorkoutSetSave? {
+        val row = workoutDao.getSet(setId)?.takeIf { it.sessionId == sessionId } ?: return null
+        return WorkoutSetSave(
+            sessionId = row.sessionId,
+            exerciseId = row.exerciseId,
+            setId = row.id,
+            completedAt = row.completedAt,
+            values = valuesOf(row),
+        )
+    }
+
     /** A read error propagates; it must not be interpreted as an absent set. */
     suspend fun inspectSetSave(command: WorkoutSetSave): WorkoutSetSaveResolution = database.withTransaction {
         val existing = workoutDao.getSet(command.setId)
