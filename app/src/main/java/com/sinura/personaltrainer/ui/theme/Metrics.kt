@@ -121,13 +121,23 @@ object Metrics {
     val commit: Dp = 72.dp
 
     /**
-     * Round − / + plates beside the hero numerals on the active workout.
+     * Round − / + plates beside the hero numerals on the active workout: the area a thumb
+     * aims at.
      *
-     * [touchMin], not [control]: this is the floor, and the floor is where the entry loop
-     * needs it to be. Below 48 dp is not on the table — these are pressed mid-set, one
-     * handed, with a bar loaded.
+     * [touchMin], not [control]. This is the floor and it does not move — these are pressed
+     * mid-set, one handed, with a bar loaded.
      */
     val stepperRound: Dp = touchMin
+
+    /**
+     * How far inside [stepperRound] that plate is actually drawn.
+     *
+     * The circle you see and the area that answers your thumb are two different boxes. The
+     * owner asked for a smaller, more deliberate plate; shrinking the target would have
+     * bought that at the cost of a missed tap with a loaded bar in front of you, so only the
+     * drawing shrank — 48 dp pressed, 36 dp drawn. Do not "tidy" this by making them equal.
+     */
+    val stepperPlateInset: Dp = 6.dp
 
     /** The rest card's small countdown ring, and its stroke. */
     val restRingSmall: Dp = 48.dp

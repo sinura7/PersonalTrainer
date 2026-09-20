@@ -42,7 +42,9 @@ Obtainium **Temper Debug** entry; preserve its data and signing identity.
     Details as an outlined pill; Last set, Best set and Volume show this
     exercise's real numbers, each with its qualifier on the label line
     (`Last set · RPE 9`, `Best set · Today`) and the three numbers on one
-    baseline; weight and reps are the largest text with round − / + plates and
+    baseline; weight and reps are the largest text with round − / + plates that are
+    drawn smaller than the area they answer to — aim anywhere in the space
+    around one and it still takes the tap — and
     **no heading over them** — the unit beside the weight is what names it, and
     only a barbell shows a loading line underneath; RPE runs 6–10 between Easy
     and Max effort; Next set shows Why? and Apply, and Apply fills the entry

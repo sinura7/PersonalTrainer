@@ -376,9 +376,10 @@ class WorkoutFloorRenderTest {
         /**
          * Identity top to set-history bottom at 360 dp, with two sets logged.
          *
-         * Measured after packet 2 at 841.0 dp, from 920.5 dp before it. A ceiling, not a
-         * target: lower it when height comes out, and never raise it so a change can fit.
+         * 920.5 dp before packet 2, 841.0 after it, 837.0 after packet 4 shrank the plates
+         * inside their targets. A ceiling, not a target: lower it when height comes out, and
+         * never raise it so a change can fit.
          */
-        const val LOOP_BUDGET_DP = 845f
+        const val LOOP_BUDGET_DP = 840f
     }
 }
