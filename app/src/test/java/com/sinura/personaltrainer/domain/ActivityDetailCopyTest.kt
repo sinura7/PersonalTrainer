@@ -29,7 +29,7 @@ class ActivityDetailCopyTest {
         val block = (strengthSession().blocks.first() as StrengthBlock)
         val set = block.sets.first()
         assertEquals("80 kg × 5", ActivityDetailCopy.setLine(block, set, WeightUnit.KG))
-        assertEquals("176.5 lbs × 5", ActivityDetailCopy.setLine(block, set, WeightUnit.LBS))
+        assertEquals("176.5 lb × 5", ActivityDetailCopy.setLine(block, set, WeightUnit.LBS))
         assertFalse(ActivityDetailCopy.setLine(block, set, WeightUnit.LBS).contains("weightKg"))
     }
 

@@ -172,7 +172,7 @@ fun ComponentStateGallery(
                     CountBadge(number = 1, selected = true)
                     EquipmentChip(label = "Barbell")
                 }
-                Numeral(value = "135", unit = "lbs")
+                Numeral(value = "135", unit = "lb")
                 SectionHeader(title = "Latest saved set")
                 InstrumentRow(title = "Latest set · 135 lbs × 8", subtitle = "Working set 2 of 4 · saved", onClick = { status = "Sample set opened" })
                 Text("Workout · In progress", style = InstrumentType.bodyStrong, color = TextPrimary)

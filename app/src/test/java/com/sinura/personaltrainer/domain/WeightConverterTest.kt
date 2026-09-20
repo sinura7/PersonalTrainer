@@ -21,9 +21,9 @@ class WeightConverterTest {
 
     @Test
     fun formatsPoundsToHalfIncrementsWithUnit() {
-        assertEquals("176.5 lbs", 80.0.toWeightLabel(WeightUnit.LBS))
-        assertEquals("182 lbs", 82.5.toWeightLabel(WeightUnit.LBS))
-        assertEquals("0 lbs", 0.0.toWeightLabel(WeightUnit.LBS))
+        assertEquals("176.5 lb", 80.0.toWeightLabel(WeightUnit.LBS))
+        assertEquals("182 lb", 82.5.toWeightLabel(WeightUnit.LBS))
+        assertEquals("0 lb", 0.0.toWeightLabel(WeightUnit.LBS))
     }
 
     @Test
@@ -39,7 +39,7 @@ class WeightConverterTest {
 
         val fromLbs = WeightConverter.incrementKg(80.0, WeightUnit.LBS, 1)
         assertEquals(WeightConverter.toKg(181.5, WeightUnit.LBS), fromLbs, 0.001)
-        assertEquals("181.5 lbs", fromLbs.toWeightLabel(WeightUnit.LBS))
+        assertEquals("181.5 lb", fromLbs.toWeightLabel(WeightUnit.LBS))
     }
 
     @Test

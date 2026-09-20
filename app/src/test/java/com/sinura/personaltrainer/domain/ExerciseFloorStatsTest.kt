@@ -22,7 +22,7 @@ class ExerciseFloorStatsTest {
         assertEquals("Last set", stats.lastSet.label)
         assertEquals("70 × 10", stats.lastSet.value)
         assertEquals("RPE 9", stats.lastSet.detail)
-        assertEquals("Last set, 70 lbs × 10, RPE 9", stats.lastSet.spoken)
+        assertEquals("Last set, 70 lb × 10, RPE 9", stats.lastSet.spoken)
     }
 
     @Test
@@ -70,7 +70,7 @@ class ExerciseFloorStatsTest {
         assertEquals("90 × 5", stats.lastSet.value)
         assertEquals("70 × 10", stats.bestSet.value)
         assertEquals("700", stats.volumeColumn(unit).value)
-        assertEquals("lbs", stats.volumeColumn(unit).label)
+        assertEquals("lb", stats.volumeColumn(unit).label)
     }
 
     @Test

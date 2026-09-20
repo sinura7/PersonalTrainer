@@ -29,7 +29,7 @@ class VolumeLabelTest {
     @Test
     fun volumeConvertsToTheDisplayUnitBeforeGrouping() {
         // 5000 kg -> 11023.1... lbs -> rounded and grouped
-        assertEquals("11,023 lbs", QuantityFormat.formatVolumeLabel(5_000.0, WeightUnit.LBS, us))
+        assertEquals("11,023 lb", QuantityFormat.formatVolumeLabel(5_000.0, WeightUnit.LBS, us))
     }
 
     @Test
@@ -62,12 +62,12 @@ class VolumeLabelTest {
         assertEquals(501, display.roundToInt())
         assertEquals(500L, WeightConverter.volumeDisplayWhole(work.volumeKg, WeightUnit.LBS))
         assertEquals(500, WeightConverter.volumeAnimationTarget(work.volumeKg, WeightUnit.LBS))
-        assertEquals("500 lbs", QuantityFormat.formatVolumeLabel(work.volumeKg, WeightUnit.LBS, us))
+        assertEquals("500 lb", QuantityFormat.formatVolumeLabel(work.volumeKg, WeightUnit.LBS, us))
         assertEquals("500", QuantityFormat.formatVolumeNumber(work.volumeKg, WeightUnit.LBS, us))
         assertEquals("500", WeightConverter.formatVolumeNumber(work.volumeKg, WeightUnit.LBS))
         assertEquals("500", SetCopy.workColumn(work, WeightUnit.LBS).value)
-        assertEquals("lbs", SetCopy.workColumn(work, WeightUnit.LBS).label)
-        assertNotEquals("501 lbs", work.volumeKg.toVolumeLabel(WeightUnit.LBS))
+        assertEquals("lb", SetCopy.workColumn(work, WeightUnit.LBS).label)
+        assertNotEquals("501 lb", work.volumeKg.toVolumeLabel(WeightUnit.LBS))
     }
 
     @Test
@@ -86,7 +86,7 @@ class VolumeLabelTest {
     fun largeValuesKeepGroupingInBothUnits() {
         assertEquals("1,000,000 kg", QuantityFormat.formatVolumeLabel(1_000_000.0, WeightUnit.KG, us))
         assertEquals(
-            "2,204,620 lbs",
+            "2,204,620 lb",
             QuantityFormat.formatVolumeLabel(1_000_000.0, WeightUnit.LBS, us),
         )
     }

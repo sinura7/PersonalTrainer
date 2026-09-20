@@ -88,7 +88,7 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithText("Lower B").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertIsDisplayed()
         // The plan line wears the instrument-label voice, which is always uppercase.
-        compose.onNodeWithText("EXERCISE 1 OF 2 · 2 OF 6 SETS").assertIsDisplayed()
+        compose.onNodeWithText("1 OF 2 EXERCISES · 2 OF 6 SETS").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_BAR).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled()
         compose.onNodeWithContentDescription("Exit workout").assertExists()
@@ -187,14 +187,14 @@ class WorkoutFloorComponentsTest {
         compose.onAllNodesWithText("WEIGHT").assertCountEquals(0)
         compose.onAllNodesWithText("REPS").assertCountEquals(0)
         compose.onAllNodesWithText("Plan").assertCountEquals(0)
-        compose.onNodeWithText("lbs").assertIsDisplayed()
+        compose.onNodeWithText("lb").assertIsDisplayed()
         compose.onNodeWithText("70").assertIsDisplayed()
         compose.onNodeWithText("10").assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assert(hasContentDescription("Weight 70 lbs"))
+        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assert(hasContentDescription("Weight 70 lb"))
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assert(hasContentDescription("Reps 10"))
         compose.onNodeWithContentDescription("Increase reps by 1").performClick()
         assertEquals(11, reps)
-        compose.onNodeWithContentDescription("Increase weight by $step lbs").performClick()
+        compose.onNodeWithContentDescription("Increase weight by $step lb").performClick()
         assertEquals(
             FloorStepper.nextWeightKg(kg70, unit, 1, LoadType.EXTERNAL, EquipmentType.MACHINE),
             checkNotNull(weight),

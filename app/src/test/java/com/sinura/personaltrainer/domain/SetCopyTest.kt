@@ -64,11 +64,11 @@ class SetCopyTest {
             SetCopy.weightWellSpoken(WeightMeaning.ADDED, 0.0, WeightUnit.LBS),
         )
         assertEquals(
-            "Weight 5 lbs",
+            "Weight 5 lb",
             SetCopy.weightWellSpoken(WeightMeaning.LIFTED, WeightConverter.toKg(5.0, WeightUnit.LBS), WeightUnit.LBS),
         )
         assertFalse(
-            SetCopy.weightWellSpoken(WeightMeaning.ADDED, 0.0, WeightUnit.LBS).contains("5 lbs"),
+            SetCopy.weightWellSpoken(WeightMeaning.ADDED, 0.0, WeightUnit.LBS).contains("5 lb"),
         )
         assertEquals(
             "0 is no weight (bodyweight). Vest, belt or plate. Leave empty for bodyweight only.",
