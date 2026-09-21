@@ -5,6 +5,9 @@ import com.sinura.personaltrainer.data.local.entity.ActivityBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityCardioIntervalEntity
 import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityStrengthSetEntity
+import com.sinura.personaltrainer.data.local.entity.ActivityTemplateEntity
+import com.sinura.personaltrainer.data.local.entity.RoutineEntity
+import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 
@@ -99,6 +102,44 @@ data class RemoteScheduleRuleRow(
     @SerializedName("focus_kind") val focusKind: String?,
     @SerializedName("reminder_offset_minutes") val reminderOffsetMinutes: Int,
     val enabled: Int,
+    @SerializedName("created_at_ms") val createdAtMs: Long,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    val revision: Long = 0L,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+data class RemoteRoutineRow(
+    val id: String,
+    @SerializedName("user_id") val userId: String,
+    val name: String,
+    val notes: String,
+    @SerializedName("created_at_ms") val createdAtMs: Long,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    val revision: Long = 0L,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+data class RemoteRoutineExerciseRow(
+    val id: String,
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("routine_id") val routineId: String,
+    @SerializedName("exercise_id") val exerciseId: String,
+    @SerializedName("sort_order") val sortOrder: Int,
+    @SerializedName("target_sets") val targetSets: Int,
+    @SerializedName("target_reps") val targetReps: Int,
+    @SerializedName("target_weight_kg") val targetWeightKg: Double?,
+    @SerializedName("rest_seconds") val restSeconds: Int,
+    @SerializedName("target_seconds") val targetSeconds: Int?,
+    @SerializedName("target_seconds_max") val targetSecondsMax: Int?,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+data class RemoteActivityTemplateRow(
+    val id: String,
+    @SerializedName("user_id") val userId: String,
+    val title: String,
+    val notes: String,
     @SerializedName("created_at_ms") val createdAtMs: Long,
     @SerializedName("updated_at_ms") val updatedAtMs: Long,
     val revision: Long = 0L,
@@ -344,5 +385,77 @@ internal fun RemoteScheduleOccurrenceRow.toEntity(): ScheduleOccurrenceEntity = 
     minute = minute,
     completedActivityId = completedActivityId,
     createdAtMs = createdAtMs,
+    updatedAtMs = updatedAtMs,
+)
+
+internal fun RoutineEntity.toRemote(userId: String, deletedAtMs: Long? = null): RemoteRoutineRow =
+    RemoteRoutineRow(
+        id = id,
+        userId = userId,
+        name = name,
+        notes = notes,
+        createdAtMs = createdAt,
+        updatedAtMs = updatedAt,
+        revision = 0L,
+        deletedAtMs = deletedAtMs,
+    )
+
+internal fun RoutineExerciseEntity.toRemote(
+    userId: String,
+    updatedAtMs: Long,
+    deletedAtMs: Long? = null,
+): RemoteRoutineExerciseRow = RemoteRoutineExerciseRow(
+    id = id,
+    userId = userId,
+    routineId = routineId,
+    exerciseId = exerciseId,
+    sortOrder = sortOrder,
+    targetSets = targetSets,
+    targetReps = targetReps,
+    targetWeightKg = targetWeightKg,
+    restSeconds = restSeconds,
+    targetSeconds = targetSeconds,
+    targetSecondsMax = targetSecondsMax,
+    updatedAtMs = updatedAtMs,
+    deletedAtMs = deletedAtMs,
+)
+
+internal fun ActivityTemplateEntity.toRemote(userId: String, deletedAtMs: Long? = null): RemoteActivityTemplateRow =
+    RemoteActivityTemplateRow(
+        id = id,
+        userId = userId,
+        title = title,
+        notes = notes,
+        createdAtMs = updatedAtMs,
+        updatedAtMs = updatedAtMs,
+        revision = 0L,
+        deletedAtMs = deletedAtMs,
+    )
+
+internal fun RemoteRoutineRow.toEntity(): RoutineEntity = RoutineEntity(
+    id = id,
+    name = name,
+    notes = notes,
+    createdAt = createdAtMs,
+    updatedAt = updatedAtMs,
+)
+
+internal fun RemoteRoutineExerciseRow.toEntity(): RoutineExerciseEntity = RoutineExerciseEntity(
+    id = id,
+    routineId = routineId,
+    exerciseId = exerciseId,
+    sortOrder = sortOrder,
+    targetSets = targetSets,
+    targetReps = targetReps,
+    targetWeightKg = targetWeightKg,
+    restSeconds = restSeconds,
+    targetSeconds = targetSeconds,
+    targetSecondsMax = targetSecondsMax,
+)
+
+internal fun RemoteActivityTemplateRow.toEntity(): ActivityTemplateEntity = ActivityTemplateEntity(
+    id = id,
+    title = title,
+    notes = notes,
     updatedAtMs = updatedAtMs,
 )

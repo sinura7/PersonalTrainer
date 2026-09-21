@@ -5,6 +5,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
+import com.sinura.personaltrainer.data.local.entity.RoutineEntity
+import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.SyncEntityType
 import com.sinura.personaltrainer.domain.SyncOutboxOperation
 import kotlinx.coroutines.test.runTest
@@ -65,5 +67,32 @@ class SyncOutboxWriterTest {
         val pending = database.syncDao().peekOutbox(50)
         assertTrue(pending.any { it.entityType == SyncEntityType.ACTIVITY_SESSION.name })
         assertEquals(SyncOutboxOperation.UPSERT.name, pending.first { it.entityId == "sess-1" }.operation)
+    }
+
+    @Test
+    fun enqueueAllRoutinesOrdersParentBeforeChild() = runTest {
+        writer.enqueueAllRoutines(
+            userId = "user-1",
+            routines = listOf(
+                RoutineEntity("r1", "Push", "", 1L, 500L),
+            ),
+            exercises = listOf(
+                RoutineExerciseEntity(
+                    id = "re1",
+                    routineId = "r1",
+                    exerciseId = "ex1",
+                    sortOrder = 0,
+                    targetSets = 3,
+                    targetReps = 5,
+                    targetWeightKg = null,
+                    restSeconds = 60,
+                ),
+            ),
+        )
+        val pending = database.syncDao().peekOutbox(10)
+        val routineIndex = pending.indexOfFirst { it.entityId == "r1" }
+        val exerciseIndex = pending.indexOfFirst { it.entityId == "re1" }
+        assertTrue(routineIndex >= 0)
+        assertTrue(exerciseIndex > routineIndex)
     }
 }

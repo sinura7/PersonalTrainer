@@ -84,6 +84,9 @@ class SupabaseAccountAuth(
             SyncEntityType.ACTIVITY_SESSION,
             SyncEntityType.SCHEDULE_OCCURRENCE,
             SyncEntityType.SCHEDULE_RULE,
+            SyncEntityType.ROUTINE_EXERCISE,
+            SyncEntityType.ROUTINE,
+            SyncEntityType.ACTIVITY_TEMPLATE,
         )
         order.forEach { type -> rest.deleteAllRows(type.remoteTable, accessToken) }
     }

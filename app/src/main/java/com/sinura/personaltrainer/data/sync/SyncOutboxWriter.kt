@@ -2,9 +2,12 @@ package com.sinura.personaltrainer.data.sync
 
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.SyncDao
+import com.sinura.personaltrainer.data.local.entity.RoutineEntity
+import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 import com.sinura.personaltrainer.data.local.entity.SyncOutboxEntity
+import com.sinura.personaltrainer.data.local.relation.ActivityTemplateGraph
 import com.sinura.personaltrainer.domain.SyncEntityType
 import com.sinura.personaltrainer.domain.SyncOutboxOperation
 import java.util.UUID
@@ -125,6 +128,110 @@ class SyncOutboxWriter(
             row.id,
             SyncOutboxOperation.DELETE,
             encodeSync(row.toRemote(userId, deletedAtMs = deletedAtMs)),
+        )
+    }
+
+    suspend fun enqueueAllRoutines(
+        userId: String,
+        routines: List<RoutineEntity>,
+        exercises: List<RoutineExerciseEntity>,
+    ) {
+        val updatedAtByRoutine = routines.associate { it.id to it.updatedAt }
+        routines.forEach { routine ->
+            enqueue(
+                SyncEntityType.ROUTINE,
+                routine.id,
+                SyncOutboxOperation.UPSERT,
+                encodeSync(routine.toRemote(userId)),
+            )
+        }
+        exercises.forEach { item ->
+            val parentUpdatedAt = updatedAtByRoutine[item.routineId] ?: nowMillis()
+            enqueue(
+                SyncEntityType.ROUTINE_EXERCISE,
+                item.id,
+                SyncOutboxOperation.UPSERT,
+                encodeSync(item.toRemote(userId, updatedAtMs = parentUpdatedAt)),
+            )
+        }
+    }
+
+    suspend fun enqueueRoutineDelete(userId: String, routine: RoutineEntity, deletedAtMs: Long) {
+        enqueue(
+            SyncEntityType.ROUTINE,
+            routine.id,
+            SyncOutboxOperation.DELETE,
+            encodeSync(routine.toRemote(userId, deletedAtMs = deletedAtMs)),
+        )
+    }
+
+    suspend fun enqueueRoutineExerciseDelete(
+        userId: String,
+        item: RoutineExerciseEntity,
+        updatedAtMs: Long,
+        deletedAtMs: Long,
+    ) {
+        enqueue(
+            SyncEntityType.ROUTINE_EXERCISE,
+            item.id,
+            SyncOutboxOperation.DELETE,
+            encodeSync(item.toRemote(userId, updatedAtMs = updatedAtMs, deletedAtMs = deletedAtMs)),
+        )
+    }
+
+    suspend fun enqueueAllTemplates(userId: String, templates: List<ActivityTemplateGraph>) {
+        templates.forEach { graph ->
+            val template = graph.template
+            enqueue(
+                SyncEntityType.ACTIVITY_TEMPLATE,
+                template.id,
+                SyncOutboxOperation.UPSERT,
+                encodeSync(template.toRemote(userId)),
+            )
+            graph.blocks.forEach { blockGraph ->
+                val block = blockGraph.block
+                enqueue(
+                    SyncEntityType.ACTIVITY_BLOCK,
+                    block.id,
+                    SyncOutboxOperation.UPSERT,
+                    encodeSync(block.toRemote(userId, template.updatedAtMs)),
+                )
+                blockGraph.strengthSets.forEach { set ->
+                    enqueue(
+                        SyncEntityType.ACTIVITY_STRENGTH_SET,
+                        set.id,
+                        SyncOutboxOperation.UPSERT,
+                        encodeSync(set.toRemote(userId, set.completedAtMs)),
+                    )
+                }
+                blockGraph.cardioIntervals.forEach { interval ->
+                    enqueue(
+                        SyncEntityType.ACTIVITY_CARDIO_INTERVAL,
+                        interval.id,
+                        SyncOutboxOperation.UPSERT,
+                        encodeSync(interval.toRemote(userId, template.updatedAtMs)),
+                    )
+                }
+            }
+        }
+    }
+
+    suspend fun enqueueTemplateDelete(userId: String, templateId: String, updatedAtMs: Long, deletedAtMs: Long) {
+        val tombstone = RemoteActivityTemplateRow(
+            id = templateId,
+            userId = userId,
+            title = "",
+            notes = "",
+            createdAtMs = deletedAtMs,
+            updatedAtMs = updatedAtMs,
+            revision = 0L,
+            deletedAtMs = deletedAtMs,
+        )
+        enqueue(
+            SyncEntityType.ACTIVITY_TEMPLATE,
+            templateId,
+            SyncOutboxOperation.DELETE,
+            encodeSync(tombstone),
         )
     }
 

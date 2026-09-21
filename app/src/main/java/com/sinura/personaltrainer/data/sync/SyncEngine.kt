@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
+import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.dao.SyncDao
 import com.sinura.personaltrainer.data.local.entity.SyncMetadataEntity
 import com.sinura.personaltrainer.data.local.entity.SyncTableCursorEntity
@@ -20,6 +21,7 @@ class SyncEngine(
     private val syncDao: SyncDao,
     private val activityDao: ActivityDao,
     private val plannerDao: PlannerDao,
+    private val routineDao: RoutineDao,
     private val remote: SyncRemotePort,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
@@ -105,11 +107,14 @@ class SyncEngine(
 
     private suspend fun pullAll() {
         pullTable(SyncEntityType.ACTIVITY_SESSION, ::applyActivitySession)
+        pullTable(SyncEntityType.ACTIVITY_TEMPLATE, ::applyActivityTemplate)
         pullTable(SyncEntityType.ACTIVITY_BLOCK, ::applyActivityBlock)
         pullTable(SyncEntityType.ACTIVITY_STRENGTH_SET, ::applyStrengthSet)
         pullTable(SyncEntityType.ACTIVITY_CARDIO_INTERVAL, ::applyCardioInterval)
         pullTable(SyncEntityType.SCHEDULE_RULE, ::applyScheduleRule)
         pullTable(SyncEntityType.SCHEDULE_OCCURRENCE, ::applyScheduleOccurrence)
+        pullTable(SyncEntityType.ROUTINE, ::applyRoutine)
+        pullTable(SyncEntityType.ROUTINE_EXERCISE, ::applyRoutineExercise)
     }
 
     private suspend fun pullTable(
@@ -212,6 +217,48 @@ class SyncEngine(
             return remote.updatedAtMs
         }
         plannerDao.upsertOccurrence(remote.toEntity())
+        return remote.updatedAtMs
+    }
+
+    private suspend fun applyActivityTemplate(json: String): Long {
+        val remote = decodeSync<RemoteActivityTemplateRow>(json)
+        if (remote.deletedAtMs != null) {
+            activityDao.deleteTemplate(remote.id)
+            return remote.updatedAtMs
+        }
+        val local = activityDao.getTemplateRow(remote.id)
+        val localVersion = SyncEntityVersion(0L, local?.updatedAtMs ?: -1L)
+        val remoteVersion = SyncEntityVersion(remote.revision, remote.updatedAtMs)
+        if (local != null && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
+            return remote.updatedAtMs
+        }
+        activityDao.upsertTemplate(remote.toEntity())
+        return remote.updatedAtMs
+    }
+
+    private suspend fun applyRoutine(json: String): Long {
+        val remote = decodeSync<RemoteRoutineRow>(json)
+        if (remote.deletedAtMs != null) {
+            routineDao.deleteRoutine(remote.id)
+            return remote.updatedAtMs
+        }
+        val local = routineDao.getById(remote.id)?.routine
+        val localVersion = SyncEntityVersion(0L, local?.updatedAt ?: -1L)
+        val remoteVersion = SyncEntityVersion(remote.revision, remote.updatedAtMs)
+        if (local != null && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
+            return remote.updatedAtMs
+        }
+        routineDao.upsertRoutine(remote.toEntity())
+        return remote.updatedAtMs
+    }
+
+    private suspend fun applyRoutineExercise(json: String): Long {
+        val remote = decodeSync<RemoteRoutineExerciseRow>(json)
+        if (remote.deletedAtMs != null) {
+            routineDao.deleteRoutineExercise(remote.id)
+            return remote.updatedAtMs
+        }
+        routineDao.upsertRoutineExercise(remote.toEntity())
         return remote.updatedAtMs
     }
 

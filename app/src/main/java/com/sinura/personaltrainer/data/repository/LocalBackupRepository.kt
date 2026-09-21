@@ -84,6 +84,8 @@ class LocalBackupRepository(
     private val plannerDao: PlannerDao? = null,
     private val goalDao: GoalDao? = null,
     private val onBeforeRestore: suspend () -> Unit = {},
+    /** After Room restore writes routines/templates (Temper Account outbox when signed in). */
+    private val onPlanDataRestored: suspend () -> Unit = {},
     safetySnapshotDir: File? = null,
     clock: () -> Long = { System.currentTimeMillis() },
 ) {
@@ -574,6 +576,7 @@ class LocalBackupRepository(
                 }
             }
         }
+        onPlanDataRestored()
     }
 
     suspend fun applyPreferences(document: BackupDocument): Boolean {

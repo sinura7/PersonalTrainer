@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 import com.sinura.personaltrainer.domain.SyncEntityType
 import kotlinx.coroutines.test.runTest
@@ -33,6 +34,7 @@ class SyncEngineTest {
             syncDao = database.syncDao(),
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),
+            routineDao = database.routineDao(),
             remote = remote,
             nowMillis = { 5_000L },
         )
@@ -98,6 +100,45 @@ class SyncEngineTest {
         assertTrue(engine.run("user-1").isSuccess)
         assertEquals(1, remote.upserts.count { it.first == SyncEntityType.SCHEDULE_RULE })
         assertEquals(0, database.syncDao().pendingCount())
+    }
+
+    @Test
+    fun pullAppliesRemoteRoutineWhenNewer() = runTest {
+        val local = RoutineEntity(
+            id = "routine-1",
+            name = "Push",
+            notes = "",
+            createdAt = 100L,
+            updatedAt = 100L,
+        )
+        database.routineDao().upsertRoutine(local)
+        val remoteRow = local.copy(updatedAt = 900L)
+        remote.seed(
+            SyncEntityType.ROUTINE,
+            encodeSync(remoteRow.toRemote(userId = "user-1")),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertEquals(900L, database.routineDao().getById("routine-1")!!.routine.updatedAt)
+    }
+
+    @Test
+    fun pullKeepsLocalRoutineWhenNewer() = runTest {
+        val local = RoutineEntity(
+            id = "routine-2",
+            name = "Pull",
+            notes = "",
+            createdAt = 100L,
+            updatedAt = 800L,
+        )
+        database.routineDao().upsertRoutine(local)
+        val staleRemote = local.copy(name = "Stale", updatedAt = 200L)
+        remote.seed(
+            SyncEntityType.ROUTINE,
+            encodeSync(staleRemote.toRemote(userId = "user-1")),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertEquals("Pull", database.routineDao().getById("routine-2")!!.routine.name)
+        assertEquals(800L, database.routineDao().getById("routine-2")!!.routine.updatedAt)
     }
 
     @Test

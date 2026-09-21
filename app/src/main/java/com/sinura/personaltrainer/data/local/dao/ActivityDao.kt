@@ -198,6 +198,9 @@ interface ActivityDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertCardioIntervals(intervals: List<ActivityCardioIntervalEntity>)
 
+    @Query("SELECT * FROM activity_templates WHERE id = :id")
+    suspend fun getTemplateRow(id: String): ActivityTemplateEntity?
+
     @Transaction
     @Query("SELECT * FROM activity_templates ORDER BY title")
     suspend fun getAllTemplateGraphs(): List<ActivityTemplateGraph>
