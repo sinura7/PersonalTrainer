@@ -31,4 +31,6 @@ data class ExerciseEntity(
     val movementKey: String? = null,
     val imageKey: String? = null,
     @ColumnInfo(defaultValue = "''") val nameKey: String = "",
+    /** Sync cursor for custom lifts only; built-ins stay at 0 and are never uploaded. */
+    @ColumnInfo(defaultValue = "0") val updatedAtMs: Long = 0L,
 )

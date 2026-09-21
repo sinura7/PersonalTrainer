@@ -235,3 +235,12 @@ val MIGRATION_TEMPER_5_6 = object : Migration(5, 6) {
         )
     }
 }
+
+/** Temper v6 → v7: per-row sync timestamps for custom exercises (Packet 2 account sync). */
+val MIGRATION_TEMPER_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "ALTER TABLE `exercises` ADD COLUMN `updatedAtMs` INTEGER NOT NULL DEFAULT 0",
+        )
+    }
+}

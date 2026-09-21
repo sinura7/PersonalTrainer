@@ -101,6 +101,19 @@ class AppContainer(context: Context) : AppDependencies {
     private val supabaseRuntime = AccountAuthFactory.createRuntime()
     private val syncOutboxWriter = SyncOutboxWriter(database.syncDao())
     private val syncScheduler = WorkManagerSyncScheduler(context)
+    private val syncAuthoring: SyncAuthoring? = supabaseRuntime?.let {
+        SyncAuthoring(
+            auth = it.auth,
+            outbox = syncOutboxWriter,
+            activityDao = database.activityDao(),
+            plannerDao = database.plannerDao(),
+            routineDao = database.routineDao(),
+            exerciseDao = database.exerciseDao(),
+            catalogDao = database.catalogDao(),
+            bodyweightDao = database.bodyweightDao(),
+            requestSync = syncScheduler::enqueueOneShot,
+        )
+    }
     val syncCoordinator: SyncCoordinator = SyncCoordinator(
         auth = supabaseRuntime?.auth ?: UnconfiguredAccountAuth(),
         syncDao = database.syncDao(),
@@ -110,22 +123,15 @@ class AppContainer(context: Context) : AppDependencies {
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),
             routineDao = database.routineDao(),
+            exerciseDao = database.exerciseDao(),
+            catalogDao = database.catalogDao(),
+            bodyweightDao = database.bodyweightDao(),
             remote = supabaseRuntime?.syncRemote ?: NoOpSyncRemote,
         ),
         scheduler = syncScheduler,
+        authoring = syncAuthoring,
     )
     override val syncStatus = if (supabaseRuntime != null) syncCoordinator else DisabledSyncStatusPort
-
-    private val syncAuthoring: SyncAuthoring? = supabaseRuntime?.let {
-        SyncAuthoring(
-            auth = it.auth,
-            outbox = syncOutboxWriter,
-            activityDao = database.activityDao(),
-            plannerDao = database.plannerDao(),
-            routineDao = database.routineDao(),
-            requestSync = syncCoordinator::requestSync,
-        )
-    }
 
     /**
      * One lock over every wholesale rewrite of the catalog. The startup seed and a restore both
@@ -151,6 +157,7 @@ class AppContainer(context: Context) : AppDependencies {
         workoutDao = database.workoutDao(),
         catalogDao = database.catalogDao(),
         database = database,
+        syncAuthoring = syncAuthoring,
     )
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,
@@ -180,6 +187,7 @@ class AppContainer(context: Context) : AppDependencies {
         context,
         bodyweightDao = database.bodyweightDao(),
         trainingBlockDao = database.trainingBlockDao(),
+        onBodyweightChanged = { syncAuthoring?.onBodyweightChanged() },
     )
 
     /**
@@ -293,6 +301,8 @@ class AppContainer(context: Context) : AppDependencies {
             onPlanDataRestored = {
                 syncAuthoring?.onRoutinesChanged()
                 syncAuthoring?.onTemplatesChanged()
+                syncAuthoring?.onCustomExercisesChanged()
+                syncAuthoring?.onBodyweightChanged()
             },
             safetySnapshotDir = java.io.File(context.filesDir, "safety-snapshots"),
         ),

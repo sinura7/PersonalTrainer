@@ -16,6 +16,9 @@ interface ExerciseDao {
     @Query("SELECT * FROM exercises ORDER BY id")
     suspend fun getAll(): List<ExerciseEntity>
 
+    @Query("SELECT * FROM exercises WHERE isCustom = 1 ORDER BY id")
+    suspend fun getAllCustom(): List<ExerciseEntity>
+
     /**
      * Name/muscle substring search.
      *

@@ -14,7 +14,7 @@ package com.sinura.personaltrainer.data.local
 object FoundationGeneration {
     const val NAME = "temper"
     const val DATABASE_FILE = "temper.db"
-    const val VERSION = 6
+    const val VERSION = 7
     const val LEGACY_DATABASE_FILE = "personal_trainer.db"
 
     /**

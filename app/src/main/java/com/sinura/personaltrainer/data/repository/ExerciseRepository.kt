@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.local.dao.ExerciseDao
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
+import com.sinura.personaltrainer.data.sync.SyncAuthoring
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.domain.CatalogMeta
@@ -52,6 +53,8 @@ class ExerciseRepository(
     private val workoutDao: WorkoutDao,
     private val catalogDao: CatalogDao,
     private val database: AppRoomDatabase? = null,
+    private val syncAuthoring: SyncAuthoring? = null,
+    private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
     /**
      * The catalog, with each lift's junction credits attached.
@@ -148,6 +151,7 @@ class ExerciseRepository(
             exerciseDao.getByNameKey(nameKey)?.let { clash ->
                 return@writeExercise SaveExerciseResult.DuplicateName(clash.toDomain())
             }
+            val stamp = nowMillis()
             val exercise = Exercise(
                 id = "ex-custom-${UUID.randomUUID()}",
                 name = trimmedName,
@@ -158,8 +162,11 @@ class ExerciseRepository(
                 loadType = loadType,
                 muscles = MuscleNormalizer.deriveCredits(group),
             )
-            exerciseDao.insert(exercise.toEntity())
-            catalogDao.replaceCreditsFor(exercise.id, exercise.muscles.toRows(exercise.id))
+            val entity = exercise.toEntity().copy(updatedAtMs = stamp)
+            val muscleRows = exercise.muscles.toRows(exercise.id)
+            exerciseDao.insert(entity)
+            catalogDao.replaceCreditsFor(exercise.id, muscleRows)
+            syncAuthoring?.onCustomExerciseCommitted(entity, muscleRows)
             SaveExerciseResult.Saved(exercise)
         }
     }
@@ -189,10 +196,13 @@ class ExerciseRepository(
                 nameKey = nameKey,
                 loadType = nextLoad.name,
                 equipment = nextEquipment.name,
+                updatedAtMs = nowMillis(),
             )
             exerciseDao.update(updated)
             val credits = MuscleNormalizer.deriveCredits(group)
-            catalogDao.replaceCreditsFor(id, credits.toRows(id))
+            val muscleRows = credits.toRows(id)
+            catalogDao.replaceCreditsFor(id, muscleRows)
+            syncAuthoring?.onCustomExerciseCommitted(updated, muscleRows)
             SaveExerciseResult.Saved(updated.toDomain(credits))
         }
     }
@@ -208,6 +218,8 @@ class ExerciseRepository(
         if (!existing.isCustom) return DeleteExerciseResult.NotCustom
         val usage = usageFor(id)
         if (usage.isReferenced) return DeleteExerciseResult.InUse(usage)
+        val muscles = catalogDao.creditsFor(id)
+        syncAuthoring?.onCustomExerciseDeleted(existing, muscles)
         exerciseDao.deleteCustom(id)
         return DeleteExerciseResult.Deleted
     }

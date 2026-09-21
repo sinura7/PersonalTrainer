@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.data.sync
 
 import com.sinura.personaltrainer.data.local.entity.ActivityTemplateEntity
+import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import org.junit.Assert.assertEquals
@@ -59,5 +61,33 @@ class SyncPlanRemoteRowsTest {
         assertTrue(json.contains("\"updated_at_ms\":77"))
         val back = decodeSync<RemoteActivityTemplateRow>(json).toEntity()
         assertEquals(entity, back)
+    }
+
+    @Test
+    fun customExerciseRoundTripUsesSnakeCaseOnWire() {
+        val entity = ExerciseEntity(
+            id = "ex-custom-9",
+            name = "Hatfield squat",
+            muscleGroup = "Quads",
+            notes = "notes",
+            isCustom = true,
+            equipment = "BARBELL",
+            loadType = "EXTERNAL",
+            nameKey = "hatfield squat",
+            updatedAtMs = 88L,
+        )
+        val json = encodeSync(entity.toCustomRemote(userId = "user-abc", createdAtMs = 10L))
+        assertTrue(json.contains("\"muscle_group\":\"Quads\""))
+        assertTrue(json.contains("\"load_type\":\"EXTERNAL\""))
+        val back = decodeSync<RemoteCustomExerciseRow>(json).toEntity()
+        assertEquals(entity, back)
+    }
+
+    @Test
+    fun exerciseMuscleMapsJunctionColumns() {
+        val row = ExerciseMuscleEntity(exerciseId = "ex-custom-9", muscleKey = "QUADS", weight = 1.0)
+        val json = encodeSync(row.toRemote(userId = "user-abc", updatedAtMs = 50L))
+        assertTrue(json.contains("\"exercise_id\":\"ex-custom-9\""))
+        assertTrue(json.contains("\"muscle_key\":\"QUADS\""))
     }
 }

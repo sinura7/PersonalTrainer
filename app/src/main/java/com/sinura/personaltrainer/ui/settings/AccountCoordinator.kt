@@ -70,7 +70,10 @@ class AccountCoordinator(
         scope.launch {
             val result = container.accountAuth.signIn(email, password)
             busy.value = null
-            result.onSuccess { container.syncStatus.requestSync() }
+            result.onSuccess {
+                container.syncStatus.bootstrapAfterSignIn()
+                container.syncStatus.requestSync()
+            }
             result.onFailure { failure ->
                 error.value = AccountAuthCopy.errorMessage(
                     failure.toAccountAuthError(container.accountAuth.configured),
@@ -86,7 +89,10 @@ class AccountCoordinator(
         scope.launch {
             val result = container.accountAuth.signUp(email, password)
             busy.value = null
-            result.onSuccess { container.syncStatus.requestSync() }
+            result.onSuccess {
+                container.syncStatus.bootstrapAfterSignIn()
+                container.syncStatus.requestSync()
+            }
             result.onFailure { failure ->
                 error.value = AccountAuthCopy.errorMessage(
                     failure.toAccountAuthError(container.accountAuth.configured),

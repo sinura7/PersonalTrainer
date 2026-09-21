@@ -42,6 +42,9 @@ class SyncEngineTest {
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),
             routineDao = database.routineDao(),
+            exerciseDao = database.exerciseDao(),
+            catalogDao = database.catalogDao(),
+            bodyweightDao = database.bodyweightDao(),
             remote = remote,
             nowMillis = { 5_000L },
         )
@@ -423,5 +426,49 @@ class SyncEngineTest {
         remote.seed(SyncEntityType.ROUTINE_EXERCISE, encodeSync(tombstone))
         assertTrue(engine.run("user-1").isSuccess)
         assertNull(database.routineDao().getRoutineExercise("re-t"))
+    }
+
+    @Test
+    fun pullAppliesRemoteCustomExerciseWhenNewer() = runTest {
+        val local = ExerciseEntity(
+            id = "ex-custom-1",
+            name = "Old name",
+            muscleGroup = "Quads",
+            notes = "",
+            isCustom = true,
+            nameKey = "old",
+            updatedAtMs = 100L,
+        )
+        database.exerciseDao().insert(local)
+        val remoteRow = local.copy(name = "New name", updatedAtMs = 500L, nameKey = "new")
+        remote.seed(
+            SyncEntityType.CUSTOM_EXERCISE,
+            encodeSync(remoteRow.toCustomRemote(userId = "user-1", createdAtMs = 100L)),
+        )
+        assertTrue(engine.run("user-1").isSuccess)
+        assertEquals("New name", database.exerciseDao().getById("ex-custom-1")!!.name)
+    }
+
+    @Test
+    fun pullAppliesBodyweightEntryWhenNewer() = runTest {
+        database.bodyweightDao().upsert(
+            com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity(
+                epochDay = 20_000L,
+                kg = 78.0,
+                recordedAtMs = 100L,
+            ),
+        )
+        val remoteRow = RemoteBodyweightEntryRow(
+            epochDay = 20_000L,
+            userId = "user-1",
+            kg = 79.0,
+            recordedAtMs = 500L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            updatedAtMs = 500L,
+        )
+        remote.seed(SyncEntityType.BODYWEIGHT_ENTRY, encodeSync(remoteRow))
+        assertTrue(engine.run("user-1").isSuccess)
+        assertEquals(79.0, database.bodyweightDao().getAll().single().kg, 0.001)
     }
 }

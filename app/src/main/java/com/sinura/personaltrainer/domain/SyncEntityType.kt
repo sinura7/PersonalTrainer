@@ -11,6 +11,9 @@ enum class SyncEntityType(val remoteTable: String) {
     ROUTINE("routines"),
     ROUTINE_EXERCISE("routine_exercises"),
     ACTIVITY_TEMPLATE("activity_templates"),
+    CUSTOM_EXERCISE("custom_exercises"),
+    EXERCISE_MUSCLE("custom_exercise_muscles"),
+    BODYWEIGHT_ENTRY("bodyweight_entries"),
 }
 
 enum class SyncOutboxOperation {

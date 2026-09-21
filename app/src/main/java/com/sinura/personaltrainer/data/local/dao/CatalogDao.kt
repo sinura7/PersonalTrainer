@@ -33,6 +33,9 @@ interface CatalogDao {
     @Query("DELETE FROM exercise_muscles WHERE exerciseId = :exerciseId")
     suspend fun deleteCreditsFor(exerciseId: String)
 
+    @Query("DELETE FROM exercise_muscles WHERE exerciseId = :exerciseId AND muscleKey = :muscleKey")
+    suspend fun deleteCredit(exerciseId: String, muscleKey: String)
+
     /**
      * Delete-then-insert rather than upsert: a lift whose secondaries were trimmed must lose
      * the rows it no longer has, and an upsert can only ever add or overwrite.
