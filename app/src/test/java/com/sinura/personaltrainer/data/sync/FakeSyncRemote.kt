@@ -6,8 +6,13 @@ class FakeSyncRemote : SyncRemotePort {
     val upserts = mutableListOf<Pair<SyncEntityType, String>>()
     val tombstones = mutableListOf<Pair<SyncEntityType, String>>()
     private val store = mutableMapOf<SyncEntityType, MutableList<String>>()
+    var failNextUpsert: Exception? = null
 
     override suspend fun upsert(type: SyncEntityType, payloadJson: String) {
+        failNextUpsert?.let { error ->
+            failNextUpsert = null
+            throw error
+        }
         upserts += type to payloadJson
         store.getOrPut(type) { mutableListOf() }.add(payloadJson)
     }

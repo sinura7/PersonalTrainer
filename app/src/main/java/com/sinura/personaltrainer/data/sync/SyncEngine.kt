@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.local.dao.SyncDao
 import com.sinura.personaltrainer.data.local.entity.SyncMetadataEntity
 import com.sinura.personaltrainer.data.local.entity.SyncTableCursorEntity
+import com.sinura.personaltrainer.domain.SyncCopy
 import com.sinura.personaltrainer.domain.SyncEntityType
 import com.sinura.personaltrainer.domain.SyncEntityVersion
 import com.sinura.personaltrainer.domain.SyncOutboxOperation
@@ -23,28 +24,60 @@ class SyncEngine(
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
     suspend fun run(userId: String): Result<Unit> {
-        return try {
+        var pushError: Exception? = null
+        var pullError: Exception? = null
+        try {
             pushOutbox()
-            pullAll()
-            syncDao.upsertMetadata(
-                SyncMetadataEntity(
-                    lastSuccessAtMs = nowMillis(),
-                    lastError = null,
-                ),
-            )
-            Result.success(Unit)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            AppLog.w(TAG, "Sync pass failed", error)
-            syncDao.upsertMetadata(
-                SyncMetadataEntity(
-                    lastSuccessAtMs = syncDao.getMetadata()?.lastSuccessAtMs,
-                    lastError = error.message?.ifBlank { null } ?: "Sync failed.",
-                ),
-            )
-            Result.failure(error)
+            AppLog.w(TAG, "Sync push failed", error)
+            pushError = error
         }
+        try {
+            pullAll()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            AppLog.w(TAG, "Sync pull failed", error)
+            pullError = error
+        }
+        val previousSuccess = syncDao.getMetadata()?.lastSuccessAtMs
+        return when {
+            pushError != null && pullError != null -> {
+                val message = listOf(pushError!!.message, pullError!!.message)
+                    .filterNot { it.isNullOrBlank() }
+                    .joinToString(" ")
+                recordFailure(previousSuccess, message.ifBlank { "Sync failed." })
+                Result.failure(pushError!!)
+            }
+            pushError != null -> {
+                recordFailure(previousSuccess, pushError!!.message)
+                Result.failure(pushError!!)
+            }
+            pullError != null -> {
+                recordFailure(previousSuccess, pullError!!.message)
+                Result.failure(pullError!!)
+            }
+            else -> {
+                syncDao.upsertMetadata(
+                    SyncMetadataEntity(
+                        lastSuccessAtMs = nowMillis(),
+                        lastError = null,
+                    ),
+                )
+                Result.success(Unit)
+            }
+        }
+    }
+
+    private suspend fun recordFailure(previousSuccess: Long?, rawMessage: String?) {
+        syncDao.upsertMetadata(
+            SyncMetadataEntity(
+                lastSuccessAtMs = previousSuccess,
+                lastError = SyncCopy.ownerFacingError(rawMessage),
+            ),
+        )
     }
 
     private suspend fun pushOutbox() {

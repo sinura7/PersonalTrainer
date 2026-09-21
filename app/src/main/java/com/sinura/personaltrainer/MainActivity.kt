@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
                     if (showColdStartIntro) {
                         ColdStartIntro(
                             reduceMotion = reduceMotion,
+                            onIntroDisplayed = { app.markColdStartIntroShown() },
                             onFinished = {
                                 app.markColdStartIntroShown()
                                 showColdStartIntro = false

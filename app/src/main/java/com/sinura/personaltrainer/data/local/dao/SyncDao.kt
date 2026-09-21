@@ -29,6 +29,9 @@ interface SyncDao {
     @Query("DELETE FROM sync_outbox WHERE id = :id")
     suspend fun deleteOutbox(id: String)
 
+    @Query("DELETE FROM sync_outbox")
+    suspend fun clearOutbox()
+
     @Query("UPDATE sync_outbox SET attempts = :attempts, lastError = :lastError WHERE id = :id")
     suspend fun markOutboxAttempt(id: String, attempts: Int, lastError: String?)
 

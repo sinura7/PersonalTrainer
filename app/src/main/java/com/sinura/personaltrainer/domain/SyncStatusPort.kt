@@ -16,6 +16,12 @@ data class SyncStatus(
 interface SyncStatusPort {
     val status: Flow<SyncStatus>
     fun requestSync()
+
+    /**
+     * Drops queued uploads for the signed-out account. Local gym-floor data is unchanged;
+     * a later sign-in starts a fresh upload queue from new edits.
+     */
+    suspend fun abandonOutboxOnSignOut()
 }
 
 /** No-op for tests and unconfigured builds. */
@@ -24,4 +30,5 @@ object DisabledSyncStatusPort : SyncStatusPort {
         SyncStatus(active = false, pendingCount = 0, lastSuccessAtMs = null, lastError = null),
     )
     override fun requestSync() = Unit
+    override suspend fun abandonOutboxOnSignOut() = Unit
 }

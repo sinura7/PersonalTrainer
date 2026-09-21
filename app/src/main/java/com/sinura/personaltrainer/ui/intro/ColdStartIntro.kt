@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -59,8 +60,13 @@ fun ColdStartIntro(
     onFinished: () -> Unit,
     reduceMotion: Boolean,
     modifier: Modifier = Modifier,
+    onIntroDisplayed: () -> Unit = {},
 ) {
     val view = LocalView.current
+    DisposableEffect(Unit) {
+        onIntroDisplayed()
+        onDispose { }
+    }
     val finishOnce = remember(onFinished) {
         var done = false
         {

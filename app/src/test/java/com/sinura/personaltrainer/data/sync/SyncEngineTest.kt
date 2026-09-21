@@ -99,4 +99,57 @@ class SyncEngineTest {
         assertEquals(1, remote.upserts.count { it.first == SyncEntityType.SCHEDULE_RULE })
         assertEquals(0, database.syncDao().pendingCount())
     }
+
+    @Test
+    fun pushFailureStillRunsPull() = runTest {
+        val writer = SyncOutboxWriter(database.syncDao(), nowMillis = { 1L })
+        writer.enqueueScheduleRules(
+            userId = "user-1",
+            rules = listOf(
+                ScheduleRuleEntity(
+                    id = "rule-push-fail",
+                    weekday = 2,
+                    hour = 7,
+                    minute = 0,
+                    modality = "STRENGTH",
+                    zonePolicy = "DEVICE",
+                    fixedZoneId = null,
+                    routineId = null,
+                    templateId = null,
+                    focusKind = null,
+                    reminderOffsetMinutes = 0,
+                    enabled = 1,
+                    createdAtMs = 1L,
+                    updatedAtMs = 2L,
+                ),
+            ),
+        )
+        remote.failNextUpsert = IllegalStateException("Supabase upsert failed (503): busy")
+        val remoteRow = ScheduleRuleEntity(
+            id = "rule-remote",
+            weekday = 3,
+            hour = 8,
+            minute = 0,
+            modality = "STRENGTH",
+            zonePolicy = "DEVICE",
+            fixedZoneId = null,
+            routineId = null,
+            templateId = null,
+            focusKind = null,
+            reminderOffsetMinutes = 0,
+            enabled = 1,
+            createdAtMs = 10L,
+            updatedAtMs = 400L,
+        )
+        remote.seed(
+            SyncEntityType.SCHEDULE_RULE,
+            encodeSync(remoteRow.toRemote(userId = "user-1")),
+        )
+        assertTrue(engine.run("user-1").isFailure)
+        assertEquals(1, database.syncDao().pendingCount())
+        assertEquals(400L, database.plannerDao().getRule("rule-remote")!!.updatedAtMs)
+        assertTrue(
+            database.syncDao().getMetadata()?.lastError?.contains("Temper Account") == true,
+        )
+    }
 }

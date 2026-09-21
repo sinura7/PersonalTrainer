@@ -13,20 +13,15 @@ object AccountAuthCopy {
     const val CREDENTIALS_BACK = "Back"
     const val CREDENTIALS_TITLE = "Sign in or create account"
     const val NOT_CONFIGURED =
-        "Temper Account is not configured for this build. Add SUPABASE_URL and " +
-            "SUPABASE_ANON_KEY to supabase.properties on your machine, then rebuild."
+        "Temper Account is not available in this build yet. Training on this phone still works."
     const val SIGNED_OUT_CAPTION =
         "Training on this phone does not require an account. Sign in to copy finished " +
             "workouts and your plan to Temper Account when you are online."
     const val SIGNED_IN_CAPTION =
         "Sync runs in the background when you are online. Workouts, Plan, and History " +
             "still work offline on this phone."
-    fun syncStatusLine(pending: Int, lastSuccessAtMs: Long?, lastError: String?): String = when {
-        lastError != null -> "Sync issue: $lastError"
-        pending > 0 -> "Sync pending: $pending change(s) waiting to upload."
-        lastSuccessAtMs != null -> "Last synced successfully."
-        else -> "Sync has not run yet on this phone."
-    }
+    fun syncStatusLine(pending: Int, lastSuccessAtMs: Long?, lastError: String?): String =
+        SyncCopy.syncStatusLine(pending, lastSuccessAtMs, lastError)
     const val EMAIL = "Email"
     const val PASSWORD = "Password"
     const val SIGN_IN = "Sign in"

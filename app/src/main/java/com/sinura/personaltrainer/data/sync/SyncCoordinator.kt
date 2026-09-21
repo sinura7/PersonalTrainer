@@ -30,5 +30,16 @@ class SyncCoordinator(
         scheduler.enqueueOneShot()
     }
 
+    override suspend fun abandonOutboxOnSignOut() {
+        syncDao.clearOutbox()
+        val previous = syncDao.getMetadata()?.lastSuccessAtMs
+        syncDao.upsertMetadata(
+            com.sinura.personaltrainer.data.local.entity.SyncMetadataEntity(
+                lastSuccessAtMs = previous,
+                lastError = null,
+            ),
+        )
+    }
+
     suspend fun runPass(userId: String): Result<Unit> = engine.run(userId)
 }

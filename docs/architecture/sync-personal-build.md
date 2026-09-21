@@ -20,3 +20,16 @@
 - **Conflicts:** Per-entity `revision` (activity sessions) or `updated_at_ms` (schedule rows with revision `0`); higher revision wins, then later `updated_at_ms`. Soft deletes use `deleted_at_ms` tombstones on the server.
 
 Supabase column names are **snake_case** in PostgREST payloads; Room keeps **camelCase** locally.
+
+## Sign-out and outbox
+
+- **Local data stays** on the phone (ADR-004). Sign-out clears the **upload queue** only (`abandonOutboxOnSignOut`); it does not delete workouts or plan rows.
+- Edits after the next sign-in enqueue fresh outbox rows. A failed upload does not block **pull** in the same worker pass (downloads still run).
+
+## Deferred (needs product / later Phase 11)
+
+- **Routines / templates / `routine_exercises` sync** (plan integrity across devices).
+- **E2EE** cloud lane; **Google Sign-In**; **Privacy Policy / Play Data safety / in-app account deletion** UI.
+- **Pre-sign-out confirmation** when pending uploads &gt; 0 (today: queue is dropped silently on successful sign-out; local copies remain).
+- **Child-row conflict rules** for blocks/sets/intervals (sessions + schedule use revision / `updated_at_ms`; child rows are last-write via upsert today).
+- **Paginated pull** beyond 500 rows per table per pass (cursor advances; large restores need multiple worker runs).

@@ -101,6 +101,7 @@ class AccountCoordinator(
         scope.launch {
             val result = container.accountAuth.signOut()
             busy.value = null
+            result.onSuccess { container.syncStatus.abandonOutboxOnSignOut() }
             result.onFailure { failure ->
                 error.value = AccountAuthCopy.errorMessage(
                     failure.toAccountAuthError(container.accountAuth.configured),

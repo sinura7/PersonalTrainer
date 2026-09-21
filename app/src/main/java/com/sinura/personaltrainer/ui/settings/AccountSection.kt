@@ -46,6 +46,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltDim
+import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.ui.theme.instrumentTween
 
 private enum class AccountSignInStep {
@@ -78,6 +79,11 @@ internal fun AccountSection(
         }
 
         var signedOutStep by remember { mutableStateOf(AccountSignInStep.Entry) }
+        LaunchedEffect(state.signedIn) {
+            if (!state.signedIn) {
+                signedOutStep = AccountSignInStep.Entry
+            }
+        }
 
         if (state.signedIn) {
             SignedInAccountBody(
@@ -111,14 +117,12 @@ internal fun AccountSection(
         }
 
         state.error?.let { message ->
-            if (!state.signedIn) {
-                Text(
-                    message,
-                    style = InstrumentType.caption,
-                    color = Danger,
-                    modifier = Modifier.testTag(SettingsTags.ACCOUNT_ERROR),
-                )
-            }
+            Text(
+                message,
+                style = InstrumentType.caption,
+                color = Danger,
+                modifier = Modifier.testTag(SettingsTags.ACCOUNT_ERROR),
+            )
         }
 
         if (state.signedIn) {
@@ -139,14 +143,19 @@ internal fun AccountSection(
         }
 
         if (state.signedIn && state.sync.active) {
+            val syncLine = AccountAuthCopy.syncStatusLine(
+                pending = state.sync.pendingCount,
+                lastSuccessAtMs = state.sync.lastSuccessAtMs,
+                lastError = state.sync.lastError,
+            )
             Text(
-                AccountAuthCopy.syncStatusLine(
-                    pending = state.sync.pendingCount,
-                    lastSuccessAtMs = state.sync.lastSuccessAtMs,
-                    lastError = state.sync.lastError,
-                ),
+                syncLine,
                 style = InstrumentType.caption,
-                color = TextTertiary,
+                color = when {
+                    state.sync.lastError != null -> Danger
+                    state.sync.pendingCount > 0 -> Warn
+                    else -> TextTertiary
+                },
                 modifier = Modifier.testTag(SettingsTags.ACCOUNT_SYNC),
             )
         }
