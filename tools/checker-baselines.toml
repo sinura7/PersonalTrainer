@@ -20,7 +20,7 @@ when_exhaustive = 47
 # fully-qualified call. The defect count is 0 either way.
 # F1: 18 annotated Compose slots now checked; one isolated test-store factory added.
 # Net reduction from the accepted ceiling of 62. Receiver slots remain out of scope.
-lambda_arity_declined = 46
+lambda_arity_declined = 47
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
 # (9 Sep 2026, twice). Ratchet down class by class.

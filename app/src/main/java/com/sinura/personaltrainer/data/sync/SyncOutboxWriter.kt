@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 import com.sinura.personaltrainer.data.local.entity.SyncOutboxEntity
@@ -306,6 +307,64 @@ class SyncOutboxWriter(
             syncBodyweightEntityId(entry.epochDay),
             SyncOutboxOperation.DELETE,
             encodeSync(entry.toRemote(userId, deletedAtMs)),
+        )
+    }
+
+    suspend fun enqueueMeasurableGoalUpsert(userId: String, goal: MeasurableGoalEntity) {
+        enqueue(
+            SyncEntityType.MEASURABLE_GOAL,
+            goal.id,
+            SyncOutboxOperation.UPSERT,
+            encodeSync(goal.toRemote(userId)),
+        )
+    }
+
+    suspend fun enqueueAllMeasurableGoals(userId: String, goals: List<MeasurableGoalEntity>) {
+        goals.forEach { enqueueMeasurableGoalUpsert(userId, it) }
+    }
+
+    suspend fun enqueueMeasurableGoalDelete(userId: String, goal: MeasurableGoalEntity, deletedAtMs: Long) {
+        enqueue(
+            SyncEntityType.MEASURABLE_GOAL,
+            goal.id,
+            SyncOutboxOperation.DELETE,
+            encodeSync(goal.toRemote(userId, deletedAtMs = deletedAtMs)),
+        )
+    }
+
+    suspend fun enqueueCoachPrefs(userId: String, row: RemoteCoachPrefsRow) {
+        enqueue(
+            SyncEntityType.COACH_PREFS,
+            syncAccountPrefsEntityId(userId),
+            SyncOutboxOperation.UPSERT,
+            encodeSync(row),
+        )
+    }
+
+    suspend fun enqueueReminderPrefs(userId: String, row: RemoteReminderPrefsRow) {
+        enqueue(
+            SyncEntityType.REMINDER_PREFS,
+            syncAccountPrefsEntityId(userId),
+            SyncOutboxOperation.UPSERT,
+            encodeSync(row),
+        )
+    }
+
+    suspend fun enqueueDisplayPrefs(userId: String, row: RemoteDisplayPrefsRow) {
+        enqueue(
+            SyncEntityType.DISPLAY_PREFS,
+            syncAccountPrefsEntityId(userId),
+            SyncOutboxOperation.UPSERT,
+            encodeSync(row),
+        )
+    }
+
+    suspend fun enqueueAccountProfile(userId: String, row: RemoteAccountProfileRow) {
+        enqueue(
+            SyncEntityType.ACCOUNT_PROFILE,
+            syncAccountPrefsEntityId(userId),
+            SyncOutboxOperation.UPSERT,
+            encodeSync(row),
         )
     }
 

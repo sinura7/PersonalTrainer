@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.repository
 
 import com.sinura.personaltrainer.data.local.dao.GoalDao
+import com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.domain.GoalKind
@@ -13,6 +14,9 @@ import kotlinx.coroutines.flow.map
 
 class GoalRepository(
     private val dao: GoalDao,
+    private val onGoalUpserted: suspend (MeasurableGoalEntity) -> Unit = {},
+    private val onGoalDeleted: suspend (MeasurableGoalEntity) -> Unit = {},
+    private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
     fun observeAll(): Flow<List<MeasurableGoal>> =
         dao.observeAll().map { rows -> rows.map { it.toDomain() } }
@@ -22,7 +26,9 @@ class GoalRepository(
     suspend fun all(): List<MeasurableGoal> = dao.getAll().map { it.toDomain() }
 
     suspend fun upsert(goal: MeasurableGoal) {
-        dao.upsert(goal.toEntity())
+        val entity = goal.copy(updatedAtMs = nowMillis()).toEntity()
+        dao.upsert(entity)
+        onGoalUpserted(entity)
     }
 
     suspend fun add(
@@ -45,11 +51,17 @@ class GoalRepository(
             createdAtMs = nowMs,
             updatedAtMs = nowMs,
         )
-        dao.upsert(goal.toEntity())
+        val entity = goal.toEntity()
+        dao.upsert(entity)
+        onGoalUpserted(entity)
         return goal
     }
 
     suspend fun delete(id: String) {
+        val existing = dao.getAll().firstOrNull { it.id == id }
+        if (existing != null) {
+            onGoalDeleted(existing)
+        }
         dao.delete(id)
     }
 }

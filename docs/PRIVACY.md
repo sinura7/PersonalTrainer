@@ -45,9 +45,13 @@ When you sign in with email and password:
   occurrences; routines and the exercises in each routine; saved activity templates
   (with the same block, set, and interval rows used for template structure in sync
   today). Live in-progress (`ACTIVE`) sessions are not uploaded. Custom exercises
-  you create (with their muscle credits) and your bodyweight weigh-in log replicate
-  when signed in. Built-in catalog seed rows (the ~98 default lifts) stay on this
-  phone only.
+  you create (with their muscle credits), your bodyweight weigh-in log, measurable goals
+  (including paused goals), coach preferences (goal, emphasis, equipment, training age,
+  place, focus, heat window), workout reminder settings (opt-out, quiet hours, weekday
+  alarms), display preferences (weight unit, clock format, bodyweight check-in weekday),
+  and your save-posture choice replicate when signed in. Built-in catalog seed rows (the
+  ~98 default lifts) stay on this phone only. Email for sign-in lives in Supabase Auth;
+  Temper does not sync a separate display name or avatar.
 - **Who processes it:** Your Supabase project (Auth + Postgres with row-level
   security). The app uses the public anon key and your signed-in access token; there
   is no separate Temper-operated backend beyond that project. Cloud data is **not**

@@ -135,16 +135,34 @@ class PreferencesRepository(
     private val bodyweightDao: BodyweightDao? = null,
     private val trainingBlockDao: TrainingBlockDao? = null,
     private val onBodyweightChanged: suspend () -> Unit = {},
+    private val onAccountPrefsChanged: suspend () -> Unit = {},
     private val nowMs: () -> Long = { System.currentTimeMillis() },
     private val store: SettingsStore = SettingsStore(dataStore),
-) : DisplayPrefs by DisplayPrefsStore(store = store),
-    CoachingPrefs by CoachingPrefsStore(store = store),
+) : DisplayPrefs by DisplayPrefsStore(
+        store = store,
+        onChanged = onAccountPrefsChanged,
+        nowMillis = nowMs,
+    ),
+    CoachingPrefs by CoachingPrefsStore(
+        store = store,
+        onChanged = onAccountPrefsChanged,
+        nowMillis = nowMs,
+    ),
     PlanningPrefs by PlanningPrefsStore(store = store),
     RestPrefs by RestPrefsStore(store = store),
     BackupPrefs by BackupPrefsStore(store = store) {
     private val dataStore = dataStore
-    private val reminders: ReminderPrefs = ReminderPrefsStore(store = store)
-    private val savePosturePrefs: SavePosturePrefs = SavePosturePrefsStore(store = store)
+    internal val accountSyncSettingsStore: SettingsStore get() = store
+    private val reminders: ReminderPrefs = ReminderPrefsStore(
+        store = store,
+        onChanged = onAccountPrefsChanged,
+        nowMillis = nowMs,
+    )
+    private val savePosturePrefs: SavePosturePrefs = SavePosturePrefsStore(
+        store = store,
+        onChanged = onAccountPrefsChanged,
+        nowMillis = nowMs,
+    )
 
     val reminderPreferences: Flow<ReminderPreferences> get() = reminders.reminderPreferences
     val pendingOccurrenceId: Flow<String?> get() = reminders.pendingOccurrenceId

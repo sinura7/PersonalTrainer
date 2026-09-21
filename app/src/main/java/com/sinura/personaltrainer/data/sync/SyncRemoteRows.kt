@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 
@@ -580,3 +581,98 @@ fun syncExerciseMuscleEntityId(exerciseId: String, muscleKey: String): String =
     "$exerciseId|$muscleKey"
 
 fun syncBodyweightEntityId(epochDay: Long): String = epochDay.toString()
+
+data class RemoteMeasurableGoalRow(
+    val id: String,
+    @SerializedName("user_id") val userId: String,
+    val kind: String,
+    @SerializedName("target_value") val targetValue: Double,
+    @SerializedName("exercise_id") val exerciseId: String?,
+    @SerializedName("exercise_name") val exerciseName: String?,
+    val period: String,
+    @SerializedName("instant_ms") val instantMs: Long,
+    @SerializedName("zone_id") val zoneId: String,
+    @SerializedName("offset_seconds") val offsetSeconds: Int,
+    @SerializedName("local_epoch_day") val localEpochDay: Long,
+    val paused: Boolean,
+    @SerializedName("created_at_ms") val createdAtMs: Long,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+data class RemoteCoachPrefsRow(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("training_goal") val trainingGoal: String,
+    @SerializedName("training_emphasis") val trainingEmphasis: String,
+    @SerializedName("available_equipment") val availableEquipment: List<String>,
+    @SerializedName("training_age") val trainingAge: String,
+    @SerializedName("training_place") val trainingPlace: String,
+    @SerializedName("training_focus") val trainingFocus: String,
+    @SerializedName("heat_window") val heatWindow: String,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+data class RemoteReminderPrefsRow(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("reminder_opt_out") val reminderOptOut: Boolean,
+    @SerializedName("reminder_quiet_start_hour") val reminderQuietStartHour: Int,
+    @SerializedName("reminder_quiet_end_hour") val reminderQuietEndHour: Int,
+    @SerializedName("day_alarms") val dayAlarms: List<String>,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+data class RemoteDisplayPrefsRow(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("weight_unit") val weightUnit: String,
+    @SerializedName("clock_format") val clockFormat: String,
+    @SerializedName("bodyweight_check_in_weekday") val bodyweightCheckInWeekday: String?,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+data class RemoteAccountProfileRow(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("save_posture") val savePosture: String,
+    @SerializedName("save_posture_chosen") val savePostureChosen: Boolean,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+internal fun MeasurableGoalEntity.toRemote(userId: String, deletedAtMs: Long? = null): RemoteMeasurableGoalRow =
+    RemoteMeasurableGoalRow(
+        id = id,
+        userId = userId,
+        kind = kind,
+        targetValue = targetValue,
+        exerciseId = exerciseId,
+        exerciseName = exerciseName,
+        period = period,
+        instantMs = instantMs,
+        zoneId = zoneId,
+        offsetSeconds = offsetSeconds,
+        localEpochDay = localEpochDay,
+        paused = paused,
+        createdAtMs = createdAtMs,
+        updatedAtMs = updatedAtMs,
+        deletedAtMs = deletedAtMs,
+    )
+
+internal fun RemoteMeasurableGoalRow.toEntity(): MeasurableGoalEntity = MeasurableGoalEntity(
+    id = id,
+    kind = kind,
+    targetValue = targetValue,
+    exerciseId = exerciseId,
+    exerciseName = exerciseName,
+    period = period,
+    instantMs = instantMs,
+    zoneId = zoneId,
+    offsetSeconds = offsetSeconds,
+    localEpochDay = localEpochDay,
+    paused = paused,
+    createdAtMs = createdAtMs,
+    updatedAtMs = updatedAtMs,
+)
+
+fun syncAccountPrefsEntityId(userId: String): String = userId

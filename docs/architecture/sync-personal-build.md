@@ -11,12 +11,12 @@
 
 | Direction | Tables |
 |-----------|--------|
-| Push + pull | `activity_sessions`, `activity_blocks`, `activity_strength_sets`, `activity_cardio_intervals`, `activity_templates`, `schedule_rules`, `schedule_occurrences`, `routines`, `routine_exercises`, `custom_exercises`, `custom_exercise_muscles`, `bodyweight_entries` |
-| Deferred | Built-in catalog seed (98 rows); goals; coach prefs; reminders; display prefs; account profile |
+| Push + pull | `activity_sessions`, `activity_blocks`, `activity_strength_sets`, `activity_cardio_intervals`, `activity_templates`, `schedule_rules`, `schedule_occurrences`, `routines`, `routine_exercises`, `custom_exercises`, `custom_exercise_muscles`, `bodyweight_entries`, `measurable_goals`, `coach_prefs`, `reminder_prefs`, `display_prefs`, `account_profiles` |
+| Deferred | Built-in catalog seed (98 rows); display name / avatar profile fields (no UI yet) |
 
 ## Mechanics
 
-- **Outbox:** `sync_outbox` rows enqueue on completed activity writes, schedule mutations, routine/template edits, custom exercise edits, bodyweight weigh-ins, and after backup restore of plan/library rows. Live (`ACTIVE`) sessions are not uploaded. Sign-in bootstraps a one-time upload queue snapshot for existing custom lifts and weigh-ins.
+- **Outbox:** `sync_outbox` rows enqueue on completed activity writes, schedule mutations, routine/template edits, custom exercise edits, bodyweight weigh-ins, measurable goal edits, coach/reminder/display/account-profile preference writes, and after backup restore of plan/library/goals/prefs rows. Live (`ACTIVE`) sessions are not uploaded. Sign-in bootstraps a one-time upload queue snapshot for existing custom lifts, weigh-ins, goals, and preference snapshots.
 - **Worker:** WorkManager drains the outbox to Supabase PostgREST, then pulls rows with `updated_at_ms` greater than per-table cursors in `sync_table_cursors`. Each table loops PostgREST pages (500 rows) within one worker pass until a short page, so large restores are not stranded across extra wakes.
 - **Conflicts:** Per-entity `revision` (activity sessions) or `updated_at_ms` (schedule, routines, templates, custom exercises, bodyweight with revision `0`); higher revision wins, then later `updated_at_ms`. Child rows (`routine_exercises`, `custom_exercise_muscles`, activity blocks/sets/intervals) apply server tombstones and upserts only when the parent row exists locally and the same child is not waiting in the upload outbox (local queued edits win until pushed). Soft deletes use `deleted_at_ms` tombstones on the server (routine delete, custom exercise delete, and removed lifts enqueue tombstones).
 
@@ -38,16 +38,19 @@ Supabase column names are **snake_case** in PostgREST payloads; Room keeps **cam
 Signed-in Temper Account users should eventually have workouts, plan, settings, and
 account details cloud-backed with Room as cache. **Today** the tables in
 [Scope](#scope-phase-11-steps-45) replicate, including **custom exercises** (not built-in
-catalog seed) and **bodyweight weigh-ins**. See ADR-028 for Packet 3+ (goals, coach prefs,
-reminders, display prefs, account profile).
+catalog seed), **bodyweight weigh-ins**, **measurable goals** (including pause), **coach prefs**,
+**reminder prefs**, **display prefs**, and **account profile** (save posture). Display name and
+avatar are not stored in Temper today and are not synced.
 
-## Supabase DDL (Packet 2)
+## Supabase DDL
 
-Apply [docs/supabase/packet-2-account-sync-ddl.sql](../supabase/packet-2-account-sync-ddl.sql)
-on the Temper Account project before testing sync for customs or bodyweight on a second device.
+Apply on the Temper Account project before multi-device testing:
+
+- [docs/supabase/packet-2-account-sync-ddl.sql](../supabase/packet-2-account-sync-ddl.sql) — custom exercises + bodyweight
+- [docs/supabase/packet-3-account-sync-ddl.sql](../supabase/packet-3-account-sync-ddl.sql) — goals + settings prefs (Packet 3)
 
 ## Deferred (needs product / later Phase 11+)
 
 - **E2EE** cloud lane; **Google Sign-In**.
 - **Built-in catalog seed** sync (owner customs replicate; 98 built-ins stay device-local).
-- **Goals, coach prefs, reminders, display prefs, account profile** (ADR-028 Packet 3+).
+- **Profile display name / avatar** (no Settings UI yet; email remains Supabase Auth only).

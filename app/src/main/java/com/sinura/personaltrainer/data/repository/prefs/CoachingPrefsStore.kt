@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
+import com.sinura.personaltrainer.data.sync.SyncAccountPrefs
 import kotlinx.coroutines.flow.Flow
 
 /** What the coach is asked to optimise for, and what the lifter actually has to lift with. */
@@ -58,7 +59,11 @@ interface CoachingPrefs {
     suspend fun setHeatWindow(window: HeatWindow)
 }
 
-internal class CoachingPrefsStore(private val store: SettingsStore) : CoachingPrefs {
+internal class CoachingPrefsStore(
+    private val store: SettingsStore,
+    private val onChanged: suspend () -> Unit = {},
+    private val nowMillis: () -> Long = { System.currentTimeMillis() },
+) : CoachingPrefs {
     override val coachPreferences: Flow<CoachPreferences> = store.pref { prefs ->
         CoachPreferences(
             goal = TrainingGoal.fromStorage(prefs[TRAINING_GOAL]),
@@ -81,19 +86,35 @@ internal class CoachingPrefsStore(private val store: SettingsStore) : CoachingPr
         store.pref { prefs -> HeatWindow.fromStorage(prefs[HEAT_WINDOW]) }
 
     override suspend fun setTrainingGoal(goal: TrainingGoal) {
-        store.data.edit { prefs -> prefs[TRAINING_GOAL] = goal.name }
+        store.data.edit { prefs ->
+            prefs[TRAINING_GOAL] = goal.name
+            SyncAccountPrefs.touchCoachUpdatedAt(prefs, nowMillis())
+        }
+        onChanged()
     }
 
     override suspend fun setTrainingEmphasis(emphasis: TrainingEmphasis) {
-        store.data.edit { prefs -> prefs[TRAINING_EMPHASIS] = emphasis.name }
+        store.data.edit { prefs ->
+            prefs[TRAINING_EMPHASIS] = emphasis.name
+            SyncAccountPrefs.touchCoachUpdatedAt(prefs, nowMillis())
+        }
+        onChanged()
     }
 
     override suspend fun setAvailableEquipment(equipment: Set<String>) {
-        store.data.edit { prefs -> prefs[AVAILABLE_EQUIPMENT] = equipment }
+        store.data.edit { prefs ->
+            prefs[AVAILABLE_EQUIPMENT] = equipment
+            SyncAccountPrefs.touchCoachUpdatedAt(prefs, nowMillis())
+        }
+        onChanged()
     }
 
     override suspend fun setTrainingAge(age: TrainingAge) {
-        store.data.edit { prefs -> prefs[TRAINING_AGE] = age.name }
+        store.data.edit { prefs ->
+            prefs[TRAINING_AGE] = age.name
+            SyncAccountPrefs.touchCoachUpdatedAt(prefs, nowMillis())
+        }
+        onChanged()
     }
 
     override suspend fun setTrainingPlace(place: TrainingPlace) {
@@ -102,14 +123,26 @@ internal class CoachingPrefsStore(private val store: SettingsStore) : CoachingPr
 
     override suspend fun setTrainingPlaces(places: Set<TrainingPlace>) {
         val resolved = places.ifEmpty { setOf(TrainingPlace.FULL_GYM) }
-        store.data.edit { prefs -> prefs[TRAINING_PLACE] = TrainingPlace.formatPlaces(resolved) }
+        store.data.edit { prefs ->
+            prefs[TRAINING_PLACE] = TrainingPlace.formatPlaces(resolved)
+            SyncAccountPrefs.touchCoachUpdatedAt(prefs, nowMillis())
+        }
+        onChanged()
     }
 
     override suspend fun setTrainingFocus(focus: TrainingFocus) {
-        store.data.edit { prefs -> prefs[TRAINING_FOCUS] = focus.name }
+        store.data.edit { prefs ->
+            prefs[TRAINING_FOCUS] = focus.name
+            SyncAccountPrefs.touchCoachUpdatedAt(prefs, nowMillis())
+        }
+        onChanged()
     }
 
     override suspend fun setHeatWindow(window: HeatWindow) {
-        store.data.edit { prefs -> prefs[HEAT_WINDOW] = window.name }
+        store.data.edit { prefs ->
+            prefs[HEAT_WINDOW] = window.name
+            SyncAccountPrefs.touchCoachUpdatedAt(prefs, nowMillis())
+        }
+        onChanged()
     }
 }
