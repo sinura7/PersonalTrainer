@@ -16,14 +16,14 @@
 ## Mechanics
 
 - **Outbox:** `sync_outbox` rows enqueue on completed activity writes, schedule mutations, routine/template edits, and after backup restore of plan rows. Live (`ACTIVE`) sessions are not uploaded.
-- **Worker:** WorkManager drains the outbox to Supabase PostgREST, then pulls rows with `updated_at_ms` greater than per-table cursors in `sync_table_cursors`.
-- **Conflicts:** Per-entity `revision` (activity sessions) or `updated_at_ms` (schedule, routines, templates with revision `0`); higher revision wins, then later `updated_at_ms`. Child rows (`routine_exercises`, activity blocks/sets/intervals) last-write via upsert. Soft deletes use `deleted_at_ms` tombstones on the server (routine delete and removed lifts enqueue tombstones).
+- **Worker:** WorkManager drains the outbox to Supabase PostgREST, then pulls rows with `updated_at_ms` greater than per-table cursors in `sync_table_cursors`. Each table loops PostgREST pages (500 rows) within one worker pass until a short page, so large restores are not stranded across extra wakes.
+- **Conflicts:** Per-entity `revision` (activity sessions) or `updated_at_ms` (schedule, routines, templates with revision `0`); higher revision wins, then later `updated_at_ms`. Child rows (`routine_exercises`, activity blocks/sets/intervals) apply server tombstones and upserts only when the parent row exists locally and the same child is not waiting in the upload outbox (local queued edits win until pushed). Soft deletes use `deleted_at_ms` tombstones on the server (routine delete and removed lifts enqueue tombstones).
 
 Supabase column names are **snake_case** in PostgREST payloads; Room keeps **camelCase** locally.
 
 ## Sign-out and outbox
 
-- **Local data stays** on the phone (ADR-004). Sign-out clears the **upload queue** only (`abandonOutboxOnSignOut`); it does not delete workouts or plan rows.
+- **Local data stays** on the phone (ADR-004). Sign-out clears the **upload queue** only (`abandonOutboxOnSignOut`); it does not delete workouts or plan rows. When pending uploads &gt; 0, Settings → Account shows a confirm dialog before sign-out (cancel keeps the session; confirm drops the queue then signs out).
 - Edits after the next sign-in enqueue fresh outbox rows. A failed upload does not block **pull** in the same worker pass (downloads still run).
 
 ## Privacy, Data Safety, account deletion (Phase 11 step 7) — done
@@ -35,6 +35,4 @@ Supabase column names are **snake_case** in PostgREST payloads; Room keeps **cam
 ## Deferred (needs product / later Phase 11)
 
 - **E2EE** cloud lane; **Google Sign-In**.
-- **Pre-sign-out confirmation** when pending uploads &gt; 0 (today: queue is dropped silently on successful sign-out; local copies remain).
-- **Child-row conflict rules** for blocks/sets/intervals (sessions + schedule use revision / `updated_at_ms`; child rows are last-write via upsert today).
-- **Paginated pull** beyond 500 rows per table per pass (cursor advances; large restores need multiple worker runs).
+- **Custom exercises / catalog seed** sync (plan structure is in scope above; catalog is not).

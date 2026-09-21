@@ -4,9 +4,16 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.local.entity.ActivityBlockEntity
+import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
+import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
+import com.sinura.personaltrainer.data.local.entity.SyncOutboxEntity
 import com.sinura.personaltrainer.domain.SyncEntityType
+import com.sinura.personaltrainer.domain.SyncOutboxOperation
+import org.junit.Assert.assertNull
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -192,5 +199,229 @@ class SyncEngineTest {
         assertTrue(
             database.syncDao().getMetadata()?.lastError?.contains("Temper Account") == true,
         )
+    }
+
+    @Test
+    fun pullPaginatesUntilTableExhaustedInOneRun() = runTest {
+        remote.pullPageSize = SYNC_PULL_PAGE_SIZE
+        repeat(550) { index ->
+            val rule = ScheduleRuleEntity(
+                id = "rule-page-$index",
+                weekday = 1,
+                hour = 6,
+                minute = 0,
+                modality = "STRENGTH",
+                zonePolicy = "DEVICE",
+                fixedZoneId = null,
+                routineId = null,
+                templateId = null,
+                focusKind = null,
+                reminderOffsetMinutes = 0,
+                enabled = 1,
+                createdAtMs = 1L,
+                updatedAtMs = (index + 1).toLong() * 10L,
+            )
+            remote.seed(
+                SyncEntityType.SCHEDULE_RULE,
+                encodeSync(rule.toRemote(userId = "user-1")),
+            )
+        }
+        assertTrue(engine.run("user-1").isSuccess)
+        assertEquals(550, database.plannerDao().getRules().size)
+    }
+
+    @Test
+    fun pullSkipsActivityBlockWhenParentSessionMissing() = runTest {
+        val remoteBlock = RemoteActivityBlockRow(
+            id = "block-orphan",
+            userId = "user-1",
+            sessionId = "session-missing",
+            templateId = null,
+            sortOrder = 0,
+            kind = "STRENGTH",
+            exerciseId = "ex-1",
+            exerciseName = "Bench",
+            loadType = "BARBELL",
+            equipment = null,
+            musclesEncoded = null,
+            cardioType = null,
+            indoor = null,
+            elapsedSeconds = null,
+            movingSeconds = null,
+            distanceMeters = null,
+            elevationMeters = null,
+            heartRateBpm = null,
+            energyKj = null,
+            rpe = null,
+            routeRef = null,
+            updatedAtMs = 300L,
+        )
+        remote.seed(SyncEntityType.ACTIVITY_BLOCK, encodeSync(remoteBlock))
+        assertTrue(engine.run("user-1").isSuccess)
+        assertNull(database.activityDao().getBlock("block-orphan"))
+    }
+
+    @Test
+    fun pullSkipsRemoteChildWhileLocalOutboxPending() = runTest {
+        val session = ActivitySessionEntity(
+            id = "sess-local",
+            status = "COMPLETED",
+            origin = "LIVE",
+            source = "STRENGTH",
+            title = "Lift",
+            notes = "",
+            performedStartInstantMs = 100L,
+            performedStartZoneId = "UTC",
+            performedStartOffsetSeconds = 0,
+            performedStartLocalEpochDay = 0L,
+            performedEndInstantMs = 200L,
+            performedEndZoneId = "UTC",
+            performedEndOffsetSeconds = 0,
+            performedEndLocalEpochDay = 0L,
+            templateId = null,
+            occurrenceId = null,
+            createdAtMs = 100L,
+            updatedAtMs = 200L,
+            revision = 1L,
+            liveToken = null,
+        )
+        database.activityDao().insertSession(session)
+        database.activityDao().insertBlock(
+            ActivityBlockEntity(
+                id = "block-local",
+                sessionId = session.id,
+                templateId = null,
+                sortOrder = 0,
+                kind = "STRENGTH",
+                exerciseId = "ex-1",
+                exerciseName = "Local name",
+                loadType = "BARBELL",
+                equipment = null,
+                musclesEncoded = null,
+                cardioType = null,
+                indoor = null,
+                elapsedSeconds = null,
+                movingSeconds = null,
+                distanceMeters = null,
+                elevationMeters = null,
+                heartRateBpm = null,
+                energyKj = null,
+                rpe = null,
+                routeRef = null,
+            ),
+        )
+        database.syncDao().insertOutbox(
+            SyncOutboxEntity(
+                id = "outbox-block",
+                entityType = SyncEntityType.ACTIVITY_BLOCK.name,
+                entityId = "block-local",
+                operation = SyncOutboxOperation.UPSERT.name,
+                payloadJson = encodeSync(
+                    ActivityBlockEntity(
+                        id = "block-local",
+                        sessionId = session.id,
+                        templateId = null,
+                        sortOrder = 0,
+                        kind = "STRENGTH",
+                        exerciseId = "ex-1",
+                        exerciseName = "Local name",
+                        loadType = "BARBELL",
+                        equipment = null,
+                        musclesEncoded = null,
+                        cardioType = null,
+                        indoor = null,
+                        elapsedSeconds = null,
+                        movingSeconds = null,
+                        distanceMeters = null,
+                        elevationMeters = null,
+                        heartRateBpm = null,
+                        energyKj = null,
+                        rpe = null,
+                        routeRef = null,
+                    ).toRemote(userId = "user-1", updatedAtMs = 400L),
+                ),
+                createdAtMs = 1L,
+                attempts = 0,
+                lastError = null,
+            ),
+        )
+        val remoteBlock = RemoteActivityBlockRow(
+            id = "block-local",
+            userId = "user-1",
+            sessionId = session.id,
+            templateId = null,
+            sortOrder = 0,
+            kind = "STRENGTH",
+            exerciseId = "ex-1",
+            exerciseName = "Remote overwrite",
+            loadType = "BARBELL",
+            equipment = null,
+            musclesEncoded = null,
+            cardioType = null,
+            indoor = null,
+            elapsedSeconds = null,
+            movingSeconds = null,
+            distanceMeters = null,
+            elevationMeters = null,
+            heartRateBpm = null,
+            energyKj = null,
+            rpe = null,
+            routeRef = null,
+            updatedAtMs = 900L,
+        )
+        remote.seed(SyncEntityType.ACTIVITY_BLOCK, encodeSync(remoteBlock))
+        remote.persistUpsertFailure = IllegalStateException("keep local outbox")
+        assertTrue(engine.run("user-1").isFailure)
+        remote.persistUpsertFailure = null
+        assertEquals("Local name", database.activityDao().getBlock("block-local")!!.exerciseName)
+    }
+
+    @Test
+    fun pullAppliesRoutineExerciseTombstone() = runTest {
+        database.exerciseDao().insertAll(
+            listOf(
+                ExerciseEntity(
+                    id = "ex-squat",
+                    name = "Squat",
+                    muscleGroup = "Quads",
+                    notes = "",
+                    isCustom = false,
+                    nameKey = "squat",
+                ),
+            ),
+        )
+        database.routineDao().upsertRoutine(
+            RoutineEntity("routine-t", "Legs", "", 1L, 100L),
+        )
+        database.routineDao().upsertRoutineExercise(
+            RoutineExerciseEntity(
+                id = "re-t",
+                routineId = "routine-t",
+                exerciseId = "ex-squat",
+                sortOrder = 0,
+                targetSets = 3,
+                targetReps = 5,
+                targetWeightKg = 100.0,
+                restSeconds = 120,
+            ),
+        )
+        val tombstone = RemoteRoutineExerciseRow(
+            id = "re-t",
+            userId = "user-1",
+            routineId = "routine-t",
+            exerciseId = "ex-squat",
+            sortOrder = 0,
+            targetSets = 3,
+            targetReps = 5,
+            targetWeightKg = 100.0,
+            restSeconds = 120,
+            targetSeconds = null,
+            targetSecondsMax = null,
+            updatedAtMs = 500L,
+            deletedAtMs = 500L,
+        )
+        remote.seed(SyncEntityType.ROUTINE_EXERCISE, encodeSync(tombstone))
+        assertTrue(engine.run("user-1").isSuccess)
+        assertNull(database.routineDao().getRoutineExercise("re-t"))
     }
 }

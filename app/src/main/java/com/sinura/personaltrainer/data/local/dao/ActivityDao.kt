@@ -180,8 +180,14 @@ interface ActivityDao {
     @Query("DELETE FROM activity_blocks WHERE id = :id")
     suspend fun deleteBlock(id: String)
 
+    @Query("SELECT * FROM activity_strength_sets WHERE id = :id")
+    suspend fun getStrengthSet(id: String): ActivityStrengthSetEntity?
+
     @Query("DELETE FROM activity_strength_sets WHERE id = :id")
     suspend fun deleteStrengthSet(id: String)
+
+    @Query("SELECT * FROM activity_cardio_intervals WHERE id = :id")
+    suspend fun getCardioInterval(id: String): ActivityCardioIntervalEntity?
 
     @Query("DELETE FROM activity_cardio_intervals WHERE id = :id")
     suspend fun deleteCardioInterval(id: String)

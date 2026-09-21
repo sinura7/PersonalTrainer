@@ -31,7 +31,7 @@ class SupabaseRestClient(
 
     fun getUpdatedSince(table: String, updatedColumn: String, sinceMs: Long, accessToken: String): String {
         val query =
-            "$updatedColumn=gt.$sinceMs&order=$updatedColumn.asc&limit=500"
+            "$updatedColumn=gt.$sinceMs&order=$updatedColumn.asc&limit=$SYNC_PULL_PAGE_SIZE"
         val url = URL("${projectUrl.trimEnd('/')}/rest/v1/$table?$query")
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"

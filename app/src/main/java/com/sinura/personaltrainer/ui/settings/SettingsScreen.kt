@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.AccountAuthCopy
 import com.sinura.personaltrainer.domain.LegalCopy
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.domain.TrainingAge
@@ -72,6 +73,7 @@ fun SettingsScreen(
     val notice by debugUpdate.ui.collectAsStateWithLifecycle()
     var page by rememberSaveable { mutableStateOf(SettingsPage.HOME) }
     var pendingAccountDelete by rememberSaveable { mutableStateOf(false) }
+    var pendingSignOut by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(enabled = page != SettingsPage.HOME) {
         page = SettingsPage.HOME
@@ -290,7 +292,13 @@ fun SettingsScreen(
                     state = account,
                     onSignIn = viewModel.account::signIn,
                     onSignUp = viewModel.account::signUp,
-                    onSignOut = viewModel.account::signOut,
+                    onSignOut = {
+                        if (account.sync.active && account.sync.pendingCount > 0) {
+                            pendingSignOut = true
+                        } else {
+                            viewModel.account.signOut()
+                        }
+                    },
                     onDeleteAccount = { pendingAccountDelete = true },
                     onClearError = viewModel.account::clearError,
                     onLeaveAccount = goHome,
@@ -415,6 +423,20 @@ fun SettingsScreen(
             destructive = true,
             onConfirm = { viewModel.backup.confirmPlaintextWarning(activity) },
             onDismiss = viewModel.backup::cancelPlaintextWarning,
+        )
+    }
+
+    if (pendingSignOut && account.signedIn) {
+        ConfirmActionDialog(
+            title = AccountAuthCopy.SIGN_OUT_PENDING_TITLE,
+            body = AccountAuthCopy.signOutPendingBody(account.sync.pendingCount),
+            confirmLabel = AccountAuthCopy.SIGN_OUT_PENDING_CONFIRM,
+            destructive = true,
+            onConfirm = {
+                pendingSignOut = false
+                viewModel.account.signOut()
+            },
+            onDismiss = { pendingSignOut = false },
         )
     }
 

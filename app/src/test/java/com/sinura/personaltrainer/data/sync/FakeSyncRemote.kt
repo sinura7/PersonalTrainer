@@ -7,8 +7,13 @@ class FakeSyncRemote : SyncRemotePort {
     val tombstones = mutableListOf<Pair<SyncEntityType, String>>()
     private val store = mutableMapOf<SyncEntityType, MutableList<String>>()
     var failNextUpsert: Exception? = null
+    /** When set, every upsert throws (keeps outbox rows for pull-only tests). */
+    var persistUpsertFailure: Exception? = null
+    /** Simulates PostgREST page caps in tests; default returns full result sets. */
+    var pullPageSize: Int = Int.MAX_VALUE
 
     override suspend fun upsert(type: SyncEntityType, payloadJson: String) {
+        persistUpsertFailure?.let { throw it }
         failNextUpsert?.let { error ->
             failNextUpsert = null
             throw error
@@ -23,10 +28,13 @@ class FakeSyncRemote : SyncRemotePort {
     }
 
     override suspend fun pullUpdatedSince(type: SyncEntityType, sinceUpdatedAtMs: Long): List<String> {
-        return store[type].orEmpty().filter { json ->
-            val updated = decodeUpdatedAt(type, json)
-            updated > sinceUpdatedAtMs
-        }
+        return store[type].orEmpty()
+            .filter { json ->
+                val updated = decodeUpdatedAt(type, json)
+                updated > sinceUpdatedAtMs
+            }
+            .sortedBy { decodeUpdatedAt(type, it) }
+            .take(pullPageSize)
     }
 
     fun seed(type: SyncEntityType, json: String) {

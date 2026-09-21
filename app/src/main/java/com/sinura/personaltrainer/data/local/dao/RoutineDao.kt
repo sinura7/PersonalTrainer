@@ -37,6 +37,9 @@ interface RoutineDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertRoutineExercise(item: RoutineExerciseEntity)
 
+    @Query("SELECT * FROM routine_exercises WHERE id = :id")
+    suspend fun getRoutineExercise(id: String): RoutineExerciseEntity?
+
     @Query("DELETE FROM routine_exercises WHERE id = :id")
     suspend fun deleteRoutineExercise(id: String)
 
