@@ -18,6 +18,8 @@ class UnconfiguredAccountAuth : AccountAuthPort {
 
     override suspend fun signOut(): Result<Unit> = Result.failure(NotConfiguredException)
 
+    override suspend fun deleteAccount(): Result<Unit> = Result.failure(NotConfiguredException)
+
     internal object NotConfiguredException : Exception() {
         private fun readResolve(): Any = NotConfiguredException
     }

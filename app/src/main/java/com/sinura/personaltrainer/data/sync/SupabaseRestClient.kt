@@ -48,4 +48,36 @@ class SupabaseRestClient(
         }
         return body
     }
+
+    /** Deletes every row visible to the signed-in user via PostgREST + RLS. */
+    fun deleteAllRows(table: String, accessToken: String) {
+        val filter = "user_id=not.is.null"
+        val url = URL("${projectUrl.trimEnd('/')}/rest/v1/$table?$filter")
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "DELETE"
+            setRequestProperty("apikey", anonKey)
+            setRequestProperty("Authorization", "Bearer $accessToken")
+            setRequestProperty("Prefer", "return=minimal")
+        }
+        val code = connection.responseCode
+        if (code !in 200..299 && code != 204) {
+            val error = connection.errorStream?.bufferedReader()?.use(BufferedReader::readText).orEmpty()
+            throw IllegalStateException("Supabase delete failed ($code): $error")
+        }
+    }
+
+    /** GoTrue self-service account deletion (trusted-server lane; not E2EE). */
+    fun deleteAuthUser(accessToken: String) {
+        val url = URL("${projectUrl.trimEnd('/')}/auth/v1/user")
+        val connection = (url.openConnection() as HttpURLConnection).apply {
+            requestMethod = "DELETE"
+            setRequestProperty("apikey", anonKey)
+            setRequestProperty("Authorization", "Bearer $accessToken")
+        }
+        val code = connection.responseCode
+        if (code !in 200..299 && code != 204) {
+            val error = connection.errorStream?.bufferedReader()?.use(BufferedReader::readText).orEmpty()
+            throw IllegalStateException("Supabase auth delete failed ($code): $error")
+        }
+    }
 }

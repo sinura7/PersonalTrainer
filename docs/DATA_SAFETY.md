@@ -1,23 +1,24 @@
 # Temper Data Safety narrative
 
-**Status:** Current published posture (P12.2)  
+**Status:** Current published posture (P12.2 / Phase 11 account sync)  
 **Use:** Play Console Data safety form, or any store listing that asks the
 same questions. Do not publish while physical TalkBack or a data-survival
 critical remains open.
 
 | Question | Answer |
 |---|---|
-| Collects user data automatically? | No |
-| Shares data with other companies? | No |
+| Collects user data automatically? | No automatic analytics or crash upload. Optional Temper Account sync uploads training/plan rows only after the user signs in and edits data while online |
+| Shares data with other companies? | No ads or analytics partners. Optional Google Drive backup uses Google when the user turns it on. Temper Account uses the operator’s Supabase project (Auth + Postgres) |
 | Required account? | No |
-| Encrypted in transit? | Only if the user chooses optional Drive backup; the file may also be password-protected |
-| Users can request deletion? | Delete sessions in-app, restore an empty/other backup, or uninstall |
-| Data collection is optional? | Local use collects nothing remotely. Drive backup is opt-in. Diagnostics are user-triggered |
+| Encrypted in transit? | Yes for Temper Account (HTTPS to Supabase). Optional Drive backup uses HTTPS; the backup file may also be password-protected |
+| Users can request deletion? | Yes — delete sessions in-app; delete Temper Account in Settings → Account (removes cloud Auth user and synced server rows; local phone data stays); uninstall removes on-device data; user-managed Drive/export files are deleted by the user |
+| Data collection is optional? | Local use collects nothing remotely. Temper Account is opt-in. Drive backup is opt-in. Diagnostics are user-triggered |
 | Ads | Not used |
 | Analytics | Not used |
 | Crash logs sent automatically? | No. User-triggered redacted diagnostics only |
 | Location | Not used. Cardio does not claim GPS |
-| Health / fitness data | Stored on-device. Exported only when the user exports a backup or shares a file they created |
+| Health / fitness data | Stored on-device by default. Uploaded to Supabase when the user opts into Temper Account sync (finished workouts and schedule tables in v1). Exported when the user exports a backup or shares a file they created. Not E2EE on the server in v1 |
+| Personal info (email) | Collected only for optional Temper Account (Supabase Auth). Not used for marketing |
 | Photos / files | User-picked backup files via the Storage Access Framework |
 | Contacts / SMS / microphone / camera | Not used |
 | Device IDs for ads | Not used |
@@ -33,3 +34,6 @@ in the background. The notification is the rest clock, not tracking.
 Exact alarm: rest completion. Denied exact-alarm access degrades honestly.
 
 Health declaration: training log, not medical advice.
+
+Account creation: email + password via Supabase Auth when the user chooses
+Temper Account. No Google Sign-In in v1.

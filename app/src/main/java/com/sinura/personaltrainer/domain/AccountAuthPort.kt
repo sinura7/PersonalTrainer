@@ -10,6 +10,7 @@ sealed interface AccountAuthError {
     data object NotConfigured : AccountAuthError
     data object InvalidCredentials : AccountAuthError
     data object Network : AccountAuthError
+    data object DeleteFailed : AccountAuthError
     data class Message(val text: String) : AccountAuthError
 }
 
@@ -26,4 +27,11 @@ interface AccountAuthPort {
     suspend fun signIn(email: String, password: String): Result<Unit>
     suspend fun signUp(email: String, password: String): Result<Unit>
     suspend fun signOut(): Result<Unit>
+
+    /**
+     * Deletes the signed-in Supabase Auth user and that user's synced rows on the server.
+     * Local training data on the phone is unchanged; callers should clear the sync outbox
+     * after success.
+     */
+    suspend fun deleteAccount(): Result<Unit>
 }

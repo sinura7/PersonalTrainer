@@ -1,17 +1,18 @@
 # Temper privacy
 
-**Status:** Current published posture (P12.2 / FND-030)  
+**Status:** Current published posture (P12.2 / Phase 11 account sync)  
 **Related:** [ADR-009](architecture/ADR-009-backup-privacy-sync.md),
 [backup-threat-model.md](architecture/backup-threat-model.md),
+[sync-personal-build.md](architecture/sync-personal-build.md),
 [DATA_SAFETY.md](DATA_SAFETY.md)
 
 Temper is a local-first Android fitness log. Recording, history, templates,
 schedules, reminders, goals, deterministic recommendations, and export work
 without an account.
 
-## What the app stores
+## What the app stores on this device
 
-On this device, in Temper’s own database and preferences:
+On this phone, in Temper’s own database and preferences:
 
 - exercise catalog and custom lifts
 - routines, pinned week, schedule rules and occurrences
@@ -20,15 +21,42 @@ On this device, in Temper’s own database and preferences:
 - measurable goals and their pause intervals
 - rest-timer and reminder preferences
 - optional local diagnostic events (exception class and Temper stack frames only)
+- when Temper Account is configured: a Supabase Auth session (tokens in app-private
+  storage) and a sync upload queue (`sync_outbox`) until uploads finish
 
 Weights are stored in kilograms. Display units are a preference.
 
-## What the app does not do by default
+## Temper Account (optional cloud sync)
+
+Temper Account is **opt-in**. Core training is never gated on sign-in
+([ADR-004](architecture/ADR-004-offline-core-and-entitlements.md)).
+
+When you sign in with email and password:
+
+- **Authentication:** Supabase Auth stores your account (email, hashed password,
+  user id). Temper sends your email and password over **HTTPS** only for sign-in,
+  sign-up, and account deletion.
+- **Synced training data (trusted server, not E2EE):** Finished workouts and plan
+  schedule rows that Temper Account replicates today — activity sessions (and their
+  blocks, strength sets, and cardio intervals) plus schedule rules and occurrences.
+  Live in-progress sessions are not uploaded. Routines, templates, and catalog rows
+  stay on-device only until a later sync scope ships.
+- **Who processes it:** Your Supabase project (Auth + Postgres with row-level
+  security). The app uses the public anon key and your signed-in access token; there
+  is no separate Temper-operated backend beyond that project. Cloud data is **not**
+  end-to-end encrypted in v1; the server can read synced rows (honest trusted-server
+  posture per [ADR-009](architecture/ADR-009-backup-privacy-sync.md)).
+
+When you are signed out or never use Temper Account, **none** of the above leaves
+the phone except what you explicitly export or back up.
+
+## What the app does not do
 
 - No account is required.
 - No ads.
 - No analytics SDK.
 - No automatic crash or usage telemetry.
+- No end-to-end encryption on the Temper Account lane (deferred).
 - Drive is optional whole-file **backup**, not synchronization.
 - Implicit Android Auto Backup is disabled. User-controlled export is the
   recovery path.
@@ -72,11 +100,25 @@ is kept in app-private storage so the next Share diagnostics can include
 it. It is replaced by the next crash and deleted by Settings → Clear
 diagnostics or by uninstalling.
 
-## Retention, deletion, and export
+## Retention, sign-out, deletion, and export
 
-History stays until you delete a session, restore a backup over it, or
-uninstall the app. Uninstall removes local Temper data. Export a backup
+**Local history** stays until you delete a session, restore a backup over it,
+or uninstall the app. Uninstall removes local Temper data. Export a backup
 before you wipe a phone.
+
+**Sign out of Temper Account:** Your workouts and plan on **this phone stay**.
+The upload queue is cleared so nothing pending is sent after sign-out. The next
+sign-in can enqueue fresh uploads.
+
+**Delete Temper Account (Settings → Account, while signed in):** You must confirm
+by typing your account email. The app deletes your synced rows on the Supabase
+project, then deletes your Auth user via Supabase’s self-service delete API.
+Local training data on the phone is **kept** unless you remove it yourself.
+After success you are signed out locally and the sync outbox is cleared. If
+deletion fails, the app shows an error and does not pretend it succeeded.
+
+**Google Drive backup** files you created remain in your Drive until you delete
+them there.
 
 ## Health
 

@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.data.local.FoundationGeneration
+import com.sinura.personaltrainer.domain.LegalCopy
 import com.sinura.personaltrainer.domain.PlanSetupCopy
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -130,6 +131,7 @@ internal fun DiagnosticsSection(onShare: () -> Unit, onClear: () -> Unit) {
 internal fun AboutSection(
     onOpenLog: () -> Unit = {},
     onOpenFoundation: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
         TemperMark(size = 64.dp)
@@ -149,6 +151,13 @@ internal fun AboutSection(
                             maxLines = 1,
                         )
                     },
+                )
+                HairlineDivider(startIndent = Metrics.rowIconHairline)
+                InstrumentRow(
+                    title = LegalCopy.PRIVACY_POLICY_ROW,
+                    subtitle = LegalCopy.PRIVACY_POLICY_CAPTION,
+                    onClick = onOpenPrivacy,
+                    modifier = Modifier.testTag(SettingsTags.ABOUT_PRIVACY),
                 )
             }
         }

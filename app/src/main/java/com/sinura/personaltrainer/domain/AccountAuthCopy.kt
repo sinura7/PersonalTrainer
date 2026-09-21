@@ -27,9 +27,20 @@ object AccountAuthCopy {
     const val SIGN_IN = "Sign in"
     const val CREATE_ACCOUNT = "Create account"
     const val SIGN_OUT = "Sign out"
+    const val DELETE_ACCOUNT = "Delete Temper Account…"
     const val BUSY_SIGN_IN = "Signing in…"
     const val BUSY_SIGN_UP = "Creating account…"
     const val BUSY_SIGN_OUT = "Signing out…"
+    const val BUSY_DELETE_ACCOUNT = "Deleting account…"
+    const val DELETE_ACCOUNT_TITLE = "Delete Temper Account?"
+    const val DELETE_ACCOUNT_BODY =
+        "This permanently removes your cloud sign-in and every workout and plan row " +
+            "Temper Account stored for you on the server. Training on this phone stays " +
+            "here unless you delete it yourself. This cannot be undone."
+    const val DELETE_ACCOUNT_CONFIRM = "Delete account"
+    const val DELETE_ACCOUNT_TYPE_EMAIL =
+        "Type your account email to confirm."
+    const val DELETE_ACCOUNT_EMAIL_MISMATCH = "Email does not match the signed-in account."
 
     fun errorMessage(error: AccountAuthError): String = when (error) {
         AccountAuthError.NotConfigured -> NOT_CONFIGURED
@@ -37,6 +48,8 @@ object AccountAuthCopy {
             "Email or password did not match. Check both and try again."
         AccountAuthError.Network ->
             "Connect to the internet to use Temper Account."
+        AccountAuthError.DeleteFailed ->
+            "Could not delete your Temper Account. Check your connection and try again."
         is AccountAuthError.Message -> error.text
     }
 }

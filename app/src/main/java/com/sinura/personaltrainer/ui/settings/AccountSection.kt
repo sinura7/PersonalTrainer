@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.sinura.personaltrainer.domain.AccountAuthCopy
+import com.sinura.personaltrainer.domain.LegalCopy
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -60,8 +61,10 @@ internal fun AccountSection(
     onSignIn: (email: String, password: String) -> Unit,
     onSignUp: (email: String, password: String) -> Unit,
     onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit,
     onClearError: () -> Unit,
     onLeaveAccount: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
 ) {
     Column(
         modifier = Modifier
@@ -88,8 +91,11 @@ internal fun AccountSection(
         if (state.signedIn) {
             SignedInAccountBody(
                 email = state.session!!.email,
-                busy = state.busy == AccountBusyKind.SIGN_OUT,
+                signOutBusy = state.busy == AccountBusyKind.SIGN_OUT,
+                deleteBusy = state.busy == AccountBusyKind.DELETE_ACCOUNT,
+                accountBusy = state.busy != null,
                 onSignOut = onSignOut,
+                onDeleteAccount = onDeleteAccount,
             )
         } else {
             Crossfade(
@@ -141,6 +147,12 @@ internal fun AccountSection(
                 color = TextTertiary,
             )
         }
+
+        SecondaryGymButton(
+            text = LegalCopy.PRIVACY_POLICY_ROW,
+            onClick = onOpenPrivacy,
+            modifier = Modifier.testTag(SettingsTags.ACCOUNT_PRIVACY),
+        )
 
         if (state.signedIn && state.sync.active) {
             val syncLine = AccountAuthCopy.syncStatusLine(
@@ -232,8 +244,11 @@ private fun AccountEntryBody(
 @Composable
 private fun SignedInAccountBody(
     email: String,
-    busy: Boolean,
+    signOutBusy: Boolean,
+    deleteBusy: Boolean,
+    accountBusy: Boolean,
     onSignOut: () -> Unit,
+    onDeleteAccount: () -> Unit,
 ) {
     GymSectionHeader(title = "Signed in", compact = true)
     Text(
@@ -242,10 +257,16 @@ private fun SignedInAccountBody(
         modifier = Modifier.testTag(SettingsTags.ACCOUNT_EMAIL),
     )
     SecondaryGymButton(
-        text = if (busy) AccountAuthCopy.BUSY_SIGN_OUT else AccountAuthCopy.SIGN_OUT,
+        text = if (signOutBusy) AccountAuthCopy.BUSY_SIGN_OUT else AccountAuthCopy.SIGN_OUT,
         onClick = onSignOut,
-        enabled = !busy,
+        enabled = !accountBusy,
         modifier = Modifier.testTag(SettingsTags.ACCOUNT_SIGN_OUT),
+    )
+    SecondaryGymButton(
+        text = if (deleteBusy) AccountAuthCopy.BUSY_DELETE_ACCOUNT else AccountAuthCopy.DELETE_ACCOUNT,
+        onClick = onDeleteAccount,
+        enabled = !accountBusy,
+        modifier = Modifier.testTag(SettingsTags.ACCOUNT_DELETE),
     )
 }
 
@@ -316,7 +337,7 @@ private fun SignedOutCredentialsBody(
             text = when (busyKind) {
                 AccountBusyKind.SIGN_IN -> AccountAuthCopy.BUSY_SIGN_IN
                 AccountBusyKind.SIGN_UP -> AccountAuthCopy.BUSY_SIGN_UP
-                AccountBusyKind.SIGN_OUT, null -> AccountAuthCopy.SIGN_IN
+                AccountBusyKind.SIGN_OUT, AccountBusyKind.DELETE_ACCOUNT, null -> AccountAuthCopy.SIGN_IN
             },
             onClick = {
                 onClearError()

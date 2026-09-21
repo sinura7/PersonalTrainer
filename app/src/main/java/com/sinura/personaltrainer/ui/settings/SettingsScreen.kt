@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.LegalCopy
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingPlace
@@ -70,6 +71,7 @@ fun SettingsScreen(
     val debugUpdate = rememberDebugUpdatePort()
     val notice by debugUpdate.ui.collectAsStateWithLifecycle()
     var page by rememberSaveable { mutableStateOf(SettingsPage.HOME) }
+    var pendingAccountDelete by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(enabled = page != SettingsPage.HOME) {
         page = SettingsPage.HOME
@@ -289,8 +291,10 @@ fun SettingsScreen(
                     onSignIn = viewModel.account::signIn,
                     onSignUp = viewModel.account::signUp,
                     onSignOut = viewModel.account::signOut,
+                    onDeleteAccount = { pendingAccountDelete = true },
                     onClearError = viewModel.account::clearError,
                     onLeaveAccount = goHome,
+                    onOpenPrivacy = { openLegalUrl(context, LegalCopy.PRIVACY_POLICY_URL) },
                 )
             }
             SettingsPage.BACKUP -> SettingsSubpage(
@@ -355,6 +359,7 @@ fun SettingsScreen(
                 AboutSection(
                     onOpenLog = { page = SettingsPage.LOG },
                     onOpenFoundation = { page = SettingsPage.FOUNDATION },
+                    onOpenPrivacy = { openLegalUrl(context, LegalCopy.PRIVACY_POLICY_URL) },
                 )
             }
         }
@@ -410,6 +415,18 @@ fun SettingsScreen(
             destructive = true,
             onConfirm = { viewModel.backup.confirmPlaintextWarning(activity) },
             onDismiss = viewModel.backup::cancelPlaintextWarning,
+        )
+    }
+
+    if (pendingAccountDelete && account.signedIn) {
+        DeleteAccountDialog(
+            accountEmail = account.session!!.email,
+            busy = account.busy == AccountBusyKind.DELETE_ACCOUNT,
+            onConfirm = {
+                pendingAccountDelete = false
+                viewModel.account.deleteAccount()
+            },
+            onDismiss = { pendingAccountDelete = false },
         )
     }
 
@@ -537,6 +554,11 @@ object SettingsTags {
     const val ACCOUNT_SIGN_IN = "settings-account-sign-in"
     const val ACCOUNT_SIGN_UP = "settings-account-sign-up"
     const val ACCOUNT_SIGN_OUT = "settings-account-sign-out"
+    const val ACCOUNT_DELETE = "settings-account-delete"
+    const val ACCOUNT_DELETE_EMAIL_FIELD = "settings-account-delete-email-field"
+    const val ACCOUNT_DELETE_CONFIRM = "settings-account-delete-confirm"
+    const val ACCOUNT_PRIVACY = "settings-account-privacy"
+    const val ABOUT_PRIVACY = "settings-about-privacy"
     const val ACCOUNT_ERROR = "settings-account-error"
     const val ACCOUNT_SYNC = "settings-account-sync"
     const val ROW_PLAN = "settings-row-plan"
