@@ -17,6 +17,7 @@ enum class AccountBusyKind {
     SIGN_IN,
     SIGN_UP,
     SIGN_OUT,
+    DELETE_ACCOUNT,
 }
 
 data class AccountUiState(
@@ -100,6 +101,22 @@ class AccountCoordinator(
         error.value = null
         scope.launch {
             val result = container.accountAuth.signOut()
+            busy.value = null
+            result.onSuccess { container.syncStatus.abandonOutboxOnSignOut() }
+            result.onFailure { failure ->
+                error.value = AccountAuthCopy.errorMessage(
+                    failure.toAccountAuthError(container.accountAuth.configured),
+                )
+            }
+        }
+    }
+
+    fun deleteAccount() {
+        if (busy.value != null) return
+        busy.value = AccountBusyKind.DELETE_ACCOUNT
+        error.value = null
+        scope.launch {
+            val result = container.accountAuth.deleteAccount()
             busy.value = null
             result.onSuccess { container.syncStatus.abandonOutboxOnSignOut() }
             result.onFailure { failure ->

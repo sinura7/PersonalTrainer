@@ -17,6 +17,7 @@ class FakeAccountAuth(
     var signInCalls = 0
     var signUpCalls = 0
     var signOutCalls = 0
+    var deleteAccountCalls = 0
     var nextFailure: Exception? = null
     var acceptPassword: String = "correct"
 
@@ -51,6 +52,16 @@ class FakeAccountAuth(
 
     override suspend fun signOut(): Result<Unit> {
         signOutCalls++
+        nextFailure?.let { failure ->
+            nextFailure = null
+            return Result.failure(failure)
+        }
+        sessionState.value = null
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteAccount(): Result<Unit> {
+        deleteAccountCalls++
         nextFailure?.let { failure ->
             nextFailure = null
             return Result.failure(failure)

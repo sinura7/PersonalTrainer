@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 21 Sep 2026 — Phase 11 step 7: Privacy Policy and Play Data Safety docs
+> updated for Temper Account; in-app account deletion and Settings/About
+> privacy links. `debugLiveCode` unchanged until the next authorized drop.
+>
 > 18 Sep 2026 — Active workout logging screen redesigned to the owner's
 > reference ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)):
 > progress header, image-led identity, Last/Best/Volume, hero numerals, RPE,

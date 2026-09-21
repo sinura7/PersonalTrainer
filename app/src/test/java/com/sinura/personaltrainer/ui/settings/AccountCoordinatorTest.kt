@@ -127,4 +127,48 @@ class AccountCoordinatorTest {
         scope.cancel()
         deps.close()
     }
+
+    @Test
+    fun deleteAccountClearsSessionAndOutbox() = runTest(dispatcher) {
+        val auth = FakeAccountAuth(initialSession = AccountSession("owner@example.com", userId = "uid-1"))
+        val sync = RecordingSyncStatusPort()
+        val deps = FakeAppDependencies(
+            context = org.robolectric.RuntimeEnvironment.getApplication(),
+            accountAuth = auth,
+            syncStatus = sync,
+            scheduler = dispatcher,
+        )
+        val scope = CoroutineScope(dispatcher + SupervisorJob())
+        val coordinator = AccountCoordinator(deps, scope)
+        val subscriber = scope.subscribe(coordinator)
+
+        coordinator.deleteAccount()
+        assertEquals(1, auth.deleteAccountCalls)
+        assertEquals(false, coordinator.uiState.value.signedIn)
+        assertEquals(1, sync.abandonOutboxCalls)
+        subscriber.cancel()
+        scope.cancel()
+        deps.close()
+    }
+
+    @Test
+    fun deleteAccountFailureSurfacesError() = runTest(dispatcher) {
+        val auth = FakeAccountAuth(initialSession = AccountSession("owner@example.com", userId = "uid-1"))
+        auth.nextFailure = IllegalStateException("Supabase auth delete failed (403): not allowed")
+        val deps = FakeAppDependencies(
+            context = org.robolectric.RuntimeEnvironment.getApplication(),
+            accountAuth = auth,
+            scheduler = dispatcher,
+        )
+        val scope = CoroutineScope(dispatcher + SupervisorJob())
+        val coordinator = AccountCoordinator(deps, scope)
+        val subscriber = scope.subscribe(coordinator)
+
+        coordinator.deleteAccount()
+        assertTrue(coordinator.uiState.value.error!!.contains("delete"))
+        assertTrue(coordinator.uiState.value.signedIn)
+        subscriber.cancel()
+        scope.cancel()
+        deps.close()
+    }
 }

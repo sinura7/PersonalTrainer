@@ -14,6 +14,8 @@ class SupabaseRuntime(
     supabaseUrl: String,
     supabaseAnonKey: String,
 ) {
+    private val rest = SupabaseRestClient(supabaseUrl, supabaseAnonKey)
+
     val client = createSupabaseClient(
         supabaseUrl = supabaseUrl,
         supabaseKey = supabaseAnonKey,
@@ -21,11 +23,11 @@ class SupabaseRuntime(
         install(Auth)
     }
 
-    private val supabaseAuth = SupabaseAccountAuth(client)
+    private val supabaseAuth = SupabaseAccountAuth(client, rest)
     val auth: AccountAuthPort = supabaseAuth
 
     val syncRemote: SyncRemotePort = SupabaseSyncRemote(
-        rest = SupabaseRestClient(supabaseUrl, supabaseAnonKey),
+        rest = rest,
         accessToken = { supabaseAuth.accessTokenOrNull() },
     )
 }
