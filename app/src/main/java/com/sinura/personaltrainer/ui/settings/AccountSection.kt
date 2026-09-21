@@ -78,6 +78,19 @@ internal fun AccountSection(
             style = InstrumentType.caption,
             color = TextTertiary,
         )
+
+        if (state.signedIn && state.sync.active) {
+            Text(
+                AccountAuthCopy.syncStatusLine(
+                    pending = state.sync.pendingCount,
+                    lastSuccessAtMs = state.sync.lastSuccessAtMs,
+                    lastError = state.sync.lastError,
+                ),
+                style = InstrumentType.caption,
+                color = TextTertiary,
+                modifier = Modifier.testTag(SettingsTags.ACCOUNT_SYNC),
+            )
+        }
     }
 }
 

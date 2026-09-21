@@ -43,6 +43,11 @@ interface PlannerDao {
     fun observeOccurrences(): Flow<List<ScheduleOccurrenceEntity>>
 
     @Query(
+        "SELECT * FROM schedule_occurrences ORDER BY localEpochDay ASC, hour ASC, minute ASC, id ASC",
+    )
+    suspend fun getAllOccurrences(): List<ScheduleOccurrenceEntity>
+
+    @Query(
         "SELECT * FROM schedule_occurrences WHERE localEpochDay BETWEEN :start AND :end " +
             "ORDER BY localEpochDay ASC, hour ASC, minute ASC, id ASC",
     )

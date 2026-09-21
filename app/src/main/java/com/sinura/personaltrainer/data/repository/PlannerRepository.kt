@@ -27,6 +27,7 @@ import com.sinura.personaltrainer.domain.SlotRuleImport
 import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.ZonePolicy
+import com.sinura.personaltrainer.data.sync.SyncAuthoring
 import com.sinura.personaltrainer.util.JvmTime
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
@@ -36,8 +37,13 @@ class PlannerRepository(
     private val database: TemperDatabase,
     private val scheduler: ReminderScheduler,
     private val time: TimePort = JvmTime,
+    private val syncAuthoring: SyncAuthoring? = null,
 ) {
     private val dao = database.plannerDao()
+
+    private suspend fun notifyScheduleSync() {
+        syncAuthoring?.onScheduleChanged()
+    }
 
     fun observeRules(): Flow<List<ScheduleRule>> =
         dao.observeRules().map { rows -> rows.map { it.toDomain() } }
@@ -74,7 +80,10 @@ class PlannerRepository(
         if (dao.ruleCount() > 0) return
         val slots = database.scheduleDao().getAll().mapNotNull { it.toDomain() }
         val imported = SlotRuleImport.rulesFromSlots(slots, nowMs)
-        if (imported.isNotEmpty()) dao.upsertRules(imported.map { it.toEntity() })
+        if (imported.isNotEmpty()) {
+            dao.upsertRules(imported.map { it.toEntity() })
+            notifyScheduleSync()
+        }
     }
 
     suspend fun syncSlotsToRules() {
@@ -94,10 +103,12 @@ class PlannerRepository(
                 retireOrDeleteRuleLocked(ruleId)
             }
         }
+        notifyScheduleSync()
     }
 
     suspend fun upsertRule(rule: ScheduleRule) {
         dao.upsertRule(rule.toEntity())
+        notifyScheduleSync()
     }
 
     /**
@@ -260,6 +271,7 @@ class PlannerRepository(
         } else {
             dao.deleteRule(ruleId)
         }
+        notifyScheduleSync()
     }
 
     suspend fun ensureWeek(
@@ -267,11 +279,12 @@ class PlannerRepository(
         deviceZoneId: String = time.defaultZoneId(),
         nowMs: Long = time.nowMillis(),
     ): List<ScheduleOccurrence> {
-        return database.withTransaction {
+        var wrote = false
+        val week = database.withTransaction {
             val rules = dao.getRules().map { it.toDomain() }
             val existing = dao.getOccurrencesBetween(weekStart.epochDay, weekStart.epochDay + 6)
                 .map { it.toDomain() }
-            val week = OccurrenceGenerator.generateWeek(
+            val generatedWeek = OccurrenceGenerator.generateWeek(
                 weekStart = weekStart,
                 rules = rules,
                 existing = existing,
@@ -282,13 +295,16 @@ class PlannerRepository(
                 nowMinutes = time.wallMinutesOfDay(nowMs, deviceZoneId),
             )
             val existingIds = existing.map { it.id }.toSet()
-            val generated = week.filter { it.id !in existingIds }
+            val generated = generatedWeek.filter { it.id !in existingIds }
             if (generated.isNotEmpty()) {
+                wrote = true
                 dao.upsertOccurrences(generated.map { it.toEntity() })
-                scheduleRemindersLocked(week, rules, nowMs)
+                scheduleRemindersLocked(generatedWeek, rules, nowMs)
             }
-            week
+            generatedWeek
         }
+        if (wrote) notifyScheduleSync()
+        return week
     }
 
     suspend fun publishPinnedWeek(weekStart: Weekday, todayEpochDay: Long) {
@@ -332,6 +348,7 @@ class PlannerRepository(
             )
             scheduleRemindersLocked(result.occurrences, rules, nowMs)
         }
+        notifyScheduleSync()
     }
 
     suspend fun markOccurrenceDone(occurrenceId: String, activityId: String, nowMs: Long = time.nowMillis()) {
@@ -344,6 +361,7 @@ class PlannerRepository(
             ),
         )
         cancelReminders(occurrenceId)
+        notifyScheduleSync()
     }
 
     /**
@@ -371,6 +389,7 @@ class PlannerRepository(
             current.copy(status = OccurrenceStatus.SKIPPED.name, updatedAtMs = nowMs),
         )
         cancelReminders(occurrenceId)
+        notifyScheduleSync()
         return previous
     }
 
@@ -391,6 +410,7 @@ class PlannerRepository(
         dao.upsertOccurrence(
             current.copy(status = previousStatus.name, updatedAtMs = nowMs),
         )
+        notifyScheduleSync()
     }
 
     /** Reminders belong to one occurrence; a caller that settles it elsewhere clears them here. */
@@ -529,6 +549,7 @@ class PlannerRepository(
             scheduleIfPendingLocked(moved, rule, nowMs, pending)
         }
         pending.flush(scheduler)
+        notifyScheduleSync()
     }
 
     /**
@@ -563,6 +584,7 @@ class PlannerRepository(
             decided
         }
         pending.flush(scheduler)
+        if (outcome != null) notifyScheduleSync()
         return outcome
     }
 

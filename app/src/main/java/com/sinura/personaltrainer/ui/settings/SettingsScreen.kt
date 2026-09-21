@@ -532,6 +532,7 @@ object SettingsTags {
     const val ACCOUNT_SIGN_UP = "settings-account-sign-up"
     const val ACCOUNT_SIGN_OUT = "settings-account-sign-out"
     const val ACCOUNT_ERROR = "settings-account-error"
+    const val ACCOUNT_SYNC = "settings-account-sync"
     const val ROW_PLAN = "settings-row-plan"
     const val ROW_DIAGNOSTICS = "settings-row-diagnostics"
     const val ROW_ABOUT = "settings-row-about"

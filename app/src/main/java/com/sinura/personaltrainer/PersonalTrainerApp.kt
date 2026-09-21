@@ -135,6 +135,15 @@ class PersonalTrainerApp : Application() {
                 // The catalog is a convenience; the app is fully usable without it.
                 AppLog.e(TAG, "Seeding the default exercise catalog failed", error)
             }
+            try {
+                if (container.accountAuth.session.first() != null) {
+                    container.syncStatus.requestSync()
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                AppLog.w(TAG, "Scheduling account sync failed", error)
+            }
         }
     }
 

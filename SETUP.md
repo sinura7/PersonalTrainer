@@ -69,8 +69,9 @@ If `keystore.properties` or the keystore file is missing, `assembleRelease` stil
 
 Settings → **Account** can sign in with email and password when the app is built with
 your Supabase project URL and **anon (public) key**. This is optional: training works
-without it. Sync is not part of this step — only sign-in, sign-out, and showing the
-signed-in email.
+without it. When signed in and online, Temper copies finished workouts and plan rows
+to your Supabase project in the background. Google Drive backup is unchanged and
+separate — it is not sync.
 
 1. Copy `supabase.properties.example` to `supabase.properties` in the repo root
    (gitignored).

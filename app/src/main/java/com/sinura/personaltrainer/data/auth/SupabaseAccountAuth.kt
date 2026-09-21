@@ -4,9 +4,8 @@ import com.sinura.personaltrainer.domain.AccountAuthError
 import com.sinura.personaltrainer.domain.AccountAuthPort
 import com.sinura.personaltrainer.domain.AccountSession
 import com.sinura.personaltrainer.logging.AppLog
-import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.exceptions.HttpRequestException
-import io.github.jan.supabase.gotrue.Auth
 import io.github.jan.supabase.gotrue.SessionStatus
 import io.github.jan.supabase.gotrue.auth
 import io.github.jan.supabase.gotrue.providers.builtin.Email
@@ -19,34 +18,31 @@ import kotlinx.coroutines.flow.map
 private const val TAG = "PT/AccountAuth"
 
 /**
- * Supabase Auth (email + password) for Settings only. Session persistence uses the library's
- * Android storage; no sync calls are made here.
+ * Supabase Auth (email + password) for Settings. Session persistence uses the library's
+ * Android storage; sync uses the same client's access token.
  */
 class SupabaseAccountAuth(
-    supabaseUrl: String,
-    supabaseAnonKey: String,
+    private val client: SupabaseClient,
 ) : AccountAuthPort {
     override val configured: Boolean = true
-
-    private val client = createSupabaseClient(
-        supabaseUrl = supabaseUrl,
-        supabaseKey = supabaseAnonKey,
-    ) {
-        install(Auth)
-    }
 
     override val session: Flow<AccountSession?> =
         client.auth.sessionStatus.map { status ->
             when (status) {
                 is SessionStatus.Authenticated -> {
-                    val email = status.session.user?.email?.trim().orEmpty()
-                    if (email.isEmpty()) null else AccountSession(email)
+                    val user = status.session.user ?: return@map null
+                    val email = user.email?.trim().orEmpty()
+                    val userId = user.id.trim()
+                    if (email.isEmpty() || userId.isEmpty()) null else AccountSession(email, userId)
                 }
                 SessionStatus.LoadingFromStorage -> null
                 is SessionStatus.NotAuthenticated -> null
                 is SessionStatus.NetworkError -> null
             }
         }
+
+    override suspend fun accessTokenOrNull(): String? =
+        client.auth.currentSessionOrNull()?.accessToken
 
     override suspend fun signIn(email: String, password: String): Result<Unit> =
         runAuthAction("signIn") {

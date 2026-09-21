@@ -30,6 +30,7 @@ import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.RecordSet
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TimePort
+import com.sinura.personaltrainer.data.sync.SyncAuthoring
 import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -66,6 +67,7 @@ class ActivityRepository(
      * the same belt-and-braces refusal strength starts already had.
      */
     private val restoreBlocksStart: () -> Boolean = { false },
+    private val syncAuthoring: SyncAuthoring? = null,
     /**
      * Where [observeLiveHealth] is shared from, so its graph query runs once per emission
      * rather than once per collector.
@@ -206,6 +208,9 @@ class ActivityRepository(
         // notification that are not there costs nothing, and a stale notification for a
         // deleted day is exactly what this packet is about.
         afterCommit(completedOccurrenceId)
+        if (result is ActivityWrite.Accepted) {
+            syncAuthoring?.onActivitySessionCommitted(result.session.id, result.session.status)
+        }
         result
     }
 
@@ -246,7 +251,7 @@ class ActivityRepository(
      * A live row is refused: discard owns that exit.
      */
     suspend fun deleteCompleted(sessionId: String): ActivityWrite = serialized {
-        database.withTransaction {
+        val result = database.withTransaction {
             val row = dao.getSessionRow(sessionId)
                 ?: return@withTransaction ActivityWrite.Rejected(ActivityEditCopy.GONE)
             if (row.status != "COMPLETED") {
@@ -256,6 +261,14 @@ class ActivityRepository(
             dao.deleteSession(sessionId)
             if (graph != null) ActivityWrite.Accepted(graph) else ActivityWrite.Rejected(ActivityEditCopy.GONE)
         }
+        if (result is ActivityWrite.Accepted) {
+            syncAuthoring?.onActivityDeleted(
+                sessionId = result.session.id,
+                revision = result.session.revision,
+                updatedAtMs = result.session.updatedAtMs,
+            )
+        }
+        result
     }
 
     /**
@@ -284,6 +297,10 @@ class ActivityRepository(
             )
             dao.updateSession(updated.toEntity())
             ActivityWrite.Accepted(updated)
+        }.also { write ->
+            if (write is ActivityWrite.Accepted) {
+                syncAuthoring?.onActivitySessionCommitted(write.session.id, write.session.status)
+            }
         }
     }
 
@@ -346,6 +363,9 @@ class ActivityRepository(
             ActivityWrite.Accepted(completed)
         }
         afterCommit(completedOccurrenceId)
+        if (result is ActivityWrite.Accepted) {
+            syncAuthoring?.onActivitySessionCommitted(result.session.id, result.session.status)
+        }
         result
     }
 

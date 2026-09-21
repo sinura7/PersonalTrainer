@@ -98,7 +98,7 @@ class UpgradeInPlaceTest {
         assertTrue(!gradle.contains("applicationIdSuffix = \".debug.\$debugLiveCode\""))
         assertTrue(!gradle.contains("applicationIdSuffix = \".debug.\" + debugLiveCode"))
         assertEquals("temper.db", FoundationGeneration.DATABASE_FILE)
-        assertEquals(5, FoundationGeneration.VERSION)
+        assertEquals(6, FoundationGeneration.VERSION)
         assertTrue(FoundationGeneration.FROZEN)
         assertTrue(!source("app/src/main/java/com/sinura/personaltrainer/data/local/TemperDatabase.kt")
             .readText().contains(".fallbackToDestructiveMigration"))

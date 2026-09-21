@@ -106,7 +106,7 @@ class AccountCoordinatorTest {
 
     @Test
     fun signOutClearsSession() = runTest(dispatcher) {
-        val auth = FakeAccountAuth(initialSession = AccountSession("owner@example.com"))
+        val auth = FakeAccountAuth(initialSession = AccountSession("owner@example.com", userId = "uid-1"))
         val deps = FakeAppDependencies(
             context = org.robolectric.RuntimeEnvironment.getApplication(),
             accountAuth = auth,
