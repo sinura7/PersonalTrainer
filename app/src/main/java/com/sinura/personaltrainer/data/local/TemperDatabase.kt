@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.data.local.dao.GoalDao
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
+import com.sinura.personaltrainer.data.local.dao.SyncDao
 import com.sinura.personaltrainer.data.local.dao.TrainingBlockDao
 import com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityBlockEntity
@@ -25,6 +26,9 @@ import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleSlotEntity
+import com.sinura.personaltrainer.data.local.entity.SyncMetadataEntity
+import com.sinura.personaltrainer.data.local.entity.SyncOutboxEntity
+import com.sinura.personaltrainer.data.local.entity.SyncTableCursorEntity
 import com.sinura.personaltrainer.data.local.entity.SeedMetaEntity
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
@@ -61,6 +65,9 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
         MissedWorkDecisionEntity::class,
         ReminderDeliveryEntity::class,
         MeasurableGoalEntity::class,
+        SyncOutboxEntity::class,
+        SyncTableCursorEntity::class,
+        SyncMetadataEntity::class,
     ],
     version = FoundationGeneration.VERSION,
     exportSchema = true,
@@ -71,6 +78,7 @@ abstract class TemperDatabase : AppRoomDatabase() {
     abstract fun trainingBlockDao(): TrainingBlockDao
     abstract fun plannerDao(): PlannerDao
     abstract fun goalDao(): GoalDao
+    abstract fun syncDao(): SyncDao
 
     companion object {
         fun create(context: Context): TemperDatabase {
@@ -86,6 +94,7 @@ abstract class TemperDatabase : AppRoomDatabase() {
                     MIGRATION_TEMPER_2_3,
                     MIGRATION_TEMPER_3_4,
                     MIGRATION_TEMPER_4_5,
+                    MIGRATION_TEMPER_5_6,
                 )
                 .build()
         }

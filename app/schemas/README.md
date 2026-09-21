@@ -13,6 +13,7 @@ new generation, not a `TrainerDatabase` v2→v3 patch.
 | 3 | Schedule rules, occurrences, missed-work decisions, reminder deliveries | `MIGRATION_TEMPER_2_3` |
 | 4 | Measurable goals; bodyweight zone and offset columns | `MIGRATION_TEMPER_3_4` |
 | 5 | Hold prescriptions (`targetSeconds` / `targetSecondsMax`) and logged hold duration | `MIGRATION_TEMPER_4_5` |
+| 6 | Sync outbox, pull cursors, sync metadata (Temper Account) | `MIGRATION_TEMPER_5_6` |
 
 Every file in this directory is a JSON snapshot of one database version,
 emitted by Room's annotation processor into `room.schemaLocation`

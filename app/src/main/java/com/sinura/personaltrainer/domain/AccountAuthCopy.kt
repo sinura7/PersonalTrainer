@@ -3,14 +3,25 @@ package com.sinura.personaltrainer.domain
 object AccountAuthCopy {
     const val SECTION = "Account"
     const val INDEX_SUMMARY = "Optional cloud sign-in"
+    const val ENTRY_KICKER = "Temper Account"
+    const val ENTRY_HEADLINE = "Open your account"
+    const val ENTRY_BLURB =
+        "Load your cloud history on this phone. Finished workouts and your plan " +
+            "travel with you when you sign in online."
+    const val ENTRY_OPEN = "Open account"
+    const val ENTRY_NOT_NOW = "Not now"
+    const val CREDENTIALS_BACK = "Back"
+    const val CREDENTIALS_TITLE = "Sign in or create account"
     const val NOT_CONFIGURED =
-        "Temper Account is not configured for this build. Add SUPABASE_URL and " +
-            "SUPABASE_ANON_KEY to supabase.properties on your machine, then rebuild."
+        "Temper Account is not available in this build yet. Training on this phone still works."
     const val SIGNED_OUT_CAPTION =
-        "Training on this phone does not require an account. Sign in when you want " +
-            "to prepare for optional cloud sync later."
+        "Training on this phone does not require an account. Sign in to copy finished " +
+            "workouts and your plan to Temper Account when you are online."
     const val SIGNED_IN_CAPTION =
-        "Signed in for future sync. Workouts, Plan, and History still work the same offline."
+        "Sync runs in the background when you are online. Workouts, Plan, and History " +
+            "still work offline on this phone."
+    fun syncStatusLine(pending: Int, lastSuccessAtMs: Long?, lastError: String?): String =
+        SyncCopy.syncStatusLine(pending, lastSuccessAtMs, lastError)
     const val EMAIL = "Email"
     const val PASSWORD = "Password"
     const val SIGN_IN = "Sign in"

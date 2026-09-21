@@ -16,6 +16,14 @@ import com.sinura.personaltrainer.update.HttpUrlConnectionDebugApkFetcher
 import com.sinura.personaltrainer.update.HttpUrlConnectionDebugUpdateHttp
 import com.sinura.personaltrainer.update.debugUpdateDataStore
 import com.sinura.personaltrainer.data.auth.AccountAuthFactory
+import com.sinura.personaltrainer.data.auth.UnconfiguredAccountAuth
+import com.sinura.personaltrainer.data.sync.NoOpSyncRemote
+import com.sinura.personaltrainer.data.sync.SyncAuthoring
+import com.sinura.personaltrainer.data.sync.SyncCoordinator
+import com.sinura.personaltrainer.data.sync.SyncEngine
+import com.sinura.personaltrainer.data.sync.SyncOutboxWriter
+import com.sinura.personaltrainer.data.sync.WorkManagerSyncScheduler
+import com.sinura.personaltrainer.domain.DisabledSyncStatusPort
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
@@ -90,6 +98,33 @@ class AppContainer(context: Context) : AppDependencies {
 
     private val database: TemperDatabase = TemperDatabase.create(context)
 
+    private val supabaseRuntime = AccountAuthFactory.createRuntime()
+    private val syncOutboxWriter = SyncOutboxWriter(database.syncDao())
+    private val syncScheduler = WorkManagerSyncScheduler(context)
+    val syncCoordinator: SyncCoordinator = SyncCoordinator(
+        auth = supabaseRuntime?.auth ?: UnconfiguredAccountAuth(),
+        syncDao = database.syncDao(),
+        engine = SyncEngine(
+            database = database,
+            syncDao = database.syncDao(),
+            activityDao = database.activityDao(),
+            plannerDao = database.plannerDao(),
+            remote = supabaseRuntime?.syncRemote ?: NoOpSyncRemote,
+        ),
+        scheduler = syncScheduler,
+    )
+    override val syncStatus = if (supabaseRuntime != null) syncCoordinator else DisabledSyncStatusPort
+
+    private val syncAuthoring: SyncAuthoring? = supabaseRuntime?.let {
+        SyncAuthoring(
+            auth = it.auth,
+            outbox = syncOutboxWriter,
+            activityDao = database.activityDao(),
+            plannerDao = database.plannerDao(),
+            requestSync = syncCoordinator::requestSync,
+        )
+    }
+
     /**
      * One lock over every wholesale rewrite of the catalog. The startup seed and a restore both
      * pass through here, so they queue instead of racing each other across the same tables.
@@ -105,6 +140,7 @@ class AppContainer(context: Context) : AppDependencies {
         // called long after construction.
         onOccurrenceCompleted = { plannerRepository.cancelRemindersFor(it) },
         restoreBlocksStart = { backupService.restoreBlocksStart() },
+        syncAuthoring = syncAuthoring,
     )
 
     override val exerciseRepository: ExerciseRepository = ExerciseRepository(
@@ -118,6 +154,7 @@ class AppContainer(context: Context) : AppDependencies {
         database = database,
         scheduler = WorkManagerReminderScheduler(context),
         time = time,
+        syncAuthoring = syncAuthoring,
     )
     override val routineRepository: RoutineRepository = RoutineRepository(
         routineDao = database.routineDao(),
@@ -235,7 +272,7 @@ class AppContainer(context: Context) : AppDependencies {
     override val backupPassphraseSealer: BackupPassphraseSealer =
         KeystoreBackupPassphraseSealer()
 
-    override val accountAuth = AccountAuthFactory.create()
+    override val accountAuth = supabaseRuntime?.auth ?: UnconfiguredAccountAuth()
 
     override val backupService: BackupService = BackupService(
         localBackupRepository = LocalBackupRepository(

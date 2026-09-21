@@ -4,13 +4,15 @@ import com.sinura.personaltrainer.BuildConfig
 import com.sinura.personaltrainer.domain.AccountAuthPort
 
 object AccountAuthFactory {
-    fun create(): AccountAuthPort {
+    fun create(): AccountAuthPort = createRuntime()?.auth ?: UnconfiguredAccountAuth()
+
+    fun createRuntime(): SupabaseRuntime? {
         val url = BuildConfig.SUPABASE_URL.trim()
         val key = BuildConfig.SUPABASE_ANON_KEY.trim()
         return if (url.isEmpty() || key.isEmpty()) {
-            UnconfiguredAccountAuth()
+            null
         } else {
-            SupabaseAccountAuth(supabaseUrl = url, supabaseAnonKey = key)
+            SupabaseRuntime(supabaseUrl = url, supabaseAnonKey = key)
         }
     }
 }

@@ -1243,7 +1243,7 @@ and `docs/architecture/`, not this grep.
 **Chosen:** [FOUNDATION_PROGRAM.md](FOUNDATION_PROGRAM.md) and
 [docs/architecture/](architecture/README.md) are current law. Room v3
 won’t is superseded for the one authorized Phase 5 cutover. Backdated
-activity creation is required. Drive is backup, not sync. One live
+activity creation is required. Drive is backup, not sync. Temper Account sync (Phase 11 steps 4–5) replicates finished activity and plan rows when signed in. One live
 activity; many completed and scheduled activities per day. FND-037 is
 not a finding.
 

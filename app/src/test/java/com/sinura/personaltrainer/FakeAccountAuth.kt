@@ -35,7 +35,7 @@ class FakeAccountAuth(
         if (password != acceptPassword) {
             return Result.failure(IllegalStateException("Invalid login credentials"))
         }
-        sessionState.value = AccountSession(email.trim())
+        sessionState.value = AccountSession(email.trim(), userId = "fake-user-id")
         return Result.success(Unit)
     }
 
@@ -45,7 +45,7 @@ class FakeAccountAuth(
             nextFailure = null
             return Result.failure(failure)
         }
-        sessionState.value = AccountSession(email.trim())
+        sessionState.value = AccountSession(email.trim(), userId = "fake-user-id")
         return Result.success(Unit)
     }
 

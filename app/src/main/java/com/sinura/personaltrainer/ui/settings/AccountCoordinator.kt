@@ -4,6 +4,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.data.auth.toAccountAuthError
 import com.sinura.personaltrainer.domain.AccountAuthCopy
 import com.sinura.personaltrainer.domain.AccountSession
+import com.sinura.personaltrainer.domain.SyncStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,6 +24,7 @@ data class AccountUiState(
     val session: AccountSession? = null,
     val busy: AccountBusyKind? = null,
     val error: String? = null,
+    val sync: SyncStatus = SyncStatus(false, 0, null, null),
 ) {
     val signedIn: Boolean get() = session != null
 }
@@ -39,14 +41,16 @@ class AccountCoordinator(
 
     val uiState: StateFlow<AccountUiState> = combine(
         container.accountAuth.session,
+        container.syncStatus.status,
         busy,
         error,
-    ) { session, busyKind, message ->
+    ) { session, sync, busyKind, message ->
         AccountUiState(
             configured = container.accountAuth.configured,
             session = session,
             busy = busyKind,
             error = message,
+            sync = sync,
         )
     }.stateIn(
         scope = scope,
@@ -65,6 +69,7 @@ class AccountCoordinator(
         scope.launch {
             val result = container.accountAuth.signIn(email, password)
             busy.value = null
+            result.onSuccess { container.syncStatus.requestSync() }
             result.onFailure { failure ->
                 error.value = AccountAuthCopy.errorMessage(
                     failure.toAccountAuthError(container.accountAuth.configured),
@@ -80,6 +85,7 @@ class AccountCoordinator(
         scope.launch {
             val result = container.accountAuth.signUp(email, password)
             busy.value = null
+            result.onSuccess { container.syncStatus.requestSync() }
             result.onFailure { failure ->
                 error.value = AccountAuthCopy.errorMessage(
                     failure.toAccountAuthError(container.accountAuth.configured),
@@ -95,6 +101,7 @@ class AccountCoordinator(
         scope.launch {
             val result = container.accountAuth.signOut()
             busy.value = null
+            result.onSuccess { container.syncStatus.abandonOutboxOnSignOut() }
             result.onFailure { failure ->
                 error.value = AccountAuthCopy.errorMessage(
                     failure.toAccountAuthError(container.accountAuth.configured),

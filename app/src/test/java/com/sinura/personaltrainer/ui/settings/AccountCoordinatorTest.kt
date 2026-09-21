@@ -106,10 +106,12 @@ class AccountCoordinatorTest {
 
     @Test
     fun signOutClearsSession() = runTest(dispatcher) {
-        val auth = FakeAccountAuth(initialSession = AccountSession("owner@example.com"))
+        val auth = FakeAccountAuth(initialSession = AccountSession("owner@example.com", userId = "uid-1"))
+        val sync = RecordingSyncStatusPort()
         val deps = FakeAppDependencies(
             context = org.robolectric.RuntimeEnvironment.getApplication(),
             accountAuth = auth,
+            syncStatus = sync,
             scheduler = dispatcher,
         )
         val scope = CoroutineScope(dispatcher + SupervisorJob())
@@ -120,6 +122,7 @@ class AccountCoordinatorTest {
         assertEquals(false, coordinator.uiState.value.signedIn)
         assertNull(coordinator.uiState.value.session)
         assertEquals(1, auth.signOutCalls)
+        assertEquals(1, sync.abandonOutboxCalls)
         subscriber.cancel()
         scope.cancel()
         deps.close()

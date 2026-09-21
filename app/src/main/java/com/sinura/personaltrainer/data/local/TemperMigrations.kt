@@ -188,3 +188,50 @@ val MIGRATION_TEMPER_4_5 = object : Migration(4, 5) {
         db.execSQL("ALTER TABLE `set_logs` ADD COLUMN `durationSeconds` INTEGER")
     }
 }
+
+/**
+ * Temper v5 → v6: sync outbox, pull cursors, and sync metadata for Temper Account replication.
+ */
+val MIGRATION_TEMPER_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `sync_outbox` (
+                `id` TEXT NOT NULL,
+                `entityType` TEXT NOT NULL,
+                `entityId` TEXT NOT NULL,
+                `operation` TEXT NOT NULL,
+                `payloadJson` TEXT,
+                `createdAtMs` INTEGER NOT NULL,
+                `attempts` INTEGER NOT NULL,
+                `lastError` TEXT,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent(),
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_sync_outbox_entityType_entityId` ON `sync_outbox` (`entityType`, `entityId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_sync_outbox_createdAtMs` ON `sync_outbox` (`createdAtMs`)")
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `sync_table_cursors` (
+                `tableName` TEXT NOT NULL,
+                `lastPulledUpdatedAtMs` INTEGER NOT NULL,
+                PRIMARY KEY(`tableName`)
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `sync_metadata` (
+                `id` INTEGER NOT NULL,
+                `lastSuccessAtMs` INTEGER,
+                `lastError` TEXT,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent(),
+        )
+        db.execSQL(
+            "INSERT OR IGNORE INTO `sync_metadata` (`id`, `lastSuccessAtMs`, `lastError`) VALUES (0, NULL, NULL)",
+        )
+    }
+}

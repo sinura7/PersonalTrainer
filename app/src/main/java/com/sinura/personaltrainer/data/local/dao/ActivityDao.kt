@@ -174,7 +174,19 @@ interface ActivityDao {
     @Query("DELETE FROM activity_sessions")
     suspend fun deleteAllSessions()
 
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Query("SELECT * FROM activity_blocks WHERE id = :id")
+    suspend fun getBlock(id: String): ActivityBlockEntity?
+
+    @Query("DELETE FROM activity_blocks WHERE id = :id")
+    suspend fun deleteBlock(id: String)
+
+    @Query("DELETE FROM activity_strength_sets WHERE id = :id")
+    suspend fun deleteStrengthSet(id: String)
+
+    @Query("DELETE FROM activity_cardio_intervals WHERE id = :id")
+    suspend fun deleteCardioInterval(id: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBlock(block: ActivityBlockEntity)
 
     @Insert(onConflict = OnConflictStrategy.ABORT)

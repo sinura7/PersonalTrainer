@@ -8,7 +8,7 @@ state_members = 1
 # sharedTest. This counts calls the checker DECLINES to judge, not defects: the defect
 # count is separate and is 0. One more blind spot became visible; none was created.
 # 181 -> 178 on the UX batch-A merge: three mixed call sites became fully named.
-required_args_mixed = 174
+required_args_mixed = 180
 required_args_lambda = 46
 when_exhaustive = 47
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does

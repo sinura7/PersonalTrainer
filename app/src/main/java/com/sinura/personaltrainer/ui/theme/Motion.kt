@@ -6,8 +6,12 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -141,4 +145,13 @@ object Motion {
 
     /** Reserved for a record breaking. The only place in the app allowed to bounce. */
     fun <T> celebrate(): SpringSpec<T> = spring(dampingRatio = 0.55f, stiffness = 600f)
+
+    /** Cold-start branded intro: mark and wordmark reveal. */
+    fun introRevealSpec(): TweenSpec<Float> = tween(durationMillis = DRAW)
+
+    /** Cold-start intro Volt halo behind the mark. */
+    fun introGlowPulseSpec(): InfiniteRepeatableSpec<Float> = infiniteRepeatable(
+        animation = tween(durationMillis = PULSE_MS, easing = LinearEasing),
+        repeatMode = RepeatMode.Reverse,
+    )
 }

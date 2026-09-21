@@ -7,10 +7,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.reminder.ReminderNotifications
+import com.sinura.personaltrainer.ui.intro.ColdStartIntro
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.navigation.PersonalTrainerNav
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
@@ -51,15 +56,31 @@ class MainActivity : ComponentActivity() {
         )
         reduceMotion = systemReduceMotion(this)
         setContent {
+            val app = application as PersonalTrainerApp
+            var showColdStartIntro by remember {
+                mutableStateOf(app.shouldShowColdStartIntro())
+            }
             PersonalTrainerTheme(reduceMotion = reduceMotion) {
-                PersonalTrainerNav(
-                    openSessionId = openSessionId,
-                    onOpenSessionConsumed = { openSessionId = null },
-                    openOccurrenceId = openOccurrenceId,
-                    onOpenOccurrenceConsumed = { openOccurrenceId = null },
-                    reviewOccurrenceId = reviewOccurrenceId,
-                    onReviewOccurrenceConsumed = { reviewOccurrenceId = null },
-                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    PersonalTrainerNav(
+                        openSessionId = openSessionId,
+                        onOpenSessionConsumed = { openSessionId = null },
+                        openOccurrenceId = openOccurrenceId,
+                        onOpenOccurrenceConsumed = { openOccurrenceId = null },
+                        reviewOccurrenceId = reviewOccurrenceId,
+                        onReviewOccurrenceConsumed = { reviewOccurrenceId = null },
+                    )
+                    if (showColdStartIntro) {
+                        ColdStartIntro(
+                            reduceMotion = reduceMotion,
+                            onIntroDisplayed = { app.markColdStartIntroShown() },
+                            onFinished = {
+                                app.markColdStartIntroShown()
+                                showColdStartIntro = false
+                            },
+                        )
+                    }
+                }
             }
         }
     }
