@@ -31,6 +31,15 @@ class PersonalTrainerApp : Application() {
     lateinit var container: AppContainer
         private set
 
+    /** Cold-start branded intro plays once per process (not on rotation). */
+    private val coldStartIntroPending = AtomicBoolean(true)
+
+    fun shouldShowColdStartIntro(): Boolean = coldStartIntroPending.get()
+
+    fun markColdStartIntroShown() {
+        coldStartIntroPending.set(false)
+    }
+
     /**
      * Generates the current week's occurrences if today crossed into a week
      * that has none yet. A resume with no new (rule, date) rows writes
