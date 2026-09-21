@@ -5,6 +5,7 @@ import com.sinura.personaltrainer.domain.DataHealthFold
 import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.transform
 
