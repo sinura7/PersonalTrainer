@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 21 Sep 2026 — CoachEngine v1 (ADR-029): evidence seed
+> [`docs/coach/evidence-seed.json`](coach/evidence-seed.json), on-device next-set
+> suggestions with citation chip on the active strength workout; extends existing
+> `Coach.decide` ladder. v2: paper ingestion UI, cardio coach, commercial gate,
+> crowd learning.
+>
 > 21 Sep 2026 — Retired physical TalkBack as a Public Candidate / Play
 > rehearsal ship gate; `publicCandidateReady()` is automated evidence only.
 >

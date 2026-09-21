@@ -39,7 +39,7 @@ class FloorPacketFAdvanceTest {
     @Test
     fun productionMicroRecCallsCoachDecide() {
         val ui = readOwned("ui/workout/SetMicroRecUi.kt")
-        assertTrue(ui.contains("Coach.decide("))
+        assertTrue(ui.contains("CoachEngine.suggest("))
         assertFalse(ui.contains("SetMicroRecCalculator.suggest"))
         assertTrue(ui.contains("toMicroRec()"))
         // The Next-set card is the floor's one reader of the decision, and Apply only
@@ -104,7 +104,9 @@ class FloorPacketFAdvanceTest {
         assertTrue(card.contains("SetMicroRecCopy.USE_SUGGESTION"))
         assertTrue(card.contains("SetMicroRecCopy.KEEP_MY_NUMBERS"))
         assertTrue(card.contains("title = \"Why this set\""))
-        assertTrue(card.contains("body = SetMicroRecCopy.whyLines(rec).joinToString(\"\\n\")"))
+        assertTrue(card.contains("SetMicroRecCopy.whyLines(rec)"))
+        assertTrue(card.contains("CoachEvidenceCopy.whySheetAppendix"))
+        assertTrue(card.contains("EvidenceCitationChip"))
         assertTrue(card.contains("WorkoutTestTags.MICRO_REC_WHY"))
         // Apply and Use suggestion are a detent, never the commit haptic: nothing was saved.
         assertTrue(card.contains("Haptics.tick(view)"))

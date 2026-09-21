@@ -1,17 +1,17 @@
 package com.sinura.personaltrainer.ui.workout
 
-import com.sinura.personaltrainer.domain.Coach
+import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
+import com.sinura.personaltrainer.domain.coach.CoachEngine
+import com.sinura.personaltrainer.domain.coach.CoachSuggestion
 import com.sinura.personaltrainer.domain.LoggedSetView
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
-import com.sinura.personaltrainer.domain.toMicroRec
-
-/** Same Coach.decide inputs on the log and the rest floor. */
-internal fun workoutMicroRec(
+/** Same CoachEngine inputs on the log and the rest floor. */
+internal fun workoutCoachSuggestion(
     session: WorkoutSession?,
     selectedExerciseId: String?,
     draft: ActiveExerciseDraft,
@@ -23,7 +23,8 @@ internal fun workoutMicroRec(
     todayEpochDay: Long,
     wantAnotherSet: Boolean = false,
     historySets: List<ExerciseSetRecord> = emptyList(),
-): SetMicroRec? {
+    coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
+): CoachSuggestion? {
     if (session == null) return null
     val exerciseId = session.resolveSelectedExerciseId(selectedExerciseId) ?: return null
     val planned = session.exercises.firstOrNull { it.exercise.id == exerciseId }
@@ -39,7 +40,7 @@ internal fun workoutMicroRec(
     val lastAny = sets.maxByOrNull { it.completedAt }
     // Warm-up drafts are not a preview of the next working set.
     val draftRpe = draft.rpe.takeUnless { draft.isWarmup }
-    val decision = Coach.decide(
+    return CoachEngine.suggest(
         setMicroRecInputs(
             editing = editingSetId != null,
             loadType = planned?.exercise?.loadType,
@@ -68,6 +69,35 @@ internal fun workoutMicroRec(
                 )
             },
         ),
+        prefs = coachPrefs,
     )
-    return decision?.toMicroRec()
 }
+
+/** Back-compat for call sites that only need [SetMicroRec] numbers. */
+internal fun workoutMicroRec(
+    session: WorkoutSession?,
+    selectedExerciseId: String?,
+    draft: ActiveExerciseDraft,
+    hint: ProgressionHint?,
+    editingSetId: String?,
+    lighterWeek: Boolean,
+    unit: WeightUnit,
+    nowMs: Long,
+    todayEpochDay: Long,
+    wantAnotherSet: Boolean = false,
+    historySets: List<ExerciseSetRecord> = emptyList(),
+    coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
+): SetMicroRec? = workoutCoachSuggestion(
+    session = session,
+    selectedExerciseId = selectedExerciseId,
+    draft = draft,
+    hint = hint,
+    editingSetId = editingSetId,
+    lighterWeek = lighterWeek,
+    unit = unit,
+    nowMs = nowMs,
+    todayEpochDay = todayEpochDay,
+    wantAnotherSet = wantAnotherSet,
+    historySets = historySets,
+    coachPrefs = coachPrefs,
+)?.toMicroRec()

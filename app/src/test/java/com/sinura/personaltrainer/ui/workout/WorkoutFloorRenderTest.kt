@@ -380,6 +380,7 @@ class WorkoutFloorRenderTest {
          * inside their targets. A ceiling, not a target: lower it when height comes out, and
          * never raise it so a change can fit.
          */
-        const val LOOP_BUDGET_DP = 840f
+        /** ADR-029 evidence chip on the Next-set card (360×1600 baseline). */
+        const val LOOP_BUDGET_DP = 868f
     }
 }
