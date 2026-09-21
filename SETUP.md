@@ -65,7 +65,29 @@ keyPassword=your-key-password
 
 If `keystore.properties` or the keystore file is missing, `assembleRelease` still works but the APK is **not** signed for distribution.
 
-## 4. Google Drive OAuth (one-time)
+## 4. Temper Account (Supabase Auth, optional)
+
+Settings → **Account** can sign in with email and password when the app is built with
+your Supabase project URL and **anon (public) key**. This is optional: training works
+without it. Sync is not part of this step — only sign-in, sign-out, and showing the
+signed-in email.
+
+1. Copy `supabase.properties.example` to `supabase.properties` in the repo root
+   (gitignored).
+2. Set:
+   - `SUPABASE_URL` — Project URL from Supabase → Project Settings → API (e.g.
+     `https://xxxx.supabase.co`).
+   - `SUPABASE_ANON_KEY` — the **anon public** key from the same page.
+3. Rebuild Temper Debug (`assembleDebug` or your Obtainium drop).
+
+Never commit `supabase.properties` or the **service_role** key. CI and builds without
+that file show a calm “not configured” message on Settings → Account instead of crashing.
+
+**Smoke test on Temper Debug:** open Settings → Account, create an account or sign in,
+confirm your email appears, sign out, confirm the form returns. Home, Plan, and History
+should behave the same signed out.
+
+## 5. Google Drive OAuth (one-time)
 
 Backup/restore talks to Drive with the `drive.file` scope. You must create an Android OAuth client that matches this package and the SHA-1 of the keystore that signed the installed APK.
 
@@ -215,7 +237,7 @@ The full phone check — ten steps, about ten minutes, with a pass/fail at each 
 is [docs/DRIVE_SIGNIN_CHECK.md](docs/DRIVE_SIGNIN_CHECK.md). Run it once after
 setting up Cloud Console.
 
-## 5. GitHub Release + Obtainium
+## 6. GitHub Release + Obtainium
 
 Each update is three steps.
 
@@ -263,7 +285,7 @@ Obtainium compares `versionCode` inside the APK (and the release tag). Upload on
 
 Sideload without Obtainium: download the same APK from the GitHub Release and open it on the phone.
 
-## 6. Phone check (Obtainium, not Studio)
+## 7. Phone check (Obtainium, not Studio)
 
 Android Studio is not the install path. Cursor lands on `trunk`. The phone
 gets **Temper Debug** from a GitHub **pre-release**.
@@ -357,7 +379,7 @@ Temper install.
 
 This is not Play. `versionCode` stays at 1 until a signed public artifact is cut.
 
-## 7. First device install
+## 8. First device install
 
 1. Obtainium → this repo. Temper Debug: include pre-releases, `*-debug.apk`.
    Gym-floor Temper: signed `PersonalTrainer-<version>.apk`.
@@ -370,7 +392,7 @@ This is not Play. `versionCode` stays at 1 until a signed public artifact is cut
 
 Core training (routines, logging, history, units, library) does not need Google or a network. Backup/restore replaces local data from a Drive JSON file you created earlier.
 
-## 8. Rest timer on Samsung / Android 13+
+## 9. Rest timer on Samsung / Android 13+
 
 The rest timer is a **foreground service** with an ongoing notification. It keeps counting if you leave the workout screen, switch apps, or lock the phone. Finishing or discarding a workout stops the service.
 

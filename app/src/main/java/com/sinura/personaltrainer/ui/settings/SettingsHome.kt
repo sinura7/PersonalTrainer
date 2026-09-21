@@ -105,6 +105,14 @@ internal fun SettingsHome(
         item(key = "keep") {
             GroupedList {
                 SettingsIndexRow(
+                    title = SettingsHomeCopy.ACCOUNT,
+                    subtitle = SettingsHomeCopy.ACCOUNT_SUMMARY,
+                    icon = TemperIcons.Bodyweight,
+                    tag = SettingsTags.ROW_ACCOUNT,
+                    onClick = { onOpen(SettingsPage.ACCOUNT) },
+                )
+                IndexHairline()
+                SettingsIndexRow(
                     title = SettingsHomeCopy.BACKUP,
                     subtitle = SettingsHomeCopy.BACKUP_SUMMARY,
                     icon = TemperIcons.Backup,

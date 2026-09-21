@@ -12,6 +12,7 @@ class SettingsHomeLayoutTest {
         assertTrue(home.contains("SettingsHomeCopy.DISPLAY"))
         assertTrue(home.contains("SettingsHomeCopy.REMINDERS"))
         assertTrue(home.contains("SettingsHomeCopy.GENERATOR"))
+        assertTrue(home.contains("SettingsHomeCopy.ACCOUNT"))
         assertTrue(home.contains("SettingsHomeCopy.BACKUP"))
         assertTrue(home.contains("TemperIcons.Display"))
         assertTrue(home.contains("TemperIcons.Reminders"))
@@ -40,6 +41,8 @@ class SettingsHomeLayoutTest {
 
         val screen = readOwned("ui/settings/SettingsScreen.kt")
         assertTrue(screen.contains("SettingsHome("))
+        assertTrue(screen.contains("SettingsPage.ACCOUNT"))
+        assertTrue(screen.contains("AccountSection("))
         assertTrue(screen.contains("SettingsPage.HOME"))
         assertTrue(screen.contains("SettingsPage.GENERATOR"))
         assertTrue(screen.contains("SettingsPage.REMINDERS"))

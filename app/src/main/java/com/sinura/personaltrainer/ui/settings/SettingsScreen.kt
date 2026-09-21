@@ -51,6 +51,7 @@ fun SettingsScreen(
 ) {
     val prefs by viewModel.uiState.collectAsStateWithLifecycle()
     val backup by viewModel.backup.uiState.collectAsStateWithLifecycle()
+    val account by viewModel.account.uiState.collectAsStateWithLifecycle()
     val selectedUnit = prefs.weightUnit
     val clockFormat = prefs.clockFormat
     val schedulePrefs = prefs.schedule
@@ -277,6 +278,18 @@ fun SettingsScreen(
                     onRecordBodyweight = viewModel::recordBodyweight,
                     onClearBodyweight = viewModel::clearBodyweight,
                     onCheckInDay = viewModel::setBodyweightCheckInWeekday,
+                )
+            }
+            SettingsPage.ACCOUNT -> SettingsSubpage(
+                title = SettingsHomeCopy.ACCOUNT,
+                onBack = goHome,
+            ) {
+                AccountSection(
+                    state = account,
+                    onSignIn = viewModel.account::signIn,
+                    onSignUp = viewModel.account::signUp,
+                    onSignOut = viewModel.account::signOut,
+                    onClearError = viewModel.account::clearError,
                 )
             }
             SettingsPage.BACKUP -> SettingsSubpage(
@@ -509,7 +522,16 @@ object SettingsTags {
     const val ROW_GENERATOR = "settings-row-generator"
     const val ROW_REST = "settings-row-rest"
     const val ROW_BODYWEIGHT = "settings-row-bodyweight"
+    const val ROW_ACCOUNT = "settings-row-account"
     const val ROW_BACKUP = "settings-row-backup"
+    const val ACCOUNT = "settings-account"
+    const val ACCOUNT_EMAIL = "settings-account-email"
+    const val ACCOUNT_EMAIL_FIELD = "settings-account-email-field"
+    const val ACCOUNT_PASSWORD_FIELD = "settings-account-password-field"
+    const val ACCOUNT_SIGN_IN = "settings-account-sign-in"
+    const val ACCOUNT_SIGN_UP = "settings-account-sign-up"
+    const val ACCOUNT_SIGN_OUT = "settings-account-sign-out"
+    const val ACCOUNT_ERROR = "settings-account-error"
     const val ROW_PLAN = "settings-row-plan"
     const val ROW_DIAGNOSTICS = "settings-row-diagnostics"
     const val ROW_ABOUT = "settings-row-about"
