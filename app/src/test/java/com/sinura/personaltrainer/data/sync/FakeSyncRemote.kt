@@ -66,5 +66,15 @@ class FakeSyncRemote : SyncRemotePort {
             decodeSync<RemoteExerciseMuscleRow>(json).updatedAtMs
         SyncEntityType.BODYWEIGHT_ENTRY ->
             decodeSync<RemoteBodyweightEntryRow>(json).updatedAtMs
+        SyncEntityType.MEASURABLE_GOAL ->
+            decodeSync<RemoteMeasurableGoalRow>(json).updatedAtMs
+        SyncEntityType.COACH_PREFS ->
+            decodeSync<RemoteCoachPrefsRow>(json).updatedAtMs
+        SyncEntityType.REMINDER_PREFS ->
+            decodeSync<RemoteReminderPrefsRow>(json).updatedAtMs
+        SyncEntityType.DISPLAY_PREFS ->
+            decodeSync<RemoteDisplayPrefsRow>(json).updatedAtMs
+        SyncEntityType.ACCOUNT_PROFILE ->
+            decodeSync<RemoteAccountProfileRow>(json).updatedAtMs
     }
 }

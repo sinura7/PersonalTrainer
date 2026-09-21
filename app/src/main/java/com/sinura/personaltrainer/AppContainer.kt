@@ -35,6 +35,7 @@ import com.sinura.personaltrainer.activity.DiscardActivity
 import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.timer.SharedPrefsCardioTimerPersistence
 import com.sinura.personaltrainer.util.IdFactory
@@ -101,9 +102,19 @@ class AppContainer(context: Context) : AppDependencies {
     private val supabaseRuntime = AccountAuthFactory.createRuntime()
     private val syncOutboxWriter = SyncOutboxWriter(database.syncDao())
     private val syncScheduler = WorkManagerSyncScheduler(context)
-    private val syncAuthoring: SyncAuthoring? = supabaseRuntime?.let {
-        SyncAuthoring(
-            auth = it.auth,
+    private val syncAuthoringBridge = SyncAuthoringBridge()
+
+    override val preferencesRepository: PreferencesRepository = PreferencesRepository(
+        context,
+        bodyweightDao = database.bodyweightDao(),
+        trainingBlockDao = database.trainingBlockDao(),
+        onBodyweightChanged = syncAuthoringBridge::notifyBodyweightChanged,
+        onAccountPrefsChanged = syncAuthoringBridge::notifyAccountPrefsChanged,
+    )
+
+    private val syncAuthoring: SyncAuthoring? = supabaseRuntime?.let { runtime ->
+        val created = SyncAuthoring(
+            auth = runtime.auth,
             outbox = syncOutboxWriter,
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),
@@ -111,8 +122,12 @@ class AppContainer(context: Context) : AppDependencies {
             exerciseDao = database.exerciseDao(),
             catalogDao = database.catalogDao(),
             bodyweightDao = database.bodyweightDao(),
+            goalDao = database.goalDao(),
+            settingsStore = preferencesRepository.accountSyncSettingsStore,
             requestSync = syncScheduler::enqueueOneShot,
         )
+        syncAuthoringBridge.authoring = created
+        created
     }
     val syncCoordinator: SyncCoordinator = SyncCoordinator(
         auth = supabaseRuntime?.auth ?: UnconfiguredAccountAuth(),
@@ -126,12 +141,34 @@ class AppContainer(context: Context) : AppDependencies {
             exerciseDao = database.exerciseDao(),
             catalogDao = database.catalogDao(),
             bodyweightDao = database.bodyweightDao(),
+            goalDao = database.goalDao(),
+            settingsStore = preferencesRepository.accountSyncSettingsStore,
             remote = supabaseRuntime?.syncRemote ?: NoOpSyncRemote,
         ),
         scheduler = syncScheduler,
         authoring = syncAuthoring,
     )
     override val syncStatus = if (supabaseRuntime != null) syncCoordinator else DisabledSyncStatusPort
+
+    private class SyncAuthoringBridge {
+        var authoring: SyncAuthoring? = null
+
+        suspend fun notifyBodyweightChanged() {
+            authoring?.onBodyweightChanged()
+        }
+
+        suspend fun notifyAccountPrefsChanged() {
+            authoring?.onAccountPrefsChanged()
+        }
+
+        suspend fun notifyGoalUpserted(goal: MeasurableGoalEntity) {
+            authoring?.onGoalUpserted(goal)
+        }
+
+        suspend fun notifyGoalDeleted(goal: MeasurableGoalEntity) {
+            authoring?.onGoalDeleted(goal)
+        }
+    }
 
     /**
      * One lock over every wholesale rewrite of the catalog. The startup seed and a restore both
@@ -173,7 +210,11 @@ class AppContainer(context: Context) : AppDependencies {
     )
     /** The week the user pinned. Nothing else in the app is allowed to write it. */
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
-    override val goalRepository: GoalRepository = GoalRepository(database.goalDao())
+    override val goalRepository: GoalRepository = GoalRepository(
+        dao = database.goalDao(),
+        onGoalUpserted = syncAuthoringBridge::notifyGoalUpserted,
+        onGoalDeleted = syncAuthoringBridge::notifyGoalDeleted,
+    )
     override val pendingOccurrenceId = MutableStateFlow<String?>(null)
     override val workoutRepository: WorkoutRepository = WorkoutRepository(
         database,
@@ -183,13 +224,6 @@ class AppContainer(context: Context) : AppDependencies {
     )
     override val completedTrainingRepository: CompletedTrainingRepository =
         CompletedTrainingRepository(workoutRepository, activityRepository, time)
-    override val preferencesRepository: PreferencesRepository = PreferencesRepository(
-        context,
-        bodyweightDao = database.bodyweightDao(),
-        trainingBlockDao = database.trainingBlockDao(),
-        onBodyweightChanged = { syncAuthoring?.onBodyweightChanged() },
-    )
-
     /**
      * The one writer that spans preferences, routines and the schedule together. Constructed
      * here rather than in the view model because that ordering is a property of the app, not
@@ -303,6 +337,8 @@ class AppContainer(context: Context) : AppDependencies {
                 syncAuthoring?.onTemplatesChanged()
                 syncAuthoring?.onCustomExercisesChanged()
                 syncAuthoring?.onBodyweightChanged()
+                syncAuthoring?.onGoalsChanged()
+                syncAuthoring?.onAccountPrefsChanged()
             },
             safetySnapshotDir = java.io.File(context.filesDir, "safety-snapshots"),
         ),

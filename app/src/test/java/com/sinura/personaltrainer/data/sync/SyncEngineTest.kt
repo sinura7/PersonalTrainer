@@ -1,8 +1,10 @@
 package com.sinura.personaltrainer.data.sync
 
 import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.data.repository.prefs.SettingsStore
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.entity.ActivityBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
@@ -22,12 +24,14 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class SyncEngineTest {
     private lateinit var database: TemperDatabase
     private lateinit var remote: FakeSyncRemote
     private lateinit var engine: SyncEngine
+    private lateinit var settingsStore: SettingsStore
 
     @Before
     fun setUp() {
@@ -36,6 +40,10 @@ class SyncEngineTest {
             .allowMainThreadQueries()
             .build()
         remote = FakeSyncRemote()
+        val prefsFile = File(context.filesDir, "sync-engine-test-${System.nanoTime()}.preferences_pb")
+        settingsStore = SettingsStore(
+            PreferenceDataStoreFactory.create(produceFile = { prefsFile }),
+        )
         engine = SyncEngine(
             database = database,
             syncDao = database.syncDao(),
@@ -45,6 +53,8 @@ class SyncEngineTest {
             exerciseDao = database.exerciseDao(),
             catalogDao = database.catalogDao(),
             bodyweightDao = database.bodyweightDao(),
+            goalDao = database.goalDao(),
+            settingsStore = settingsStore,
             remote = remote,
             nowMillis = { 5_000L },
         )
@@ -470,5 +480,66 @@ class SyncEngineTest {
         remote.seed(SyncEntityType.BODYWEIGHT_ENTRY, encodeSync(remoteRow))
         assertTrue(engine.run("user-1").isSuccess)
         assertEquals(79.0, database.bodyweightDao().getAll().single().kg, 0.001)
+    }
+
+    @Test
+    fun pullAppliesRemoteMeasurableGoalWhenNewer() = runTest {
+        val local = com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity(
+            id = "goal-1",
+            kind = "SESSION_COUNT",
+            targetValue = 3.0,
+            exerciseId = null,
+            exerciseName = null,
+            period = "WEEK",
+            instantMs = 1L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            localEpochDay = 0L,
+            paused = false,
+            createdAtMs = 100L,
+            updatedAtMs = 100L,
+        )
+        database.goalDao().upsert(local)
+        val remoteRow = RemoteMeasurableGoalRow(
+            id = "goal-1",
+            userId = "user-1",
+            kind = "SESSION_COUNT",
+            targetValue = 5.0,
+            exerciseId = null,
+            exerciseName = null,
+            period = "WEEK",
+            instantMs = 1L,
+            zoneId = "UTC",
+            offsetSeconds = 0,
+            localEpochDay = 0L,
+            paused = true,
+            createdAtMs = 100L,
+            updatedAtMs = 500L,
+        )
+        remote.seed(SyncEntityType.MEASURABLE_GOAL, encodeSync(remoteRow))
+        assertTrue(engine.run("user-1").isSuccess)
+        val applied = database.goalDao().getAll().single()
+        assertEquals(5.0, applied.targetValue, 0.001)
+        assertTrue(applied.paused)
+    }
+
+    @Test
+    fun pullAppliesRemoteCoachPrefsWhenNewer() = runTest {
+        val remoteRow = RemoteCoachPrefsRow(
+            userId = "user-1",
+            trainingGoal = "STRENGTH",
+            trainingEmphasis = "UPPER",
+            availableEquipment = listOf("BARBELL"),
+            trainingAge = "EXPERIENCED",
+            trainingPlace = "FULL_GYM",
+            trainingFocus = "STRENGTH",
+            heatWindow = "LAST_30_DAYS",
+            updatedAtMs = 900L,
+        )
+        remote.seed(SyncEntityType.COACH_PREFS, encodeSync(remoteRow))
+        assertTrue(engine.run("user-1").isSuccess)
+        val prefs = settingsStore.snapshot()
+        assertEquals("STRENGTH", prefs[com.sinura.personaltrainer.data.repository.prefs.TRAINING_GOAL])
+        assertEquals(900L, SyncAccountPrefs.coachUpdatedAtMs(prefs))
     }
 }

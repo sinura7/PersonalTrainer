@@ -6,9 +6,11 @@ import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.data.local.dao.CatalogDao
 import com.sinura.personaltrainer.data.local.dao.ExerciseDao
+import com.sinura.personaltrainer.data.local.dao.GoalDao
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.dao.SyncDao
+import com.sinura.personaltrainer.data.repository.prefs.SettingsStore
 import com.sinura.personaltrainer.data.local.entity.SyncMetadataEntity
 import com.sinura.personaltrainer.data.local.entity.SyncTableCursorEntity
 import com.sinura.personaltrainer.domain.SyncChildRow
@@ -29,6 +31,8 @@ class SyncEngine(
     private val exerciseDao: ExerciseDao,
     private val catalogDao: CatalogDao,
     private val bodyweightDao: BodyweightDao,
+    private val goalDao: GoalDao,
+    private val settingsStore: SettingsStore,
     private val remote: SyncRemotePort,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
@@ -113,6 +117,11 @@ class SyncEngine(
     }
 
     private suspend fun pullAll() {
+        pullTable(SyncEntityType.MEASURABLE_GOAL, ::applyMeasurableGoal)
+        pullTable(SyncEntityType.COACH_PREFS, ::applyCoachPrefs)
+        pullTable(SyncEntityType.REMINDER_PREFS, ::applyReminderPrefs)
+        pullTable(SyncEntityType.DISPLAY_PREFS, ::applyDisplayPrefs)
+        pullTable(SyncEntityType.ACCOUNT_PROFILE, ::applyAccountProfile)
         pullTable(SyncEntityType.CUSTOM_EXERCISE, ::applyCustomExercise)
         pullTable(SyncEntityType.EXERCISE_MUSCLE, ::applyExerciseMuscle)
         pullTable(SyncEntityType.BODYWEIGHT_ENTRY, ::applyBodyweightEntry)
@@ -357,6 +366,95 @@ class SyncEngine(
         }
         catalogDao.insertCredits(listOf(remote.toEntity()))
         return remote.updatedAtMs
+    }
+
+    private suspend fun applyMeasurableGoal(json: String): Long {
+        val remote = decodeSync<RemoteMeasurableGoalRow>(json)
+        val queued = hasPendingChild(SyncEntityType.MEASURABLE_GOAL, remote.id)
+        if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
+            return remote.updatedAtMs
+        }
+        if (remote.deletedAtMs != null) {
+            goalDao.delete(remote.id)
+            return remote.updatedAtMs
+        }
+        val local = goalDao.getAll().firstOrNull { it.id == remote.id }
+        val localVersion = SyncEntityVersion(0L, local?.updatedAtMs ?: -1L)
+        val remoteVersion = SyncEntityVersion(0L, remote.updatedAtMs)
+        if (local != null && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
+            return remote.updatedAtMs
+        }
+        goalDao.upsert(remote.toEntity())
+        return remote.updatedAtMs
+    }
+
+    private suspend fun applyCoachPrefs(json: String): Long {
+        val remote = decodeSync<RemoteCoachPrefsRow>(json)
+        return applySingletonPrefs(
+            type = SyncEntityType.COACH_PREFS,
+            userId = remote.userId,
+            remoteUpdatedAtMs = remote.updatedAtMs,
+            localUpdatedAtMs = SyncAccountPrefs.coachUpdatedAtMs(settingsStore.snapshot()),
+        ) {
+            SyncAccountPrefs.applyCoachRemote(settingsStore, remote)
+        }
+    }
+
+    private suspend fun applyReminderPrefs(json: String): Long {
+        val remote = decodeSync<RemoteReminderPrefsRow>(json)
+        return applySingletonPrefs(
+            type = SyncEntityType.REMINDER_PREFS,
+            userId = remote.userId,
+            remoteUpdatedAtMs = remote.updatedAtMs,
+            localUpdatedAtMs = SyncAccountPrefs.reminderUpdatedAtMs(settingsStore.snapshot()),
+        ) {
+            SyncAccountPrefs.applyReminderRemote(settingsStore, remote)
+        }
+    }
+
+    private suspend fun applyDisplayPrefs(json: String): Long {
+        val remote = decodeSync<RemoteDisplayPrefsRow>(json)
+        return applySingletonPrefs(
+            type = SyncEntityType.DISPLAY_PREFS,
+            userId = remote.userId,
+            remoteUpdatedAtMs = remote.updatedAtMs,
+            localUpdatedAtMs = SyncAccountPrefs.displayUpdatedAtMs(settingsStore.snapshot()),
+        ) {
+            SyncAccountPrefs.applyDisplayRemote(settingsStore, remote)
+        }
+    }
+
+    private suspend fun applyAccountProfile(json: String): Long {
+        val remote = decodeSync<RemoteAccountProfileRow>(json)
+        return applySingletonPrefs(
+            type = SyncEntityType.ACCOUNT_PROFILE,
+            userId = remote.userId,
+            remoteUpdatedAtMs = remote.updatedAtMs,
+            localUpdatedAtMs = SyncAccountPrefs.accountProfileUpdatedAtMs(settingsStore.snapshot()),
+        ) {
+            SyncAccountPrefs.applyAccountProfileRemote(settingsStore, remote)
+        }
+    }
+
+    private suspend fun applySingletonPrefs(
+        type: SyncEntityType,
+        userId: String,
+        remoteUpdatedAtMs: Long,
+        localUpdatedAtMs: Long,
+        apply: suspend () -> Unit,
+    ): Long {
+        val entityId = syncAccountPrefsEntityId(userId)
+        val queued = hasPendingChild(type, entityId)
+        if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
+            return remoteUpdatedAtMs
+        }
+        val localVersion = SyncEntityVersion(0L, localUpdatedAtMs)
+        val remoteVersion = SyncEntityVersion(0L, remoteUpdatedAtMs)
+        if (localUpdatedAtMs > 0L && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
+            return remoteUpdatedAtMs
+        }
+        apply()
+        return remoteUpdatedAtMs
     }
 
     private suspend fun applyBodyweightEntry(json: String): Long {

@@ -4,6 +4,7 @@ import androidx.datastore.preferences.core.edit
 import com.sinura.personaltrainer.domain.SavePosture
 import com.sinura.personaltrainer.domain.SavePostureState
 import com.sinura.personaltrainer.domain.inferLegacySavePosture
+import com.sinura.personaltrainer.data.sync.SyncAccountPrefs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
@@ -15,7 +16,11 @@ interface SavePosturePrefs {
     suspend fun ensureLegacyMigrated(accountSignedIn: Boolean)
 }
 
-internal class SavePosturePrefsStore(private val store: SettingsStore) : SavePosturePrefs {
+internal class SavePosturePrefsStore(
+    private val store: SettingsStore,
+    private val onChanged: suspend () -> Unit = {},
+    private val nowMillis: () -> Long = { System.currentTimeMillis() },
+) : SavePosturePrefs {
     override val savePostureState: Flow<SavePostureState> = store.pref { prefs ->
         val chosen = prefs[SAVE_POSTURE_CHOSEN] ?: false
         val posture = SavePosture.fromStorage(prefs[SAVE_POSTURE]) ?: SavePosture.LOCAL
@@ -26,7 +31,9 @@ internal class SavePosturePrefsStore(private val store: SettingsStore) : SavePos
         store.data.edit { prefs ->
             prefs[SAVE_POSTURE_CHOSEN] = true
             prefs[SAVE_POSTURE] = posture.name
+            SyncAccountPrefs.touchAccountProfileUpdatedAt(prefs, nowMillis())
         }
+        onChanged()
     }
 
     override suspend fun ensureLegacyMigrated(accountSignedIn: Boolean) {

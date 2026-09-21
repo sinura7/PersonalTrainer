@@ -5,6 +5,7 @@ import com.sinura.personaltrainer.domain.DayReminder
 import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WorkoutAlarms
+import com.sinura.personaltrainer.data.sync.SyncAccountPrefs
 import kotlinx.coroutines.flow.Flow
 
 /** The reminder opt-out, quiet hours, per-day alarms, and the occurrence a live session came from. */
@@ -28,7 +29,11 @@ interface ReminderPrefs {
     suspend fun setLaunchPermissionsAsked(asked: Boolean)
 }
 
-internal class ReminderPrefsStore(private val store: SettingsStore) : ReminderPrefs {
+internal class ReminderPrefsStore(
+    private val store: SettingsStore,
+    private val onChanged: suspend () -> Unit = {},
+    private val nowMillis: () -> Long = { System.currentTimeMillis() },
+) : ReminderPrefs {
     override val reminderPreferences: Flow<ReminderPreferences> = store.pref { prefs ->
         ReminderPreferences(
             optOut = prefs[REMINDER_OPT_OUT] ?: false,
@@ -47,14 +52,20 @@ internal class ReminderPrefsStore(private val store: SettingsStore) : ReminderPr
         store.pref { prefs -> prefs[LAUNCH_PERMISSIONS_ASKED] ?: false }
 
     override suspend fun setReminderOptOut(optOut: Boolean) {
-        store.data.edit { prefs -> prefs[REMINDER_OPT_OUT] = optOut }
+        store.data.edit { prefs ->
+            prefs[REMINDER_OPT_OUT] = optOut
+            SyncAccountPrefs.touchReminderUpdatedAt(prefs, nowMillis())
+        }
+        onChanged()
     }
 
     override suspend fun setReminderQuietHours(startHour: Int, endHour: Int) {
         store.data.edit { prefs ->
             prefs[REMINDER_QUIET_START] = startHour.coerceIn(0, 23)
             prefs[REMINDER_QUIET_END] = endHour.coerceIn(0, 23)
+            SyncAccountPrefs.touchReminderUpdatedAt(prefs, nowMillis())
         }
+        onChanged()
     }
 
     override suspend fun setDayAlarm(weekday: Weekday, hour: Int, minute: Int) {
@@ -62,7 +73,9 @@ internal class ReminderPrefsStore(private val store: SettingsStore) : ReminderPr
             val next = WorkoutAlarms.decode(prefs[REMINDER_DAY_ALARMS]).toMutableMap()
             next[weekday] = DayReminder(hour = hour, minute = minute).sanitized()
             prefs[REMINDER_DAY_ALARMS] = WorkoutAlarms.encode(next)
+            SyncAccountPrefs.touchReminderUpdatedAt(prefs, nowMillis())
         }
+        onChanged()
     }
 
     override suspend fun clearDayAlarm(weekday: Weekday) {
@@ -74,7 +87,9 @@ internal class ReminderPrefsStore(private val store: SettingsStore) : ReminderPr
             } else {
                 prefs[REMINDER_DAY_ALARMS] = WorkoutAlarms.encode(next)
             }
+            SyncAccountPrefs.touchReminderUpdatedAt(prefs, nowMillis())
         }
+        onChanged()
     }
 
     override suspend fun setPendingOccurrenceId(id: String?) {

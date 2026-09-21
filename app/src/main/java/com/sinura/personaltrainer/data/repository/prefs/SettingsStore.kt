@@ -133,6 +133,12 @@ internal val SAVE_POSTURE_CHOSEN = booleanPreferencesKey("save_posture_chosen")
 internal val FOUNDATION_GENERATION = stringPreferencesKey("foundation_generation")
 internal val RPE_HELPER_DISMISSED = booleanPreferencesKey("rpe_helper_dismissed")
 
+/** Per-group timestamps for Temper Account sync (Packet 3). */
+internal val COACH_PREFS_UPDATED_AT_MS = longPreferencesKey("coach_prefs_updated_at_ms")
+internal val REMINDER_PREFS_UPDATED_AT_MS = longPreferencesKey("reminder_prefs_updated_at_ms")
+internal val DISPLAY_PREFS_UPDATED_AT_MS = longPreferencesKey("display_prefs_updated_at_ms")
+internal val ACCOUNT_PROFILE_UPDATED_AT_MS = longPreferencesKey("account_profile_updated_at_ms")
+
 internal fun preferredDaysFrom(raw: Set<String>?): Set<Weekday> =
     raw.orEmpty().mapNotNull { name ->
         Weekday.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }

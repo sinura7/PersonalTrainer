@@ -4,8 +4,11 @@ import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.data.local.dao.CatalogDao
 import com.sinura.personaltrainer.data.local.dao.ExerciseDao
+import com.sinura.personaltrainer.data.local.dao.GoalDao
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
+import com.sinura.personaltrainer.data.local.entity.MeasurableGoalEntity
+import com.sinura.personaltrainer.data.repository.prefs.SettingsStore
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
@@ -24,6 +27,8 @@ class SyncAuthoring(
     private val exerciseDao: ExerciseDao,
     private val catalogDao: CatalogDao,
     private val bodyweightDao: BodyweightDao,
+    private val goalDao: GoalDao,
+    private val settingsStore: SettingsStore,
     private val requestSync: () -> Unit,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
@@ -133,6 +138,38 @@ class SyncAuthoring(
         requestSync()
     }
 
+    suspend fun onGoalUpserted(goal: MeasurableGoalEntity) {
+        val userId = auth.session.first()?.userId ?: return
+        outbox.enqueueMeasurableGoalUpsert(userId, goal)
+        requestSync()
+    }
+
+    suspend fun onGoalDeleted(goal: MeasurableGoalEntity) {
+        val userId = auth.session.first()?.userId ?: return
+        outbox.enqueueMeasurableGoalDelete(userId, goal, deletedAtMs = nowMillis())
+        requestSync()
+    }
+
+    suspend fun onGoalsChanged() {
+        val userId = auth.session.first()?.userId ?: return
+        outbox.enqueueAllMeasurableGoals(userId, goalDao.getAll())
+        requestSync()
+    }
+
+    suspend fun onAccountPrefsChanged() {
+        val userId = auth.session.first()?.userId ?: return
+        enqueueAccountPrefSnapshots(userId)
+        requestSync()
+    }
+
+    private suspend fun enqueueAccountPrefSnapshots(userId: String) {
+        val prefs = settingsStore.snapshot()
+        outbox.enqueueCoachPrefs(userId, SyncAccountPrefs.coachToRemote(userId, prefs))
+        outbox.enqueueReminderPrefs(userId, SyncAccountPrefs.reminderToRemote(userId, prefs))
+        outbox.enqueueDisplayPrefs(userId, SyncAccountPrefs.displayToRemote(userId, prefs))
+        outbox.enqueueAccountProfile(userId, SyncAccountPrefs.accountProfileToRemote(userId, prefs))
+    }
+
     /** After sign-in, queue custom lifts and weigh-ins that may predate the account. */
     suspend fun bootstrapLocalSnapshot() {
         val userId = auth.session.first()?.userId ?: return
@@ -141,6 +178,8 @@ class SyncAuthoring(
         val muscles = catalogDao.getAllCredits().filter { it.exerciseId in customIds }
         outbox.enqueueAllCustomExercises(userId, customs, muscles)
         outbox.enqueueAllBodyweightEntries(userId, bodyweightDao.getAll())
+        outbox.enqueueAllMeasurableGoals(userId, goalDao.getAll())
+        enqueueAccountPrefSnapshots(userId)
         requestSync()
     }
 }

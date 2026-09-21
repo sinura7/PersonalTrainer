@@ -90,6 +90,11 @@ class SupabaseAccountAuth(
             SyncEntityType.EXERCISE_MUSCLE,
             SyncEntityType.CUSTOM_EXERCISE,
             SyncEntityType.BODYWEIGHT_ENTRY,
+            SyncEntityType.MEASURABLE_GOAL,
+            SyncEntityType.COACH_PREFS,
+            SyncEntityType.REMINDER_PREFS,
+            SyncEntityType.DISPLAY_PREFS,
+            SyncEntityType.ACCOUNT_PROFILE,
         )
         order.forEach { type -> rest.deleteAllRows(type.remoteTable, accessToken) }
     }
