@@ -20,4 +20,6 @@ class RecordingSyncStatusPort : SyncStatusPort {
     override suspend fun abandonOutboxOnSignOut() {
         abandonOutboxCalls++
     }
+
+    override suspend fun bootstrapAfterSignIn() = Unit
 }

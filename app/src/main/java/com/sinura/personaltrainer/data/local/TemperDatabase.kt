@@ -95,6 +95,7 @@ abstract class TemperDatabase : AppRoomDatabase() {
                     MIGRATION_TEMPER_3_4,
                     MIGRATION_TEMPER_4_5,
                     MIGRATION_TEMPER_5_6,
+                    MIGRATION_TEMPER_6_7,
                 )
                 .build()
         }

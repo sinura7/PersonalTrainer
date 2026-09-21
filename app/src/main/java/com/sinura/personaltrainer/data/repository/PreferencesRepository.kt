@@ -134,6 +134,7 @@ class PreferencesRepository(
     dataStore: DataStore<Preferences> = context.applicationContext.userSettingsDataStore,
     private val bodyweightDao: BodyweightDao? = null,
     private val trainingBlockDao: TrainingBlockDao? = null,
+    private val onBodyweightChanged: suspend () -> Unit = {},
     private val nowMs: () -> Long = { System.currentTimeMillis() },
     private val store: SettingsStore = SettingsStore(dataStore),
 ) : DisplayPrefs by DisplayPrefsStore(store = store),
@@ -480,6 +481,7 @@ class PreferencesRepository(
                     dao.deleteDay(extra.epochDay)
                 }
             }
+            onBodyweightChanged()
         }
         dataStore.edit { prefs ->
             prefs[BODYWEIGHT_KG] = clean

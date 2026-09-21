@@ -12,6 +12,7 @@ class SyncCoordinator(
     private val syncDao: SyncDao,
     private val engine: SyncEngine,
     private val scheduler: SyncScheduler,
+    private val authoring: SyncAuthoring? = null,
 ) : SyncStatusPort {
     override val status: Flow<SyncStatus> = combine(
         auth.session,
@@ -42,4 +43,8 @@ class SyncCoordinator(
     }
 
     suspend fun runPass(userId: String): Result<Unit> = engine.run(userId)
+
+    override suspend fun bootstrapAfterSignIn() {
+        authoring?.bootstrapLocalSnapshot()
+    }
 }

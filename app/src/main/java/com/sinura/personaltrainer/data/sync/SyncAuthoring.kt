@@ -1,8 +1,13 @@
 package com.sinura.personaltrainer.data.sync
 
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.BodyweightDao
+import com.sinura.personaltrainer.data.local.dao.CatalogDao
+import com.sinura.personaltrainer.data.local.dao.ExerciseDao
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
+import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.domain.AccountAuthPort
@@ -16,6 +21,9 @@ class SyncAuthoring(
     private val activityDao: ActivityDao,
     private val plannerDao: PlannerDao,
     private val routineDao: RoutineDao,
+    private val exerciseDao: ExerciseDao,
+    private val catalogDao: CatalogDao,
+    private val bodyweightDao: BodyweightDao,
     private val requestSync: () -> Unit,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
@@ -85,6 +93,54 @@ class SyncAuthoring(
     suspend fun onTemplatesChanged() {
         val userId = auth.session.first()?.userId ?: return
         outbox.enqueueAllTemplates(userId, activityDao.getAllTemplateGraphs())
+        requestSync()
+    }
+
+    suspend fun onCustomExerciseCommitted(exercise: ExerciseEntity, muscles: List<ExerciseMuscleEntity>) {
+        val userId = auth.session.first()?.userId ?: return
+        outbox.enqueueCustomExerciseUpsert(
+            userId = userId,
+            exercise = exercise,
+            muscles = muscles,
+            createdAtMs = exercise.updatedAtMs,
+        )
+        requestSync()
+    }
+
+    suspend fun onCustomExerciseDeleted(exercise: ExerciseEntity, muscles: List<ExerciseMuscleEntity>) {
+        val userId = auth.session.first()?.userId ?: return
+        outbox.enqueueCustomExerciseDelete(
+            userId = userId,
+            exercise = exercise,
+            muscles = muscles,
+            deletedAtMs = nowMillis(),
+        )
+        requestSync()
+    }
+
+    suspend fun onCustomExercisesChanged() {
+        val userId = auth.session.first()?.userId ?: return
+        val customs = exerciseDao.getAllCustom()
+        val customIds = customs.map { it.id }.toSet()
+        val muscles = catalogDao.getAllCredits().filter { it.exerciseId in customIds }
+        outbox.enqueueAllCustomExercises(userId, customs, muscles)
+        requestSync()
+    }
+
+    suspend fun onBodyweightChanged() {
+        val userId = auth.session.first()?.userId ?: return
+        outbox.enqueueAllBodyweightEntries(userId, bodyweightDao.getAll())
+        requestSync()
+    }
+
+    /** After sign-in, queue custom lifts and weigh-ins that may predate the account. */
+    suspend fun bootstrapLocalSnapshot() {
+        val userId = auth.session.first()?.userId ?: return
+        val customs = exerciseDao.getAllCustom()
+        val customIds = customs.map { it.id }.toSet()
+        val muscles = catalogDao.getAllCredits().filter { it.exerciseId in customIds }
+        outbox.enqueueAllCustomExercises(userId, customs, muscles)
+        outbox.enqueueAllBodyweightEntries(userId, bodyweightDao.getAll())
         requestSync()
     }
 }

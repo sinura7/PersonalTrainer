@@ -40,17 +40,17 @@ to change that choice later.
 - Privacy and Data Safety stay honest about partial sync until follow-up packets
   land.
 
-## Follow-up sync entities (not in Packet 1)
+## Follow-up sync entities
 
 | Area | Examples | Notes |
 |------|----------|--------|
-| Library | Custom exercises, catalog seed | Called out deferred in sync-personal-build |
-| Body | Bodyweight entries and log | Settings / Body today |
-| Goals | Measurable goals, pause intervals | Local-only today |
-| Coach / generator | Coach prefs, training block, questionnaire fields | Partially in backup export |
-| Reminders | Reminder prefs, day alarms | Device-local today |
-| Display | Weight unit, clock format | Local preference |
-| Account profile | Display name, avatar | Not product yet |
+| Library | Custom exercises + junction credits | **Packet 2** — built-in catalog seed still local |
+| Body | Bodyweight weigh-in log | **Packet 2** — training blocks still local |
+| Goals | Measurable goals, pause intervals | Packet 3+ |
+| Coach / generator | Coach prefs, training block, questionnaire fields | Packet 3+; partially in backup export |
+| Reminders | Reminder prefs, day alarms | Packet 3+ |
+| Display | Weight unit, clock format | Packet 3+ |
+| Account profile | Display name, avatar | Packet 3+ |
 
 ## Review questions
 

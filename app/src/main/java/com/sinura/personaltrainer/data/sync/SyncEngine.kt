@@ -3,6 +3,9 @@ package com.sinura.personaltrainer.data.sync
 import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.BodyweightDao
+import com.sinura.personaltrainer.data.local.dao.CatalogDao
+import com.sinura.personaltrainer.data.local.dao.ExerciseDao
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.dao.SyncDao
@@ -23,6 +26,9 @@ class SyncEngine(
     private val activityDao: ActivityDao,
     private val plannerDao: PlannerDao,
     private val routineDao: RoutineDao,
+    private val exerciseDao: ExerciseDao,
+    private val catalogDao: CatalogDao,
+    private val bodyweightDao: BodyweightDao,
     private val remote: SyncRemotePort,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
@@ -107,6 +113,9 @@ class SyncEngine(
     }
 
     private suspend fun pullAll() {
+        pullTable(SyncEntityType.CUSTOM_EXERCISE, ::applyCustomExercise)
+        pullTable(SyncEntityType.EXERCISE_MUSCLE, ::applyExerciseMuscle)
+        pullTable(SyncEntityType.BODYWEIGHT_ENTRY, ::applyBodyweightEntry)
         pullTable(SyncEntityType.ACTIVITY_SESSION, ::applyActivitySession)
         pullTable(SyncEntityType.ACTIVITY_TEMPLATE, ::applyActivityTemplate)
         pullTable(SyncEntityType.ACTIVITY_BLOCK, ::applyActivityBlock)
@@ -301,6 +310,73 @@ class SyncEngine(
             return remote.updatedAtMs
         }
         routineDao.upsertRoutineExercise(remote.toEntity())
+        return remote.updatedAtMs
+    }
+
+    private suspend fun applyCustomExercise(json: String): Long {
+        val remote = decodeSync<RemoteCustomExerciseRow>(json)
+        val queued = hasPendingChild(SyncEntityType.CUSTOM_EXERCISE, remote.id)
+        if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
+            return remote.updatedAtMs
+        }
+        if (remote.deletedAtMs != null) {
+            exerciseDao.deleteCustom(remote.id)
+            return remote.updatedAtMs
+        }
+        val local = exerciseDao.getById(remote.id)
+        if (local != null && !local.isCustom) {
+            return remote.updatedAtMs
+        }
+        val localVersion = SyncEntityVersion(0L, local?.updatedAtMs ?: -1L)
+        val remoteVersion = SyncEntityVersion(remote.revision, remote.updatedAtMs)
+        if (local != null && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
+            return remote.updatedAtMs
+        }
+        if (local == null) {
+            exerciseDao.insert(remote.toEntity())
+        } else {
+            exerciseDao.update(remote.toEntity())
+        }
+        return remote.updatedAtMs
+    }
+
+    private suspend fun applyExerciseMuscle(json: String): Long {
+        val remote = decodeSync<RemoteExerciseMuscleRow>(json)
+        val entityId = syncExerciseMuscleEntityId(remote.exerciseId, remote.muscleKey)
+        val queued = hasPendingChild(SyncEntityType.EXERCISE_MUSCLE, entityId)
+        if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
+            return remote.updatedAtMs
+        }
+        if (remote.deletedAtMs != null) {
+            catalogDao.deleteCredit(remote.exerciseId, remote.muscleKey)
+            return remote.updatedAtMs
+        }
+        val parent = exerciseDao.getById(remote.exerciseId)
+        if (parent == null || !parent.isCustom) {
+            return remote.updatedAtMs
+        }
+        catalogDao.insertCredits(listOf(remote.toEntity()))
+        return remote.updatedAtMs
+    }
+
+    private suspend fun applyBodyweightEntry(json: String): Long {
+        val remote = decodeSync<RemoteBodyweightEntryRow>(json)
+        val entityId = syncBodyweightEntityId(remote.epochDay)
+        val queued = hasPendingChild(SyncEntityType.BODYWEIGHT_ENTRY, entityId)
+        if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
+            return remote.updatedAtMs
+        }
+        if (remote.deletedAtMs != null) {
+            bodyweightDao.deleteDay(remote.epochDay)
+            return remote.updatedAtMs
+        }
+        val local = bodyweightDao.getAll().firstOrNull { it.epochDay == remote.epochDay }
+        val localVersion = SyncEntityVersion(0L, local?.recordedAtMs ?: -1L)
+        val remoteVersion = SyncEntityVersion(0L, remote.updatedAtMs)
+        if (local != null && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
+            return remote.updatedAtMs
+        }
+        bodyweightDao.upsert(remote.toEntity())
         return remote.updatedAtMs
     }
 

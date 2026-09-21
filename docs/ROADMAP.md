@@ -18,6 +18,11 @@
 > 21 Sep 2026 — Retired physical TalkBack as a Public Candidate / Play
 > rehearsal ship gate; `publicCandidateReady()` is automated evidence only.
 >
+> 21 Sep 2026 — Temper Account sync Packet 2: custom exercises (with muscle
+> credits) and bodyweight weigh-ins replicate when signed in; built-in catalog
+> seed stays local. Supabase DDL in `docs/supabase/packet-2-account-sync-ddl.sql`.
+> Goals, coach prefs, reminders, and display prefs remain Packet 3+.
+>
 > 21 Sep 2026 — Phase 11 step 7: Privacy Policy and Play Data Safety docs
 > save posture Packet 1 (first-launch chooser + Settings → How you save + ADR-028);
 > updated for Temper Account; in-app account deletion and Settings/About

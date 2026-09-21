@@ -6,6 +6,9 @@ import com.sinura.personaltrainer.data.local.entity.ActivityCardioIntervalEntity
 import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityStrengthSetEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityTemplateEntity
+import com.sinura.personaltrainer.data.local.entity.BodyweightEntryEntity
+import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
@@ -459,3 +462,121 @@ internal fun RemoteActivityTemplateRow.toEntity(): ActivityTemplateEntity = Acti
     notes = notes,
     updatedAtMs = updatedAtMs,
 )
+
+data class RemoteCustomExerciseRow(
+    val id: String,
+    @SerializedName("user_id") val userId: String,
+    val name: String,
+    @SerializedName("muscle_group") val muscleGroup: String,
+    val notes: String,
+    val equipment: String,
+    @SerializedName("load_type") val loadType: String,
+    @SerializedName("movement_key") val movementKey: String?,
+    @SerializedName("image_key") val imageKey: String?,
+    @SerializedName("name_key") val nameKey: String,
+    @SerializedName("created_at_ms") val createdAtMs: Long,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    val revision: Long = 0L,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+data class RemoteExerciseMuscleRow(
+    @SerializedName("exercise_id") val exerciseId: String,
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("muscle_key") val muscleKey: String,
+    val weight: Double,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+data class RemoteBodyweightEntryRow(
+    @SerializedName("epoch_day") val epochDay: Long,
+    @SerializedName("user_id") val userId: String,
+    val kg: Double,
+    @SerializedName("recorded_at_ms") val recordedAtMs: Long,
+    @SerializedName("zone_id") val zoneId: String,
+    @SerializedName("offset_seconds") val offsetSeconds: Int,
+    @SerializedName("updated_at_ms") val updatedAtMs: Long,
+    @SerializedName("deleted_at_ms") val deletedAtMs: Long? = null,
+)
+
+internal fun ExerciseEntity.toCustomRemote(
+    userId: String,
+    createdAtMs: Long,
+    deletedAtMs: Long? = null,
+): RemoteCustomExerciseRow = RemoteCustomExerciseRow(
+    id = id,
+    userId = userId,
+    name = name,
+    muscleGroup = muscleGroup,
+    notes = notes,
+    equipment = equipment,
+    loadType = loadType,
+    movementKey = movementKey,
+    imageKey = imageKey,
+    nameKey = nameKey,
+    createdAtMs = createdAtMs,
+    updatedAtMs = updatedAtMs,
+    revision = 0L,
+    deletedAtMs = deletedAtMs,
+)
+
+internal fun ExerciseMuscleEntity.toRemote(
+    userId: String,
+    updatedAtMs: Long,
+    deletedAtMs: Long? = null,
+): RemoteExerciseMuscleRow = RemoteExerciseMuscleRow(
+    exerciseId = exerciseId,
+    userId = userId,
+    muscleKey = muscleKey,
+    weight = weight,
+    updatedAtMs = updatedAtMs,
+    deletedAtMs = deletedAtMs,
+)
+
+internal fun BodyweightEntryEntity.toRemote(
+    userId: String,
+    deletedAtMs: Long? = null,
+): RemoteBodyweightEntryRow = RemoteBodyweightEntryRow(
+    epochDay = epochDay,
+    userId = userId,
+    kg = kg,
+    recordedAtMs = recordedAtMs,
+    zoneId = zoneId,
+    offsetSeconds = offsetSeconds,
+    updatedAtMs = recordedAtMs,
+    deletedAtMs = deletedAtMs,
+)
+
+internal fun RemoteCustomExerciseRow.toEntity(): ExerciseEntity = ExerciseEntity(
+    id = id,
+    name = name,
+    muscleGroup = muscleGroup,
+    notes = notes,
+    isCustom = true,
+    equipment = equipment,
+    loadType = loadType,
+    movementKey = movementKey,
+    imageKey = imageKey,
+    nameKey = nameKey,
+    updatedAtMs = updatedAtMs,
+)
+
+internal fun RemoteExerciseMuscleRow.toEntity(): ExerciseMuscleEntity = ExerciseMuscleEntity(
+    exerciseId = exerciseId,
+    muscleKey = muscleKey,
+    weight = weight,
+)
+
+internal fun RemoteBodyweightEntryRow.toEntity(): BodyweightEntryEntity = BodyweightEntryEntity(
+    epochDay = epochDay,
+    kg = kg,
+    recordedAtMs = recordedAtMs,
+    zoneId = zoneId,
+    offsetSeconds = offsetSeconds,
+)
+
+fun syncExerciseMuscleEntityId(exerciseId: String, muscleKey: String): String =
+    "$exerciseId|$muscleKey"
+
+fun syncBodyweightEntityId(epochDay: Long): String = epochDay.toString()

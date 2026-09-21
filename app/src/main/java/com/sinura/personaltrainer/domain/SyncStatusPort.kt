@@ -22,6 +22,9 @@ interface SyncStatusPort {
      * a later sign-in starts a fresh upload queue from new edits.
      */
     suspend fun abandonOutboxOnSignOut()
+
+    /** Queues local custom lifts and weigh-ins after a successful sign-in. */
+    suspend fun bootstrapAfterSignIn()
 }
 
 /** No-op for tests and unconfigured builds. */
@@ -31,4 +34,5 @@ object DisabledSyncStatusPort : SyncStatusPort {
     )
     override fun requestSync() = Unit
     override suspend fun abandonOutboxOnSignOut() = Unit
+    override suspend fun bootstrapAfterSignIn() = Unit
 }
