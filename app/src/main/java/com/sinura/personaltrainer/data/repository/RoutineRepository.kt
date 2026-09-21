@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
+import com.sinura.personaltrainer.data.sync.SyncAuthoring
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.Routine
@@ -17,7 +18,11 @@ class RoutineRepository(
     private val routineDao: RoutineDao,
     private val database: TemperDatabase? = null,
     private val planner: PlannerRepository? = null,
+    private val syncAuthoring: SyncAuthoring? = null,
 ) {
+    private suspend fun notifyRoutinesSync() {
+        syncAuthoring?.onRoutinesChanged()
+    }
     fun observeAll(): Flow<List<Routine>> = routineDao.observeAll().map { list ->
         list.map { it.toDomain() }
     }.observeHealth("routines").presentValues()
@@ -41,6 +46,7 @@ class RoutineRepository(
             exercises = emptyList(),
         )
         routineDao.upsertRoutine(routine.toEntity())
+        notifyRoutinesSync()
         return routine
     }
 
@@ -53,9 +59,12 @@ class RoutineRepository(
                 updatedAt = System.currentTimeMillis(),
             ),
         )
+        notifyRoutinesSync()
     }
 
     suspend fun delete(id: String) {
+        val beforeDelete = routineDao.getById(id)
+        syncAuthoring?.onRoutineDeleted(beforeDelete)
         val db = database
         val plannerRepo = planner
         if (db != null && plannerRepo != null) {
@@ -102,6 +111,7 @@ class RoutineRepository(
                 ),
             )
             touch(routineId)
+            notifyRoutinesSync()
         }
     }
 
@@ -127,6 +137,7 @@ class RoutineRepository(
         }
         routineDao.upsertRoutineExercise(current.item.copy(exerciseId = replacement.id, targetWeightKg = null))
         touch(routineId)
+        notifyRoutinesSync()
         return null
     }
 
@@ -157,11 +168,19 @@ class RoutineRepository(
             ),
         )
         touch(routineId)
+        notifyRoutinesSync()
     }
 
     suspend fun removeExercise(itemId: String, routineId: String) {
+        val current = routineDao.getById(routineId)
+        val removed = current?.items?.firstOrNull { it.item.id == itemId }?.item
         routineDao.deleteRoutineExercise(itemId)
         touch(routineId)
+        val routineUpdatedAt = routineDao.getById(routineId)?.routine?.updatedAt ?: System.currentTimeMillis()
+        if (removed != null) {
+            syncAuthoring?.onRoutineExerciseRemoved(removed, routineUpdatedAt)
+        }
+        notifyRoutinesSync()
     }
 
     suspend fun moveExercise(routineId: String, itemId: String, direction: Int) {
@@ -178,6 +197,7 @@ class RoutineRepository(
             routineDao.updateSortOrder(first.id, second.sortOrder)
             routineDao.updateSortOrder(second.id, first.sortOrder)
             touch(routineId)
+            notifyRoutinesSync()
         }
     }
 

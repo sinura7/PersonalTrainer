@@ -10,14 +10,14 @@
 
 | Direction | Tables |
 |-----------|--------|
-| Push + pull | `activity_sessions`, `activity_blocks`, `activity_strength_sets`, `activity_cardio_intervals`, `schedule_rules`, `schedule_occurrences` |
-| Deferred | `activity_templates`, `routines`, `routine_exercises` (catalog/plan integrity can add these later) |
+| Push + pull | `activity_sessions`, `activity_blocks`, `activity_strength_sets`, `activity_cardio_intervals`, `activity_templates`, `schedule_rules`, `schedule_occurrences`, `routines`, `routine_exercises` |
+| Deferred | Custom exercises / catalog seed (not plan structure) |
 
 ## Mechanics
 
-- **Outbox:** `sync_outbox` rows enqueue on completed activity writes and schedule mutations. Live (`ACTIVE`) sessions are not uploaded.
+- **Outbox:** `sync_outbox` rows enqueue on completed activity writes, schedule mutations, routine/template edits, and after backup restore of plan rows. Live (`ACTIVE`) sessions are not uploaded.
 - **Worker:** WorkManager drains the outbox to Supabase PostgREST, then pulls rows with `updated_at_ms` greater than per-table cursors in `sync_table_cursors`.
-- **Conflicts:** Per-entity `revision` (activity sessions) or `updated_at_ms` (schedule rows with revision `0`); higher revision wins, then later `updated_at_ms`. Soft deletes use `deleted_at_ms` tombstones on the server.
+- **Conflicts:** Per-entity `revision` (activity sessions) or `updated_at_ms` (schedule, routines, templates with revision `0`); higher revision wins, then later `updated_at_ms`. Child rows (`routine_exercises`, activity blocks/sets/intervals) last-write via upsert. Soft deletes use `deleted_at_ms` tombstones on the server (routine delete and removed lifts enqueue tombstones).
 
 Supabase column names are **snake_case** in PostgREST payloads; Room keeps **camelCase** locally.
 
@@ -34,7 +34,6 @@ Supabase column names are **snake_case** in PostgREST payloads; Room keeps **cam
 
 ## Deferred (needs product / later Phase 11)
 
-- **Routines / templates / `routine_exercises` sync** (plan integrity across devices).
 - **E2EE** cloud lane; **Google Sign-In**.
 - **Pre-sign-out confirmation** when pending uploads &gt; 0 (today: queue is dropped silently on successful sign-out; local copies remain).
 - **Child-row conflict rules** for blocks/sets/intervals (sessions + schedule use revision / `updated_at_ms`; child rows are last-write via upsert today).

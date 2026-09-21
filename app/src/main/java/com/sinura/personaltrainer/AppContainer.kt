@@ -109,6 +109,7 @@ class AppContainer(context: Context) : AppDependencies {
             syncDao = database.syncDao(),
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),
+            routineDao = database.routineDao(),
             remote = supabaseRuntime?.syncRemote ?: NoOpSyncRemote,
         ),
         scheduler = syncScheduler,
@@ -121,6 +122,7 @@ class AppContainer(context: Context) : AppDependencies {
             outbox = syncOutboxWriter,
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),
+            routineDao = database.routineDao(),
             requestSync = syncCoordinator::requestSync,
         )
     }
@@ -160,6 +162,7 @@ class AppContainer(context: Context) : AppDependencies {
         routineDao = database.routineDao(),
         database = database,
         planner = plannerRepository,
+        syncAuthoring = syncAuthoring,
     )
     /** The week the user pinned. Nothing else in the app is allowed to write it. */
     override val scheduleRepository: ScheduleRepository = ScheduleRepository(database.scheduleDao())
@@ -286,6 +289,10 @@ class AppContainer(context: Context) : AppDependencies {
             onBeforeRestore = {
                 restTimerController.stop()
                 workoutDraftCache.clearAll()
+            },
+            onPlanDataRestored = {
+                syncAuthoring?.onRoutinesChanged()
+                syncAuthoring?.onTemplatesChanged()
             },
             safetySnapshotDir = java.io.File(context.filesDir, "safety-snapshots"),
         ),

@@ -46,5 +46,11 @@ class FakeSyncRemote : SyncRemotePort {
             decodeSync<RemoteScheduleRuleRow>(json).updatedAtMs
         SyncEntityType.SCHEDULE_OCCURRENCE ->
             decodeSync<RemoteScheduleOccurrenceRow>(json).updatedAtMs
+        SyncEntityType.ROUTINE ->
+            decodeSync<RemoteRoutineRow>(json).updatedAtMs
+        SyncEntityType.ROUTINE_EXERCISE ->
+            decodeSync<RemoteRoutineExerciseRow>(json).updatedAtMs
+        SyncEntityType.ACTIVITY_TEMPLATE ->
+            decodeSync<RemoteActivityTemplateRow>(json).updatedAtMs
     }
 }

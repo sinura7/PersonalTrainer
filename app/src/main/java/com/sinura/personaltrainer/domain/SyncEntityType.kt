@@ -8,6 +8,9 @@ enum class SyncEntityType(val remoteTable: String) {
     ACTIVITY_CARDIO_INTERVAL("activity_cardio_intervals"),
     SCHEDULE_RULE("schedule_rules"),
     SCHEDULE_OCCURRENCE("schedule_occurrences"),
+    ROUTINE("routines"),
+    ROUTINE_EXERCISE("routine_exercises"),
+    ACTIVITY_TEMPLATE("activity_templates"),
 }
 
 enum class SyncOutboxOperation {
