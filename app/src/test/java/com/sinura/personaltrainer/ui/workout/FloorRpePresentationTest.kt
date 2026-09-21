@@ -64,7 +64,8 @@ class FloorRpePresentationTest {
         // Set context and the warm-up ramp moved with the entry: the header names the set,
         // the ramp presets sit under the numerals, and the ramp still only sets the draft.
         assertTrue(screen.contains("SetOrdinalCopy.draftLine("))
-        assertTrue(screen.contains("setContext = setContext"))
+        assertTrue(screen.contains("SetOrdinalCopy.exercisePositionLine("))
+        assertTrue(screen.contains("identitySetLine"))
         assertTrue(readOwned("ui/workout/ExerciseHeader.kt").contains("WorkoutTestTags.SET_CONTEXT"))
         assertTrue(screen.contains("WarmupRamp.sets("))
         assertTrue(screen.contains("onApplyRamp = viewModel::applyWarmupRamp"))

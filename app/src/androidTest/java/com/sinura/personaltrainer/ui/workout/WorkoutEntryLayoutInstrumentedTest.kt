@@ -117,12 +117,11 @@ class WorkoutEntryLayoutInstrumentedTest(
         assertTrue("scroll content clears dock", content.bottom <= compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).fetchSemanticsNode().boundsInRoot.top + 1)
         assertTrue("entry retains usable scrolling space", content.height / density >= 48)
         if (width == 360 && height == 800 && font == 1f && scenario == "working") {
-            // The baseline profile shows the whole log loop without a scroll: the header's
-            // progress line, identity with the set-type toggle, the stats row, both hero
-            // numerals and the RPE track.
+            // ADR-030 Packet A: the baseline profile shows identity, set-type toggle, the
+            // logging diamond, and RPE without the stats strip on the main path.
             compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertIsDisplayed().assertTextEquals("1 of 1 exercise · 0 of 12 sets")
             compose.onNodeWithTag(WorkoutTestTags.SET_TYPE).assertIsDisplayed()
-            compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertDoesNotExist()
             compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertIsDisplayed()

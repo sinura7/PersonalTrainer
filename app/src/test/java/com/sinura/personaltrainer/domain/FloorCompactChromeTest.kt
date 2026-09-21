@@ -75,11 +75,10 @@ class FloorCompactChromeTest {
     }
 
     @Test
-    fun imageLedHeroCarriesStatsAndSessionProgress() {
-        // ADR-027: the 112 dp still leads the identity, Last set · Best set · Volume sit
-        // under it, and the header's second line plus segmented bar say where the session stands.
+    fun imageLedHeroCarriesSessionProgressWithoutAStatsStrip() {
+        // ADR-030: stats moved off the logging path; session progress stays in the header.
         assertTrue(FloorCompactChrome.imageLedHero())
-        assertTrue(FloorCompactChrome.statsRowUnderIdentity())
+        assertFalse(FloorCompactChrome.statsRowUnderIdentity())
         assertTrue(FloorCompactChrome.headerShowsSessionProgress())
     }
 

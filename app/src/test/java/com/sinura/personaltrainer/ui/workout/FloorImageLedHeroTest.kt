@@ -17,8 +17,8 @@ import org.junit.Test
 
 /**
  * The image-led floor: a 112 dp identity with Details beside it and Working /
- * Warm-up under it, stats under the identity, entry before effort before the
- * recommendation, and one companion above commit. Rendered geometry is
+ * Warm-up under it, logging diamond before effort, history before coach, and one
+ * companion above commit. Rendered geometry is
  * exercised by WorkoutEntryLayoutInstrumentedTest.
  */
 class FloorImageLedHeroTest {
@@ -80,21 +80,24 @@ class FloorImageLedHeroTest {
         assertTrue(chip.contains("Modifier.selectable("))
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         val header = screen.indexOf("item(key = \"exercise-header\")")
-        val stats = screen.indexOf("item(key = \"stats\")")
         val entry = screen.indexOf("item(key = \"entry\")")
         val rpe = screen.indexOf("item(key = \"rpe\")")
-        val nextSet = screen.indexOf("item(key = \"next-set\")")
         val history = screen.indexOf("item(key = \"set-history\")")
-        assertTrue(header in 0 until stats)
-        assertTrue(stats in 0 until entry)
+        val nextSet = screen.indexOf("item(key = \"next-set\")")
+        assertFalse(screen.contains("item(key = \"stats\")"))
+        assertTrue(header in 0 until entry)
         assertTrue(entry in 0 until rpe)
-        assertTrue(rpe in 0 until nextSet)
-        assertTrue(nextSet in 0 until history)
+        assertTrue(rpe in 0 until history)
+        assertTrue(history in 0 until nextSet || nextSet == -1)
         assertTrue(screen.indexOf("WeightRepsEditor(") in entry until rpe)
         assertTrue(screen.indexOf("WarmupRampRow(") in entry until rpe)
-        assertTrue(screen.indexOf("RpeSelector(") in rpe until nextSet)
-        assertTrue(screen.indexOf("NextSetRecommendation(") in nextSet until history)
-        assertTrue(screen.indexOf("SetHistoryStrip(") > history)
+        assertTrue(screen.indexOf("RpeSelector(") in rpe until history)
+        assertTrue(screen.indexOf("SetHistoryStrip(") in history until (if (nextSet > 0) nextSet else screen.length))
+        if (nextSet > 0) {
+            assertTrue(screen.indexOf("NextSetRecommendation(") in nextSet until screen.length)
+        }
+        assertTrue(screen.contains("SetOrdinalCopy.exercisePositionLine("))
+        assertFalse(FloorCompactChrome.statsRowUnderIdentity())
         assertTrue(screen.contains("val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }"))
         assertTrue(screen.contains("receiptSetId = logReceipt?.setId"))
         assertTrue(screen.contains("WorkoutSetsSheet("))

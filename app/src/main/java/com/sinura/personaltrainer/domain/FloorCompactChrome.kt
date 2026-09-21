@@ -70,8 +70,8 @@ object FloorCompactChrome {
      */
     fun imageLedHero(): Boolean = true
 
-    /** Last set · Best set · Volume (this exercise) sit under the identity, split by hairlines. */
-    fun statsRowUnderIdentity(): Boolean = true
+    /** ADR-030 Packet A: Last/Best/Volume live behind Details, not on the logging path. */
+    fun statsRowUnderIdentity(): Boolean = false
 
     /** The header's second line and segmented bar say where the session stands. */
     fun headerShowsSessionProgress(): Boolean = true

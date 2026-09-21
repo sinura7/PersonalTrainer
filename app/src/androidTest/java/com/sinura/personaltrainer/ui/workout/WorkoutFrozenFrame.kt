@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
 import com.sinura.personaltrainer.domain.HoldTimerUiState
 import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.LoadClass
@@ -96,13 +95,6 @@ internal fun WorkoutFrozenFrame(scenario: String) {
         )
     }
     val progress = WorkoutProgressCalculator.of(session = session, selectedExerciseId = exercise.id)
-    val stats = ExerciseFloorStatsCalculator.of(
-        session = session,
-        exerciseId = exercise.id,
-        lastPerformance = null,
-        priorHistory = emptyList(),
-        unit = unit,
-    )
     val ramp = if (draft.isWarmup && workingLogged == 0) {
         WarmupRamp.sets(
             workingWeightKg = WarmupRamp.workingWeightKg(
@@ -191,13 +183,6 @@ internal fun WorkoutFrozenFrame(scenario: String) {
                                 lift = lift, number = 1, total = 2, workingLogged = workingLogged, setContext = setContext,
                                 draftWarmup = draft.isWarmup, onWarmup = {}, onOpenSwitcher = {}, onDetails = {}, enabled = entryEnabled,
                             )
-                        }
-                        item(key = "stats") {
-                            Column {
-                                HairlineDivider(startIndent = 0.dp)
-                                ExerciseStatsRow(stats = stats, unit = unit)
-                                HairlineDivider(startIndent = 0.dp)
-                            }
                         }
                         item(key = "entry") {
                             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {

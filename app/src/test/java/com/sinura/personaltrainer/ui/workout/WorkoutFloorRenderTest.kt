@@ -361,7 +361,7 @@ class WorkoutFloorRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertExists()
         // The list is lazy: landscape, short screens and font 2.0 can start the stats and
         // entry below the fold.
-        if (heightDp >= 800 || (heightDp >= 640 && fontScale < 1.6f)) compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
+        compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertDoesNotExist()
         if (heightDp >= 640 && fontScale < 1.6f) compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
         if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
     }
@@ -380,7 +380,7 @@ class WorkoutFloorRenderTest {
          * inside their targets. A ceiling, not a target: lower it when height comes out, and
          * never raise it so a change can fit.
          */
-        /** ADR-029 evidence chip on the Next-set card (360×1600 baseline). */
-        const val LOOP_BUDGET_DP = 868f
+        /** ADR-030 Packet A removed the stats row from the main column (360×1600 baseline). */
+        const val LOOP_BUDGET_DP = 820f
     }
 }

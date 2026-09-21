@@ -71,11 +71,12 @@ through the existing stable-signing and monotonically increasing version flow.
 
 ## Workout contracts
 
-Order ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)): session
+Order ([ADR-027](architecture/ADR-027-workout-logging-redesign.md), amended by
+[ADR-030](architecture/ADR-030-live-workout-clarity.md) Packet A): session
 header with `Exercise n of N · x of y sets` and one progress segment per lift,
-Finish and the overflow (Switch, Skip, Swap, Remove, notes, summary); 112 dp
-image-led exercise identity (tap to switch) with Details and Working | Warm-up;
-Last set · Best set · Volume (this exercise); weight and reps (or hold time) as
+Finish and the overflow (Switch, Skip, Swap, Remove, notes, summary); 88 dp
+image-led exercise identity (tap to switch) with one set-position line, Details,
+and Working | Warm-up; weight and reps (or hold time) as
 two hero numerals with round − / + plates, side by side until large text stacks
 them; optional RPE 6–10 with Easy / Max effort ends and help; Next set with
 Why and Apply; today's sets as chips (current ringed, Add set once the plan is

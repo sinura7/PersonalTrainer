@@ -32,6 +32,37 @@ class SetOrdinalCopyTest {
     }
 
     @Test
+    fun exercisePositionLineIsOneSentenceForTheIdentity() {
+        assertEquals(
+            "Warm-up set",
+            SetOrdinalCopy.exercisePositionLine(
+                isWarmup = true,
+                warmupLogged = 0,
+                workingLogged = 0,
+                targetSets = 4,
+            ),
+        )
+        assertEquals(
+            "Working set 3 of 4",
+            SetOrdinalCopy.exercisePositionLine(
+                isWarmup = false,
+                warmupLogged = 2,
+                workingLogged = 2,
+                targetSets = 4,
+            ),
+        )
+        assertEquals(
+            "Extra set",
+            SetOrdinalCopy.exercisePositionLine(
+                isWarmup = false,
+                warmupLogged = 0,
+                workingLogged = 4,
+                targetSets = 4,
+            ),
+        )
+    }
+
+    @Test
     fun draftLineNamesTheSetAboutToBeLogged() {
         assertEquals(
             "WU 1",

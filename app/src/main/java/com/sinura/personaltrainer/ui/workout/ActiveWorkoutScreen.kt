@@ -30,7 +30,6 @@ import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
@@ -51,6 +50,7 @@ import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetOrdinalCopy
+import com.sinura.personaltrainer.domain.FloorStatCopy
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
@@ -65,7 +65,6 @@ import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymUndoHost
-import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.PinnedDock
@@ -360,15 +359,46 @@ private fun ActiveWorkoutContent(
             kind == WorkoutPrimaryKind.NEXT_EXERCISE || kind == WorkoutPrimaryKind.FINISH
         }
     }
-    val setContext = when {
+    val warmupLogged = logged.count { it.isWarmup }
+    val targetSets = selected?.targetSets ?: 0
+    val identitySetLine = when {
         state.editingSetId != null -> "Editing saved set"
         plannedComplete -> "Planned sets complete"
+        else -> SetOrdinalCopy.exercisePositionLine(
+            isWarmup = state.draft.isWarmup,
+            warmupLogged = warmupLogged,
+            workingLogged = workingLogged,
+            targetSets = targetSets,
+        )
+    }
+    val setContext = when {
+        state.editingSetId != null -> identitySetLine
+        plannedComplete -> identitySetLine
         else -> SetOrdinalCopy.draftLine(
             isWarmup = state.draft.isWarmup,
-            warmupLogged = logged.count { it.isWarmup },
+            warmupLogged = warmupLogged,
             workingLogged = workingLogged,
-            targetSets = selected?.targetSets ?: 0,
+            targetSets = targetSets,
         )
+    }
+    val floorStats = selected?.let { currentLift ->
+        session?.let { liveSession ->
+            remember(liveSession, currentLift.exercise.id, state.lastPerformance, exerciseHistory, unit) {
+                ExerciseFloorStatsCalculator.of(
+                    session = liveSession,
+                    exerciseId = currentLift.exercise.id,
+                    lastPerformance = state.lastPerformance,
+                    priorHistory = exerciseHistory,
+                    unit = unit,
+                )
+            }
+        }
+    }
+    val lastSetHint = floorStats?.lastSet?.takeIf { stat ->
+        stat.applies != null && stat.value != SetCopy.NOTHING_YET
+    }?.let { stat ->
+        val detail = stat.detail?.let { d -> "${stat.label}${FloorStatCopy.DETAIL_JOIN}$d" } ?: stat.label
+        "$detail · ${stat.value}"
     }
 
     Scaffold(
@@ -625,38 +655,27 @@ private fun ActiveWorkoutContent(
                                 val entryEnabled = !state.entryLocked
                                 val hold = HoldWork.isHold(currentLift.exercise)
                                 item(key = "exercise-header") {
+                                    val applyLast = floorStats?.lastSet?.applies?.let { last ->
+                                        if (entryEnabled) {
+                                            { viewModel.applyLastTimeSet(last.weightKg, last.reps) }
+                                        } else {
+                                            null
+                                        }
+                                    }
                                     ExerciseHeader(
                                         lift = currentLift,
                                         number = currentIndex + 1,
                                         total = session.exercises.size,
                                         workingLogged = workingLogged,
-                                        setContext = setContext,
+                                        setContext = identitySetLine,
                                         draftWarmup = state.draft.isWarmup,
                                         onWarmup = viewModel::setWarmup,
                                         onOpenSwitcher = { liftSwitcherOpen = true },
                                         onDetails = { onOpenExercise(currentLift.exercise.id) },
                                         enabled = entryEnabled,
+                                        lastSetHint = lastSetHint,
+                                        onApplyLastSetHint = applyLast,
                                     )
-                                }
-                                item(key = "stats") {
-                                    val stats = remember(session, currentLift.exercise.id, state.lastPerformance, exerciseHistory, unit) {
-                                        ExerciseFloorStatsCalculator.of(
-                                            session = session,
-                                            exerciseId = currentLift.exercise.id,
-                                            lastPerformance = state.lastPerformance,
-                                            priorHistory = exerciseHistory,
-                                            unit = unit,
-                                        )
-                                    }
-                                    Column {
-                                        HairlineDivider(startIndent = 0.dp)
-                                        ExerciseStatsRow(
-                                            stats = stats,
-                                            unit = unit,
-                                            onApplyLastSet = if (entryEnabled) viewModel::applyLastTimeSet else null,
-                                        )
-                                        HairlineDivider(startIndent = 0.dp)
-                                    }
                                 }
                                 item(key = "entry") {
                                     val holdTimer = holdState.value
@@ -726,28 +745,6 @@ private fun ActiveWorkoutContent(
                                         onRpe = viewModel::setRpe,
                                     )
                                 }
-                                val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }
-                                if (rec != null) {
-                                    item(key = "next-set") {
-                                        val applied = rec.isApplied(
-                                            weightKg = state.draft.weightKg,
-                                            reps = state.draft.reps,
-                                            rpe = state.draft.rpe,
-                                            unit = unit,
-                                        )
-                                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-                                            HairlineDivider(startIndent = 0.dp)
-                                            NextSetRecommendation(
-                                                rec = rec,
-                                                loadClass = loadClass,
-                                                unit = unit,
-                                                applied = applied,
-                                                enabled = entryEnabled,
-                                                onApply = viewModel::applyMicroRec,
-                                            )
-                                        }
-                                    }
-                                }
                                 item(key = "set-history") {
                                     val current = if (state.editingSetId != null || plannedComplete) {
                                         null
@@ -757,26 +754,42 @@ private fun ActiveWorkoutContent(
                                             label = setContext,
                                         )
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-                                        HairlineDivider(startIndent = 0.dp)
-                                        SetHistoryStrip(
-                                            sets = logged,
-                                            targetSets = currentLift.targetSets,
+                                    SetHistoryStrip(
+                                        sets = logged,
+                                        targetSets = currentLift.targetSets,
+                                        loadClass = loadClass,
+                                        unit = unit,
+                                        editingSetId = state.editingSetId,
+                                        receiptSetId = logReceipt?.setId,
+                                        current = current,
+                                        showAddSet = WorkoutAdvance.cardOffersAnotherSet(logged, currentLift.targetSets) &&
+                                            !extraSetRequested && state.editingSetId == null,
+                                        enabled = entryEnabled,
+                                        onEdit = viewModel::editSet,
+                                        onDelete = viewModel::deleteSet,
+                                        onOpenAll = { setsOpen = true },
+                                        onAddSet = {
+                                            Haptics.tick(view)
+                                            viewModel.requestExtraSet()
+                                        },
+                                    )
+                                }
+                                val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }
+                                if (rec != null) {
+                                    item(key = "next-set") {
+                                        val applied = rec.isApplied(
+                                            weightKg = state.draft.weightKg,
+                                            reps = state.draft.reps,
+                                            rpe = state.draft.rpe,
+                                            unit = unit,
+                                        )
+                                        NextSetRecommendation(
+                                            rec = rec,
                                             loadClass = loadClass,
                                             unit = unit,
-                                            editingSetId = state.editingSetId,
-                                            receiptSetId = logReceipt?.setId,
-                                            current = current,
-                                            showAddSet = WorkoutAdvance.cardOffersAnotherSet(logged, currentLift.targetSets) &&
-                                                !extraSetRequested && state.editingSetId == null,
+                                            applied = applied,
                                             enabled = entryEnabled,
-                                            onEdit = viewModel::editSet,
-                                            onDelete = viewModel::deleteSet,
-                                            onOpenAll = { setsOpen = true },
-                                            onAddSet = {
-                                                Haptics.tick(view)
-                                                viewModel.requestExtraSet()
-                                            },
+                                            onApply = viewModel::applyMicroRec,
                                         )
                                     }
                                 }

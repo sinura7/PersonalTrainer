@@ -15,6 +15,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 21 Sep 2026 — Live workout clarity Packet A (ADR-030): logging-diamond column order,
+> stats strip off the main path, one set-position line, coach below history; packets B–H remain.
+>
 > 21 Sep 2026 — CoachEngine v1 (ADR-029): evidence seed
 > [`docs/coach/evidence-seed.json`](coach/evidence-seed.json), on-device next-set
 > suggestions with citation chip on the active strength workout; extends existing

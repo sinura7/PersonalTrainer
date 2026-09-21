@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Text
@@ -60,8 +61,10 @@ internal fun RpeSelector(
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
     Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = Metrics.space1, bottom = Metrics.space2),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

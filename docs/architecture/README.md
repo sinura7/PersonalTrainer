@@ -64,6 +64,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-027](ADR-027-workout-logging-redesign.md) | Active workout logging screen redesign | Amends ADR-026 §3: image-led identity, stats row, hero numerals, next-set card, set-history chips, rest card, two-line commit; business rules untouched |
 | [ADR-028](ADR-028-save-posture-and-account-sync-target.md) | Save posture chooser and Account sync target | First-launch Account vs local+Drive; Settings → How you save; sync expansion follow-ups |
 | [ADR-029](ADR-029-coach-engine.md) | In-workout CoachEngine and evidence-backed suggestions | Extends ADR-008; curated literature seed; Next set card citations; offline policy |
+| [ADR-030](ADR-030-live-workout-clarity.md) | Live workout UI clarity program and Packet A logging diamond | Amends ADR-027 §1 main column; stats row off path; packets A–H |
 
 ## Supporting records
 

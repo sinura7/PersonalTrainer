@@ -37,6 +37,8 @@ import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Haptics
+import androidx.compose.ui.platform.LocalView
 
 /**
  * The current exercise: picture, equipment, name, where its sets stand, and the
@@ -56,6 +58,9 @@ internal fun ExerciseHeader(
     onDetails: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    /** Quiet last-session hint when the stats row is off the main path (ADR-030). */
+    lastSetHint: String? = null,
+    onApplyLastSetHint: (() -> Unit)? = null,
 ) {
     val meaning = LoadClass.of(lift.exercise.loadType).weightMeaning
     val equipment = CurrentLiftCopy.secondaryLine(lift.exercise.equipment.label, meaning)
@@ -68,7 +73,7 @@ internal fun ExerciseHeader(
         equipmentLabel = lift.exercise.equipment.label,
         meaning = meaning,
     )
-    val progressLine = "${CurrentLiftCopy.workingProgress(workingLogged, lift.targetSets)} working sets"
+    val view = LocalView.current
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val identityModifier = Modifier
@@ -96,6 +101,28 @@ internal fun ExerciseHeader(
             style = InstrumentType.bodyStrong,
             color = TextPrimary,
         )
+        if (!lastSetHint.isNullOrBlank()) {
+            val applyLast = onApplyLastSetHint
+            Text(
+                lastSetHint,
+                modifier = Modifier
+                    .then(
+                        if (applyLast != null && enabled) {
+                            Modifier.clickable(role = Role.Button, onClickLabel = "Use last time") {
+                                Haptics.tick(view)
+                                applyLast()
+                            }
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .testTag(WorkoutTestTags.STAT_LAST),
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         // An outlined pill, not a plain inline link: Details is the way out of this screen
         // to everything the floor no longer shows (ADR-027 §9), and a word with a chevron
         // did not look like a control at arm's length.
@@ -109,27 +136,14 @@ internal fun ExerciseHeader(
                 spoken = "Exercise details",
             )
         }
-        val progress: @Composable (Modifier) -> Unit = { progressModifier ->
-            Text(
-                progressLine,
-                modifier = progressModifier.testTag(WorkoutTestTags.liftSets(lift.exercise.id)),
-                style = InstrumentType.caption,
-                color = TextSecondary,
-            )
-        }
         if (stacked) {
-            // ADR-027's consequences promised this and the code never did it: at large text
-            // the words' column is narrow enough that sharing one row squeezes the count and
-            // the control together. Details takes its own line under the identity instead.
-            progress(Modifier.fillMaxWidth())
             details()
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                progress(Modifier.weight(1f))
                 details()
             }
         }

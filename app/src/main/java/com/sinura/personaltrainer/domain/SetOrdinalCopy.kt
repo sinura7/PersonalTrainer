@@ -50,6 +50,33 @@ object SetOrdinalCopy {
     }
 
     /**
+     * One exercise-level sentence for the identity row (ADR-030): working and warm-up
+     * sets are named explicitly; extras stay distinct. Chip and receipt ordinals keep
+     * [draftLine] / [loggedLines].
+     */
+    fun exercisePositionLine(
+        isWarmup: Boolean,
+        warmupLogged: Int,
+        workingLogged: Int,
+        targetSets: Int,
+    ): String {
+        if (isWarmup) {
+            val n = warmupLogged.coerceAtLeast(0) + 1
+            return if (n == 1) "Warm-up set" else "Warm-up set $n"
+        }
+        val nextWorking = workingLogged.coerceAtLeast(0) + 1
+        if (targetSets > 0 && workingLogged >= targetSets) {
+            val n = workingLogged - targetSets + 1
+            return if (n == 1) "Extra set" else "Extra set $n"
+        }
+        return if (targetSets > 0) {
+            "Working set $nextWorking of $targetSets"
+        } else {
+            "Working set $nextWorking"
+        }
+    }
+
+    /**
      * One label per logged row, in list order. Delete and restore re-run
      * this over the remaining rows; the database numbers stay contiguous
      * and are not shown here.

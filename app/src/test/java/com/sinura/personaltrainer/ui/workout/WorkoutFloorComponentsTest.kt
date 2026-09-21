@@ -116,7 +116,7 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithText("MACHINE").assertIsDisplayed()
         // The identity merges its words into one spoken button; read the parts unmerged.
         compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true).assertIsDisplayed()
-        compose.onNodeWithText("2/3 working sets", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("2/3 working sets", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
         compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).assertIsNotSelected().performClick()
         assertEquals(true, warmup)

@@ -110,7 +110,8 @@ class HapticsPaletteTest {
         assertTrue(header.contains("label = \"Working\""))
         assertTrue(header.contains("label = \"Warm-up\""))
         assertTrue(header.contains("role = Role.RadioButton"))
-        assertFalse(header.contains("Haptics."))
+        // Last-time hint on the identity may tick when applying last session's set (ADR-030).
+        assertTrue(header.contains("onApplyLastSetHint"))
         val rpe = readOwned("ui/workout/RpeSelector.kt")
         assertTrue(rpe.contains("InstrumentChip("))
         assertTrue(rpe.contains("RpeCopy.VALUES.forEach"))
