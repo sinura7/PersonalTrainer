@@ -3,9 +3,9 @@ package com.sinura.personaltrainer.domain
 /**
  * G1: what TalkBack must be able to find, without composing the tree.
  *
- * Physical TalkBack stays an owner phone pass. [AccessibilityMatrix.publicCandidateReady]
- * stays false until that session exists; this object is the JVM contract the
- * surfaces have to keep in the meantime.
+ * JVM contract for TalkBack-oriented copy and announcement policy. Optional
+ * physical TalkBack sessions can sign [AccessibilityMatrix.physicalTalkBack];
+ * they do not gate [AccessibilityMatrix.publicCandidateReady].
  */
 object TalkBackPolicy {
     const val REST_FINISHED_KICKER = "Back to the bar"

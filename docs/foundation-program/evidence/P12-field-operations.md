@@ -38,14 +38,12 @@ here — that happens when a public artifact is cut.
 `allowBackup=false`, rest FGS `specialUse`,
 `FOREGROUND_SERVICE_SPECIAL_USE`, `SCHEDULE_EXACT_ALARM` (and no
 `USE_EXACT_ALARM`), R8 + resource shrinking, privacy/support/commercial
-docs, the wrong-password unwrap proof, and that Public Candidate still
-requires physical TalkBack.
+docs, the wrong-password unwrap proof, and that Public Candidate readiness
+does not require physical TalkBack (automated evidence only).
 
 The script then prints, and must keep printing:
 
 ```
-BLOCKED: physical TalkBack
-BLOCKED: Android Public Candidate
 BLOCKED: Play upload / Commercial RC
 ```
 

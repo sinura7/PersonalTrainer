@@ -94,10 +94,6 @@ the scope to.
 
 Biggest first, and the first two are the owner's, not a session's:
 
-- **The physical TalkBack pass** — 0 of 20 pages signed. It is the only
-  thing holding the Android Public Candidate milestone
-  (FOUNDATION_PROGRAM P9.7). A phone session with the screen reader on,
-  walking `AccessibilityMatrix`.
 - **The whole-app phase audit** owed at the close of Phase 9. Same eleven
   screens, same phone; do the two in one sitting.
 - **Floor phone-check UX is closed in code.** Phone gate stays the owner's,

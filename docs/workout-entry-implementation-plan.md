@@ -1004,7 +1004,7 @@ Recording stays the documented emulator profile (`temper-tests-api29`). If this 
 
 Implement remaining semantics if G did not: weight custom increase/decrease/set actions, Assistance vs Weight, clocks not announced every second, Log payload + disabled reason, success receipt polite once, rest completion once, optional 10/5 s announcements **off by default**, pictures decorative.
 
-Update `AccessibilityMatrix` `active-strength` `talkBackNotes` and `physicalTalkBack` only after Allen’s phone session. Automated notes can land in H; `physicalTalkBack = true` waits for the owner.
+Update `AccessibilityMatrix` `active-strength` `talkBackNotes` in H. Optional owner phone sessions may set `physicalTalkBack = true`; that flag is not a ship gate.
 
 ##### H3 — 360 / 412 / 600, font 1.0 / 1.6 / 2.0, reduced motion, RTL
 
@@ -1045,7 +1045,7 @@ If goldens show a real 360/font 2.0 clip, fix tokens/padding **in this packet** 
 | **Phone proof** | Full §10.1 list (see §10 mapping). This packet **closes evidence**. |
 | **Drop** | Yes if the debug APK or assets change |
 
-**Program complete when:** traceability table is fully green, §10.1 checklist is owned, §10.2 metrics have a test or phone-task owner, and Allen has run the physical TalkBack + alarm pass on Temper Debug.
+**Program complete when:** traceability table is fully green, §10.1 checklist is owned, §10.2 metrics have a test or phone-task owner, and Allen has run the alarm pass on Temper Debug (physical TalkBack optional).
 
 ---
 

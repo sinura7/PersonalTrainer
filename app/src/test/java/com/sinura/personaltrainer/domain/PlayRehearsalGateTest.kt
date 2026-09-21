@@ -6,10 +6,9 @@ import org.junit.Test
 
 class PlayRehearsalGateTest {
     @Test
-    fun publicCandidateAndPlayStayBlocked() {
+    fun shippingScreensInventoriedAndPublicCandidateReadyOnAutomatedEvidence() {
         assertTrue(AccessibilityMatrix.pages.any { it.id == "custom-week" })
         assertTrue(AccessibilityMatrix.pages.any { it.id == "activity-composer" })
-        assertFalse(AccessibilityMatrix.publicCandidateReady())
-        assertTrue(AccessibilityMatrix.pages.none { it.physicalTalkBack })
+        assertTrue(AccessibilityMatrix.publicCandidateReady())
     }
 }

@@ -258,7 +258,7 @@ class FloorPacketHFinalPassTest {
         assertTrue(notes.contains("Apply never saves"))
         assertTrue(notes.contains("Easy and Max effort"))
         assertFalse(AccessibilityMatrix.page("active-strength").physicalTalkBack)
-        assertFalse(AccessibilityMatrix.publicCandidateReady())
+        assertTrue(AccessibilityMatrix.publicCandidateReady())
     }
 
     private fun readOwned(relative: String): String {

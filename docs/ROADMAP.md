@@ -15,6 +15,9 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 21 Sep 2026 — Retired physical TalkBack as a Public Candidate / Play
+> rehearsal ship gate; `publicCandidateReady()` is automated evidence only.
+>
 > 21 Sep 2026 — Phase 11 step 7: Privacy Policy and Play Data Safety docs
 > updated for Temper Account; in-app account deletion and Settings/About
 > privacy links. `debugLiveCode` unchanged until the next authorized drop.

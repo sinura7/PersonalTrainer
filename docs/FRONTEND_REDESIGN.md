@@ -199,8 +199,9 @@ rollback is a compatible forward-version release.
 - Screenshot source build is unknown; runtime reproduction resolves uncertain
   screenshot-only findings before they are treated as defects.
 - Owner phone model, Android version and display settings are not yet recorded.
-- Physical TalkBack, haptics, Doze, upgrade and performance evidence cannot be
-  substituted with an emulator or a browser concept.
+- Haptics, Doze, upgrade and performance evidence cannot be substituted
+  with an emulator or a browser concept. Physical TalkBack sessions are
+  optional refinement, not a ship gate.
 
 ## Execution log
 

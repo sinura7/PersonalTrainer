@@ -77,7 +77,8 @@ Walk this once, in order:
 6. Settings — the fifth tab. Export a file. Do not restore over a phone that holds real history.
    Share diagnostics is optional and redacted.
 
-Physical TalkBack is still required before Public Candidate. Do not
+Automated accessibility evidence is the Public Candidate matrix gate;
+optional physical TalkBack sign-off is not required to ship. Do not
 expect cloud sync. Library stays pushed, not a tab. Goals UI is gone.
 
 **A new debug-live drop is a new Temper Debug install.** It will not open,

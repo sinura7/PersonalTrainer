@@ -2,8 +2,7 @@
 
 **Status:** Current published posture (P12.2 / Phase 11 account sync)  
 **Use:** Play Console Data safety form, or any store listing that asks the
-same questions. Do not publish while physical TalkBack or a data-survival
-critical remains open.
+same questions. Do not publish while a data-survival critical remains open.
 
 | Question | Answer |
 |---|---|

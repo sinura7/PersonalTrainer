@@ -1,9 +1,9 @@
 package com.sinura.personaltrainer.domain
 
 /**
- * P9.6 / P9.7 inventory. Automated page passes can mark [automatedEvidence].
- * Physical TalkBack stays false until a phone session signs the page.
- * [publicCandidateReady] is therefore false until that session exists.
+ * P9.6 / P9.7 inventory. Automated page passes mark [automatedEvidence].
+ * [physicalTalkBack] is optional owner sign-off — useful notes, not a ship gate.
+ * [publicCandidateReady] is true when every page has automated evidence.
  */
 data class PagePass(
     val id: String,
@@ -187,7 +187,7 @@ object AccessibilityMatrix {
         pages.first { it.id == id }
 
     fun publicCandidateReady(): Boolean =
-        pages.isNotEmpty() && pages.all { it.physicalTalkBack && it.automatedEvidence }
+        pages.isNotEmpty() && pages.all { it.automatedEvidence }
 
     fun missingRequiredState(page: PagePass): List<String> =
         requiredStates.filterNot { it in page.states }

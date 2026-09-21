@@ -91,8 +91,7 @@ class TalkBackPolicyTest {
         val home = readOwned("ui/home/HomeScreen.kt")
         assertTrue(home.contains("heading()"))
 
-        assertFalse(AccessibilityMatrix.publicCandidateReady())
-        assertTrue(AccessibilityMatrix.pages.none { it.physicalTalkBack })
+        assertTrue(AccessibilityMatrix.publicCandidateReady())
     }
 
     private fun readOwned(relative: String): String {

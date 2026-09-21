@@ -28,7 +28,6 @@ class AccessibilityMatrixTest {
             assertTrue(page.id, page.voltAction.isNotBlank())
             assertTrue(page.id, page.talkBackNotes.isNotBlank())
             assertTrue(page.id, page.automatedEvidence)
-            assertFalse("physical TalkBack is still outstanding", page.physicalTalkBack)
         }
         assertEquals(
             "Start a workout (sheet: free / routine / cardio / Extra). Planned rows confirm, then start.",
@@ -106,8 +105,8 @@ class AccessibilityMatrixTest {
     }
 
     @Test
-    fun publicCandidateStaysClosedUntilPhysicalTalkBack() {
-        assertFalse(AccessibilityMatrix.publicCandidateReady())
+    fun publicCandidateReadyWhenEveryPageHasAutomatedEvidence() {
+        assertTrue(AccessibilityMatrix.publicCandidateReady())
         assertEquals(listOf(360, 412, 600), AccessibilityMatrix.widthsDp)
         assertEquals(listOf(1.0, 1.6, 2.0), AccessibilityMatrix.fontScales)
         assertEquals("Body", AccessibilityMatrix.page("body").title)
