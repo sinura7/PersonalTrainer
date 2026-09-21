@@ -122,6 +122,22 @@ jobs:
       - name: Lint
         run: ./gradlew lintDebug --stacktrace
 
+      # BuildConfig reads these at compile time. Without them, Account shows not configured.
+      - name: Write Supabase config for Temper Account
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::warning::SUPABASE_URL and/or SUPABASE_ANON_KEY are not set. Account will show not configured in this APK."
+            exit 0
+          fi
+          esc() { printf '%s' "$1" | sed 's/\\/\\\\/g'; }
+          {
+            printf 'SUPABASE_URL=%s\n' "$(esc "$SUPABASE_URL")"
+            printf 'SUPABASE_ANON_KEY=%s\n' "$(esc "$SUPABASE_ANON_KEY")"
+          } > supabase.properties
+
       - name: Debug build
         run: ./gradlew assembleDebug --stacktrace
 
@@ -166,7 +182,7 @@ jobs:
       # The passwords also land in the configuration cache with the signing config.
       - name: Remove signing material
         if: always()
-        run: rm -rf debug-keystore.properties debug-signing .gradle/configuration-cache
+        run: rm -rf debug-keystore.properties supabase.properties debug-signing .gradle/configuration-cache
 
       # workflow_dispatch keeps the build as an artifact only.
       - name: Upload APK artifact

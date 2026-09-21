@@ -17,7 +17,7 @@ val appVersionName = "1.0.0"
 // appVersionCode. The two apps are different ids, so they do not share
 // Android's upgrade counter. Obtainium will not offer an update if this
 // stays put — both previous debug-live APKs were versionCode 1.
-val debugLiveCode = 83
+val debugLiveCode = 84
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -47,6 +47,17 @@ val debugStoreFile = if (debugKeystorePropertiesFile.exists()) {
 }
 val debugSigningReady = debugStoreFile != null && debugStoreFile.exists()
 
+// Optional Temper Account (Supabase Auth). Empty in CI and for builds that skip cloud sign-in.
+val supabasePropertiesFile = rootProject.file("supabase.properties")
+val supabaseProperties = Properties()
+if (supabasePropertiesFile.exists()) {
+    supabasePropertiesFile.inputStream().use { supabaseProperties.load(it) }
+}
+fun supabaseBuildString(key: String): String {
+    val raw = supabaseProperties.getProperty(key).orEmpty().trim()
+    return if (raw.isEmpty()) "" else raw.replace("\\", "\\\\").replace("\"", "\\\"")
+}
+
 android {
     namespace = "com.sinura.personaltrainer"
     compileSdk = 36
@@ -59,6 +70,8 @@ android {
         versionName = appVersionName
         setProperty("archivesBaseName", "PersonalTrainer-$appVersionName")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "SUPABASE_URL", "\"${supabaseBuildString("SUPABASE_URL")}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${supabaseBuildString("SUPABASE_ANON_KEY")}\"")
     }
 
     sourceSets {
@@ -247,6 +260,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.gson)
     implementation(libs.play.services.auth)
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.gotrue.kt)
+    implementation(libs.ktor.client.android)
     implementation(libs.androidx.work.runtime.ktx)
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.ui.tooling)

@@ -29,6 +29,7 @@ import com.sinura.personaltrainer.workout.StartLiveCardio
 import com.sinura.personaltrainer.workout.StartOccurrence
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
+import com.sinura.personaltrainer.domain.AccountAuthPort
 import com.sinura.personaltrainer.domain.TimePort
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,6 +82,7 @@ interface AppDependencies {
     val startTrainingDay: StartTrainingDay
     val startLiveCardio: StartLiveCardio
     val startOccurrence: StartOccurrence
+    val accountAuth: AccountAuthPort
     val backupService: BackupService
     val activityRepository: ActivityRepository
     val completedTrainingRepository: CompletedTrainingRepository

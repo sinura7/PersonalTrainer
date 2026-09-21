@@ -46,6 +46,7 @@ import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.reminder.NoOpReminderScheduler
+import com.sinura.personaltrainer.domain.AccountAuthPort
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.HeatWindow
@@ -79,6 +80,7 @@ import com.sinura.personaltrainer.domain.RestTimerSnapshot
 class FakeAppDependencies(
     context: Context,
     insights: Flow<TrainingInsights> = MutableStateFlow(TrainingInsights()),
+    override val accountAuth: AccountAuthPort = FakeAccountAuth(),
     val safetySnapshotDir: File = File(context.cacheDir, "safety-snapshots-${System.nanoTime()}")
         .also { it.mkdirs() },
     /**

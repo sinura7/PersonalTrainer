@@ -216,6 +216,7 @@ class RoutineEditorViewModelTest {
         val created = awaitRoutine { it.exercises.size == 1 }
         vm.removeExercise(created.exercises.single().id)
         awaitRoutine { it.exercises.isEmpty() }
+        vm.uiState.awaitFirst { !it.saving }
 
         gate.shouldFail = true
         vm.leave()

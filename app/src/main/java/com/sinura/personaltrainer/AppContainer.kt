@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.update.DisabledDebugUpdate
 import com.sinura.personaltrainer.update.HttpUrlConnectionDebugApkFetcher
 import com.sinura.personaltrainer.update.HttpUrlConnectionDebugUpdateHttp
 import com.sinura.personaltrainer.update.debugUpdateDataStore
+import com.sinura.personaltrainer.data.auth.AccountAuthFactory
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
 import com.sinura.personaltrainer.data.backup.NetworkChecker
@@ -233,6 +234,8 @@ class AppContainer(context: Context) : AppDependencies {
     )
     override val backupPassphraseSealer: BackupPassphraseSealer =
         KeystoreBackupPassphraseSealer()
+
+    override val accountAuth = AccountAuthFactory.create()
 
     override val backupService: BackupService = BackupService(
         localBackupRepository = LocalBackupRepository(

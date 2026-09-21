@@ -12,6 +12,7 @@ object SettingsHomeCopy {
     const val GENERATOR = "Week generator"
     const val REST = "Rest timer"
     const val BODYWEIGHT = "Bodyweight"
+    const val ACCOUNT = "Account"
     const val BACKUP = "Backup"
     const val PLAN = "Your plan"
     const val DIAGNOSTICS = "Diagnostics"
@@ -23,6 +24,7 @@ object SettingsHomeCopy {
 
     const val OFF = "Off"
     const val NO_DAYS = "No days yet"
+    const val ACCOUNT_SUMMARY = "Optional cloud sign-in"
     const val BACKUP_SUMMARY = "Export, restore, Drive"
     const val DIAGNOSTICS_SUMMARY = "Share a bundle from this phone"
     const val ABOUT_SUMMARY = "Version and how to update"

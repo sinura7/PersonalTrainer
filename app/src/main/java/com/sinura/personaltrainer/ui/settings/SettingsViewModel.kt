@@ -89,6 +89,11 @@ class SettingsViewModel @JvmOverloads constructor(
         envelopeIterations = envelopeIterations,
     )
 
+    val account = AccountCoordinator(
+        container = container,
+        scope = viewModelScope,
+    )
+
     val uiState: StateFlow<SettingsUiState> = combine(
         // The typed `combine` overloads stop at five flows, so this is two groups of five.
         combine(

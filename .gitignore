@@ -26,6 +26,7 @@ keystore.properties
 # Temper Debug's distribution signer (debug-live.yml restores it from secrets)
 debug-keystore.properties
 /debug-signing/
+supabase.properties
 
 # Python bytecode from tools/
 __pycache__/
