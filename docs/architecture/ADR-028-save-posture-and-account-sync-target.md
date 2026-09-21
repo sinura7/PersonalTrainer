@@ -1,0 +1,59 @@
+# ADR-028 — Save posture and Temper Account sync target
+
+- **Status:** Accepted
+- **Date:** 2026-09-21
+- **Supersedes / Related:** [ADR-004](ADR-004-offline-core-and-entitlements.md),
+  [ADR-009](ADR-009-backup-privacy-sync.md), [sync-personal-build.md](sync-personal-build.md)
+
+## Context
+
+Temper Account (Supabase) and Google Drive backup serve different owners and
+must not be conflated. Training must never require sign-in. Owners still need a
+clear, once-per-install choice of how they want data saved, and a Settings path
+to change that choice later.
+
+## Decision
+
+1. **Two save lanes, both optional for training.** Temper Account is optional
+   cloud sync when signed in. Local use keeps Room on the phone as gym-floor
+   source of truth; Google Drive remains optional whole-file **backup** for
+   local users ([ADR-009]).
+2. **First launch (after the process cold-start intro).** Before the permission
+   walk, the app shows a full-screen chooser: Temper Account (sign in / create
+   via Settings → Account) or continue on this phone, with an optional path into
+   Settings → Backup for Drive. The choice is persisted (`save_posture_chosen`);
+   the chooser does not repeat until the owner changes posture in Settings.
+3. **Upgrades.** Installs that already used permissions, plan setup, Drive, or
+   Account are migrated to a chosen posture without re-showing the chooser.
+4. **Settings → How you save.** Owners can switch posture and open Account or
+   Backup from one subpage. Home, Plan, History, and live workouts are never
+   gated ([ADR-004]).
+5. **Temper Account sync target (signed-in users).** Long term, account details,
+   settings, workouts, and history are fully cloud-backed with local Room as
+   cache. **Packet 1 ships posture + UX only.** Replication today matches
+   [sync-personal-build.md](sync-personal-build.md) scope (`SyncEntityType`).
+
+## Consequences
+
+- Later packets expand `SyncEntityType` and worker coverage; they do not remove
+  Drive backup or gate training on Account.
+- Privacy and Data Safety stay honest about partial sync until follow-up packets
+  land.
+
+## Follow-up sync entities (not in Packet 1)
+
+| Area | Examples | Notes |
+|------|----------|--------|
+| Library | Custom exercises, catalog seed | Called out deferred in sync-personal-build |
+| Body | Bodyweight entries and log | Settings / Body today |
+| Goals | Measurable goals, pause intervals | Local-only today |
+| Coach / generator | Coach prefs, training block, questionnaire fields | Partially in backup export |
+| Reminders | Reminder prefs, day alarms | Device-local today |
+| Display | Weight unit, clock format | Local preference |
+| Account profile | Display name, avatar | Not product yet |
+
+## Review questions
+
+- Is training gated on Account? **No** ([ADR-004]).
+- Is Drive sync? **No** — backup only ([ADR-009]).
+- Does choosing local block Account later? **No** — Settings can switch.

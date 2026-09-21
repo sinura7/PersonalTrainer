@@ -11,6 +11,7 @@ enum class SettingsPage {
     GENERATOR,
     REST,
     BODYWEIGHT,
+    SAVE_POSTURE,
     ACCOUNT,
     BACKUP,
     PLAN,

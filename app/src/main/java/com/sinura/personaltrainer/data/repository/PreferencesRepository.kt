@@ -43,6 +43,8 @@ import com.sinura.personaltrainer.data.repository.prefs.ReminderPrefs
 import com.sinura.personaltrainer.data.repository.prefs.ReminderPrefsStore
 import com.sinura.personaltrainer.data.repository.prefs.RestPrefs
 import com.sinura.personaltrainer.data.repository.prefs.RestPrefsStore
+import com.sinura.personaltrainer.data.repository.prefs.SavePosturePrefs
+import com.sinura.personaltrainer.data.repository.prefs.SavePosturePrefsStore
 import com.sinura.personaltrainer.data.repository.prefs.preferredDaysFrom
 import com.sinura.personaltrainer.data.repository.prefs.SPLIT_STYLE
 import com.sinura.personaltrainer.data.repository.prefs.SettingsStore
@@ -71,6 +73,8 @@ import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingFocus
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
+import com.sinura.personaltrainer.domain.SavePosture
+import com.sinura.personaltrainer.domain.SavePostureState
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.Flow
@@ -139,6 +143,7 @@ class PreferencesRepository(
     BackupPrefs by BackupPrefsStore(store = store) {
     private val dataStore = dataStore
     private val reminders: ReminderPrefs = ReminderPrefsStore(store = store)
+    private val savePosturePrefs: SavePosturePrefs = SavePosturePrefsStore(store = store)
 
     val reminderPreferences: Flow<ReminderPreferences> get() = reminders.reminderPreferences
     val pendingOccurrenceId: Flow<String?> get() = reminders.pendingOccurrenceId
@@ -152,6 +157,13 @@ class PreferencesRepository(
     suspend fun setPendingOccurrenceId(id: String?) = reminders.setPendingOccurrenceId(id)
     suspend fun setLaunchPermissionsAsked(asked: Boolean) =
         reminders.setLaunchPermissionsAsked(asked)
+
+    val savePostureState: Flow<SavePostureState> = savePosturePrefs.savePostureState
+
+    suspend fun setSavePosture(posture: SavePosture) = savePosturePrefs.setSavePosture(posture)
+
+    suspend fun ensureSavePostureMigrated(accountSignedIn: Boolean) =
+        savePosturePrefs.ensureLegacyMigrated(accountSignedIn)
 
     private val safePreferences: Flow<Preferences> = store.safePreferences
 

@@ -29,7 +29,10 @@ Weights are stored in kilograms. Display units are a preference.
 ## Temper Account (optional cloud sync)
 
 Temper Account is **opt-in**. Core training is never gated on sign-in
-([ADR-004](architecture/ADR-004-offline-core-and-entitlements.md)).
+([ADR-004](architecture/ADR-004-offline-core-and-entitlements.md)). On first
+install, after the short branded intro, you choose Temper Account or saving on
+this phone (with optional Google Drive backup later). You can change that in
+Settings → **How you save**.
 
 When you sign in with email and password:
 

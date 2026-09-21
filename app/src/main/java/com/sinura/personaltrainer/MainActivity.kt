@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.ui.intro.ColdStartIntro
+import com.sinura.personaltrainer.ui.saveposture.SavePostureHost
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.navigation.PersonalTrainerNav
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
@@ -80,6 +81,7 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     }
+                    SavePostureHost(coldStartIntroVisible = showColdStartIntro)
                 }
             }
         }

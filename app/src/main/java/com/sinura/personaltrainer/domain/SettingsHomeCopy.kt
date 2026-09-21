@@ -12,6 +12,7 @@ object SettingsHomeCopy {
     const val GENERATOR = "Week generator"
     const val REST = "Rest timer"
     const val BODYWEIGHT = "Bodyweight"
+    const val SAVE_POSTURE = "How you save"
     const val ACCOUNT = "Account"
     const val BACKUP = "Backup"
     const val PLAN = "Your plan"

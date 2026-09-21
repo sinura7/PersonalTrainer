@@ -302,8 +302,13 @@ fun PersonalTrainerNav(
         OnboardingGate.APP -> Unit
     }
 
+    val savePostureUi by settingsViewModel.savePostureUi.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) {
+        settingsViewModel.ensureSavePostureReady()
+    }
     val launchAsked by settingsViewModel.launchPermissionsAsked.collectAsStateWithLifecycle()
-    if (gate == OnboardingGate.APP) {
+    val pendingSettingsSubpage by settingsViewModel.pendingSettingsSubpage.collectAsStateWithLifecycle()
+    if (gate == OnboardingGate.APP && savePostureUi.loaded && savePostureUi.chosen) {
         LaunchPermissionsHost(
             alreadyAsked = launchAsked,
             onAsked = settingsViewModel::markLaunchPermissionsAsked,
@@ -315,6 +320,16 @@ fun PersonalTrainerNav(
     val screenExit = if (reduceMotion) ExitTransition.None else ScreenExit
     val barMs = if (reduceMotion) 0 else Motion.BASE
     val navController = rememberNavController()
+    LaunchedEffect(pendingSettingsSubpage) {
+        if (pendingSettingsSubpage == null) return@LaunchedEffect
+        navController.navigate(Route.Settings.path) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
     // Temper plates, not Material house/person/dumbbell/clock. The selected tab is volt
     // through tint; the drawings themselves stay monochrome so heat never sits on the chrome.
     // Library is not a tab. It is a catalog you visit to answer a question — "what could I

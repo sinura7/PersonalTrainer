@@ -16,6 +16,8 @@ import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.RoutineGenerator
+import com.sinura.personaltrainer.domain.SavePosture
+import com.sinura.personaltrainer.domain.SavePostureState
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingAge
@@ -158,6 +160,32 @@ class SettingsViewModel @JvmOverloads constructor(
             initialValue = false,
         )
 
+    val savePostureState: StateFlow<SavePostureState> =
+        container.preferencesRepository.savePostureState.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = SavePostureState(chosen = false),
+        )
+
+    private val _savePostureReady = MutableStateFlow(false)
+    val savePostureUi: StateFlow<SavePostureUiState> = combine(
+        _savePostureReady,
+        savePostureState,
+    ) { ready, posture ->
+        SavePostureUiState(
+            loaded = ready,
+            chosen = posture.chosen,
+            posture = posture.posture,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = SavePostureUiState(),
+    )
+
+    private val _pendingSettingsSubpage = MutableStateFlow<SettingsPage?>(null)
+    val pendingSettingsSubpage: StateFlow<SettingsPage?> = _pendingSettingsSubpage.asStateFlow()
+
     private val _generateNotice = MutableStateFlow<String?>(null)
     val generateNotice: StateFlow<String?> = _generateNotice.asStateFlow()
 
@@ -165,6 +193,28 @@ class SettingsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             container.preferencesRepository.setLaunchPermissionsAsked(true)
         }
+    }
+
+    fun ensureSavePostureReady() {
+        viewModelScope.launch {
+            val signedIn = container.accountAuth.session.first() != null
+            container.preferencesRepository.ensureSavePostureMigrated(signedIn)
+            _savePostureReady.value = true
+        }
+    }
+
+    fun chooseSavePosture(posture: SavePosture) {
+        viewModelScope.launch {
+            container.preferencesRepository.setSavePosture(posture)
+        }
+    }
+
+    fun requestSettingsSubpage(page: SettingsPage) {
+        _pendingSettingsSubpage.value = page
+    }
+
+    fun consumePendingSettingsSubpage() {
+        _pendingSettingsSubpage.value = null
     }
 
     fun dismissGenerateNotice() {
@@ -428,4 +478,12 @@ class SettingsViewModel @JvmOverloads constructor(
         backup.dispose()
         super.onCleared()
     }
+}
+
+data class SavePostureUiState(
+    val loaded: Boolean = false,
+    val chosen: Boolean = false,
+    val posture: SavePosture = SavePosture.LOCAL,
+) {
+    val needsChooser: Boolean get() = loaded && !chosen
 }

@@ -11,7 +11,7 @@ same questions. Do not publish while a data-survival critical remains open.
 | Required account? | No |
 | Encrypted in transit? | Yes for Temper Account (HTTPS to Supabase). Optional Drive backup uses HTTPS; the backup file may also be password-protected |
 | Users can request deletion? | Yes — delete sessions in-app; delete Temper Account in Settings → Account (removes cloud Auth user and synced server rows; local phone data stays); uninstall removes on-device data; user-managed Drive/export files are deleted by the user |
-| Data collection is optional? | Local use collects nothing remotely. Temper Account is opt-in. Drive backup is opt-in. Diagnostics are user-triggered |
+| Data collection is optional? | Local use collects nothing remotely. Temper Account is opt-in (first-launch chooser or Settings). Drive backup is opt-in. Diagnostics are user-triggered |
 | Ads | Not used |
 | Analytics | Not used |
 | Crash logs sent automatically? | No. User-triggered redacted diagnostics only |

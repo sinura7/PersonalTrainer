@@ -5,6 +5,7 @@
 - **Backup:** Google Drive whole-file backup is unchanged and is not sync.
 - **Settings → Account (signed out):** An entry screen (headline + “Open account”) runs before email/password. **Not now** or the subpage back control returns to Settings without signing in. Home, Plan, History, and live workouts are never gated.
 - **Cold start (process):** A short branded Compose intro (Temper mark + wordmark) overlays the root UI once per process; tap skips or it auto-advances in ~2s. Not sign-in, not first-launch plan onboarding. Rotation / warm return within the same process does not replay it.
+- **First install save posture ([ADR-028](ADR-028-save-posture-and-account-sync-target.md)):** After that intro, a one-time chooser offers Temper Account (Settings → Account) or continue on this phone, with an optional jump to Settings → Backup for Google Drive. Persisted in DataStore (`save_posture`, `save_posture_chosen`). Settings → **How you save** can change the posture later. Upgrades with prior permissions, plan setup, Drive, or Account skip the chooser.
 
 ## Scope (Phase 11 steps 4–5)
 
@@ -32,7 +33,15 @@ Supabase column names are **snake_case** in PostgREST payloads; Room keeps **cam
 - Settings → **About** and Settings → **Account** open the published privacy policy URL.
 - Settings → **Account** (signed in) → **Delete Temper Account…** — type email to confirm; deletes Supabase Auth user and synced server rows; local Room data stays; outbox cleared.
 
-## Deferred (needs product / later Phase 11)
+## Target vs today (ADR-028)
+
+Signed-in Temper Account users should eventually have workouts, plan, settings, and
+account details cloud-backed with Room as cache. **Today** only the tables in
+[Scope](#scope-phase-11-steps-45) replicate. See ADR-028 for the follow-up entity list
+(bodyweight, goals, coach prefs, reminders, custom exercises / catalog, and more).
+
+## Deferred (needs product / later Phase 11+)
 
 - **E2EE** cloud lane; **Google Sign-In**.
 - **Custom exercises / catalog seed** sync (plan structure is in scope above; catalog is not).
+- **Settings / body / goals / reminders** rows listed in ADR-028.
