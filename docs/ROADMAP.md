@@ -19,6 +19,7 @@
 > rehearsal ship gate; `publicCandidateReady()` is automated evidence only.
 >
 > 21 Sep 2026 — Phase 11 step 7: Privacy Policy and Play Data Safety docs
+> save posture Packet 1 (first-launch chooser + Settings → How you save + ADR-028);
 > updated for Temper Account; in-app account deletion and Settings/About
 > privacy links. `debugLiveCode` unchanged until the next authorized drop.
 >

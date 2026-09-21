@@ -29,6 +29,8 @@ import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.AccountAuthCopy
 import com.sinura.personaltrainer.domain.LegalCopy
+import com.sinura.personaltrainer.domain.SavePosture
+import com.sinura.personaltrainer.domain.SavePostureCopy
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingPlace
@@ -54,6 +56,8 @@ fun SettingsScreen(
     val prefs by viewModel.uiState.collectAsStateWithLifecycle()
     val backup by viewModel.backup.uiState.collectAsStateWithLifecycle()
     val account by viewModel.account.uiState.collectAsStateWithLifecycle()
+    val savePosture by viewModel.savePostureState.collectAsStateWithLifecycle()
+    val pendingSubpage by viewModel.pendingSettingsSubpage.collectAsStateWithLifecycle()
     val selectedUnit = prefs.weightUnit
     val clockFormat = prefs.clockFormat
     val schedulePrefs = prefs.schedule
@@ -82,6 +86,13 @@ fun SettingsScreen(
     LaunchedEffect(Unit) {
         viewModel.refreshAlarmCapability()
         debugUpdate.onSettingsOpened()
+    }
+
+    LaunchedEffect(pendingSubpage) {
+        pendingSubpage?.let {
+            page = it
+            viewModel.consumePendingSettingsSubpage()
+        }
     }
 
     val resolutionLauncher = rememberLauncherForActivityResult(
@@ -195,6 +206,7 @@ fun SettingsScreen(
                             unit = selectedUnit,
                             checkIn = checkInWeekday,
                         ),
+                        savePostureSummary = SavePostureCopy.settingsSummary(savePosture.posture),
                         onOpen = { page = it },
                         updateSummary = if (BuildConfig.DEBUG) {
                             debugUpdateSettingsSummary(notice)
@@ -282,6 +294,23 @@ fun SettingsScreen(
                     onRecordBodyweight = viewModel::recordBodyweight,
                     onClearBodyweight = viewModel::clearBodyweight,
                     onCheckInDay = viewModel::setBodyweightCheckInWeekday,
+                )
+            }
+            SettingsPage.SAVE_POSTURE -> SettingsSubpage(
+                title = SavePostureCopy.SETTINGS_TITLE,
+                onBack = goHome,
+            ) {
+                SavePostureSection(
+                    posture = savePosture.posture,
+                    onUseAccount = {
+                        viewModel.chooseSavePosture(SavePosture.ACCOUNT)
+                        page = SettingsPage.ACCOUNT
+                    },
+                    onUseLocal = {
+                        viewModel.chooseSavePosture(SavePosture.LOCAL)
+                    },
+                    onOpenAccount = { page = SettingsPage.ACCOUNT },
+                    onOpenBackup = { page = SettingsPage.BACKUP },
                 )
             }
             SettingsPage.ACCOUNT -> SettingsSubpage(
@@ -562,6 +591,13 @@ object SettingsTags {
     const val ROW_GENERATOR = "settings-row-generator"
     const val ROW_REST = "settings-row-rest"
     const val ROW_BODYWEIGHT = "settings-row-bodyweight"
+    const val ROW_SAVE_POSTURE = "settings-row-save-posture"
+    const val SAVE_POSTURE = "settings-save-posture"
+    const val SAVE_POSTURE_CURRENT = "settings-save-posture-current"
+    const val SAVE_POSTURE_USE_ACCOUNT = "settings-save-posture-use-account"
+    const val SAVE_POSTURE_USE_LOCAL = "settings-save-posture-use-local"
+    const val SAVE_POSTURE_OPEN_ACCOUNT = "settings-save-posture-open-account"
+    const val SAVE_POSTURE_OPEN_BACKUP = "settings-save-posture-open-backup"
     const val ROW_ACCOUNT = "settings-row-account"
     const val ROW_BACKUP = "settings-row-backup"
     const val ACCOUNT = "settings-account"

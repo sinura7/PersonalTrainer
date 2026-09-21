@@ -29,6 +29,7 @@ internal fun SettingsHome(
     generatorSummary: String,
     restSummary: String,
     bodyweightSummary: String,
+    savePostureSummary: String,
     onOpen: (SettingsPage) -> Unit,
     modifier: Modifier = Modifier,
     updateSummary: String? = null,
@@ -104,6 +105,14 @@ internal fun SettingsHome(
         }
         item(key = "keep") {
             GroupedList {
+                SettingsIndexRow(
+                    title = SettingsHomeCopy.SAVE_POSTURE,
+                    subtitle = savePostureSummary,
+                    icon = TemperIcons.Backup,
+                    tag = SettingsTags.ROW_SAVE_POSTURE,
+                    onClick = { onOpen(SettingsPage.SAVE_POSTURE) },
+                )
+                IndexHairline()
                 SettingsIndexRow(
                     title = SettingsHomeCopy.ACCOUNT,
                     subtitle = SettingsHomeCopy.ACCOUNT_SUMMARY,
