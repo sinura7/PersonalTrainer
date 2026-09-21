@@ -99,6 +99,7 @@ object WorkoutTestTags {
     const val MICRO_REC = "workout-micro-rec"
     const val MICRO_REC_APPLY = "workout-micro-rec-apply"
     const val MICRO_REC_WHY = "workout-micro-rec-why"
+    const val COACH_EVIDENCE_CHIP = "workout-coach-evidence-chip"
     const val NEXT_SET = "workout-next-set"
     const val NEXT = "workout-next"
     const val DOCK_FINISH = "workout-dock-finish"

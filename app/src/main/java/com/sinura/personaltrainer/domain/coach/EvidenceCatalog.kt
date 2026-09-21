@@ -1,0 +1,106 @@
+package com.sinura.personaltrainer.domain.coach
+
+/**
+ * Curated peer-reviewed (and honestly marked heuristic) sources for CoachEngine.
+ *
+ * Runtime source of truth; keep in sync with [docs/coach/evidence-seed.json].
+ * No network fetch; ADR-029.
+ */
+data class EvidenceEntry(
+    val id: String,
+    val year: Int?,
+    val title: String,
+    val authorsShort: String,
+    /** Null when no DOI exists or the row is heuristic-only. */
+    val doi: String?,
+    val claim: String,
+    val heuristic: Boolean,
+)
+
+object EvidenceCatalog {
+    const val SEED_VERSION = 1
+
+    private val entries: List<EvidenceEntry> = listOf(
+        EvidenceEntry(
+            id = "zourdos-2016-rpe-rir",
+            year = 2016,
+            title = "Novel Resistance Training–Specific Rating of Perceived Exertion Scale Measuring Repetitions in Reserve",
+            authorsShort = "Zourdos et al.",
+            doi = "10.1519/JSC.0000000000001049",
+            claim = "RPE scores tied to repetitions-in-reserve track intensity and support day-to-day load regulation.",
+            heuristic = false,
+        ),
+        EvidenceEntry(
+            id = "helms-2016-rpe-application",
+            year = 2016,
+            title = "Application of the Repetitions in Reserve-Based Rating of Perceived Exertion Scale for Resistance Training",
+            authorsShort = "Helms et al.",
+            doi = "10.1519/SSC.0000000000000218",
+            claim = "RIR-based RPE autoregulates load set-to-set to match daily readiness and proximity to failure.",
+            heuristic = false,
+        ),
+        EvidenceEntry(
+            id = "hackett-2017-rtf-accuracy",
+            year = 2017,
+            title = "Accuracy in Estimating Repetitions to Failure During Resistance Exercise",
+            authorsShort = "Hackett et al.",
+            doi = "10.1519/JSC.0000000000001683",
+            claim = "Lifters estimate reps-to-failure within about one rep when sets are near failure (roughly 0–5 reps in reserve).",
+            heuristic = false,
+        ),
+        EvidenceEntry(
+            id = "schoenfeld-2017-volume",
+            year = 2017,
+            title = "Dose-response relationship between weekly resistance training volume and increases in muscle mass",
+            authorsShort = "Schoenfeld et al.",
+            doi = "10.1080/02640414.2016.1210197",
+            claim = "Higher weekly set volume associates with greater hypertrophy; rep targets before load jumps align with volume-first progression.",
+            heuristic = false,
+        ),
+        EvidenceEntry(
+            id = "jeffreys-2007-ramp",
+            year = 2007,
+            title = "Warm-up revisited: the ramp method of optimizing performance preparation",
+            authorsShort = "Jeffreys",
+            doi = null,
+            claim = "Structured raise–activate–potentiate warm-ups prepare the athlete before working loads.",
+            heuristic = false,
+        ),
+        EvidenceEntry(
+            id = "heuristic-warmup-percent-ladder",
+            year = null,
+            title = "Temper warm-up percentage ladder",
+            authorsShort = "Temper (heuristic)",
+            doi = null,
+            claim = "40/60/80% of last working weight, snapped to available plates, is a practical barbell ramp.",
+            heuristic = true,
+        ),
+        EvidenceEntry(
+            id = "heuristic-plate-increment",
+            year = null,
+            title = "Temper plate increment table",
+            authorsShort = "Temper (heuristic)",
+            doi = null,
+            claim = "Load jumps use equipment-aware minimum increments (barbell, pin stack, dumbbell step).",
+            heuristic = true,
+        ),
+        EvidenceEntry(
+            id = "heuristic-conservative-first-set",
+            year = null,
+            title = "Temper conservative opener",
+            authorsShort = "Temper (heuristic)",
+            doi = null,
+            claim = "With no logged history, repeat the plan or last known numbers instead of inventing a heavier load.",
+            heuristic = true,
+        ),
+    )
+
+    private val byId: Map<String, EvidenceEntry> = entries.associateBy { it.id }
+
+    fun all(): List<EvidenceEntry> = entries
+
+    fun byId(id: String): EvidenceEntry? = byId[id]
+
+    fun resolve(ids: List<String>): List<EvidenceEntry> =
+        ids.mapNotNull { byId[it] }
+}

@@ -63,6 +63,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-026](ADR-026-frontend-redesign.md) | Frontend redesign and native evidence | Compact workout, completion action, unified History, adaptive targets and codex branches |
 | [ADR-027](ADR-027-workout-logging-redesign.md) | Active workout logging screen redesign | Amends ADR-026 §3: image-led identity, stats row, hero numerals, next-set card, set-history chips, rest card, two-line commit; business rules untouched |
 | [ADR-028](ADR-028-save-posture-and-account-sync-target.md) | Save posture chooser and Account sync target | First-launch Account vs local+Drive; Settings → How you save; sync expansion follow-ups |
+| [ADR-029](ADR-029-coach-engine.md) | In-workout CoachEngine and evidence-backed suggestions | Extends ADR-008; curated literature seed; Next set card citations; offline policy |
 
 ## Supporting records
 

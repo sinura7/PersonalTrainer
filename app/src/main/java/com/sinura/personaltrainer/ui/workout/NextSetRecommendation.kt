@@ -17,6 +17,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,6 +31,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
+import com.sinura.personaltrainer.domain.coach.CoachEngine
+import com.sinura.personaltrainer.domain.coach.CoachEvidenceCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -64,14 +67,16 @@ internal fun NextSetRecommendation(
     modifier: Modifier = Modifier,
 ) {
     if (!SetMicroRecCopy.visibleOnEntry(rec)) return
+    val suggestion = remember(rec) { CoachEngine.fromMicroRec(rec) }
     val view = LocalView.current
     var showWhy by rememberSaveable(rec.reasonCode, rec.nextWeightKg, rec.nextReps, rec.nextRpe) {
         mutableStateOf(false)
     }
+    var showEvidence by rememberSaveable(rec.reasonCode) { mutableStateOf(false) }
     val canUse = rec.showApply && !rec.previewOnly
     val numbers = SetMicroRecCopy.numbers(rec, loadClass, unit)
     val delta = SetMicroRecCopy.deltaLine(rec, loadClass, unit)
-    val reason = SetMicroRecCopy.ruleLine(rec.reasonCode)
+    val reason = suggestion.explanationShort
     val target = rec.nextRpe?.let { "Target RPE $it" }
     Column(
         modifier = modifier
@@ -133,6 +138,10 @@ internal fun NextSetRecommendation(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                EvidenceCitationChip(
+                    suggestion = suggestion,
+                    onShowDetail = { showEvidence = true },
+                )
             }
         }
         if (LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)) {
@@ -163,10 +172,25 @@ internal fun NextSetRecommendation(
             Text(caption, style = InstrumentType.caption, color = TextTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
+    if (showEvidence) {
+        ConfirmActionDialog(
+            title = "Evidence",
+            body = CoachEvidenceCopy.detailLines(suggestion).joinToString("\n\n"),
+            confirmLabel = "Close",
+            dismissLabel = null,
+            onConfirm = { showEvidence = false },
+            onDismiss = { showEvidence = false },
+        )
+    }
     if (showWhy) {
+        val whyBody = buildList {
+            addAll(SetMicroRecCopy.whyLines(rec))
+            add("")
+            addAll(CoachEvidenceCopy.whySheetAppendix(suggestion))
+        }.joinToString("\n")
         ConfirmActionDialog(
             title = "Why this set",
-            body = SetMicroRecCopy.whyLines(rec).joinToString("\n"),
+            body = whyBody,
             confirmLabel = if (canUse && !applied) SetMicroRecCopy.USE_SUGGESTION else SetMicroRecCopy.KEEP_MY_NUMBERS,
             dismissLabel = if (canUse && !applied) SetMicroRecCopy.KEEP_MY_NUMBERS else null,
             onConfirm = {

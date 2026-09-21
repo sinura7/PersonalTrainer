@@ -7,7 +7,8 @@
 [DATA_SAFETY.md](DATA_SAFETY.md)
 
 Temper is a local-first Android fitness log. Recording, history, templates,
-schedules, reminders, goals, deterministic recommendations, and export work
+schedules, reminders, goals, deterministic recommendations, the on-device coach
+evidence library (static curated citations; no network fetch), and export work
 without an account.
 
 ## What the app stores on this device
