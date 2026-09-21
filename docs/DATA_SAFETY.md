@@ -7,7 +7,7 @@ critical remains open.
 
 | Question | Answer |
 |---|---|
-| Collects user data automatically? | No automatic analytics or crash upload. Optional Temper Account sync uploads training/plan rows only after the user signs in and edits data while online |
+| Collects user data automatically? | No automatic analytics or crash upload. Optional Temper Account sync uploads finished workouts, schedule, routines, and templates (not live sessions or catalog/custom exercises) only after the user signs in and edits data while online |
 | Shares data with other companies? | No ads or analytics partners. Optional Google Drive backup uses Google when the user turns it on. Temper Account uses the operator’s Supabase project (Auth + Postgres) |
 | Required account? | No |
 | Encrypted in transit? | Yes for Temper Account (HTTPS to Supabase). Optional Drive backup uses HTTPS; the backup file may also be password-protected |
@@ -17,7 +17,7 @@ critical remains open.
 | Analytics | Not used |
 | Crash logs sent automatically? | No. User-triggered redacted diagnostics only |
 | Location | Not used. Cardio does not claim GPS |
-| Health / fitness data | Stored on-device by default. Uploaded to Supabase when the user opts into Temper Account sync (finished workouts and schedule tables in v1). Exported when the user exports a backup or shares a file they created. Not E2EE on the server in v1 |
+| Health / fitness data | Stored on-device by default. Uploaded to Supabase when the user opts into Temper Account sync (finished workouts; schedule rules and occurrences; routines and routine exercises; activity templates with blocks/sets/intervals; not live in-progress sessions; custom exercises and catalog seed stay on-device). Exported when the user exports a backup or shares a file they created. Not E2EE on the server in v1 |
 | Personal info (email) | Collected only for optional Temper Account (Supabase Auth). Not used for marketing |
 | Photos / files | User-picked backup files via the Storage Access Framework |
 | Contacts / SMS / microphone / camera | Not used |

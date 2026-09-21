@@ -36,11 +36,13 @@ When you sign in with email and password:
 - **Authentication:** Supabase Auth stores your account (email, hashed password,
   user id). Temper sends your email and password over **HTTPS** only for sign-in,
   sign-up, and account deletion.
-- **Synced training data (trusted server, not E2EE):** Finished workouts and plan
-  schedule rows that Temper Account replicates today — activity sessions (and their
-  blocks, strength sets, and cardio intervals) plus schedule rules and occurrences.
-  Live in-progress sessions are not uploaded. Routines, templates, and catalog rows
-  stay on-device only until a later sync scope ships.
+- **Synced training data (trusted server, not E2EE):** When you are signed in and
+  online, Temper Account replicates finished workouts and plan structure: activity
+  sessions (with blocks, strength sets, and cardio intervals); schedule rules and
+  occurrences; routines and the exercises in each routine; saved activity templates
+  (with the same block, set, and interval rows used for template structure in sync
+  today). Live in-progress (`ACTIVE`) sessions are not uploaded. Custom exercises
+  and catalog seed rows stay on this phone only (deferred).
 - **Who processes it:** Your Supabase project (Auth + Postgres with row-level
   security). The app uses the public anon key and your signed-in access token; there
   is no separate Temper-operated backend beyond that project. Cloud data is **not**
