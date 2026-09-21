@@ -50,7 +50,7 @@ import org.junit.runner.RunWith
 
 /**
  * P9.6 remaining pages: Volt acts and named exits stay reachable at
- * 360 dp through font 2.0. Physical TalkBack stays a P9.7 gate.
+ * 360 dp through font 2.0. Physical TalkBack is optional owner sign-off.
  */
 @RunWith(AndroidJUnit4::class)
 class RemainingPagesPassInstrumentedTest {

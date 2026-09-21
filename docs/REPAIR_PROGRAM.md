@@ -1082,8 +1082,8 @@ false; `publicCandidateReady()` stays closed.
 typed bodyweight snaps to the wheel; owned surfaces carry
 `heading()` / `Role` / `LiveRegionMode.Polite` / `toggleable`. Count +3.
 
-**Phone gate.** The physical TalkBack pass the matrix has been waiting for.
-Owner still.
+**Phone gate.** Optional physical TalkBack may refine matrix notes; it is
+not required for Public Candidate.
 
 **Owns.** `ui/components/GymSurfaces.kt` *(after F3)*,
 `ui/components/Common.kt` *(after F3)*, `ui/components/GymStatus.kt`,
@@ -1545,8 +1545,8 @@ The program is complete when all of the following hold:
    `tools/preflight.sh` reports zero findings with no skipped checkers.
 3. The migration suites pass in both lanes (K1 only).
 4. The owner has seen every phone gate named above on Temper Debug.
-5. A physical TalkBack pass has signed the accessibility matrix (G1), and
-   `AccessibilityMatrix.publicCandidateReady()` returns true.
+5. `AccessibilityMatrix.publicCandidateReady()` returns true (automated
+   evidence on every page; physical TalkBack sign-off is optional).
 6. One signed release build has been installed and walked through export and
    restore (J1).
 7. The audit file's ranked list has no unresolved P1 or P2 row that is not

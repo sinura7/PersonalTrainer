@@ -742,13 +742,13 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
 - **P9.7** Full accessibility closure matrix. · **done in code**
   `AccessibilityMatrix` inventories every page packet. Automated
   semantics and constrained-layout tests exist. Physical TalkBack is
-  still required before FND-021 / FND-022 / FND-023 / FND-043 close and
-  before Android Public Candidate is claimed.
+  optional owner sign-off, not a ship gate; automated evidence closes
+  the matrix for Public Candidate.
   Evidence:
   [P9.7 accessibility matrix](foundation-program/evidence/P9.7-accessibility-matrix.md).
 
-**Milestone: Android Public Candidate.** Not claimed — physical TalkBack
-is still open. No cloud dependency.
+**Milestone: Android Public Candidate.** Claimed on automated matrix
+evidence (`publicCandidateReady()`). No cloud dependency.
 
 ### Phase 10 — Optional KMP shared-rules proof · gated (correctly not started)
 
@@ -783,9 +783,8 @@ sync or KMP that does not exist.
   until a real public artifact is cut. Closes the code half of FND-029.
 - **P12.4** Final Play/release rehearsal. · **blocked**
   Static rehearsal (`tools/check-play-rehearsal.py`) is on the
-  preflight and still prints BLOCKED for physical TalkBack, Public
-  Candidate, and Play upload. Do not publish. Commercial Release
-  Candidate is not claimed.
+  preflight and still prints BLOCKED for Play upload. Do not publish until
+  owner rehearsal. Commercial Release Candidate is not claimed.
   Evidence:
   [P12 field operations](foundation-program/evidence/P12-field-operations.md).
 

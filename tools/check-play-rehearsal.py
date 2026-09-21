@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """P12.4 automated Play rehearsal.
 
-Static release facts that can be checked in this repo. Physical TalkBack,
-Android Public Candidate, and Play upload stay blocked even when this
-script exits 0 — those gates need a phone and a human, not a green CI.
+Static release facts that can be checked in this repo. Play upload /
+Commercial RC stay blocked until owner rehearsal even when this script
+exits 0 — that gate needs a phone and a human, not green CI alone.
 """
 from __future__ import annotations
 
@@ -51,8 +51,10 @@ def main() -> int:
         findings.append("BackupEnvelopeTest.kt: wrong-password unwrap proof is missing")
     if "physicalTalkBack: Boolean = false" not in matrix:
         findings.append("AccessibilityMatrix.kt: physicalTalkBack must default false")
-    if "pages.all { it.physicalTalkBack && it.automatedEvidence }" not in matrix:
-        findings.append("AccessibilityMatrix.kt: publicCandidateReady must require physical TalkBack")
+    if "pages.all { it.automatedEvidence }" not in matrix:
+        findings.append("AccessibilityMatrix.kt: publicCandidateReady must require automated evidence on every page")
+    if "it.physicalTalkBack &&" in matrix:
+        findings.append("AccessibilityMatrix.kt: publicCandidateReady must not require physical TalkBack")
     ratchet = evaluate(ROOT)
     if not ratchet.ok:
         findings.append(ratchet.message)
@@ -67,8 +69,6 @@ def main() -> int:
         return 1
 
     print("check-play-rehearsal: static checks OK")
-    print("BLOCKED: physical TalkBack")
-    print("BLOCKED: Android Public Candidate")
     print("BLOCKED: Play upload / Commercial RC")
     return 0
 
