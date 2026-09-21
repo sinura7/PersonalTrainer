@@ -3,6 +3,15 @@ package com.sinura.personaltrainer.domain
 object AccountAuthCopy {
     const val SECTION = "Account"
     const val INDEX_SUMMARY = "Optional cloud sign-in"
+    const val ENTRY_KICKER = "Temper Account"
+    const val ENTRY_HEADLINE = "Open your account"
+    const val ENTRY_BLURB =
+        "Load your cloud history on this phone. Finished workouts and your plan " +
+            "travel with you when you sign in online."
+    const val ENTRY_OPEN = "Open account"
+    const val ENTRY_NOT_NOW = "Not now"
+    const val CREDENTIALS_BACK = "Back"
+    const val CREDENTIALS_TITLE = "Sign in or create account"
     const val NOT_CONFIGURED =
         "Temper Account is not configured for this build. Add SUPABASE_URL and " +
             "SUPABASE_ANON_KEY to supabase.properties on your machine, then rebuild."

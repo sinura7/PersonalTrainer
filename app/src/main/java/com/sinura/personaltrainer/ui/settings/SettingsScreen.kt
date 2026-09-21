@@ -290,6 +290,7 @@ fun SettingsScreen(
                     onSignUp = viewModel.account::signUp,
                     onSignOut = viewModel.account::signOut,
                     onClearError = viewModel.account::clearError,
+                    onLeaveAccount = goHome,
                 )
             }
             SettingsPage.BACKUP -> SettingsSubpage(
@@ -525,6 +526,11 @@ object SettingsTags {
     const val ROW_ACCOUNT = "settings-row-account"
     const val ROW_BACKUP = "settings-row-backup"
     const val ACCOUNT = "settings-account"
+    const val ACCOUNT_ENTRY = "settings-account-entry"
+    const val ACCOUNT_ENTRY_OPEN = "settings-account-entry-open"
+    const val ACCOUNT_ENTRY_DISMISS = "settings-account-entry-dismiss"
+    const val ACCOUNT_CREDENTIALS = "settings-account-credentials"
+    const val ACCOUNT_CREDENTIALS_BACK = "settings-account-credentials-back"
     const val ACCOUNT_EMAIL = "settings-account-email"
     const val ACCOUNT_EMAIL_FIELD = "settings-account-email-field"
     const val ACCOUNT_PASSWORD_FIELD = "settings-account-password-field"
