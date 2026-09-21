@@ -27,6 +27,11 @@ object AccountAuthCopy {
     const val SIGN_IN = "Sign in"
     const val CREATE_ACCOUNT = "Create account"
     const val SIGN_OUT = "Sign out"
+    const val SIGN_OUT_PENDING_TITLE = "Workouts still waiting to upload"
+    fun signOutPendingBody(pending: Int): String =
+        "$pending workout or plan change${if (pending == 1) "" else "s"} still waiting to upload. " +
+            "Signing out clears that upload queue. Your training on this phone stays here."
+    const val SIGN_OUT_PENDING_CONFIRM = "Sign out anyway"
     const val DELETE_ACCOUNT = "Delete Temper Account…"
     const val BUSY_SIGN_IN = "Signing in…"
     const val BUSY_SIGN_UP = "Creating account…"

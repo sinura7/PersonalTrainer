@@ -15,6 +15,11 @@ interface SyncDao {
     @Query("DELETE FROM sync_outbox WHERE entityType = :entityType AND entityId = :entityId")
     suspend fun deletePendingForEntity(entityType: String, entityId: String)
 
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM sync_outbox WHERE entityType = :entityType AND entityId = :entityId)",
+    )
+    suspend fun hasPendingForEntity(entityType: String, entityId: String): Boolean
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOutbox(row: SyncOutboxEntity)
 

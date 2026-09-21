@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.dao.SyncDao
 import com.sinura.personaltrainer.data.local.entity.SyncMetadataEntity
 import com.sinura.personaltrainer.data.local.entity.SyncTableCursorEntity
+import com.sinura.personaltrainer.domain.SyncChildRow
 import com.sinura.personaltrainer.domain.SyncCopy
 import com.sinura.personaltrainer.domain.SyncEntityType
 import com.sinura.personaltrainer.domain.SyncEntityVersion
@@ -121,18 +122,31 @@ class SyncEngine(
         type: SyncEntityType,
         apply: suspend (String) -> Long,
     ) {
-        val cursor = syncDao.getCursor(type.remoteTable)?.lastPulledUpdatedAtMs ?: 0L
-        var watermark = cursor
-        val rows = remote.pullUpdatedSince(type, cursor)
-        for (json in rows) {
-            val appliedAt = apply(json)
-            if (appliedAt > watermark) watermark = appliedAt
+        val initialCursor = syncDao.getCursor(type.remoteTable)?.lastPulledUpdatedAtMs ?: 0L
+        var watermark = initialCursor
+        while (true) {
+            val rows = remote.pullUpdatedSince(type, watermark)
+            if (rows.isEmpty()) break
+            for (json in rows) {
+                val appliedAt = apply(json)
+                if (appliedAt > watermark) watermark = appliedAt
+            }
+            if (rows.size < SYNC_PULL_PAGE_SIZE) break
         }
-        if (watermark > cursor) {
+        if (watermark > initialCursor) {
             syncDao.upsertCursor(
                 SyncTableCursorEntity(tableName = type.remoteTable, lastPulledUpdatedAtMs = watermark),
             )
         }
+    }
+
+    private suspend fun hasPendingChild(type: SyncEntityType, entityId: String): Boolean =
+        syncDao.hasPendingForEntity(type.name, entityId)
+
+    private suspend fun activityBlockParentExists(remote: RemoteActivityBlockRow): Boolean {
+        remote.sessionId?.let { return activityDao.getSessionRow(it) != null }
+        remote.templateId?.let { return activityDao.getTemplateRow(it) != null }
+        return false
     }
 
     private suspend fun applyActivitySession(json: String): Long {
@@ -160,8 +174,15 @@ class SyncEngine(
 
     private suspend fun applyActivityBlock(json: String): Long {
         val remote = decodeSync<RemoteActivityBlockRow>(json)
+        val queued = hasPendingChild(SyncEntityType.ACTIVITY_BLOCK, remote.id)
+        if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
+            return remote.updatedAtMs
+        }
         if (remote.deletedAtMs != null) {
             activityDao.deleteBlock(remote.id)
+            return remote.updatedAtMs
+        }
+        if (!activityBlockParentExists(remote)) {
             return remote.updatedAtMs
         }
         activityDao.insertBlock(remote.toEntity())
@@ -170,8 +191,15 @@ class SyncEngine(
 
     private suspend fun applyStrengthSet(json: String): Long {
         val remote = decodeSync<RemoteStrengthSetRow>(json)
+        val queued = hasPendingChild(SyncEntityType.ACTIVITY_STRENGTH_SET, remote.id)
+        if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
+            return remote.updatedAtMs
+        }
         if (remote.deletedAtMs != null) {
             activityDao.deleteStrengthSet(remote.id)
+            return remote.updatedAtMs
+        }
+        if (activityDao.getBlock(remote.blockId) == null) {
             return remote.updatedAtMs
         }
         activityDao.insertStrengthSets(listOf(remote.toEntity()))
@@ -180,8 +208,15 @@ class SyncEngine(
 
     private suspend fun applyCardioInterval(json: String): Long {
         val remote = decodeSync<RemoteCardioIntervalRow>(json)
+        val queued = hasPendingChild(SyncEntityType.ACTIVITY_CARDIO_INTERVAL, remote.id)
+        if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
+            return remote.updatedAtMs
+        }
         if (remote.deletedAtMs != null) {
             activityDao.deleteCardioInterval(remote.id)
+            return remote.updatedAtMs
+        }
+        if (activityDao.getBlock(remote.blockId) == null) {
             return remote.updatedAtMs
         }
         activityDao.insertCardioIntervals(listOf(remote.toEntity()))
@@ -254,8 +289,15 @@ class SyncEngine(
 
     private suspend fun applyRoutineExercise(json: String): Long {
         val remote = decodeSync<RemoteRoutineExerciseRow>(json)
+        val queued = hasPendingChild(SyncEntityType.ROUTINE_EXERCISE, remote.id)
+        if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
+            return remote.updatedAtMs
+        }
         if (remote.deletedAtMs != null) {
             routineDao.deleteRoutineExercise(remote.id)
+            return remote.updatedAtMs
+        }
+        if (routineDao.getById(remote.routineId) == null) {
             return remote.updatedAtMs
         }
         routineDao.upsertRoutineExercise(remote.toEntity())

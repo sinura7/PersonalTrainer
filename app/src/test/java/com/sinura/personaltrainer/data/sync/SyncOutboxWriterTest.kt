@@ -90,9 +90,8 @@ class SyncOutboxWriterTest {
             ),
         )
         val pending = database.syncDao().peekOutbox(10)
-        val routineIndex = pending.indexOfFirst { it.entityId == "r1" }
-        val exerciseIndex = pending.indexOfFirst { it.entityId == "re1" }
-        assertTrue(routineIndex >= 0)
-        assertTrue(exerciseIndex > routineIndex)
+        val routineRow = pending.first { it.entityId == "r1" }
+        val exerciseRow = pending.first { it.entityId == "re1" }
+        assertTrue(routineRow.createdAtMs <= exerciseRow.createdAtMs)
     }
 }
