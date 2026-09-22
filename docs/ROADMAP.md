@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 22 Sep 2026 — Whole-app audit packet S0b: the Temper Account pull now updates
+> rows in place, so a pulled workout, template or routine keeps its sets, blocks,
+> lifts and history link, and a set already on the phone no longer stalls the
+> pull. A custom lift deleted on another phone is deleted here too once its
+> routine lift goes, and kept (with its muscle credits) only when this phone's
+> own history uses it. Sync stays paused until S1.
+>
 > 22 Sep 2026 — Whole-app audit packet S0a: Temper Account sync is **paused**
 > (`AccountSyncGate`). No pass runs, so a pull can no longer replace rows and
 > cascade away an activity's sets or a routine's lifts; edits keep queuing for

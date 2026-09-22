@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityStrengthSetEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityTemplateEntity
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
@@ -20,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -28,9 +30,10 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * A pulled row changes that row and nothing under it.
+ * A pulled update changes that row and nothing under it. A pulled delete still takes the rows
+ * under it, as it should.
  *
- * Every case here lost data before packet S0b, by one of two mechanisms. REPLACE (and the
+ * The update cases here lost data before packet S0b, by one of two mechanisms. REPLACE (and the
  * session's delete-then-insert) removes the old row first, so ON DELETE CASCADE takes its
  * children: an activity's blocks and sets, a template's blocks, a routine's lifts, and the
  * routine link on finished workouts. ABORT throws on a row that is already here, and a throw
@@ -88,12 +91,12 @@ class SyncPullInPlaceTest {
         seedStrengthActivity()
         remote.seed(
             SyncEntityType.ACTIVITY_BLOCK,
-            encodeSync(strengthBlock().toRemote(userId = USER, updatedAtMs = 500L)),
+            encodeSync(strengthBlock().copy(rpe = 8).toRemote(userId = USER, updatedAtMs = 500L)),
         )
 
         assertTrue(engine.run(USER).isSuccess)
 
-        assertNotNull(database.activityDao().getBlock(BLOCK))
+        assertEquals(8, database.activityDao().getBlock(BLOCK)!!.rpe)
         assertNotNull(database.activityDao().getStrengthSet(SET))
     }
 
@@ -108,7 +111,7 @@ class SyncPullInPlaceTest {
         )
         remote.seed(
             SyncEntityType.ACTIVITY_CARDIO_INTERVAL,
-            encodeSync(interval().toRemote(userId = USER, updatedAtMs = 500L)),
+            encodeSync(interval().copy(elapsedSeconds = 660L).toRemote(userId = USER, updatedAtMs = 500L)),
         )
         // Schedule rules pull after sets and intervals: the witness that the pass got past them.
         remote.seed(SyncEntityType.SCHEDULE_RULE, encodeSync(rule().toRemote(userId = USER)))
@@ -116,7 +119,7 @@ class SyncPullInPlaceTest {
         assertTrue(engine.run(USER).isSuccess)
 
         assertEquals(6, database.activityDao().getStrengthSet(SET)!!.reps)
-        assertNotNull(database.activityDao().getCardioInterval(INTERVAL))
+        assertEquals(660L, database.activityDao().getCardioInterval(INTERVAL)!!.elapsedSeconds)
         assertNotNull(database.plannerDao().getRule(RULE))
     }
 
@@ -164,39 +167,150 @@ class SyncPullInPlaceTest {
     }
 
     @Test
-    fun aDeletedCustomLiftThatHistoryStillUsesIsKeptAndThePullGoesOn() = runTest {
-        seedLift(ExerciseEntity(id = CUSTOM, name = "Landmine", muscleGroup = "Shoulders", notes = "", isCustom = true))
-        database.routineDao().upsertRoutine(RoutineEntity(ROUTINE, "Legs", "", 1L, 100L))
-        database.routineDao().upsertRoutineExercise(routineLift(CUSTOM))
+    fun aFreshPhonePullsEveryNewRowIn() = runTest {
+        // The insert half of each in-place write: nothing is on this phone yet.
+        remote.seed(SyncEntityType.ACTIVITY_SESSION, encodeSync(session().toRemote(userId = USER)))
         remote.seed(
-            SyncEntityType.CUSTOM_EXERCISE,
-            encodeSync(
-                RemoteCustomExerciseRow(
-                    id = CUSTOM,
-                    userId = USER,
-                    name = "Landmine",
-                    muscleGroup = "Shoulders",
-                    notes = "",
-                    equipment = "OTHER",
-                    loadType = "EXTERNAL",
-                    movementKey = null,
-                    imageKey = null,
-                    nameKey = "",
-                    createdAtMs = 1L,
-                    updatedAtMs = 900L,
-                    deletedAtMs = 900L,
-                ),
-            ),
+            SyncEntityType.ACTIVITY_TEMPLATE,
+            encodeSync(ActivityTemplateEntity(TEMPLATE, "Push day", "", 100L).toRemote(userId = USER)),
+        )
+        remote.seed(SyncEntityType.ACTIVITY_BLOCK, encodeSync(strengthBlock().toRemote(userId = USER, updatedAtMs = 300L)))
+        remote.seed(SyncEntityType.ACTIVITY_BLOCK, encodeSync(cardioBlock().toRemote(userId = USER, updatedAtMs = 300L)))
+        remote.seed(
+            SyncEntityType.ACTIVITY_STRENGTH_SET,
+            encodeSync(strengthSet().toRemote(userId = USER, updatedAtMs = 400L)),
+        )
+        remote.seed(
+            SyncEntityType.ACTIVITY_CARDIO_INTERVAL,
+            encodeSync(interval().toRemote(userId = USER, updatedAtMs = 400L)),
+        )
+
+        assertTrue(engine.run(USER).isSuccess)
+
+        assertNotNull(database.activityDao().getSessionRow(SESSION))
+        assertNotNull(database.activityDao().getTemplateRow(TEMPLATE))
+        assertNotNull(database.activityDao().getBlock(BLOCK))
+        assertNotNull(database.activityDao().getBlock(CARDIO_BLOCK))
+        assertEquals(5, database.activityDao().getStrengthSet(SET)!!.reps)
+        assertEquals(600L, database.activityDao().getCardioInterval(INTERVAL)!!.elapsedSeconds)
+    }
+
+    @Test
+    fun aServerDeleteStillTakesTheRowsUnderIt() = runTest {
+        seedStrengthActivity()
+        database.activityDao().upsertTemplate(ActivityTemplateEntity(TEMPLATE, "Push day", "", 100L))
+        database.activityDao().insertBlock(strengthBlock().copy(id = TEMPLATE_BLOCK, sessionId = null, templateId = TEMPLATE))
+        remote.seed(
+            SyncEntityType.ACTIVITY_SESSION,
+            encodeSync(session().copy(updatedAtMs = 900L).toRemote(userId = USER, deletedAtMs = 900L)),
+        )
+        remote.seed(
+            SyncEntityType.ACTIVITY_TEMPLATE,
+            encodeSync(ActivityTemplateEntity(TEMPLATE, "Push day", "", 900L).toRemote(userId = USER, deletedAtMs = 900L)),
+        )
+
+        assertTrue(engine.run(USER).isSuccess)
+
+        assertNull(database.activityDao().getSessionRow(SESSION))
+        assertNull(database.activityDao().getBlock(BLOCK))
+        assertNull(database.activityDao().getStrengthSet(SET))
+        assertNull(database.activityDao().getTemplateRow(TEMPLATE))
+        assertNull(database.activityDao().getBlock(TEMPLATE_BLOCK))
+    }
+
+    @Test
+    fun aLiftDeletedAfterLeavingItsRoutineIsDeletedInTheSamePass() = runTest {
+        // The other phone only lets a custom lift go once no routine uses it, so its server
+        // history is: routine lift deleted, then the lift and its credits. Routine lifts are
+        // pulled last, so the lift delete arrives while the routine lift is still here.
+        seedCustomLiftInARoutine()
+        remote.seed(SyncEntityType.CUSTOM_EXERCISE, encodeSync(customLiftTombstone()))
+        remote.seed(SyncEntityType.EXERCISE_MUSCLE, encodeSync(creditTombstone()))
+        remote.seed(
+            SyncEntityType.ROUTINE_EXERCISE,
+            encodeSync(routineLift(CUSTOM).toRemote(userId = USER, updatedAtMs = 850L, deletedAtMs = 850L)),
+        )
+
+        assertTrue(engine.run(USER).isSuccess)
+
+        assertNull(database.exerciseDao().getById(CUSTOM))
+        assertEquals(emptyList<ExerciseMuscleEntity>(), database.catalogDao().creditsFor(CUSTOM))
+        assertEquals(emptyList<Any>(), database.routineDao().getById(ROUTINE)!!.items)
+    }
+
+    @Test
+    fun aDeletedCustomLiftThisPhonesHistoryUsesIsKeptWithItsCreditsAndThePullGoesOn() = runTest {
+        seedLift(customLift())
+        database.catalogDao().insertCredits(listOf(credit()))
+        // A finished strength workout from before activity history: these tables do not sync,
+        // so nothing will ever release the lift here.
+        database.openHelper.writableDatabase.apply {
+            execSQL(
+                "INSERT INTO workout_sessions " +
+                    "(id, routineId, routineName, date, notes, durationMinutes, startedAt, finishedAt) VALUES " +
+                    "('finished-1', NULL, NULL, 1000, '', 40, 1000, 2000)",
+            )
+            execSQL(
+                "INSERT INTO set_logs " +
+                    "(id, sessionId, exerciseId, setNumber, weightKg, reps, rpe, isWarmup, completedAt) VALUES " +
+                    "('sl-1', 'finished-1', '$CUSTOM', 1, 40.0, 8, NULL, 0, 1500)",
+            )
+        }
+        remote.seed(SyncEntityType.CUSTOM_EXERCISE, encodeSync(customLiftTombstone()))
+        remote.seed(SyncEntityType.EXERCISE_MUSCLE, encodeSync(creditTombstone()))
+        remote.seed(SyncEntityType.SCHEDULE_RULE, encodeSync(rule().toRemote(userId = USER)))
+
+        assertTrue(engine.run(USER).isSuccess)
+
+        // History still points at it, so this phone keeps it, still crediting its muscle...
+        assertNotNull(database.exerciseDao().getById(CUSTOM))
+        assertEquals(listOf(credit()), database.catalogDao().creditsFor(CUSTOM))
+        // ...and the tables after custom lifts are still pulled.
+        assertNotNull(database.plannerDao().getRule(RULE))
+    }
+
+    @Test
+    fun anUnusedCustomLiftIsStillDeletedWithItsCredits() = runTest {
+        seedLift(customLift())
+        database.catalogDao().insertCredits(listOf(credit()))
+        remote.seed(SyncEntityType.CUSTOM_EXERCISE, encodeSync(customLiftTombstone()))
+
+        assertTrue(engine.run(USER).isSuccess)
+
+        assertNull(database.exerciseDao().getById(CUSTOM))
+        assertEquals(emptyList<ExerciseMuscleEntity>(), database.catalogDao().creditsFor(CUSTOM))
+    }
+
+    @Test
+    fun aPulledSetWhoseBlockIsNotHereIsSkippedAndThePullGoesOn() = runTest {
+        remote.seed(
+            SyncEntityType.ACTIVITY_STRENGTH_SET,
+            encodeSync(strengthSet().toRemote(userId = USER, updatedAtMs = 400L)),
         )
         remote.seed(SyncEntityType.SCHEDULE_RULE, encodeSync(rule().toRemote(userId = USER)))
 
         assertTrue(engine.run(USER).isSuccess)
 
-        // The routine's lift still points at it, so this phone keeps it...
-        assertNotNull(database.exerciseDao().getById(CUSTOM))
-        // ...and the tables after custom lifts are still pulled.
+        assertNull(database.activityDao().getStrengthSet(SET))
         assertNotNull(database.plannerDao().getRule(RULE))
     }
+
+    private suspend fun seedCustomLiftInARoutine() {
+        seedLift(customLift())
+        database.catalogDao().insertCredits(listOf(credit()))
+        database.routineDao().upsertRoutine(RoutineEntity(ROUTINE, "Legs", "", 1L, 100L))
+        database.routineDao().upsertRoutineExercise(routineLift(CUSTOM))
+    }
+
+    private fun customLift() =
+        ExerciseEntity(id = CUSTOM, name = "Landmine", muscleGroup = "Shoulders", notes = "", isCustom = true)
+
+    private fun customLiftTombstone() =
+        customLift().copy(updatedAtMs = 900L).toCustomRemote(userId = USER, createdAtMs = 1L, deletedAtMs = 900L)
+
+    private fun credit() = ExerciseMuscleEntity(exerciseId = CUSTOM, muscleKey = "shoulders", weight = 1.0)
+
+    private fun creditTombstone() = credit().toRemote(userId = USER, updatedAtMs = 900L, deletedAtMs = 900L)
 
     private suspend fun seedStrengthActivity() {
         database.activityDao().insertSession(session())

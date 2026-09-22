@@ -218,14 +218,17 @@ interface ActivityDao {
     @Query("DELETE FROM activity_templates WHERE id = :id")
     suspend fun deleteTemplate(id: String)
 
-    /*
-     * Temper Account sync writes one pulled row at a time, so each write must leave the rows
-     * under it alone. [Upsert] updates an existing row in place. The REPLACE and delete+insert
-     * writes above delete the old row first, and ON DELETE CASCADE then removes its blocks,
-     * sets and intervals; restore and template edits want that, a pull never does. ABORT
-     * throws on a row that is already here, which stalled every table after it.
-     */
+    @Query("DELETE FROM activity_templates")
+    suspend fun deleteAllTemplates()
 
+    /**
+     * Temper Account sync's writes: this and the four below. A pull applies one row at a time,
+     * so each write must leave the rows under it alone, and [Upsert] updates an existing row in
+     * place. REPLACE ([insertBlock], [upsertTemplate]) deletes the old row first, and
+     * ON DELETE CASCADE then removes its blocks, sets and intervals: restore and template saves
+     * want that, a pull never does. ABORT ([insertStrengthSets]) throws on a row already here,
+     * and one throw stalled every table after it on every pass.
+     */
     @Upsert
     suspend fun upsertSessionInPlace(session: ActivitySessionEntity)
 
@@ -240,7 +243,4 @@ interface ActivityDao {
 
     @Upsert
     suspend fun upsertTemplateInPlace(template: ActivityTemplateEntity)
-
-    @Query("DELETE FROM activity_templates")
-    suspend fun deleteAllTemplates()
 }

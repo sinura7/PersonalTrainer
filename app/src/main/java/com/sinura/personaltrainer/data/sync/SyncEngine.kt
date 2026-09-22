@@ -115,13 +115,16 @@ class SyncEngine(
     }
 
     private suspend fun pullAll() {
+        // Custom lifts whose server delete this phone refused mid-pass; see applyCustomExercise.
+        // Local to the pass: nothing serialises two passes yet (S1).
+        val keptCustomLifts = mutableSetOf<String>()
         pullTable(SyncEntityType.MEASURABLE_GOAL, ::applyMeasurableGoal)
         pullTable(SyncEntityType.COACH_PREFS, ::applyCoachPrefs)
         pullTable(SyncEntityType.REMINDER_PREFS, ::applyReminderPrefs)
         pullTable(SyncEntityType.DISPLAY_PREFS, ::applyDisplayPrefs)
         pullTable(SyncEntityType.ACCOUNT_PROFILE, ::applyAccountProfile)
-        pullTable(SyncEntityType.CUSTOM_EXERCISE, ::applyCustomExercise)
-        pullTable(SyncEntityType.EXERCISE_MUSCLE, ::applyExerciseMuscle)
+        pullTable(SyncEntityType.CUSTOM_EXERCISE) { applyCustomExercise(it, keptCustomLifts) }
+        pullTable(SyncEntityType.EXERCISE_MUSCLE) { applyExerciseMuscle(it, keptCustomLifts) }
         pullTable(SyncEntityType.BODYWEIGHT_ENTRY, ::applyBodyweightEntry)
         pullTable(SyncEntityType.ACTIVITY_SESSION, ::applyActivitySession)
         pullTable(SyncEntityType.ACTIVITY_TEMPLATE, ::applyActivityTemplate)
@@ -132,6 +135,35 @@ class SyncEngine(
         pullTable(SyncEntityType.SCHEDULE_OCCURRENCE, ::applyScheduleOccurrence)
         pullTable(SyncEntityType.ROUTINE, ::applyRoutine)
         pullTable(SyncEntityType.ROUTINE_EXERCISE, ::applyRoutineExercise)
+        retryKeptCustomLiftDeletes(keptCustomLifts)
+    }
+
+    /**
+     * A lift deleted on another phone was first taken out of every routine there (the app
+     * refuses the delete otherwise), but routine lifts are pulled after custom lifts. So a
+     * delete refused mid-pass is usually refused only by a routine lift whose own delete was
+     * still to come, and it is tried once more here. Only a lift this phone's history still
+     * uses stays. Its muscle credits go with it when it goes (ON DELETE CASCADE).
+     */
+    private suspend fun retryKeptCustomLiftDeletes(kept: Set<String>) {
+        for (exerciseId in kept) {
+            if (!deleteCustomUnlessUsed(exerciseId)) {
+                AppLog.w(TAG, "Kept custom exercise $exerciseId: this phone's history still uses it")
+            }
+        }
+    }
+
+    /**
+     * Deletes a custom lift, or keeps it when a row on this phone still points at it: finished
+     * sets, session cards and routine lifts hold RESTRICT keys to `exercises`. Returns whether
+     * the lift is gone. Any other constraint failure still throws.
+     */
+    private suspend fun deleteCustomUnlessUsed(exerciseId: String): Boolean = try {
+        exerciseDao.deleteCustom(exerciseId)
+        true
+    } catch (refused: SQLiteConstraintException) {
+        if (refused.message?.contains(FOREIGN_KEY, ignoreCase = true) != true) throw refused
+        false
     }
 
     private suspend fun pullTable(
@@ -317,22 +349,16 @@ class SyncEngine(
         return remote.updatedAtMs
     }
 
-    private suspend fun applyCustomExercise(json: String): Long {
+    private suspend fun applyCustomExercise(json: String, keptCustomLifts: MutableSet<String>): Long {
         val remote = decodeSync<RemoteCustomExerciseRow>(json)
         val queued = hasPendingChild(SyncEntityType.CUSTOM_EXERCISE, remote.id)
         if (!SyncChildRow.remoteAppliesWhenNotLocallyQueued(queued)) {
             return remote.updatedAtMs
         }
         if (remote.deletedAtMs != null) {
-            try {
-                exerciseDao.deleteCustom(remote.id)
-            } catch (stillUsed: SQLiteConstraintException) {
-                // Finished sets, session cards or routine lifts on this phone still point at
-                // the lift, and their RESTRICT keys refuse the delete. Keeping it is right for
-                // this phone's history, and throwing here stopped every table after this one
-                // on every pass.
-                AppLog.w(TAG, "Kept custom exercise ${remote.id}: history still uses it", stillUsed)
-            }
+            // A refusal used to throw here, which stopped every table after this one on every
+            // pass. The lift stays for now and is tried again once routine lifts are pulled.
+            if (!deleteCustomUnlessUsed(remote.id)) keptCustomLifts += remote.id
             return remote.updatedAtMs
         }
         val local = exerciseDao.getById(remote.id)
@@ -352,7 +378,7 @@ class SyncEngine(
         return remote.updatedAtMs
     }
 
-    private suspend fun applyExerciseMuscle(json: String): Long {
+    private suspend fun applyExerciseMuscle(json: String, keptCustomLifts: Set<String>): Long {
         val remote = decodeSync<RemoteExerciseMuscleRow>(json)
         val entityId = syncExerciseMuscleEntityId(remote.exerciseId, remote.muscleKey)
         val queued = hasPendingChild(SyncEntityType.EXERCISE_MUSCLE, entityId)
@@ -360,7 +386,12 @@ class SyncEngine(
             return remote.updatedAtMs
         }
         if (remote.deletedAtMs != null) {
-            catalogDao.deleteCredit(remote.exerciseId, remote.muscleKey)
+            // A lift delete sends its credit deletes with it. A lift this phone kept keeps its
+            // credits, or it would stay in history crediting no muscle; if the end-of-pass
+            // retry deletes it, they cascade away with it.
+            if (remote.exerciseId !in keptCustomLifts) {
+                catalogDao.deleteCredit(remote.exerciseId, remote.muscleKey)
+            }
             return remote.updatedAtMs
         }
         val parent = exerciseDao.getById(remote.exerciseId)
@@ -484,5 +515,8 @@ class SyncEngine(
     private companion object {
         const val TAG = "PT/Sync"
         const val BATCH_SIZE = 32
+
+        // In SQLite's message for a foreign-key refusal on the framework driver and Robolectric.
+        const val FOREIGN_KEY = "FOREIGN KEY"
     }
 }
