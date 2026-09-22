@@ -4,6 +4,7 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.data.auth.toAccountAuthError
 import com.sinura.personaltrainer.domain.AccountAuthCopy
 import com.sinura.personaltrainer.domain.AccountSession
+import com.sinura.personaltrainer.domain.AccountSyncGate
 import com.sinura.personaltrainer.domain.SyncStatus
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +27,8 @@ data class AccountUiState(
     val busy: AccountBusyKind? = null,
     val error: String? = null,
     val sync: SyncStatus = SyncStatus(false, 0, null, null),
+    /** Whether Settings → Account offers deletion in the app ([AccountSyncGate]). */
+    val deleteAvailable: Boolean = AccountSyncGate.IN_APP_DELETE_AVAILABLE,
 ) {
     val signedIn: Boolean get() = session != null
 }
@@ -36,6 +39,7 @@ data class AccountUiState(
 class AccountCoordinator(
     private val container: AppDependencies,
     private val scope: CoroutineScope,
+    private val inAppDeleteAvailable: Boolean = AccountSyncGate.IN_APP_DELETE_AVAILABLE,
 ) {
     private val busy = MutableStateFlow<AccountBusyKind?>(null)
     private val error = MutableStateFlow<String?>(null)
@@ -52,11 +56,15 @@ class AccountCoordinator(
             busy = busyKind,
             error = message,
             sync = sync,
+            deleteAvailable = inAppDeleteAvailable,
         )
     }.stateIn(
         scope = scope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = AccountUiState(configured = container.accountAuth.configured),
+        initialValue = AccountUiState(
+            configured = container.accountAuth.configured,
+            deleteAvailable = inAppDeleteAvailable,
+        ),
     )
 
     fun clearError() {
@@ -117,8 +125,12 @@ class AccountCoordinator(
         }
     }
 
+    /**
+     * A no-op while in-app deletion is off. The screen hides the button then, and this guard
+     * keeps a stale dialog or a future caller from reaching a delete that cannot finish.
+     */
     fun deleteAccount() {
-        if (busy.value != null) return
+        if (!inAppDeleteAvailable || busy.value != null) return
         busy.value = AccountBusyKind.DELETE_ACCOUNT
         error.value = null
         scope.launch {

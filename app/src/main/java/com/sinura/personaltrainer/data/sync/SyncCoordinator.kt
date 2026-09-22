@@ -13,6 +13,11 @@ class SyncCoordinator(
     private val engine: SyncEngine,
     private val scheduler: SyncScheduler,
     private val authoring: SyncAuthoring? = null,
+    /**
+     * [com.sinura.personaltrainer.domain.AccountSyncGate.SYNC_PAUSED], read once by the
+     * container. While true no pass reaches [engine]; the upload queue keeps filling.
+     */
+    private val paused: Boolean = false,
 ) : SyncStatusPort {
     override val status: Flow<SyncStatus> = combine(
         auth.session,
@@ -24,10 +29,12 @@ class SyncCoordinator(
             pendingCount = pending,
             lastSuccessAtMs = metadata?.lastSuccessAtMs,
             lastError = metadata?.lastError,
+            paused = paused,
         )
     }
 
     override fun requestSync() {
+        if (paused) return
         scheduler.enqueueOneShot()
     }
 
@@ -42,7 +49,15 @@ class SyncCoordinator(
         )
     }
 
-    suspend fun runPass(userId: String): Result<Unit> = engine.run(userId)
+    /**
+     * One push-then-pull pass, or nothing while [paused]. A pass WorkManager queued before the
+     * pause shipped still runs this, so the guard lives here and not only in the scheduler;
+     * it reports success so WorkManager drops the job instead of retrying it.
+     */
+    suspend fun runPass(userId: String): Result<Unit> {
+        if (paused) return Result.success(Unit)
+        return engine.run(userId)
+    }
 
     override suspend fun bootstrapAfterSignIn() {
         authoring?.bootstrapLocalSnapshot()

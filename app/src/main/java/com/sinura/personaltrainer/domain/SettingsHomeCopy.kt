@@ -26,11 +26,20 @@ object SettingsHomeCopy {
     const val OFF = "Off"
     const val NO_DAYS = "No days yet"
     const val ACCOUNT_SUMMARY = "Optional cloud sign-in"
+    const val ACCOUNT_SIGNED_IN = "Signed in"
+    const val ACCOUNT_SIGNED_IN_PAUSED = "Signed in · sync paused"
     const val BACKUP_SUMMARY = "Export, restore, Drive"
     const val DIAGNOSTICS_SUMMARY = "Share a bundle from this phone"
     const val ABOUT_SUMMARY = "Version and how to update"
     const val LOG_SUMMARY = "Redact log messages"
     const val FOUNDATION_SUMMARY = "Database generation"
+
+    /** The Account row names the state a glance needs: signed in or not, and a pause. */
+    fun accountSummary(signedIn: Boolean, syncPaused: Boolean): String = when {
+        !signedIn -> ACCOUNT_SUMMARY
+        syncPaused -> ACCOUNT_SIGNED_IN_PAUSED
+        else -> ACCOUNT_SIGNED_IN
+    }
 
     fun displaySummary(unit: WeightUnit, clock: ClockFormat): String =
         "${unit.suffix} · ${clock.displayName}"

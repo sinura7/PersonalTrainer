@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.sinura.personaltrainer.domain.AccountAuthCopy
 import com.sinura.personaltrainer.domain.LegalCopy
+import com.sinura.personaltrainer.domain.SyncCopy
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -93,6 +94,7 @@ internal fun AccountSection(
                 email = state.session!!.email,
                 signOutBusy = state.busy == AccountBusyKind.SIGN_OUT,
                 deleteBusy = state.busy == AccountBusyKind.DELETE_ACCOUNT,
+                deleteAvailable = state.deleteAvailable,
                 accountBusy = state.busy != null,
                 onSignOut = onSignOut,
                 onDeleteAccount = onDeleteAccount,
@@ -131,7 +133,9 @@ internal fun AccountSection(
             )
         }
 
-        if (state.signedIn) {
+        if (state.sync.paused) {
+            SyncPausedNotice(signedIn = state.signedIn)
+        } else if (state.signedIn) {
             Text(
                 AccountAuthCopy.SIGNED_IN_CAPTION,
                 style = InstrumentType.caption,
@@ -154,7 +158,7 @@ internal fun AccountSection(
             modifier = Modifier.testTag(SettingsTags.ACCOUNT_PRIVACY),
         )
 
-        if (state.signedIn && state.sync.active) {
+        if (state.signedIn && state.sync.active && !state.sync.paused) {
             val syncLine = AccountAuthCopy.syncStatusLine(
                 pending = state.sync.pendingCount,
                 lastSuccessAtMs = state.sync.lastSuccessAtMs,
@@ -171,6 +175,40 @@ internal fun AccountSection(
                 modifier = Modifier.testTag(SettingsTags.ACCOUNT_SYNC),
             )
         }
+    }
+}
+
+/**
+ * Said once, in every configured state: a signed-out owner deciding whether to sign in needs
+ * it as much as a signed-in one wondering why nothing uploads. Only a signed-in owner has a
+ * queue to be told about.
+ */
+@Composable
+private fun SyncPausedNotice(signedIn: Boolean) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(SettingsTags.ACCOUNT_SYNC_PAUSED),
+        verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
+    ) {
+        GymSectionHeader(title = SyncCopy.PAUSED_TITLE, compact = true)
+        Text(
+            SyncCopy.PAUSED_BODY,
+            style = InstrumentType.body,
+            color = TextSecondary,
+        )
+        if (signedIn) {
+            Text(
+                SyncCopy.PAUSED_QUEUE,
+                style = InstrumentType.body,
+                color = TextSecondary,
+            )
+        }
+        Text(
+            SyncCopy.SCOPE,
+            style = InstrumentType.caption,
+            color = TextTertiary,
+        )
     }
 }
 
@@ -246,6 +284,7 @@ private fun SignedInAccountBody(
     email: String,
     signOutBusy: Boolean,
     deleteBusy: Boolean,
+    deleteAvailable: Boolean,
     accountBusy: Boolean,
     onSignOut: () -> Unit,
     onDeleteAccount: () -> Unit,
@@ -262,12 +301,21 @@ private fun SignedInAccountBody(
         enabled = !accountBusy,
         modifier = Modifier.testTag(SettingsTags.ACCOUNT_SIGN_OUT),
     )
-    SecondaryGymButton(
-        text = if (deleteBusy) AccountAuthCopy.BUSY_DELETE_ACCOUNT else AccountAuthCopy.DELETE_ACCOUNT,
-        onClick = onDeleteAccount,
-        enabled = !accountBusy,
-        modifier = Modifier.testTag(SettingsTags.ACCOUNT_DELETE),
-    )
+    if (deleteAvailable) {
+        SecondaryGymButton(
+            text = if (deleteBusy) AccountAuthCopy.BUSY_DELETE_ACCOUNT else AccountAuthCopy.DELETE_ACCOUNT,
+            onClick = onDeleteAccount,
+            enabled = !accountBusy,
+            modifier = Modifier.testTag(SettingsTags.ACCOUNT_DELETE),
+        )
+    } else {
+        Text(
+            AccountAuthCopy.DELETE_UNAVAILABLE,
+            style = InstrumentType.caption,
+            color = TextTertiary,
+            modifier = Modifier.testTag(SettingsTags.ACCOUNT_DELETE_UNAVAILABLE),
+        )
+    }
 }
 
 @Composable

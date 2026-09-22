@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -129,6 +130,35 @@ class AccountCoordinatorTest {
     }
 
     @Test
+    fun deleteAccountIsANoOpWhileInAppDeletionIsOff() = runTest(dispatcher) {
+        val auth = FakeAccountAuth(
+            initialSession = AccountSession(email = "owner@example.com", userId = "uid-1"),
+        )
+        val sync = RecordingSyncStatusPort()
+        val deps = FakeAppDependencies(
+            context = org.robolectric.RuntimeEnvironment.getApplication(),
+            accountAuth = auth,
+            syncStatus = sync,
+            scheduler = dispatcher,
+        )
+        val scope = CoroutineScope(dispatcher + SupervisorJob())
+        // The shipped default: deletion cannot finish, so the app must not start it.
+        val coordinator = AccountCoordinator(deps, scope)
+        val subscriber = scope.subscribe(coordinator)
+
+        assertFalse(coordinator.uiState.value.deleteAvailable)
+        coordinator.deleteAccount()
+        assertEquals(0, auth.deleteAccountCalls)
+        assertEquals(0, sync.abandonOutboxCalls)
+        assertTrue(coordinator.uiState.value.signedIn)
+        assertNull(coordinator.uiState.value.busy)
+        assertNull(coordinator.uiState.value.error)
+        subscriber.cancel()
+        scope.cancel()
+        deps.close()
+    }
+
+    @Test
     fun deleteAccountClearsSessionAndOutbox() = runTest(dispatcher) {
         val auth = FakeAccountAuth(initialSession = AccountSession("owner@example.com", userId = "uid-1"))
         val sync = RecordingSyncStatusPort()
@@ -139,7 +169,7 @@ class AccountCoordinatorTest {
             scheduler = dispatcher,
         )
         val scope = CoroutineScope(dispatcher + SupervisorJob())
-        val coordinator = AccountCoordinator(deps, scope)
+        val coordinator = AccountCoordinator(container = deps, scope = scope, inAppDeleteAvailable = true)
         val subscriber = scope.subscribe(coordinator)
 
         coordinator.deleteAccount()
@@ -161,7 +191,7 @@ class AccountCoordinatorTest {
             scheduler = dispatcher,
         )
         val scope = CoroutineScope(dispatcher + SupervisorJob())
-        val coordinator = AccountCoordinator(deps, scope)
+        val coordinator = AccountCoordinator(container = deps, scope = scope, inAppDeleteAvailable = true)
         val subscriber = scope.subscribe(coordinator)
 
         coordinator.deleteAccount()

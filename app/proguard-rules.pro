@@ -30,6 +30,11 @@
 # Gson / backup codec field names used by portable files.
 -keep class com.sinura.personaltrainer.data.backup.** { *; }
 
+# Temper Account sync rows go through Gson by reflection, and most of their fields (id,
+# status, title, notes, ...) carry no @SerializedName, so a renamed field is a renamed JSON
+# key and the server rejects the row. Same reason as data.backup above.
+-keep class com.sinura.personaltrainer.data.sync.** { *; }
+
 # Diagnostics remain user-triggered; keep the redaction types readable.
 -keep class com.sinura.personaltrainer.diagnostics.** { *; }
 # DiagnosticRedaction.appFrames keeps frames whose className starts with

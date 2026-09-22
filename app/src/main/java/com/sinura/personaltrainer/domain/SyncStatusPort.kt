@@ -8,6 +8,8 @@ data class SyncStatus(
     val pendingCount: Int,
     val lastSuccessAtMs: Long?,
     val lastError: String?,
+    /** True while [AccountSyncGate.SYNC_PAUSED] holds: edits queue, but no pass runs. */
+    val paused: Boolean = false,
 )
 
 /**

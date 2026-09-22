@@ -42,6 +42,7 @@ object SavePostureTags {
     const val ACCOUNT = "save-posture-account"
     const val LOCAL = "save-posture-local"
     const val DRIVE = "save-posture-drive"
+    const val ACCOUNT_PAUSED = "save-posture-account-paused"
 }
 
 @Composable
@@ -49,6 +50,7 @@ fun SavePostureChooser(
     onChooseAccount: () -> Unit,
     onChooseLocal: () -> Unit,
     onSetUpDrive: () -> Unit,
+    syncPaused: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -115,6 +117,14 @@ fun SavePostureChooser(
                     style = InstrumentType.caption,
                     color = TextTertiary,
                 )
+                if (syncPaused) {
+                    Text(
+                        SavePostureCopy.CHOOSE_ACCOUNT_PAUSED,
+                        style = InstrumentType.caption,
+                        color = TextSecondary,
+                        modifier = Modifier.testTag(SavePostureTags.ACCOUNT_PAUSED),
+                    )
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap)) {

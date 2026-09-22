@@ -910,7 +910,7 @@ class ActiveWorkoutViewModelTest {
         // a tap during that tail is dropped by design (see awaitEntryUnlocked).
         vm.awaitEntryUnlocked()
         vm.editSet(firstWarmup.id)
-        vm.awaitState { it.editingSetId == firstWarmup.id }
+        vm.awaitEditOpen(firstWarmup.id)
         vm.setWeight(45.0)
         vm.logSetAndSettle()
         withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWarmup.id && it.weightKg == 45.0 } }
@@ -919,7 +919,7 @@ class ActiveWorkoutViewModelTest {
         assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Warm-up 1 logged"))
         vm.awaitEntryUnlocked()
         vm.editSet(firstWorking.id)
-        vm.awaitState { it.editingSetId == firstWorking.id }
+        vm.awaitEditOpen(firstWorking.id)
         vm.setWeight(75.0)
         vm.logSetAndSettle()
         withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWorking.id && it.weightKg == 75.0 } }
@@ -928,7 +928,7 @@ class ActiveWorkoutViewModelTest {
         assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Working set 1 of 3 logged"))
         vm.awaitEntryUnlocked()
         vm.editSet(firstWorking.id)
-        vm.awaitState { it.editingSetId == firstWorking.id }
+        vm.awaitEditOpen(firstWorking.id)
         vm.setWarmup(true)
         vm.logSetAndSettle()
         withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWorking.id && it.isWarmup } }
@@ -964,21 +964,29 @@ class ActiveWorkoutViewModelTest {
 
         vm.awaitEntryUnlocked()
         vm.editSet(setId)
-        vm.awaitState { it.editingSetId == setId }
+        vm.awaitEditOpen(setId)
         vm.setWeight(110.0)
         vm.logSetAndSettle()
+        // logSetAndSettle's idle check is already true in the snapshot from before the tap,
+        // and uiState can lag the tap while its combine is busy on a Room thread, so on a
+        // loaded machine it returned before the save began. It lost CI on 22 September, 110
+        // read before the 120 write landed. Wait on the stored row, then on the edit closing —
+        // the pre-tap snapshot still had the edit open, so neither can pass on stale state.
+        awaitSession(fixture.session.id) { it.sets.singleOrNull()?.weightKg == 110.0 }
+        vm.awaitState { it.editingSetId == null && !it.entryLocked }
         // The row moved; the screen's copy did not, and cannot until the Flow is released.
         assertEquals(110.0, checkNotNull(dao.getSet(setId)).weightKg, 0.0001)
         assertEquals(100.0, checkNotNull(vm.uiState.value.session?.sets?.single()).weightKg, 0.0001)
 
-        vm.awaitEntryUnlocked()
         vm.editSet(setId)
-        vm.awaitState { it.editingSetId == setId }
+        vm.awaitEditOpen(setId)
         vm.setWeight(120.0)
         vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.singleOrNull()?.weightKg == 120.0 }
+        val settled = vm.awaitState { it.editingSetId == null && !it.entryLocked }
 
-        assertEquals(WorkoutSavePhase.IDLE, vm.uiState.value.save.phase)
-        assertNull(vm.uiState.value.error)
+        assertEquals(WorkoutSavePhase.IDLE, settled.save.phase)
+        assertNull(settled.error)
         assertEquals(120.0, checkNotNull(dao.getSet(setId)).weightKg, 0.0001)
         assertEquals(1, checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size)
     }
@@ -1011,7 +1019,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.editSet(saved.setId)
 
-        val state = vm.awaitState { it.editingSetId == saved.setId }
+        val state = vm.awaitEditOpen(saved.setId)
         assertEquals(92.5, state.draft.weightKg, 0.0001)
         assertEquals(8, state.draft.reps)
     }
@@ -1028,7 +1036,7 @@ class ActiveWorkoutViewModelTest {
         vm.skipRest()
         withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && !it.previewOnly } }
         vm.editSet(persisted.sets.single().id)
-        vm.awaitState { it.editingSetId != null }
+        vm.awaitEditOpen(persisted.sets.single().id)
         withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it == null } }
         vm.cancelEdit()
         vm.awaitState { it.editingSetId == null }
@@ -1463,7 +1471,7 @@ class ActiveWorkoutViewModelTest {
         vm.editSet(logged.id)
         // Opening an edit reads the stored row; typing before it lands is typing into a
         // draft the open is about to replace with that row's own values.
-        vm.awaitState { it.editingSetId == logged.id }
+        vm.awaitEditOpen(logged.id)
         vm.setWeight(105.0)
         vm.adjustReps(1)
         vm.logSetAndSettle()
@@ -1940,7 +1948,7 @@ class ActiveWorkoutViewModelTest {
         first.awaitState { it.session?.sets?.size == 1 }
         val setId = persisted.sets.single().id
         first.editSet(setId)
-        first.awaitState { it.editingSetId == setId }
+        first.awaitEditOpen(setId)
         assertEquals(setId, SavedStateWorkoutDraft(handle).editingSetId())
         first.clearAndJoinForTest()
         viewModels.remove(first)
@@ -2408,6 +2416,18 @@ class ActiveWorkoutViewModelTest {
      */
     private suspend fun ActiveWorkoutViewModel.awaitEntryUnlocked(): ActiveWorkoutUiState =
         awaitState { !it.entryLocked }
+
+    /**
+     * An edit is open when its mutation has released, not when [ActiveWorkoutUiState.editingSetId]
+     * first appears. `editSet` publishes the id before it writes the draft and the saved-edit
+     * record (so prefill cannot run over the values), and holds the entry lock until both land;
+     * `setWeight` typed inside that window is refused, and the "correction" saves the old value.
+     * Under a loaded machine that window is wide enough to hit: trunk's full gate failed
+     * `aSecondCorrectionOfTheSameSetSavesWhileTheScreensCopyIsBehind` on 22 September with
+     * 110 kg saved where 120 was typed, and it passed three times alone.
+     */
+    private suspend fun ActiveWorkoutViewModel.awaitEditOpen(setId: String): ActiveWorkoutUiState =
+        awaitState { it.editingSetId == setId && !it.entryLocked }
 
     /**
      * FOUND is not settled. Prefill runs after the session resolves and replaces the whole

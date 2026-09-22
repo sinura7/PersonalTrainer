@@ -14,11 +14,13 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 @Composable
 internal fun SavePostureSection(
     posture: SavePosture,
+    syncPaused: Boolean,
     onUseAccount: () -> Unit,
     onUseLocal: () -> Unit,
     onOpenAccount: () -> Unit,
@@ -44,6 +46,14 @@ internal fun SavePostureSection(
             style = InstrumentType.caption,
             color = TextTertiary,
         )
+        if (posture == SavePosture.ACCOUNT && syncPaused) {
+            Text(
+                SavePostureCopy.SETTINGS_ACCOUNT_PAUSED,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                modifier = Modifier.testTag(SettingsTags.SAVE_POSTURE_SYNC_PAUSED),
+            )
+        }
 
         when (posture) {
             SavePosture.LOCAL -> {

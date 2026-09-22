@@ -13,7 +13,10 @@ object SavePostureCopy {
 
     const val CHOOSE_ACCOUNT = "Temper Account"
     const val CHOOSE_ACCOUNT_HINT =
-        "Sign in or create an account to sync finished workouts and your plan."
+        "Sign in or create an account to keep your weekly schedule, routines, and cardio " +
+            "in the cloud."
+    const val CHOOSE_ACCOUNT_PAUSED =
+        "Sync is paused for now, so an account keeps nothing in the cloud yet."
     const val CHOOSE_LOCAL = "Continue on this phone"
     const val CHOOSE_LOCAL_HINT =
         "Train without an account. Set up Google Drive backup anytime in Settings."
@@ -25,7 +28,10 @@ object SavePostureCopy {
     const val SETTINGS_OPEN_ACCOUNT = "Open Account settings"
     const val SETTINGS_OPEN_BACKUP = "Open Backup & Drive"
     const val SETTINGS_ACCOUNT_CAPTION =
-        "Finished workouts and plan structure sync when you are signed in and online."
+        "Your weekly schedule, routines, and cardio sync when you are signed in and online. " +
+            "Workouts logged live stay on this phone for now."
+    const val SETTINGS_ACCOUNT_PAUSED =
+        "Sync is paused for now; Account says why. Training on this phone is unaffected."
     const val SETTINGS_LOCAL_CAPTION =
         "Your workouts stay on this phone. Google Drive whole-file backup is optional " +
             "and separate from Temper Account."

@@ -18,11 +18,14 @@ import com.sinura.personaltrainer.update.debugUpdateDataStore
 import com.sinura.personaltrainer.data.auth.AccountAuthFactory
 import com.sinura.personaltrainer.data.auth.UnconfiguredAccountAuth
 import com.sinura.personaltrainer.data.sync.NoOpSyncRemote
+import com.sinura.personaltrainer.data.sync.PausableSyncScheduler
 import com.sinura.personaltrainer.data.sync.SyncAuthoring
 import com.sinura.personaltrainer.data.sync.SyncCoordinator
 import com.sinura.personaltrainer.data.sync.SyncEngine
 import com.sinura.personaltrainer.data.sync.SyncOutboxWriter
+import com.sinura.personaltrainer.data.sync.SyncScheduler
 import com.sinura.personaltrainer.data.sync.WorkManagerSyncScheduler
+import com.sinura.personaltrainer.domain.AccountSyncGate
 import com.sinura.personaltrainer.domain.DisabledSyncStatusPort
 import com.sinura.personaltrainer.data.backup.DriveAuthClient
 import com.sinura.personaltrainer.data.backup.DriveRestClient
@@ -101,7 +104,10 @@ class AppContainer(context: Context) : AppDependencies {
 
     private val supabaseRuntime = AccountAuthFactory.createRuntime()
     private val syncOutboxWriter = SyncOutboxWriter(database.syncDao())
-    private val syncScheduler = WorkManagerSyncScheduler(context)
+    private val syncScheduler: SyncScheduler = PausableSyncScheduler(
+        delegate = WorkManagerSyncScheduler(context),
+        paused = AccountSyncGate.SYNC_PAUSED,
+    )
     private val syncAuthoringBridge = SyncAuthoringBridge()
 
     override val preferencesRepository: PreferencesRepository = PreferencesRepository(
@@ -147,6 +153,7 @@ class AppContainer(context: Context) : AppDependencies {
         ),
         scheduler = syncScheduler,
         authoring = syncAuthoring,
+        paused = AccountSyncGate.SYNC_PAUSED,
     )
     override val syncStatus = if (supabaseRuntime != null) syncCoordinator else DisabledSyncStatusPort
 

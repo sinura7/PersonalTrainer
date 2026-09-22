@@ -30,6 +30,7 @@ internal fun SettingsHome(
     restSummary: String,
     bodyweightSummary: String,
     savePostureSummary: String,
+    accountSummary: String,
     onOpen: (SettingsPage) -> Unit,
     modifier: Modifier = Modifier,
     updateSummary: String? = null,
@@ -115,7 +116,7 @@ internal fun SettingsHome(
                 IndexHairline()
                 SettingsIndexRow(
                     title = SettingsHomeCopy.ACCOUNT,
-                    subtitle = SettingsHomeCopy.ACCOUNT_SUMMARY,
+                    subtitle = accountSummary,
                     icon = TemperIcons.Bodyweight,
                     tag = SettingsTags.ROW_ACCOUNT,
                     onClick = { onOpen(SettingsPage.ACCOUNT) },
