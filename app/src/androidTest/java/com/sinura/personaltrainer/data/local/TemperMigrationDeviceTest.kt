@@ -33,13 +33,14 @@ class TemperMigrationDeviceTest {
         }
         helper.runMigrationsAndValidate(
             DB,
-            6,
+            7,
             true,
             MIGRATION_TEMPER_1_2,
             MIGRATION_TEMPER_2_3,
             MIGRATION_TEMPER_3_4,
             MIGRATION_TEMPER_4_5,
             MIGRATION_TEMPER_5_6,
+            MIGRATION_TEMPER_6_7,
         ).use { db ->
             assertEquals(1, countOf(db, "workout_sessions"))
             assertEquals(0, countOf(db, "bodyweight_entries"))

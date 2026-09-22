@@ -3,7 +3,7 @@
 `TrainerDatabase` (legacy, `personal_trainer.db`) and `TemperDatabase`
 (foundation generation, `temper.db`) each have their own folder.
 `TrainerDatabase` v1/v2 stay the historical migration substrate.
-`TemperDatabase` started at version 1 and is now at version **5**. It is a
+`TemperDatabase` started at version 1 and is now at version **7**. It is a
 new generation, not a `TrainerDatabase` v2→v3 patch.
 
 | Version | What it added | Migration |
@@ -14,6 +14,7 @@ new generation, not a `TrainerDatabase` v2→v3 patch.
 | 4 | Measurable goals; bodyweight zone and offset columns | `MIGRATION_TEMPER_3_4` |
 | 5 | Hold prescriptions (`targetSeconds` / `targetSecondsMax`) and logged hold duration | `MIGRATION_TEMPER_4_5` |
 | 6 | Sync outbox, pull cursors, sync metadata (Temper Account) | `MIGRATION_TEMPER_5_6` |
+| 7 | `exercises.updatedAtMs` for custom-lift sync (Temper Account) | `MIGRATION_TEMPER_6_7` |
 
 Every file in this directory is a JSON snapshot of one database version,
 emitted by Room's annotation processor into `room.schemaLocation`
