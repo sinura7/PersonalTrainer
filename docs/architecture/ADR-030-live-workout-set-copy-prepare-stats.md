@@ -13,7 +13,11 @@ On the gym floor, exercise identity showed two competing set lines (for example 
 
 2. **Quieter prepare-phase stats** — Until at least one **working** set of the current lift is logged today, [ExerciseFloorStatsPresentation] shows only the Last / Last time cell on the floor. Best and Volume return after the first working set. Details and history surfaces are unchanged.
 
-3. **Out of scope** — Logging diamond reorder (Packet A), rest dock changes, RPE removal, debugLiveCode bumps, Home packets.
+3. **Compact Next-set coach on prepare or match** — While no **working** set of the current lift is logged this session, or when the draft already matches the coach suggestion, [NextSetRecommendation] renders as a one-line strip: suggested numbers, **Why?**, and **Apply** (or **Applied**). The tall card (kicker, delta, inline evidence chip) returns after the first working set unless the entry still matches the suggestion. Apply, Why, and evidence (via Why and the evidence dialog when the full card is shown) stay wired to [CoachEngine] (ADR-029).
+
+4. **Quieter Working | Warm-up** — The set-type toggle remains a two-way control under identity; it uses dense [InstrumentChip] styling (caption labels, compact padding) so it does not visually outrank the weight/reps diamond.
+
+5. **Out of scope** — Logging diamond reorder (Packet A), rest dock changes, RPE removal, debugLiveCode bumps, Home packets.
 
 ## Consequences
 

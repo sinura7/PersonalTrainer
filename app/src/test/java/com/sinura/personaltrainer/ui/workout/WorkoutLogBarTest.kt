@@ -87,6 +87,8 @@ class WorkoutLogBarTest {
         assertTrue(header.contains("WorkoutTestTags.WARMUP_CHIP"))
         assertTrue(header.contains("WorkoutTestTags.SET_TYPE"))
         assertTrue(header.contains("selectableGroup()"))
+        assertTrue(header.contains("compact = dense"))
+        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.setTypeToggleUsesCompactChips())
         assertTrue(
             "the set-type toggle sits under the identity",
             header.indexOf("WorkoutTestTags.liftCard(") in 0 until header.indexOf("SetTypeToggle("),

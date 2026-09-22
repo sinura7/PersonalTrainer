@@ -364,6 +364,49 @@ class WorkoutFloorComponentsTest {
     }
 
     @Test
+    fun compactNextSetStripKeepsWhyAndApplyWithoutTheKicker() {
+        val rec = checkNotNull(
+            SetMicroRecCalculator.suggest(
+                setMicroRecInputs(
+                    editing = false,
+                    loadType = LoadType.EXTERNAL,
+                    unit = unit,
+                    targetSets = 3,
+                    targetReps = 10,
+                    targetWeightKg = kg70,
+                    working = emptyList(),
+                    lastAnySetWasWarmup = false,
+                    hint = null,
+                    lighterWeek = false,
+                    draftWeightKg = kg70,
+                    draftReps = 10,
+                    draftRpe = null,
+                    nowMs = 0L,
+                    todayEpochDay = 0L,
+                    rpeIntent = true,
+                    equipment = EquipmentType.MACHINE,
+                ),
+            ),
+        )
+        assertTrue(SetMicroRecCopy.visibleOnEntry(rec))
+        show {
+            NextSetRecommendation(
+                rec = rec,
+                loadClass = LoadClass.LOADED,
+                unit = unit,
+                applied = false,
+                enabled = true,
+                onApply = {},
+                compact = true,
+            )
+        }
+        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertIsDisplayed()
+        compose.onNodeWithText("NEXT SET").assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed()
+        compose.onNodeWithText(SetMicroRecCopy.numbers(rec, LoadClass.LOADED, unit)).assertIsDisplayed()
+    }
+
+    @Test
     fun appliedRecommendationStandsDown() {
         val rec = checkNotNull(
             SetMicroRecCalculator.suggest(

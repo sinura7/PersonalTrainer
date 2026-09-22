@@ -65,6 +65,7 @@ internal fun NextSetRecommendation(
     enabled: Boolean,
     onApply: () -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
     if (!SetMicroRecCopy.visibleOnEntry(rec)) return
     val suggestion = remember(rec) { CoachEngine.fromMicroRec(rec) }
@@ -84,6 +85,46 @@ internal fun NextSetRecommendation(
             .testTag(WorkoutTestTags.NEXT_SET),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
+        if (compact) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(WorkoutTestTags.NEXT_SET_COMPACT),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                Text(
+                    numbers,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(WorkoutTestTags.MICRO_REC)
+                        .semantics { contentDescription = "Next set, $numbers" },
+                    style = InstrumentType.bodyStrong,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                TextButton(
+                    onClick = { showWhy = true },
+                    modifier = Modifier
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(WorkoutTestTags.MICRO_REC_WHY),
+                ) {
+                    Text("Why?", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+                if (canUse) {
+                    QuietButton(
+                        text = if (applied) "Applied" else "Apply",
+                        onClick = onApply,
+                        modifier = Modifier.testTag(WorkoutTestTags.MICRO_REC_APPLY),
+                        enabled = enabled && !applied,
+                        leading = if (applied) TemperIcons.Check else null,
+                        accent = applied,
+                        spoken = if (applied) "Suggestion applied, $numbers" else "Apply suggestion, $numbers",
+                    )
+                }
+            }
+        } else {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -170,6 +211,7 @@ internal fun NextSetRecommendation(
         }
         SetMicroRecCopy.caption(rec)?.let { caption ->
             Text(caption, style = InstrumentType.caption, color = TextTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
         }
     }
     if (showEvidence) {

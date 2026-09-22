@@ -101,4 +101,16 @@ class FloorCompactChromeTest {
     fun cheapDestructivesRunNowAndOfferUndo() {
         assertTrue(FloorCompactChrome.cheapDestructivesAreUndoable())
     }
+
+    @Test
+    fun coachStripIsCompactOnPrepareOrWhenDraftMatchesSuggestion() {
+        assertTrue(FloorCompactChrome.coachUsesCompactStrip(preparePhase = true, entryMatchesSuggestion = false))
+        assertTrue(FloorCompactChrome.coachUsesCompactStrip(preparePhase = false, entryMatchesSuggestion = true))
+        assertFalse(FloorCompactChrome.coachUsesCompactStrip(preparePhase = false, entryMatchesSuggestion = false))
+    }
+
+    @Test
+    fun setTypeToggleUsesDenseChips() {
+        assertTrue(FloorCompactChrome.setTypeToggleUsesCompactChips())
+    }
 }

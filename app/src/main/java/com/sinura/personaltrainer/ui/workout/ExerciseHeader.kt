@@ -24,6 +24,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
+import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
@@ -131,7 +132,7 @@ internal fun ExerciseHeader(
             constraints = Constraints(maxWidth = wordsWidth),
         ).lineCount
         val stacked = density.fontScale >= 1.6f || titleLines > 2
-        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
             // The still and the words share one row; Details rides the words' last line, so a
             // long name has the whole column. Large text or a long name shrinks the still.
             Row(
@@ -170,12 +171,13 @@ internal fun SetTypeToggle(
     onWarmup: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dense = FloorCompactChrome.setTypeToggleUsesCompactChips()
     Row(
         modifier = modifier
             .fillMaxWidth()
             .selectableGroup()
             .testTag(WorkoutTestTags.SET_TYPE),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        horizontalArrangement = Arrangement.spacedBy(if (dense) Metrics.space1 else Metrics.space2),
     ) {
         InstrumentChip(
             label = "Working",
@@ -185,6 +187,8 @@ internal fun SetTypeToggle(
             role = Role.RadioButton,
             spoken = if (warmup) "Working set, not selected" else "Working set, selected",
             enabled = enabled,
+            compact = dense,
+            labelStyle = if (dense) InstrumentType.caption else InstrumentType.bodyStrong,
         )
         InstrumentChip(
             label = "Warm-up",
@@ -194,6 +198,8 @@ internal fun SetTypeToggle(
             role = Role.RadioButton,
             spoken = if (warmup) "Warm-up set, selected" else "Warm-up set, not selected",
             enabled = enabled,
+            compact = dense,
+            labelStyle = if (dense) InstrumentType.caption else InstrumentType.bodyStrong,
         )
     }
 }

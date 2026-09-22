@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -76,6 +77,7 @@ fun InstrumentChip(
      * 360 dp / font scale 2.0 without scrolling or clipping.
      */
     compact: Boolean = false,
+    labelStyle: TextStyle = InstrumentType.bodyStrong,
     /**
      * Floor RPE uses radio. Warm-up and ramp chips stay toggle/checkbox.
      */
@@ -171,7 +173,7 @@ fun InstrumentChip(
             leading?.invoke()
             Text(
                 label,
-                style = InstrumentType.bodyStrong,
+                style = labelStyle,
                 // Volt ink on the dim fill: Pit ink was only legible against a solid accent.
                 color = when {
                     !enabled -> TextDisabled
