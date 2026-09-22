@@ -45,7 +45,6 @@ class SyncEngineTest {
             PreferenceDataStoreFactory.create(produceFile = { prefsFile }),
         )
         engine = SyncEngine(
-            database = database,
             syncDao = database.syncDao(),
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),

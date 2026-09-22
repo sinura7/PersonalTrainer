@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.Upsert
 import com.sinura.personaltrainer.data.local.entity.ActivityBlockEntity
 import com.sinura.personaltrainer.data.local.entity.ActivityCardioIntervalEntity
 import com.sinura.personaltrainer.data.local.entity.ActivitySessionEntity
@@ -219,4 +220,27 @@ interface ActivityDao {
 
     @Query("DELETE FROM activity_templates")
     suspend fun deleteAllTemplates()
+
+    /**
+     * Temper Account sync's writes: this and the four below. A pull applies one row at a time,
+     * so each write must leave the rows under it alone, and [Upsert] updates an existing row in
+     * place. REPLACE ([insertBlock], [upsertTemplate]) deletes the old row first, and
+     * ON DELETE CASCADE then removes its blocks, sets and intervals: restore and template saves
+     * want that, a pull never does. ABORT ([insertStrengthSets]) throws on a row already here,
+     * and one throw stalled every table after it on every pass.
+     */
+    @Upsert
+    suspend fun upsertSessionInPlace(session: ActivitySessionEntity)
+
+    @Upsert
+    suspend fun upsertBlockInPlace(block: ActivityBlockEntity)
+
+    @Upsert
+    suspend fun upsertStrengthSetInPlace(set: ActivityStrengthSetEntity)
+
+    @Upsert
+    suspend fun upsertCardioIntervalInPlace(interval: ActivityCardioIntervalEntity)
+
+    @Upsert
+    suspend fun upsertTemplateInPlace(template: ActivityTemplateEntity)
 }

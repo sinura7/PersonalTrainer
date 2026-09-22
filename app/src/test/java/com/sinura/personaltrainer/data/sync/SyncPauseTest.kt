@@ -29,10 +29,10 @@ import java.io.File
 /**
  * The pause that stands between Temper Account and the rows on this phone.
  *
- * The case that matters is the one the 22 September audit found: a routine that the server
- * holds as newer. Pulling it replaces the local row, and the replace cascades to the routine's
- * lifts. While [AccountSyncGate.SYNC_PAUSED] holds, that pass must not happen at all — and the
- * upload queue must keep filling so nothing waiting to go up is lost.
+ * The 22 September audit found that pulling a routine the server holds as newer replaced the
+ * local row, and the replace cascaded to the routine's lifts. Packet S0b fixed the pull, but
+ * other defects remain until S1, so while [AccountSyncGate.SYNC_PAUSED] holds no pass may run
+ * at all — and the upload queue must keep filling so nothing waiting to go up is lost.
  */
 @RunWith(RobolectricTestRunner::class)
 class SyncPauseTest {
@@ -84,11 +84,10 @@ class SyncPauseTest {
     }
 
     @Test
-    fun withoutThePauseTodaysPullDropsTheLiftsWhichIsWhyItExists() = runTest {
-        // The defect the pause stands in front of, run rather than read: the newer server
-        // routine is applied with REPLACE, SQLite deletes the old row to insert the new one,
-        // and ON DELETE CASCADE takes the routine's lift with it. Packet S0b makes the pull
-        // update in place; this test then turns into "keeps the lift".
+    fun withoutThePauseThePullNowUpdatesTheRoutineAndKeepsItsLift() = runTest {
+        // Until packet S0b this test asserted the defect the pause stands in front of: the
+        // newer server routine went in with REPLACE, and ON DELETE CASCADE took its lift. The
+        // pull now updates in place (SyncPullInPlaceTest covers every table it writes).
         seedRoutineWithOneLift(updatedAt = 100L)
         remote.seed(
             SyncEntityType.ROUTINE,
@@ -100,7 +99,7 @@ class SyncPauseTest {
 
         val routine = database.routineDao().getById(ROUTINE)!!
         assertEquals("Server name", routine.routine.name)
-        assertEquals(emptyList<String>(), routine.items.map { it.item.id })
+        assertEquals(listOf("re-1"), routine.items.map { it.item.id })
     }
 
     @Test
@@ -200,7 +199,6 @@ class SyncPauseTest {
         auth = FakeAccountAuth(initialSession = signedIn),
         syncDao = database.syncDao(),
         engine = SyncEngine(
-            database = database,
             syncDao = database.syncDao(),
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),
