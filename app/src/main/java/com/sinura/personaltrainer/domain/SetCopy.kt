@@ -93,13 +93,60 @@ object SetCopy {
             return when (meaning) {
                 WeightMeaning.ASSISTANCE -> "${meaning.fieldLabel}, no assistance"
                 WeightMeaning.LIFTED -> "${meaning.fieldLabel}, $NO_WEIGHT"
-                WeightMeaning.ADDED, WeightMeaning.NONE -> "${meaning.fieldLabel}, $NO_WEIGHT, $BODYWEIGHT_LOAD"
+                WeightMeaning.ADDED -> "$BODYWEIGHT_HERO, $NO_ADDED_WEIGHT"
+                WeightMeaning.NONE -> "${meaning.fieldLabel}, $NO_WEIGHT, $BODYWEIGHT_LOAD"
             }
         }
         val shown = if (entryPrecision) WorkoutWeightCopy.number(weightKg, unit) else WeightConverter.formatDisplayNumber(
             WeightConverter.toDisplayValue(weightKg, unit),
         )
-        return "${meaning.fieldLabel} $shown ${unit.suffix}"
+        return when (meaning) {
+            WeightMeaning.ADDED -> "$BODYWEIGHT_HERO plus $shown ${unit.suffix}"
+            else -> "${meaning.fieldLabel} $shown ${unit.suffix}"
+        }
+    }
+
+    /**
+     * Live floor hero for the weight column: numeral, optional unit suffix, optional
+     * caption under the plates, TalkBack, and a layout sample for sizing.
+     *
+     * Added-weight lifts at 0 show [BW_SHORT] with [NO_ADDED_WEIGHT], not a lonely
+     * `0` beside the unit. Loaded lifts keep a numeric hero.
+     */
+    fun weightEntryHero(
+        meaning: WeightMeaning,
+        weightKg: Double,
+        unit: WeightUnit,
+    ): WeightEntryHero {
+        val spoken = weightWellSpoken(meaning, weightKg, unit, entryPrecision = true)
+        val hasLoad = weightKg.isFinite() && weightKg > 0.0
+        if (meaning == WeightMeaning.ADDED && !hasLoad) {
+            return WeightEntryHero(
+                value = BW_SHORT,
+                unitSuffix = null,
+                caption = NO_ADDED_WEIGHT,
+                spoken = spoken,
+                layoutSample = BODYWEIGHT_HERO,
+            )
+        }
+        if (meaning == WeightMeaning.ADDED && hasLoad) {
+            val shown = WorkoutWeightCopy.number(weightKg, unit)
+            return WeightEntryHero(
+                value = "$BW_SHORT + $shown",
+                unitSuffix = unit.suffix,
+                caption = null,
+                spoken = spoken,
+                layoutSample = "$BW_SHORT + $WEIGHT_HERO_LAYOUT_SAMPLE",
+            )
+        }
+        val shown = WorkoutWeightCopy.number(weightKg, unit)
+        return WeightEntryHero(
+            value = shown,
+            unitSuffix = unit.suffix,
+            caption = null,
+            spoken = spoken,
+            layoutSample = WEIGHT_HERO_LAYOUT_SAMPLE,
+        )
     }
 
     fun weightKeypadHelper(loadClass: LoadClass, allowsZero: Boolean): String {
@@ -174,7 +221,20 @@ object SetCopy {
     const val NOTHING_YET = "—"
     const val NO_WEIGHT = "no weight"
     const val BODYWEIGHT_LOAD = "bodyweight"
+    const val BODYWEIGHT_HERO = "Bodyweight"
+    const val BW_SHORT = "BW"
+    const val NO_ADDED_WEIGHT = "No added weight"
+    private const val WEIGHT_HERO_LAYOUT_SAMPLE = "888.8"
 }
+
+/** Live floor weight column: hero numeral, unit, caption, and sizing sample. */
+data class WeightEntryHero(
+    val value: String,
+    val unitSuffix: String?,
+    val caption: String?,
+    val spoken: String,
+    val layoutSample: String,
+)
 
 /** One number and its unit, for a fixed-width readout. */
 data class WorkColumn(val value: String, val label: String)

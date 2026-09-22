@@ -30,7 +30,7 @@ class FloorStepperEntryTest {
         assertTrue(editor.contains("private const val TIME_SAMPLE = \"88:88\""))
         assertTrue(editor.contains("NumberEntryDialog("))
         assertTrue(editor.contains("NumericEntry.parseWeightKg"))
-        assertTrue(editor.contains("SetCopy.weightWellSpoken"))
+        assertTrue(editor.contains("SetCopy.weightEntryHero"))
         assertTrue(editor.contains("UnloadedLoad.allowsZeroWorkingWeight"))
         assertTrue(editor.contains("NumericEntry.parseReps"))
         assertTrue(editor.contains("NumericEntry.parseHoldSeconds"))

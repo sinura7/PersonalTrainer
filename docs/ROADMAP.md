@@ -15,6 +15,8 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 22 Sep 2026 — Live floor polish (ADR-030): bodyweight+added lifts at 0 added show **BW** / **No added weight** on the hero, not `0 lb`; **BW + N** when loaded. Loaded lifts unchanged.
+>
 > 21 Sep 2026 — CoachEngine v1 (ADR-029): evidence seed
 > [`docs/coach/evidence-seed.json`](coach/evidence-seed.json), on-device next-set
 > suggestions with citation chip on the active strength workout; extends existing
