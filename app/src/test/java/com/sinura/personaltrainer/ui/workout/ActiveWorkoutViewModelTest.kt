@@ -967,18 +967,26 @@ class ActiveWorkoutViewModelTest {
         vm.awaitEditOpen(setId)
         vm.setWeight(110.0)
         vm.logSetAndSettle()
+        // logSetAndSettle's idle check is already true in the snapshot from before the tap,
+        // and uiState can lag the tap while its combine is busy on a Room thread, so on a
+        // loaded machine it returned before the save began. It lost CI on 22 September, 110
+        // read before the 120 write landed. Wait on the stored row, then on the edit closing —
+        // the pre-tap snapshot still had the edit open, so neither can pass on stale state.
+        awaitSession(fixture.session.id) { it.sets.singleOrNull()?.weightKg == 110.0 }
+        vm.awaitState { it.editingSetId == null && !it.entryLocked }
         // The row moved; the screen's copy did not, and cannot until the Flow is released.
         assertEquals(110.0, checkNotNull(dao.getSet(setId)).weightKg, 0.0001)
         assertEquals(100.0, checkNotNull(vm.uiState.value.session?.sets?.single()).weightKg, 0.0001)
 
-        vm.awaitEntryUnlocked()
         vm.editSet(setId)
         vm.awaitEditOpen(setId)
         vm.setWeight(120.0)
         vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.singleOrNull()?.weightKg == 120.0 }
+        val settled = vm.awaitState { it.editingSetId == null && !it.entryLocked }
 
-        assertEquals(WorkoutSavePhase.IDLE, vm.uiState.value.save.phase)
-        assertNull(vm.uiState.value.error)
+        assertEquals(WorkoutSavePhase.IDLE, settled.save.phase)
+        assertNull(settled.error)
         assertEquals(120.0, checkNotNull(dao.getSet(setId)).weightKg, 0.0001)
         assertEquals(1, checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size)
     }
