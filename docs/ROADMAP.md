@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 22 Sep 2026 — Whole-app audit packet S0a: Temper Account sync is **paused**
+> (`AccountSyncGate`). No pass runs, so a pull can no longer replace rows and
+> cascade away an activity's sets or a routine's lifts; edits keep queuing for
+> when it resumes. In-app account deletion is off until a server-side delete
+> exists; Settings → Account says how to ask. Account copy now names what sync
+> covers and that live-logged workouts stay on the phone. Release R8 keeps
+> `data.sync.**` for Gson.
+>
 > 22 Sep 2026 — Live floor polish (ADR-030): bodyweight+added lifts at 0 added show **BW** / **No added weight** on the hero, not `0 lb`; **BW + N** when loaded. Loaded lifts unchanged.
 >
 > 21 Sep 2026 — CoachEngine v1 (ADR-029): evidence seed

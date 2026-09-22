@@ -4,6 +4,19 @@ package com.sinura.personaltrainer.domain
  * Owner-facing sync status and error copy (Settings → Account when signed in).
  */
 object SyncCopy {
+    const val PAUSED_TITLE = "Sync paused"
+    const val PAUSED_BODY =
+        "Temper is fixing how Account saves to the cloud, so nothing uploads or downloads " +
+            "for now. Training on this phone is unaffected, and changes you make wait here " +
+            "until sync resumes."
+
+    /** What a pass replicates ([SyncEntityType]) and, as plainly, what it does not. */
+    const val SCOPE =
+        "When it runs, Temper Account covers your plan and schedule, routines, cardio and " +
+            "sessions logged after the fact, custom lifts, weigh-ins, goals, and settings. " +
+            "Workouts logged live on the floor stay on this phone for now, so keep a Backup " +
+            "of those."
+
     fun ownerFacingError(raw: String?): String {
         val message = raw?.trim().orEmpty()
         if (message.isEmpty()) {

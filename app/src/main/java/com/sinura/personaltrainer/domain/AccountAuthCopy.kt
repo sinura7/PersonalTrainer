@@ -6,8 +6,8 @@ object AccountAuthCopy {
     const val ENTRY_KICKER = "Temper Account"
     const val ENTRY_HEADLINE = "Open your account"
     const val ENTRY_BLURB =
-        "Load your cloud history on this phone. Finished workouts and your plan " +
-            "travel with you when you sign in online."
+        "Keep your plan, routines, cardio, and settings in the cloud, and bring them " +
+            "back on another phone when you sign in online."
     const val ENTRY_OPEN = "Open account"
     const val ENTRY_NOT_NOW = "Not now"
     const val CREDENTIALS_BACK = "Back"
@@ -15,8 +15,8 @@ object AccountAuthCopy {
     const val NOT_CONFIGURED =
         "Temper Account is not available in this build yet. Training on this phone still works."
     const val SIGNED_OUT_CAPTION =
-        "Training on this phone does not require an account. Sign in to copy finished " +
-            "workouts and your plan to Temper Account when you are online."
+        "Training on this phone does not require an account. Sign in to copy your plan, " +
+            "routines, cardio, and settings to Temper Account when you are online."
     const val SIGNED_IN_CAPTION =
         "Sync runs in the background when you are online. Workouts, Plan, and History " +
             "still work offline on this phone."
@@ -33,6 +33,10 @@ object AccountAuthCopy {
             "Signing out clears that upload queue. Your training on this phone stays here."
     const val SIGN_OUT_PENDING_CONFIRM = "Sign out anyway"
     const val DELETE_ACCOUNT = "Delete Temper Account…"
+    const val DELETE_UNAVAILABLE =
+        "Deleting your account from the app is paused while it is fixed. To delete it " +
+            "now, ask on Temper's project page, and do not post your email or password " +
+            "there. Training on this phone stays either way."
     const val BUSY_SIGN_IN = "Signing in…"
     const val BUSY_SIGN_UP = "Creating account…"
     const val BUSY_SIGN_OUT = "Signing out…"

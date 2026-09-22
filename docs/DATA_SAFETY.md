@@ -6,17 +6,17 @@ same questions. Do not publish while a data-survival critical remains open.
 
 | Question | Answer |
 |---|---|
-| Collects user data automatically? | No automatic analytics or crash upload. Optional Temper Account sync uploads finished workouts, schedule, routines, templates, custom exercises, bodyweight weigh-ins, measurable goals, coach/reminder/display prefs, and save posture (not live sessions or built-in catalog seed) after the user signs in and data changes while online |
+| Collects user data automatically? | No automatic analytics or crash upload. Optional Temper Account sync — **paused since 22 September 2026, so nothing is uploaded or downloaded until it resumes** ([PRIVACY.md](PRIVACY.md)) — uploads finished cardio, mixed, and after-the-fact activities, schedule, routines, templates, custom exercises, bodyweight weigh-ins, measurable goals, coach/reminder/display prefs, and save posture (not workouts logged live on the strength floor, not live in-progress sessions, not the built-in catalog seed) after the user signs in and data changes while online |
 | Shares data with other companies? | No ads or analytics partners. Optional Google Drive backup uses Google when the user turns it on. Temper Account uses the operator’s Supabase project (Auth + Postgres) |
 | Required account? | No |
 | Encrypted in transit? | Yes for Temper Account (HTTPS to Supabase). Optional Drive backup uses HTTPS; the backup file may also be password-protected |
-| Users can request deletion? | Yes — delete sessions in-app; delete Temper Account in Settings → Account (removes cloud Auth user and synced server rows; local phone data stays); uninstall removes on-device data; user-managed Drive/export files are deleted by the user |
+| Users can request deletion? | Yes — delete sessions in-app; Temper Account deletion is by request while in-app deletion is paused (Settings → Account and [PRIVACY.md](PRIVACY.md) say how; the operator removes the cloud Auth user and synced server rows; local phone data stays); uninstall removes on-device data; user-managed Drive/export files are deleted by the user |
 | Data collection is optional? | Local use collects nothing remotely. Temper Account is opt-in (first-launch chooser or Settings). Drive backup is opt-in. Diagnostics are user-triggered |
 | Ads | Not used |
 | Analytics | Not used |
 | Crash logs sent automatically? | No. User-triggered redacted diagnostics only |
 | Location | Not used. Cardio does not claim GPS |
-| Health / fitness data | Stored on-device by default. Uploaded to Supabase when the user opts into Temper Account sync (finished workouts; schedule rules and occurrences; routines and routine exercises; activity templates with blocks/sets/intervals; custom exercises with muscle credits; bodyweight weigh-ins; measurable goals; coach, reminder, and display preferences; save posture; not live in-progress sessions; built-in catalog seed stays on-device). Exported when the user exports a backup or shares a file they created. Not E2EE on the server in v1 |
+| Health / fitness data | Stored on-device by default. Uploaded to Supabase when the user opts into Temper Account sync and sync is running (finished cardio, mixed, and after-the-fact activities — not workouts logged live on the strength floor; schedule rules and occurrences; routines and routine exercises; activity templates with blocks/sets/intervals; custom exercises with muscle credits; bodyweight weigh-ins; measurable goals; coach, reminder, and display preferences; save posture; not live in-progress sessions; built-in catalog seed stays on-device). Exported when the user exports a backup or shares a file they created. Not E2EE on the server in v1 |
 | Personal info (email) | Collected only for optional Temper Account (Supabase Auth). Not used for marketing |
 | Photos / files | User-picked backup files via the Storage Access Framework |
 | Contacts / SMS / microphone / camera | Not used |

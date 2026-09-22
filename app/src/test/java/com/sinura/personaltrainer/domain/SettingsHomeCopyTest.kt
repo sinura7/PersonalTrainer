@@ -42,4 +42,20 @@ class SettingsHomeCopyTest {
         )
         assertEquals(SettingsHomeCopy.DEVELOPER, "Developer")
     }
+
+    @Test
+    fun accountRowNamesSignInAndAPause() {
+        assertEquals(
+            SettingsHomeCopy.ACCOUNT_SUMMARY,
+            SettingsHomeCopy.accountSummary(signedIn = false, syncPaused = true),
+        )
+        assertEquals(
+            "Signed in · sync paused",
+            SettingsHomeCopy.accountSummary(signedIn = true, syncPaused = true),
+        )
+        assertEquals(
+            "Signed in",
+            SettingsHomeCopy.accountSummary(signedIn = true, syncPaused = false),
+        )
+    }
 }

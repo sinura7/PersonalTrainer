@@ -207,6 +207,10 @@ fun SettingsScreen(
                             checkIn = checkInWeekday,
                         ),
                         savePostureSummary = SavePostureCopy.settingsSummary(savePosture.posture),
+                        accountSummary = SettingsHomeCopy.accountSummary(
+                            signedIn = account.signedIn,
+                            syncPaused = account.sync.paused,
+                        ),
                         onOpen = { page = it },
                         updateSummary = if (BuildConfig.DEBUG) {
                             debugUpdateSettingsSummary(notice)
@@ -302,6 +306,7 @@ fun SettingsScreen(
             ) {
                 SavePostureSection(
                     posture = savePosture.posture,
+                    syncPaused = account.sync.paused,
                     onUseAccount = {
                         viewModel.chooseSavePosture(SavePosture.ACCOUNT)
                         page = SettingsPage.ACCOUNT
@@ -469,7 +474,7 @@ fun SettingsScreen(
         )
     }
 
-    if (pendingAccountDelete && account.signedIn) {
+    if (pendingAccountDelete && account.signedIn && account.deleteAvailable) {
         DeleteAccountDialog(
             accountEmail = account.session!!.email,
             busy = account.busy == AccountBusyKind.DELETE_ACCOUNT,
@@ -613,12 +618,15 @@ object SettingsTags {
     const val ACCOUNT_SIGN_UP = "settings-account-sign-up"
     const val ACCOUNT_SIGN_OUT = "settings-account-sign-out"
     const val ACCOUNT_DELETE = "settings-account-delete"
+    const val ACCOUNT_DELETE_UNAVAILABLE = "settings-account-delete-unavailable"
     const val ACCOUNT_DELETE_EMAIL_FIELD = "settings-account-delete-email-field"
     const val ACCOUNT_DELETE_CONFIRM = "settings-account-delete-confirm"
     const val ACCOUNT_PRIVACY = "settings-account-privacy"
     const val ABOUT_PRIVACY = "settings-about-privacy"
     const val ACCOUNT_ERROR = "settings-account-error"
     const val ACCOUNT_SYNC = "settings-account-sync"
+    const val ACCOUNT_SYNC_PAUSED = "settings-account-sync-paused"
+    const val SAVE_POSTURE_SYNC_PAUSED = "settings-save-posture-sync-paused"
     const val ROW_PLAN = "settings-row-plan"
     const val ROW_DIAGNOSTICS = "settings-row-diagnostics"
     const val ROW_ABOUT = "settings-row-about"

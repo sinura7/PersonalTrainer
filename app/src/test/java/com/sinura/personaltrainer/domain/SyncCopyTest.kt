@@ -24,4 +24,12 @@ class SyncCopyTest {
             SyncCopy.ownerFacingError(raw),
         )
     }
+
+    @Test
+    fun scopeSaysLiveWorkoutsStayOnThePhoneExactlyWhileTheyDoNotSync() {
+        // The day live-logged workouts join sync, this copy has to change with them.
+        val tables = SyncEntityType.entries.map { it.remoteTable }.toSet()
+        val liveWorkoutsSync = "workout_sessions" in tables || "set_logs" in tables
+        assertEquals(!liveWorkoutsSync, SyncCopy.SCOPE.contains("stay on this phone"))
+    }
 }
