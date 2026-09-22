@@ -147,7 +147,7 @@ class FloorCompactPresentationTest {
         assertTrue(editor.contains("HoldWork.clock"))
         // The wells no longer carry a visible heading; each still names its field to a
         // screen reader through its own spoken form.
-        assertTrue(editor.contains("SetCopy.weightWellSpoken(meaning = meaning"))
+        assertTrue(editor.contains("SetCopy.weightEntryHero(meaning, weightKg, unit)"))
         assertTrue(editor.contains("spoken = \"Reps \$reps\""))
         assertTrue(editor.contains("else \"Time \${HoldWork.clock(seconds)}\""))
         assertTrue(editor.contains("RoundPlate(label = \"−\""))

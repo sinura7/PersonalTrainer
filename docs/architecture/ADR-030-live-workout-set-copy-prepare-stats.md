@@ -19,6 +19,8 @@ On the gym floor, exercise identity showed two competing set lines (for example 
 
 5. **Out of scope** — Logging diamond reorder (Packet A), rest dock changes, RPE removal, debugLiveCode bumps, Home packets.
 
+6. **Bodyweight added-weight hero (2026-09-22 polish)** — On [LoadClass.BODYWEIGHT_ADDED] lifts, added load **0** must not render as a numeric `0` beside the unit on the live floor. [SetCopy.weightEntryHero] shows **BW** with caption **No added weight**; added load **> 0** shows **BW + N** with the unit. [SetCopy.weightWellSpoken] uses **Bodyweight** wording for TalkBack. Pure [LoadClass.LOADED] heroes stay numeric. Log-set payload lines still use [SetCopy.setLine] (`8 reps` at zero added).
+
 ## Consequences
 
 - Receipt and chip ordinals use the same [SetOrdinalCopy] wording.

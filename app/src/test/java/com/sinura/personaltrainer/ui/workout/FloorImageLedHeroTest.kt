@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -270,12 +271,13 @@ class FloorImageLedHeroTest {
         assertFalse(
             SetCopy.weightWellSpoken(WeightMeaning.LIFTED, 0.0, WeightUnit.LBS).contains("0 lb"),
         )
+        val bwHero = SetCopy.weightEntryHero(WeightMeaning.ADDED, 0.0, WeightUnit.LBS)
+        assertEquals(SetCopy.BW_SHORT, bwHero.value)
+        assertNull(bwHero.unitSuffix)
+        assertFalse("${bwHero.value} ${bwHero.unitSuffix}".contains("0 lb"))
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(
-            editor.contains(
-                "spoken = SetCopy.weightWellSpoken(meaning = meaning, weightKg = weightKg, unit = unit, entryPrecision = true)",
-            ),
-        )
+        assertTrue(editor.contains("val weightHero = SetCopy.weightEntryHero(meaning, weightKg, unit)"))
+        assertTrue(editor.contains("spoken = weightHero.spoken"))
         assertTrue("a bodyweight lift has no weight column", editor.contains("val showWeight = meaning != WeightMeaning.NONE"))
         assertTrue(editor.contains("\" · Suggested\""))
         assertTrue(editor.contains("rememberTextMeasurer"))

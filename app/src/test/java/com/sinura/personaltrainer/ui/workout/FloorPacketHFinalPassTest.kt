@@ -66,7 +66,7 @@ class FloorPacketHFinalPassTest {
             ).size == 3,
         )
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("SetCopy.weightWellSpoken(meaning = meaning") && editor.contains("unitLabel = unit.suffix"))
+        assertTrue(editor.contains("SetCopy.weightEntryHero(meaning, weightKg, unit)") && editor.contains("unitLabel = weightHero.unitSuffix"))
         assertTrue(editor.contains("val showWeight = meaning != WeightMeaning.NONE"))
     }
 
@@ -176,7 +176,7 @@ class FloorPacketHFinalPassTest {
         // Weight, reps and hold time are the same hero numeral, sized from a fixed sample so
         // the plates never move as digits come and go.
         assertEquals(3, editor.replace("private fun HeroNumeral(", "").split("HeroNumeral(").size - 1)
-        assertTrue(editor.contains("sample = WEIGHT_SAMPLE"))
+        assertTrue(editor.contains("sample = weightHero.layoutSample"))
         assertTrue(editor.contains("sample = REPS_SAMPLE"))
         assertTrue(editor.contains("sample = TIME_SAMPLE"))
     }

@@ -54,13 +54,40 @@ class SetCopyTest {
     }
 
     @Test
+    fun addedWeightHeroAtZeroShowsBwNotZeroPounds() {
+        val hero = SetCopy.weightEntryHero(WeightMeaning.ADDED, 0.0, WeightUnit.LBS)
+        assertEquals(SetCopy.BW_SHORT, hero.value)
+        assertNull(hero.unitSuffix)
+        assertEquals(SetCopy.NO_ADDED_WEIGHT, hero.caption)
+        assertEquals("Bodyweight, ${SetCopy.NO_ADDED_WEIGHT}", hero.spoken)
+    }
+
+    @Test
+    fun addedWeightHeroWithLoadShowsBwPlusAmount() {
+        val kg = WeightConverter.toKg(25.0, WeightUnit.LBS)
+        val hero = SetCopy.weightEntryHero(WeightMeaning.ADDED, kg, WeightUnit.LBS)
+        assertEquals("BW + 25", hero.value)
+        assertEquals("lb", hero.unitSuffix)
+        assertNull(hero.caption)
+        assertEquals("Bodyweight plus 25 lb", hero.spoken)
+    }
+
+    @Test
+    fun loadedLiftHeroStaysNumeric() {
+        val hero = SetCopy.weightEntryHero(WeightMeaning.LIFTED, 60.0, WeightUnit.KG)
+        assertEquals("60", hero.value)
+        assertEquals("kg", hero.unitSuffix)
+        assertEquals("Weight 60 kg", hero.spoken)
+    }
+
+    @Test
     fun aWalkingLungeAtZeroReadsAsRepsNotFivePounds() {
         assertEquals(
             "13 reps",
             SetCopy.setLine(0.0, 13, LoadClass.BODYWEIGHT_ADDED, WeightUnit.LBS),
         )
         assertEquals(
-            "Added weight, no weight, bodyweight",
+            "Bodyweight, ${SetCopy.NO_ADDED_WEIGHT}",
             SetCopy.weightWellSpoken(WeightMeaning.ADDED, 0.0, WeightUnit.LBS),
         )
         assertEquals(

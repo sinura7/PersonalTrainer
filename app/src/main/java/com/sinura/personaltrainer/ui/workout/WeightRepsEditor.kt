@@ -53,7 +53,6 @@ import com.sinura.personaltrainer.domain.WarmupSet
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.domain.WorkoutWeightCopy
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentPreset
@@ -123,7 +122,7 @@ internal fun WeightRepsEditor(
     val stepShown = IncrementTable.displayStep(loadType, unit, equipment)
         ?.let { WeightConverter.formatDisplayNumber(it) }
         ?: unit.stepLabel
-    val weightNumber = WorkoutWeightCopy.number(weightKg, unit)
+    val weightHero = SetCopy.weightEntryHero(meaning, weightKg, unit)
     val plates = if (plated && meaning == WeightMeaning.LIFTED) PlateMath.load(weightKg, unit)?.caption() else null
     val weightField = meaning.fieldLabel.lowercase()
     // Plan / Last as one-tap fills, only while the entry holds something else.
@@ -152,10 +151,10 @@ internal fun WeightRepsEditor(
                     }
                 }
             },
-            unitLabel = unit.suffix,
-            value = weightNumber,
-            sample = WEIGHT_SAMPLE,
-            spoken = SetCopy.weightWellSpoken(meaning = meaning, weightKg = weightKg, unit = unit, entryPrecision = true),
+            unitLabel = weightHero.unitSuffix,
+            value = weightHero.value,
+            sample = weightHero.layoutSample,
+            spoken = weightHero.spoken,
             typeLabel = "Type ${if (meaning == WeightMeaning.LIFTED) "a weight" else weightField}",
             decrementSpoken = "Decrease $weightField by $stepShown ${unit.suffix}",
             incrementSpoken = "Increase $weightField by $stepShown ${unit.suffix}",
@@ -169,7 +168,7 @@ internal fun WeightRepsEditor(
             // Only the bar's loading earns this line. The source label said "Plan" to
             // confirm a weight the entry already showed; the quick fills below are what
             // matter when it does not match.
-            caption = plates,
+            caption = plates ?: weightHero.caption,
             tag = WorkoutTestTags.WEIGHT_STEPPER,
         )
     }
@@ -231,7 +230,9 @@ internal fun WeightRepsEditor(
                 measurer.measure(unit.suffix, style = InstrumentType.unit, softWrap = false).size.width.toDp()
             } + Metrics.space1
             fun widest(style: TextStyle): Dp = with(density) {
-                val weight = measurer.measure(WEIGHT_SAMPLE, style = style, softWrap = false).size.width.toDp() + unitWidth
+                val weightSample = if (showWeight) weightHero.layoutSample else WEIGHT_SAMPLE
+                val weight = measurer.measure(weightSample, style = style, softWrap = false).size.width.toDp() +
+                    if (weightHero.unitSuffix != null) unitWidth else 0.dp
                 val work = measurer.measure(if (hold) TIME_SAMPLE else REPS_SAMPLE, style = style, softWrap = false).size.width.toDp()
                 maxOf(weight, work)
             }

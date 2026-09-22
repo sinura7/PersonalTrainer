@@ -98,8 +98,8 @@ class FloorPacket4KickerGlyphsTest {
         // — a word, never a glyph standing in for one — is kept by there being neither. The
         // field is still named where it has to be: in the well's spoken form.
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("unitLabel = unit.suffix"))
-        assertTrue(editor.contains("SetCopy.weightWellSpoken(meaning = meaning"))
+        assertTrue(editor.contains("unitLabel = weightHero.unitSuffix"))
+        assertTrue(editor.contains("SetCopy.weightEntryHero(meaning, weightKg, unit)"))
         assertTrue(editor.contains("spoken = \"Reps \$reps\""))
         assertFalse("no glyph stands in for a floor label", editor.contains("FloorFieldGlyph"))
         assertFalse("no heading over the hero numerals", editor.contains("Kicker(text = label"))
