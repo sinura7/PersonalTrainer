@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.Upsert
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
@@ -27,6 +28,14 @@ interface RoutineDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertRoutine(routine: RoutineEntity)
+
+    /**
+     * Sync's routine write. [upsertRoutine]'s REPLACE deletes the row first, and the delete
+     * cascades to the routine's lifts and legacy slots and blanks `routineId` on every finished
+     * workout that used it. [Upsert] updates in place.
+     */
+    @Upsert
+    suspend fun upsertRoutineInPlace(routine: RoutineEntity)
 
     @Update
     suspend fun updateRoutine(routine: RoutineEntity)

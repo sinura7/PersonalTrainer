@@ -139,7 +139,6 @@ class AppContainer(context: Context) : AppDependencies {
         auth = supabaseRuntime?.auth ?: UnconfiguredAccountAuth(),
         syncDao = database.syncDao(),
         engine = SyncEngine(
-            database = database,
             syncDao = database.syncDao(),
             activityDao = database.activityDao(),
             plannerDao = database.plannerDao(),

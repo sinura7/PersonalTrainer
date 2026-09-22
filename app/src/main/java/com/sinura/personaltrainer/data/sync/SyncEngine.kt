@@ -1,7 +1,6 @@
 package com.sinura.personaltrainer.data.sync
 
-import androidx.room.withTransaction
-import com.sinura.personaltrainer.data.local.TemperDatabase
+import android.database.sqlite.SQLiteConstraintException
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.data.local.dao.CatalogDao
@@ -23,7 +22,6 @@ import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
 
 class SyncEngine(
-    private val database: TemperDatabase,
     private val syncDao: SyncDao,
     private val activityDao: ActivityDao,
     private val plannerDao: PlannerDao,
@@ -183,10 +181,7 @@ class SyncEngine(
         if (local != null && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
             return remote.updatedAtMs
         }
-        database.withTransaction {
-            activityDao.deleteSession(remote.id)
-            activityDao.insertSession(remote.toEntity())
-        }
+        activityDao.upsertSessionInPlace(remote.toEntity())
         return remote.updatedAtMs
     }
 
@@ -203,7 +198,7 @@ class SyncEngine(
         if (!activityBlockParentExists(remote)) {
             return remote.updatedAtMs
         }
-        activityDao.insertBlock(remote.toEntity())
+        activityDao.upsertBlockInPlace(remote.toEntity())
         return remote.updatedAtMs
     }
 
@@ -220,7 +215,7 @@ class SyncEngine(
         if (activityDao.getBlock(remote.blockId) == null) {
             return remote.updatedAtMs
         }
-        activityDao.insertStrengthSets(listOf(remote.toEntity()))
+        activityDao.upsertStrengthSetInPlace(remote.toEntity())
         return remote.updatedAtMs
     }
 
@@ -237,7 +232,7 @@ class SyncEngine(
         if (activityDao.getBlock(remote.blockId) == null) {
             return remote.updatedAtMs
         }
-        activityDao.insertCardioIntervals(listOf(remote.toEntity()))
+        activityDao.upsertCardioIntervalInPlace(remote.toEntity())
         return remote.updatedAtMs
     }
 
@@ -285,7 +280,7 @@ class SyncEngine(
         if (local != null && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
             return remote.updatedAtMs
         }
-        activityDao.upsertTemplate(remote.toEntity())
+        activityDao.upsertTemplateInPlace(remote.toEntity())
         return remote.updatedAtMs
     }
 
@@ -301,7 +296,7 @@ class SyncEngine(
         if (local != null && !SyncRevision.remoteWins(localVersion, remoteVersion)) {
             return remote.updatedAtMs
         }
-        routineDao.upsertRoutine(remote.toEntity())
+        routineDao.upsertRoutineInPlace(remote.toEntity())
         return remote.updatedAtMs
     }
 
@@ -329,7 +324,15 @@ class SyncEngine(
             return remote.updatedAtMs
         }
         if (remote.deletedAtMs != null) {
-            exerciseDao.deleteCustom(remote.id)
+            try {
+                exerciseDao.deleteCustom(remote.id)
+            } catch (stillUsed: SQLiteConstraintException) {
+                // Finished sets, session cards or routine lifts on this phone still point at
+                // the lift, and their RESTRICT keys refuse the delete. Keeping it is right for
+                // this phone's history, and throwing here stopped every table after this one
+                // on every pass.
+                AppLog.w(TAG, "Kept custom exercise ${remote.id}: history still uses it", stillUsed)
+            }
             return remote.updatedAtMs
         }
         val local = exerciseDao.getById(remote.id)
