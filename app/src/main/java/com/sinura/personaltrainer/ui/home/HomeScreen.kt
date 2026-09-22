@@ -3,10 +3,13 @@ package com.sinura.personaltrainer.ui.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -15,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -24,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.DayRelation
 import com.sinura.personaltrainer.domain.HomeToday
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.MastheadCopy
@@ -269,11 +274,19 @@ fun HomeScreen(
                     // second answer to "where is my workout" on the screen that had three.
                     headline = MastheadCopy.headline(
                         day = mastheadDay,
-                        loggedToday = loggedSelected,
+                        loggedOnDay = loggedSelected,
                         liftCount = liftCount,
                         hasPlan = hasPlan,
                         agenda = selectedAgenda,
+                        relation = DayRelation.of(epochDay = selectedEpochDay, todayEpochDay = today),
                     ),
+                    // Only when today is in the week on screen: at a rollover the strip can
+                    // briefly hold last week, and a route to a day it cannot show goes nowhere.
+                    onBackToToday = if (selectedEpochDay != today && today in weekStart..weekStart + 6) {
+                        { selectedEpochDay = today }
+                    } else {
+                        null
+                    },
                 )
                 WeekStrip(
                     cells = weekCells,
@@ -418,6 +431,7 @@ fun HomeScreen(
 internal fun HomeMasthead(
     epochDay: Long,
     headline: String,
+    onBackToToday: (() -> Unit)? = null,
 ) {
     val dateLine = remember(epochDay) {
         DateTimeFormatter.ofPattern(DATE_LINE_PATTERN).format(LocalDate.ofEpochDay(epochDay))
@@ -426,7 +440,31 @@ internal fun HomeMasthead(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Kicker(dateLine)
+        // Browsing another day of the week keeps a one-tap way back (D01). The week strip's
+        // Volt bar still marks today; this is the route, not a second marker. A flow row, so
+        // at large text sizes the route drops to its own line instead of eliding the date.
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Kicker(text = dateLine, modifier = Modifier.align(Alignment.CenterVertically))
+            if (onBackToToday != null) {
+                TextButton(
+                    onClick = onBackToToday,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                        .heightIn(min = Metrics.touchMin)
+                        .testTag(HomeTags.BACK_TO_TODAY),
+                ) {
+                    Text(
+                        text = MastheadCopy.BACK_TO_TODAY,
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
         Text(
             headline,
             modifier = Modifier.semantics { heading() },
@@ -440,6 +478,7 @@ internal fun HomeMasthead(
 
 // The separator is quoted: everything outside quotes in a pattern is a format field.
 object HomeTags {
+    const val BACK_TO_TODAY = "home-back-to-today"
     const val START = "home-start"
     const val FREE = "home-free-start"
     const val BODYWEIGHT_CHECK_IN = "home-bodyweight-check-in"

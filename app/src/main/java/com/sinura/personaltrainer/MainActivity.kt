@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.ui.intro.ColdStartIntro
 import com.sinura.personaltrainer.ui.saveposture.SavePostureHost
+import com.sinura.personaltrainer.ui.saveposture.hiddenUnderFirstLaunchOverlay
+import com.sinura.personaltrainer.ui.saveposture.savePostureChooserShowing
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.navigation.PersonalTrainerNav
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
@@ -62,15 +64,22 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(app.shouldShowColdStartIntro())
             }
             PersonalTrainerTheme(reduceMotion = reduceMotion) {
+                val chooserShowing = savePostureChooserShowing(coldStartIntroVisible = showColdStartIntro)
                 Box(modifier = Modifier.fillMaxSize()) {
-                    PersonalTrainerNav(
-                        openSessionId = openSessionId,
-                        onOpenSessionConsumed = { openSessionId = null },
-                        openOccurrenceId = openOccurrenceId,
-                        onOpenOccurrenceConsumed = { openOccurrenceId = null },
-                        reviewOccurrenceId = reviewOccurrenceId,
-                        onReviewOccurrenceConsumed = { reviewOccurrenceId = null },
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .hiddenUnderFirstLaunchOverlay(covered = showColdStartIntro || chooserShowing),
+                    ) {
+                        PersonalTrainerNav(
+                            openSessionId = openSessionId,
+                            onOpenSessionConsumed = { openSessionId = null },
+                            openOccurrenceId = openOccurrenceId,
+                            onOpenOccurrenceConsumed = { openOccurrenceId = null },
+                            reviewOccurrenceId = reviewOccurrenceId,
+                            onReviewOccurrenceConsumed = { reviewOccurrenceId = null },
+                        )
+                    }
                     if (showColdStartIntro) {
                         ColdStartIntro(
                             reduceMotion = reduceMotion,

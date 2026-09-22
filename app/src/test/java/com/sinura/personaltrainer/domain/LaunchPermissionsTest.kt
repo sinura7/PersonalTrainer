@@ -7,6 +7,60 @@ import org.junit.Test
 
 class LaunchPermissionsTest {
     @Test
+    fun theWalkWaitsForHomeAfterTheChoice() {
+        // Choosing Account or Drive opens Settings in the same moment; the dialogs used to
+        // land over the sign-in form.
+        assertFalse(
+            LaunchPermissions.walkMayShow(
+                postureChosen = true,
+                onHome = true,
+                settingsPageOpening = true,
+                alreadyShowing = false,
+            ),
+        )
+        assertFalse(
+            LaunchPermissions.walkMayShow(
+                postureChosen = true,
+                onHome = false,
+                settingsPageOpening = false,
+                alreadyShowing = false,
+            ),
+        )
+        assertTrue(
+            LaunchPermissions.walkMayShow(
+                postureChosen = true,
+                onHome = true,
+                settingsPageOpening = false,
+                alreadyShowing = false,
+            ),
+        )
+    }
+
+    @Test
+    fun theWalkNeverStartsBeforeTheChoice() {
+        assertFalse(
+            LaunchPermissions.walkMayShow(
+                postureChosen = false,
+                onHome = true,
+                settingsPageOpening = false,
+                alreadyShowing = false,
+            ),
+        )
+    }
+
+    @Test
+    fun aWalkAlreadyShowingSurvivesLeavingHome() {
+        assertTrue(
+            LaunchPermissions.walkMayShow(
+                postureChosen = true,
+                onHome = false,
+                settingsPageOpening = true,
+                alreadyShowing = true,
+            ),
+        )
+    }
+
+    @Test
     fun firstSessionAsksAndSecondDoesNot() {
         assertTrue(LaunchPermissions.shouldAsk(alreadyAsked = false))
         assertFalse(LaunchPermissions.shouldAsk(alreadyAsked = true))

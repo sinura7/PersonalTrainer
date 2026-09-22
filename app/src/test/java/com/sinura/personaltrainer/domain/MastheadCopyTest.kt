@@ -15,7 +15,7 @@ class MastheadCopyTest {
     fun trainingTodayNamesTheFocusAndTheLiftCount() {
         assertEquals(
             "PUSH DAY · 4 LIFTS",
-            MastheadCopy.headline(day(SessionFocusKind.PUSH), loggedToday = false, liftCount = 4),
+            MastheadCopy.headline(day(SessionFocusKind.PUSH), loggedOnDay = false, liftCount = 4),
         )
     }
 
@@ -23,7 +23,7 @@ class MastheadCopyTest {
     fun oneLiftIsSingular() {
         assertEquals(
             "LEG DAY · 1 LIFT",
-            MastheadCopy.headline(day(SessionFocusKind.LEGS), loggedToday = false, liftCount = 1),
+            MastheadCopy.headline(day(SessionFocusKind.LEGS), loggedOnDay = false, liftCount = 1),
         )
     }
 
@@ -31,18 +31,18 @@ class MastheadCopyTest {
     fun anUnresolvableRoutineDropsTheCountRatherThanGuessingIt() {
         assertEquals(
             "PULL DAY",
-            MastheadCopy.headline(day(SessionFocusKind.PULL), loggedToday = false, liftCount = null),
+            MastheadCopy.headline(day(SessionFocusKind.PULL), loggedOnDay = false, liftCount = null),
         )
         assertEquals(
             "PULL DAY",
-            MastheadCopy.headline(day(SessionFocusKind.PULL), loggedToday = false, liftCount = 0),
+            MastheadCopy.headline(day(SessionFocusKind.PULL), loggedOnDay = false, liftCount = 0),
         )
     }
 
     @Test
     fun everyFocusHasItsOwnNoun() {
         val nouns = SessionFocusKind.entries.associateWith { kind ->
-            MastheadCopy.headline(day(kind), loggedToday = false, liftCount = null)
+            MastheadCopy.headline(day(kind), loggedOnDay = false, liftCount = null)
         }
         assertEquals("UPPER DAY", nouns.getValue(SessionFocusKind.UPPER))
         assertEquals("LOWER BODY DAY", nouns.getValue(SessionFocusKind.LOWER))
@@ -59,7 +59,7 @@ class MastheadCopyTest {
             "REST DAY",
             MastheadCopy.headline(
                 day(SessionFocusKind.RECOVERY).copy(isRest = true),
-                loggedToday = false,
+                loggedOnDay = false,
                 liftCount = null,
             ),
         )
@@ -67,7 +67,7 @@ class MastheadCopyTest {
 
     @Test
     fun anEmptyWeekIsNotAFailureState() {
-        assertEquals("READY TO TRAIN", MastheadCopy.headline(null, loggedToday = false, liftCount = null))
+        assertEquals("READY TO TRAIN", MastheadCopy.headline(null, loggedOnDay = false, liftCount = null))
     }
 
     @Test
@@ -75,9 +75,9 @@ class MastheadCopyTest {
         // Once the session is done, "PUSH DAY" is a statement about something already behind you.
         assertEquals(
             "TRAINED TODAY",
-            MastheadCopy.headline(day(SessionFocusKind.PUSH), loggedToday = true, liftCount = 4),
+            MastheadCopy.headline(day(SessionFocusKind.PUSH), loggedOnDay = true, liftCount = 4),
         )
-        assertEquals("TRAINED TODAY", MastheadCopy.headline(null, loggedToday = true, liftCount = null))
+        assertEquals("TRAINED TODAY", MastheadCopy.headline(null, loggedOnDay = true, liftCount = null))
     }
 
     @Test
@@ -108,7 +108,7 @@ class MastheadCopyTest {
             "PUSH DAY · 4 LIFTS",
             MastheadCopy.headline(
                 day(SessionFocusKind.PUSH),
-                loggedToday = true,
+                loggedOnDay = true,
                 liftCount = 4,
                 agenda = listOf(evening),
             ),
@@ -142,7 +142,7 @@ class MastheadCopyTest {
             "CARDIO DAY",
             MastheadCopy.headline(
                 day(SessionFocusKind.RECOVERY).copy(isRest = true),
-                loggedToday = false,
+                loggedOnDay = false,
                 liftCount = 4,
                 agenda = listOf(cardio),
             ),
@@ -208,7 +208,7 @@ class MastheadCopyTest {
             "CARDIO DAY",
             MastheadCopy.headline(
                 leftover,
-                loggedToday = false,
+                loggedOnDay = false,
                 liftCount = MastheadCopy.headlineLiftCount(listOf(cardio), leftover, routines),
                 agenda = listOf(cardio),
             ),
@@ -271,6 +271,85 @@ class MastheadCopyTest {
             4,
             MastheadCopy.headlineLiftCount(listOf(evening), day(SessionFocusKind.LEGS), routines),
         )
+    }
+
+    // D01 (design audit 16 Sept): Home browses the week, and the headline follows the selected
+    // day. "TRAINED TODAY" is reserved for today.
+
+    @Test
+    fun aFinishedDayBehindYouIsCompleteNotToday() {
+        assertEquals(
+            MastheadCopy.TRAINING_COMPLETE,
+            MastheadCopy.headline(
+                day(SessionFocusKind.PUSH),
+                loggedOnDay = true,
+                liftCount = 4,
+                relation = DayRelation.PAST,
+            ),
+        )
+    }
+
+    @Test
+    fun todayFinishedStillSaysTrainedToday() {
+        assertEquals(
+            MastheadCopy.TRAINED_TODAY,
+            MastheadCopy.headline(
+                day(SessionFocusKind.PUSH),
+                loggedOnDay = true,
+                liftCount = 4,
+                relation = DayRelation.TODAY,
+            ),
+        )
+    }
+
+    @Test
+    fun aFuturePlannedDayNamesItsSession() {
+        assertEquals(
+            "PULL DAY · 5 LIFTS",
+            MastheadCopy.headline(
+                day(SessionFocusKind.PULL),
+                loggedOnDay = false,
+                liftCount = 5,
+                relation = DayRelation.FUTURE,
+            ),
+        )
+    }
+
+    @Test
+    fun anEmptyDayBehindYouSaysNothingWasLoggedAndAheadStaysReady() {
+        assertEquals(
+            MastheadCopy.NOTHING_LOGGED,
+            MastheadCopy.headline(null, loggedOnDay = false, liftCount = null, relation = DayRelation.PAST),
+        )
+        assertEquals(
+            MastheadCopy.NOTHING_LOGGED,
+            MastheadCopy.headline(
+                day(SessionFocusKind.RECOVERY).copy(isRest = true),
+                loggedOnDay = false,
+                liftCount = null,
+                hasPlan = false,
+                relation = DayRelation.PAST,
+            ),
+        )
+        assertEquals(
+            MastheadCopy.READY_TO_TRAIN,
+            MastheadCopy.headline(null, loggedOnDay = false, liftCount = null, relation = DayRelation.FUTURE),
+        )
+    }
+
+    @Test
+    fun aRestDayBehindYouIsStillARestDay() {
+        assertEquals(
+            "REST DAY",
+            MastheadCopy.headline(day(SessionFocusKind.RECOVERY).copy(isRest = true), loggedOnDay = false, liftCount = null, relation = DayRelation.PAST),
+        )
+    }
+
+    @Test
+    fun theRelationComesFromTheDates() {
+        assertEquals(DayRelation.PAST, DayRelation.of(epochDay = 19_999L, todayEpochDay = 20_000L))
+        assertEquals(DayRelation.TODAY, DayRelation.of(epochDay = 20_000L, todayEpochDay = 20_000L))
+        assertEquals(DayRelation.FUTURE, DayRelation.of(epochDay = 20_001L, todayEpochDay = 20_000L))
     }
 
     private fun day(kind: SessionFocusKind): SuggestedTrainingDay = SuggestedTrainingDay(
@@ -369,7 +448,7 @@ class ColdStartCopyTest {
         val emptyWeekDay = restDay()
         assertEquals(
             "READY TO TRAIN",
-            MastheadCopy.headline(emptyWeekDay, loggedToday = false, liftCount = null, hasPlan = false),
+            MastheadCopy.headline(emptyWeekDay, loggedOnDay = false, liftCount = null, hasPlan = false),
         )
     }
 
@@ -377,7 +456,7 @@ class ColdStartCopyTest {
     fun aPlannedRestDayStillSaysRestDay() {
         assertEquals(
             "REST DAY",
-            MastheadCopy.headline(restDay(), loggedToday = false, liftCount = null, hasPlan = true),
+            MastheadCopy.headline(restDay(), loggedOnDay = false, liftCount = null, hasPlan = true),
         )
     }
 
@@ -385,7 +464,7 @@ class ColdStartCopyTest {
     fun havingTrainedOutranksHavingNoPlan() {
         assertEquals(
             "TRAINED TODAY",
-            MastheadCopy.headline(null, loggedToday = true, liftCount = null, hasPlan = false),
+            MastheadCopy.headline(null, loggedOnDay = true, liftCount = null, hasPlan = false),
         )
     }
 }

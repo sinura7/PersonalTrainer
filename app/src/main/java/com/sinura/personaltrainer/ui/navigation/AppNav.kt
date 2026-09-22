@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +77,7 @@ import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.CustomWeekLaunch
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
+import com.sinura.personaltrainer.domain.LaunchPermissions
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -308,12 +310,6 @@ fun PersonalTrainerNav(
     }
     val launchAsked by settingsViewModel.launchPermissionsAsked.collectAsStateWithLifecycle()
     val pendingSettingsSubpage by settingsViewModel.pendingSettingsSubpage.collectAsStateWithLifecycle()
-    if (gate == OnboardingGate.APP && savePostureUi.loaded && savePostureUi.chosen) {
-        LaunchPermissionsHost(
-            alreadyAsked = launchAsked,
-            onAsked = settingsViewModel::markLaunchPermissionsAsked,
-        )
-    }
 
     val reduceMotion = LocalReducedMotion.current
     val screenEnter = if (reduceMotion) EnterTransition.None else ScreenEnter
@@ -344,6 +340,22 @@ fun PersonalTrainerNav(
     val finishedActivityNavigation by liveBarViewModel.finishedActivityNavigation.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    // Before the back stack emits, the start destination (Home) is what is on screen.
+    val onHome = navBackStackEntry == null || currentDestination?.route == Route.Home.path
+    var permissionWalkShowing by rememberSaveable { mutableStateOf(false) }
+    val permissionWalkMayShow = LaunchPermissions.walkMayShow(
+        postureChosen = savePostureUi.loaded && savePostureUi.chosen,
+        onHome = onHome,
+        settingsPageOpening = pendingSettingsSubpage != null,
+        alreadyShowing = permissionWalkShowing,
+    )
+    if (permissionWalkMayShow) {
+        SideEffect { permissionWalkShowing = true }
+        LaunchPermissionsHost(
+            alreadyAsked = launchAsked,
+            onAsked = settingsViewModel::markLaunchPermissionsAsked,
+        )
+    }
     // Presence only. Elapsed ticks inside LiveSessionBarHost so a 1 Hz
     // label cannot rebuild this NavHost.
     val showLiveBar = hasLiveSession &&

@@ -15,31 +15,36 @@ package com.sinura.personaltrainer.domain
 object MastheadCopy {
 
     /**
-     * @param day today's slot from the derived week, or null when the week is empty.
-     * @param loggedToday whether a session was finished today. Outranks the leftover
-     * slot week. A still-planned occurrence outranks both: finishing morning cardio
+     * @param day the selected day's slot from the derived week, or null when the week is empty.
+     * @param loggedOnDay whether a session was finished on the selected day. Outranks the
+     * leftover slot week. A still-planned occurrence outranks both: finishing morning cardio
      * must not hide evening strength.
      * @param liftCount how many lifts the day's routine holds, or null when it cannot be
      * resolved. Null drops the count rather than inventing one.
-     * @param agenda today's occurrences. When any row is still startable, that is
+     * @param agenda the selected day's occurrences. When any row is still startable, that is
      * the sentence — not the slot-week leftover.
+     * @param relation where the selected day sits against today. Home browses the whole week,
+     * and "TRAINED TODAY" over last Tuesday was a sentence about the wrong day (D01).
      */
     fun headline(
         day: SuggestedTrainingDay?,
-        loggedToday: Boolean,
+        loggedOnDay: Boolean,
         liftCount: Int?,
         hasPlan: Boolean = true,
         agenda: List<AgendaItem> = emptyList(),
+        relation: DayRelation = DayRelation.TODAY,
     ): String {
         startableHeadline(agenda, liftCount)?.let { return it }
-        if (loggedToday) return "TRAINED TODAY"
+        if (loggedOnDay) return if (relation == DayRelation.TODAY) TRAINED_TODAY else TRAINING_COMPLETE
         // Before the plan question, because the week derivation ALWAYS returns seven days and
         // fills every unpinned one with a rest day. So a brand-new install — no slots, no
         // routines, nothing — produced a non-null day whose isRest was true, and the largest
         // type on the first screen a new user ever sees read REST DAY. The app opened by
         // telling them not to train. The `day == null` branch below could never fire.
-        if (!hasPlan) return "READY TO TRAIN"
-        if (day == null) return "READY TO TRAIN"
+        // A day already behind you is not one to be ready for.
+        if (!hasPlan || day == null) {
+            return if (relation == DayRelation.PAST) NOTHING_LOGGED else READY_TO_TRAIN
+        }
         if (day.isRest) return "REST DAY"
         val noun = nounFor(day.focusKind)
         if (liftCount == null || liftCount <= 0) return noun
@@ -86,6 +91,14 @@ object MastheadCopy {
         return "$noun · $liftCount ${if (liftCount == 1) "LIFT" else "LIFTS"}"
     }
 
+    const val TRAINED_TODAY = "TRAINED TODAY"
+    const val TRAINING_COMPLETE = "TRAINING COMPLETE"
+    const val READY_TO_TRAIN = "READY TO TRAIN"
+    const val NOTHING_LOGGED = "NOTHING LOGGED"
+
+    /** Beside the date line whenever another day of the week is selected. */
+    const val BACK_TO_TODAY = "Back to today"
+
     private fun nounFor(kind: SessionFocusKind): String = when (kind) {
         SessionFocusKind.UPPER -> "UPPER DAY"
         SessionFocusKind.LOWER -> "LOWER BODY DAY"
@@ -94,6 +107,22 @@ object MastheadCopy {
         SessionFocusKind.LEGS -> "LEG DAY"
         SessionFocusKind.FULL_BODY -> "FULL BODY DAY"
         SessionFocusKind.RECOVERY -> "RECOVERY DAY"
+    }
+}
+
+/** Where a selected day sits against today. Home's sentences change with it. */
+enum class DayRelation {
+    PAST,
+    TODAY,
+    FUTURE,
+    ;
+
+    companion object {
+        fun of(epochDay: Long, todayEpochDay: Long): DayRelation = when {
+            epochDay < todayEpochDay -> PAST
+            epochDay > todayEpochDay -> FUTURE
+            else -> TODAY
+        }
     }
 }
 

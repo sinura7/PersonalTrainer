@@ -1,14 +1,18 @@
 package com.sinura.personaltrainer.ui.saveposture
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -20,8 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.semantics.semantics
 import com.sinura.personaltrainer.domain.SavePostureCopy
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -45,34 +53,51 @@ object SavePostureTags {
     const val ACCOUNT_PAUSED = "save-posture-account-paused"
 }
 
+/**
+ * The first-launch question: where does this phone keep your training?
+ *
+ * It is drawn over Home, which stays composed underneath. So the chooser owns every touch that
+ * lands on it (taps on its empty space used to fall through to Home and the tab bar), owns
+ * Back (which used to reach the screen beneath), and is announced as its own pane. TalkBack
+ * isolation needs the screen beneath hidden too — see [hiddenUnderFirstLaunchOverlay].
+ */
 @Composable
 fun SavePostureChooser(
     onChooseAccount: () -> Unit,
     onChooseLocal: () -> Unit,
     onSetUpDrive: () -> Unit,
+    onBack: () -> Unit,
     syncPaused: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
     var revealed by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { revealed = true }
+    BackHandler(onBack = onBack)
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Pit)
+            .consumeAllPointerInput()
+            .semantics { paneTitle = SavePostureCopy.CHOOSER_HEADLINE }
             .testTag(SavePostureTags.ROOT),
     ) {
+        // Scrolls, and clears the system bars: in landscape, or at a large text size on a small
+        // phone, the last two choices used to sit below the screen with no way to reach them.
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .safeDrawingPadding()
                 .padding(Metrics.gutter),
             verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(Metrics.space8 * 5)
+                    // A floor, not a fixed height: the headline and blurb grow with text size.
+                    .heightIn(min = Metrics.space8 * 5)
                     .clip(RoundedCornerShape(Radius.lg))
                     .background(
                         Brush.verticalGradient(
@@ -154,3 +179,23 @@ fun SavePostureChooser(
         }
     }
 }
+
+/**
+ * Takes every pointer event that reaches this node, after its children have had theirs. A
+ * pointer-input node also stops hit-testing at this layer, so nothing drawn beneath it is
+ * touched.
+ */
+private fun Modifier.consumeAllPointerInput(): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            awaitPointerEvent().changes.forEach { it.consume() }
+        }
+    }
+}
+
+/**
+ * Hides what is drawn under the cold-start intro or the chooser from accessibility services.
+ * Home is composed beneath both, and a screen reader could swipe past the chooser into it.
+ */
+fun Modifier.hiddenUnderFirstLaunchOverlay(covered: Boolean): Modifier =
+    if (covered) clearAndSetSemantics { } else this
