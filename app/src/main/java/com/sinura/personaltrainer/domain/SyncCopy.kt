@@ -7,15 +7,22 @@ object SyncCopy {
     const val PAUSED_TITLE = "Sync paused"
     const val PAUSED_BODY =
         "Temper is fixing how Account saves to the cloud, so nothing uploads or downloads " +
-            "for now. Training on this phone is unaffected, and changes you make wait here " +
-            "until sync resumes."
+            "for now. Training on this phone is unaffected."
+
+    /**
+     * Signed in only: the queue is written only with a session, and sign-out empties it
+     * ([SyncStatusPort.abandonOutboxOnSignOut]), so the promise holds only while signed in.
+     */
+    const val PAUSED_QUEUE =
+        "Changes you make wait here while you stay signed in and go up when sync resumes. " +
+            "Signing out clears them; nothing on this phone is deleted."
 
     /** What a pass replicates ([SyncEntityType]) and, as plainly, what it does not. */
     const val SCOPE =
-        "When it runs, Temper Account covers your plan and schedule, routines, cardio and " +
-            "sessions logged after the fact, custom lifts, weigh-ins, goals, and settings. " +
-            "Workouts logged live on the floor stay on this phone for now, so keep a Backup " +
-            "of those."
+        "When it runs, Temper Account covers your weekly schedule, routines, cardio and " +
+            "sessions logged after the fact, custom lifts, weigh-ins, goals, and coach, " +
+            "reminder, and display settings. Workouts logged live on the floor, plan setup, " +
+            "and rest timer settings stay on this phone for now, so keep a Backup of those."
 
     fun ownerFacingError(raw: String?): String {
         val message = raw?.trim().orEmpty()

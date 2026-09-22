@@ -134,7 +134,7 @@ internal fun AccountSection(
         }
 
         if (state.sync.paused) {
-            SyncPausedNotice()
+            SyncPausedNotice(signedIn = state.signedIn)
         } else if (state.signedIn) {
             Text(
                 AccountAuthCopy.SIGNED_IN_CAPTION,
@@ -180,10 +180,11 @@ internal fun AccountSection(
 
 /**
  * Said once, in every configured state: a signed-out owner deciding whether to sign in needs
- * it as much as a signed-in one wondering why nothing uploads.
+ * it as much as a signed-in one wondering why nothing uploads. Only a signed-in owner has a
+ * queue to be told about.
  */
 @Composable
-private fun SyncPausedNotice() {
+private fun SyncPausedNotice(signedIn: Boolean) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -196,6 +197,13 @@ private fun SyncPausedNotice() {
             style = InstrumentType.body,
             color = TextSecondary,
         )
+        if (signedIn) {
+            Text(
+                SyncCopy.PAUSED_QUEUE,
+                style = InstrumentType.body,
+                color = TextSecondary,
+            )
+        }
         Text(
             SyncCopy.SCOPE,
             style = InstrumentType.caption,

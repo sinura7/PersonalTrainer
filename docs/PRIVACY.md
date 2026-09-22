@@ -35,13 +35,16 @@ install, after the short branded intro, you choose Temper Account or saving on
 this phone (with optional Google Drive backup later). You can change that in
 Settings → **How you save**.
 
-**Sync is paused (since 22 September 2026).** A whole-app review found that a
-sync pass could remove rows on the phone — an activity's sets, a routine's
-exercises, the routine name on finished workouts — and that in-app account
-deletion could not finish. Until the fixes ship, the app runs no sync at all:
-nothing is uploaded and nothing is downloaded. Changes you make are kept in the
-on-phone upload queue and go up when sync resumes. Signing in and out still
-works. The rest of this section describes what sync replicates when it runs.
+**Sync is paused (from the Temper Debug build of 22 September 2026).** A
+whole-app review found that a sync pass could remove rows on the phone — an
+activity's sets, a routine's exercises, the link from finished workouts to their
+routine — and that in-app account deletion could not finish. From that build on,
+the app runs no sync at all: nothing is uploaded and nothing is downloaded. While
+you stay signed in, changes you make are kept in the on-phone upload queue and go
+up when sync resumes; signing out clears that queue, and nothing on the phone is
+deleted. Signing in and out still works. Gym-floor Temper release builds do not
+include Temper Account. The rest of this section describes what sync replicates
+when it runs.
 
 When you sign in with email and password:
 
@@ -137,9 +140,9 @@ sign-in can enqueue fresh uploads.
 shipped deleted your synced rows first and then called an Auth endpoint that
 Supabase does not offer to a signed-in user, so it could not finish — and a run
 that got further would have left the account behind with its data gone. Until a
-server-side delete ships, Settings → Account says how to ask instead: open an
-issue on the project repository asking for deletion, **without** your email,
-password, or any token in it. The maintainer arranges a private way to confirm
+server-side delete ships, Settings → Account points to this policy. To ask:
+open an issue on the project repository asking for deletion, **without** your
+email, password, or any token in it. The maintainer arranges a private way to confirm
 which account is yours, then deletes your Auth user and every synced row from
 the Supabase project. Local training data on the phone is **kept** unless you
 remove it yourself.

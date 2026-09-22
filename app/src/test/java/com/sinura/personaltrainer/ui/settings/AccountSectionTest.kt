@@ -63,6 +63,7 @@ class AccountSectionTest {
 
         compose.onNodeWithTag(SettingsTags.ACCOUNT_SYNC_PAUSED).assertExists()
         compose.onNodeWithText(SyncCopy.PAUSED_BODY).assertExists()
+        compose.onNodeWithText(SyncCopy.PAUSED_QUEUE).assertExists()
         compose.onNodeWithText(SyncCopy.SCOPE).assertExists()
         compose.onNodeWithTag(SettingsTags.ACCOUNT_DELETE).assertDoesNotExist()
         compose.onNodeWithTag(SettingsTags.ACCOUNT_DELETE_UNAVAILABLE)
@@ -85,6 +86,8 @@ class AccountSectionTest {
 
         compose.onNodeWithTag(SettingsTags.ACCOUNT_ENTRY).assertExists()
         compose.onNodeWithTag(SettingsTags.ACCOUNT_SYNC_PAUSED).assertExists()
+        // Signed out, nothing is queued, so nothing may be promised as waiting.
+        compose.onNodeWithText(SyncCopy.PAUSED_QUEUE).assertDoesNotExist()
     }
 
     @Test

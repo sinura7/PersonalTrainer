@@ -25,10 +25,12 @@ fun SavePostureHost(
     }
 
     val savePostureUi by viewModel.savePostureUi.collectAsStateWithLifecycle()
+    val account by viewModel.account.uiState.collectAsStateWithLifecycle()
     if (coldStartIntroVisible || !savePostureUi.needsChooser) return
 
     SavePostureChooser(
         modifier = modifier,
+        syncPaused = account.sync.paused,
         onChooseAccount = {
             viewModel.chooseSavePosture(SavePosture.ACCOUNT)
             viewModel.requestSettingsSubpage(SettingsPage.ACCOUNT)

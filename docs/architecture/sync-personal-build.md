@@ -1,6 +1,7 @@
 # Temper Account sync (personal build)
 
 - **Authority:** [ADR-004](ADR-004-offline-core-and-entitlements.md), [ADR-009](ADR-009-backup-privacy-sync.md) (plaintext personal lane; E2EE deferred)
+- **Paused (22 September 2026, whole-app audit packet S0a):** `domain/AccountSyncGate.SYNC_PAUSED` stops every pass. `PausableSyncScheduler` wraps the one WorkManager scheduler, and `SyncCoordinator(paused)` makes `requestSync` and `runPass` no-ops (a job persisted by an older build runs, does nothing, and reports success). Authoring hooks still write `sync_outbox` while signed in. Reason: pull applies rows with Room `REPLACE` / delete+insert, and FK cascades then drop child rows (activity sets, routine lifts, `workout_sessions.routineId`). Everything below describes sync when it runs.
 - **Local-first:** Room on the phone remains gym-floor source of truth. Sync runs only when Temper Account is signed in and the device is online.
 - **Backup:** Google Drive whole-file backup is unchanged and is not sync.
 - **Settings → Account (signed out):** An entry screen (headline + “Open account”) runs before email/password. **Not now** or the subpage back control returns to Settings without signing in. Home, Plan, History, and live workouts are never gated.
@@ -31,7 +32,7 @@ Supabase column names are **snake_case** in PostgREST payloads; Room keeps **cam
 
 - [docs/PRIVACY.md](../PRIVACY.md) and [docs/DATA_SAFETY.md](../DATA_SAFETY.md) describe Temper Account (trusted-server, not E2EE).
 - Settings → **About** and Settings → **Account** open the published privacy policy URL.
-- Settings → **Account** (signed in) → **Delete Temper Account…** — type email to confirm; deletes Supabase Auth user and synced server rows; local Room data stays; outbox cleared.
+- Settings → **Account** (signed in) → **Delete Temper Account…** is **off** (`AccountSyncGate.IN_APP_DELETE_AVAILABLE = false`, packet S0a). It ran blocking HTTP on the main thread and, after deleting the server rows, called `DELETE /auth/v1/user`, which Supabase Auth does not offer to a signed-in user. Settings → Account now points to [PRIVACY.md](../PRIVACY.md), which says how to request deletion. A server-side delete (RPC or Edge Function) brings the button back.
 
 ## Target vs today (ADR-028)
 
