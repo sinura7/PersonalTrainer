@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
+import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
@@ -639,6 +640,15 @@ private fun ActiveWorkoutContent(
                                     )
                                 }
                                 item(key = "stats") {
+                                    val workingSetsToday = remember(session, currentLift.exercise.id) {
+                                        ExerciseFloorStatsPresentation.workingSetsLoggedToday(
+                                            session = session,
+                                            exerciseId = currentLift.exercise.id,
+                                        )
+                                    }
+                                    val statsVisibility = remember(workingSetsToday) {
+                                        ExerciseFloorStatsPresentation.rowVisibility(workingSetsToday)
+                                    }
                                     val stats = remember(session, currentLift.exercise.id, state.lastPerformance, exerciseHistory, unit) {
                                         ExerciseFloorStatsCalculator.of(
                                             session = session,
@@ -653,6 +663,7 @@ private fun ActiveWorkoutContent(
                                         ExerciseStatsRow(
                                             stats = stats,
                                             unit = unit,
+                                            visibility = statsVisibility,
                                             onApplyLastSet = if (entryEnabled) viewModel::applyLastTimeSet else null,
                                         )
                                         HairlineDivider(startIndent = 0.dp)
@@ -754,7 +765,12 @@ private fun ActiveWorkoutContent(
                                     } else {
                                         CurrentSetMark(
                                             mark = SetOrdinalCopy.draftMark(state.draft.isWarmup, workingLogged),
-                                            label = setContext,
+                                            label = SetOrdinalCopy.draftChipLabel(
+                                                isWarmup = state.draft.isWarmup,
+                                                warmupLogged = logged.count { it.isWarmup },
+                                                workingLogged = workingLogged,
+                                                targetSets = currentLift.targetSets,
+                                            ),
                                         )
                                     }
                                     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {

@@ -15,7 +15,7 @@ class LogReceiptCopyTest {
         )
         assertEquals("100 kg × 5 · RPE 8", payload)
         assertEquals(
-            "Set 2 of 4 logged · 100 kg × 5 · RPE 8",
+            "Working set 2 of 4 logged · 100 kg × 5 · RPE 8",
             LogReceiptCopy.line(
                 LogReceiptCopy.ordinal(
                     isWarmup = false,
@@ -27,7 +27,7 @@ class LogReceiptCopyTest {
             ),
         )
         assertEquals(
-            "WU 1",
+            "Warm-up 1",
             LogReceiptCopy.ordinal(
                 isWarmup = true,
                 warmupAfter = 1,

@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.ExerciseFloorStats
+import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.FloorStat
 import com.sinura.personaltrainer.domain.FloorStatCopy
 import com.sinura.personaltrainer.domain.SetCopy
@@ -52,6 +53,7 @@ internal fun ExerciseStatsRow(
     stats: ExerciseFloorStats,
     unit: WeightUnit,
     modifier: Modifier = Modifier,
+    visibility: ExerciseFloorStatsPresentation.RowVisibility = ExerciseFloorStatsPresentation.RowVisibility.FULL,
     /** Copies last time's set into the entry when the Last set cell is showing one. Never logs. */
     onApplyLastSet: ((weightKg: Double, reps: Int) -> Unit)? = null,
 ) {
@@ -74,6 +76,19 @@ internal fun ExerciseStatsRow(
         detail = FloorStatCopy.VOLUME_DETAIL,
         spoken = volumeSpoken,
     )
+    val prepareOnlyLast = !visibility.showBest && !visibility.showVolume
+    if (prepareOnlyLast) {
+        StatCell(
+            stat = stats.lastSet,
+            tag = WorkoutTestTags.STAT_LAST,
+            modifier = modifier
+                .fillMaxWidth()
+                .testTag(WorkoutTestTags.STATS_ROW),
+            alignAcrossCells = false,
+            onClick = onLast,
+        )
+        return
+    }
     if (LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)) {
         // Large text: three full-width rows instead of three narrow columns.
         Column(
@@ -82,10 +97,14 @@ internal fun ExerciseStatsRow(
                 .testTag(WorkoutTestTags.STATS_ROW),
         ) {
             StatCell(stat = stats.lastSet, tag = WorkoutTestTags.STAT_LAST, modifier = Modifier.fillMaxWidth(), alignAcrossCells = false, onClick = onLast)
-            HairlineDivider(startIndent = Metrics.space2)
-            StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.fillMaxWidth(), alignAcrossCells = false)
-            HairlineDivider(startIndent = Metrics.space2)
-            StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.fillMaxWidth(), alignAcrossCells = false)
+            if (visibility.showBest) {
+                HairlineDivider(startIndent = Metrics.space2)
+                StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.fillMaxWidth(), alignAcrossCells = false)
+            }
+            if (visibility.showVolume) {
+                HairlineDivider(startIndent = Metrics.space2)
+                StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.fillMaxWidth(), alignAcrossCells = false)
+            }
         }
     } else {
         Row(
@@ -95,10 +114,14 @@ internal fun ExerciseStatsRow(
                 .testTag(WorkoutTestTags.STATS_ROW),
         ) {
             StatCell(stat = stats.lastSet, tag = WorkoutTestTags.STAT_LAST, modifier = Modifier.weight(1f), alignAcrossCells = true, onClick = onLast)
-            CellRule()
-            StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.weight(1f), alignAcrossCells = true)
-            CellRule()
-            StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.weight(1f), alignAcrossCells = true)
+            if (visibility.showBest) {
+                CellRule()
+                StatCell(stat = stats.bestSet, tag = WorkoutTestTags.STAT_BEST, modifier = Modifier.weight(1f), alignAcrossCells = true)
+            }
+            if (visibility.showVolume) {
+                CellRule()
+                StatCell(stat = volume, tag = WorkoutTestTags.STAT_VOLUME, modifier = Modifier.weight(1f), alignAcrossCells = true)
+            }
         }
     }
 }

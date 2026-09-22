@@ -916,7 +916,7 @@ class ActiveWorkoutViewModelTest {
         withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWarmup.id && it.weightKg == 45.0 } }
         vm.awaitState { !it.logging && it.editingSetId == null }
         assertEquals(firstWarmup.id, vm.logReceipt.value?.setId)
-        assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("WU 1 logged"))
+        assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Warm-up 1 logged"))
         vm.awaitEntryUnlocked()
         vm.editSet(firstWorking.id)
         vm.awaitState { it.editingSetId == firstWorking.id }
@@ -925,14 +925,14 @@ class ActiveWorkoutViewModelTest {
         withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWorking.id && it.weightKg == 75.0 } }
         vm.awaitState { !it.logging && it.editingSetId == null }
         assertEquals(firstWorking.id, vm.logReceipt.value?.setId)
-        assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Set 1 of 3 logged"))
+        assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Working set 1 of 3 logged"))
         vm.awaitEntryUnlocked()
         vm.editSet(firstWorking.id)
         vm.awaitState { it.editingSetId == firstWorking.id }
         vm.setWarmup(true)
         vm.logSetAndSettle()
         withTimeout(TestWaits.FLOW_MS) { vm.logReceipt.first { it?.setId == firstWorking.id && it.isWarmup } }
-        assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("WU 3 logged"))
+        assertTrue(checkNotNull(vm.logReceipt.value).line.startsWith("Warm-up 3 logged"))
         assertEquals(5, checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.size)
     }
 

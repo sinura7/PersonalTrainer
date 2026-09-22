@@ -106,6 +106,20 @@ class ExerciseFloorStatsTest {
     }
 
     @Test
+    fun preparePhaseHidesBestAndVolumeUntilAWorkingSetIsLogged() {
+        assertTrue(ExerciseFloorStatsPresentation.isPreparePhase(0))
+        assertEquals(
+            ExerciseFloorStatsPresentation.RowVisibility.FULL,
+            ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = 1),
+        )
+        val prepare = ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = 0)
+        assertEquals(false, prepare.showBest)
+        assertEquals(false, prepare.showVolume)
+        val session = session(sets = listOf(set(number = 1, weightKg = kg70, reps = 10, at = 10L, warmup = true)))
+        assertEquals(0, ExerciseFloorStatsPresentation.workingSetsLoggedToday(session, "leg-ext"))
+    }
+
+    @Test
     fun compactLinesCoverEveryLoadClass() {
         assertEquals("70 × 10 @ 9", FloorStatCopy.compactSet(weightKg = kg70, reps = 10, loadClass = LoadClass.LOADED, unit = unit, rpe = 9))
         assertEquals("10 reps", FloorStatCopy.compactSet(weightKg = 0.0, reps = 10, loadClass = LoadClass.BODYWEIGHT, unit = unit))

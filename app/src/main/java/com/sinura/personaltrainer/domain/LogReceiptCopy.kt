@@ -36,10 +36,10 @@ object LogReceiptCopy {
         workingAfter: Int,
         targetSets: Int,
     ): String = if (isWarmup) {
-        SetOrdinalCopy.warmup(warmupAfter)
+        SetOrdinalCopy.identityWarmup(warmupAfter)
     } else if (targetSets > 0 && workingAfter > targetSets) {
         SetOrdinalCopy.extra(workingAfter - targetSets)
     } else {
-        SetOrdinalCopy.working(workingAfter, targetSets)
+        SetOrdinalCopy.identityWorking(workingAfter, targetSets)
     }
 }

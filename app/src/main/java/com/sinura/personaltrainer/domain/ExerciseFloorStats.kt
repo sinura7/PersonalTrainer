@@ -93,6 +93,34 @@ object FloorStatCopy {
     }
 }
 
+/**
+ * Which stats cells earn space on the gym floor before the first working set
+ * of this lift is logged today. Richer numbers return once work exists; Details
+ * and history screens are unchanged.
+ */
+object ExerciseFloorStatsPresentation {
+    fun workingSetsLoggedToday(session: WorkoutSession, exerciseId: String): Int =
+        session.setsFor(exerciseId).count { !it.isWarmup }
+
+    fun isPreparePhase(workingSetsLoggedToday: Int): Boolean = workingSetsLoggedToday <= 0
+
+    data class RowVisibility(
+        val showBest: Boolean,
+        val showVolume: Boolean,
+    ) {
+        companion object {
+            val FULL = RowVisibility(showBest = true, showVolume = true)
+        }
+    }
+
+    fun rowVisibility(workingSetsLoggedToday: Int): RowVisibility =
+        if (isPreparePhase(workingSetsLoggedToday)) {
+            RowVisibility(showBest = false, showVolume = false)
+        } else {
+            RowVisibility.FULL
+        }
+}
+
 object ExerciseFloorStatsCalculator {
     /**
      * @param priorHistory every finished working set of this lift from other sessions,

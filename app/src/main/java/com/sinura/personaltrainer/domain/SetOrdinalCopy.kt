@@ -5,15 +5,23 @@ package com.sinura.personaltrainer.domain
  *
  * The repository still writes one contiguous [SetLog.setNumber] through
  * warm-ups, working sets, and extras. That storage order is the record.
- * What the lifter reads is derived: warm-ups are WU n, working sets are
- * Set n of the target, and anything past the target is Extra n — never
- * "Set 6 of 5".
+ * What the lifter reads is derived: warm-ups are Warm-up n on the identity
+ * (WU n on history chips), working sets are Working set n of the target on
+ * the identity (Set n of m on chips), and anything past the target is Extra n
+ * — never "Set 6 of 5".
  */
 object SetOrdinalCopy {
+    /** Compact label on set-history chips and edit menus. */
     fun warmup(n: Int): String = "WU $n"
 
     fun working(n: Int, targetSets: Int): String =
         if (targetSets > 0) "Set $n of $targetSets" else "Set $n"
+
+    /** Full phrase on the exercise identity, log receipts, and the current-set chip. */
+    fun identityWarmup(n: Int): String = "Warm-up $n"
+
+    fun identityWorking(n: Int, targetSets: Int): String =
+        if (targetSets > 0) "Working set $n of $targetSets" else "Working set $n"
 
     fun extra(n: Int): String = "Extra $n"
 
@@ -32,10 +40,25 @@ object SetOrdinalCopy {
 
     /**
      * The set about to be logged, as the exercise identity states it:
-     * `Set 3 of 4` / `WU 2` / `Extra 1`. Rendered in sentence case, and also
-     * the label under the current chip in the set history.
+     * `Working set 3 of 4` / `Warm-up 2` / `Extra 1`. Also the label under
+     * the current chip in the set history.
      */
     fun draftLine(
+        isWarmup: Boolean,
+        warmupLogged: Int,
+        workingLogged: Int,
+        targetSets: Int,
+    ): String {
+        if (isWarmup) return identityWarmup(warmupLogged.coerceAtLeast(0) + 1)
+        val nextWorking = workingLogged.coerceAtLeast(0) + 1
+        if (targetSets > 0 && workingLogged >= targetSets) {
+            return extra(workingLogged - targetSets + 1)
+        }
+        return identityWorking(nextWorking, targetSets)
+    }
+
+    /** Compact ordinal under the ringed current-set chip; identity uses [draftLine]. */
+    fun draftChipLabel(
         isWarmup: Boolean,
         warmupLogged: Int,
         workingLogged: Int,
@@ -73,5 +96,17 @@ object SetOrdinalCopy {
                 }
             }
         }
+    }
+
+    fun identityLine(
+        isWarmup: Boolean,
+        warmupIndex: Int,
+        workingIndex: Int,
+        targetSets: Int,
+        pastTarget: Boolean,
+    ): String = when {
+        isWarmup -> identityWarmup(warmupIndex)
+        pastTarget -> extra(workingIndex - targetSets)
+        else -> identityWorking(workingIndex, targetSets)
     }
 }

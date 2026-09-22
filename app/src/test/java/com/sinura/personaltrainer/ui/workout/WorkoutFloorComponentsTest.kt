@@ -20,6 +20,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
+import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.FloorStepper
@@ -105,7 +106,7 @@ class WorkoutFloorComponentsTest {
                 number = 1,
                 total = 2,
                 workingLogged = 2,
-                setContext = "Set 3 of 3",
+                setContext = "Working set 3 of 3",
                 draftWarmup = false,
                 onWarmup = { warmup = it },
                 onOpenSwitcher = { switched += 1 },
@@ -116,7 +117,7 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithText("MACHINE").assertIsDisplayed()
         // The identity merges its words into one spoken button; read the parts unmerged.
         compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true).assertIsDisplayed()
-        compose.onNodeWithText("2/3 working sets", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("2/3 working sets", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
         compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).assertIsNotSelected().performClick()
         assertEquals(true, warmup)
@@ -153,6 +154,38 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithText("—").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.STAT_LAST).performClick()
         assertEquals(kg70 to 9, applied)
+    }
+
+    @Test
+    fun preparePhaseStatsRowShowsLastTimeOnly() {
+        val previous = ExerciseSessionSummary(
+            sessionId = "old",
+            sessionName = "Lower B",
+            performedAtMs = 1L,
+            topSet = null,
+            workingSets = 1,
+            volumeKg = 0.0,
+            estimatedOneRepMaxKg = null,
+            sets = listOf(ExerciseSetRecord(setId = "a", sessionId = "old", weightKg = kg70, reps = 9, completedAt = 1L, rpe = 8)),
+        )
+        val stats = ExerciseFloorStatsCalculator.of(
+            session = session(emptyList(), targetSets = 3),
+            exerciseId = "leg-ext",
+            lastPerformance = previous,
+            priorHistory = previous.sets,
+            unit = unit,
+        )
+        show {
+            ExerciseStatsRow(
+                stats = stats,
+                unit = unit,
+                visibility = ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = 0),
+            )
+        }
+        compose.onNodeWithText("70 × 9").assertIsDisplayed()
+        compose.onNodeWithText("Last time · RPE 8").assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.STAT_BEST).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.STAT_VOLUME).assertDoesNotExist()
     }
 
     @Test
@@ -373,7 +406,7 @@ class WorkoutFloorComponentsTest {
                 unit = unit,
                 editingSetId = null,
                 receiptSetId = "set-2",
-                current = CurrentSetMark(mark = "3", label = "Set 3 of 3"),
+                current = CurrentSetMark(mark = "3", label = "Working set 3 of 3"),
                 showAddSet = true,
                 enabled = true,
                 onEdit = { edited = it },
