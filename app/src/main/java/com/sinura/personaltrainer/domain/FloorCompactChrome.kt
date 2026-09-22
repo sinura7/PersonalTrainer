@@ -4,7 +4,7 @@ package com.sinura.personaltrainer.domain
  * Gym-floor chrome after the live-58 compact floor.
  *
  * Phone height is the scarce resource. The expanded lift card is the
- * one current-lift copy (still, number, name, 0/4, overflow ⋮). Weight
+ * one current-lift copy (still, name, one set-position line, overflow ⋮). Weight
  * and reps are stacked stepper plates with tap-to-type, not live wheels
  * and not a side-by-side pair. The THIS LIFT dock strip stays off. RPE
  * chips belong to a working-set draft, not rest. Log set is the one filled Volt.

@@ -9,8 +9,8 @@ import org.junit.Test
 
 /**
  * W-06 on the redesigned floor: the current exercise's identity carries a still and
- * its working-set progress (the ordinal is spoken there and shown on the header's
- * progress line); switcher rows carry a still, set progress, and a rest badge.
+ * one set-position line from [SetOrdinalCopy] (no duplicate x/y working sets); switcher
+ * rows carry a still, set progress, and a rest badge.
  */
 class WorkoutLiftChipTest {
     @Test
@@ -19,9 +19,9 @@ class WorkoutLiftChipTest {
         assertTrue(identity.contains("CurrentLiftCopy.cardSpoken("))
         assertTrue(identity.contains("number = number,"))
         assertTrue(identity.contains("total = total,"))
-        assertTrue(identity.contains("CurrentLiftCopy.workingProgress(workingLogged, lift.targetSets)"))
-        assertTrue(identity.contains("working sets"))
-        assertTrue(identity.contains("WorkoutTestTags.liftSets"))
+        assertTrue(identity.contains("includeWorkingProgress = false"))
+        assertTrue(identity.contains("setContext"))
+        assertFalse(identity.contains("working sets"))
         assertTrue(identity.contains("ExerciseThumb("))
         assertTrue(identity.contains("Metrics.exerciseHeroImage"))
         assertTrue(identity.contains("Metrics.workoutIdentityImage"))

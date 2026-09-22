@@ -27,6 +27,17 @@ class CurrentLiftCopyTest {
         assertTrue(spoken.contains("2 of 4 done"))
         // ADR-027: the identity button is this line, then the set context, then Switch exercise.
         assertEquals("Current. Back Squat. Lift 1 of 6. 2 of 4 done. Barbell", spoken)
+        val identityOnly = CurrentLiftCopy.cardSpoken(
+            name = "Back Squat",
+            number = 1,
+            total = 6,
+            workingLogged = 2,
+            targetSets = 4,
+            equipmentLabel = "Barbell",
+            meaning = WeightMeaning.LIFTED,
+            includeWorkingProgress = false,
+        )
+        assertEquals("Current. Back Squat. Lift 1 of 6. Barbell", identityOnly)
     }
 
     @Test

@@ -58,14 +58,21 @@ object CurrentLiftCopy {
         targetSets: Int,
         equipmentLabel: String,
         meaning: WeightMeaning,
+        /**
+         * When false, working-set progress is omitted because the floor identity
+         * speaks [set position][SetOrdinalCopy.draftLine] on the next phrase.
+         */
+        includeWorkingProgress: Boolean = true,
     ): String = buildString {
         append(CURRENT)
         append(". ")
         append(name)
         append(". ")
         append(SessionOrderCopy.liftIndex(number, total))
-        append(". ")
-        append(heroProgress(workingLogged, targetSets))
+        if (includeWorkingProgress) {
+            append(". ")
+            append(heroProgress(workingLogged, targetSets))
+        }
         val secondary = secondaryLine(equipmentLabel, meaning)
         if (secondary.isNotBlank()) {
             append(". ")

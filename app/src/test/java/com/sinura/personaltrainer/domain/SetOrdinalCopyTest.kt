@@ -32,9 +32,17 @@ class SetOrdinalCopyTest {
     }
 
     @Test
+    fun identityLinesAreFullPhrasesWhileChipsStayCompact() {
+        assertEquals("Warm-up 2", SetOrdinalCopy.identityWarmup(2))
+        assertEquals("Working set 3 of 4", SetOrdinalCopy.identityWorking(3, 4))
+        assertEquals("WU 2", SetOrdinalCopy.warmup(2))
+        assertEquals("Set 3 of 4", SetOrdinalCopy.working(3, 4))
+    }
+
+    @Test
     fun draftLineNamesTheSetAboutToBeLogged() {
         assertEquals(
-            "WU 1",
+            "Warm-up 1",
             SetOrdinalCopy.draftLine(
                 isWarmup = true,
                 warmupLogged = 0,
@@ -43,7 +51,7 @@ class SetOrdinalCopyTest {
             ),
         )
         assertEquals(
-            "WU 2",
+            "Warm-up 2",
             SetOrdinalCopy.draftLine(
                 isWarmup = true,
                 warmupLogged = 1,
@@ -52,7 +60,7 @@ class SetOrdinalCopyTest {
             ),
         )
         assertEquals(
-            "Set 3 of 4",
+            "Working set 3 of 4",
             SetOrdinalCopy.draftLine(
                 isWarmup = false,
                 warmupLogged = 2,
@@ -70,7 +78,7 @@ class SetOrdinalCopyTest {
             ),
         )
         assertEquals(
-            "Set 1",
+            "Working set 1",
             SetOrdinalCopy.draftLine(
                 isWarmup = false,
                 warmupLogged = 0,
