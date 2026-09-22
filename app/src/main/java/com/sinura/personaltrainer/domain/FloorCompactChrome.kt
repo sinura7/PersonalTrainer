@@ -118,6 +118,17 @@ object FloorCompactChrome {
     fun progressionKickerInline(): Boolean = true
 
     /**
+     * Before the first working set of the lift, or when the draft already matches the
+     * suggestion, the Next-set coach is a one-line strip (numbers, Why?, Apply) instead
+     * of the tall card with delta, reason, and inline evidence.
+     */
+    fun coachUsesCompactStrip(preparePhase: Boolean, entryMatchesSuggestion: Boolean): Boolean =
+        preparePhase || entryMatchesSuggestion
+
+    /** Working | Warm-up uses dense chips so the toggle does not outrank the hero numerals. */
+    fun setTypeToggleUsesCompactChips(): Boolean = true
+
+    /**
      * Today's sets are a strip of chips under the recommendation, with the current set
      * ringed and Add set as the last chip once the plan is met. Edit opens the full sheet.
      */

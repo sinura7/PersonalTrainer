@@ -102,6 +102,7 @@ object WorkoutTestTags {
     const val MICRO_REC_WHY = "workout-micro-rec-why"
     const val COACH_EVIDENCE_CHIP = "workout-coach-evidence-chip"
     const val NEXT_SET = "workout-next-set"
+    const val NEXT_SET_COMPACT = "workout-next-set-compact"
     const val NEXT = "workout-next"
     const val DOCK_FINISH = "workout-dock-finish"
     const val ANOTHER_SET = "workout-another-set"
@@ -746,6 +747,10 @@ private fun ActiveWorkoutContent(
                                             rpe = state.draft.rpe,
                                             unit = unit,
                                         )
+                                        val coachCompact = FloorCompactChrome.coachUsesCompactStrip(
+                                            preparePhase = workingLogged == 0,
+                                            entryMatchesSuggestion = applied,
+                                        )
                                         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
                                             HairlineDivider(startIndent = 0.dp)
                                             NextSetRecommendation(
@@ -755,6 +760,7 @@ private fun ActiveWorkoutContent(
                                                 applied = applied,
                                                 enabled = entryEnabled,
                                                 onApply = viewModel::applyMicroRec,
+                                                compact = coachCompact,
                                             )
                                         }
                                     }
