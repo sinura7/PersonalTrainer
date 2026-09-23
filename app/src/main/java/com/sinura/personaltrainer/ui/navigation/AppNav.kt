@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +77,7 @@ import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.CustomWeekLaunch
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
+import com.sinura.personaltrainer.domain.LaunchPermissions
 import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.HairlineDivider
@@ -206,6 +208,16 @@ internal val shippingTabs = listOf(
 )
 
 /**
+ * Where the first-open permission walk may put its dialogs up: any tab but Settings, where
+ * Account or Drive setup may still be open, and no pushed screen. A null route never counts.
+ * The back stack is collected with a null initial value, so after a rotation or a text-size
+ * change on Settings the first frame has no route at all; treating that as Home put the walk
+ * over the sign-in form. On a cold start it costs one frame.
+ */
+internal fun routeAllowsPermissionWalk(route: String?): Boolean =
+    route != null && shippingTabs.any { it.route != Route.Settings && it.matchPattern == route }
+
+/**
  * Where the start sheet's actions land. Body, History, and Plan share
  * one mapping so a host never invents a mode string. `past` is not
  * cardio or mixed, so the composer reads it as STRENGTH — "Log a past
@@ -308,12 +320,6 @@ fun PersonalTrainerNav(
     }
     val launchAsked by settingsViewModel.launchPermissionsAsked.collectAsStateWithLifecycle()
     val pendingSettingsSubpage by settingsViewModel.pendingSettingsSubpage.collectAsStateWithLifecycle()
-    if (gate == OnboardingGate.APP && savePostureUi.loaded && savePostureUi.chosen) {
-        LaunchPermissionsHost(
-            alreadyAsked = launchAsked,
-            onAsked = settingsViewModel::markLaunchPermissionsAsked,
-        )
-    }
 
     val reduceMotion = LocalReducedMotion.current
     val screenEnter = if (reduceMotion) EnterTransition.None else ScreenEnter
@@ -344,6 +350,20 @@ fun PersonalTrainerNav(
     val finishedActivityNavigation by liveBarViewModel.finishedActivityNavigation.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    var permissionWalkShowing by rememberSaveable { mutableStateOf(false) }
+    val permissionWalkMayShow = LaunchPermissions.walkMayShow(
+        postureChosen = savePostureUi.loaded && savePostureUi.chosen,
+        onTabAwayFromSettings = routeAllowsPermissionWalk(route = currentDestination?.route),
+        settingsPageOpening = pendingSettingsSubpage != null,
+        alreadyShowing = permissionWalkShowing,
+    )
+    if (permissionWalkMayShow) {
+        SideEffect { permissionWalkShowing = true }
+        LaunchPermissionsHost(
+            alreadyAsked = launchAsked,
+            onAsked = settingsViewModel::markLaunchPermissionsAsked,
+        )
+    }
     // Presence only. Elapsed ticks inside LiveSessionBarHost so a 1 Hz
     // label cannot rebuild this NavHost.
     val showLiveBar = hasLiveSession &&

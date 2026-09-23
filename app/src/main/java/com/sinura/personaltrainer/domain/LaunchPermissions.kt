@@ -31,6 +31,21 @@ object LaunchPermissionCopy {
 object LaunchPermissions {
     fun shouldAsk(alreadyAsked: Boolean): Boolean = !alreadyAsked
 
+    /**
+     * Whether the walk may put its first dialog up now.
+     *
+     * Choosing Account or Drive on the first-launch chooser saves the choice and opens Settings
+     * together, and the walk used to start on the save — over the sign-in form. It now waits
+     * until the user is on a tab other than Settings with no Settings page on its way. Once
+     * showing it stays, so leaving mid-walk does not drop the steps still to come.
+     */
+    fun walkMayShow(
+        postureChosen: Boolean,
+        onTabAwayFromSettings: Boolean,
+        settingsPageOpening: Boolean,
+        alreadyShowing: Boolean,
+    ): Boolean = alreadyShowing || (postureChosen && onTabAwayFromSettings && !settingsPageOpening)
+
     fun nextStep(
         notificationsGranted: Boolean,
         exactAlarmsGranted: Boolean,

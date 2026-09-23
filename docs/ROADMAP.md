@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 23 Sep 2026 — Whole-app audit packet Q1: the first-launch chooser is a real
+> gate — taps, Back and TalkBack no longer reach Home beneath it, and it scrolls
+> so every choice is reachable in landscape and at large text. After Account or
+> Drive, the permission prompts wait until you leave Settings instead of landing
+> on the sign-in form. Home's headline follows the selected day: "TRAINING
+> COMPLETE" for a finished past day, "TRAINED TODAY" only today, and "Back to
+> today" beside the date when browsing the week (design audit D01).
+>
 > 22 Sep 2026 — Whole-app audit packet S0b: the Temper Account pull now updates
 > rows in place, so a pulled workout, template or routine keeps its sets, blocks,
 > lifts and history link, and a set already on the phone no longer stalls the
