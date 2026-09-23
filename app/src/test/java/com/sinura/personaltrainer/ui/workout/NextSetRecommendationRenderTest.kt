@@ -49,8 +49,8 @@ import org.robolectric.annotation.Config
  * val NEXT_SET_KICKER = "Next set"`, `contentDescription = "Next set, $numbers"`, `text = if
  * (applied) "Applied" else "Apply"`, `enabled = enabled && !applied`, `title = "Why this
  * set"`, `ProgressionKickerCopy.PLUS_REP to "+1 rep"`). W1b wired the coach goal through to
- * the workout, which reaches exactly the reason line this card reads: a rec from a coach call
- * carries that call's words, goal included, and the card shows them as given.
+ * the workout: a rec from a coach call carries that call's words, goal included, and the Why
+ * sheet's Rule line shows them. The card's two-line reason keeps the rule and Target RPE.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
@@ -119,7 +119,6 @@ class NextSetRecommendationRenderTest {
         rec = recAfter(set(reps = 10, rpe = 7))
         shown("+5")
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).assertTextEquals("75 lb × 10")
-        // A rec with no coach words of its own reads the goal-free reason.
         shown("Had more in you — add weight · Target RPE 7")
         // The first set has nothing to move from, so there is no change line.
         rec = recAfter()
@@ -130,14 +129,18 @@ class NextSetRecommendationRenderTest {
     }
 
     @Test
-    fun aRecFromACoachCallShowsThatCallsWordsGoalIncluded() {
-        // The floor's coach call made with a Strength goal: the card shows its reason as the
-        // call gave it, and does not rebuild it without the goal (audit C-1).
+    fun aCoachCallsGoalWordsAreOnTheWhySheetAndTheCardKeepsTargetRpe() {
+        // The floor's coach call made with a Strength goal (audit C-1). Two caption lines beside
+        // the numbers cannot hold the goal's words and Target RPE too: with them the line was
+        // cut mid-word and Target RPE was lost. So the card keeps the rule and Target RPE, and
+        // the Why sheet's Rule line carries the call's own words.
         val strength = "Had more in you — add weight · strength bias keeps reps before big jumps"
         rec = recAfter(set(reps = 10, rpe = 7)).copy(explanation = strength)
         showCard()
-        shown("$strength · Target RPE 7")
-        compose.onAllNodesWithText("Had more in you — add weight · Target RPE 7", useUnmergedTree = true).assertCountEquals(0)
+        shown("Had more in you — add weight · Target RPE 7")
+        compose.onAllNodesWithText("strength bias", substring = true, useUnmergedTree = true).assertCountEquals(0)
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        compose.onNodeWithText("Rule: $strength", substring = true).assertIsDisplayed()
     }
 
     @Test

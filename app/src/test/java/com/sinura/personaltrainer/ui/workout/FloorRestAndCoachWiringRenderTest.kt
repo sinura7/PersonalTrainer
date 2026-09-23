@@ -417,11 +417,15 @@ class FloorRestAndCoachWiringRenderTest {
         vm.setWeight(FLOOR_KG70)
         compose.waitForIdle()
         scrollTo(WorkoutTestTags.NEXT_SET)
+        // The card keeps the rule and Target RPE, drawn whole: text found by its words can
+        // still be cut on screen, so the last drawn line is checked too.
+        assertReasonDrawnWhole("Had more in you — add weight · Target RPE 7")
         // The goal set in Settings reaches the floor (audit C-1, W1b): a Strength lifter reads
-        // the strength reason on the card, not the goal-free one it used to get.
-        compose.onNode(
-            hasText("Had more in you — add weight · strength bias keeps reps before big jumps · Target RPE 7"),
-            useUnmergedTree = true,
+        // the strength reason on the Why sheet, not the goal-free one it used to get.
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        compose.onNodeWithText(
+            "Rule: Had more in you — add weight · strength bias keeps reps before big jumps",
+            substring = true,
         ).assertIsDisplayed()
     }
 
@@ -434,8 +438,16 @@ class FloorRestAndCoachWiringRenderTest {
         vm.setWeight(FLOOR_KG70)
         compose.waitForIdle()
         scrollTo(WorkoutTestTags.NEXT_SET)
-        compose.onNode(hasText("Had more in you — add weight · Target RPE 7"), useUnmergedTree = true).assertIsDisplayed()
+        assertReasonDrawnWhole("Had more in you — add weight · Target RPE 7")
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        compose.onNodeWithText("Rule: Had more in you — add weight\n", substring = true).assertIsDisplayed()
         compose.onAllNodesWithText("strength bias", substring = true, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    private fun assertReasonDrawnWhole(reason: String) {
+        val layout = compose.onNode(hasText(reason), useUnmergedTree = true).assertIsDisplayed().textLayout()
+        assertTrue("\"$reason\" is not cut short", !layout.isLineEllipsized(layout.lineCount - 1))
+        assertTrue("\"$reason\" is laid out whole", !layout.hasVisualOverflow)
     }
 
     @Test

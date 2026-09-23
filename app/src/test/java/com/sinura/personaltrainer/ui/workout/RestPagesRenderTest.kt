@@ -2,6 +2,9 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
 import android.content.Context
+import android.view.HapticFeedbackConstants
+import android.view.View
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -22,25 +25,30 @@ import com.sinura.personaltrainer.timer.RestLockScreen
 import com.sinura.personaltrainer.timer.RestLockTags
 import com.sinura.personaltrainer.timer.RestTimerController
 import com.sinura.personaltrainer.timer.RestTimerStore
+import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * The full rest page and the lock-screen rest page, composed for real: while rest runs, both
  * offer the dock card's −15 / +15 / Skip in its words, its order and its 15-second step
  * (design audit D11, W1b). Each used to spell its own ("−15s" and "Subtract 15 seconds" on
- * the page; "−15s", Skip, "+15s" with nothing for TalkBack on the lock screen), and neither
- * page was composed by any test. The page also names the planned length the card's way,
- * "Planned rest · 2:00", apart from the time left.
+ * the page; "−15s", Skip, "+15s" with nothing for TalkBack on the lock screen), and no JVM
+ * test composed either page. The page also names the planned length the card's way, "Planned
+ * rest · 2:00" apart from the time left, and says it without the dot.
  */
 @RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
 class RestPagesRenderTest {
     @get:Rule val compose = createComposeRule()
@@ -48,11 +56,13 @@ class RestPagesRenderTest {
     private val nudges = mutableListOf<Int>()
     private var skips = 0
     private var starts = 0
+    private lateinit var view: View
 
     private val isButton = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)
 
     private fun showRestPage(running: Boolean, fontScale: Float = 1f) {
         compose.showFloor(fontScale = fontScale) {
+            view = LocalView.current
             RestFloorBody(
                 rest = RestTimerUiState(remainingSeconds = 92, totalSeconds = 120, running = running),
                 floor = RestFloorContext(exerciseName = "Leg extension", lastSetLine = null, sessionTargetLine = null),
@@ -85,22 +95,34 @@ class RestPagesRenderTest {
         if (oneRow) {
             assertEquals("one row", 1, bounds.map { it.top }.toSet().size)
             assertEquals("minus, plus, then Skip, left to right", bounds.map { it.left }.sorted(), bounds.map { it.left })
+            // Three equal thumb-sized buttons sharing the row, not three labels' widths.
+            val widths = bounds.map { (it.right - it.left).value }
+            assertTrue("each at least 48 dp wide, were $widths", widths.all { it >= Metrics.touchMin.value })
+            assertTrue("equal widths, were $widths", widths.all { abs(it - widths.first()) <= 1f })
         } else {
             assertTrue("minus sits left of plus", bounds[0].right <= bounds[1].left)
             assertTrue("Skip drops under them", bounds[2].top >= bounds[0].bottom)
         }
         minus.performClick()
+        assertEquals("−15 ticks", HapticFeedbackConstants.CLOCK_TICK, lastHaptic())
         plus.performClick()
         assertEquals(listOf(-15, 15), nudges)
         skip.performClick()
         assertEquals(1, skips)
+        // Skip ends rest, so it gives the firmer confirm, the dock card's Skip's.
+        val skipHaptic = lastHaptic()
+        compose.runOnUiThread { Haptics.commit(view) }
+        assertEquals("Skip confirms", lastHaptic(), skipHaptic)
     }
+
+    private fun lastHaptic(): Int = Shadows.shadowOf(view).lastHapticFeedbackPerformed()
 
     @Test
     fun theRestPageRunsTheDockCardsThreeBesideThePlannedLength() {
         showRestPage(running = true)
         assertTheRunningThree(minusTag = RestFloorTags.MINUS, plusTag = RestFloorTags.PLUS, skipTag = RestFloorTags.SKIP)
-        compose.onNode(hasText("Planned rest · 2:00"), useUnmergedTree = true).assertIsDisplayed()
+        val planned = compose.onNode(hasText("Planned rest · 2:00"), useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(listOf("Planned rest 2:00"), planned.spokenDescriptions())
         compose.onAllNodesWithText("−15s", useUnmergedTree = true).assertCountEquals(0)
         compose.onAllNodesWithText("+15s", useUnmergedTree = true).assertCountEquals(0)
     }
@@ -138,6 +160,7 @@ class RestPagesRenderTest {
         try {
             controller.start(120, "session-1")
             compose.showFloor {
+                view = LocalView.current
                 RestLockScreen(
                     controller = controller,
                     finishedLaunch = false,

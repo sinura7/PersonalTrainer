@@ -14,7 +14,15 @@ object RpeCopy {
      * a lifter uses, and "optional" says the set logs without it. The help keeps the term.
      */
     const val LABEL = "Effort · optional"
+
+    /**
+     * The heading where [LABEL] would not fit beside the help mark and Clear: large text or a
+     * small phone. TalkBack still hears [LABEL_SPOKEN].
+     */
+    const val SHORT_LABEL = "Effort"
+    const val LABEL_SPOKEN = "Effort, optional"
     const val HELP_SPOKEN = "Effort help"
+    const val CLEAR = "Clear"
     const val HELPER = "6 = four reps left · 10 = max"
     const val HELPER_DISMISS = "Got it"
     const val WARMUP_REASON = "Warm-up"

@@ -27,6 +27,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -224,7 +226,14 @@ internal fun RestFloorBody(
                     floor.sessionTargetLine?.let {
                         Text(it, modifier = Modifier.testTag(RestFloorTags.NEXT), style = InstrumentType.body, color = TextSecondary)
                     }
-                    Text(RestIdleCopy.planned(RestTimer.formatClock(rest.totalSeconds)), style = InstrumentType.body, color = TextSecondary)
+                    val plannedClock = RestTimer.formatClock(rest.totalSeconds)
+                    Text(
+                        RestIdleCopy.planned(plannedClock),
+                        // Read without the dot.
+                        modifier = Modifier.semantics { contentDescription = RestIdleCopy.plannedSpoken(plannedClock) },
+                        style = InstrumentType.body,
+                        color = TextSecondary,
+                    )
                 }
                 if (!rest.running && !completed) RestPresetChips(
                     selectedSeconds = rest.totalSeconds, onSelect = onSelectPreset,

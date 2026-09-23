@@ -4,9 +4,9 @@ import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WorkoutSession
-import com.sinura.personaltrainer.domain.coach.CoachEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -153,9 +153,9 @@ class WorkoutMicroRecTest {
         assertEquals("Had more in you — add weight", general.explanationShort)
         assertEquals("Had more in you — add weight · strength bias keeps reps before big jumps", strength.explanationShort)
         assertNotEquals(general.explanationShort, strength.explanationShort)
-        // The numbers are the same; the rec carries the call's own words to the Next-set card.
+        // The numbers are the same; the rec carries the call's own words to the Why sheet.
         assertEquals(general.toMicroRec().copy(explanation = null), strength.toMicroRec().copy(explanation = null))
         assertEquals(strength.explanationShort, strength.toMicroRec().explanation)
-        assertEquals(strength.explanationShort, CoachEngine.fromMicroRec(strength.toMicroRec()).explanationShort)
+        assertEquals("Rule: ${strength.explanationShort}", SetMicroRecCopy.whyLines(strength.toMicroRec()).first { it.startsWith("Rule: ") })
     }
 }

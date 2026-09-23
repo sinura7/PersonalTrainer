@@ -24,10 +24,17 @@ object RuleTraceCopy {
      * Why sheet order (report §5.12): Call, Evidence, Rule, Threshold, Rest,
      * Alternatives. Actions live on the dialog, not in these lines.
      */
-    fun whySheet(trace: RuleTrace): List<String> = buildList {
+    /**
+     * The Why sheet's lines for [trace]. [ruleLine], when given, is the coach's own words for
+     * the rule (the lifter's training goal included) in place of the goal-free rule the trace
+     * recorded.
+     */
+    fun whySheet(trace: RuleTrace, ruleLine: String? = null): List<String> = buildList {
         factValue(trace, "call")?.let { add("Call: $it") }
         factValue(trace, "lastSet")?.let { add("Evidence: Last set: $it") }
-        val rule = factValue(trace, "rule") ?: reasonLabel(trace.reasonCodes.firstOrNull().orEmpty())
+        val rule = ruleLine?.takeIf { it.isNotBlank() }
+            ?: factValue(trace, "rule")
+            ?: reasonLabel(trace.reasonCodes.firstOrNull().orEmpty())
         if (rule.isNotBlank()) add("Rule: $rule")
         trace.thresholds.firstOrNull()?.let { threshold ->
             add("Threshold: ${thresholdLabel(threshold.name)}: ${threshold.value}")

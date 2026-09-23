@@ -51,6 +51,11 @@ class RestIdleCopyTest {
         assertEquals("Warm-up", RestIdleCopy.WARMUP_KICKER)
         assertEquals("Warm-ups do not start rest", RestIdleCopy.afterWarmupHint())
         val spoken = RestIdleCopy.spoken(clock = "1:00", afterWarmup = true)
+        assertEquals("Rest is not running. Warm-ups do not start rest. Planned rest 1:00. Start starts rest only.", spoken)
+        assertEquals(
+            "Rest is not running. Warm-ups do not start rest. Planned rest 1:00. Tap to change duration.",
+            RestIdleCopy.dockSpoken(clock = "1:00", afterWarmup = true),
+        )
         assertTrue(spoken, spoken.contains("Warm-ups do not start rest"))
         assertFalse(spoken, spoken.contains("Start next"))
         assertTrue(spoken, spoken.contains("Start starts rest only"))

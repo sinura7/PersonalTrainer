@@ -34,6 +34,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.ui.theme.Metrics
 import kotlin.math.abs
@@ -96,10 +97,12 @@ class RpeSelectorRenderTest {
     @Test
     fun effortIsFiveEqualRadioChoicesWithTheirMeaningSpoken() {
         showTrack()
-        // "RPE" alone was unfamiliar (D12): the heading names effort and says it can be left.
-        compose.onNode(hasText("EFFORT · OPTIONAL"), useUnmergedTree = true)
+        // "RPE" alone was unfamiliar (D12): the heading names effort and says it can be left,
+        // aloud without the dot.
+        val heading = compose.onNode(hasText("EFFORT · OPTIONAL"), useUnmergedTree = true)
             .assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        assertEquals(listOf("Effort, optional"), heading.spokenDescriptions())
         compose.onAllNodesWithText("RPE", useUnmergedTree = true).assertCountEquals(0)
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK)
             .assertIsDisplayed()
@@ -170,8 +173,9 @@ class RpeSelectorRenderTest {
         assertTrue("the meaning sits under the track", meaning.getBoundsInRoot().top >= track.bottom)
         compose.onAllNodesWithText("Easy").assertCountEquals(0)
         compose.onAllNodesWithText("Max effort").assertCountEquals(0)
-        // In the ends' row, so choosing costs no height on every set.
+        // In the ends' row, so choosing costs no height on every set; the heading stays put.
         assertEquals(height, compose.onNodeWithTag(HOST).getBoundsInRoot().height)
+        compose.onNode(hasText("EFFORT · OPTIONAL"), useUnmergedTree = true).assertIsDisplayed()
         // The chosen chip already says this aloud; the line is not a second stop for TalkBack.
         meaning.assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.HideFromAccessibility))
         rpe = 10
@@ -180,6 +184,46 @@ class RpeSelectorRenderTest {
         rpe = null
         compose.onNodeWithText("Easy").assertIsDisplayed()
         compose.onAllNodesWithTag(WorkoutTestTags.RPE_MEANING, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun atLargeTextChoosingAnEffortKeepsClearWholeAndNothingMoves() = assertChoosingAtLargeText(LogLoopScale.STACK_WELLS_FROM)
+
+    @Test
+    fun atTheLargestTextChoosingAnEffortKeepsClearWholeAndNothingMoves() = assertChoosingAtLargeText(2f)
+
+    @Test
+    fun onASmallPhoneAtTheLargestTextHelpAndClearKeepTheirSize() {
+        rpe = 9
+        showTrack(fontScale = 2f, screenWidth = 320.dp)
+        compose.onNodeWithTag(WorkoutTestTags.RPE_HELPER).assertWidthIsAtLeast(Metrics.touchMin)
+        compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).assertWidthIsAtLeast(Metrics.touchMin)
+        val clear = compose.onNode(hasText("Clear"), useUnmergedTree = true).textLayout()
+        assertTrue("Clear on one line, whole", clear.lineCount == 1 && clear.fitsItsWidth())
+    }
+
+    /**
+     * Where "EFFORT · OPTIONAL" would not fit beside the help mark and Clear, the heading reads
+     * "EFFORT" (still spoken "Effort, optional") whether or not a value is chosen: choosing
+     * then leaves Clear a whole 48 dp button on one line, and the track does not grow. With the
+     * long heading Clear was squeezed to 25 dp across five lines at font 2.0.
+     */
+    private fun assertChoosingAtLargeText(fontScale: Float) {
+        showTrack(fontScale = fontScale)
+        val height = compose.onNodeWithTag(HOST).getBoundsInRoot().height
+        val heading = compose.onNode(hasText("EFFORT"), useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(listOf("Effort, optional"), heading.spokenDescriptions())
+        rpe = 8
+        compose.waitForIdle()
+        compose.onNode(hasText("EFFORT"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR)
+            .assertIsDisplayed()
+            .assertWidthIsAtLeast(Metrics.touchMin)
+            .assertHeightIsAtLeast(Metrics.touchMin)
+        val clear = compose.onNode(hasText("Clear"), useUnmergedTree = true).textLayout()
+        assertEquals("Clear on one line", 1, clear.lineCount)
+        assertTrue("Clear laid out whole", clear.fitsItsWidth())
+        assertEquals("choosing does not grow the track", height, compose.onNodeWithTag(HOST).getBoundsInRoot().height)
     }
 
     @Test
@@ -199,6 +243,9 @@ class RpeSelectorRenderTest {
             assertFalse(choice(it).spokenDescriptions().single().endsWith("recommended"))
         }
         compose.onAllNodesWithTag(WorkoutTestTags.RPE_CLEAR).assertCountEquals(0)
+        // Nothing is chosen, so the ends stay and no meaning line claims one.
+        compose.onAllNodesWithTag(WorkoutTestTags.RPE_MEANING, useUnmergedTree = true).assertCountEquals(0)
+        compose.onNodeWithText("Easy").assertIsDisplayed()
         assertTrue("a recommendation picks nothing on its own", picks.isEmpty())
         // Chosen, the same value is selected and no longer called a recommendation.
         rpe = 8

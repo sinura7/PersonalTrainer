@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.LayoutDirection
 import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.ui.components.GymDialog
 import com.sinura.personaltrainer.ui.components.InstrumentChip
@@ -64,38 +67,58 @@ internal fun RpeSelector(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
-        ) {
-            Kicker(RpeCopy.LABEL)
-            Box(
-                modifier = Modifier
-                    .size(Metrics.touchMin)
-                    .clip(Radius.full)
-                    .clickable(role = Role.Button, onClick = { helpOpen = true })
-                    .testTag(WorkoutTestTags.RPE_HELPER)
-                    .semantics { contentDescription = RpeCopy.HELP_SPOKEN },
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(Metrics.helpMark)
-                        .border(Metrics.hairline, TextSecondary, Radius.full),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("?", style = InstrumentType.caption, color = TextSecondary)
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            // The full heading only where it fits beside the help mark and Clear, whether or not
+            // Clear is showing, so choosing a value never rewords or reflows the row. Large text
+            // and small phones read "Effort"; Clear keeps its width and its one line.
+            val fullHeading = remember(maxWidth, density, measurer) {
+                with(density) {
+                    val heading = measurer.measure(RpeCopy.LABEL.uppercase(), style = InstrumentType.kicker, softWrap = false).size.width
+                    val clearPadding = ButtonDefaults.TextButtonContentPadding.let {
+                        it.calculateLeftPadding(LayoutDirection.Ltr) + it.calculateRightPadding(LayoutDirection.Ltr)
+                    }
+                    val clearText = measurer.measure(RpeCopy.CLEAR, style = InstrumentType.bodyStrong, softWrap = false).size.width
+                    val clear = maxOf(ButtonDefaults.MinWidth.roundToPx(), clearText + clearPadding.roundToPx())
+                    heading + Metrics.touchMin.roundToPx() + clear + (Metrics.space1 * 3).roundToPx() <= maxWidth.roundToPx()
                 }
             }
-            Spacer(Modifier.weight(1f))
-            if (!warmup && rpe != null) {
-                TextButton(
-                    enabled = enabled,
-                    onClick = { onRpe(null) },
-                    modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.RPE_CLEAR),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                Kicker(
+                    text = if (fullHeading) RpeCopy.LABEL else RpeCopy.SHORT_LABEL,
+                    // Read without the dot, and with "optional" whichever form is drawn.
+                    modifier = Modifier.semantics { contentDescription = RpeCopy.LABEL_SPOKEN },
+                )
+                Box(
+                    modifier = Modifier
+                        .size(Metrics.touchMin)
+                        .clip(Radius.full)
+                        .clickable(role = Role.Button, onClick = { helpOpen = true })
+                        .testTag(WorkoutTestTags.RPE_HELPER)
+                        .semantics { contentDescription = RpeCopy.HELP_SPOKEN },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text("Clear", style = InstrumentType.bodyStrong, color = TextSecondary)
+                    Box(
+                        modifier = Modifier
+                            .size(Metrics.helpMark)
+                            .border(Metrics.hairline, TextSecondary, Radius.full),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text("?", style = InstrumentType.caption, color = TextSecondary)
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                if (!warmup && rpe != null) {
+                    TextButton(
+                        enabled = enabled,
+                        onClick = { onRpe(null) },
+                        modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.RPE_CLEAR),
+                    ) {
+                        Text(RpeCopy.CLEAR, style = InstrumentType.bodyStrong, color = TextSecondary, maxLines = 1)
+                    }
                 }
             }
         }
