@@ -39,6 +39,7 @@ import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.FloorStepper
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.IncrementTable
+import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.PlateMath
@@ -271,9 +272,7 @@ class FloorScreenWiringRenderTest {
     fun aPinStackStepsByItsPinNotByThePlate() {
         val vm = openBackSquat()
         show(vm)
-        vm.selectExercise(PULLDOWN)
-        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.selectedExerciseId == PULLDOWN }
-        compose.waitForIdle()
+        selectAndAwaitItsDraft(vm, PULLDOWN) { it.draft.reps == 10 }
         // A selectorised stack moves a pin, 10 lb, where the squat's bar moves 5: the lift's
         // own load type reaches the plates' words and the draft, not the screen's default.
         assertEquals(IncrementTable.STACK_STEP_LBS, IncrementTable.displayStep(LoadType.STACK, WeightUnit.LBS, EquipmentType.CABLE))
@@ -294,9 +293,7 @@ class FloorScreenWiringRenderTest {
     fun anEmptyHandsLungesKeypadSaysZeroIsAWeight() {
         val vm = openBackSquat()
         show(vm)
-        vm.selectExercise(LUNGE)
-        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.selectedExerciseId == LUNGE }
-        compose.waitForIdle()
+        selectAndAwaitItsDraft(vm, LUNGE) { it.draft.reps == 10 }
         assertTrue(UnloadedLoad.allowsZeroWorkingWeight(LoadType.EXTERNAL, EquipmentType.DUMBBELL, "lunge"))
         // Off zero first, so the typed 0 is a change the keypad has to accept and write.
         val step = IncrementTable.displayStep(LoadType.EXTERNAL, WeightUnit.LBS, EquipmentType.DUMBBELL)
@@ -314,9 +311,7 @@ class FloorScreenWiringRenderTest {
     fun aHoldLiftStepsItsTimeIntoTheDraft() {
         val vm = openBackSquat()
         show(vm)
-        vm.selectExercise(PLANK)
-        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.selectedExerciseId == PLANK }
-        compose.waitForIdle()
+        selectAndAwaitItsDraft(vm, PLANK) { it.draft.reps == 0 && it.draft.durationSeconds != null }
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assertDoesNotExist()
         val lift = checkNotNull(vm.uiState.value.session?.exercises?.first { it.exercise.id == PLANK })
         val before = vm.uiState.value.draft.durationSeconds ?: lift.targetSeconds ?: HoldWork.DEFAULT_SECONDS
@@ -356,6 +351,8 @@ class FloorScreenWiringRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
         compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed()
+        // The sheet's top can be on screen while it is still sliding up; its first row follows.
+        compose.waitUntil(timeoutMillis = WAIT_MS) { compose.isDisplayed(hasText("Working set 1 of 3")) }
         compose.onNodeWithText("Working set 1 of 3").assertIsDisplayed()
     }
 
@@ -558,6 +555,28 @@ class FloorScreenWiringRenderTest {
      * pulldown: the lifts whose entry differs by equipment (plates), movement (zero is a
      * weight), kind (a hold has time, not reps) and load (a stack steps by its pin).
      */
+    /**
+     * Selects [exerciseId] and waits for its own draft: the lift's prefill reads the database on
+     * its own thread and writes the draft when it lands, over anything tapped before then. A
+     * lunge stepped off zero first went back to zero that way, and the wait for it gave up.
+     * [landed] names something only this lift's draft holds (its planned reps, a hold's clock).
+     */
+    private fun selectAndAwaitItsDraft(
+        vm: ActiveWorkoutViewModel,
+        exerciseId: String,
+        landed: (ActiveWorkoutUiState) -> Boolean,
+    ) {
+        vm.selectExercise(exerciseId)
+        compose.waitUntil(timeoutMillis = WAIT_MS) {
+            val state = vm.uiState.value
+            state.selectedExerciseId == exerciseId &&
+                state.liftReadiness == LiftEntryReadiness.READY &&
+                !state.entryLocked &&
+                landed(state)
+        }
+        compose.waitForIdle()
+    }
+
     private fun openBackSquat(): ActiveWorkoutViewModel {
         val sessionId = runBlocking {
             deps.database.exerciseDao().insertAll(

@@ -1,23 +1,25 @@
 package com.sinura.personaltrainer.ui.workout
 
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * Packet 2 on the redesigned floor: the header is read-only chrome (title, progress,
  * Finish, overflow); the dock ([WorkoutDock]) owns the timer, the advance choice and
  * Log set; rest length is presets / ±15 in a sheet; one clock, two modes.
+ *
+ * What those do is held where it can be seen: the header's plan line and bar in
+ * WorkoutFloorComponentsTest and LandscapeChromeRenderTest; Session summary in
+ * LiftOptionsRenderTest; the dock's clocks, sheet and commit in WorkoutDockTimerRenderTest,
+ * RestDurationSheetRenderTest, WorkoutDockRenderTest and DockCommitRenderTest; the dock
+ * pinned under the scrolling floor in LandscapeChromeRenderTest (audit T1c-1). The bans stay
+ * here: what the header, the entry and the scrolling list must never host again.
  */
 class FloorPacket2ToolbarTest {
     @Test
     fun headerIsReadOnlyAndTelemetryLivesInSessionSummary() {
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.headerIsReadOnlyInstrumentStrip())
-        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.headerShowsMinuteTelemetryOnly())
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.headerShowsSessionProgress())
-        val header = readOwned("ui/workout/WorkoutHeader.kt")
+        val header = ownedSource("ui/workout/WorkoutHeader.kt")
         assertFalse("Start rest must not live in the header", header.contains("onStart"))
         assertFalse("Skip must not live in the header", header.contains("onSkip"))
         assertFalse(header.contains("PrimaryGymButton"))
@@ -33,76 +35,36 @@ class FloorPacket2ToolbarTest {
             header.contains("FloorTimerSurface.instrumentState"),
         )
         assertFalse(header.contains("delay(1_000L)"))
-        assertTrue(
-            "the header says where the session stands, in words and as a bar",
-            header.contains("WorkoutProgressCalculator.headline(progress)"),
-        )
-        assertTrue(header.contains(".testTag(WorkoutTestTags.PROGRESS_LINE)"))
-        // Landscape is one row: the plan's words are the title and the bar is dropped.
-        assertTrue(header.contains("val planAsTitle = compact && headline.isNotBlank()"))
-        assertTrue(header.contains("title = if (planAsTitle) headline else routineName,"))
-        assertTrue(header.contains("if (headline.isNotBlank() && !planAsTitle) {"))
-        assertTrue(header.contains("WorkoutProgressBar(segments = progress.segments)"))
-        assertTrue(header.contains("WorkoutTestTags.FINISH"))
-        assertTrue(header.contains("overflow?.invoke()"))
-        val hero = readOwned("ui/workout/ExerciseHeader.kt")
+        val hero = ownedSource("ui/workout/ExerciseHeader.kt")
         assertFalse(hero.contains("SessionTelemetryCopy"))
         assertFalse("session totals stay out of the identity", hero.contains("onSummary"))
-        val overflow = readOwned("ui/workout/WorkoutOverflowMenu.kt")
-        assertTrue(overflow.contains("onSummary"))
-        assertTrue(overflow.contains("\"Session summary\""))
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("onSummary = { sessionSummaryOpen = true }"))
-        assertTrue(screen.contains("WorkoutSessionSummary("))
-        val summary = readOwned("ui/workout/WorkoutSessionSummary.kt")
-        assertTrue(summary.contains("SessionTelemetryCopy.elapsedMinutesLabel"))
-        assertTrue(summary.contains("Working sets:"))
-        assertTrue(summary.contains("External volume:"))
     }
 
     @Test
-    fun dockOwnsTimerAdvanceAndVoltLog() {
-        val dock = readOwned("ui/workout/WorkoutDock.kt")
+    fun theDockOwnsTheClockAndTheListNeverHostsIt() {
+        val dock = ownedSource("ui/workout/WorkoutDock.kt")
         assertFalse("the dock's rest is the card, not the old bar", dock.contains("RestDock("))
         assertFalse(dock.contains("FloorTimerSlot("))
-        assertTrue(dock.contains("val nextAct = action.kind == WorkoutPrimaryKind.NEXT_EXERCISE && !state.editing"))
-        assertTrue(dock.contains("val finishAct = action.kind == WorkoutPrimaryKind.FINISH && !state.editing"))
-        assertTrue(dock.contains("PrimaryGymButton("))
-        assertTrue(dock.contains("height = Metrics.commit"))
-        assertTrue(dock.contains("WorkoutTestTags.LOG_SET"))
-        assertTrue(dock.contains("nextAct -> WorkoutTestTags.NEXT"))
-        assertTrue(dock.contains("finishAct -> WorkoutTestTags.DOCK_FINISH"))
 
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("val showNext = primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE"))
-        assertTrue(screen.contains("val showFinish = primaryAction.kind == WorkoutPrimaryKind.FINISH"))
+        val screen = ownedSource("ui/workout/ActiveWorkoutScreen.kt")
         assertFalse(
             "RestDock must not be a sibling of the dock in the screen",
             screen.contains("RestDock("),
         )
         assertFalse(screen.contains("RestTimerCard("))
-        val bottomBar = screen.indexOf("bottomBar = {")
-        val workoutDock = screen.indexOf("WorkoutDock(")
-        val lazy = screen.indexOf("LazyColumn(")
-        assertTrue(bottomBar >= 0 && workoutDock > bottomBar && lazy > workoutDock)
-        assertFalse(screen.substring(lazy).contains("WorkoutDock("))
-        assertFalse(screen.substring(lazy).contains("FloorTimerSlot("))
-        assertFalse(screen.substring(lazy).contains("SetWorkDock("))
+        val list = sourceFrom(screen, "LazyColumn(")
+        assertFalse(list.contains("WorkoutDock("))
+        assertFalse(list.contains("FloorTimerSlot("))
+        assertFalse(list.contains("SetWorkDock("))
     }
 
     @Test
     fun restLengthEditsWithPresetsAndModesDoNotStack() {
-        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.restLengthIsInlineWheel())
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.oneClockTwoModes())
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.restIsDockCard())
-        val timers = readOwned("ui/components/RestTimerUi.kt")
+        val timers = ownedSource("ui/components/RestTimerUi.kt")
         assertFalse(timers.contains("SnapValueWheel("))
         // The mode switch moved with the dock: RestTimerUi keeps only the bar, sheet and rings.
         assertFalse(timers.contains("FloorTimerSurface.mode("))
-        // The sheet's presets, ±15 and overlay, the card's taps and the dock's clock modes are
-        // rendered in RestDurationSheetRenderTest, RestTimerCardRenderTest and
-        // WorkoutDockTimerRenderTest.
-        val card = readOwned("ui/workout/RestTimerCard.kt")
+        val card = ownedSource("ui/workout/RestTimerCard.kt")
         assertFalse("idle must not expand presets inline", card.contains("picking"))
         assertFalse(card.contains("RestPresetChips("))
         assertFalse(card.contains("SnapValueWheel("))
@@ -111,30 +73,20 @@ class FloorPacket2ToolbarTest {
 
     @Test
     fun floorEntryDoesNotHostASecondSetCountdown() {
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
+        val editor = ownedSource("ui/workout/WeightRepsEditor.kt")
         assertFalse(
             "running hold clock must not stay in the entry",
             editor.contains("WorkoutTestTags.HOLD_CLOCK"),
         )
+        // The literal ban below is only a ban while it is the hold clock's real tag.
+        assertEquals("workout-hold-clock", WorkoutTestTags.HOLD_CLOCK)
         assertFalse(editor.contains("workout-hold-clock"))
         assertFalse(editor.contains("SetWorkDock("))
         assertFalse(editor.contains("FloorInstrumentBar("))
-        // The hold numeral is read-only while the dock clock runs:
-        // WeightRepsEditorRenderTest.theHoldNumeralIsReadOnlyWhileTheDockClockRuns.
-        val identity = readOwned("ui/workout/ExerciseHeader.kt")
+        val identity = ownedSource("ui/workout/ExerciseHeader.kt")
         assertFalse(identity.contains("HOLD_CLOCK"))
         assertFalse(identity.contains("SetWorkDock("))
-        // The hold and set clocks live in the dock: SetWorkDockRenderTest, WorkoutDockTimerRenderTest.
-        assertEquals("workout-hold-clock", WorkoutTestTags.HOLD_CLOCK)
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertFalse(screen.substring(screen.indexOf("LazyColumn(")).contains("SetWorkDock("))
-    }
-
-    private fun readOwned(relative: String): String {
-        val roots = listOf(
-            File("app/src/main/java/com/sinura/personaltrainer"),
-            File("../app/src/main/java/com/sinura/personaltrainer"),
-        )
-        return roots.map { File(it, relative) }.first { it.isFile }.readText()
+        val screen = ownedSource("ui/workout/ActiveWorkoutScreen.kt")
+        assertFalse(sourceFrom(screen, "LazyColumn(").contains("SetWorkDock("))
     }
 }

@@ -1,9 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
-import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.ui.theme.Metrics
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -18,15 +16,15 @@ import org.junit.Test
  * What the idle card, its length sheet and the dock's battery sentence show, say and do is
  * rendered in RestTimerCardRenderTest, RestDurationSheetRenderTest and
  * WorkoutDockTimerRenderTest, and tapped through the screen in
- * FloorRestAndCoachWiringRenderTest. The bans stay here, with the two drawing facts no
- * semantics can see (the empty ring, the chevron) and the rest page's own lines.
+ * FloorRestAndCoachWiringRenderTest. The empty ring and the chevron are read from the drawn
+ * pixels in RestCardDrawingRenderTest; the rest page's ring, room and honesty lines in
+ * RestPageFitRenderTest (audit T1c-1). The bans stay here, with the metrics and the spoken
+ * words the idle card is built from.
  */
 class RestIdlePresentationTest {
     @Test
     fun idleDockWearsADimInstrumentFaceNotABrightClock() {
-        val card = readOwned("ui/workout/RestTimerCard.kt")
-        assertTrue("idle ring is empty", card.contains("remainingSeconds = if (running) safeRemaining else 0"))
-        assertTrue("idle chevron into the duration sheet", card.contains("if (idle) {") && card.contains("TemperIcons.Chevron"))
+        val card = ownedSource("ui/workout/RestTimerCard.kt")
         assertFalse(
             "idle Start next must not be composed",
             card.contains("RestIdleCopy.START_NEXT"),
@@ -37,42 +35,21 @@ class RestIdlePresentationTest {
         assertFalse("idle rest must not use a filled Volt", card.contains("PrimaryGymButton"))
         assertFalse(card.contains("SnapValueWheel("))
         assertFalse("the rest card never pulses", card.contains("rememberInfiniteTransition"))
-        assertTrue(FloorCompactChrome.restIsDockCard())
-        assertFalse(FloorCompactChrome.idleRestIsInstrumentBar())
         assertEquals(72, Metrics.commit.value.toInt())
         assertEquals(48, Metrics.restRingSmall.value.toInt())
     }
 
     @Test
-    fun durationSheetHoldsPresetsCustomNudgeAndTimeSet() {
-        val src = readOwned("ui/components/RestTimerUi.kt")
-        val sheetStart = src.indexOf("fun RestDurationSheet")
-        val sheetEnd = src.indexOf("fun RestSweepRing")
-        assertTrue(sheetStart >= 0 && sheetEnd > sheetStart)
-        val sheet = src.substring(sheetStart, sheetEnd)
-        assertTrue(sheet.contains("LocalReducedMotion.current"))
-        assertTrue(sheet.contains("Motion.durationMs"))
+    fun theDurationSheetHostsNoVolt() {
+        val src = ownedSource("ui/components/RestTimerUi.kt")
+        val sheet = sourceBetween(src, "fun RestDurationSheet", "fun RestSweepRing")
         assertFalse(sheet.contains("PrimaryGymButton"))
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("const val REST_DURATION_SHEET"))
     }
 
     @Test
-    fun firstRestMentionsUnrestrictedBattery() {
-        val floor = readOwned("ui/workout/RestTimerScreen.kt")
-        assertTrue(floor.contains("RestHonestyCopy.pick("))
-        assertTrue(floor.contains("RestHonestyRow("))
-        assertTrue(floor.contains("notificationsEnabled = notificationsEnabled"))
-        assertTrue(floor.contains("exactBestEffort = rest.exactAlarmBestEffort"))
+    fun theRestPageNeverPromisesPrecisionOrANextRest() {
+        val floor = ownedSource("ui/workout/RestTimerScreen.kt")
         assertFalse(floor.contains("precise", ignoreCase = true))
-    }
-
-    @Test
-    fun idleFloorNamesPlannedRestAndRingYieldsToLargeText() {
-        // The idle page's "Planned rest" is rendered in RestPagesRenderTest.
-        val floor = readOwned("ui/workout/RestTimerScreen.kt")
-        assertTrue(floor.contains("remainingSeconds = if (rest.running) safeRemaining else 0"))
-        assertTrue(floor.contains("if (showRing)"))
         assertFalse(floor.contains("\"Next rest\""))
     }
 
@@ -90,13 +67,5 @@ class RestIdlePresentationTest {
         val notes = com.sinura.personaltrainer.domain.AccessibilityMatrix.page("active-strength").talkBackNotes
         assertTrue(notes.contains("Time this set"))
         assertTrue(notes.contains("Start rest"))
-    }
-
-    private fun readOwned(relative: String): String {
-        val roots = listOf(
-            File("app/src/main/java/com/sinura/personaltrainer"),
-            File("../app/src/main/java/com/sinura/personaltrainer"),
-        )
-        return roots.map { File(it, relative) }.first { it.isFile }.readText()
     }
 }
