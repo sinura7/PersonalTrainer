@@ -40,7 +40,6 @@ import com.sinura.personaltrainer.testutil.GoldenCapture
 import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.workout.CompleteTraining
-import com.sinura.personaltrainer.testutil.GoldenImageAssert
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.ScreenHeader
@@ -57,7 +56,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-/** Bounds and real taps supplement references; a golden alone cannot prove reachability. */
+/** Bounds, label layouts and real taps prove reachability; JVM renders are the visual evidence (ADR-032). */
 @RunWith(Parameterized::class)
 class FrontendShellInstrumentedTest(
     private val width: Int,
@@ -175,12 +174,6 @@ class FrontendShellInstrumentedTest(
             compose.onNodeWithTag(tag, useUnmergedTree = true)
                 .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
             assertEquals("English metric order survives RTL layout", ResolvedTextDirection.Ltr, layouts.single().getParagraphDirection(0))
-        }
-        if (Build.VERSION.SDK_INT == 29) {
-            GoldenImageAssert.assertMatches(
-                "frontend-shell-${width}x$height-font${(font * 10).toInt()}-${if (rtl) "rtl" else "ltr"}-${if (reduced) "still" else "motion"}${if (adverse) "-$scenario" else ""}-api29",
-                GoldenCapture.capture(compose),
-            )
         }
         compose.onNodeWithTag("live-session-elapsed", useUnmergedTree = true).performTouchInput { click() }
         compose.runOnIdle { assertEquals(1, resumed) }

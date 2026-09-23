@@ -39,7 +39,6 @@ import org.junit.runner.RunWith
  * Real MainActivity/NavHost, populated Room, all five tabs and a live session.
  * These captures document the native baseline, including system and app chrome.
  * They are observation artifacts (real civil clock), not deterministic goldens.
- * Pixel comparisons use the separately pinned GoldenCapture fixtures.
  */
 @RunWith(AndroidJUnit4::class)
 class FrontendBaselineCaptureTest {

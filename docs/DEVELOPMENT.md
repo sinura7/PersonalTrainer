@@ -24,7 +24,7 @@ test counts are what ran *then*, not what runs now.
 | Instrumented sources: `./gradlew compileDebugAndroidTestKotlin` | The device tests still compile — a test-only change never reaches a device from here, and a broken one would sit unnoticed until an emulator run | same | merge into `trunk` (`ci.yml` runs it) |
 | Hosted `ci.yml`: *Tests, lint, debug build* | The same static gate, unit suite, lint and debug build the local gate runs, on every push and pull request | GitHub-hosted runner | may be a required check on `trunk` ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)); the owner enables it |
 | Hosted emulator: `instrumented-smoke` in `ci.yml` | The instrumented tests on API 29 (Nexus 5X profile), printing their own failure bodies and logcat | GitHub-hosted runner | **nothing** — read the job, not the check (ADR-002 §6, ADR-024) |
-| Device journeys: `connectedDebugAndroidTest` on `com.sinura.personaltrainer.debug` | Room migrations on real SQLite (evidence; the JVM migration tests gate), restore, the workout journey, screen passes. Its 17 September goldens are retired ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) | emulator (`temper-tests-api29` profile) | gym-floor `v*` release |
+| Device journeys: `connectedDebugAndroidTest` on `com.sinura.personaltrainer.debug` | Room migrations on real SQLite (evidence; the JVM migration tests gate), restore, the workout journey, screen passes. Its 17 September goldens were retired ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) and removed in X3 | emulator (`temper-tests-api29` profile) | gym-floor `v*` release |
 | Phone: Obtainium **Temper Debug** pre-release | The owner's walk-through on the real phone | the phone | gym-floor `v*` release |
 
 The merge gate is the JVM gate — static gate, Gradle unit, build — as
@@ -577,15 +577,15 @@ Android Emulator 37.1.11. Start verifies the guest API, renderer binary, image
 mapping, locale and timezone, and resets display/font/animation overrides.
 It writes an environment manifest in
 `build/android-runtime/temper-tests-api<API>.json`. SDK images and the emulator
-may change independently; inspect the manifest before approving new references.
+may change independently; inspect the manifest before comparing runs.
 Installation verifies the pinned command-line tools archive SHA-256 and image
 revision; it does not replace another command-line-tools installation.
 
-The Windows wrapper explicitly selects `goldenProfile=windows-swiftshader37`.
-The legacy Linux references remain separate. Missing references fail; API 29
-pixel tests are intentionally inapplicable to API 26/36. Behavioural tests still
-run on those versions. The rounding allowance remains one colour level on at
-most 256 pixels; it is not widened to hide renderer or product changes.
+The Windows wrapper selected `goldenProfile=windows-swiftshader37` for the
+API 29 pixel tests until packet X3 removed them with the goldens
+([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)). No instrumented test
+is limited to API 29 any more. The environment manifest still records a
+`goldenProfile` key; no test reads it.
 
 `FrontendBaselineCaptureTest` runs the real MainActivity/NavHost with two fixture
 sessions (one finished, one live), then captures every main tab. Screenshots are
@@ -598,7 +598,9 @@ clock and are observation evidence, not deterministic pixel goldens.
 
 *Retired 23 September 2026 ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)):
 the emulator goldens are no longer baselines and are not re-recorded; the JVM
-render set is the visual evidence. The procedure below is kept for the record.*
+render set is the visual evidence. The procedure below is kept for the record.
+Packet X3 removed the golden classes, `GoldenImageAssert`, the committed PNGs and
+the legacy 360 × 800 dp `GoldenCapture` mount, so it no longer runs.*
 
 For deliberate reference recording, add
 `-Pandroid.testInstrumentationRunnerArguments.recordGoldens=true` and restrict

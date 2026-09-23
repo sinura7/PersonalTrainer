@@ -75,8 +75,17 @@ independent, one adversarial.
 - **Visible work** is proven by JVM renders written by the test run, at
   360×640, 412 dp, landscape, and font 1.0 / 1.6 / 2.0
   ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)).
-- **The hosted "Instrumented smoke" job** is non-blocking. Its 17 September
-  emulator goldens are retired and fail on `trunk` too.
+- **The hosted "Instrumented smoke" job** is non-blocking. Its retired
+  goldens were removed in X3, so what fails there now is a crash, a journey
+  or a reachability check, and is worth reading. The first run after X3 is
+  also the first since 17 September to reach the layout checks in the 38
+  entry and 15 completion layout cases, which used to stop at the golden; a
+  red there was already on `trunk`, hidden. One failure is known and
+  standing: `WorkoutEntryJourneyInstrumentedTest`'s entry-position check,
+  955 → 997 px on every run since #374. The Last-only stats cell before the
+  first working set is one caption line (16 dp) shorter than the full row, so
+  the entry wells move down when that set is saved. The owner decided on
+  23 September to fix it in its own visible packet.
 - **"Tests, lint, debug build"** is the hosted check that must be green
   ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)).
 - **GitHub-hosted runners** are not the test lane.

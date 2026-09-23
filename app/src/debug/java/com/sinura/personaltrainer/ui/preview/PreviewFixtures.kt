@@ -1,7 +1,7 @@
 package com.sinura.personaltrainer.ui.preview
 
 /**
- * The state vocabulary every screen preview and golden may draw from.
+ * The state vocabulary every screen preview may draw from.
  *
  * These are deliberately screen-neutral. A page maps a fixture to its own
  * UiState rather than teaching production ViewModels about preview data.

@@ -40,7 +40,7 @@ assertions alone still do not complete a packet.*
 | F1 | Typed controls, component gallery, headers, navigation, insets and live bar | Complete — PR #349; integrated unit/native gates passed |
 | F2 | Compact workout identity, entry, warm-ups/RPE, latest sets and dock geometry | Complete — PR #350; integrated unit/native gates passed |
 | F3 | Primary-action state, completion, timing, switcher, retry, undo and resume | Implementation complete — PR #351; integrated checks passed; Milestone A phone acceptance pending |
-| F3.1 | Workout logging screen redesign to the owner's reference ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)): header progress, image-led identity, stats row, hero numerals, RPE track, next-set card, set-history chips, rest card, two-line commit | Implementation complete on `claude/workout-logging-redesign-77hml8`; JVM gate and JVM renders; floor goldens owed a re-record on `temper-tests-api29`; Milestone A phone acceptance pending |
+| F3.1 | Workout logging screen redesign to the owner's reference ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)): header progress, image-led identity, stats row, hero numerals, RPE track, next-set card, set-history chips, rest card, two-line commit | Implementation complete on `claude/workout-logging-redesign-77hml8`; JVM gate and JVM renders; floor goldens retired ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) and removed in X3; Milestone A phone acceptance pending |
 | F4 | Truthful Home dates, day picker, planned/completed/live/empty states | Pending |
 | F5 | Registered Body heat geometry, viewport, selection and list equivalence | Pending |
 | F6 | Unified History periods, calendar, readable duration and lifetime views | Pending |
@@ -74,8 +74,9 @@ evidence is the JVM render set ([ADR-032](architecture/ADR-032-jvm-evidence-lane
 | 7 | W1a | Visible "Lift n of N" switch; numeric-entry cue; one Add set; 48 dp evidence chip; no double announcements | V | Done — #389, drop 101 |
 | 7a | R0 | A second tap on a lift in the routine picker is never lost | Q | Done — #391 |
 | 8 | W1b | "Effort · optional"; planned-rest copy; one ±15 control set; coach goal reaches the workout | V | In review |
+| 8a | X3 | Retired goldens leave the hosted lane: the golden checks, their PNGs and manifests, `FloorGoldenTest`, `FoundationGoldenTest`, `WorkoutFrozenFrame`, `GoldenImageAssert` and `GoldenPageCatalog` go; the layout and journey tests keep their reachability checks ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) | Q | Done — #395 |
 | 9–12 | W2a–d | Dead code and lower token ceilings · shared rest commands, atomic `adjust` · coach/picker performance · save/undo and session-state extraction | Q | Pending |
-| 13 | W3 | Floor renders across the ADR-032 matrix, with reachability assertions, become the floor's gate; retired goldens leave the hosted lane | V | Pending — Milestone A |
+| 13 | W3 | Floor renders across the ADR-032 matrix, with reachability assertions, become the floor's gate | V | Pending — Milestone A |
 | 14 | S1 | Outbox in the save's transaction; enrolled user id; delete callers; tombstone time; poison-row quarantine; restore/sign-out reset cursors → unpause | V | Pending |
 | 15 | F8a | Single-choice radio roles app-wide; keyboard focus stays out of Home under the chooser | Q | Pending |
 | 16 | F4 | Home: finished block links to its session (D14); 48 dp week strip; read-error state; set-up-my-week; saved selected date; `ThisWeekCard` on other days | V | Pending |
@@ -216,7 +217,8 @@ preview, restore and count reconciliation.
 
 *Since 23 September ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) the
 emulator goldens described in this paragraph are retired as baselines; the JVM
-render set, with reachability assertions, is the visual evidence.* Golden
+render set, with reachability assertions, is the visual evidence. Packet X3
+removed them.* Golden
 evidence pins profile/API/image revision/renderer/fonts/locale/clock/
 fixture state. Full screen includes persistent chrome. Required missing
 baselines fail rather than skip. Keep narrowly bounded rounding allowance;

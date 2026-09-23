@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.ui.workout
 
-import android.os.Build
 import android.os.SystemClock
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -32,8 +30,6 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.testutil.GoldenCapture
-import com.sinura.personaltrainer.testutil.GoldenImageAssert
-import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.workout.SavedStateWorkoutSave
 import kotlinx.coroutines.Dispatchers
@@ -136,10 +132,6 @@ class WorkoutCompletionLayoutInstrumentedTest(
         }
         val verbLayouts = layoutsOf(verb)
         val payloadLayouts = setPayload?.let { layoutsOf(it) }
-        val name = "frontend-completion-${width}x$height-font${(font * 10).toInt()}-$scenario-api${Build.VERSION.SDK_INT}"
-        val image = GoldenCapture.capture(compose)
-        if (Build.VERSION.SDK_INT == 29) GoldenImageAssert.assertMatches(name, image)
-        else NativeArtifacts.write(name, image.asAndroidBitmap())
         // Centered Text may keep a paragraph's maximum constraint while its
         // measured width shrinks to content. Compare actual line widths and
         // visible characters, not multiParagraph.width/didOverflowWidth.

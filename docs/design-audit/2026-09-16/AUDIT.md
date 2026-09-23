@@ -188,7 +188,7 @@ The project has meaningful tests and existing screenshot fixtures. However, test
 
 **Acceptance:** the matrix below is captured and reviewed for each affected screen. Physical phone checks remain necessary for one-handed use, haptics, outdoor/gym readability, and accessibility.
 
-Evidence: [FloorGoldenTest.kt](../../../app/src/androidTest/java/com/sinura/personaltrainer/ui/preview/FloorGoldenTest.kt), [BodyPassInstrumentedTest.kt](../../../app/src/androidTest/java/com/sinura/personaltrainer/ui/progress/BodyPassInstrumentedTest.kt), [ContrastPolicyTest.kt](../../../app/src/test/java/com/sinura/personaltrainer/ui/theme/ContrastPolicyTest.kt).
+Evidence: `FloorGoldenTest.kt` (removed in X3), [BodyPassInstrumentedTest.kt](../../../app/src/androidTest/java/com/sinura/personaltrainer/ui/progress/BodyPassInstrumentedTest.kt), [ContrastPolicyTest.kt](../../../app/src/test/java/com/sinura/personaltrainer/ui/theme/ContrastPolicyTest.kt).
 
 ## Items to reproduce, not assert as defects
 

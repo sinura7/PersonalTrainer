@@ -84,9 +84,6 @@ if ($GradleArgs -match '(^|:)connected') {
     New-Item -ItemType Directory -Force -Path $runRoot | Out-Null
     Copy-Item -LiteralPath (Join-Path $repoRoot "build\android-runtime\temper-tests-api$api.json") -Destination (Join-Path $runRoot "$artifactRunId.json")
     Write-Host "Native artifact run: $artifactRunId"
-    if (-not ($GradleArgs -match 'android.testInstrumentationRunnerArguments.goldenProfile=')) {
-        $GradleArgs += '-Pandroid.testInstrumentationRunnerArguments.goldenProfile=windows-swiftshader37'
-    }
 }
 Push-Location $repoRoot
 try {

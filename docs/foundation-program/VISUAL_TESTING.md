@@ -1,5 +1,12 @@
 # Visual evidence and golden testing
 
+> **Banner (23 Sep 2026).** Retired by
+> [ADR-032](../architecture/ADR-032-jvm-evidence-lanes.md): the JVM render set
+> is the visual evidence, and the emulator goldens are no longer baselines.
+> Packet X3 removed the comparator (`GoldenImageAssert`), the goldens and
+> `GoldenPageCatalog`. Kept for the record of the P1.2 decision; do not add
+> golden tests from it.
+
 **Decision date:** 24 August 2026  
 **Packet:** P1.2
 

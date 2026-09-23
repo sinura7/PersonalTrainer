@@ -35,8 +35,8 @@ import com.sinura.personaltrainer.ui.theme.Volt
  * A deterministic state wall for preview and screenshot infrastructure.
  *
  * It is intentionally debug-only. Feature previews map [PreviewFixtures] to
- * real UiState instances; this wall proves the profiles and golden pipeline
- * before every page owns fixtures.
+ * real UiState instances; this wall proves the preview profiles before every
+ * page owns fixtures.
  */
 @Composable
 fun FoundationStateGallery(

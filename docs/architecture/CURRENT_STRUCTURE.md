@@ -1,7 +1,7 @@
 # Current structure
 
 What the code is, as of 23 September 2026 (counts re-measured in whole-app
-audit packet X1; the prose was first written on 11 September). Read this before
+audit packet X1 and again in packet X3; the prose was first written on 11 September). Read this before
 changing anything structural.
 
 This is a description, not a decision. The decisions are the ADRs beside it,
@@ -18,10 +18,10 @@ yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 562 | 94,394 | — |
-| `app/src/test` | 407 | 66,356 | 2,751 |
-| `app/src/androidTest` | 36 | 6,564 | 127 `@Test` methods (some parameterised) |
-| `app/src/debug` | 12 | 1,618 | Compose previews and the golden-capture substrate |
+| `app/src/main` | 562 | 94,706 | — |
+| `app/src/test` | 424 | 71,051 | 2,939 |
+| `app/src/androidTest` | 33 | 5,893 | 112 `@Test` methods (some parameterised) |
+| `app/src/debug` | 12 | 1,618 | Compose previews and the state galleries |
 | `app/src/sharedTest` | 5 | 169 | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
 
 ## The layers
@@ -30,10 +30,10 @@ Everything is under `com.sinura.personaltrainer`.
 
 | Package | Files | Lines | What it is |
 |---|---|---|---|
-| `ui` | 170 | 46,418 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
-| `domain` | 207 | 23,696 | Models, rules, calculators, policies, ports, CoachEngine, and 64 `*Copy` text objects (68 app-wide) |
-| `data` | 114 | 16,760 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup`, `sync` (15 files, 2,266 lines), `auth` (4, 224) |
-| `timer` | 18 | 2,642 | Rest foreground service, alarm scheduler, notifications, persistence |
+| `ui` | 170 | 46,720 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
+| `domain` | 207 | 23,724 | Models, rules, calculators, policies, ports, CoachEngine, and 65 `*Copy` text objects (69 app-wide) |
+| `data` | 114 | 16,759 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup`, `sync` (15 files, 2,266 lines), `auth` (4, 224) |
+| `timer` | 18 | 2,625 | Rest foreground service, alarm scheduler, notifications, persistence |
 | `workout` | 13 | 1,367 | Use cases: start, finish, discard, `CompleteTraining` façade, draft cache and recovery |
 | `update` | 9 | 764 | Temper Debug's in-app update check and banner |
 | `reminder` | 11 | 681 | WorkManager scheduling, receivers, worker |
@@ -200,17 +200,17 @@ rediscover.
   `domain/*Copy.kt` objects and inline literals; `stringResource` is used
   nowhere in `ui`. There is no localisation path today, and that is a decision
   nobody has written down.
-- **Emulator goldens are retired** ([ADR-032](ADR-032-jvm-evidence-lanes.md));
-  `GoldenPageCatalog` and the golden checks leave in packet W3. Before that:
-  **one of eleven required goldens is committed.**
-  `domain/GoldenPageCatalog.missingPageGoldens` names the rest. Page-level
-  visual regression is defined and unenforced.
+- **Emulator goldens are gone** ([ADR-032](ADR-032-jvm-evidence-lanes.md)).
+  Packet X3 removed the golden checks, their PNGs and `GoldenPageCatalog`. The
+  hosted emulator lane still runs the layout and journey tests, for crashes,
+  journeys and reachability, and blocks nothing. Visual evidence is the JVM
+  render set; the floor reaches the full matrix in packet W3.
 - **`PlanDayViewModel` has no tests**, and `ui/components` sits at roughly
   0.15 test lines per production line against `domain`'s 1.16.
-- **Test scaffolding ships in `main`**: `GoldenPageCatalog`,
-  `InformationArchitecture`, `AccessibilityMatrix`, `CatalogReviewRenderer`,
-  `PlanReviewRenderer`, `DiagnosticRedaction.DiagnosticCanaries`. Each has one
-  reference in `main` — its own declaration — and the rest in tests.
+- **Test scaffolding ships in `main`**: `InformationArchitecture`,
+  `AccessibilityMatrix`, `CatalogReviewRenderer`, `PlanReviewRenderer`,
+  `DiagnosticRedaction.DiagnosticCanaries`. Each has one reference in `main` —
+  its own declaration — and the rest in tests.
 
 ## Why not multiple modules yet
 
