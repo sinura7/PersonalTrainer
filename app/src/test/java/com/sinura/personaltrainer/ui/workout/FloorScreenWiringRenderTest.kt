@@ -364,16 +364,14 @@ class FloorScreenWiringRenderTest {
     fun beforeThePlanIsMetNoAddSetIsOffered() {
         val vm = openLegExtension(loggedSets = sets(2), withNextLift = true)
         show(vm, heightDp = 1600)
-        // Two of three saved: the lifter's next act is the third set, so neither "Add set"
-        // control is offered yet, and the saved-sets sheet does not offer one either.
+        // Two of three saved: the lifter's next act is the third set, so the dock does not
+        // offer "Add another set" yet, and the saved-sets sheet does not offer one either.
         val saved = checkNotNull(vm.uiState.value.session).sets.map { it.id }
         assertEquals(2, saved.size)
-        // The history is on screen through its last chip, so a missing Add set is missing
-        // rather than not yet composed.
+        // The history is on screen through its last chip: the floor is composed, not pending.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_HISTORY))
         saved.forEach { compose.onNodeWithTag(WorkoutTestTags.setChip(it)).assertIsDisplayed() }
         compose.onNodeWithTag(WorkoutTestTags.CURRENT_SET).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
@@ -392,12 +390,10 @@ class FloorScreenWiringRenderTest {
         // exercise and Finish (W1a). The history used to offer a second "Add set" chip. The
         // tall window composes the whole floor, so "not there" means not on the floor.
         compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertDoesNotExist()
-        compose.onAllNodes(hasText("Add set") or hasText("Add another set")).assertCountEquals(1)
+        compose.onAllNodes(hasText("Add set") or hasText("Add another set"), useUnmergedTree = true).assertCountEquals(1)
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.extraSetRequested.value }
         compose.waitForIdle()
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
     }

@@ -117,7 +117,6 @@ object WorkoutTestTags {
     const val WARMUP_RAMP = "workout-warmup-ramp"
     const val START_SET_CLOCK = "workout-start-set-clock"
     const val STOP_SET_CLOCK = "workout-stop-set-clock"
-    const val ADD_SET = "workout-add-set"
     const val SET_HISTORY = "workout-set-history"
     const val CURRENT_SET = "workout-current-set"
     const val VIEW_SETS = "workout-view-sets"

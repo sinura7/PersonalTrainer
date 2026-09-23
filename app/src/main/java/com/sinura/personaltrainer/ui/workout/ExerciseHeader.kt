@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -124,21 +125,7 @@ internal fun ExerciseHeader(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = setContext,
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag(WorkoutTestTags.SET_CONTEXT),
-                            style = InstrumentType.bodyStrong,
-                            color = TextPrimary,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                    SetContextBesideSwitch(setContext = setContext) {
                         QuietButton(
                             text = CurrentLiftCopy.switchLabel(number, total),
                             onClick = onOpenSwitcher,
@@ -155,6 +142,59 @@ internal fun ExerciseHeader(
                 warmup = draftWarmup,
                 onWarmup = onWarmup,
             )
+        }
+    }
+}
+
+/**
+ * Where the sets stand, with the switch beside it while the words still fit there whole:
+ * two lines at most and no word broken. Otherwise the switch drops under the words. Large
+ * text squeezed "Working set 3 of 3" into "Worki / ng s…" beside the pill, and which set
+ * comes next is the one line on this header a lifter must never lose.
+ */
+@Composable
+private fun SetContextBesideSwitch(
+    setContext: String,
+    switch: @Composable () -> Unit,
+) {
+    val measurer = rememberTextMeasurer()
+    Layout(
+        content = {
+            Text(
+                text = setContext,
+                modifier = Modifier.testTag(WorkoutTestTags.SET_CONTEXT),
+                style = InstrumentType.bodyStrong,
+                color = TextPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            switch()
+        },
+        modifier = Modifier.fillMaxWidth(),
+    ) { measurables, constraints ->
+        val width = constraints.maxWidth
+        val pill = measurables[1].measure(Constraints(maxWidth = width))
+        val beside = width - pill.width - Metrics.space2.roundToPx()
+        val fitsBeside = beside > 0 && measurer.measure(
+            text = setContext,
+            style = InstrumentType.bodyStrong,
+            maxLines = 2,
+            constraints = Constraints(maxWidth = beside),
+        ).let { words -> !words.hasVisualOverflow && words.multiParagraph.intrinsics.minIntrinsicWidth <= beside }
+        if (fitsBeside) {
+            val words = measurables[0].measure(Constraints(minWidth = beside, maxWidth = beside))
+            val height = maxOf(words.height, pill.height)
+            layout(width, height) {
+                words.placeRelative(0, (height - words.height) / 2)
+                pill.placeRelative(width - pill.width, (height - pill.height) / 2)
+            }
+        } else {
+            val words = measurables[0].measure(Constraints(maxWidth = width))
+            val top = words.height + Metrics.space1.roundToPx()
+            layout(width, top + pill.height) {
+                words.placeRelative(0, 0)
+                pill.placeRelative(0, top)
+            }
         }
     }
 }

@@ -47,7 +47,10 @@ object RpeCopy {
     }
 
     /**
-     * TalkBack for one chip: `RPE 8, about two reps left, not selected`.
+     * TalkBack for one chip: `RPE 8, about two reps left`.
+     *
+     * The chip is a radio button, so its Selected state already says "selected" or "not
+     * selected"; saying it in the words as well read it out twice (W1a).
      *
      * Packet H: a recommendation outlines the chip without selecting it, so the
      * outline needs the word `recommended` — the non-colour channel (ADR-023).
@@ -58,9 +61,8 @@ object RpeCopy {
             "max" -> ", max"
             else -> ", about $body"
         }
-        val state = if (selected) "selected" else "not selected"
         val outline = if (recommended && !selected) ", recommended" else ""
-        return "RPE $value$effort, $state$outline"
+        return "RPE $value$effort$outline"
     }
 
     fun helperSpoken(): String = "$HELPER. $HELPER_DISMISS."

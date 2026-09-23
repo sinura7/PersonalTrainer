@@ -78,14 +78,15 @@ class FloorPacketHFinalPassTest {
     @Test
     fun recommendedRpeRemainsUnselectedSupportingText() {
         assertEquals(
-            "RPE 8, about two reps left, not selected",
+            "RPE 8, about two reps left",
             RpeCopy.spoken(value = 8, selected = false),
         )
         assertEquals(
-            "RPE 8, about two reps left, not selected, recommended",
+            "RPE 8, about two reps left, recommended",
             RpeCopy.spoken(value = 8, selected = false, recommended = true),
         )
-        assertEquals("RPE 10, max, selected", RpeCopy.spoken(value = 10, selected = true, recommended = true))
+        // A chosen chip is not also "recommended"; its Selected state says it is chosen.
+        assertEquals("RPE 10, max", RpeCopy.spoken(value = 10, selected = true, recommended = true))
         val selector = readOwned("ui/workout/RpeSelector.kt")
         assertTrue(selector.contains("val selected = rpe == value"))
         assertTrue(selector.contains("val recommended = recommendedRpe == value && !selected"))

@@ -288,7 +288,11 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithText("Easy").assertIsDisplayed()
         compose.onNodeWithText("Max effort").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).assertDoesNotExist()
-        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).assert(hasContentDescription("RPE 8, about two reps left, not selected, recommended"))
+        // One sentence per chip: its digit is not read after it, and "selected" is left to
+        // the radio's own state.
+        val eight = compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8))
+        assertEquals(listOf("RPE 8, about two reps left, recommended"), eight.spokenDescriptions())
+        assertTrue("was ${eight.mergedTexts()}", eight.mergedTexts().isEmpty())
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(9)).performClick()
         assertEquals(9, chosen)
     }
@@ -422,7 +426,9 @@ class WorkoutFloorComponentsTest {
         if (!(rec.showApply && !rec.previewOnly)) return
         show { NextSetRecommendation(rec = rec, loadClass = LoadClass.LOADED, unit = unit, applied = true, enabled = true, onApply = {}) }
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsNotEnabled()
-        compose.onNodeWithText("Applied").assertIsDisplayed()
+        compose.onNodeWithText("Applied", useUnmergedTree = true).assertIsDisplayed()
+        // Said once: "Suggestion applied, …" and not the visible word after it.
+        assertTrue(compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).mergedTexts().isEmpty())
     }
 
     @Test
@@ -457,8 +463,8 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithTag(WorkoutTestTags.setChip("set-1")).performClick()
         compose.onNodeWithText("Revise Set 1 of 3").performClick()
         assertEquals("set-1", edited)
-        // One "Add set" on the floor, and it is the dock's (W1a).
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertDoesNotExist()
+        // One "Add set" on the floor, and it is the dock's (W1a): none in the history.
+        compose.onNodeWithText("Add set", substring = true, useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).assertExists()
     }
 

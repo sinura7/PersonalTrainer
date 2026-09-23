@@ -9,7 +9,6 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -183,8 +182,8 @@ class SetHistoryStripRenderTest {
         val sets = (1..3).map { floorSet(it, FLOOR_KG70, 10) }
         showStrip(sets = sets, current = null)
         compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertDoesNotExist()
-        compose.onNodeWithText("Add set").assertDoesNotExist()
+        compose.onNodeWithText("Add set", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onAllNodes(hasContentDescription("Add", substring = true), useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test

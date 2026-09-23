@@ -19,10 +19,10 @@ import androidx.compose.ui.test.hasParent
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.DpRect
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.LoadType
@@ -68,13 +68,16 @@ class ExerciseHeaderRenderTest {
         draftWarmup: Boolean = false,
         enabled: Boolean = true,
         fontScale: Float = 1f,
+        number: Int = 1,
+        total: Int = 2,
+        setContext: String = SET_CONTEXT,
     ) {
         compose.showFloor(fontScale = fontScale) {
             ExerciseHeader(
                 lift = lift,
-                number = 1,
-                total = 2,
-                setContext = SET_CONTEXT,
+                number = number,
+                total = total,
+                setContext = setContext,
                 draftWarmup = draftWarmup,
                 onWarmup = { warmups += it },
                 onOpenSwitcher = { switched += 1 },
@@ -152,6 +155,46 @@ class ExerciseHeaderRenderTest {
         // The picture clears its own semantics: it is spoken as "Exercise details", never as
         // the artwork's contents.
         assertTrue(still().fetchSemanticsNode().config.isClearingSemantics)
+    }
+
+    @Test
+    fun atNormalTextTheSwitchRidesTheSetContextsLine() {
+        showHeader()
+        val context = assertSetContextIsWhole()
+        val switch = compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).getBoundsInRoot()
+        // Beside it, not under it: the switch costs the header no height at normal text.
+        assertTrue("the switch sits beside the set context, was $switch and $context", switch.left >= context.right && switch.top < context.bottom)
+    }
+
+    @Test
+    fun atMediumLargeTextTheSetContextStaysWholeAndTheSwitchDropsUnderIt() {
+        assertTheSwitchDropsUnderAWholeSetContext(fontScale = LogLoopScale.STACK_WELLS_FROM)
+    }
+
+    @Test
+    fun atLargestTextTheSetContextStaysWholeAndTheSwitchDropsUnderIt() {
+        assertTheSwitchDropsUnderAWholeSetContext(fontScale = 2f)
+    }
+
+    /**
+     * Large text squeezed "Working set 3 of 3" into "Worki / ng s…" beside the pill. A
+     * two-digit lift count is the widest pill a real session makes.
+     */
+    private fun assertTheSwitchDropsUnderAWholeSetContext(fontScale: Float) {
+        showHeader(fontScale = fontScale, number = 10, total = 12)
+        val context = assertSetContextIsWhole()
+        val switch = compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH)
+            .assertIsDisplayed()
+            .assert(hasText(CurrentLiftCopy.switchLabel(10, 12)))
+            .getBoundsInRoot()
+        assertTrue("at font $fontScale the switch drops under the set context, was $switch and $context", switch.top >= context.bottom)
+    }
+
+    @Test
+    fun aSetContextTooLongToShareItsLineKeepsItsWordsAndTheSwitchMovesUnder() {
+        showHeader(setContext = LONG_SET_CONTEXT)
+        val context = assertSetContextIsWhole()
+        assertTrue(compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).getBoundsInRoot().top >= context.bottom)
     }
 
     @Test
@@ -253,11 +296,34 @@ class ExerciseHeaderRenderTest {
             hasText("Leg Extension", substring = true),
     )
 
+    /**
+     * The set context is on screen whole: at most two lines, the last one not cut short, and
+     * no word broken across lines. Returns where it sits.
+     */
+    private fun assertSetContextIsWhole(): DpRect {
+        val node = compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true).assertIsDisplayed()
+        val layout = node.textLayout()
+        val words = layout.layoutInput.text.text
+        assertTrue("\"$words\" takes at most two lines, took ${layout.lineCount}", layout.lineCount <= 2)
+        assertFalse("\"$words\" is not cut short", layout.isLineEllipsized(layout.lineCount - 1))
+        assertTrue(
+            "no word of \"$words\" is broken across lines",
+            layout.multiParagraph.intrinsics.minIntrinsicWidth <= layout.multiParagraph.width,
+        )
+        return node.getBoundsInRoot()
+    }
+
     /** The picture, which is also the Details button. */
     private fun still() = compose.onNodeWithTag(WorkoutTestTags.DETAILS)
 
     private companion object {
         const val SET_CONTEXT = "Working set 3 of 3"
+
+        /**
+         * Longer than any set context the app writes today: more than two lines beside the
+         * switch at 360 dp, well within two on its own.
+         */
+        const val LONG_SET_CONTEXT = "Warm-up set 2 · then working set 1 of 3"
         const val LONG_NAME = "Single-arm half-kneeling cable row with a three-second pause at the top of every rep"
     }
 }

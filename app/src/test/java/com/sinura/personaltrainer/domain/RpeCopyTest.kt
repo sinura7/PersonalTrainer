@@ -16,10 +16,10 @@ class RpeCopyTest {
         assertEquals("two reps left", RpeCopy.meaning(8))
         assertEquals("max", RpeCopy.meaning(10))
         assertEquals(
-            "RPE 8, about two reps left, not selected",
+            "RPE 8, about two reps left",
             RpeCopy.spoken(8, selected = false),
         )
-        assertEquals("RPE 10, max, selected", RpeCopy.spoken(10, selected = true))
+        assertEquals("RPE 10, max", RpeCopy.spoken(10, selected = true))
         assertEquals(RpeCopy.LABEL, "RPE · OPTIONAL")
         assertEquals(RpeCopy.HELPER, "6 = four reps left · 10 = max")
         assertEquals(RpeCopy.WARMUP_REASON, "Warm-up")
