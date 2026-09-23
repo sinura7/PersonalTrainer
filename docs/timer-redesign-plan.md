@@ -1,5 +1,11 @@
 # Timer redesign plan — a standalone instrument, compact at rest
 
+> **Banner (23 Sep 2026).** The timer redesign plan is no longer the active plan; kept as its record. The active order is the packet table in
+> [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md), set by the
+> [whole-app audit](design-audit/2026-09-22/AUDIT.md); decisions live in
+> [architecture/](architecture/README.md). Items still open here are not tracked
+> here any more; check the code before acting on one.
+
 *Read-only review + plan. No code changed. Audited against `origin/trunk` at Live 76
 (`7a5563a4`, "compact rest, hold, and set bar"). All heights below are derived from the
 layout code (`heightIn` minimums + spacing tokens), not measured on-device — the numbers

@@ -2,6 +2,9 @@
 
 - **Status:** Accepted
 - **Date:** 24 August 2026
+- **Amended:** 23 September 2026 — decisions 14 and 15, for the Temper Account
+  lane only, by [ADR-031](ADR-031-trusted-server-sync-lane.md): a trusted-server
+  lane, not E2EE, paused until packet S1 meets its bar
 - **Supersedes:** Implicit Android Auto Backup as an accepted recovery path;
   any current-voice description of Drive as “sync”
 - **Related:** FND-011, FND-012, FND-014A–C, FND-030, FND-038; Phase 3, 11, 12;
@@ -78,6 +81,13 @@ safety. Incremental account sync is a later product, not a rename of Drive.
     and outbox-transactional. Last-write-wins is rejected for set logs and
     schedules. Sign-out retains local data. Tokens and keys never enter
     export or logs.
+
+    *Amended 23 September 2026 by [ADR-031](ADR-031-trusted-server-sync-lane.md)
+    for Temper Account:* §14's gate was not met when the lane shipped on
+    21 September. The lane is trusted-server, not E2EE; it stays paused until
+    ADR-031 decision 3 is met; conflicts resolve by server-ordered change time.
+    Opt-in, outbox-transactional, local data kept on sign-out, and no tokens in
+    exports or logs all still hold.
 
 ### Diagnostics
 

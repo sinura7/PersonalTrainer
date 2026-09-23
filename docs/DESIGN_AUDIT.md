@@ -1,5 +1,11 @@
 # Personal Trainer — design and quality audit
 
+> **Banner (23 Sep 2026).** No longer the living spec; kept as the record of the gym-floor usability audit. The active order is the packet table in
+> [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md), set by the
+> [whole-app audit](design-audit/2026-09-22/AUDIT.md); decisions live in
+> [architecture/](architecture/README.md). Items still open here are not tracked
+> here any more; check the code before acting on one.
+
 **Status:** living product spec. This is the list of everything that must be true before the app feels like a high-class gym product, not a functional prototype.
 
 **Bar:** every screen and control is simple, but designed with intent. The user should feel they are holding a piece of gym equipment, not filling out a form. Quality of use on the floor — one-handed, sweaty, noisy, phone in a pocket or on a rack — is the highest requirement. Text-only lists, generic Material chrome, and “it works if you read carefully” are not enough.

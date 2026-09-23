@@ -9,6 +9,9 @@
 **Active frontend work:** [Frontend redesign](FRONTEND_REDESIGN.md), approved
 16 September 2026 under [ADR-026](architecture/ADR-026-frontend-redesign.md).
 It retains this program's data and product guarantees and refines UI behavior.
+Since 22 September its packets run in the order the
+[whole-app audit](design-audit/2026-09-22/AUDIT.md) set, interleaved with the
+sync-safety packets.
 
 This file is the executable program. Accepted ADRs are the decisions it
 may not violate. Historical [ROADMAP.md](ROADMAP.md), Jobs 1–6, and
@@ -758,13 +761,19 @@ was added.
 Evidence:
 [P10 gate hold](foundation-program/evidence/P10-kmp-gate.md).
 
-### Phase 11 — Optional encrypted incremental sync · gated (correctly not started)
+### Phase 11 — Optional encrypted incremental sync · E2EE not started; trusted-server lane paused
 
-Starts only when [ADR-009](architecture/ADR-009-backup-privacy-sync.md) §14
-fires. Local product, tombstones, KMP decision, and backend review are
-not all accepted. FND-012 stays open.
+The end-to-end-encrypted sync this phase describes has not started, and
+FND-012 stays open for it. A different lane did ship: Temper Account, a
+trusted-server sync on Temper Debug, on 21 September 2026, without the
+[ADR-009](architecture/ADR-009-backup-privacy-sync.md) §14 gate.
+[ADR-031](architecture/ADR-031-trusted-server-sync-lane.md) records that lane,
+amends ADR-009 §14–15 for it, and keeps it paused
+(`AccountSyncGate.SYNC_PAUSED`) until whole-app audit packet S1 meets its bar.
 Evidence:
-[P11 gate hold](foundation-program/evidence/P11-sync-gate.md).
+[P11 gate hold](foundation-program/evidence/P11-sync-gate.md) (the gate as it
+stood before 21 September);
+[whole-app audit](design-audit/2026-09-22/AUDIT.md) S-1 to S-10.
 
 ### Phase 12 — Field operations, release hardening, commercialization · in progress
 
@@ -808,7 +817,7 @@ does not accept, reject, or defer a finding without naming a packet.
 | Complete Local Fitness Beta | Phase 8 | Phase 9 if goals, year views, or scale budgets fail |
 | Android Public Candidate | Phase 9 | Phase 12 publication; Phases 10–11 remain gated on their own ADRs |
 | KMP proof | Phase 10 | nothing else; optional |
-| Optional Sync Beta | Phase 11 | nothing else; optional |
+| Optional Sync Beta | Phase 11 | nothing else; optional (Temper Account lane: [ADR-031](architecture/ADR-031-trusted-server-sync-lane.md)) |
 | Commercial Release Candidate | Phase 12 | public distribution |
 
 ## 9. Documentation map for executors

@@ -64,6 +64,9 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-027](ADR-027-workout-logging-redesign.md) | Active workout logging screen redesign | Amends ADR-026 §3: image-led identity, stats row, hero numerals, next-set card, set-history chips, rest card, two-line commit; business rules untouched |
 | [ADR-028](ADR-028-save-posture-and-account-sync-target.md) | Save posture chooser and Account sync target | First-launch Account vs local+Drive; Settings → How you save; sync expansion follow-ups |
 | [ADR-029](ADR-029-coach-engine.md) | In-workout CoachEngine and evidence-backed suggestions | Extends ADR-008; curated literature seed; Next set card citations; offline policy |
+| [ADR-030](ADR-030-live-workout-set-copy-prepare-stats.md) | Live workout clarity: set copy and prepare-phase stats | One set line on the floor; Last only until a working set is logged |
+| [ADR-031](ADR-031-trusted-server-sync-lane.md) | Temper Account is a trusted-server sync lane | Amends ADR-009 §14–15 for Temper Account: not E2EE; paused until S1 meets its bar; server-ordered change time |
+| [ADR-032](ADR-032-jvm-evidence-lanes.md) | JVM renders and JVM migration tests are the evidence lanes | Amends ADR-026 §8 (emulator goldens retired) and ADR-010 §7 (JVM migration test gates) |
 
 ## Supporting records
 

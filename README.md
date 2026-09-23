@@ -91,8 +91,8 @@ Five tabs — **Home · Body · Plan · History · Settings**. Library is a push
   (`IncrementTable`), never a converted "+5.5 lbs". A back-off set never lowers next
   session's suggestion. Bodyweight lifts are told to add a rep.
 
-**Backup, not sync.** Export/import a file with no Google account, or make an
-optional whole-file Google Drive **backup**. The default export is a
+**Backup, and a paused sync.** Drive is backup, not sync. Export/import a file
+with no Google account, or make an optional whole-file Google Drive **backup**. The default export is a
 password-protected envelope; plaintext is an advanced warned choice.
 Drive backup can also run **after each finished workout** — opt-in from
 Settings, always the protected envelope, never a consent sheet mid-flow.
@@ -106,7 +106,16 @@ copies are not recalled. Use Export to file.
 
 Training works offline. A backup is only read when you ask for one. Cardio,
 backdated activities, and timed two-a-day schedules ship
-on this debug build. Phase 10 (KMP) and Phase 11 (sync) stay gated.
+on this debug build.
+
+**Temper Account** (Temper Debug only) is an optional sign-in for a
+trusted-server sync of your weekly plan, routines, templates, completed
+activities, custom lifts, weigh-ins, goals and preferences. It is **paused**:
+no upload or download runs, and edits queue for when it resumes. It is not
+end-to-end encrypted, and live-logged strength workouts stay on the phone. See
+[ADR-031](docs/architecture/ADR-031-trusted-server-sync-lane.md) and
+[sync-personal-build.md](docs/architecture/sync-personal-build.md). Phase 10
+(KMP) and end-to-end-encrypted sync stay gated.
 
 ## Version and updates
 
