@@ -128,3 +128,19 @@ The pre-v2 raw copy of `personal_trainer.db` (plus `-wal` / `-shm`) at `files/pr
 on the phone, together with the JSON export taken before the upgrade, are the **only** rollback
 artifacts. v1 builds refuse v2 JSON by design, and Room refuses to open a downgraded database.
 The raw copy dies with an uninstall.
+
+Since X2b (23 September 2026) every later `temper.db` schema bump has the same kind of copy: before
+Room migrates the file from schema *n*, the app copies `temper.db` with its `-wal`, `-shm` and
+`-journal` into `files/pre-migration/temper-v<n>/` (`TemperPreMigrationCopy`, ADR-010 decision 12).
+The copy is written into a `.partial` folder and renamed only when every file is on disk, so a
+folder named `temper-v<n>` is always whole. The copy just taken is kept with the newest older one.
+A corrective release that needs to roll a bad migration back reads the copy for the version the
+phone came from; a build of that version can open it as it stands. To inspect one by hand, copy the
+whole folder off the phone first and open the copy: opening a database folds its WAL into the main
+file, so opening the folder in place changes the only rollback artifact.
+
+It is not guaranteed. When the copy cannot be taken — storage full or failing, too little free
+space left for the migration, or a hot rollback journal after a crash — the app opens and migrates
+anyway and that bump has no raw copy. A power cut in the moments after the copy can lose it too:
+the files are synced, the folder's rename is not. It also dies with an uninstall. The JSON export
+before an upgrade is still the step not to skip.

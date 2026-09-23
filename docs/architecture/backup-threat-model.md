@@ -64,10 +64,11 @@ encryption.
 | Room `TrainerDatabase` | `databases/personal_trainer.db` (+ WAL/SHM) | Exercises, muscles, routines, finished and live sessions, sets, schedule, seed meta | Finished sessions and the rest of the catalog/plan; **live sessions excluded** | No |
 | DataStore `user_settings` | `files/datastore/user_settings.preferences_pb` | Unit, schedule, rest prefs, coach, bodyweight + log, blocks, onboarding, Drive email/folder, backup stamps, collision dismissals | Partial — see exclusions below | No |
 | `rest_timer_state` | `shared_prefs/rest_timer_state.xml` | Live rest countdown and session id | No | No |
-| `schema_marker` | `shared_prefs/schema_marker.xml` | Last opened schema version | No | No |
+| `schema_marker` | `shared_prefs/schema_marker.xml` | Last opened legacy schema version; the newest temper version already checked for a pre-migration copy | No | No |
 | Safety snapshots | `files/safety-snapshots/pre-restore-*.json` | Plaintext JSON of current state; keep newest 3 | N/A (they *are* backups) | No |
 | Restore journal | `files/restore-journal/` | Phase + incoming JSON for a killed restore | No | No |
 | Pre-migration v1 copy | `files/pre-migration/v1/personal_trainer.db` (+ WAL/SHM) | Byte copy taken once before Room v2 | No | No |
+| Pre-migration temper copies | `files/pre-migration/temper-v<n>/temper.db` (+ WAL/SHM/journal) | Byte copy of `temper.db` at schema *n*, taken before Room migrates it (X2b, ADR-010 decision 12); newest 2 kept | No | No |
 | Last crash | `files/diagnostics/last-crash.txt` | One already-redacted diagnostic event (id, time, kind, exception class, `PT/` tag, Temper frames); no message, no user data | No | No |
 | Workout draft | In-process cache + Activity `SavedStateHandle` | Unlogged set entry | No | OS saved state only |
 | Drive token | `DriveAuthClient` memory | Access token + email | No | No |
