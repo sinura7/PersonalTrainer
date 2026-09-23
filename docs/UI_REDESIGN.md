@@ -1,5 +1,11 @@
 # UI Redesign — Design Critique and Direction
 
+> **Banner (23 Sep 2026).** No longer the active visual plan; kept as the record of the direction it set. The active order is the packet table in
+> [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md), set by the
+> [whole-app audit](design-audit/2026-09-22/AUDIT.md); decisions live in
+> [architecture/](architecture/README.md). Items still open here are not tracked
+> here any more; check the code before acting on one.
+
 **Status:** design decision record. This is the visual-language companion to `docs/DESIGN_AUDIT.md` (the gym-floor usability audit). The audit says what must *work*; this document says what the product must *look and feel like*, why the current UI misses that bar, and exactly which styles and approaches the redesign uses.
 
 **Brief (from the owner):** "modernized and high tech… almost like an Apple design or Whoop. A high reflection of super highly designed items and layouts. The workflow needs to be intentional. Clean, compact, and simple."

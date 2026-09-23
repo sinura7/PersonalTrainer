@@ -17,14 +17,14 @@ test counts are what ran *then*, not what runs now.
 
 | Lane | What it proves | Where it runs | Gate for |
 |---|---|---|---|
-| Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | Twenty-one source checkers, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.11+ (`tomllib`) and Java 17 (no SDK) | every commit |
+| Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | 24 source checkers (counted 23 September 2026), 8 fixture proofs, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.11+ (`tomllib`) and Java 17 (no SDK) | every commit |
 | JVM lane: `tools/run-domain-tests.sh <jars>` | `domain/`, `util/`, `logging/`, the named workout/timer/diagnostics files and the backup codec, compiled with `kotlinc` against stubs | same | every commit |
-| Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels) — **and the static gate above**, via `:app:staticChecks`, which every `Test` task depends on | SDK machine, or `ci.yml` on a push | merge into `trunk` |
+| Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels, JVM migration tests, and the screen renders written under `app/build/` — the visual evidence, [ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) — **and the static gate above**, via `:app:staticChecks`, which every `Test` task depends on | SDK machine, or `ci.yml` on a push | merge into `trunk` |
 | Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
 | Instrumented sources: `./gradlew compileDebugAndroidTestKotlin` | The device tests still compile — a test-only change never reaches a device from here, and a broken one would sit unnoticed until an emulator run | same | merge into `trunk` (`ci.yml` runs it) |
 | Hosted `ci.yml`: *Tests, lint, debug build* | The same static gate, unit suite, lint and debug build the local gate runs, on every push and pull request | GitHub-hosted runner | may be a required check on `trunk` ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)); the owner enables it |
 | Hosted emulator: `instrumented-smoke` in `ci.yml` | The instrumented tests on API 29 (Nexus 5X profile), printing their own failure bodies and logcat | GitHub-hosted runner | **nothing** — read the job, not the check (ADR-002 §6, ADR-024) |
-| Device journeys: `connectedDebugAndroidTest` on `com.sinura.personaltrainer.debug` | Room migrations, restore, the workout journey, screen passes and goldens | emulator (`temper-tests-api29` profile) | gym-floor `v*` release |
+| Device journeys: `connectedDebugAndroidTest` on `com.sinura.personaltrainer.debug` | Room migrations on real SQLite (evidence; the JVM migration tests gate), restore, the workout journey, screen passes. Its 17 September goldens are retired ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) | emulator (`temper-tests-api29` profile) | gym-floor `v*` release |
 | Phone: Obtainium **Temper Debug** pre-release | The owner's walk-through on the real phone | the phone | gym-floor `v*` release |
 
 The merge gate is the JVM gate — static gate, Gradle unit, build — as
@@ -467,6 +467,11 @@ exactly such an entity (`exercise_muscles`, `PRIMARY KEY(exerciseId, muscleKey)`
 
 Consequences, in order of cost:
 
+*Since 23 September 2026 the JVM migration test is the migration gate
+([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)); on a Linux or WSL2
+host the JVM lane runs it. The Windows-host notes below still hold for that
+host.*
+
 1. **The emulator lane is the migration lane** (`.\gradlew.bat connectedDebugAndroidTest`).
    It runs real Android SQLite, it already works on Windows, and it is the truth check
    regardless of host. Phase 3's migration suite is gated on it.
@@ -590,6 +595,10 @@ Copies are verified by SHA-256 and names are unique across runs.
 It refuses physical-device execution and dismisses first-launch permission
 explanations through their UI. These whole-device captures use the real civil
 clock and are observation evidence, not deterministic pixel goldens.
+
+*Retired 23 September 2026 ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)):
+the emulator goldens are no longer baselines and are not re-recorded; the JVM
+render set is the visual evidence. The procedure below is kept for the record.*
 
 For deliberate reference recording, add
 `-Pandroid.testInstrumentationRunnerArguments.recordGoldens=true` and restrict

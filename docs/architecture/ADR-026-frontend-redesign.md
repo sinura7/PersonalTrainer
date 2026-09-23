@@ -2,6 +2,9 @@
 
 - **Status:** Accepted
 - **Date:** 16 September 2026
+- **Amended:** 23 September 2026 — decision 8 by
+  [ADR-032](ADR-032-jvm-evidence-lanes.md): JVM renders are the visual
+  evidence; emulator goldens retire as baselines
 - **Supersedes / Related:** ADR-002 §3 branch prefix only; ADR-005/023 visual
   identity retained; ADR-017 day-picker geometry may adapt; ADR-022 Body
   registration refined without replacing keyed catalog stills; ADR-024 gates
@@ -36,6 +39,9 @@ or totals-only History filtering describe the previous design, not the new targe
 8. Missing required visual baselines fail. Native renders, semantics/interaction
    checks and physical-device evidence have distinct acceptance roles. Hosted
    emulator checks remain nonblocking; the deterministic/local gates stay intact.
+   *Amended 23 September 2026 by [ADR-032](ADR-032-jvm-evidence-lanes.md):* the
+   required baselines are the JVM render set; the 17 September emulator goldens
+   are retired.
 9. Home retains ADR-021's current start sheet and no Add row. The approved plan's
    instruction to preserve the existing recurrence choice does not resurrect the
    obsolete Home add flow removed on 13 September; Plan remains its current author.

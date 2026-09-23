@@ -29,7 +29,10 @@ are approved. A beautiful normal state alone does not close a screen.
 Only one implementation packet is open at a time. Each has targeted checks,
 the complete local gate, native evidence where relevant, independent review,
 an adversarial review, and integrated verification. A packet is not complete
-because source assertions or JVM tests alone pass.
+because source assertions or JVM tests alone pass. *Since 23 September the
+JVM render set, with its reachability assertions, is the native visual
+evidence ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)); source
+assertions alone still do not complete a packet.*
 
 | Packet | Deliverable | Status |
 |---|---|---|
@@ -47,9 +50,47 @@ because source assertions or JVM tests alone pass.
 | F10 | Settings labels/status, backup/restore, diagnostics and About | Pending |
 | F11 | Integrated visual, accessibility, performance and upgrade acceptance | Pending |
 
-Milestone A follows F3; B follows F6; C follows F11. Each has native captures,
+Milestone A follows F3 (since the audit, W3); B follows F6 (F6b); C follows F11. Each has native captures,
 executed checks, limitations, a focused phone checklist and an Obtainium drop
 through the existing stable-signing and monotonically increasing version flow.
+
+### Order since the whole-app audit (22 September 2026)
+
+The [whole-app audit](design-audit/2026-09-22/AUDIT.md) re-scoped F4–F11 into
+smaller packets and interleaved them with sync-safety (S), workout-floor (T, W)
+and record (X, Q) packets. This table is the live order; the F rows above keep
+their original scope for reference. **V** = visible, gets its own Obtainium
+drop and phone check; **Q** = quiet, rides along with the next V drop. Visual
+evidence is the JVM render set ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)).
+
+| # | Packet | Scope | Kind | Status |
+|---|---|---|---|---|
+| 1 | S0a | Sync pause switch; Delete account hidden; honest Account copy; R8 keep rule | V | Done — #380, drop 99 |
+| 2 | X2 | a) JVM migration tests 5→6→7, debug-asset schemas, guard · b) pre-migration `temper.db` copy | Q | X2a done — #382; X2b before the next schema bump |
+| 3 | S0b | Pull writes in place; refused custom-lift delete retried | Q | Done — #383 |
+| 4 | Q1 | First-launch chooser is a real gate; permission walk waits; D01 date-aware headline and Back to today | V | Done — #384, drop 100 (S0b and X2a rode along) |
+| 5 | X1 | Docs truth pass; this table; ADR-031 (sync lane), ADR-032 (evidence lanes) | Q | Done |
+| 6 | T1 | Workout test triage: source-string assertions that pin removable code become rendered/semantic checks | Q | Next |
+| 7 | W1a | Visible "Lift n of N" switch; numeric-entry cue; one Add set; 48 dp evidence chip; no double announcements | V | Pending |
+| 8 | W1b | "Effort · optional"; planned-rest copy; one ±15 control set; coach goal reaches the workout | V | Pending |
+| 9–12 | W2a–d | Dead code and lower token ceilings · shared rest commands, atomic `adjust` · coach/picker performance · save/undo and session-state extraction | Q | Pending |
+| 13 | W3 | Floor renders across the ADR-032 matrix, with reachability assertions, become the floor's gate; retired goldens leave the hosted lane | V | Pending — Milestone A |
+| 14 | S1 | Outbox in the save's transaction; enrolled user id; delete callers; tombstone time; poison-row quarantine; restore/sign-out reset cursors → unpause | V | Pending |
+| 15 | F8a | Single-choice radio roles app-wide; keyboard focus stays out of Home under the chooser | Q | Pending |
+| 16 | F4 | Home: finished block links to its session (D14); 48 dp week strip; read-error state; set-up-my-week; saved selected date; `ThisWeekCard` on other days | V | Pending |
+| 17 | F6a | History: one period for totals, calendar and list; period saved | V | Pending |
+| 18 | F6b | History: calendar feedback, day-sheet title parity, shared effort control, error banner | V | Pending — Milestone B |
+| 19 | S2a | Server: DDL and RLS for all 17 tables; server change time; conditional upsert; delete-account function (shown to the owner first) | Q | Pending |
+| 20 | S2b | Client: composite cursor (Room v8 + migration tests); RPC push; Delete account back | V | Pending |
+| 21–23 | F10a–c | Settings "Saving & sync" row with live status · named groups, icons, one regenerate path · split `SettingsScreen` / `BackupCoordinator` | V, V, Q | Pending |
+| 24–25 | S3a–b | Room v9 revision/tombstone columns on live strength tables · strength history syncs; first-sync rule for settings | Q, V | Pending |
+| 26–27 | F7a–b | Plan: routines visible with a menu, one word (routine), dead UI removed · split `RoutineEditorViewModel` | V, Q | Pending |
+| 28 | S4 | WorkManager hygiene, timeouts, encrypted tokens, `WorkerFactory` | Q | Pending |
+| 29–31 | F5a–c | Body sizing from the measured area · vector anatomy (one geometry for art, heat, taps) · polish and render matrix | V | Pending |
+| 32 | F8b | Library: Clear filters; saved search | V | Pending |
+| 33 | F8c | Onboarding entry; stale comments | V | Pending |
+| 34 | F9 | Cardio composer: standard header, date picker; cardio details | V | Pending |
+| 35 | F11 | Integrated acceptance: every tab × 360/412/600 dp × font 1.0/1.6/2.0 × landscape; owner-phone timings | V | Pending — Milestone C |
 
 ## Shared contracts
 
@@ -154,7 +195,9 @@ layouts, places actions within reach and has a clear completion state.
 
 ## Acceptance matrix and evidence
 
-Native layouts: 360x640, 360x800, 412x840, 600 dp width and 640x360 landscape.
+*The per-packet render matrix is [ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)
+decision 1; the list below is the full F11 acceptance scope.* Native layouts:
+360x640, 360x800, 412x840, 600 dp width and 640x360 landscape.
 Primary changed screens at font 1.0/1.6/2.0; gesture/three-button navigation,
 RTL, normal/reduced motion, keyboards, long labels/numbers, sparse/populated/
 large data, rotation/background/process recreation. API 29 reference renderer,
@@ -170,7 +213,10 @@ create/order/save failure/import; combined search filters; custom edit/cancel;
 onboarding back/accept; invalid/valid cardio; missing detail; fixture export,
 preview, restore and count reconciliation.
 
-Golden evidence pins profile/API/image revision/renderer/fonts/locale/clock/
+*Since 23 September ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) the
+emulator goldens described in this paragraph are retired as baselines; the JVM
+render set, with reachability assertions, is the visual evidence.* Golden
+evidence pins profile/API/image revision/renderer/fonts/locale/clock/
 fixture state. Full screen includes persistent chrome. Required missing
 baselines fail rather than skip. Keep narrowly bounded rounding allowance;
 attach actual/expected/diff and rationale for intentional baseline updates.

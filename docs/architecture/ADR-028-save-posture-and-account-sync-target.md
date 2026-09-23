@@ -2,7 +2,9 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-21
-- **Amended:** 23 September 2026 — §2: the chooser is a real gate (touch, Back,
+- **Amended:** 23 September 2026 — §5 is read through
+  [ADR-031](ADR-031-trusted-server-sync-lane.md) (trusted-server lane, paused).
+  §2: the chooser is a real gate (touch, Back,
   TalkBack, scroll) and the permission walk waits until Settings is left
   (whole-app audit Q1)
 - **Supersedes / Related:** [ADR-004](ADR-004-offline-core-and-entitlements.md),
@@ -42,6 +44,8 @@ to change that choice later.
    settings, workouts, and history are fully cloud-backed with local Room as
    cache. **Packet 1 ships posture + UX only.** Replication today matches
    [sync-personal-build.md](sync-personal-build.md) scope (`SyncEntityType`).
+   The lane that reaches this target is trusted-server and currently paused;
+   its rules are [ADR-031](ADR-031-trusted-server-sync-lane.md)'s.
 
 ## Consequences
 

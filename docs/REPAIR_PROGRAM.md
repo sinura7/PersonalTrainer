@@ -1,5 +1,11 @@
 # Repair program — the 1 September audit, packet by packet
 
+> **Banner (23 Sep 2026).** The 1 September repair program is no longer the active plan; kept as its record. The active order is the packet table in
+> [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md), set by the
+> [whole-app audit](design-audit/2026-09-22/AUDIT.md); decisions live in
+> [architecture/](architecture/README.md). Items still open here are not tracked
+> here any more; check the code before acting on one.
+
 **Status:** in progress — Phase A, B3, B4, B1, B2, C1–C4, D1–D3, E1–E4, F1–F6, G1–G6, H1–H3, J4 (seams, TimePort,
 scheduler polish, policy tests into `tools/`), J3, J2, J5, and J1 are on
 `trunk`. Live test 21 is the Obtainium drop. K1 and K2 stay held.  

@@ -2,6 +2,9 @@
 
 - **Status:** Accepted
 - **Date:** 24 August 2026
+- **Amended:** 23 September 2026 — decisions 14 and 15, for the Temper Account
+  lane only, by [ADR-031](ADR-031-trusted-server-sync-lane.md): a trusted-server
+  lane, not E2EE, paused until packet S1 meets its bar
 - **Supersedes:** Implicit Android Auto Backup as an accepted recovery path;
   any current-voice description of Drive as “sync”
 - **Related:** FND-011, FND-012, FND-014A–C, FND-030, FND-038; Phase 3, 11, 12;
@@ -79,6 +82,15 @@ safety. Incremental account sync is a later product, not a rename of Drive.
     schedules. Sign-out retains local data. Tokens and keys never enter
     export or logs.
 
+    *Amended 23 September 2026 by [ADR-031](ADR-031-trusted-server-sync-lane.md)
+    for Temper Account:* §14's gate was not met when the lane shipped on
+    21 September. The lane is trusted-server, not E2EE; it stays paused until
+    ADR-031 decision 3 is met and the owner says yes; when two phones change
+    the same row the later save wins (sessions compare revision first; the
+    phone's clock decides "later" until packet S2a, the server after).
+    Opt-in, local data kept on sign-out and no tokens in exports or logs still
+    hold; outbox-transactional remains a requirement, not yet met (packet S1).
+
 ### Diagnostics
 
 16. Default remains **no automatic telemetry**. Phase 12 may add a user-
@@ -100,4 +112,6 @@ safety. Incremental account sync is a later product, not a rename of Drive.
 - Is Auto Backup the recovery path? No.
 - Is Drive sync? No.
 - Can a catalog-only file wipe history? Not after P3.2, and not by design.
-- When may incremental sync begin? Only after the Phase 11 start gate.
+- When may incremental sync begin? Only after the Phase 11 start gate. *For
+  the Temper Account lane, amended by ADR-031:* only when its decision 3 is
+  met and the owner says yes.

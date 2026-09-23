@@ -2,6 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 24 August 2026
+- **Amended:** 23 September 2026 — decision 7 by
+  [ADR-032](ADR-032-jvm-evidence-lanes.md): the JVM migration test is the gate
 - **Supersedes:** Historical signed “Room v3 won’t” in Jobs 3–6, UX page pass,
   and owner-loop; the implication that Room v2 is the last database
   generation
@@ -57,6 +59,10 @@ it is not.
 7. **After the Phase 5.7 foundation-freeze gate, reset authority expires.**
    Every later schema change requires a generated schema artifact and JVM
    plus device migration tests. A second “just reset it” is a defect.
+   *Amended 23 September 2026 by [ADR-032](ADR-032-jvm-evidence-lanes.md):*
+   the JVM test (with the schema copied into `app/src/debug/assets/`, checked
+   by `TemperSchemaAssetsTest`) is the gate; the device test is still written
+   and runs in the hosted lane as evidence.
 
 ### What “Room v3 won’t” meant and now means
 

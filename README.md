@@ -8,8 +8,9 @@ installs and Room history keep their identity. Workouts stay on the device (Room
 Weights are stored in kilograms and can be shown as kg or lbs.
 
 The current program — what is being built next, and the decisions that bind it — is
-[docs/FOUNDATION_PROGRAM.md](docs/FOUNDATION_PROGRAM.md). This README describes the
-local fitness beta on the debug install.
+[docs/FOUNDATION_PROGRAM.md](docs/FOUNDATION_PROGRAM.md). Where things stand today, and
+the order of the work in progress, is [docs/HANDOFF-NEXT.md](docs/HANDOFF-NEXT.md). This
+README describes the local fitness beta on the debug install.
 
 The Play Store is not required. Day-to-day on the phone is **Obtainium**:
 Temper Debug from a GitHub pre-release (`debug-live-*`,
@@ -91,8 +92,9 @@ Five tabs — **Home · Body · Plan · History · Settings**. Library is a push
   (`IncrementTable`), never a converted "+5.5 lbs". A back-off set never lowers next
   session's suggestion. Bodyweight lifts are told to add a rep.
 
-**Backup, not sync.** Export/import a file with no Google account, or make an
-optional whole-file Google Drive **backup**. The default export is a
+**Backup, and a paused sync.** Drive is backup, not sync. Export/import a file
+with no Google account, or make an optional whole-file Google Drive
+**backup**. The default export is a
 password-protected envelope; plaintext is an advanced warned choice.
 Drive backup can also run **after each finished workout** — opt-in from
 Settings, always the protected envelope, never a consent sheet mid-flow.
@@ -106,7 +108,17 @@ copies are not recalled. Use Export to file.
 
 Training works offline. A backup is only read when you ask for one. Cardio,
 backdated activities, and timed two-a-day schedules ship
-on this debug build. Phase 10 (KMP) and Phase 11 (sync) stay gated.
+on this debug build.
+
+**Temper Account** (Temper Debug only) is an optional sign-in for a
+trusted-server sync of your weekly plan, routines, templates, completed
+activities, custom lifts, weigh-ins, goals, preferences and account profile.
+It is **paused**: no upload or download runs, and edits made while signed in
+queue for when it resumes. It is not
+end-to-end encrypted, and live-logged strength workouts stay on the phone. See
+[ADR-031](docs/architecture/ADR-031-trusted-server-sync-lane.md) and
+[sync-personal-build.md](docs/architecture/sync-personal-build.md). Phase 10
+(KMP) and end-to-end-encrypted sync stay gated.
 
 ## Version and updates
 
@@ -124,15 +136,18 @@ Store, no app bundle, no split APKs.
 ## Architecture
 
 ```
-data/local       Room entities, DAOs, TemperDatabase (v4, frozen)
+data/local       Room entities, DAOs, TemperDatabase (v7; every version has a JVM migration test)
 data/repository  the only classes that touch DAOs
 data/backup      backup document, JSON codec, validator, Drive backup client
+data/sync        Temper Account outbox, push/pull engine, worker (paused: ADR-031)
+data/auth        Temper Account sign-in (Supabase Auth)
 domain           pure Kotlin — models, units, muscle heat, recommendations, planner, progression
 insights         TrainingInsightsSource — one analytics pipeline
 timer            rest timer store, controller, foreground service, wakeup alarm, notifications
 workout          in-progress workout draft (memory + saved state)
+update           Temper Debug's in-app update check and banner
 ui/home, ui/progress (Body), ui/plan, ui/history, ui/library,
-ui/routines, ui/workout, ui/summary, ui/settings, ui/onboarding
+ui/routines, ui/workout, ui/summary, ui/settings, ui/onboarding, ui/saveposture
 ```
 
 ViewModels talk to repositories, never to DAOs. No Hilt — ViewModels take `AppDependencies`
