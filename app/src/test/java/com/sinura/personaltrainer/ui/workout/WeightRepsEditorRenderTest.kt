@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -130,9 +131,9 @@ class WeightRepsEditorRenderTest {
             ),
             weights,
         )
-        compose.openKeypad { compose.runCustomAction(reps, "Type a rep count") }
-        compose.onNodeWithText("Reps").assertExists()
-        compose.confirmKeypad("7")
+        compose.withKeypad(on = reps, value = "7", byAction = "Type a rep count") {
+            compose.onNodeWithText("Reps").assertExists()
+        }
         assertEquals(7, repsSeen.last())
     }
 
@@ -180,15 +181,15 @@ class WeightRepsEditorRenderTest {
         val weight = compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER)
         assertEquals("Type a weight", weight.clickLabel())
         weight.assertHeightIsAtLeast(Metrics.touchMin)
-        compose.openKeypad { weight.performClick() }
-        compose.onNodeWithText(WeightMeaning.LIFTED.fieldLabel).assertExists()
         val helper = SetCopy.weightKeypadHelper(
             LoadClass.LOADED,
             UnloadedLoad.allowsZeroWorkingWeight(LoadType.EXTERNAL, EquipmentType.MACHINE, null),
         )
-        compose.onNodeWithText(helper, substring = true).assertExists()
-        compose.onNodeWithTag(NumberEntryTags.FIELD).assert(hasText("70"))
-        compose.confirmKeypad("82.5")
+        compose.withKeypad(on = weight, value = "82.5") {
+            compose.onNodeWithText(WeightMeaning.LIFTED.fieldLabel).assertExists()
+            compose.onNodeWithText(helper, substring = true).assertExists()
+            compose.onNodeWithTag(NumberEntryTags.FIELD).assert(hasText("70"))
+        }
         assertEquals(listOf(checkNotNull(NumericEntry.parseWeightKg("82.5", FLOOR_UNIT))), weights)
         compose.onNodeWithText(WeightMeaning.LIFTED.fieldLabel).assertDoesNotExist()
     }
@@ -199,9 +200,9 @@ class WeightRepsEditorRenderTest {
         val reps = compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER)
         assertEquals("Type a rep count", reps.clickLabel())
         reps.assertHeightIsAtLeast(Metrics.touchMin)
-        compose.openKeypad { reps.performClick() }
-        compose.onNodeWithText("Reps").assertExists()
-        compose.confirmKeypad("12")
+        compose.withKeypad(on = reps, value = "12") {
+            compose.onNodeWithText("Reps").assertExists()
+        }
         assertEquals(listOf(12), repsSeen)
         compose.onNodeWithText("Reps").assertDoesNotExist()
     }
@@ -209,14 +210,23 @@ class WeightRepsEditorRenderTest {
     @Test
     fun weightAndRepsSitSideBySideAtNormalText() {
         // 102.5 lb is the widest weight a narrow phone has to hold without crossing into reps.
-        showEditor(weightKg = WeightConverter.lbsToKg(102.5), reps = 888)
+        val kg = WeightConverter.lbsToKg(102.5)
+        showEditor(weightKg = kg, reps = 888)
         val weight = compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).getBoundsInRoot()
         val reps = compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).getBoundsInRoot()
         assertTrue("weight must stay left of reps, was $weight and $reps", weight.right <= reps.left)
         assertTrue("one row: the two numerals overlap vertically", weight.top < reps.bottom && reps.top < weight.bottom)
         // The unit rides the weight's own numeral; reps carries none.
-        compose.onNode(hasText(FLOOR_UNIT.suffix) and hasAnyAncestor(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER)), useUnmergedTree = true)
+        val unit = compose.onNode(hasText(FLOOR_UNIT.suffix) and hasAnyAncestor(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER)), useUnmergedTree = true)
             .assertIsDisplayed()
+        // The boxes above keep their place whatever the type size; the words inside them do
+        // not. At a size too big for the column, "102.5 lb" keeps the box and draws past it
+        // into reps, so the numeral and its unit must each be laid out whole in their room.
+        val value = SetCopy.weightEntryHero(WeightMeaning.LIFTED, kg, FLOOR_UNIT).value
+        val numeral = compose.onNode(hasText(value) and hasAnyAncestor(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER)), useUnmergedTree = true)
+        listOf(value to numeral, FLOOR_UNIT.suffix to unit).forEach { (words, node) ->
+            assertTrue("\"$words\" must fit its column at normal text, not run past it", node.textLayout().fitsItsWidth())
+        }
         assertAnchorHolds(weight, reps)
     }
 
@@ -248,19 +258,22 @@ class WeightRepsEditorRenderTest {
     fun thePlatesStayPutAsDigitsComeAndGo() {
         var reps by mutableStateOf(5)
         var weightKg by mutableStateOf(WeightConverter.lbsToKg(5.0))
+        var holdSeconds by mutableStateOf<Int?>(null)
         compose.showFloor {
+            // Once holdSeconds is set this is a weighted plank: a hold beside its added weight.
+            val hold = holdSeconds != null
             WeightRepsEditor(
                 enabled = true,
-                weightKg = weightKg,
+                weightKg = if (hold) WeightConverter.lbsToKg(25.0) else weightKg,
                 reps = reps,
                 unit = FLOOR_UNIT,
-                loadClass = LoadClass.LOADED,
-                loadType = LoadType.EXTERNAL,
-                equipment = EquipmentType.MACHINE,
+                loadClass = if (hold) LoadClass.BODYWEIGHT_ADDED else LoadClass.LOADED,
+                loadType = if (hold) LoadType.BODYWEIGHT_PLUS else LoadType.EXTERNAL,
+                equipment = if (hold) EquipmentType.BODYWEIGHT else EquipmentType.MACHINE,
                 movementKey = null,
                 plated = false,
-                hold = false,
-                holdSeconds = null,
+                hold = hold,
+                holdSeconds = holdSeconds,
                 holdRunning = false,
                 holdRemainingSeconds = 0,
                 onWeightKgChange = {},
@@ -276,6 +289,19 @@ class WeightRepsEditorRenderTest {
         compose.waitForIdle()
         val after = plates.map { compose.onNodeWithContentDescription(it).getBoundsInRoot() }
         assertEquals("the plates are placed from a fixed sample, not the live value", before, after)
+        // A hold runs from seconds to minutes. Beside its added weight the clock has half a
+        // row, where a short hold would fit its plates beside it and a long one would push
+        // them underneath; they are placed from 88:88, so they do neither.
+        holdSeconds = 5
+        compose.waitForIdle()
+        val timePlates = listOf("Decrease time by ${HoldWork.STEP_SECONDS} seconds", "Increase time by ${HoldWork.STEP_SECONDS} seconds")
+        val short = timePlates.map { compose.onNodeWithContentDescription(it).getBoundsInRoot() }
+        compose.onNodeWithTag(WorkoutTestTags.HOLD_STEPPER).assert(hasContentDescription("Time ${HoldWork.clock(5)}"))
+        holdSeconds = 600
+        compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutTestTags.HOLD_STEPPER).assert(hasContentDescription("Time ${HoldWork.clock(600)}"))
+        val long = timePlates.map { compose.onNodeWithContentDescription(it).getBoundsInRoot() }
+        assertEquals("a hold's plates are placed from a fixed sample too, not the live clock", short, long)
     }
 
     @Test
@@ -290,9 +316,9 @@ class WeightRepsEditorRenderTest {
         assertEquals("Type hold seconds", hold.clickLabel())
         compose.runCustomAction(hold, "Increase time by $step seconds")
         assertEquals(listOf(FloorStepper.nextHoldSeconds(HOLD_SECONDS, 1)), seconds)
-        compose.openKeypad { hold.performClick() }
-        compose.onNodeWithText("Time").assertExists()
-        compose.confirmKeypad("45")
+        compose.withKeypad(on = hold, value = "45") {
+            compose.onNodeWithText("Time").assertExists()
+        }
         assertEquals(listOf(FloorStepper.nextHoldSeconds(HOLD_SECONDS, 1), 45), seconds)
     }
 
@@ -303,7 +329,7 @@ class WeightRepsEditorRenderTest {
         assertEquals(listOf("Hold, ${HoldWork.clock(HOLD_REMAINING)} remaining"), hold.spokenDescriptions())
         assertTrue("no TalkBack actions on a running hold", hold.customActionLabels().isEmpty())
         compose.onNodeWithContentDescription("Increase time by ${HoldWork.STEP_SECONDS} seconds").assertIsNotEnabled()
-        hold.performClick()
+        compose.assertTapOpensNoKeypad { hold.performClick() }
         compose.onNodeWithText("Time").assertDoesNotExist()
         assertTrue(seconds.isEmpty())
     }
@@ -314,7 +340,7 @@ class WeightRepsEditorRenderTest {
         val weight = compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsNotEnabled()
         assertTrue(weight.customActionLabels().isEmpty())
         compose.onNodeWithContentDescription("Increase reps by 1").assertIsNotEnabled()
-        weight.performClick()
+        compose.assertTapOpensNoKeypad { weight.performClick() }
         compose.onNodeWithText(WeightMeaning.LIFTED.fieldLabel).assertDoesNotExist()
     }
 
@@ -376,10 +402,11 @@ class WeightRepsEditorRenderTest {
         }
         val root = compose.onNodeWithTag(WorkoutTestTags.WARMUP_RAMP).assertIsDisplayed().getBoundsInRoot()
         // At font 2.0 on 360 dp the presets reflow onto more rows instead of running off the edge.
-        ramp.forEach { step ->
-            val preset = compose.onNodeWithText("Use ${step.weightKg.toWeightLabel(FLOOR_UNIT)}").assertIsDisplayed()
-            assertTrue(preset.getBoundsInRoot().right <= root.right)
+        val presets = ramp.map { step ->
+            compose.onNodeWithText("Use ${step.weightKg.toWeightLabel(FLOOR_UNIT)}").assertIsDisplayed().getBoundsInRoot()
         }
+        presets.forEach { preset -> assertTrue("a preset must stay inside the ramp, was $preset in $root", preset.right <= root.right) }
+        assertTrue("the three presets wrap onto more than one row, were $presets", presets.map { it.top }.distinct().size > 1)
         compose.onNodeWithText("40%").assertIsDisplayed()
         compose.onNodeWithText("60% · Suggested").assertIsDisplayed()
         compose.onNodeWithText("Use ${ramp[1].weightKg.toWeightLabel(FLOOR_UNIT)}").performClick()

@@ -21,6 +21,10 @@ class FloorStepperEntryTest {
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.weightAndRepsAreWheels())
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.floorFieldGlyphsReplaceLabels())
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
+        assertTrue(
+            "the unit rides the weight numeral; no glyph and no heading stand in for it",
+            editor.contains("unitLabel = unit.suffix") && !editor.contains("FloorFieldGlyph"),
+        )
         assertFalse(editor.contains("SnapValueWheel("))
         assertFalse("floor entry must not keep the live wheel tags", editor.contains("workout-weight-wheel"))
         assertFalse("the floor draws its own hero numerals", editor.contains("SetEntryPanel("))

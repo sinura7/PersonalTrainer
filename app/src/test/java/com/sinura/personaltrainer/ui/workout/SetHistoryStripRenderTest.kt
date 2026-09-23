@@ -87,17 +87,20 @@ class SetHistoryStripRenderTest {
     )
 
     @Test
-    fun eachChipSpeaksItsOrdinalSetAndStateOnce() {
+    fun eachChipSaysItsOrdinalSetAndStateAndTodayItsLineToo() {
         val sets = listOf(floorSet(1, FLOOR_KG70, 10, rpe = 8), floorSet(2, FLOOR_KG70, 10, rpe = 9), floorSet(3, FLOOR_KG70, 11))
         showStrip(sets = sets, editingSetId = "set-3", receiptSetId = "set-2", current = null)
         val states = listOf("logged", "saved", "editing")
         sets.forEachIndexed { index, set ->
             val ordinal = SetOrdinalCopy.working(index + 1, 3)
             val chip = compose.onNodeWithTag(WorkoutTestTags.setChip(set.id))
-            // W1a changes this: the chip also merges its visible line into what TalkBack
-            // reads, the double announcement W1a removes. The sentence itself stays.
+            // The sentence stays through W1a: ordinal, set, state, said once per chip.
             assertEquals(listOf("$ordinal, ${spokenSet(set)}, ${states[index]}"), chip.spokenDescriptions())
             compose.onAllNodes(hasContentDescription("$ordinal, ", substring = true)).assertCountEquals(1)
+            // W1a changes this: the chip also merges its visible line into what TalkBack
+            // reads, the double announcement W1a removes.
+            val line = FloorStatCopy.compactSet(weightKg = set.weightKg, reps = set.reps, loadClass = LoadClass.LOADED, unit = FLOOR_UNIT, rpe = set.rpe)
+            assertTrue("today the chip also carries \"$line\", was ${chip.mergedTexts()}", line in chip.mergedTexts())
             // "Double-tap to" names the menu this chip opens, with the chip's own ordinal.
             assertEquals(SetRowCopy.actionsFor(ordinal), chip.clickLabel())
             chip.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
@@ -150,8 +153,9 @@ class SetHistoryStripRenderTest {
         compose.onNodeWithText("Set 3 of 3", useUnmergedTree = true).assertIsDisplayed()
     }
 
+    /** With no saved sets there is nothing to edit: withNoSetsTheStripShowsOnlyTheCurrentChip. */
     @Test
-    fun editOpensEverySavedSetAndIsHiddenWhenThereAreNone() {
+    fun editOpensEverySavedSet() {
         showStrip()
         compose.onNodeWithText("SET HISTORY").assertIsDisplayed()
         val edit = compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS)
@@ -197,6 +201,8 @@ class SetHistoryStripRenderTest {
     @Test
     fun addSetStaysAwayUntilThePlanIsMet() {
         showStrip(showAddSet = false)
+        // W1a changes this: W1a keeps one "Add set" on the floor and may not keep this chip.
+        // Whichever it keeps must still stay away until the plan is met.
         compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertDoesNotExist()
     }
 

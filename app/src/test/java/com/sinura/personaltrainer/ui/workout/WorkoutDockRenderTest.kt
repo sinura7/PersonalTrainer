@@ -33,7 +33,9 @@ import org.robolectric.annotation.Config
  * `completeDock -> Row(` slices and the "Add another set" literal. W1a keeps one "Add set"
  * on the floor, which removes exactly that Row, and the slices would throw rather than say
  * what changed. The advance choice is also where the floor's oldest regression lived: a
- * loop that jumped to the next lift by itself. The last test here holds that in behaviour.
+ * loop that jumped to the next lift by itself. The last test here holds the dock's half of
+ * that: nothing on the dock's own clock presses Next. The ViewModel's half, a timer after a
+ * save that moves the lift, is FloorScreenWiringRenderTest's.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
@@ -84,6 +86,8 @@ class WorkoutDockRenderTest {
     fun finishingTheWorkoutAlsoOffersAnotherSet() {
         showDock(floorDockState(action = finish, payload = null))
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed()
+        // W1a changes this: the dock's "Add another set" is one of the two controls W1a
+        // folds into one; Finish keeping a way back to one more set is what stays.
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().performClick()
         assertEquals(1, another)
     }
@@ -91,6 +95,7 @@ class WorkoutDockRenderTest {
     @Test
     fun addAnotherSetIsDisabledWhileTheEntryIsLocked() {
         showDock(floorDockState(action = next, payload = "Leg Curl", showAnother = false))
+        // W1a changes this: the control may move, but a locked entry still refuses the tap.
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsNotEnabled().performClick()
         assertEquals(0, another)
     }
@@ -140,11 +145,16 @@ class WorkoutDockRenderTest {
 
     @Test
     fun theDockNeverAdvancesOnItsOwn() {
-        showDock(floorDockState(action = next, payload = "Leg Curl", spokenPayload = "Leg Curl"))
-        // A loop that jumps the moment the last planned set lands puts the lifter on the
-        // wrong card with a bar in their hands. Time passing must not press Next.
-        compose.mainClock.advanceTimeBy(ONE_MINUTE_MS)
+        var undoTimedOut = 0
+        val events = floorDockEvents(onPrimary = { primaries += it; true }, onUndoDismissed = { undoTimedOut += 1 })
+        // The planned sets are done and an undo offer is up: the dock's one timer. A loop
+        // that jumps once a dwell ends puts the lifter on the wrong card with a bar in their
+        // hands, so the offer is left to run out before anything is checked.
+        val state = floorDockState(action = next, payload = "Leg Curl", spokenPayload = "Leg Curl", undoMessage = "Set deleted")
+        compose.showFloor { WorkoutDock(state = state, events = events) }
+        compose.mainClock.advanceTimeBy(state.undoDwellMs + ONE_MINUTE_MS)
         compose.waitForIdle()
+        assertEquals("the undo offer's own dwell ran out", 1, undoTimedOut)
         assertTrue("nothing advanced without a tap, was $primaries", primaries.isEmpty())
         compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed().performClick()
         assertEquals(listOf(next), primaries)

@@ -113,6 +113,8 @@ class WorkoutSetsSheetRenderTest {
     @Test
     fun addAnotherSetStaysAwayUntilThePlanIsMet() {
         showSheet(sets = listOf(warmup) + working.take(2), showAddSet = false)
+        // W1a changes this: W1a keeps one "Add set" on the floor and may take this one out of
+        // the sheet. Wherever it lands, it stays away until the plan is met.
         compose.onNodeWithText("Add another set").assertDoesNotExist()
     }
 

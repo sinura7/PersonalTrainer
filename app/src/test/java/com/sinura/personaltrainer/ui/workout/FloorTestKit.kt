@@ -8,11 +8,14 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
@@ -158,6 +161,7 @@ internal fun floorDockEvents(
     onAnotherSet: () -> Unit = {},
     onCancelEdit: () -> Unit = {},
     onOpenRest: () -> Unit = {},
+    onUndoDismissed: () -> Unit = {},
 ): WorkoutDockEvents = WorkoutDockEvents(
     onPrimary = onPrimary,
     onEditFailedSave = {},
@@ -165,7 +169,7 @@ internal fun floorDockEvents(
     onDismissError = {},
     onAnotherSet = onAnotherSet,
     onUndo = {},
-    onUndoDismissed = {},
+    onUndoDismissed = onUndoDismissed,
     onSkipRest = {},
     onStartRest = {},
     onSelectRestDuration = {},
@@ -199,10 +203,15 @@ internal fun ComposeContentTestRule.showFloor(fontScale: Float = 1f, content: @C
 internal fun SemanticsNodeInteraction.customActionLabels(): List<String> =
     fetchSemanticsNode().config.getOrNull(SemanticsActions.CustomActions).orEmpty().map { it.label }
 
-/** Runs the TalkBack action named [label] on the UI thread, as the actions menu would. */
+/**
+ * Runs the TalkBack action named [label] on the UI thread, as the actions menu would. A
+ * missing action fails with the labels the node does offer, so a reworded action reads as
+ * what changed rather than as an empty collection.
+ */
 internal fun ComposeContentTestRule.runCustomAction(node: SemanticsNodeInteraction, label: String) {
-    val action = node.fetchSemanticsNode().config.getOrNull(SemanticsActions.CustomActions).orEmpty()
-        .first { it.label == label }
+    val offered = node.fetchSemanticsNode().config.getOrNull(SemanticsActions.CustomActions).orEmpty()
+    val action = offered.firstOrNull { it.label == label }
+        ?: throw AssertionError("no TalkBack action \"$label\"; the node offers ${offered.map { it.label }}")
     runOnIdle { action.action() }
 }
 
@@ -219,8 +228,29 @@ internal fun SemanticsNodeInteraction.mergedTexts(): List<String> =
     fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text }
 
 /**
- * Opens a keypad with [open] and holds the test clock while it is up; [confirmKeypad]
- * lets it run again.
+ * The text of this node as Compose laid it out, for its lines and whether it fits. Bounds
+ * alone cannot show that, since a text allowed to overflow keeps the box it was measured
+ * into and simply draws beyond it.
+ */
+internal fun SemanticsNodeInteraction.textLayout(): TextLayoutResult {
+    val layouts = mutableListOf<TextLayoutResult>()
+    val action = fetchSemanticsNode().config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action
+    checkNotNull(action) { "this node is not a laid-out text" }.invoke(layouts)
+    return layouts.single()
+}
+
+/**
+ * Whether the text is laid out whole in the width it got: its natural one-line width is no
+ * wider than its box. The layout's own `didOverflowWidth` cannot answer this here. The
+ * result semantics hands back is rebuilt at the full width on offer, so every text narrower
+ * than its room would read as overflowing.
+ */
+internal fun TextLayoutResult.fitsItsWidth(): Boolean = multiParagraph.intrinsics.maxIntrinsicWidth <= size.width
+
+/**
+ * Opens the keypad of the numeral [on] — with a tap, or with the TalkBack action [byAction]
+ * when one is named — checks it with [whileOpen], types [value], presses Set and lets the
+ * clock run again.
  *
  * The keypad's field takes focus and blinks its cursor for as long as it is open, and
  * Robolectric's auto-advancing clock chases that animation without end: the first test
@@ -229,22 +259,45 @@ internal fun SemanticsNodeInteraction.mergedTexts(): List<String> =
  * dialog's window attaches on the main looper, which the held clock no longer drives, so
  * each step runs one Compose frame and one looper frame together. A test asserts the
  * keypad exists rather than that it is displayed, and Set is pressed through its click
- * action, so neither depends on the dialog window's layout pass.
+ * action once it says it is enabled, so neither depends on the dialog window's layout
+ * pass. The clock is handed back even when a check fails, so one failure stays one
+ * failure rather than a held clock for whatever the test does next.
  */
-internal fun ComposeContentTestRule.openKeypad(open: () -> Unit) {
+internal fun ComposeContentTestRule.withKeypad(
+    on: SemanticsNodeInteraction,
+    value: String,
+    byAction: String? = null,
+    whileOpen: () -> Unit = {},
+) {
     mainClock.autoAdvance = false
-    open()
-    settleKeypad()
+    try {
+        if (byAction == null) on.performClick() else runCustomAction(on, byAction)
+        settleKeypad()
+        whileOpen()
+        onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement(value)
+        settleKeypad()
+        onNodeWithText("Set").assertIsEnabled().performSemanticsAction(SemanticsActions.OnClick)
+        settleKeypad()
+    } finally {
+        mainClock.autoAdvance = true
+    }
+    waitForIdle()
 }
 
-/** Types [value] into the open keypad, confirms it with Set, and lets the clock run again. */
-internal fun ComposeContentTestRule.confirmKeypad(value: String) {
-    onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement(value)
-    settleKeypad()
-    onNodeWithText("Set").performSemanticsAction(SemanticsActions.OnClick)
-    settleKeypad()
-    mainClock.autoAdvance = true
-    waitForIdle()
+/**
+ * Taps with [tap] where no keypad may open, and asserts none did. The clock is held for the
+ * tap, as in [withKeypad], so a regression that opens the keypad anyway fails here within a
+ * few frames instead of chasing the field's cursor until the heap runs out.
+ */
+internal fun ComposeContentTestRule.assertTapOpensNoKeypad(tap: () -> Unit) {
+    mainClock.autoAdvance = false
+    try {
+        tap()
+        settleKeypad()
+        onNodeWithTag(NumberEntryTags.FIELD).assertDoesNotExist()
+    } finally {
+        mainClock.autoAdvance = true
+    }
 }
 
 private fun ComposeContentTestRule.settleKeypad() {

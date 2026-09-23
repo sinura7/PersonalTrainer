@@ -139,6 +139,7 @@ class FloorCompactPresentationTest {
         assertFalse(editor.contains("SnapValueWheel("))
         assertFalse(editor.contains("FloorEntryWheels"))
         assertFalse(editor.contains("workout-weight-wheel"))
+        assertFalse(editor.contains("FloorFieldGlyph("))
         assertFalse(editor.contains("SetEntryPanel("))
         assertFalse(editor.contains("ExerciseThumb("))
         assertFalse(editor.contains("WorkoutTestTags.HOLD_CLOCK"))

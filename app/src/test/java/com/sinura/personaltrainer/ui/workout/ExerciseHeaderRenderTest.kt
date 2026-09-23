@@ -13,11 +13,13 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasParent
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onChildAt
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -109,6 +111,8 @@ class ExerciseHeaderRenderTest {
         assertEquals(CurrentLiftCopy.SWITCH, identity().clickLabel())
         identity()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            // W1a changes this: once the identity is no longer the switcher's button it has
+            // nothing to be "selected" among, and W1a may drop the state.
             .assertIsSelected()
             .assertHeightIsAtLeast(Metrics.touchMin)
             .performClick()
@@ -146,8 +150,8 @@ class ExerciseHeaderRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true)
             .assertIsDisplayed()
             .assert(hasText(SET_CONTEXT))
-        // The still is the identity's first child and is decorative: it clears its own
-        // semantics and has no words, so the identity's sentence is the one thing TalkBack reads.
+        // The still is decorative: it clears its own semantics and has no words, so the
+        // identity's sentence is the one thing TalkBack reads.
         val still = stillOf().fetchSemanticsNode().config
         assertTrue(still.isClearingSemantics)
         assertFalse(still.contains(SemanticsProperties.ContentDescription))
@@ -184,6 +188,13 @@ class ExerciseHeaderRenderTest {
         val working = compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).assertIsDisplayed().assertHeightIsAtLeast(Metrics.touchMin)
         val warmup = compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).assertIsDisplayed().assertHeightIsAtLeast(Metrics.touchMin)
         assertEquals(working.getBoundsInRoot().top, warmup.getBoundsInRoot().top)
+        // Half a row each is still room for the whole word on one line: neither label wraps
+        // or runs past its chip.
+        listOf("Working", "Warm-up").forEach { label ->
+            val layout = compose.onNodeWithText(label, useUnmergedTree = true).textLayout()
+            assertEquals("\"$label\" stays on one line at large text", 1, layout.lineCount)
+            assertTrue("\"$label\" is not clipped at large text", layout.fitsItsWidth())
+        }
     }
 
     @Test
@@ -213,7 +224,7 @@ class ExerciseHeaderRenderTest {
     }
 
     @Test
-    fun aSetTypeChipIsSpokenOnce() {
+    fun aSetTypeChipSaysItsStateAndTodayItsLabelToo() {
         showHeader(draftWarmup = true)
         compose.onAllNodes(hasContentDescription("Warm-up set, selected")).assertCountEquals(1)
         compose.onAllNodes(hasContentDescription("Working set, not selected")).assertCountEquals(1)
@@ -237,8 +248,18 @@ class ExerciseHeaderRenderTest {
         assertTrue(warmups.isEmpty())
     }
 
-    private fun stillOf() =
-        compose.onNodeWithTag(WorkoutTestTags.liftCard("leg-ext"), useUnmergedTree = true).onChildAt(0)
+    /**
+     * The identity's picture: the one part of it with no words and no tap of its own. Found
+     * by that, not by its place among the identity's children, so W1a can reorder the header
+     * without these checks measuring the wrong node.
+     */
+    private fun stillOf() = compose.onNode(
+        hasParent(hasTestTag(WorkoutTestTags.liftCard("leg-ext"))) and
+            !SemanticsMatcher.keyIsDefined(SemanticsProperties.Text) and
+            !SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription) and
+            !hasClickAction(),
+        useUnmergedTree = true,
+    )
 
     private companion object {
         const val SET_CONTEXT = "Working set 3 of 3"
