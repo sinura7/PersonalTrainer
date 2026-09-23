@@ -262,10 +262,13 @@ class ActiveWorkoutViewModelTest {
     fun logSetRejectsZeroWeightWorkingSetBeforeWriting() = runBlocking {
         val fixture = seedWorkout(targetWeightKg = 0.0)
         val vm = createViewModel(fixture.session.id)
-        vm.awaitFound()
+        // Settled, not merely FOUND: a tap during prefill's tail is dropped without a word,
+        // and then no refusal ever comes.
+        vm.awaitPrefilled(weightKg = 0.0)
 
         vm.setWeight(0.0)
-        vm.logSetAndSettle()
+        // A refusal writes nothing, so there is no save to wait for; wait for the refusal.
+        vm.logSet()
 
         val state = vm.awaitState { it.error != null }
         assertTrue(state.error.orEmpty().contains("weight", ignoreCase = true))
@@ -966,14 +969,16 @@ class ActiveWorkoutViewModelTest {
         vm.editSet(setId)
         vm.awaitEditOpen(setId)
         vm.setWeight(110.0)
-        vm.logSetAndSettle()
-        // logSetAndSettle's idle check is already true in the snapshot from before the tap,
-        // and uiState can lag the tap while its combine is busy on a Room thread, so on a
-        // loaded machine it returned before the save began. It lost CI on 22 September, 110
-        // read before the 120 write landed. Wait on the stored row, then on the edit closing —
-        // the pre-tap snapshot still had the edit open, so neither can pass on stale state.
+        // Not logSetAndSettle: it waits for the screen to show the saved rows, and this
+        // test holds the screen's copy back on purpose. Wait on the stored row, then on the
+        // edit closing — the pre-tap snapshot still had the edit open, so neither can pass
+        // on stale state (a bare idle wait lost CI on 22 September, 110 read before the 120
+        // write landed).
+        vm.logSet()
         awaitSession(fixture.session.id) { it.sets.singleOrNull()?.weightKg == 110.0 }
         vm.awaitState { it.editingSetId == null && !it.entryLocked }
+        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+        dispatcher.scheduler.runCurrent()
         // The row moved; the screen's copy did not, and cannot until the Flow is released.
         assertEquals(110.0, checkNotNull(dao.getSet(setId)).weightKg, 0.0001)
         assertEquals(100.0, checkNotNull(vm.uiState.value.session?.sets?.single()).weightKg, 0.0001)
@@ -981,7 +986,7 @@ class ActiveWorkoutViewModelTest {
         vm.editSet(setId)
         vm.awaitEditOpen(setId)
         vm.setWeight(120.0)
-        vm.logSetAndSettle()
+        vm.logSet()
         awaitSession(fixture.session.id) { it.sets.singleOrNull()?.weightKg == 120.0 }
         val settled = vm.awaitState { it.editingSetId == null && !it.entryLocked }
 
@@ -1423,7 +1428,9 @@ class ActiveWorkoutViewModelTest {
     fun manualRestUsesSelectedDurationAndCanBeSkipped() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
-        vm.awaitFound()
+        // Prefill sets the lift's planned rest when it lands after FOUND; a duration chosen
+        // before then is replaced by it (105 became 150 in a local run, 23 Sept).
+        vm.awaitPrefilled()
 
         vm.selectRestDuration(105)
         vm.startSelectedRest()
@@ -2267,12 +2274,14 @@ class ActiveWorkoutViewModelTest {
     fun logSetRejectsZeroWeightWithoutSuccessHaptic() = runBlocking {
         val fixture = seedWorkout(targetWeightKg = 0.0)
         val vm = createViewModel(fixture.session.id)
-        vm.awaitFound()
+        // Settled, not merely FOUND: a tap during prefill's tail is dropped without a word.
+        vm.awaitPrefilled(weightKg = 0.0)
         val seen = mutableListOf<LogCommitFeedback>()
         val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
         try {
             vm.setWeight(0.0)
-            vm.logSetAndSettle()
+            // A refusal writes nothing, so there is no save to wait for; wait for the refusal.
+            vm.logSet()
             vm.awaitState { it.error != null }
             assertEquals(listOf(LogCommitFeedback.REJECT), seen.toList())
             assertFalse(seen.contains(LogCommitFeedback.SUCCESS))
@@ -2467,16 +2476,38 @@ class ActiveWorkoutViewModelTest {
      * test set next could be taken back by the tail, and a second logSet() could be swallowed
      * by a guard still true from the first.
      *
-     * That is what wedged this class intermittently. `logging` is the action's own
-     * completion signal, so wait on it.
+     * That is what wedged this class intermittently. The wait below is for an outcome only
+     * this log can produce, not for flags an earlier snapshot also shows.
      */
     private suspend fun ActiveWorkoutViewModel.logSetAndSettle() {
+        val sessionId = checkNotNull(uiState.value.session?.id) { "logSetAndSettle before the session loaded" }
+        val storedBefore = deps.workoutRepository.getSession(sessionId)?.sets.orEmpty().toSet()
+        val saveBefore = uiState.value.save
         logSet()
-        // F3 owns the save as an operation: `logging` clears after the row is acknowledged,
-        // but the entry lock also holds while `save` is SAVING or CHECKING. A settled log is
-        // one whose operation has released — or has come to rest as FAILED / CONFLICT, which
-        // is what the write-failure tests go on to assert — with no entry mutation in flight.
-        awaitState { !it.logging && !it.mutating && !it.save.busy }
+        // Wait for THIS log, not for a quiet screen. "Not logging, not saving" is also true of
+        // the snapshot from before the tap: `uiState` combines Room flows on Room's threads,
+        // so for a moment after logSet() it can still show the pre-log flags, and waiting on
+        // them returned before the save began. The next logSet() was then refused by the save
+        // still holding the entry lock (expiredTopOfferRevealsTheNextOneWithoutARestChange,
+        // 23 Sept). So wait for an outcome only this log can produce: the stored rows changed
+        // and the screen shows those rows with the entry unlocked, or this save came to rest
+        // as FAILED / CONFLICT, which the write-failure tests go on to assert.
+        try {
+            withTimeout(TestWaits.FLOW_MS) {
+                while (true) {
+                    val state = uiState.value
+                    val failed = state.save != saveBefore &&
+                        (state.save.phase == WorkoutSavePhase.FAILED || state.save.phase == WorkoutSavePhase.CONFLICT)
+                    if (failed) break
+                    val stored = deps.workoutRepository.getSession(sessionId)?.sets.orEmpty().toSet()
+                    val landed = stored != storedBefore && state.session?.sets.orEmpty().toSet() == stored
+                    if (landed && !state.entryLocked) break
+                    delay(10)
+                }
+            }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw AssertionError("logSetAndSettle: the log neither landed nor failed; uiState was ${uiState.value}", timedOut)
+        }
         dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
         dispatcher.scheduler.runCurrent()
         dispatcher.scheduler.advanceUntilIdle()

@@ -9,6 +9,7 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
+import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
@@ -175,7 +176,10 @@ class RestTimerViewModelTest {
     fun selectingDurationOnTheFloorUpdatesTheLogPlannedRest() = runBlocking {
         val fixture = seedWorkout(restSeconds = 90)
         val workout = createWorkoutViewModel(fixture.session.id)
-        workout.awaitState { it.loadState == SessionLoadState.FOUND }
+        // READY, not FOUND: prefill sets the lift's rest (the coach's 2:30 for five reps) as
+        // its last step before READY, and a length chosen before then is replaced by it — the
+        // wait below for 105 then ran out (23 Sept).
+        workout.awaitState { it.loadState == SessionLoadState.FOUND && it.liftReadiness == LiftEntryReadiness.READY }
         val floor = createViewModel(fixture.session.id)
         floor.awaitState { it.loadState == SessionLoadState.FOUND }
         workout.restTimerState.awaitFirst { !it.running && it.totalSeconds > 0 }

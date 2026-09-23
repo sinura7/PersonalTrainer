@@ -8,6 +8,11 @@ import org.junit.Test
 /**
  * Packet E: one dock clock, rest presets in the duration sheet, and Compose
  * (the SET bar and the rest card alike) stays visual-only for RestTick.
+ *
+ * The finish flash, its dwell and its one announcement, the presets and ±15 of the sheet and
+ * the card, and the dock's wiring of them are rendered in RestTimerCardRenderTest,
+ * RestDurationSheetRenderTest and WorkoutDockTimerRenderTest, and tapped through the ViewModel
+ * in FloorRestAndCoachWiringRenderTest. The haptics policy and the bans stay here.
  */
 class FloorPacketEClockTest {
     @Test
@@ -28,10 +33,6 @@ class FloorPacketEClockTest {
         assertFalse("the rest card reads the service's clock and never pulses on its own", card.contains("Haptics"))
         assertFalse(card.contains("RestTick"))
         assertFalse(card.contains("rememberInfiniteTransition"))
-        assertTrue(card.contains("RestFinishFlash.shouldFlash(completedTimerId, flashedTimerId)"))
-        assertTrue(card.contains("delay(Motion.FINISHED_DWELL_MS)"))
-        assertTrue(card.contains("if (TalkBackPolicy.announceRestKicker(justFinished)) {"))
-        assertTrue(card.contains("liveRegion = LiveRegionMode.Polite"))
         assertTrue("Skip on the card is the same HA-13 commit control", card.contains("confirm = true"))
         val motion = readOwned("ui/theme/Motion.kt")
         assertTrue(motion.contains("CLOCK_SWAP_MS = 180"))
@@ -48,30 +49,9 @@ class FloorPacketEClockTest {
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.restLengthIsInlineWheel())
         val src = readOwned("ui/components/RestTimerUi.kt")
         assertFalse(src.contains("SnapValueWheel("))
-        val sheetStart = src.indexOf("fun RestDurationSheet")
-        val sheetEnd = src.indexOf("fun RestSweepRing")
-        assertTrue(sheetStart >= 0 && sheetEnd > sheetStart)
-        val sheet = src.substring(sheetStart, sheetEnd)
-        assertTrue(sheet.contains("RestPresetChips("))
-        assertTrue(sheet.contains("CustomRestDialog("))
-        assertTrue(sheet.contains("onNudge(-RestTimer.NUDGE_SECONDS)"))
-        assertTrue(sheet.contains("onNudge(RestTimer.NUDGE_SECONDS)"))
         val card = readOwned("ui/workout/RestTimerCard.kt")
         assertFalse(card.contains("SnapValueWheel("))
         assertFalse("presets live in the sheet, not on the card", card.contains("RestPresetChips("))
-        assertTrue(card.contains("onNudge(-RestTimer.NUDGE_SECONDS)"))
-        assertTrue(card.contains("onNudge(RestTimer.NUDGE_SECONDS)"))
-        assertTrue(card.contains("WorkoutTestTags.REST_MINUS"))
-        assertTrue(card.contains("WorkoutTestTags.REST_PLUS"))
-        val dock = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dock.contains("RestDurationSheet("))
-        assertTrue(dock.contains("onNudge = events.onNudgeRest"))
-        assertTrue(dock.contains("onNudgeRest"))
-        assertTrue(dock.contains("onCustomRest = events.onCustomRest"))
-        assertTrue(dock.contains("RestHonestyRow("))
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("onNudgeRest = viewModel::nudgeRest"))
-        assertTrue(screen.contains("onCustomRest = viewModel::selectCustomRest"))
     }
 
     @Test

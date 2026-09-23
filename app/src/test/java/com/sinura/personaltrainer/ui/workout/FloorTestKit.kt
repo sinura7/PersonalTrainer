@@ -162,6 +162,15 @@ internal fun floorDockEvents(
     onCancelEdit: () -> Unit = {},
     onOpenRest: () -> Unit = {},
     onUndoDismissed: () -> Unit = {},
+    onSkipRest: () -> Unit = {},
+    onStartRest: () -> Unit = {},
+    onSelectRestDuration: (Int) -> Unit = {},
+    onNudgeRest: (Int) -> Unit = {},
+    onCustomRest: (String) -> Boolean = { true },
+    onStartSetClock: () -> Unit = {},
+    onStopSetClock: () -> Unit = {},
+    onDismissRestBatteryHint: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
 ): WorkoutDockEvents = WorkoutDockEvents(
     onPrimary = onPrimary,
     onEditFailedSave = {},
@@ -170,16 +179,16 @@ internal fun floorDockEvents(
     onAnotherSet = onAnotherSet,
     onUndo = {},
     onUndoDismissed = onUndoDismissed,
-    onSkipRest = {},
-    onStartRest = {},
-    onSelectRestDuration = {},
-    onNudgeRest = {},
-    onCustomRest = { true },
-    onStartSetClock = {},
-    onStopSetClock = {},
-    onDismissRestBatteryHint = {},
+    onSkipRest = onSkipRest,
+    onStartRest = onStartRest,
+    onSelectRestDuration = onSelectRestDuration,
+    onNudgeRest = onNudgeRest,
+    onCustomRest = onCustomRest,
+    onStartSetClock = onStartSetClock,
+    onStopSetClock = onStopSetClock,
+    onDismissRestBatteryHint = onDismissRestBatteryHint,
     onOpenRest = onOpenRest,
-    onOpenNotifications = {},
+    onOpenNotifications = onOpenNotifications,
 )
 
 /**
@@ -283,6 +292,28 @@ internal fun ComposeContentTestRule.withKeypad(
     }
     waitForIdle()
 }
+
+/**
+ * Runs [block] with the clock held, then hands it back and lets the screen settle.
+ *
+ * For dialogs with a text field other than the keypad (the custom rest length): typing
+ * focuses the field, and its blinking cursor keeps an auto-advancing clock busy for good, as
+ * [withKeypad] explains. Inside, step the screen with [settle] after each tap; a dialog that
+ * refuses its value stays up, so the block closes it before the clock is handed back.
+ */
+internal fun ComposeContentTestRule.holdingTheClock(block: () -> Unit) {
+    mainClock.autoAdvance = false
+    try {
+        block()
+        settle()
+    } finally {
+        mainClock.autoAdvance = true
+    }
+    waitForIdle()
+}
+
+/** A few frames with the clock held: one Compose frame and one main-looper frame each. */
+internal fun ComposeContentTestRule.settle() = settleKeypad()
 
 /**
  * Taps with [tap] where no keypad may open, and asserts none did. The clock is held for the

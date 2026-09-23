@@ -36,21 +36,11 @@ class FloorPacketFAdvanceTest {
     @Test
     fun productionMicroRecCallsCoachDecide() {
         val ui = readOwned("ui/workout/SetMicroRecUi.kt")
-        assertTrue(ui.contains("CoachEngine.suggest("))
         assertFalse(ui.contains("SetMicroRecCalculator.suggest"))
-        assertTrue(ui.contains("toMicroRec()"))
-        // The Next-set card is the floor's one reader of the decision, and Apply only
-        // fills the entry: the ViewModel's applyMicroRec never calls logSet.
-        val card = readOwned("ui/workout/NextSetRecommendation.kt")
-        assertTrue(card.contains("if (!SetMicroRecCopy.visibleOnEntry(rec)) return"))
-        assertTrue(card.contains("WorkoutTestTags.NEXT_SET"))
-        assertTrue(card.contains("WorkoutTestTags.NEXT_SET_COMPACT"))
-        assertTrue(card.contains("WorkoutTestTags.MICRO_REC_APPLY"))
-        assertTrue(card.contains("SetMicroRecCopy.deltaLine(rec, loadClass, unit)"))
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("FloorCompactChrome.coachUsesCompactStrip("))
-        assertTrue(screen.contains("compact = coachCompact"))
-        assertTrue(screen.contains("onApply = viewModel::applyMicroRec"))
+        // The coach call itself is held in WorkoutMicroRecTest; the Next-set card that reads it
+        // in NextSetRecommendationRenderTest; Apply filling the draft (and only the draft) through
+        // the real screen in FloorRestAndCoachWiringRenderTest. The ViewModel's applyMicroRec
+        // never calls logSet.
         val vm = readOwned("ui/workout/ActiveWorkoutViewModel.kt")
         val apply = vm.substring(vm.indexOf("fun applyMicroRec()"))
             .let { it.substring(0, it.indexOf("\n    }\n")) }
@@ -99,27 +89,14 @@ class FloorPacketFAdvanceTest {
 
     @Test
     fun whySheetNamesUseAndKeepMyNumbersAndApplyOnlyFillsTheEntry() {
+        // The Why sheet, its trace and evidence, Use suggestion / Keep my numbers and Applied are
+        // rendered in NextSetRecommendationRenderTest.
         val card = readOwned("ui/workout/NextSetRecommendation.kt")
-        assertTrue(card.contains("SetMicroRecCopy.USE_SUGGESTION"))
-        assertTrue(card.contains("SetMicroRecCopy.KEEP_MY_NUMBERS"))
-        assertTrue(card.contains("title = \"Why this set\""))
-        assertTrue(card.contains("SetMicroRecCopy.whyLines(rec)"))
-        assertTrue(card.contains("CoachEvidenceCopy.whySheetAppendix"))
-        assertTrue(card.contains("EvidenceCitationChip"))
-        assertTrue(card.contains("WorkoutTestTags.MICRO_REC_WHY"))
         // Apply and Use suggestion are a detent, never the commit haptic: nothing was saved.
         assertTrue(card.contains("Haptics.tick(view)"))
         assertFalse(card.contains("Haptics.warn(view)"))
         assertFalse(card.contains("Haptics.commit"))
         assertFalse(card.contains("logSet"))
-        assertTrue(card.contains("text = if (applied) \"Applied\" else \"Apply\""))
-        assertTrue(card.contains("enabled = enabled && !applied"))
-        val copy = readOwned("domain/SetMicroRec.kt")
-        assertTrue(copy.contains("const val USE_SUGGESTION = \"Use suggestion\""))
-        assertTrue(copy.contains("const val KEEP_MY_NUMBERS = \"Keep my numbers\""))
-        assertTrue(copy.contains("fun whyLines"))
-        assertTrue(copy.contains("fun deltaLine"))
-        assertTrue(readOwned("domain/RuleTraceCopy.kt").contains("fun whySheet"))
     }
 
     private fun readOwned(relative: String): String {

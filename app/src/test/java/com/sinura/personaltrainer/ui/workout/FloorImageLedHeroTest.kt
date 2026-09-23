@@ -60,7 +60,6 @@ class FloorImageLedHeroTest {
         // and the loop's order, receipt chip and saved-sets sheet are tapped through the
         // screen in FloorScreenWiringRenderTest.
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }"))
         assertFalse(screen.contains("LatestWorkoutSet("))
         assertFalse(screen.contains("workout-latest-saved"))
         assertTrue(FloorCompactChrome.progressionKickerInline())
@@ -108,9 +107,7 @@ class FloorImageLedHeroTest {
         // beside Add another set, and as the surface itself when nothing else needs the room.
         // WorkoutDockRenderTest composes each of those companions and finds the clock.
         assertFalse(dock.contains("showTimer && !completeDock"))
-        val rest = readOwned("ui/workout/RestTimerCard.kt")
-        assertTrue(rest.contains(".heightIn(min = Metrics.commit)"))
-        assertTrue(rest.contains(".testTag(if (idle) WorkoutTestTags.REST_IDLE else WorkoutTestTags.REST_BAR)"))
+        // The rest card's 72 dp and its idle / running tags: RestTimerCardRenderTest.
     }
 
     @Test
@@ -214,15 +211,9 @@ class FloorImageLedHeroTest {
         assertNull(bwHero.unitSuffix)
         assertFalse("${bwHero.value} ${bwHero.unitSuffix}".contains("0 lb"))
         // The editor's spoken zero, bodyweight column and warm-up ramp are rendered in
-        // WeightRepsEditorRenderTest and WorkoutFloorComponentsTest.
-        val next = readOwned("ui/workout/NextSetRecommendation.kt")
-        assertTrue(next.contains("private const val NEXT_SET_KICKER = \"Next set\""))
-        assertTrue(next.contains("if (!SetMicroRecCopy.visibleOnEntry(rec)) return"))
-        assertTrue(next.contains("WorkoutTestTags.MICRO_REC_APPLY"))
-        assertTrue(next.contains("WorkoutTestTags.MICRO_REC_WHY"))
-        val rpe = readOwned("ui/workout/RpeSelector.kt")
-        assertTrue(rpe.contains("rememberTextMeasurer"))
-        assertTrue(rpe.contains("FlowRow("))
+        // WeightRepsEditorRenderTest and WorkoutFloorComponentsTest. The Next-set card and the
+        // effort track, one row at 360 dp and wrapping where it runs out of room, are rendered
+        // in NextSetRecommendationRenderTest and RpeSelectorRenderTest.
         assertTrue(FloorCompactChrome.rpeTrackFitsWithoutScroll())
     }
 

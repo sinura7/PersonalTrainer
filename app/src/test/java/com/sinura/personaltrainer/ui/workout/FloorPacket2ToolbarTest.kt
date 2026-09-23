@@ -63,26 +63,19 @@ class FloorPacket2ToolbarTest {
     @Test
     fun dockOwnsTimerAdvanceAndVoltLog() {
         val dock = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dock.contains("FloorTimerSurface.mode("))
-        assertTrue(dock.contains("SetWorkDock("))
-        assertTrue(dock.contains("RestTimerCard("))
         assertFalse("the dock's rest is the card, not the old bar", dock.contains("RestDock("))
         assertFalse(dock.contains("FloorTimerSlot("))
         assertTrue(dock.contains("val nextAct = action.kind == WorkoutPrimaryKind.NEXT_EXERCISE && !state.editing"))
         assertTrue(dock.contains("val finishAct = action.kind == WorkoutPrimaryKind.FINISH && !state.editing"))
         assertTrue(dock.contains("PrimaryGymButton("))
         assertTrue(dock.contains("height = Metrics.commit"))
-        assertTrue(dock.contains("onSelectRestDuration"))
-        assertTrue(dock.contains("holdElapsedSeconds"))
         assertTrue(dock.contains("WorkoutTestTags.LOG_SET"))
         assertTrue(dock.contains("nextAct -> WorkoutTestTags.NEXT"))
         assertTrue(dock.contains("finishAct -> WorkoutTestTags.DOCK_FINISH"))
 
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("show = showRest"))
         assertTrue(screen.contains("val showNext = primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE"))
         assertTrue(screen.contains("val showFinish = primaryAction.kind == WorkoutPrimaryKind.FINISH"))
-        assertTrue(screen.contains("onOpenRest = { session?.id?.let(onOpenRest) }"))
         assertFalse(
             "RestDock must not be a sibling of the dock in the screen",
             screen.contains("RestDock("),
@@ -103,36 +96,17 @@ class FloorPacket2ToolbarTest {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.oneClockTwoModes())
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.restIsDockCard())
         val timers = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(timers.contains("fun SetWorkDock"))
-        assertTrue(timers.contains("fun RestDurationSheet"))
         assertFalse(timers.contains("SnapValueWheel("))
-        assertTrue(timers.contains("RestPresetChips("))
         // The mode switch moved with the dock: RestTimerUi keeps only the bar, sheet and rings.
         assertFalse(timers.contains("FloorTimerSurface.mode("))
-        assertTrue(readOwned("ui/workout/WorkoutDock.kt").contains("FloorTimerSurface.mode("))
-        val sheet = timers.substring(timers.indexOf("fun RestDurationSheet"))
-        assertTrue(sheet.contains("RestPresetChips("))
-        assertTrue(sheet.contains("ModalBottomSheet("))
-        assertTrue(sheet.contains("workout-rest-duration-sheet"))
+        // The sheet's presets, ±15 and overlay, the card's taps and the dock's clock modes are
+        // rendered in RestDurationSheetRenderTest, RestTimerCardRenderTest and
+        // WorkoutDockTimerRenderTest.
         val card = readOwned("ui/workout/RestTimerCard.kt")
         assertFalse("idle must not expand presets inline", card.contains("picking"))
         assertFalse(card.contains("RestPresetChips("))
         assertFalse(card.contains("SnapValueWheel("))
-        assertTrue(
-            "idle tap edits the length; running tap opens the rest page",
-            card.contains(".clickable(role = Role.Button, onClick = if (idle) onEditDuration else onOpenRest)"),
-        )
-        assertTrue(card.contains("WorkoutTestTags.START_REST"))
-        assertTrue(card.contains("WorkoutTestTags.REST_MINUS"))
-        assertTrue(card.contains("WorkoutTestTags.REST_PLUS"))
-        assertTrue(card.contains("WorkoutTestTags.REST_SKIP"))
         assertFalse("no pulse on the dock card", card.contains("rememberInfiniteTransition"))
-        val dock = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dock.contains("onEditDuration = { durationSheet = true }"))
-        assertTrue(dock.contains("onOpenRest = events.onOpenRest"))
-        assertTrue(dock.contains("RestDurationSheet("))
-        val sheetHost = dock.indexOf("if (durationSheet) {")
-        assertTrue("the sheet is an overlay after the pinned dock", dock.indexOf("PinnedDock(") in 0 until sheetHost)
     }
 
     @Test
@@ -150,12 +124,8 @@ class FloorPacket2ToolbarTest {
         val identity = readOwned("ui/workout/ExerciseHeader.kt")
         assertFalse(identity.contains("HOLD_CLOCK"))
         assertFalse(identity.contains("SetWorkDock("))
-        val timers = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(timers.contains("workout-hold-clock"))
-        assertTrue(timers.contains("FloorTimerSurface.setClockSeconds"))
+        // The hold and set clocks live in the dock: SetWorkDockRenderTest, WorkoutDockTimerRenderTest.
         assertEquals("workout-hold-clock", WorkoutTestTags.HOLD_CLOCK)
-        val dock = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dock.contains("SetWorkDock("))
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertFalse(screen.substring(screen.indexOf("LazyColumn(")).contains("SetWorkDock("))
     }
