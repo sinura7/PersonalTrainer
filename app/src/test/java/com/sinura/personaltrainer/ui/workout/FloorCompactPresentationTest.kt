@@ -11,6 +11,10 @@ import org.junit.Test
  * The redesigned floor: overflow on the header row, weight beside reps as two
  * hero numerals, idle rest the same quiet dock card at rest, Log set the only
  * Volt. Primary controls stay in the dock.
+ *
+ * The numerals, the identity's still and the dock's "Add another set" are rendered in
+ * WeightRepsEditorRenderTest, ExerciseHeaderRenderTest and WorkoutDockRenderTest, since
+ * W1a changes those lines on purpose; the bans and placement rules stay here.
  */
 class FloorCompactPresentationTest {
     @Test
@@ -63,10 +67,8 @@ class FloorCompactPresentationTest {
         assertEquals("one filled Volt in the dock", 1, Regex("PrimaryGymButton\\(").findAll(dock).count())
         assertTrue(dock.contains("height = Metrics.commit"))
         assertTrue(dock.contains("val canLog: Boolean"))
-        assertTrue(dock.contains("val showAnother: Boolean"))
         assertTrue(dock.contains("val nextAct = action.kind == WorkoutPrimaryKind.NEXT_EXERCISE && !state.editing"))
         assertTrue(dock.contains("val finishAct = action.kind == WorkoutPrimaryKind.FINISH && !state.editing"))
-        assertTrue(dock.contains("Add another set"))
         assertTrue(dock.contains("LogCommitCopy.disabledReason"))
         assertTrue(dock.contains("key(action.identity)"))
         assertTrue(dock.contains("else -> WorkoutTestTags.LOG_SET"))
@@ -112,12 +114,10 @@ class FloorCompactPresentationTest {
         val overflow = workout.indexOf("LiftOverflowMenu(")
         val bottomBar = workout.indexOf("bottomBar = {")
         assertTrue("the overflow is composed in the header's trailing slot", overflow in topBar until bottomBar)
-        assertTrue(workout.contains("onSwitch = { liftSwitcherOpen = true }"))
         val hero = readOwned("ui/workout/ExerciseHeader.kt")
         assertFalse(hero.contains("LiftOverflowMenu("))
         assertFalse(hero.contains("CurrentLiftHeader("))
         assertFalse(hero.contains("SetDots("))
-        assertTrue(hero.contains("Metrics.exerciseHeroImage"))
         val liftCard = readOwned("ui/components/LiftCard.kt")
         val row = liftCard.substring(liftCard.indexOf("Row("), liftCard.indexOf("content()"))
         assertTrue(row.contains("trailing()"))
@@ -132,28 +132,10 @@ class FloorCompactPresentationTest {
         assertFalse(FloorCompactChrome.weightAndRepsAreWheels())
         assertFalse(FloorCompactChrome.floorFieldGlyphsReplaceLabels())
         assertFalse(ownedExists("ui/workout/WorkoutLiftCard.kt"))
+        // Side by side until large text, tap to type, the round plates, and each well naming
+        // its field aloud with no visible heading: WeightRepsEditorRenderTest and
+        // WorkoutFloorComponentsTest.
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("fun WeightRepsEditor("))
-        assertTrue(editor.contains("val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)"))
-        assertTrue(editor.contains("if (showWeight && !stack) {"))
-        assertTrue(editor.contains(".testTag(WorkoutTestTags.SET_ENTRY)"))
-        assertTrue(editor.contains("NumberEntryDialog("))
-        assertTrue(editor.contains("NumericEntry.parseWeightKg"))
-        assertTrue(editor.contains("NumericEntry.parseReps"))
-        assertTrue(editor.contains("NumericEntry.parseHoldSeconds"))
-        assertTrue(editor.contains("tag = WorkoutTestTags.WEIGHT_STEPPER"))
-        assertTrue(editor.contains("tag = WorkoutTestTags.REPS_STEPPER"))
-        assertTrue(editor.contains("tag = WorkoutTestTags.HOLD_STEPPER"))
-        assertTrue(editor.contains("HoldWork.clock"))
-        // The wells no longer carry a visible heading; each still names its field to a
-        // screen reader through its own spoken form.
-        assertTrue(editor.contains("SetCopy.weightEntryHero(meaning, weightKg, unit)"))
-        assertTrue(editor.contains("spoken = \"Reps \$reps\""))
-        assertTrue(editor.contains("else \"Time \${HoldWork.clock(seconds)}\""))
-        assertTrue(editor.contains("RoundPlate(label = \"−\""))
-        assertTrue(editor.contains("RoundPlate(label = \"+\""))
-        assertTrue(editor.contains("plateWidth = Metrics.stepperRound"))
-        assertTrue(editor.contains("shape = Radius.full"))
         assertFalse(editor.contains("SnapValueWheel("))
         assertFalse(editor.contains("FloorEntryWheels"))
         assertFalse(editor.contains("workout-weight-wheel"))
@@ -162,7 +144,6 @@ class FloorCompactPresentationTest {
         assertFalse(editor.contains("ExerciseThumb("))
         assertFalse(editor.contains("WorkoutTestTags.HOLD_CLOCK"))
         val hero = readOwned("ui/workout/ExerciseHeader.kt")
-        assertTrue(hero.contains("ExerciseThumb("))
         assertFalse(hero.contains("SessionTelemetryCopy"))
         val header = readOwned("ui/workout/WorkoutHeader.kt")
         assertTrue(header.contains("ScreenHeader("))
@@ -171,9 +152,6 @@ class FloorCompactPresentationTest {
         val menu = readOwned("ui/workout/WorkoutOverflowMenu.kt")
         assertTrue(menu.contains("Session summary"))
         val tags = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(tags.contains("WEIGHT_STEPPER"))
-        assertTrue(tags.contains("REPS_STEPPER"))
-        assertTrue(tags.contains("HOLD_STEPPER"))
         assertFalse(tags.contains("SetEntryPanel("))
         val dock = readOwned("ui/workout/WorkoutDock.kt")
         assertTrue(dock.contains("-> SetWorkDock("))

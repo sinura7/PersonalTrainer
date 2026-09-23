@@ -11,20 +11,16 @@ import org.junit.Test
  * W-06 on the redesigned floor: the current exercise's identity carries a still and
  * one set-position line from [SetOrdinalCopy] (no duplicate x/y working sets); switcher
  * rows carry a still, set progress, and a rest badge.
+ *
+ * The identity's spoken lift position and its still are rendered in
+ * ExerciseHeaderRenderTest (W1a adds a visible "Lift n of N" there on purpose), and the
+ * screen composing the identity and the switcher is tapped in FloorScreenWiringRenderTest.
  */
 class WorkoutLiftChipTest {
     @Test
     fun liveLiftCardsCarrySetProgressAndARestBadge() {
         val identity = readOwned("ui/workout/ExerciseHeader.kt")
-        assertTrue(identity.contains("CurrentLiftCopy.cardSpoken("))
-        assertTrue(identity.contains("number = number,"))
-        assertTrue(identity.contains("total = total,"))
-        assertTrue(identity.contains("includeWorkingProgress = false"))
-        assertTrue(identity.contains("setContext"))
         assertFalse(identity.contains("working sets"))
-        assertTrue(identity.contains("ExerciseThumb("))
-        assertTrue(identity.contains("Metrics.exerciseHeroImage"))
-        assertTrue(identity.contains("Metrics.workoutIdentityImage"))
         assertFalse(identity.contains("numeralMd"))
         val spoken = CurrentLiftCopy.cardSpoken(
             name = "Leg Curl",
@@ -54,9 +50,7 @@ class WorkoutLiftChipTest {
         assertTrue(switcher.contains("RestCyan"))
 
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("ExerciseHeader("))
         assertFalse(screen.contains("CurrentLiftCard("))
-        assertTrue(screen.contains("LiftSwitcherSheet("))
         assertTrue(screen.contains("fun liftSets"))
         assertTrue(screen.contains("fun liftRest"))
         assertFalse(

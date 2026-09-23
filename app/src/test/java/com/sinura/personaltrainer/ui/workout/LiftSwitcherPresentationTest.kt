@@ -5,20 +5,21 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * One current lift on the floor, and a session switcher (never the library) to change it.
+ *
+ * Tapping the identity or the header overflow's Switch exercise, and the switcher's Add
+ * exercise, are tapped through the screen in FloorScreenWiringRenderTest; what the identity
+ * announces is rendered in ExerciseHeaderRenderTest. W1a moves the switch to a visible
+ * control, so those are behaviour now rather than source lines.
+ */
 class LiftSwitcherPresentationTest {
     @Test
     fun oneCurrentLiftOpensSessionSwitcherNotLibrary() {
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.oneCurrentLiftOnFloor())
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.imageLedHero())
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("ExerciseHeader("))
         assertFalse(screen.contains("CurrentLiftCard("))
-        assertTrue(screen.contains("onOpenSwitcher = { liftSwitcherOpen = true }"))
-        assertTrue(
-            "the header overflow offers the same session switcher",
-            screen.contains("onSwitch = { liftSwitcherOpen = true }"),
-        )
-        assertTrue(screen.contains("LiftSwitcherSheet("))
         assertFalse(screen.contains("itemsIndexed("))
         assertFalse(screen.contains("items = session.exercises"))
         val switcher = readOwned("ui/workout/LiftSwitcherSheet.kt")
@@ -27,7 +28,6 @@ class LiftSwitcherPresentationTest {
         assertTrue(switcher.contains("WorkoutTestTags.LIFT_SWITCHER"))
         assertTrue(switcher.contains("WorkoutTestTags.SWITCHER_ADD_LIFT"))
         assertTrue(switcher.contains("Add exercise"))
-        assertTrue(screen.contains("onAddLift"))
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.addLiftLivesInSwitcher())
         val lazy = screen.indexOf("LazyColumn(")
         val switcherAt = screen.indexOf("if (liftSwitcherOpen")
@@ -37,9 +37,6 @@ class LiftSwitcherPresentationTest {
             screen.substring(lazy, switcherAt).contains("SecondaryGymButton"),
         )
         val identity = readOwned("ui/workout/ExerciseHeader.kt")
-        assertTrue(identity.contains("CurrentLiftCopy.cardSpoken("))
-        assertTrue(identity.contains("onClickLabel = CurrentLiftCopy.SWITCH, onClick = onOpenSwitcher"))
-        assertTrue(identity.contains(".testTag(WorkoutTestTags.liftCard(lift.exercise.id))"))
         assertFalse("the identity is not a library row", identity.contains("ExercisePickerSheet"))
         val overflow = readOwned("ui/workout/WorkoutOverflowMenu.kt")
         assertTrue(overflow.contains("onSwitch: (() -> Unit)? = null"))

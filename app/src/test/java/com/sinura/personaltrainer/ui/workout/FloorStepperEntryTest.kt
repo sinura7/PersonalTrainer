@@ -9,6 +9,11 @@ import org.junit.Test
  * Packet B on the redesigned floor: the weight / reps / hold draft are two hero
  * numerals with round plates and tap-to-type ([WeightRepsEditor]), never wheels.
  * Extra / paste typing wells, reminder wheels, and the rest sheet stay as they were.
+ *
+ * What the numerals do — their TalkBack actions, the plates, tap-to-type, side by side
+ * until large text — is rendered in WeightRepsEditorRenderTest, and the screen's wiring
+ * into the ViewModel is tapped in FloorScreenWiringRenderTest. W1a's numeric-entry cue
+ * edits exactly the lines those checks used to pin. The bans stay here.
  */
 class FloorStepperEntryTest {
     @Test
@@ -16,43 +21,10 @@ class FloorStepperEntryTest {
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.weightAndRepsAreWheels())
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.floorFieldGlyphsReplaceLabels())
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("internal fun WeightRepsEditor("))
-        assertTrue(editor.contains("private fun HeroNumeral("))
-        assertTrue(editor.contains("plateWidth = Metrics.stepperRound"))
-        assertTrue(editor.contains("plateHeight = Metrics.stepperRound"))
-        assertTrue(
-            "plates sit beside the numeral only when the widest sample fits with them",
-            editor.contains("val inline = sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth"),
-        )
-        assertTrue(editor.contains("rememberTextMeasurer"))
-        assertTrue(editor.contains("private const val WEIGHT_SAMPLE = \"888.8\""))
-        assertTrue(editor.contains("private const val REPS_SAMPLE = \"888\""))
-        assertTrue(editor.contains("private const val TIME_SAMPLE = \"88:88\""))
-        assertTrue(editor.contains("NumberEntryDialog("))
-        assertTrue(editor.contains("NumericEntry.parseWeightKg"))
-        assertTrue(editor.contains("SetCopy.weightEntryHero"))
-        assertTrue(editor.contains("UnloadedLoad.allowsZeroWorkingWeight"))
-        assertTrue(editor.contains("NumericEntry.parseReps"))
-        assertTrue(editor.contains("NumericEntry.parseHoldSeconds"))
-        assertTrue(editor.contains("IncrementTable.displayStep"))
-        assertTrue(editor.contains("FloorStepper.nextWeightKg"))
-        assertTrue(editor.contains("FloorStepper.nextReps"))
-        assertTrue(editor.contains("FloorStepper.nextHoldSeconds"))
-        assertTrue(editor.contains("WeightMeaning.NONE"))
         assertTrue(
             "the unit rides the weight numeral; no glyph and no heading stand in for it",
             editor.contains("unitLabel = unit.suffix") && !editor.contains("FloorFieldGlyph"),
         )
-        assertTrue(editor.contains("spoken = \"Reps \$reps\""))
-        assertTrue(editor.contains("if (holdRunning) \"Hold, \${HoldWork.clock(seconds)} remaining\""))
-        assertTrue(editor.contains("CustomAccessibilityAction(decrementSpoken)"))
-        assertTrue(editor.contains("CustomAccessibilityAction(incrementSpoken)"))
-        assertTrue(editor.contains("CustomAccessibilityAction(typeLabel)"))
-        assertTrue(editor.contains("\"Type a rep count\""))
-        assertTrue(editor.contains("\"Type hold seconds\""))
-        assertTrue(editor.contains("WorkoutTestTags.WEIGHT_STEPPER"))
-        assertTrue(editor.contains("WorkoutTestTags.REPS_STEPPER"))
-        assertTrue(editor.contains("WorkoutTestTags.HOLD_STEPPER"))
         assertFalse(editor.contains("SnapValueWheel("))
         assertFalse("floor entry must not keep the live wheel tags", editor.contains("workout-weight-wheel"))
         assertFalse("the floor draws its own hero numerals", editor.contains("SetEntryPanel("))
@@ -60,16 +32,7 @@ class FloorStepperEntryTest {
         assertFalse(editor.contains("FloorNumeralRow("))
         assertFalse(editor.contains("NumeralWell("))
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("WeightRepsEditor("))
         assertFalse(screen.contains("SetEntryPanel("))
-        assertTrue(screen.contains("loadType = currentLift.exercise.loadType"))
-        assertTrue(screen.contains("equipment = currentLift.exercise.equipment"))
-        assertTrue(screen.contains("movementKey = currentLift.exercise.movementKey"))
-        assertTrue(screen.contains("plannedKg = currentLift.targetWeightKg"))
-        assertTrue(screen.contains("plated = currentLift.exercise.equipment == EquipmentType.BARBELL"))
-        assertTrue(screen.contains("onWeightKgChange = viewModel::setWeight"))
-        assertTrue(screen.contains("onRepsChange = viewModel::setReps"))
-        assertTrue(screen.contains("onSecondsChange = viewModel::setHoldSeconds"))
     }
 
     @Test
@@ -120,19 +83,9 @@ class FloorStepperEntryTest {
         assertFalse(stepper.contains("60L"))
         assertTrue("round plates share the one repeat loop", stepper.contains("shape: Shape = RoundedCornerShape(Radius.sm)"))
         assertTrue(stepper.contains("textStyle: TextStyle? = null"))
+        // The plates share this repeat loop and keep a full 48 dp target: both rendered in
+        // WeightRepsEditorRenderTest (a held plate steps; each plate is at least touchMin).
         val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("StepperButton("))
-        assertTrue(editor.contains("shape = Radius.full"))
-        // The plate draws inside its target rather than filling it, so the glyph carries
-        // the weight the circle gave up.
-        assertTrue(editor.contains("textStyle = InstrumentType.commit"))
-        assertTrue(editor.contains("plateInset = Metrics.stepperPlateInset"))
-        assertTrue(editor.contains("emphasis = true"))
-        assertTrue(
-            "the target is the floor and does not move; only the drawing shrank",
-            editor.contains("plateWidth = Metrics.stepperRound") &&
-                readOwned("ui/theme/Metrics.kt").contains("val stepperRound: Dp = touchMin"),
-        )
         assertFalse("the plates never carry their own repeat loop", editor.contains("StepperRepeat"))
         val dialog = readOwned("ui/components/NumberEntryDialog.kt")
         assertTrue(dialog.contains("Haptics.tick(view)"))
@@ -144,30 +97,10 @@ class FloorStepperEntryTest {
 
     @Test
     fun heroNumeralsSitSideBySideAndStackOnlyForLargeText() {
+        // Side by side at normal text, stacked from LogLoopScale.STACK_WELLS_FROM, with
+        // SET_ENTRY holding both numerals either way: WeightRepsEditorRenderTest.
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.stackWeightAboveReps())
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.heroNumeralsSideBySide())
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)"))
-        val sideBySide = editor.indexOf("if (showWeight && !stack) {")
-        val stacked = editor.indexOf("} else {", sideBySide)
-        val typing = editor.indexOf("if (typingWeight) {")
-        assertTrue(sideBySide in 0 until stacked)
-        assertTrue(stacked in 0 until typing)
-        val row = editor.substring(sideBySide, stacked)
-        assertTrue(row.contains("Row("))
-        assertTrue("no intrinsic pass over the lazy parent", row.contains(".drawBehind {"))
-        assertTrue(row.contains("weightColumn(Modifier.weight(1f).padding(end = Metrics.space2), columnWidth, heroStyle)"))
-        assertTrue("a hairline splits the two numerals", row.contains("strokeWidth = Metrics.hairline.toPx()"))
-        assertTrue(row.contains("workColumn(Modifier.weight(1f).padding(start = Metrics.space2), columnWidth, heroStyle)"))
-        val column = editor.substring(stacked, typing)
-        assertTrue(column.contains("Column("))
-        assertTrue(column.contains("weightColumn(Modifier.fillMaxWidth(), fullWidth, heroStyle)"))
-        assertTrue(column.contains("HairlineDivider(startIndent = Metrics.space7)"))
-        assertTrue(column.contains("workColumn(Modifier.fillMaxWidth(), fullWidth, heroStyle)"))
-        assertTrue(
-            "both layouts anchor the log loop",
-            row.contains(".testTag(WorkoutTestTags.SET_ENTRY)") && column.contains(".testTag(WorkoutTestTags.SET_ENTRY)"),
-        )
     }
 
     private fun readOwned(relative: String): String {

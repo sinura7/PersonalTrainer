@@ -12,29 +12,22 @@ import org.junit.Test
  * queue with an accessibility-extended dwell that survives process death.
  *
  * No Packet H: no goldens, no TalkBack matrix. No swipe-to-delete anywhere on this surface.
+ *
+ * The chips' menu and the sheet's per-row overflow are rendered and tapped in
+ * SetHistoryStripRenderTest and WorkoutSetsSheetRenderTest; W1a rewrites the chips'
+ * announcement, so those are behaviour now. The no-swipe bans stay here.
  */
 class FloorPacketGUndoTest {
     @Test
     fun setChipsOfferANamedReviseDeleteMenu() {
+        // Each chip is a 48 dp button whose tap opens Revise / Delete named with its own
+        // ordinal (SetHistoryStripRenderTest), and the full sheet keeps a visible 48 dp
+        // overflow per row with Edit set / Delete set (WorkoutSetsSheetRenderTest).
         val strip = readOwned("ui/workout/SetHistoryStrip.kt")
-        assertTrue(strip.contains("InstrumentMenu("))
-        assertTrue("the menu names the chip's own ordinal", strip.contains("SetRowCopy.actionsFor(ordinal)"))
-        assertTrue(strip.contains("SetRowCopy.revise(ordinal)"))
-        assertTrue(strip.contains("SetRowCopy.delete(ordinal)"))
-        assertTrue(strip.contains("Metrics.touchMin"))
-        assertTrue(strip.contains("WorkoutTestTags.setChip(set.id)"))
-        assertTrue(strip.contains("onClickLabel = spokenAction"))
-        assertTrue(readOwned("ui/workout/ActiveWorkoutScreen.kt").contains("fun setOptions(setId: String)"))
         // No hidden tap-to-select gesture: the chip is the row and its menu is the act.
         assertFalse(strip.contains("selectedSetId"))
         assertFalse(strip.contains("SetRowAction("))
         assertFalse(strip.contains("onSelect ="))
-        // The full sheet keeps a visible 48 dp overflow per row with the same two verbs.
-        val sheet = readOwned("ui/workout/WorkoutSavedSets.kt")
-        assertTrue(sheet.contains("InstrumentMenu("))
-        assertTrue(sheet.contains(".size(Metrics.touchMin).testTag(WorkoutTestTags.setOptions(set.id))"))
-        assertTrue(sheet.contains("\"Edit set\""))
-        assertTrue(sheet.contains("\"Delete set\""))
 
         val copy = readOwned("domain/SetRowCopy.kt")
         assertTrue(copy.contains("fun actionsForSet"))
