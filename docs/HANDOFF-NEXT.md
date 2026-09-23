@@ -66,6 +66,9 @@ Done so far:
   is logged; stats values that shrink to one line where they can (ADR-030
   says when one still wraps); a − / + drawn whole; an outsized weight that
   keeps its unit (drop 104).
+- **Owner decision, 23 September:** the rest a logged set starts is the
+  coach's suggested length, not one picked on the dock (ADR-012 decision
+  18; already the behaviour, now written down and held by a test).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
