@@ -31,7 +31,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -548,6 +553,37 @@ class RoutineEditorViewModelTest {
         assertEquals(listOf(row.id), vm.awaitState { it.pickedIds == listOf(row.id) }.pickedIds)
     }
 
+    /**
+     * The second tap on a lift takes it back out even when the screen's copy of the routine
+     * is behind the store. The first write used to clear its pending pick from the store's
+     * answer while the next tap read the screen's copy: in that window the lift was neither
+     * pending nor visible, so the second tap was read as "add" and did nothing. Trunk's
+     * full gate hit it two runs in four as `aSecondTapTakesTheLiftBackOut`.
+     */
+    @Test
+    fun aSecondTapTakesTheLiftBackOutWhileTheScreenIsBehindTheStore() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val held = MutableStateFlow(false)
+        val rowWriteStarted = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", container = withRoutineDao(HeldRoutineDao(deps.database.routineDao(), held, row.id, rowWriteStarted)))
+        vm.awaitState { it.catalog.size >= 2 }
+        vm.setPickerVisible(true)
+
+        held.value = true
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        // Picks write one at a time, so Row's write reaching the store means Squat's write,
+        // and everything it did after, is over. The screen has still seen neither.
+        withTimeout(TestWaits.FLOW_MS) { rowWriteStarted.await() }
+        vm.togglePicked(squat)
+        held.value = false
+
+        val saved = awaitRoutine { it.exercises.size == 1 }
+        assertEquals(listOf(row.id), saved.exercises.map { it.exercise.id })
+        assertEquals(listOf(row.id), vm.awaitState { it.pickedIds == listOf(row.id) && !it.addingLifts }.pickedIds)
+    }
+
     @Test
     fun tapOrderIsTheOrderTheRoutineKeeps() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
@@ -623,11 +659,14 @@ class RoutineEditorViewModelTest {
             vm.togglePicked(squat)
             gate.complete(Unit)
 
-            val refused = vm.awaitState { it.error == SessionOrderCopy.ADD_LIFT_FAILED }
             // The pick is dropped with the write: a row still numbered after a failure is a
-            // lift the owner believes is on the routine and is not.
-            assertTrue(refused.pickedIds.isEmpty())
+            // lift the owner believes is on the routine and is not. The refusal and the
+            // dropped pick reach the screen through different inputs, so wait for both: one
+            // frame can carry the refusal before the pick has gone, and that frame is not
+            // the answer.
+            val refused = vm.awaitState { it.error == SessionOrderCopy.ADD_LIFT_FAILED && it.pickedIds.isEmpty() }
             assertTrue(refused.showExercisePicker)
+            assertTrue(deps.routineRepository.observeAll().first().all { it.exercises.isEmpty() })
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
         }
@@ -1556,6 +1595,28 @@ class RoutineEditorViewModelTest {
     ) : RoutineDao by delegate {
         override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
             gate.await()
+            delegate.upsertRoutineExercise(item)
+        }
+    }
+
+    /**
+     * The routine's own flow held behind the store while [held] is true: writes land, and
+     * the screen's copy of the routine does not move until it is released. Signals when the
+     * write for [signalExerciseId] reaches the store.
+     */
+    private class HeldRoutineDao(
+        private val delegate: RoutineDao,
+        private val held: StateFlow<Boolean>,
+        private val signalExerciseId: String,
+        private val signal: CompletableDeferred<Unit>,
+    ) : RoutineDao by delegate {
+        override fun observeById(id: String): Flow<RoutineWithExercises?> =
+            combine(delegate.observeById(id), held) { routine, hold -> routine to hold }
+                .filter { (_, hold) -> !hold }
+                .map { (routine, _) -> routine }
+
+        override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
+            if (item.exerciseId == signalExerciseId) signal.complete(Unit)
             delegate.upsertRoutineExercise(item)
         }
     }

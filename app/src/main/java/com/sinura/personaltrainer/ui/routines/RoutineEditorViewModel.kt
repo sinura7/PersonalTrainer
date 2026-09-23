@@ -1082,7 +1082,14 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // Settle here as well as on the routine's own emissions: a tap the store already
             // agreed with writes nothing, so there may be no emission to settle it, and a
             // pick left standing would keep the editor looking busy forever.
-            settlePicks(storedIds(id))
+            //
+            // Settle against the routine the screen has, not a fresh read of the store. The
+            // next tap decides add-or-remove from that same routine; settled from the store,
+            // a pick whose write had landed but not yet reached the screen was neither
+            // pending nor visible, so a second tap in that window re-added the lift (a no-op)
+            // instead of taking it back out. A write that changed the store always emits,
+            // and that emission settles whatever this could not.
+            settlePicks(committedIds(routineFlow.value))
             error.clearFrom(source = source, before = started)
             error.clearFrom(source = ERR_SAVE, before = started)
         } catch (thrown: CancellationException) {
@@ -1105,9 +1112,6 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         container.routineRepository.getById(routineId)
             ?.exercises
             ?.firstOrNull { it.exercise.id == exerciseId }
-
-    private suspend fun storedIds(routineId: String): List<String> =
-        committedIds(container.routineRepository.getById(routineId))
 
     private fun committedIds(routine: Routine?): List<String> =
         routine?.exercises.orEmpty().map { it.exercise.id }
