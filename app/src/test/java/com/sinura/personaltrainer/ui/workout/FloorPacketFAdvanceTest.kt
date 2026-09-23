@@ -9,6 +9,10 @@ import org.junit.Test
  * Packet F on the redesigned floor: the save receipt is the saved chip in the set history,
  * Next / Finish are named on the dock's two-line commit, Coach.decide feeds the Next-set
  * card, Why offers Use suggestion / Keep my numbers, and there is still no idle Start next.
+ *
+ * The two "Add set" controls and the saved chip are rendered and tapped in
+ * SetHistoryStripRenderTest, WorkoutSetsSheetRenderTest, WorkoutDockRenderTest and
+ * FloorScreenWiringRenderTest; W1a keeps one "Add set" and changes those on purpose.
  */
 class FloorPacketFAdvanceTest {
     @Test
@@ -18,21 +22,14 @@ class FloorPacketFAdvanceTest {
         assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.showIdleStartNext())
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertFalse(screen.contains("addSetHiddenOnFloor()"))
-        assertTrue(screen.contains("showAddSet = WorkoutAdvance.cardOffersAnotherSet("))
         assertFalse(screen.contains("onStartNextLift"))
-        // Add set is the last chip of the set history once the plan is met, and the full
-        // sheet still offers Add another set at its foot.
-        val strip = readOwned("ui/workout/SetHistoryStrip.kt")
-        assertTrue(strip.contains("showAddSet: Boolean"))
-        assertTrue(strip.contains("WorkoutTestTags.ADD_SET"))
-        assertTrue(strip.contains("private const val ADD_SET = \"Add set\""))
-        val sheet = readOwned("ui/workout/WorkoutSavedSets.kt")
-        assertTrue(sheet.contains("if (showAddSet) item(key = \"add-set\")"))
+        // Add set is the last chip of the set history once the plan is met, the full sheet
+        // still offers Add another set at its foot, and the dock offers it beside Next:
+        // rendered in SetHistoryStripRenderTest, WorkoutSetsSheetRenderTest and
+        // WorkoutDockRenderTest, tapped through the screen in FloorScreenWiringRenderTest.
         val dock = readOwned("ui/workout/WorkoutDock.kt")
         assertFalse(dock.contains("onStartNextLift"))
         assertFalse(dock.contains("RestIdleCopy.START_NEXT"))
-        assertTrue(dock.contains("WorkoutTestTags.ANOTHER_SET"))
-        assertTrue(dock.contains("\"Add another set\""))
         assertFalse(readOwned("ui/workout/RestTimerCard.kt").contains("START_NEXT"))
     }
 
@@ -90,11 +87,9 @@ class FloorPacketFAdvanceTest {
         assertFalse(screen.contains("workout-latest-saved"))
         assertFalse(screen.contains("LOG_RECEIPT"))
         assertFalse(readOwned("ui/workout/WorkoutSavedSets.kt").contains("LOG_RECEIPT"))
-        assertTrue(screen.contains("receiptSetId = logReceipt?.setId"))
+        // The just-saved chip reads "Saved · Set n of N" and says "saved":
+        // SetHistoryStripRenderTest, and after a real save in FloorScreenWiringRenderTest.
         assertTrue(screen.contains("view.announceForAccessibility(receipt.line)"))
-        val strip = readOwned("ui/workout/SetHistoryStrip.kt")
-        assertTrue(strip.contains("saved = set.id == receiptSetId"))
-        assertTrue(strip.contains("saved -> \"\$SAVED · \$ordinal\""))
         assertTrue(screen.contains("Haptics.recordAccent(view)"))
         assertFalse(screen.contains("Haptics.celebrate"))
         val haptics = readOwned("ui/theme/Haptics.kt")

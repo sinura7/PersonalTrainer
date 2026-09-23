@@ -10,6 +10,11 @@ import org.junit.Test
 /**
  * The logging loop must keep the hero numerals on screen. Anchoring bringIntoView
  * on the set history (the old logged-sets panel) is the bug this object exists to prevent.
+ *
+ * The anchor's place is rendered too: SET_ENTRY holds both numerals in either layout
+ * (WeightRepsEditorRenderTest), never appears in the set history
+ * (SetHistoryStripRenderTest), and survives a real save, a lift switch and an edit on the
+ * screen (FloorScreenWiringRenderTest). The screen-order pins below stay as the guard.
  */
 class LogLoopBringIntoViewTest {
     @Test
@@ -19,13 +24,7 @@ class LogLoopBringIntoViewTest {
         assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains(other = "logged", ignoreCase = true))
         assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains(other = "sets-panel", ignoreCase = true))
         assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains(other = "history", ignoreCase = true))
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(
-            "the anchor is the hero numerals' root in both layouts",
-            editor.contains(".testTag(WorkoutTestTags.SET_ENTRY)"),
-        )
         val history = readOwned("ui/workout/SetHistoryStrip.kt")
-        assertTrue(history.contains(".testTag(WorkoutTestTags.SET_HISTORY)"))
         assertFalse(history.contains("WorkoutTestTags.SET_ENTRY"))
     }
 

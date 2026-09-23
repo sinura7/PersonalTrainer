@@ -14,6 +14,11 @@ import org.junit.Test
  * verb follows the Working / Warm-up toggle; Warm-up sits outside RPE 6–10;
  * Next exercise / Add another set stand in the dock until chosen (no dwell
  * auto-advance).
+ *
+ * The set-type toggle, the entry's order and the dock's "Add another set" are tapped in
+ * ExerciseHeaderRenderTest, FloorScreenWiringRenderTest and WorkoutDockRenderTest, where
+ * W1a's one "Add set" will change them on purpose. The no-auto-advance bans stay here and
+ * are also held in behaviour by those tests.
  */
 class WorkoutLogBarTest {
     @Test
@@ -42,7 +47,7 @@ class WorkoutLogBarTest {
         assertTrue(screen.contains("spokenPayload = primaryAction.nextName.takeIf { primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE },"))
         assertTrue(screen.contains("payload = primaryAction.payload(unit = unit, loadClass = loadClass)"))
 
-        val warmup = primaryAction(
+        val warmup = floorPrimaryAction(
             kind = WorkoutPrimaryKind.LOG_WARMUP,
             draft = ActiveExerciseDraft(weightKg = 60.0, reps = 8, rpe = 8, isWarmup = true),
         )
@@ -50,7 +55,7 @@ class WorkoutLogBarTest {
         val warmupPayload = requireNotNull(warmup.payload(unit = WeightUnit.KG, loadClass = LoadClass.LOADED))
         assertTrue(warmupPayload.contains("× 8"))
         assertFalse("a warm-up never carries effort", warmupPayload.contains("RPE"))
-        val working = primaryAction(
+        val working = floorPrimaryAction(
             kind = WorkoutPrimaryKind.LOG_SET,
             draft = ActiveExerciseDraft(weightKg = 60.0, reps = 8, rpe = 8),
         )
@@ -81,28 +86,10 @@ class WorkoutLogBarTest {
         assertFalse("Warm-up chip lives in the header toggle", selector.contains("label = \"Warm-up\""))
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.warmupOutsideRpeTrack())
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.rpeTrackFitsWithoutScroll())
-        val header = readOwned("ui/workout/ExerciseHeader.kt")
-        assertTrue(header.contains("fun SetTypeToggle("))
-        assertTrue(header.contains("label = \"Warm-up\""))
-        assertTrue(header.contains("WorkoutTestTags.WARMUP_CHIP"))
-        assertTrue(header.contains("WorkoutTestTags.SET_TYPE"))
-        assertTrue(header.contains("selectableGroup()"))
-        assertTrue(header.contains("compact = dense"))
+        // Warm-up is the header's two-way radio, under the identity and above the numerals,
+        // and it drives the draft, the commit's verb and the ramp: ExerciseHeaderRenderTest
+        // and FloorScreenWiringRenderTest.
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.setTypeToggleUsesCompactChips())
-        assertTrue(
-            "the set-type toggle sits under the identity",
-            header.indexOf("WorkoutTestTags.liftCard(") in 0 until header.indexOf("SetTypeToggle("),
-        )
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        val warmupAt = screen.indexOf("item(key = \"exercise-header\")")
-        val weightAt = screen.indexOf("item(key = \"entry\")")
-        val rpeAt = screen.indexOf("item(key = \"rpe\")")
-        assertTrue("Warm-up toggle must sit above the hero numerals", warmupAt in 0 until weightAt)
-        assertTrue("RPE must sit below the hero numerals", rpeAt > weightAt)
-        assertTrue(screen.contains("WeightRepsEditor("))
-        assertTrue(screen.contains("draftWarmup = state.draft.isWarmup"))
-        assertTrue(screen.contains("onWarmup = viewModel::setWarmup"))
-        assertTrue(screen.contains("WarmupRamp.sets("))
     }
 
     @Test
@@ -110,11 +97,8 @@ class WorkoutLogBarTest {
         val dock = readOwned("ui/workout/WorkoutDock.kt")
         assertTrue(dock.contains("val nextAct = action.kind == WorkoutPrimaryKind.NEXT_EXERCISE && !state.editing"))
         assertTrue(dock.contains("val finishAct = action.kind == WorkoutPrimaryKind.FINISH && !state.editing"))
-        assertTrue(dock.contains("val showAnother: Boolean"))
-        assertTrue(dock.contains("Add another set"))
-        assertTrue(dock.contains("WorkoutTestTags.ANOTHER_SET"))
-        assertTrue(dock.contains("onClick = events.onAnotherSet"))
-        assertTrue(dock.contains("enabled = state.showAnother"))
+        // "Add another set" standing beside Next / Finish, and time never pressing Next, are
+        // held in WorkoutDockRenderTest and FloorScreenWiringRenderTest.
         assertTrue(dock.contains("nextAct -> WorkoutTestTags.NEXT"))
         assertTrue(dock.contains("finishAct -> WorkoutTestTags.DOCK_FINISH"))
         assertTrue(dock.contains("key(action.identity)"))
@@ -123,7 +107,6 @@ class WorkoutLogBarTest {
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertTrue(screen.contains("primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE"))
         assertTrue(screen.contains("primaryAction.kind == WorkoutPrimaryKind.FINISH"))
-        assertTrue(screen.contains("viewModel.requestExtraSet()"))
         assertTrue(screen.contains("val accepted = viewModel.performPrimary(action)"))
         assertTrue(screen.contains("if (accepted && action.kind == WorkoutPrimaryKind.FINISH) confirmEnd = true"))
         assertTrue(screen.contains("onFinish = { confirmEnd = true }"))
@@ -142,7 +125,7 @@ class WorkoutLogBarTest {
             viewModel.contains("WorkoutPrimaryKind.NEXT_EXERCISE -> action.identity.nextExerciseId?.let(::selectExercise)"),
         )
 
-        val next = primaryAction(
+        val next = floorPrimaryAction(
             kind = WorkoutPrimaryKind.NEXT_EXERCISE,
             draft = ActiveExerciseDraft(),
             nextName = "Leg curl",
@@ -150,13 +133,13 @@ class WorkoutLogBarTest {
         assertEquals("Next exercise · Leg curl", next.verb())
         assertEquals("Next exercise", next.verb(includeNextName = false))
         assertNull(next.payload(unit = WeightUnit.KG, loadClass = LoadClass.LOADED))
-        val finish = primaryAction(
+        val finish = floorPrimaryAction(
             kind = WorkoutPrimaryKind.FINISH,
             draft = ActiveExerciseDraft(),
         )
         assertEquals("Finish workout", finish.verb())
         assertNull(finish.payload(unit = WeightUnit.KG, loadClass = LoadClass.LOADED))
-        val saving = primaryAction(
+        val saving = floorPrimaryAction(
             kind = WorkoutPrimaryKind.SAVING,
             draft = ActiveExerciseDraft(),
         )
@@ -167,28 +150,6 @@ class WorkoutLogBarTest {
         assertTrue(dock.contains("else -> WorkoutTestTags.LOG_SET"))
         assertTrue(dock.contains("hapticFeedback = false"))
     }
-
-    private fun primaryAction(
-        kind: WorkoutPrimaryKind,
-        draft: ActiveExerciseDraft,
-        nextName: String? = null,
-    ): WorkoutPrimaryAction = WorkoutPrimaryAction(
-        identity = WorkoutPrimaryIdentity(
-            kind = kind,
-            sessionId = "session",
-            exerciseId = "exercise",
-            editingSetId = null,
-            draft = draft,
-            sets = emptyList(),
-            nextExerciseId = null,
-            extraSet = false,
-            timedGeneration = 0,
-            activation = 0L,
-            pendingSave = null,
-        ),
-        enabled = true,
-        nextName = nextName,
-    )
 
     private fun readOwned(relative: String): String {
         val roots = listOf(

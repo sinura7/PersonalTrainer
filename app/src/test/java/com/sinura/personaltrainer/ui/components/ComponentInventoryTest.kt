@@ -40,32 +40,20 @@ class ComponentInventoryTest {
     @Test
     fun workoutHistoryIsASecondarySheetAndHistoryKeepsItsReusableTable() {
         // The floor shows today's sets as chips; the full labelled Edit/Delete list stays a
-        // secondary sheet the strip's Edit button opens. Neither is a second table.
+        // secondary sheet the strip's Edit button opens. Neither is a second table. What the
+        // chips, their menu and the sheet show and do is rendered in the workout package
+        // (SetHistoryStripRenderTest, WorkoutSetsSheetRenderTest, FloorScreenWiringRenderTest).
         val strip = readUi("workout/SetHistoryStrip.kt")
         assertTrue(strip.contains("fun SetHistoryStrip("))
-        assertTrue(strip.contains("WorkoutTestTags.VIEW_SETS"))
-        assertTrue(strip.contains("onClick = onOpenAll"))
-        assertTrue(strip.contains("InstrumentMenu("))
-        assertTrue(strip.contains("SetRowCopy.revise(ordinal)"))
-        assertTrue(strip.contains("SetRowCopy.delete(ordinal)"))
-        assertTrue(strip.contains("FloorStatCopy.compactSet("))
         assertFalse("the floor strip is chips, not a second table", strip.contains("SetTable("))
         assertFalse(strip.contains("ModalBottomSheet("))
         val screen = readUi("workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("SetHistoryStrip("))
-        assertTrue(screen.contains("WorkoutSetsSheet("))
         assertFalse("the Latest saved receipt row is gone", screen.contains("LatestWorkoutSet("))
         val logged = readUi("workout/WorkoutSavedSets.kt")
         assertTrue(logged.contains("fun WorkoutSetsSheet("))
-        assertTrue(logged.contains("ModalBottomSheet("))
-        assertTrue(logged.contains("SetCopy.setLine"))
-        assertTrue(logged.contains("Edit set"))
-        assertTrue(logged.contains("Delete set"))
         assertFalse(logged.contains("LatestWorkoutSet("))
         val header = readUi("workout/ExerciseHeader.kt")
         assertTrue(header.contains("fun ExerciseHeader("))
-        assertTrue(header.contains("ExerciseThumb("))
-        assertTrue(header.contains("Metrics.exerciseHeroImage"))
         val overflow = readUi("workout/WorkoutOverflowMenu.kt")
         assertTrue(overflow.contains("fun LiftOverflowMenu("))
         assertTrue(overflow.contains("InstrumentMenu("))

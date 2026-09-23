@@ -10,6 +10,10 @@ import org.junit.Test
  * Packet D: RPE always on working drafts, ramp chips, set context — on the
  * redesigned floor, where the track is [RpeSelector] under the hero numerals
  * and the set type is the toggle in [ExerciseHeader].
+ *
+ * The set context, the warm-up ramp and the saved-set ordinals are rendered in
+ * ExerciseHeaderRenderTest, WeightRepsEditorRenderTest, SetHistoryStripRenderTest and
+ * WorkoutSetsSheetRenderTest, and tapped through the screen in FloorScreenWiringRenderTest.
  */
 class FloorRpePresentationTest {
     @Test
@@ -40,8 +44,9 @@ class FloorRpePresentationTest {
         assertTrue(selector.contains("InstrumentChip("))
         assertTrue(selector.contains("role = Role.RadioButton"))
         assertTrue(selector.contains("selectableGroup()"))
+        // The chip publishes its selected state to TalkBack (ExerciseHeaderRenderTest reads it
+        // on the set-type radio).
         val chip = readOwned("ui/components/InstrumentChip.kt")
-        assertTrue(chip.contains("Modifier.selectable("))
         // A suggestion is never rendered as a selection (ADR-027 §4). The Volt edge means
         // chosen; a recommended value wears a dot instead, which is also the non-colour
         // signal ADR-023 asks for — and, being corner-set, costs the label no width, so
@@ -62,22 +67,8 @@ class FloorRpePresentationTest {
         assertFalse(screen.contains("rpeHelperVisible"))
         assertFalse(screen.contains("viewModel::dismissRpeHelper"))
         // Set context and the warm-up ramp moved with the entry: the header names the set,
-        // the ramp presets sit under the numerals, and the ramp still only sets the draft.
-        assertTrue(screen.contains("SetOrdinalCopy.draftLine("))
-        assertTrue(screen.contains("setContext = setContext"))
-        assertTrue(readOwned("ui/workout/ExerciseHeader.kt").contains("WorkoutTestTags.SET_CONTEXT"))
-        assertTrue(screen.contains("WarmupRamp.sets("))
-        assertTrue(screen.contains("onApplyRamp = viewModel::applyWarmupRamp"))
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("fun WarmupRampRow("))
-        assertTrue(editor.contains("WorkoutTestTags.WARMUP_RAMP"))
-        val logged = readOwned("ui/workout/WorkoutSavedSets.kt")
-        assertTrue(logged.contains("Warm-up"))
-        assertTrue(logged.contains("Working set"))
-        assertTrue(logged.contains("targetSets"))
-        val history = readOwned("ui/workout/SetHistoryStrip.kt")
-        assertTrue(history.contains("SetOrdinalCopy.loggedLines("))
-        assertTrue(history.contains("SetOrdinalCopy.marks("))
+        // the ramp presets sit under the numerals, and the ramp still only sets the draft —
+        // all tapped through the screen in FloorScreenWiringRenderTest.
     }
 
     @Test

@@ -11,6 +11,10 @@ import org.junit.Test
  * with Why still opening the trace; the floor's hero numerals carry word
  * labels, and the four glyphs stay supporting marks wherever one still sits
  * beside a label.
+ *
+ * The floor's numerals are rendered in WeightRepsEditorRenderTest and
+ * WorkoutFloorComponentsTest: the unit rides the weight, each well names its field aloud,
+ * and no heading stands over them. W1a's numeric-entry cue may add a mark there on purpose.
  */
 class FloorPacket4KickerGlyphsTest {
     @Test
@@ -96,13 +100,8 @@ class FloorPacket4KickerGlyphsTest {
         assertTrue(floor.contains("FloorFieldGlyph("))
         // The floor's hero numerals carry no heading at all now, so the rule they had to obey
         // — a word, never a glyph standing in for one — is kept by there being neither. The
-        // field is still named where it has to be: in the well's spoken form.
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("unitLabel = weightHero.unitSuffix"))
-        assertTrue(editor.contains("SetCopy.weightEntryHero(meaning, weightKg, unit)"))
-        assertTrue(editor.contains("spoken = \"Reps \$reps\""))
-        assertFalse("no glyph stands in for a floor label", editor.contains("FloorFieldGlyph"))
-        assertFalse("no heading over the hero numerals", editor.contains("Kicker(text = label"))
+        // field is still named where it has to be: in the well's spoken form. Both are
+        // rendered facts now (WeightRepsEditorRenderTest, WorkoutFloorComponentsTest).
         val rpe = readOwned("ui/workout/RpeSelector.kt")
         assertTrue(rpe.contains("Kicker(\"RPE\")"))
         assertFalse(rpe.contains("TemperIcons.FloorRpe"))

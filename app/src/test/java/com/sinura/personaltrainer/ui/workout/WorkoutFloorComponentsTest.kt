@@ -2,23 +2,20 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.EquipmentType
-import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
 import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
@@ -28,17 +25,11 @@ import com.sinura.personaltrainer.domain.IncrementTable
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LoggedSetView
-import com.sinura.personaltrainer.domain.SessionExercise
-import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightConverter
-import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutProgressCalculator
-import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
-import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
-import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -61,20 +52,14 @@ import org.robolectric.annotation.Config
 class WorkoutFloorComponentsTest {
     @get:Rule val compose = createComposeRule()
 
-    private val unit = WeightUnit.LBS
-    private val kg70 = WeightConverter.lbsToKg(70.0)
+    private val unit = FLOOR_UNIT
+    private val kg70 = FLOOR_KG70
 
-    private fun show(content: @Composable () -> Unit) {
-        compose.setContent {
-            CompositionLocalProvider(LocalWeightUnit provides unit) {
-                PersonalTrainerTheme { content() }
-            }
-        }
-    }
+    private fun show(content: @Composable () -> Unit) = compose.showFloor(content = content)
 
     @Test
     fun headerSaysWhereTheSessionStandsAndFinishWaitsForASet() {
-        val session = session(listOf(set(1, kg70, 10, rpe = 8), set(2, kg70, 10, rpe = 9)), targetSets = 3, secondLift = true)
+        val session = floorSession(listOf(floorSet(1, kg70, 10, rpe = 8), floorSet(2, kg70, 10, rpe = 9)), targetSets = 3, secondLift = true)
         val progress = WorkoutProgressCalculator.of(session = session, selectedExerciseId = "leg-ext")
         show {
             WorkoutHeader(
@@ -102,7 +87,7 @@ class WorkoutFloorComponentsTest {
         var details = 0
         show {
             ExerciseHeader(
-                lift = lift(targetSets = 3),
+                lift = floorLift(targetSets = 3),
                 number = 1,
                 total = 2,
                 workingLogged = 2,
@@ -140,7 +125,7 @@ class WorkoutFloorComponentsTest {
             sets = listOf(ExerciseSetRecord(setId = "a", sessionId = "old", weightKg = kg70, reps = 9, completedAt = 1L, rpe = 8)),
         )
         val stats = ExerciseFloorStatsCalculator.of(
-            session = session(emptyList(), targetSets = 3),
+            session = floorSession(emptyList(), targetSets = 3),
             exerciseId = "leg-ext",
             lastPerformance = previous,
             priorHistory = previous.sets,
@@ -169,7 +154,7 @@ class WorkoutFloorComponentsTest {
             sets = listOf(ExerciseSetRecord(setId = "a", sessionId = "old", weightKg = kg70, reps = 9, completedAt = 1L, rpe = 8)),
         )
         val stats = ExerciseFloorStatsCalculator.of(
-            session = session(emptyList(), targetSets = 3),
+            session = floorSession(emptyList(), targetSets = 3),
             exerciseId = "leg-ext",
             lastPerformance = previous,
             priorHistory = previous.sets,
@@ -443,7 +428,7 @@ class WorkoutFloorComponentsTest {
         var added = 0
         show {
             SetHistoryStrip(
-                sets = listOf(set(1, kg70, 10, rpe = 8), set(2, kg70, 10, rpe = 9)),
+                sets = listOf(floorSet(1, kg70, 10, rpe = 8), floorSet(2, kg70, 10, rpe = 9)),
                 targetSets = 3,
                 loadClass = LoadClass.LOADED,
                 unit = unit,
@@ -538,44 +523,4 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithContentDescription("Rest is not running. Rest 2:00. Tap to change duration.").performClick()
         assertEquals(1, edits)
     }
-
-    private fun lift(targetSets: Int, id: String = "leg-ext", name: String = "Leg Extension") = SessionExercise(
-        id = "se-$id",
-        sessionId = "s1",
-        exercise = Exercise(
-            id = id, name = name, muscleGroup = "Legs", notes = "", isCustom = false,
-            equipment = EquipmentType.MACHINE, loadType = LoadType.EXTERNAL,
-        ),
-        sortOrder = 0,
-        targetSets = targetSets,
-        targetReps = 10,
-        targetWeightKg = kg70,
-        restSeconds = 120,
-    )
-
-    private fun session(sets: List<SetLog>, targetSets: Int, secondLift: Boolean = false) = WorkoutSession(
-        id = "s1",
-        routineId = null,
-        routineName = "Lower B",
-        date = 1L,
-        notes = "",
-        durationMinutes = 0,
-        startedAt = 1L,
-        finishedAt = null,
-        exercises = if (secondLift) listOf(lift(targetSets), lift(targetSets = 3, id = "leg-curl", name = "Leg Curl")) else listOf(lift(targetSets)),
-        sets = sets,
-    )
-
-    private fun set(number: Int, weightKg: Double, reps: Int, rpe: Int? = null) = SetLog(
-        id = "set-$number",
-        sessionId = "s1",
-        exerciseId = "leg-ext",
-        exerciseName = "Leg Extension",
-        setNumber = number,
-        weightKg = weightKg,
-        reps = reps,
-        rpe = rpe,
-        isWarmup = false,
-        completedAt = number.toLong(),
-    )
 }

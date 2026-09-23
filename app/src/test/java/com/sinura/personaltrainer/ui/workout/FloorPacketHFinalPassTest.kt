@@ -29,23 +29,17 @@ import org.junit.Test
  * that stack at large text, a rest card without a pulse), H4 colour-independent words
  * (Saved / Editing / Current on the chips, Applied on the card, Last ten seconds, the
  * recommended RPE chip's spoken word).
+ *
+ * The numerals' actions, the plates' words, the identity's one sentence and the chips'
+ * spoken states are rendered now (WeightRepsEditorRenderTest, ExerciseHeaderRenderTest,
+ * SetHistoryStripRenderTest): W1a changes those lines, and a rendered check says what a
+ * TalkBack user actually hears.
  */
 class FloorPacketHFinalPassTest {
     @Test
     fun heroNumeralsExposeDecreaseIncreaseAndTypeActions() {
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("CustomAccessibilityAction(decrementSpoken)"))
-        assertTrue(editor.contains("CustomAccessibilityAction(incrementSpoken)"))
-        assertTrue(editor.contains("CustomAccessibilityAction(typeLabel)"))
-        assertTrue(editor.contains("decrementSpoken = \"Decrease \$weightField by \$stepShown \${unit.suffix}\""))
-        assertTrue(editor.contains("incrementSpoken = \"Increase \$weightField by \$stepShown \${unit.suffix}\""))
-        assertTrue(editor.contains("decrementSpoken = \"Decrease reps by 1\""))
-        assertTrue(editor.contains("incrementSpoken = \"Increase reps by 1\""))
-        assertTrue(editor.contains("typeLabel = \"Type a rep count\""))
-        // The round plates say the same words, so a sighted tap and a TalkBack action agree.
-        assertTrue(editor.contains("RoundPlate(label = \"−\", spoken = decrementSpoken"))
-        assertTrue(editor.contains("RoundPlate(label = \"+\", spoken = incrementSpoken"))
-        assertTrue(editor.contains("modifier = Modifier.semantics { contentDescription = spoken }"))
+        // The floor's numerals and plates are rendered in WeightRepsEditorRenderTest: each
+        // numeral offers Decrease / Increase / Type, and each plate says the same words.
         // The history edit sheet's panel keeps the same three actions.
         val panel = readOwned("ui/components/SetEntryPanel.kt")
         assertTrue(panel.contains("CustomAccessibilityAction(\"Decrease \$label\")"))
@@ -65,9 +59,8 @@ class FloorPacketHFinalPassTest {
                 WeightMeaning.ASSISTANCE.fieldLabel,
             ).size == 3,
         )
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("SetCopy.weightEntryHero(meaning, weightKg, unit)") && editor.contains("unitLabel = weightHero.unitSuffix"))
-        assertTrue(editor.contains("val showWeight = meaning != WeightMeaning.NONE"))
+        // What each weight well says, and that a bodyweight lift has none, is rendered in
+        // WeightRepsEditorRenderTest and WorkoutFloorComponentsTest.
     }
 
     @Test
@@ -124,11 +117,8 @@ class FloorPacketHFinalPassTest {
     fun liftPicturesStayDecorativeInsideTheNamedIdentity() {
         val thumb = readOwned("ui/components/ExerciseThumb.kt")
         assertTrue(thumb.contains("clearAndSetSemantics { }"))
-        val header = readOwned("ui/workout/ExerciseHeader.kt")
-        assertTrue(header.contains(".semantics(mergeDescendants = true) {"))
-        assertTrue(header.contains("contentDescription = \"\$spoken. \$setContext. \${CurrentLiftCopy.SWITCH}\""))
-        assertTrue(header.contains("selected = true"))
-        assertTrue(header.contains("showBadge = false"))
+        // Inside the identity the still adds no words to its one merged sentence:
+        // ExerciseHeaderRenderTest.
         // The session progress bar is decorative too: the progress line says it in words.
         val chrome = readOwned("ui/workout/WorkoutHeader.kt")
         assertTrue(chrome.contains(".testTag(WorkoutTestTags.PROGRESS_BAR)"))
@@ -154,9 +144,7 @@ class FloorPacketHFinalPassTest {
         assertEquals("Remove lift", CurrentLiftCopy.REMOVE)
         assertEquals("Delete its sets first", CurrentLiftCopy.EDIT_BLOCKED_REASON)
         assertEquals("Switch exercise", CurrentLiftCopy.SWITCH)
-        val strip = readOwned("ui/workout/SetHistoryStrip.kt")
-        assertTrue("the chip menu names the chip's own ordinal", strip.contains("SetRowCopy.actionsFor(ordinal)"))
-        assertTrue(strip.contains("contentDescription = \"\$ordinal, \$spokenSet, \$state\""))
+        // Each chip's spoken sentence and the menu it names: SetHistoryStripRenderTest.
         val menu = readOwned("ui/workout/WorkoutOverflowMenu.kt")
         assertTrue(menu.contains("contentDescription = \"Workout options\""))
     }
@@ -167,18 +155,8 @@ class FloorPacketHFinalPassTest {
         assertTrue(FloorCompactChrome.heroNumeralsSideBySide())
         assertFalse(LogLoopScale.stackEntryWells(1f))
         assertTrue(LogLoopScale.stackEntryWells(LogLoopScale.STACK_WELLS_FROM))
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)"))
-        assertTrue(editor.contains("if (showWeight && !stack) {"))
-        val layout = editor.substring(editor.indexOf("if (showWeight && !stack) {"))
-        assertTrue(layout.substring(0, layout.indexOf("} else {")).contains("Row("))
-        assertTrue(layout.substring(layout.indexOf("} else {")).contains("Column("))
-        // Weight, reps and hold time are the same hero numeral, sized from a fixed sample so
-        // the plates never move as digits come and go.
-        assertEquals(3, editor.replace("private fun HeroNumeral(", "").split("HeroNumeral(").size - 1)
-        assertTrue(editor.contains("sample = weightHero.layoutSample"))
-        assertTrue(editor.contains("sample = REPS_SAMPLE"))
-        assertTrue(editor.contains("sample = TIME_SAMPLE"))
+        // Side by side until large text, and plates placed from a fixed sample so they never
+        // move as digits come and go: both rendered in WeightRepsEditorRenderTest.
     }
 
     @Test
@@ -220,14 +198,8 @@ class FloorPacketHFinalPassTest {
         assertEquals("W", SetOrdinalCopy.WARMUP_MARK)
         assertEquals("Personal record", PersonalRecordCopy.BANNER)
         assertEquals("Back to the bar", TalkBackPolicy.REST_FINISHED_KICKER)
-        // Every chip state is a word beside its Volt ring, and TalkBack hears it.
-        val strip = readOwned("ui/workout/SetHistoryStrip.kt")
-        assertTrue(strip.contains("private const val CURRENT = \"Current\""))
-        assertTrue(strip.contains("private const val EDITING = \"Editing\""))
-        assertTrue(strip.contains("private const val SAVED = \"Saved\""))
-        assertTrue(strip.contains("editing -> \"editing\""))
-        assertTrue(strip.contains("saved -> \"saved\""))
-        assertTrue(strip.contains("else -> \"logged\""))
+        // Every chip state is a word beside its Volt ring, and TalkBack hears it: the chips'
+        // Current / Editing / Saved captions and spoken states are in SetHistoryStripRenderTest.
         assertTrue(readOwned("ui/workout/NextSetRecommendation.kt").contains("\"Applied\""))
         val table = readOwned("ui/components/SetTable.kt")
         assertTrue(table.contains("Latest"))

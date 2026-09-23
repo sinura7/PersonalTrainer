@@ -145,10 +145,8 @@ class FloorPacket2ToolbarTest {
         assertFalse(editor.contains("workout-hold-clock"))
         assertFalse(editor.contains("SetWorkDock("))
         assertFalse(editor.contains("FloorInstrumentBar("))
-        assertTrue(
-            "the hold numeral is read-only while the dock clock runs",
-            editor.contains("enabled = enabled && !holdRunning"),
-        )
+        // The hold numeral is read-only while the dock clock runs:
+        // WeightRepsEditorRenderTest.theHoldNumeralIsReadOnlyWhileTheDockClockRuns.
         val identity = readOwned("ui/workout/ExerciseHeader.kt")
         assertFalse(identity.contains("HOLD_CLOCK"))
         assertFalse(identity.contains("SetWorkDock("))

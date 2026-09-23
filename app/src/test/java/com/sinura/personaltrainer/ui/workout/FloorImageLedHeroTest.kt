@@ -21,6 +21,11 @@ import org.junit.Test
  * Warm-up under it, stats under the identity, entry before effort before the
  * recommendation, and one companion above commit. Rendered geometry is
  * exercised by WorkoutEntryLayoutInstrumentedTest.
+ *
+ * What the identity, the set-type toggle, the entry order and the dock's companion do is
+ * held by rendered tests now (ExerciseHeaderRenderTest, WorkoutDockRenderTest,
+ * FloorScreenWiringRenderTest), because W1a rebuilds those lines on purpose. What stays
+ * here is the static policy around them: bans, tokens, and surfaces W1a does not touch.
  */
 class FloorImageLedHeroTest {
     @Test
@@ -30,23 +35,10 @@ class FloorImageLedHeroTest {
         assertEquals(24, Metrics.equipmentGlyph.value.toInt())
         assertTrue(FloorCompactChrome.imageLedHero())
         assertTrue(FloorCompactChrome.oneCurrentLiftOnFloor())
+        // The 88 dp still, its 64 dp fallback at large text, and the equipment kicker are
+        // rendered in ExerciseHeaderRenderTest.
         val hero = readOwned("ui/workout/ExerciseHeader.kt")
         assertTrue(hero.contains("fun ExerciseHeader("))
-        assertTrue(hero.contains("Metrics.exerciseHeroImage"))
-        assertTrue(hero.contains("Metrics.space2"))
-        assertTrue(
-            "long names and font 1.6 fall back to the 64 dp still",
-            hero.contains("val stacked = density.fontScale >= 1.6f || titleLines > 2"),
-        )
-        assertTrue(hero.contains("Metrics.workoutIdentityImage"))
-        assertTrue(hero.contains("Metrics.space1"))
-        assertTrue(hero.contains("showBadge = false"))
-        assertTrue(
-            "equipment is the kicker, not a badge over the still",
-            hero.contains("Kicker(text = equipment, color = TextTertiary, asHeading = false)"),
-        )
-        assertTrue(hero.contains("CurrentLiftCopy.secondaryLine(lift.exercise.equipment.label, meaning)"))
-        assertTrue(hero.contains("style = InstrumentType.heroTitle"))
         assertFalse(hero.contains("EquipmentGlyphIcon("))
         assertFalse(hero.contains("VoltDim"))
         assertFalse(hero.contains("emphasisBorder"))
@@ -61,44 +53,11 @@ class FloorImageLedHeroTest {
 
     @Test
     fun setTypePrecedesEntryAndRecommendationsFollowEffort() {
-        val hero = readOwned("ui/workout/ExerciseHeader.kt")
-        val context = hero.indexOf("WorkoutTestTags.SET_CONTEXT")
-        val toggleCall = hero.indexOf("SetTypeToggle(")
-        val toggleFn = hero.indexOf("fun SetTypeToggle(")
-        assertTrue(context in 0 until toggleCall)
-        assertTrue(toggleCall in 0 until toggleFn)
-        val toggle = hero.substring(toggleFn)
-        val working = toggle.indexOf("WorkoutTestTags.WORKING_CHIP")
-        val warmup = toggle.indexOf("WorkoutTestTags.WARMUP_CHIP")
-        assertTrue(working in 0 until warmup)
-        assertTrue(toggle.contains(".selectableGroup()"))
-        assertTrue(toggle.contains(".testTag(WorkoutTestTags.SET_TYPE)"))
-        assertTrue(toggle.contains("role = Role.RadioButton"))
-        assertTrue(toggle.contains("\"Working set, selected\""))
-        assertTrue(toggle.contains("\"Warm-up set, not selected\""))
-        val chip = readOwned("ui/components/InstrumentChip.kt")
-        assertTrue(chip.contains(".heightIn(min = Metrics.touchMin)"))
-        assertTrue(chip.contains("Modifier.selectable("))
+        // The toggle's radio semantics sit under the identity (ExerciseHeaderRenderTest),
+        // and the loop's order, receipt chip and saved-sets sheet are tapped through the
+        // screen in FloorScreenWiringRenderTest.
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        val header = screen.indexOf("item(key = \"exercise-header\")")
-        val stats = screen.indexOf("item(key = \"stats\")")
-        val entry = screen.indexOf("item(key = \"entry\")")
-        val rpe = screen.indexOf("item(key = \"rpe\")")
-        val nextSet = screen.indexOf("item(key = \"next-set\")")
-        val history = screen.indexOf("item(key = \"set-history\")")
-        assertTrue(header in 0 until stats)
-        assertTrue(stats in 0 until entry)
-        assertTrue(entry in 0 until rpe)
-        assertTrue(rpe in 0 until nextSet)
-        assertTrue(nextSet in 0 until history)
-        assertTrue(screen.indexOf("WeightRepsEditor(") in entry until rpe)
-        assertTrue(screen.indexOf("WarmupRampRow(") in entry until rpe)
-        assertTrue(screen.indexOf("RpeSelector(") in rpe until nextSet)
-        assertTrue(screen.indexOf("NextSetRecommendation(") in nextSet until history)
-        assertTrue(screen.indexOf("SetHistoryStrip(") > history)
         assertTrue(screen.contains("val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }"))
-        assertTrue(screen.contains("receiptSetId = logReceipt?.setId"))
-        assertTrue(screen.contains("WorkoutSetsSheet("))
         assertFalse(screen.contains("LatestWorkoutSet("))
         assertFalse(screen.contains("workout-latest-saved"))
         assertTrue(FloorCompactChrome.progressionKickerInline())
@@ -126,17 +85,10 @@ class FloorImageLedHeroTest {
         assertTrue(FloorCompactChrome.restIsDockCard())
         val dock = readOwned("ui/workout/WorkoutDock.kt")
         assertTrue(dock.contains("PinnedDock("))
-        assertTrue(dock.contains(".heightIn(min = Metrics.logTimerRow)"))
-        assertTrue(dock.contains(".testTag(WorkoutTestTags.TIMER_ROW)"))
         assertFalse(dock.contains("CONTEXT_RAIL"))
         assertFalse(dock.contains("logContextRail"))
-        assertTrue(dock.contains("GymUndoHost("))
-        assertTrue(dock.contains("WorkoutTestTags.ERROR_DETAILS"))
-        assertTrue(dock.contains("WorkoutTestTags.CANCEL_EDIT"))
-        assertTrue(dock.contains("WorkoutTestTags.COMPANION_CLOCK"))
         assertFalse(dock.contains("GymReceiptBanner("))
         assertFalse(dock.contains("LOG_RECEIPT"))
-        assertTrue(dock.contains("Add another set"))
         assertTrue(dock.contains("nextAct -> WorkoutTestTags.NEXT"))
         assertTrue(dock.contains("finishAct -> WorkoutTestTags.DOCK_FINISH"))
         assertTrue(dock.contains("else -> WorkoutTestTags.LOG_SET"))
@@ -151,19 +103,7 @@ class FloorImageLedHeroTest {
         assertEquals(1, Regex("PrimaryGymButton\\(").findAll(dock).count())
         // The clock stays reachable in every companion: beside error / undo / Cancel edit,
         // beside Add another set, and as the surface itself when nothing else needs the room.
-        val prelude = dock.substring(dock.indexOf("prelude = {"), dock.indexOf("volt = {"))
-        val context = prelude.substring(
-            prelude.indexOf("contextVisible -> FlowRow("),
-            prelude.indexOf("completeDock -> Row("),
-        )
-        assertTrue(context.contains("if (timer.show) clockButton()"))
-        val complete = prelude.substring(
-            prelude.indexOf("completeDock -> Row("),
-            prelude.indexOf("timer.show && timer.hideIdleRest && !timedActive ->"),
-        )
-        assertTrue(complete.contains("WorkoutTestTags.ANOTHER_SET"))
-        assertTrue(complete.contains("if (timer.show) clockButton()"))
-        assertTrue(prelude.contains("else -> timerSurface()"))
+        // WorkoutDockRenderTest composes each of those companions and finds the clock.
         assertFalse(dock.contains("showTimer && !completeDock"))
         val rest = readOwned("ui/workout/RestTimerCard.kt")
         assertTrue(rest.contains(".heightIn(min = Metrics.commit)"))
@@ -220,16 +160,11 @@ class FloorImageLedHeroTest {
         assertTrue(spoken.contains("Lift 3 of 7"))
         assertTrue(spoken.contains("1 of 3 done"))
         assertTrue(spoken.contains("Dumbbell"))
+        // What the identity and Details announce, and what a tap on each does, is rendered in
+        // ExerciseHeaderRenderTest; W1a changes the identity's sentence on purpose.
         val hero = readOwned("ui/workout/ExerciseHeader.kt")
-        assertTrue(hero.contains("val spoken = CurrentLiftCopy.cardSpoken("))
         assertFalse("session telemetry belongs to Session summary", hero.contains("heroSpoken("))
         assertFalse(hero.contains("telemetry"))
-        assertTrue(hero.contains("contentDescription = \"\$spoken. \$setContext. \${CurrentLiftCopy.SWITCH}\""))
-        assertTrue(hero.contains("selected = true"))
-        assertTrue(hero.contains("onClickLabel = CurrentLiftCopy.SWITCH, onClick = onOpenSwitcher"))
-        assertTrue(hero.contains(".testTag(WorkoutTestTags.liftCard(lift.exercise.id))"))
-        assertTrue(hero.contains("spoken = \"Exercise details\""))
-        assertTrue(hero.contains("modifier = Modifier.testTag(WorkoutTestTags.DETAILS)"))
         assertTrue(FloorCompactChrome.headerShowsSessionProgress())
         assertFalse(FloorCompactChrome.headerShowsMinuteTelemetryOnly())
         val chrome = readOwned("ui/workout/WorkoutHeader.kt")
@@ -275,13 +210,8 @@ class FloorImageLedHeroTest {
         assertEquals(SetCopy.BW_SHORT, bwHero.value)
         assertNull(bwHero.unitSuffix)
         assertFalse("${bwHero.value} ${bwHero.unitSuffix}".contains("0 lb"))
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(editor.contains("val weightHero = SetCopy.weightEntryHero(meaning, weightKg, unit)"))
-        assertTrue(editor.contains("spoken = weightHero.spoken"))
-        assertTrue("a bodyweight lift has no weight column", editor.contains("val showWeight = meaning != WeightMeaning.NONE"))
-        assertTrue(editor.contains("\" · Suggested\""))
-        assertTrue(editor.contains("rememberTextMeasurer"))
-        assertTrue(editor.contains("FlowRow("))
+        // The editor's spoken zero, bodyweight column and warm-up ramp are rendered in
+        // WeightRepsEditorRenderTest and WorkoutFloorComponentsTest.
         val next = readOwned("ui/workout/NextSetRecommendation.kt")
         assertTrue(next.contains("private const val NEXT_SET_KICKER = \"Next set\""))
         assertTrue(next.contains("if (!SetMicroRecCopy.visibleOnEntry(rec)) return"))
