@@ -68,8 +68,8 @@ object CurrentLiftCopy {
         equipmentLabel: String,
         meaning: WeightMeaning,
         /**
-         * When false, working-set progress is omitted because the floor identity
-         * speaks [set position][SetOrdinalCopy.draftLine] on the next phrase.
+         * When false, working-set progress is omitted, for a caller that states
+         * [set position][SetOrdinalCopy.draftLine] on its own line.
          */
         includeWorkingProgress: Boolean = true,
     ): String = buildString {

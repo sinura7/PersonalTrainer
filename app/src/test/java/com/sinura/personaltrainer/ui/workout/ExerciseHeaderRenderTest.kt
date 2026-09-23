@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.workout
 import android.app.Application
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
@@ -131,6 +132,13 @@ class ExerciseHeaderRenderTest {
         assertEquals(CurrentLiftCopy.OPEN_DETAILS, picture.clickLabel())
         // The picture says only where it goes: no text of its own to read twice.
         assertTrue(picture.mergedTexts().isEmpty())
+        // Drawn first, read last: the identity row is one reading group, and the picture is
+        // placed after the lift's words, its set line and the switch within it.
+        assertEquals(true, identity().fetchSemanticsNode().config.getOrNull(SemanticsProperties.IsTraversalGroup))
+        assertEquals(1f, picture.fetchSemanticsNode().config.getOrNull(SemanticsProperties.TraversalIndex))
+        listOf(words(), compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT), compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH)).forEach {
+            assertEquals(0f, it.fetchSemanticsNode().config.getOrElse(SemanticsProperties.TraversalIndex) { 0f })
+        }
         picture.performClick()
         assertEquals(1, details)
         assertEquals("a tap on the picture is not a tap on the switch", 0, switched)

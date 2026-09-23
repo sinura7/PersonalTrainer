@@ -1105,6 +1105,8 @@ class ActiveWorkoutViewModelTest {
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
+        // The row lands mid-save; effort typed before the save releases is refused, by design.
+        vm.awaitEntryUnlocked()
         vm.skipRest()
         vm.setRpe(6)
         withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it != null && it.showApply } }

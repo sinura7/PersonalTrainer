@@ -9,7 +9,10 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -143,6 +146,8 @@ class SetHistoryStripRenderTest {
         showStrip(current = CurrentSetMark(mark = "3", label = "Set 3 of 3"))
         val current = compose.onNodeWithTag(WorkoutTestTags.CURRENT_SET).assertIsDisplayed().assertHeightIsAtLeast(Metrics.touchMin)
         assertEquals(listOf("Current set, Set 3 of 3"), current.spokenDescriptions())
+        // Said once: the visible "Current" and "Set 3 of 3" are not read after the sentence.
+        assertTrue("was ${current.mergedTexts()}", current.mergedTexts().isEmpty())
         compose.onNodeWithText("Current", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("Set 3 of 3", useUnmergedTree = true).assertIsDisplayed()
     }
@@ -184,6 +189,9 @@ class SetHistoryStripRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
         compose.onNodeWithText("Add set", substring = true, useUnmergedTree = true).assertDoesNotExist()
         compose.onAllNodes(hasContentDescription("Add", substring = true), useUnmergedTree = true).assertCountEquals(0)
+        // Whatever it might be called: the only things to press are the saved chips and Edit.
+        compose.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag(WorkoutTestTags.SET_HISTORY)))
+            .assertCountEquals(sets.size + 1)
     }
 
     @Test

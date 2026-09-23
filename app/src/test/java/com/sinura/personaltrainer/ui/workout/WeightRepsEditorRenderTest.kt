@@ -119,6 +119,10 @@ class WeightRepsEditorRenderTest {
         val reps = compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER)
         assertEquals(listOf("Decrease weight by $step lb", "Increase weight by $step lb", "Type a weight"), weight.customActionLabels())
         assertEquals(listOf("Decrease reps by 1", "Increase reps by 1", "Type a rep count"), reps.customActionLabels())
+        // Said once: each numeral is its spoken value; the digits and unit under it are not
+        // read after it (W1a).
+        assertTrue("was ${weight.mergedTexts()}", weight.mergedTexts().isEmpty())
+        assertTrue("was ${reps.mergedTexts()}", reps.mergedTexts().isEmpty())
         compose.runCustomAction(reps, "Increase reps by 1")
         compose.runCustomAction(reps, "Decrease reps by 1")
         assertEquals(listOf(FloorStepper.nextReps(10, 1), FloorStepper.nextReps(10, -1)), repsSeen)

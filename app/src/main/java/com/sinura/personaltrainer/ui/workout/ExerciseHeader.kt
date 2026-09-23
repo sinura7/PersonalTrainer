@@ -25,7 +25,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -95,7 +97,9 @@ internal fun ExerciseHeader(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag(WorkoutTestTags.liftCard(lift.exercise.id)),
+                    .testTag(WorkoutTestTags.liftCard(lift.exercise.id))
+                    // One reading group, so the picture's place in it below is local to the row.
+                    .semantics { isTraversalGroup = true },
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
                 verticalAlignment = Alignment.Top,
             ) {
@@ -215,7 +219,12 @@ private fun DetailsStill(
             .clip(RoundedCornerShape(Radius.xs))
             .clickable(enabled = enabled, role = Role.Button, onClickLabel = CurrentLiftCopy.OPEN_DETAILS, onClick = onDetails)
             .testTag(WorkoutTestTags.DETAILS)
-            .clearAndSetSemantics { contentDescription = CurrentLiftCopy.DETAILS_SPOKEN },
+            .clearAndSetSemantics {
+                contentDescription = CurrentLiftCopy.DETAILS_SPOKEN
+                // Drawn first, read last: TalkBack says what the lift is, where its sets
+                // stand and the switch before the way out to the lift's own screen.
+                traversalIndex = 1f
+            },
     ) {
         ExerciseThumb(
             exercise = lift.exercise,
