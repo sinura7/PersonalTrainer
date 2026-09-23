@@ -68,7 +68,7 @@ evidence is the JVM render set ([ADR-032](architecture/ADR-032-jvm-evidence-lane
 | 1 | S0a | Sync pause switch; Delete account hidden; honest Account copy; R8 keep rule | V | Done — #380, drop 99 |
 | 2 | X2 | a) JVM migration tests 5→6→7, debug-asset schemas, guard · b) pre-migration `temper.db` copy | Q | X2a done — #382; X2b before the next schema bump |
 | 3 | S0b | Pull writes in place; refused custom-lift delete retried | Q | Done — #383 |
-| 4 | Q1 | First-launch chooser is a real gate; permission walk waits; D01 date-aware headline and Back to today | V | Done — #384 |
+| 4 | Q1 | First-launch chooser is a real gate; permission walk waits; D01 date-aware headline and Back to today | V | Done — #384, drop 100 (S0b and X2a rode along) |
 | 5 | X1 | Docs truth pass; this table; ADR-031 (sync lane), ADR-032 (evidence lanes) | Q | Done |
 | 6 | T1 | Workout test triage: source-string assertions that pin removable code become rendered/semantic checks | Q | Next |
 | 7 | W1a | Visible "Lift n of N" switch; numeric-entry cue; one Add set; 48 dp evidence chip; no double announcements | V | Pending |
