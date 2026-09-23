@@ -1,6 +1,7 @@
 # ADR-030: Live workout clarity — set copy and prepare-phase stats
 
 **Status:** Accepted (2026-09-22)  
+**Amended:** 23 September 2026 — Consequences only: the prepare-phase Last cell keeps the full row's height at side-by-side sizes (packet W1c). Decisions 1–6 are unchanged.  
 **Scope:** Active strength floor only. Rest dock and idle rest card behavior are unchanged.
 
 ## Context
@@ -25,3 +26,4 @@ On the gym floor, exercise identity showed two competing set lines (for example 
 
 - Receipt and chip ordinals use the same [SetOrdinalCopy] wording.
 - Accessibility matrix notes for active strength reflect the single identity line and prepare-phase stats row.
+- The lone prepare-phase Last cell reserves the full row's two-line label at side-by-side sizes (font below 1.6), so saving the first working set of a lift does not move the entry ([FRONTEND_REDESIGN.md](../FRONTEND_REDESIGN.md), "Ordinary logging retains entry position"). Two cases still move it, and both are packet W1d's, on the owner's decisions of 23 September 2026: a Last, Best or Volume value that wraps in a third-width cell (values will shrink to fit one line), and stacked large text (font 1.6 and above), where Best and Volume arrive above the entry and can push it below the fold (the floor will show Last alone at those sizes, with Best and Volume in Details). *Amended 23 September 2026 (packet W1c).*

@@ -76,20 +76,11 @@ internal fun ExerciseStatsRow(
         detail = FloorStatCopy.VOLUME_DETAIL,
         spoken = volumeSpoken,
     )
-    val prepareOnlyLast = !visibility.showBest && !visibility.showVolume
-    if (prepareOnlyLast) {
-        StatCell(
-            stat = stats.lastSet,
-            tag = WorkoutTestTags.STAT_LAST,
-            modifier = modifier
-                .fillMaxWidth()
-                .testTag(WorkoutTestTags.STATS_ROW),
-            alignAcrossCells = false,
-            onClick = onLast,
-        )
-        return
-    }
-    if (LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)) {
+    // Until the first working set of a lift is logged only the Last cell shows (ADR-030), and it
+    // shows in the same Row or Column as the full row. Side by side it keeps the full row's two
+    // label lines, so Best and Volume arriving with that set do not move the entry.
+    val stacked = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
+    if (stacked) {
         // Large text: three full-width rows instead of three narrow columns.
         Column(
             modifier = modifier
@@ -134,9 +125,12 @@ private fun StatCell(
     /**
      * Hold the label at two lines so the three numbers share a baseline.
      *
-     * Only the side-by-side row needs it. Stacked, each cell is a full-width row of its own
-     * with nothing to line up against, and reserving the second line would leave a blank one
-     * above every number at exactly the text size that can least afford it.
+     * Only side-by-side sizes need it. There the Last cell reserves it even while it stands
+     * alone in the Row before the first working set, so the row is already its full height and
+     * that set does not move the entry (FRONTEND_REDESIGN.md, "Ordinary logging retains entry
+     * position"). Stacked, each cell is a full-width row of its own with nothing to line up
+     * against, and reserving the second line would leave a blank one above every number at
+     * exactly the text size that can least afford it.
      */
     alignAcrossCells: Boolean,
     onClick: (() -> Unit)? = null,
