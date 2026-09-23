@@ -73,35 +73,60 @@ object LiftCart {
     fun addsOnTap(committed: List<String>, pending: List<PendingPick>, id: String): Boolean =
         id.trim() !in picked(committed, pending)
 
-    /** Records a tap, replacing whatever intent was held for the same lift. */
-    fun record(pending: List<PendingPick>, id: String, adding: Boolean): List<PendingPick> {
+    /**
+     * Records a tap, replacing whatever intent was held for the same lift. [tap] names this
+     * tap, so its write can later mark exactly it as landed and not a newer tap that has
+     * replaced it.
+     */
+    fun record(pending: List<PendingPick>, id: String, adding: Boolean, tap: Long = 0L): List<PendingPick> {
         val trimmed = id.trim()
         if (trimmed.isEmpty()) return pending
-        return pending.filterNot { it.id == trimmed } + PendingPick(trimmed, adding)
+        return pending.filterNot { it.id == trimmed } + PendingPick(trimmed, adding, tap)
     }
 
     /**
-     * Drops the taps the store now agrees with, and only those.
+     * Marks tap [tap] on [id] as written. A newer tap on the same lift has replaced it and is
+     * still waiting for its own write, so it is left as it is.
+     */
+    fun land(pending: List<PendingPick>, id: String, tap: Long): List<PendingPick> {
+        val trimmed = id.trim()
+        return pending.map { if (it.id == trimmed && it.tap == tap) it.copy(landed = true) else it }
+    }
+
+    /**
+     * Drops the taps whose write has landed and that [committed] now agrees with, and only
+     * those.
      *
-     * A tap whose write has landed is indistinguishable from one that never happened, so
-     * holding it any longer would be holding a second opinion about the same lift. A tap
-     * still in flight — or one flipped by a second tap while the first was writing — does
-     * not match, and stays.
+     * A landed tap the screen agrees with is indistinguishable from one that never happened,
+     * so holding it any longer would be holding a second opinion about the same lift. A tap
+     * still waiting for its write stays even when [committed] happens to agree already: a
+     * second tap on a lift whose add is still writing says "take it out", the screen says
+     * "not there" until the add lands, and dropping it then would show the lift chosen again
+     * once the add arrives.
      */
     fun settle(committed: List<String>, pending: List<PendingPick>): List<PendingPick> {
         val stored = sanitize(committed).toSet()
-        return pending.filter { (it.id in stored) != it.adding }
+        return pending.filter { !it.landed || (it.id in stored) != it.adding }
     }
 
-    /** Forgets one lift's tap: the write failed, so the store's answer is the only one. */
-    fun forget(pending: List<PendingPick>, id: String): List<PendingPick> =
-        pending.filterNot { it.id == id.trim() }
+    /**
+     * Forgets one lift's tap: the write failed, so the store's answer is the only one. With
+     * [tap], only that tap; a newer tap on the same lift keeps its own intent.
+     */
+    fun forget(pending: List<PendingPick>, id: String, tap: Long? = null): List<PendingPick> =
+        pending.filterNot { it.id == id.trim() && (tap == null || it.tap == tap) }
 }
 
 /**
  * One tap that has been made but not yet stored.
  *
  * [adding] is what the tap meant, not what is stored: false is a lift being taken back
- * out of the session, which is the same list and the same wait as putting one in.
+ * out of the session, which is the same list and the same wait as putting one in. [tap]
+ * tells two taps on the same lift apart, and [landed] says this tap's own write is done.
  */
-data class PendingPick(val id: String, val adding: Boolean)
+data class PendingPick(
+    val id: String,
+    val adding: Boolean,
+    val tap: Long = 0L,
+    val landed: Boolean = false,
+)

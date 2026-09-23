@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.domain.WorkoutPasteCopy
 import com.sinura.personaltrainer.domain.WorkoutPastePlan
 import com.sinura.personaltrainer.domain.WorkoutPasteRest
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -160,7 +161,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val error = ErrorSlot()
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val swapItemId = MutableStateFlow<String?>(null)
+    // Picks are written from Room's threads and tapped on the main thread, so every change
+    // goes through update: a plain read-then-write could lose a tap made in between.
     private val pendingPicks = MutableStateFlow<List<PendingPick>>(emptyList())
+
+    /** Numbers each tap, so a write marks its own tap landed and never a newer one. */
+    private val taps = AtomicLong()
     private val exitState = MutableStateFlow(ExitState())
     private val pasteState = MutableStateFlow(PasteUi())
 
@@ -1036,7 +1042,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      */
     private fun commitPick(exercise: Exercise, adding: Boolean) {
         if (leaving) return
-        pendingPicks.value = LiftCart.record(pendingPicks.value, exercise.id, adding)
+        val tap = taps.incrementAndGet()
+        pendingPicks.update { LiftCart.record(pending = it, id = exercise.id, adding = adding, tap = tap) }
         // The mark belongs to the TAP, so it is taken here — before `launchWrite`, and before
         // `pickWrites.withLock` can park this tap behind another one. Taken inside `writePick`
         // it was a mark on the moment the lock was won, which is a different moment entirely:
@@ -1046,13 +1053,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         // ordinary case, not the exotic one. A refusal raised while a tap waited its turn is
         // newer than the tap and must survive it.
         val started = error.mark()
-        launchWrite { pickWrites.withLock { writePick(exercise, adding, started) } }
+        launchWrite { pickWrites.withLock { writePick(exercise, adding, started, tap) } }
     }
 
-    private suspend fun writePick(exercise: Exercise, adding: Boolean, started: Long) {
+    private suspend fun writePick(exercise: Exercise, adding: Boolean, started: Long, tap: Long) {
         val source = if (adding) ERR_ADD_LIFT else ERR_REMOVE_LIFT
         val id = ensureRoutineId() ?: run {
-            pendingPicks.value = LiftCart.forget(pendingPicks.value, exercise.id)
+            pendingPicks.update { LiftCart.forget(pending = it, id = exercise.id, tap = tap) }
             return
         }
         try {
@@ -1083,12 +1090,15 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // agreed with writes nothing, so there may be no emission to settle it, and a
             // pick left standing would keep the editor looking busy forever.
             //
-            // Settle against the routine the screen has, not a fresh read of the store. The
-            // next tap decides add-or-remove from that same routine; settled from the store,
-            // a pick whose write had landed but not yet reached the screen was neither
-            // pending nor visible, so a second tap in that window re-added the lift (a no-op)
-            // instead of taking it back out. A write that changed the store always emits,
-            // and that emission settles whatever this could not.
+            // This tap's write is done: mark it, then settle against the routine the screen
+            // has, not a fresh read of the store. The next tap decides add-or-remove from
+            // that same routine; settled from the store, a pick whose write had landed but
+            // not yet reached the screen was neither pending nor visible, so a second tap in
+            // that window re-added the lift (a no-op) instead of taking it back out. A write
+            // that changed the store emits, and that emission settles whatever this could
+            // not. Only landed taps settle, so a newer tap still queued behind this one keeps
+            // its intent on screen.
+            pendingPicks.update { LiftCart.land(pending = it, id = exercise.id, tap = tap) }
             settlePicks(committedIds(routineFlow.value))
             error.clearFrom(source = source, before = started)
             error.clearFrom(source = ERR_SAVE, before = started)
@@ -1096,7 +1106,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "writePick failed", thrown)
-            pendingPicks.value = LiftCart.forget(pendingPicks.value, exercise.id)
+            pendingPicks.update { LiftCart.forget(pending = it, id = exercise.id, tap = tap) }
             error.fail(
                 source = source,
                 message = if (adding) {
@@ -1117,7 +1127,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         routine?.exercises.orEmpty().map { it.exercise.id }
 
     private fun settlePicks(committed: List<String>) {
-        pendingPicks.value = LiftCart.settle(committed, pendingPicks.value)
+        pendingPicks.update { LiftCart.settle(committed = committed, pending = it) }
     }
 
     fun onSearchQuery(value: String) {

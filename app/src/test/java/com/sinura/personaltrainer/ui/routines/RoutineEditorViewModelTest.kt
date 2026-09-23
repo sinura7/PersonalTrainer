@@ -579,9 +579,46 @@ class RoutineEditorViewModelTest {
         vm.togglePicked(squat)
         held.value = false
 
-        val saved = awaitRoutine { it.exercises.size == 1 }
+        // Wait for the answer, not for a size: while Row is mid-write the store briefly holds
+        // Squat alone, which is also one lift.
+        val saved = awaitRoutine { routine -> routine.exercises.map { it.exercise.id } == listOf(row.id) }
         assertEquals(listOf(row.id), saved.exercises.map { it.exercise.id })
         assertEquals(listOf(row.id), vm.awaitState { it.pickedIds == listOf(row.id) && !it.addingLifts }.pickedIds)
+    }
+
+    /**
+     * A second tap queued behind the first write on the same lift keeps its word on screen.
+     * The first write used to settle every pick the screen agreed with, including the
+     * second tap's "take it out" whose own write had not run: the screen had no Squat yet,
+     * so it agreed, the pick went, and when the add reached the screen Squat showed as
+     * chosen again against the lifter's last tap, until the removal landed.
+     */
+    @Test
+    fun aQueuedSecondTapIsNotShownUndoneWhenTheFirstWriteLands() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val held = MutableStateFlow(false)
+        val addGate = CompletableDeferred<Unit>()
+        val removeReached = CompletableDeferred<Unit>()
+        val removeGate = CompletableDeferred<Unit>()
+        val dao = QueuedTapDao(deps.database.routineDao(), held, addGate, removeReached, removeGate)
+        val vm = createViewModel("new", container = withRoutineDao(dao))
+        vm.awaitState { it.catalog.isNotEmpty() }
+        vm.setPickerVisible(true)
+
+        held.value = true
+        vm.togglePicked(squat)
+        vm.togglePicked(squat)
+        addGate.complete(Unit)
+        // The removal reaching the store means the add, and everything its write did after,
+        // is over. Then let the screen see the add while the removal is still writing.
+        withTimeout(TestWaits.FLOW_MS) { removeReached.await() }
+        held.value = false
+        val between = vm.awaitState { state -> state.routine?.exercises?.any { it.exercise.id == squat.id } == true }
+        assertTrue("the last tap said take it out, but the picker shows ${between.pickedIds}", squat.id !in between.pickedIds)
+
+        removeGate.complete(Unit)
+        awaitRoutine { it.exercises.isEmpty() }
+        assertTrue(vm.awaitState { it.pickedIds.isEmpty() && !it.addingLifts }.pickedIds.isEmpty())
     }
 
     @Test
@@ -1618,6 +1655,34 @@ class RoutineEditorViewModelTest {
         override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
             if (item.exerciseId == signalExerciseId) signal.complete(Unit)
             delegate.upsertRoutineExercise(item)
+        }
+    }
+
+    /**
+     * The routine's own flow held while [held] is true, the first lift write held at
+     * [addGate], and the removal held at [removeGate] after signalling [removeReached].
+     */
+    private class QueuedTapDao(
+        private val delegate: RoutineDao,
+        private val held: StateFlow<Boolean>,
+        private val addGate: CompletableDeferred<Unit>,
+        private val removeReached: CompletableDeferred<Unit>,
+        private val removeGate: CompletableDeferred<Unit>,
+    ) : RoutineDao by delegate {
+        override fun observeById(id: String): Flow<RoutineWithExercises?> =
+            combine(delegate.observeById(id), held) { routine, hold -> routine to hold }
+                .filter { (_, hold) -> !hold }
+                .map { (routine, _) -> routine }
+
+        override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
+            addGate.await()
+            delegate.upsertRoutineExercise(item)
+        }
+
+        override suspend fun deleteRoutineExercise(id: String) {
+            removeReached.complete(Unit)
+            removeGate.await()
+            delegate.deleteRoutineExercise(id)
         }
     }
 

@@ -56,16 +56,38 @@ class LiftCartTest {
     }
 
     @Test
-    fun settleDropsOnlyTheTapsTheStoreAgreesWith() {
+    fun settleDropsOnlyTheLandedTapsTheStoreAgreesWith() {
         val pending = listOf(
-            PendingPick(id = "squat", adding = true),
-            PendingPick(id = "row", adding = false),
-            PendingPick(id = "bench", adding = true),
+            PendingPick(id = "squat", adding = true, landed = true),
+            PendingPick(id = "row", adding = false, landed = true),
+            PendingPick(id = "bench", adding = true, landed = true),
         )
         val settled = LiftCart.settle(listOf("squat", "row"), pending)
         assertEquals(listOf("row", "bench"), settled.map { it.id })
-        assertTrue(LiftCart.settle(listOf("squat"), listOf(PendingPick("squat", true))).isEmpty())
-        assertTrue(LiftCart.settle(emptyList(), listOf(PendingPick("squat", false))).isEmpty())
+        assertTrue(LiftCart.settle(committed = listOf("squat"), pending = listOf(PendingPick(id = "squat", adding = true, landed = true))).isEmpty())
+        assertTrue(LiftCart.settle(committed = emptyList(), pending = listOf(PendingPick(id = "squat", adding = false, landed = true))).isEmpty())
+    }
+
+    @Test
+    fun aTapStillWaitingForItsWriteIsKeptEvenWhenTheStoreAlreadyAgrees() {
+        // Squat's add is writing; a second tap says "take it out". The store has no Squat
+        // yet, which agrees with the second tap, but dropping it now would show Squat chosen
+        // again the moment the add lands.
+        val waiting = listOf(PendingPick(id = "squat", adding = false, tap = 2))
+        assertEquals(waiting, LiftCart.settle(committed = emptyList(), pending = waiting))
+        val landed = LiftCart.land(pending = waiting, id = " squat ", tap = 2)
+        assertTrue(landed.single().landed)
+        assertTrue(LiftCart.settle(committed = emptyList(), pending = landed).isEmpty())
+    }
+
+    @Test
+    fun landingMarksOnlyItsOwnTap() {
+        // The first tap's write lands after a second tap on the same lift replaced it.
+        val first = LiftCart.record(pending = emptyList(), id = "squat", adding = true, tap = 1)
+        val replaced = LiftCart.record(pending = first, id = "squat", adding = false, tap = 2)
+        assertEquals(listOf(PendingPick(id = "squat", adding = false, tap = 2)), replaced)
+        assertEquals(replaced, LiftCart.land(pending = replaced, id = "squat", tap = 1))
+        assertEquals(replaced, LiftCart.land(pending = replaced, id = "row", tap = 2))
     }
 
     @Test
@@ -73,6 +95,10 @@ class LiftCartTest {
         val pending = listOf(PendingPick("squat", true), PendingPick("row", true))
         assertEquals(listOf("row"), LiftCart.forget(pending, " squat ").map { it.id })
         assertEquals(pending, LiftCart.forget(pending, "bench"))
+        // A failed write forgets its own tap, not a newer one on the same lift.
+        val newer = listOf(PendingPick(id = "squat", adding = false, tap = 2))
+        assertEquals(newer, LiftCart.forget(pending = newer, id = "squat", tap = 1))
+        assertTrue(LiftCart.forget(pending = newer, id = "squat", tap = 2).isEmpty())
     }
 
     @Test
