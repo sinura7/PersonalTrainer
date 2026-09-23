@@ -15,6 +15,18 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 23 Sep 2026 — Whole-app audit packet X2b: before Room migrates `temper.db`,
+> the app now copies it — the file with its WAL, byte for byte — into
+> `files/pre-migration/temper-v<n>/`, and keeps the newest two. The legacy
+> copy covered only the old `personal_trainer.db` and was already done on
+> every phone, so until now the next schema bump would have migrated the
+> whole history with nothing to roll back to. The copy is written into a
+> `.partial` folder and renamed only when whole, so a copy cut short by a
+> crash is never kept. When it cannot be taken — disk full, too little room
+> left for the migration, an unreadable file — the app still opens and that
+> bump migrates without one (owner decision). ADR-010 decision 12. Quiet;
+> rides along with the next drop.
+>
 > 23 Sep 2026 — Whole-app audit packet W1d: large text on the workout floor,
 > on the owner's decisions of 23 September. At font 1.6 and above the stats
 > row shows Last alone before and after the first working set, so that set no

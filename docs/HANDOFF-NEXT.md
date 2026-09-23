@@ -66,15 +66,19 @@ Done so far:
   is logged; stats values that shrink to one line where they can (ADR-030
   says when one still wraps); a − / + drawn whole; an outsized weight that
   keeps its unit (drop 104).
+- **X2b:** before Room migrates `temper.db`, the app copies it with its WAL
+  into `files/pre-migration/temper-v<n>/` (ADR-010 decision 12), so the next
+  schema bump (S2b's v8) has a rollback copy.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next: T1c, then W2a–d and W3. Still open from Wave 0: **X2b**, a copy of
-`temper.db` taken before any migration runs. It must land before the next
-schema bump (S2b's v8).
+Next, in order (owner go-ahead of 23 September; the live order is the table
+in FRONTEND_REDESIGN.md): W2b-1 (the rest timer's ±15 s made atomic), T1c,
+W2a, W2b-2, W2c, W2d, then a check-only phone drop, then W3. X2b completes
+Wave 0.
 
 ## What is verified, and how
 

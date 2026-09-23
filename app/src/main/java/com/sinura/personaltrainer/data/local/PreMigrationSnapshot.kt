@@ -36,6 +36,9 @@ import java.io.File
  *
  * The copy lives in app-private storage and dies with an uninstall, which is why the upgrade
  * runbook also has the owner take a JSON export they keep off the phone.
+ *
+ * [ensure] is also the entry point for the same copy of `temper.db` before each of its schema
+ * bumps ([TemperPreMigrationCopy], audit X2b), so there is one call to keep first in `onCreate`.
  */
 object PreMigrationSnapshot {
     const val PREFS_NAME = "schema_marker"
@@ -49,9 +52,21 @@ object PreMigrationSnapshot {
     /**
      * Call FIRST in `Application.onCreate`, before `AppContainer` exists. Synchronous by
      * design — the copy has to complete before Room can touch the file — and does real work at
-     * most once per install lifetime.
+     * most once per install lifetime for the legacy file, and once per schema bump for
+     * `temper.db` ([TemperPreMigrationCopy]).
      */
     fun ensure(context: Context) {
+        ensureLegacyV1(context)
+        // Outside the legacy early return: that marker is set on every phone, and the temper
+        // copy has to run on each of them before every future migration.
+        try {
+            TemperPreMigrationCopy.ensure(context)
+        } catch (error: Exception) {
+            AppLog.e(TAG, "Temper pre-migration check failed; continuing without it", error)
+        }
+    }
+
+    private fun ensureLegacyV1(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         if (prefs.getInt(KEY_LAST_OPENED_SCHEMA, 0) >= TARGET_SCHEMA) return
 

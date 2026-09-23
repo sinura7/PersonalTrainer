@@ -3,7 +3,8 @@
 - **Status:** Accepted
 - **Date:** 24 August 2026
 - **Amended:** 23 September 2026 — decision 7 by
-  [ADR-032](ADR-032-jvm-evidence-lanes.md): the JVM migration test is the gate
+  [ADR-032](ADR-032-jvm-evidence-lanes.md): the JVM migration test is the gate;
+  decision 12 added (X2b): a raw copy of `temper.db` before every migration
 - **Supersedes:** Historical signed “Room v3 won’t” in Jobs 3–6, UX page pass,
   and owner-loop; the implication that Room v2 is the last database
   generation
@@ -82,6 +83,36 @@ it is not.
     repositories after cutover (P6.1). DataStore holds preferences only.
     Encoded historical strings are a temporary defect, not a model.
 
+### A copy before every migration
+
+12. **Before Room migrates `temper.db`, the app copies it** (X2b,
+    `TemperPreMigrationCopy`, run from `PreMigrationSnapshot.ensure` first in
+    `Application.onCreate`). The copy is the main file plus `-wal`, `-shm` and
+    any `-journal`, byte for byte, where *n* is the schema on disk. It is
+    written into `files/pre-migration/temper-v<n>.partial/`, each file synced
+    to disk, and only then renamed to `temper-v<n>/`, so a copy cut short by a
+    killed process or a power cut is thrown away and taken again, never kept
+    as if whole. The version is read through SQLite (the migration's own commit
+    can sit in the WAL), and only a file older than
+    `FoundationGeneration.VERSION` is copied. A finished copy is never
+    overwritten. The copy just taken is always kept, with the newest older
+    one. Only folders named `temper-v<n>` with *n* below the code's version
+    count as copies; anything else there, the legacy `pre-migration/v1` copy
+    included, is never touched.
+    **When the copy cannot be taken, the app still opens and Room migrates in
+    the same launch, so that schema bump has no rollback copy** (owner
+    decision, 23 September 2026): a phone that will not open is worse than one
+    without the copy, and the user's export stays the authoritative recovery
+    path ([ADR-009](ADR-009-backup-privacy-sync.md)). That happens when the
+    copy cannot be written, when free space is under three times the
+    database's size plus 32 MiB (the migration needs room too), and when the
+    version cannot be read — which includes a hot rollback journal left by a
+    crash, since SQLite will not open that file read-only (rollback-journal
+    mode only; a WAL-mode phone never has one). Every case is logged. A power
+    cut in the moments after the copy can also lose it: the files are synced,
+    the folder's rename is not.
+    `TemperPreMigrationCopyTest` holds it.
+
 ## Consequences
 
 - Owner-loop, UX page pass, and Job files that still say “Room v3 won’t”
@@ -89,6 +120,9 @@ it is not.
 - Executors of P1–P4 do not open a schema packet “because v3 is now
   allowed.” The allowance is Phase 5, and only Phase 5.
 - FND-019’s storage direction is established here; the move happens in P6.1.
+- A schema bump needs no extra step for its rollback copy: decision 12 takes
+  it for every version, and the corrective release that restores one is
+  written only if a migration actually fails.
 
 ## Review questions
 

@@ -66,7 +66,7 @@ evidence is the JVM render set ([ADR-032](architecture/ADR-032-jvm-evidence-lane
 | # | Packet | Scope | Kind | Status |
 |---|---|---|---|---|
 | 1 | S0a | Sync pause switch; Delete account hidden; honest Account copy; R8 keep rule | V | Done — #380, drop 99 |
-| 2 | X2 | a) JVM migration tests 5→6→7, debug-asset schemas, guard · b) pre-migration `temper.db` copy | Q | X2a done — #382; X2b before the next schema bump |
+| 2 | X2 | a) JVM migration tests 5→6→7, debug-asset schemas, guard · b) pre-migration `temper.db` copy | Q | X2a done — #382; X2b in review |
 | 3 | S0b | Pull writes in place; refused custom-lift delete retried | Q | Done — #383 |
 | 4 | Q1 | First-launch chooser is a real gate; permission walk waits; D01 date-aware headline and Back to today | V | Done — #384, drop 100 (S0b and X2a rode along) |
 | 5 | X1 | Docs truth pass; this table; ADR-031 (sync lane), ADR-032 (evidence lanes) | Q | Done |
@@ -77,8 +77,8 @@ evidence is the JVM render set ([ADR-032](architecture/ADR-032-jvm-evidence-lane
 | 8a | X3 | Retired goldens leave the hosted lane: the golden checks, their PNGs and manifests, `FloorGoldenTest`, `FoundationGoldenTest`, `WorkoutFrozenFrame`, `GoldenImageAssert` and `GoldenPageCatalog` go; the layout and journey tests keep their reachability checks ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) | Q | Done — #395 |
 | 8b | W1c | Entry wells hold still on the first working set at side-by-side sizes (ADR-030 amended); timer overlay test types without the keyboard | V | Done — #396, drop 103 |
 | 8c | X4 | Clean foundation: a rest length picked while the rest page or a lift is still loading is no longer overwritten by the coach's; the three hosted layout expectations the goldens hid (progress-line case, edit reveal, edit-denied dock); the static gate fetches the Kotlin compiler and fails when it cannot parse; Kotlin plugin markers from Maven Central only; cloud sessions reach Central through Google's mirror; the checkers' string stripper handles nested templates and char literals in them; the routine editor's Leave anyway can no longer throw on a write finishing at that instant and strand the screen (the long-standing `RoutineEditorViewModelTest` wedge) | Q | Done — #398 |
-| 8d | W1d | Large-text floor (owner decisions of 23 September): at font 1.6 and above the stats row shows Last alone, Best and Volume in Details; stats values shrink to fit one line; the stepper's − / + drawn whole at large text; an outsized weight keeps its unit | V | In review |
-| 9–12 | W2a–d | Dead code and lower token ceilings · shared rest commands, atomic `adjust` · coach/picker performance · save/undo and session-state extraction | Q | Pending |
+| 8d | W1d | Large-text floor (owner decisions of 23 September): at font 1.6 and above the stats row shows Last alone, Best and Volume in Details; stats values shrink to fit one line; the stepper's − / + drawn whole at large text; an outsized weight keeps its unit | V | Done — #399, drop 104 |
+| 9–12 | W2a–d | Dead code and lower token ceilings · shared rest commands, atomic `adjust` · coach/picker performance · save/undo and session-state extraction | Q | Pending — order of 23 September: W2b-1 (atomic `adjust`, first: the one defect), then after T1c: W2a, W2b-2 (shared rest commands), W2c, W2d-1–3 (undo, save, timed work), then a check-only drop |
 | 13 | W3 | Floor renders across the ADR-032 matrix, with reachability assertions, become the floor's gate | V | Pending — Milestone A |
 | 14 | S1 | Outbox in the save's transaction; enrolled user id; delete callers; tombstone time; poison-row quarantine; restore/sign-out reset cursors → unpause | V | Pending |
 | 15 | F8a | Single-choice radio roles app-wide; keyboard focus stays out of Home under the chooser | Q | Pending |
