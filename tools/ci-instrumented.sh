@@ -17,8 +17,9 @@ if [ "$status" -ne 0 ]; then
   echo '::group::logcat (last 400 matching lines)'
   adb logcat -d | grep -E 'PT/|TestRunner|AndroidJUnitRunner|Exception|Error' | tail -n 400
   echo '::endgroup::'
-  # A golden mismatch writes the actual and diff PNGs to the device. They are
-  # pulled into the uploaded report directory AND printed as base64, because
+  # Native-window captures and layout diagnostics write PNGs to the device
+  # (NativeArtifacts). They are pulled into the uploaded report directory,
+  # which keeps its old `goldens` name, AND printed as base64, because
   # the artifact is not reachable from every network. To rebuild one from the
   # raw log, whose lines carry a timestamp prefix:
   #

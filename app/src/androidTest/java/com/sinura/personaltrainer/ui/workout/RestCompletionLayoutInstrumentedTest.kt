@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.ui.workout
 
-import android.os.Build
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -17,8 +15,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.RestFloorContext
 import com.sinura.personaltrainer.testutil.GoldenCapture
-import com.sinura.personaltrainer.testutil.GoldenImageAssert
-import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -74,10 +70,6 @@ class RestCompletionLayoutInstrumentedTest(
         assertTrue(bounds.height / root.layoutInfo.density.density >= 47.5f)
         compose.onNodeWithTag(RestFloorTags.CLOCK).assertIsDisplayed()
         if (font >= 1.6f || height <= 640) assertTrue(compose.onAllNodesWithTag(RestFloorTags.RING).fetchSemanticsNodes().isEmpty())
-        val name = "frontend-rest-${width}x$height-font${(font * 10).toInt()}-$scenario-api${Build.VERSION.SDK_INT}"
-        val image = GoldenCapture.capture(compose)
-        if (Build.VERSION.SDK_INT == 29) GoldenImageAssert.assertMatches(name, image)
-        else NativeArtifacts.write(name, image.asAndroidBitmap())
         if (running) {
             compose.onNodeWithTag(RestFloorTags.MINUS).assertIsDisplayed().performClick()
             assertEquals(-15, adjusted)

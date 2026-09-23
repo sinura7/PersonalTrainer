@@ -15,6 +15,15 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 23 Sep 2026 — Whole-app audit packet X3: the retired emulator goldens leave
+> the hosted instrumented lane. The golden checks, their 232 PNGs and 7
+> manifests, `FloorGoldenTest`, `FoundationGoldenTest`, `WorkoutFrozenFrame`,
+> `GoldenImageAssert` and `GoldenPageCatalog` are gone. The layout and journey
+> tests stay, with every reachability check, and the lane still blocks nothing.
+> Test-only: nothing the app does changes, so it rides along with the next
+> drop. The owner moved it ahead of W3 on 23 September; W3 keeps the floor's
+> render matrix.
+>
 > 23 Sep 2026 — Whole-app audit packet X1: the docs tell the truth again.
 > HANDOFF-NEXT is rewritten (Room v7, sync paused, the audit's packet order),
 > CURRENT_STRUCTURE is re-measured, and README and FOUNDATION_PROGRAM no longer

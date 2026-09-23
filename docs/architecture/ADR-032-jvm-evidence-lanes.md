@@ -2,6 +2,9 @@
 
 - **Status:** Accepted
 - **Date:** 23 September 2026 (owner decision of 22 September, whole-app audit)
+- **Amended:** 23 September 2026 — Consequences only: the retired goldens and
+  `domain/GoldenPageCatalog` left in packet X3, a quiet packet ahead of W3
+  (owner decision of 23 September 2026). Decisions 1–4 are unchanged.
 - **Amends:** [ADR-026](ADR-026-frontend-redesign.md) decision 8;
   [ADR-027](ADR-027-workout-logging-redesign.md) decision 8 (the floor goldens
   are not re-recorded, and JVM renders become evidence rather than review-only
@@ -66,9 +69,15 @@ those copies stopped at 5 (fixed by packet X2a).
   renders it at 360×800 with few assertions. Packet W3 brings it to the full
   matrix with reachability assertions, and F11 runs the matrix across every
   tab.
-- The retired goldens and `domain/GoldenPageCatalog` stay until packet W3,
-  which removes the golden checks from the hosted lane so that a new crash
-  there is not hidden among failures that are always red.
+- The retired goldens and `domain/GoldenPageCatalog` left in packet X3, a
+  quiet packet ahead of W3, which removed the golden checks from the hosted
+  lane so that a new crash there is not hidden among failures that are always
+  red. The hosted lane keeps the layout and journey tests, for crashes,
+  journeys and reachability. W3 keeps the render-matrix half, the bullet
+  above.
+  *Amended 23 September 2026 (owner decision of 23 September 2026). This
+  bullet said they stay until W3. The decisions are unchanged; the removal
+  left W3 because the render matrix does not depend on it.*
 - A schema bump without its JVM migration test fails `testDebugUnitTest`
   before review.
 

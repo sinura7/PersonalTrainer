@@ -33,22 +33,18 @@ import androidx.test.runner.lifecycle.Stage
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 
 /**
- * Shared 360×800 Instrument mount for page goldens. P1.2 used this shape
- * inline in [com.sinura.personaltrainer.ui.preview.FoundationGoldenTest];
- * H3 names six gym-floor populated PNGs plus the component gallery and
- * three ThemeGallery previews in [com.sinura.personaltrainer.domain.GoldenPageCatalog].
- * Do not add [GoldenImageAssert.assertMatches] callers until the PNG is
- * committed — a missing asset fails the connected suite. Every later
- * surface×state capture should go through here so the viewport and theme
- * cannot drift per page.
+ * Shared Instrument mount for the instrumented layout and journey tests: an
+ * explicit logical viewport ([mountViewport]) or the real device window
+ * ([mountDevice]), both under [DefaultTag], so the viewport and theme cannot
+ * drift per test. [capture] feeds diagnostic [NativeArtifacts] only. The
+ * emulator goldens this object is named for were removed under ADR-032; JVM
+ * renders are the visual evidence.
  */
 object GoldenCapture {
-    val ViewportWidth: Dp = 360.dp
-    val ViewportHeight: Dp = 800.dp
     const val DefaultTag = "golden-capture-root"
 
     /** ForcedSize can update density across a parent remeasure. Require the
-     * requested viewport before reading coordinates or accepting pixels. */
+     * requested viewport before reading coordinates. */
     fun awaitViewport(compose: ComposeContentTestRule, widthDp: Int, heightDp: Int) {
         compose.waitUntil(5_000) {
             val node = compose.onNodeWithTag(DefaultTag).fetchSemanticsNode()
@@ -77,7 +73,7 @@ object GoldenCapture {
         compose.waitForIdle()
     }
 
-    /** New references use an explicit, unclipped logical viewport. Legacy mount stays intact. */
+    /** An explicit, unclipped logical viewport with pinned system-bar insets. */
     @OptIn(ExperimentalTestApi::class)
     fun mountViewport(
         compose: ComposeContentTestRule,
@@ -117,7 +113,7 @@ object GoldenCapture {
         // API 35+ makes the generic test Activity edge-to-edge but leaves its
         // default light navigation contrast scrim. MainActivity explicitly uses
         // these dark transparent styles. Match that policy before capture; the
-        // legacy API 29 reference window and logical inset fixture stay pinned.
+        // API 29 window and the logical inset fixture stay pinned.
         compose.runOnUiThread {
             val activity = ActivityLifecycleMonitorRegistry.getInstance()
                 .getActivitiesInStage(Stage.RESUMED).filterIsInstance<ComponentActivity>().single()
@@ -126,26 +122,6 @@ object GoldenCapture {
                 navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             )
         }
-    }
-
-    fun mount(
-        compose: ComposeContentTestRule,
-        tag: String = DefaultTag,
-        reduceMotion: Boolean = false,
-        content: @Composable () -> Unit,
-    ) {
-        compose.setContent {
-            PersonalTrainerTheme(reduceMotion = reduceMotion) {
-                Box(
-                    modifier = Modifier
-                        .size(ViewportWidth, ViewportHeight)
-                        .testTag(tag),
-                ) {
-                    content()
-                }
-            }
-        }
-        compose.waitForIdle()
     }
 
     fun capture(compose: ComposeContentTestRule, tag: String = DefaultTag): ImageBitmap {

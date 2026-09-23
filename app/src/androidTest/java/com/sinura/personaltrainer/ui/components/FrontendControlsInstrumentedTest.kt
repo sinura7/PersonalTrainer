@@ -30,7 +30,6 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.unit.dp
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sinura.personaltrainer.testutil.GoldenCapture
-import com.sinura.personaltrainer.testutil.GoldenImageAssert
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.preview.ComponentSection
 import com.sinura.personaltrainer.ui.preview.ComponentStateGallery
@@ -156,7 +155,6 @@ class FrontendControlsInstrumentedTest {
         GoldenCapture.mountViewport(compose = compose, width = 360.dp, height = 800.dp) {
             ComponentStateGallery(section = ComponentSection.SELECTION)
         }
-        reference("frontend-controls-selection-api29")
         compose.onNodeWithText("Use 15 lbs").performClick()
         compose.onNodeWithText("Draft: 15 lbs · nothing logged").assertIsDisplayed()
         compose.onNodeWithText("Warm-up").assertIsSelected()
@@ -174,7 +172,6 @@ class FrontendControlsInstrumentedTest {
         }
         compose.onNodeWithText(sample).performScrollTo().performClick()
         if (sample == "Focused") compose.onNodeWithText("Log set · 135 lbs × 8").assertIsFocused()
-        reference("frontend-controls-${sample.lowercase()}-api29")
         if (sample == "Saving" || sample == "Disabled") {
             compose.onNodeWithText(if (sample == "Saving") "Saving…" else "Log set · 135 lbs × 8")
                 .assertIsNotEnabled()
@@ -190,7 +187,6 @@ class FrontendControlsInstrumentedTest {
             ComponentStateGallery(section = ComponentSection.SELECTION)
         }
         compose.onNodeWithText("Use 15 lbs").performScrollTo().assertIsDisplayed()
-        reference("frontend-controls-selection-font20-api29")
         compose.onNodeWithText("Independent switch").performScrollTo().assertIsDisplayed()
     }
 
@@ -220,10 +216,6 @@ class FrontendControlsInstrumentedTest {
         captureWindow("frontend-long-confirmation-font20")
         compose.onNodeWithText("Cancel").performTouchInput { click() }
         compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertDoesNotExist()
-    }
-
-    private fun reference(name: String) {
-        if (Build.VERSION.SDK_INT == 29) GoldenImageAssert.assertMatches(name, GoldenCapture.capture(compose))
     }
 
     private fun captureWindow(name: String) {

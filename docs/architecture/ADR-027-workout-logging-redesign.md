@@ -2,9 +2,10 @@
 
 - **Status:** Accepted
 - **Date:** 18 September 2026
-- **Amended:** 23 September 2026 — decision 8 by
-  [ADR-032](ADR-032-jvm-evidence-lanes.md): the floor goldens are retired, not
-  re-recorded; JVM renders with reachability assertions are the evidence
+- **Amended:** 23 September 2026 — decision 8, with the consequence and review
+  question that repeat it, by [ADR-032](ADR-032-jvm-evidence-lanes.md): the
+  floor goldens are retired, not re-recorded, and packet X3 removed them; JVM
+  renders with reachability assertions are the evidence
 - **Amends:** [ADR-026](ADR-026-frontend-redesign.md) decision 3 (the compact
   64 dp identity and its order) and the *Workout contracts* order in
   [FRONTEND_REDESIGN.md](../FRONTEND_REDESIGN.md). ADR-026 decisions 2, 4 and 8
@@ -81,7 +82,7 @@ that packet's state model and derived primary action and changes the composition
    again. JVM renders (`WorkoutFloorRenderTest`) are review artifacts, not goldens.
    *Amended 23 September 2026 by [ADR-032](ADR-032-jvm-evidence-lanes.md):* the
    goldens are retired rather than re-recorded, and the JVM render set is the
-   evidence.
+   evidence. Packet X3 removed them.
 9. **Last time is reachable, but no longer a strip.** The F2 floor listed every set
    of the previous session as tappable chips. The reference has no such row, so:
    the Last set cell shows last time's final set and applies it on tap until the
@@ -173,6 +174,9 @@ number may be lowered; it may not be raised to make a change fit.
   into the floor.
 - Milestone A's phone checklist gains the reference screen; the floor goldens
   are owed a re-record on the emulator profile before they gate anything.
+  *Amended 23 September 2026 by [ADR-032](ADR-032-jvm-evidence-lanes.md):* the
+  floor goldens are retired rather than re-recorded, and packet X3 removed
+  them.
 - No schema, backup, signer, tab or navigation change is authorised by this record.
 
 ## Review questions
@@ -186,3 +190,6 @@ number may be lowered; it may not be raised to make a change fit.
   applied to this lift, with today's sets in the running.
 - Are the old F3 goldens still valid evidence? No. They are stale until
   re-recorded; the JVM render lane is for review, not pixel gating.
+  *Amended 23 September 2026 by [ADR-032](ADR-032-jvm-evidence-lanes.md):* they
+  are retired, not re-recorded, and packet X3 removed them; the JVM render
+  set, with reachability assertions, is the evidence.

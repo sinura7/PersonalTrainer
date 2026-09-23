@@ -4,7 +4,6 @@ import com.sinura.personaltrainer.domain.AccessibilityMatrix
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.FloorCompactChrome
-import com.sinura.personaltrainer.domain.GoldenPageCatalog
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -108,27 +107,6 @@ class FloorImageLedHeroTest {
         // WorkoutDockRenderTest composes each of those companions and finds the clock.
         assertFalse(dock.contains("showTimer && !completeDock"))
         // The rest card's 72 dp and its idle / running tags: RestTimerCardRenderTest.
-    }
-
-    @Test
-    fun goldensNameWorkingWarmupRestHoldSuccessErrorCompletionFontAndMotion() {
-        assertEquals(360, GoldenPageCatalog.FLOOR_WIDTH_DP)
-        assertEquals(800, GoldenPageCatalog.FLOOR_HEIGHT_DP)
-        assertEquals(9, GoldenPageCatalog.floorStateIds.size)
-        listOf(
-            "working",
-            "warmup",
-            "rest",
-            "hold",
-            "success",
-            "error",
-            "completion",
-            "font20",
-            "reduced-motion",
-        ).forEach { id ->
-            assertTrue(id, id in GoldenPageCatalog.floorStateIds)
-            assertTrue(GoldenPageCatalog.floorAssetName(id), GoldenPageCatalog.isCommitted(GoldenPageCatalog.floorAssetName(id)))
-        }
     }
 
     @Test

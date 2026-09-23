@@ -1,6 +1,5 @@
 package com.sinura.personaltrainer.ui.workout
 
-import android.os.Build
 import android.os.SystemClock
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.layout.Box
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
@@ -29,8 +27,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutWeightCopy
 import com.sinura.personaltrainer.testutil.GoldenCapture
-import com.sinura.personaltrainer.testutil.GoldenImageAssert
-import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -104,10 +100,6 @@ class WorkoutEntryLayoutInstrumentedTest(
         assertEquals(width.toFloat(), root.width / density, 1f)
         assertEquals(height.toFloat(), root.height / density, 1f)
         val commit = compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
-        val name = "frontend-workout-${width}x$height-font${(font * 10).toInt()}-$scenario-api${Build.VERSION.SDK_INT}"
-        val image = GoldenCapture.capture(compose)
-        if (Build.VERSION.SDK_INT == 29) GoldenImageAssert.assertMatches(name, image)
-        else NativeArtifacts.write(name, image.asAndroidBitmap())
         // Compose rounds dp constraints to physical pixels. Compare the same
         // integer floor; 72 dp at density 2.28125 correctly renders as 164 px.
         val minimumCommitPixels = with(rootNode.layoutInfo.density) { 72.dp.roundToPx() }

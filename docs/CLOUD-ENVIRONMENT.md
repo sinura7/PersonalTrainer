@@ -65,7 +65,7 @@ allowed hosts change, and when the snapshot expires after about a week.
 | `./gradlew testDebugUnitTest` including Robolectric | impossible | works |
 | `./gradlew lintDebug` | impossible | works |
 | `./gradlew assembleDebug`, a real APK | impossible | works |
-| `connectedDebugAndroidTest`, goldens, journeys | impossible | still impossible |
+| `connectedDebugAndroidTest`, journeys | impossible | still impossible |
 
 The last row is hardware, not policy. `/dev/kvm` does not exist on these VMs
 and the CPU exposes no virtualisation flags, so an Android emulator cannot

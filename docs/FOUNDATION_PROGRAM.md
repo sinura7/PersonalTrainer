@@ -104,7 +104,8 @@ uninterrupted Phase 5 cutover train ([ADR-002](architecture/ADR-002-execution-pr
   `com.sinura.personaltrainer.debug` on an emulator. *Since 23 September
   ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) this is evidence,
   not the gate, for migrations and screens: the JVM migration tests and the
-  JVM render set gate. Its 17 September goldens are retired.*
+  JVM render set gate. Its 17 September goldens are retired and, since X3,
+  removed.*
 - Physical-device checks for Doze, notifications, OAuth, haptics/sound,
   TalkBack, release upgrade, and performance where named.
 - Changed UI states in the render matrix of

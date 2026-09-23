@@ -61,7 +61,9 @@ native idle and a 750 ms software-renderer presentation interval.
 
 Missing required references fail and retain the actual image. Existing pixel
 tolerances are unchanged. Exact source/image hashes and device properties are
-in the [golden manifest](../../../app/src/androidTest/assets/goldens/windows-swiftshader37/frontend-manifest.json).
+in the golden manifest
+(`app/src/androidTest/assets/goldens/windows-swiftshader37/frontend-manifest.json`,
+removed in X3; it is at `3ae26efa` and earlier).
 Real app and separate-window observations have their own
 [manifest](native/f1/manifest.json). Pixel equality, interaction correctness,
 visual review and physical-device acceptance remain separate evidence.
