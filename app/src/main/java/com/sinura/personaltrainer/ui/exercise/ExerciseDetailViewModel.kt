@@ -10,16 +10,26 @@ import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseHistory
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
+import com.sinura.personaltrainer.domain.ExerciseSetEntry
+import com.sinura.personaltrainer.domain.ExerciseSetRecord
+import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -35,6 +45,14 @@ data class ExerciseDetailUiState(
     /** Every routine, each already knowing whether it holds this lift. */
     val routines: List<RoutineMembership> = emptyList(),
     val notice: String? = null,
+    /**
+     * The workout in progress, while it holds this lift. Its Best set and Volume are the floor's
+     * own, read here: at large text the floor shows Last alone and these two live in Details
+     * (ADR-030, owner decision of 23 September 2026).
+     */
+    val liveSession: WorkoutSession? = null,
+    /** This lift's finished working sets from workouts: what the floor judges Best set against. */
+    val priorWorkingSets: List<ExerciseSetRecord> = emptyList(),
 )
 
 /**
@@ -112,9 +130,21 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
         }
     }
 
+    /** The in-progress workout while it holds this lift, else null. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val liveSession: Flow<WorkoutSession?> = container.workoutRepository.observeInProgress()
+        .map { it?.id }
+        .distinctUntilChanged()
+        .flatMapLatest { id -> if (id == null) flowOf(null) else container.workoutRepository.observeSession(id) }
+        .map { session -> session?.takeIf { live -> live.exercises.any { it.exercise.id == exerciseId } } }
+
+    private data class SetsAndLive(val entries: List<ExerciseSetEntry>, val live: WorkoutSession?)
+
     val uiState: StateFlow<ExerciseDetailUiState> = combine(
         container.exerciseRepository.observeById(exerciseId).onEach { resolved.value = true },
-        container.completedTrainingRepository.observeExerciseSets(exerciseId),
+        combine(container.completedTrainingRepository.observeExerciseSets(exerciseId), liveSession) { entries, live ->
+            SetsAndLive(entries, live)
+        },
         container.preferencesRepository.schedulePreferences,
         resolved,
         combine(container.routineRepository.observeAll(), notice) { routines, message ->
@@ -123,7 +153,8 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
             // exactly the shape that trips it.
             RoutinesAndNotice(routines, message)
         },
-    ) { exercise, entries, preferences, isResolved, extras ->
+    ) { exercise, setsAndLive, preferences, isResolved, extras ->
+        val entries = setsAndLive.entries
         ExerciseDetailUiState(
             isLoading = !isResolved,
             missing = isResolved && exercise == null,
@@ -146,6 +177,10 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
                 )
             },
             notice = extras.notice,
+            liveSession = setsAndLive.live,
+            // The floor's history is workouts' finished working sets (WorkoutRepository.historyBefore);
+            // a backdated activity is History's, not the floor's record to beat.
+            priorWorkingSets = entries.filter { it.kind == HistoryKind.WORKOUT }.map { it.record },
         )
     }
         // Bucketing a lift's whole history is real work and does not belong on the main thread.

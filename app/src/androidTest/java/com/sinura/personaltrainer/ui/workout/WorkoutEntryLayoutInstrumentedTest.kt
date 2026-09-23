@@ -31,7 +31,6 @@ import com.sinura.personaltrainer.testutil.GoldenCapture
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -138,13 +137,20 @@ class WorkoutEntryLayoutInstrumentedTest(
         compose.onNodeWithTag(entryTag).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         if (scenario == "large") {
-            // The hero numeral shows the number alone; its unit sits in the column's label.
+            // The numeral and its unit are two texts on one baseline, and each must be laid out
+            // whole: its natural one-line width no wider than the width it got (the JVM gate's
+            // FloorTestKit.fitsItsWidth). Not hasVisualOverflow: a plain-String Text hands
+            // semantics a layout rebuilt at the full width on offer, so every text narrower than
+            // its room would read as overflowing.
             val number = WorkoutWeightCopy.number(fixture.vm.uiState.value.draft.weightKg, WeightUnit.KG)
-            val layouts = mutableListOf<TextLayoutResult>()
-            compose.onNode(matcher = hasText(number) and hasAnyAncestor(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER)), useUnmergedTree = true)
-                .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-            assertTrue(layouts.isNotEmpty())
-            assertFalse("entered value is not clipped", layouts.any { it.hasVisualOverflow })
+            for (words in listOf(number, WeightUnit.KG.suffix)) {
+                val layouts = mutableListOf<TextLayoutResult>()
+                compose.onNode(matcher = hasText(words) and hasAnyAncestor(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER)), useUnmergedTree = true)
+                    .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+                val layout = layouts.single()
+                val natural = layout.multiParagraph.intrinsics.maxIntrinsicWidth
+                assertTrue("entered value is not clipped: \"$words\" needs $natural px, has ${layout.size.width}", natural <= layout.size.width)
+            }
         }
         if (scenario == "latest") {
             // The saved set is a chip in the set history; once its receipt has been shown it

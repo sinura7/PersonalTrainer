@@ -15,6 +15,20 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 23 Sep 2026 — Whole-app audit packet W1d: large text on the workout floor,
+> on the owner's decisions of 23 September. At font 1.6 and above the stats
+> row shows Last alone before and after the first working set, so that set no
+> longer pushes the entry down (by 166 dp at font 1.6 on a 360 dp phone); Best
+> set and Volume for the workout in progress are in the lift's Details, in the
+> floor's words. Side by side, a value too wide for its third of the row
+> (`102.5 × 10` at font 1.3) is drawn smaller to fit one line instead of
+> wrapping, never below its label's size. The − / + on the weight and reps are
+> drawn whole at font 1.6 and 2.0; at 2.0 the − had vanished. A weight wider
+> than the `888.8` the numeral is sized from (99,999.99 kg at 360 dp, font
+> 2.0; 1102.5 lb at 412 dp) steps down and keeps its unit, and the plates
+> beneath stay put. The hosted layout test measures that the way the JVM gate
+> does (ADR-030 and ADR-027 amended).
+>
 > 23 Sep 2026 — Whole-app audit packet X4, a clean foundation. A rest length
 > picked while the rest page, or a lift on the Log, was still loading was
 > overwritten by the coach's (a user's 1:45 became 2:30, and Start ran 2:30);

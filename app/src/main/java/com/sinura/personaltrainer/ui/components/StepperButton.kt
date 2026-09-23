@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
@@ -37,6 +38,7 @@ import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -150,14 +152,30 @@ fun StepperButton(
         .clip(shape)
         .background(background)
         .border(Metrics.hairline, if (emphasis) HairlineStrong else Hairline, shape)
+    val style = (textStyle ?: if (compact) InstrumentType.bodyStrong else InstrumentType.numeralMd)
+        .copy(textDirection = TextDirection.Ltr)
     val glyph: @Composable () -> Unit = {
         Text(
             label,
             modifier = Modifier.padding(horizontal = Metrics.space2, vertical = Metrics.space2),
-            style = (textStyle ?: if (compact) InstrumentType.bodyStrong else InstrumentType.numeralMd)
-                .copy(textDirection = TextDirection.Ltr),
+            style = style,
             color = if (enabled) TextPrimary else TextDisabled,
             maxLines = 2,
+            textAlign = TextAlign.Center,
+        )
+    }
+    // The inset plate draws a circle of fixed size, so its − / + is a fixed size too: the style's
+    // design size read as dp, which the system font scale does not grow, laid out in the whole
+    // circle rather than a padded slice of it. Scaled as text, at font 1.6 and 2.0 the glyph's
+    // line outgrew the 20 dp the padding left it and was cut to "_" or "." (packet W1d). The
+    // spoken words are the caller's, on the target, and do not change.
+    val insetGlyph: @Composable () -> Unit = {
+        val density = LocalDensity.current
+        Text(
+            label,
+            style = LogLoopScale.fixedGlyph(style, density),
+            color = if (enabled) TextPrimary else TextDisabled,
+            maxLines = 1,
             textAlign = TextAlign.Center,
         )
     }
@@ -170,7 +188,7 @@ fun StepperButton(
             Box(
                 modifier = Modifier.matchParentSize().padding(plateInset).then(chrome),
                 contentAlignment = Alignment.Center,
-            ) { glyph() }
+            ) { insetGlyph() }
         }
     } else {
         // One box, exactly as before: callers that size from their own content need the fill

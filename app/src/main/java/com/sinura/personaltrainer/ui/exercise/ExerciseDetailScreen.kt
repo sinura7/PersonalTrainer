@@ -36,6 +36,9 @@ import com.sinura.personaltrainer.domain.AddToRoutineCopy
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseFloorStats
+import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
+import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.LoadClass
@@ -74,6 +77,7 @@ import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.workout.ExerciseStatsRow
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.toLocalDate
 import java.text.DateFormat
@@ -104,6 +108,24 @@ fun ExerciseDetailScreen(
     var routinePickerOpen by rememberSaveable { mutableStateOf(false) }
     val unit = LocalWeightUnit.current
     val history = state.history
+    // The floor's own Best set and Volume for this lift in the workout in progress. At large
+    // text the floor shows Last alone and these two are read here (ADR-030, owner decision of
+    // 23 September 2026).
+    val live = state.liveSession
+    val exerciseId = state.exercise?.id
+    val thisWorkout = remember(live, exerciseId, state.priorWorkingSets, unit) {
+        if (live == null || exerciseId == null) {
+            null
+        } else {
+            ExerciseFloorStatsCalculator.of(
+                session = live,
+                exerciseId = exerciseId,
+                lastPerformance = null,
+                priorHistory = state.priorWorkingSets,
+                unit = unit,
+            )
+        }
+    }
 
     // Sessions that produced an estimate, oldest first, kept alongside their values so the
     // chart's x-axis labels are the dates of the points actually plotted.
@@ -170,14 +192,36 @@ fun ExerciseDetailScreen(
                 // filled control on "Back" duplicates the header arrow. That was right about
                 // Back and wrong about there being nothing else: the way to get history for a
                 // lift is to put it in a routine, which is exactly what this state is missing.
-                EmptyState(
-                    scene = EmptyScene.LOG,
-                    title = "Nothing logged yet",
-                    body = "Records and trends appear here once you have finished a session with this lift.",
-                    actionLabel = "Add to a routine",
-                    onAction = { routinePickerOpen = true },
-                    modifier = Modifier.padding(Metrics.gutter),
-                )
+                val nothingLogged: @Composable (Modifier) -> Unit = { emptyModifier ->
+                    EmptyState(
+                        scene = EmptyScene.LOG,
+                        title = "Nothing logged yet",
+                        body = "Records and trends appear here once you have finished a session with this lift.",
+                        actionLabel = "Add to a routine",
+                        onAction = { routinePickerOpen = true },
+                        modifier = emptyModifier,
+                    )
+                }
+                if (thisWorkout == null) {
+                    nothingLogged(Modifier.padding(Metrics.gutter))
+                } else {
+                    // A first session with this lift has no finished history yet, but its sets
+                    // today are the floor's, and they stand above the promise of more. A list, so
+                    // both stay reachable at large text and in landscape.
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = Metrics.gutter,
+                            end = Metrics.gutter,
+                            top = Metrics.space2,
+                            bottom = Metrics.space7,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+                    ) {
+                        item(key = "this-workout") { ThisWorkoutCard(stats = thisWorkout, unit = unit) }
+                        item(key = "nothing-logged") { nothingLogged(Modifier) }
+                    }
+                }
             }
 
             else -> {
@@ -191,6 +235,9 @@ fun ExerciseDetailScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
                 ) {
+                    if (thisWorkout != null) {
+                        item(key = "this-workout") { ThisWorkoutCard(stats = thisWorkout, unit = unit) }
+                    }
                     if (history.records.isNotEmpty()) {
                         item(key = "records") { RecordsCard(records = history.records, unit = unit) }
                     }
@@ -443,6 +490,26 @@ private fun RecordsCard(
     }
 }
 
+/**
+ * Best set and Volume for this lift in the workout in progress: the floor's stats row without
+ * the Last cell it keeps, in the floor's words, from the same calculator. At large text these
+ * two leave the floor so the entry holds still, and this is where they are read.
+ */
+@Composable
+private fun ThisWorkoutCard(
+    stats: ExerciseFloorStats,
+    unit: WeightUnit,
+) {
+    GymCard(modifier = Modifier.testTag(ExerciseDetailTags.THIS_WORKOUT)) {
+        Kicker("This workout")
+        ExerciseStatsRow(
+            stats = stats,
+            unit = unit,
+            visibility = ExerciseFloorStatsPresentation.RowVisibility.BEST_AND_VOLUME,
+        )
+    }
+}
+
 @Composable
 private fun RecordMetric(
     value: String,
@@ -641,4 +708,5 @@ private fun groupedRowShape(index: Int, count: Int): Shape = when {
 object ExerciseDetailTags {
     const val BACK = "exercise-detail-back"
     const val ADD_TO_ROUTINE = "exercise-detail-add-to-routine"
+    const val THIS_WORKOUT = "exercise-detail-this-workout"
 }

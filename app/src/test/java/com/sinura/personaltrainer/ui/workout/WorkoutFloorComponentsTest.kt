@@ -166,7 +166,7 @@ class WorkoutFloorComponentsTest {
             ExerciseStatsRow(
                 stats = stats,
                 unit = unit,
-                visibility = ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = 0),
+                visibility = ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = 0, stackedText = false),
             )
         }
         compose.onNodeWithText("70 × 9").assertIsDisplayed()

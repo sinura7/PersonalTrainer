@@ -61,10 +61,14 @@ Done so far:
   when a save finishes at that instant (the `RoutineEditorViewModelTest`
   30-second wedge, open since 10 September, was this); the static gate and
   the cloud build were made dependable (see below).
+- **W1d:** the workout floor holds still and whole at large text: Last alone
+  at font 1.6 and above with today's Best and Volume in Details, stats
+  values that shrink to one line, a − / + drawn whole, an outsized weight
+  that keeps its unit (drop 104).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next: W1d (the large-text floor), then T1c, W2a–d and W3. Still open from
+Next: T1c, then W2a–d and W3. Still open from
 Wave 0: **X2b**, a
 copy of `temper.db` taken before any migration runs. It must land before the
 next schema bump (S2b's v8).
@@ -90,20 +94,24 @@ independent, one adversarial.
   goldens were removed in X3, so what fails there now is a crash, a journey
   or a reachability check, and is worth reading. The first run after X3
   (#395) reached the 38 entry and 15 completion layout cases' own checks
-  for the first time since 17 September and found what the goldens had
-  hidden: stale expectations in three cases (the progress line is drawn
-  in upper case on purpose; an edit scrolls the lift's identity away on
-  purpose; a finished plan's dock gives the notification row no room), which
-  X4 corrects, and a 99,999.99 kg weight that pushes its unit out at 360 dp,
-  font 2.0, which is W1d's. One failure was known and
-  standing: `WorkoutEntryJourneyInstrumentedTest`'s entry-position check,
+  for the first time since 17 September and found four checks the goldens
+  had hidden. Three were stale expectations, which X4 corrects: the progress
+  line is drawn in upper case, an edit scrolls the lift's identity away to
+  reveal its entry, and a finished plan's dock leaves the rest-alert row no
+  room, all on purpose. The fourth was real: a 99,999.99 kg weight pushed its
+  unit out at 360 dp, font 2.0. W1d keeps the unit and makes the test
+  measure it the way the JVM gate does. One failure was known and standing:
+  `WorkoutEntryJourneyInstrumentedTest`'s entry-position check,
   955 → 997 px on every run since #374. The Last-only stats cell before the
   first working set was one caption line (16 dp) shorter than the full row, so
-  the entry wells moved down when that set was saved. Packet W1c fixes it at
-  side-by-side sizes, and `FirstWorkingSetRenderTest` holds it on the JVM
-  gate. A stats value that wraps, and stacked large text (font 1.6 and
-  above), still move it; W1d fixes both (ADR-030). The journey's later checks
-  have not run since #374, so the first hosted run after W1c is worth reading.
+  the entry wells moved down when that set was saved. W1c fixed it at
+  side-by-side sizes, and W1d the two cases left: a stats value that wrapped,
+  and stacked large text (font 1.6 and above) (ADR-030).
+  `FirstWorkingSetRenderTest` holds all of them on the JVM gate. So every
+  failure the lane has shown since X3 now has a fix, and the lane is expected
+  to be green on W1d's first hosted run. That is expected, not yet seen: the
+  journey's later checks have not run since #374, so that run is worth
+  reading.
 - **"Tests, lint, debug build"** is the hosted check that must be green
   ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)).
 - **GitHub-hosted runners** are not the test lane.
