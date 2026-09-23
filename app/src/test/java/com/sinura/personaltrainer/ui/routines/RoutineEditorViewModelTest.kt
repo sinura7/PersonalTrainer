@@ -31,7 +31,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -548,6 +553,118 @@ class RoutineEditorViewModelTest {
         assertEquals(listOf(row.id), vm.awaitState { it.pickedIds == listOf(row.id) }.pickedIds)
     }
 
+    /**
+     * The second tap on a lift takes it back out even when the screen's copy of the routine
+     * is behind the store. The first write used to clear its pending pick from the store's
+     * answer while the next tap read the screen's copy: in that window the lift was neither
+     * pending nor visible, so the second tap was read as "add" and did nothing. Trunk's
+     * full gate hit it two runs in four as `aSecondTapTakesTheLiftBackOut`.
+     */
+    @Test
+    fun aSecondTapTakesTheLiftBackOutWhileTheScreenIsBehindTheStore() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val held = MutableStateFlow(false)
+        val rowWriteStarted = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", container = withRoutineDao(HeldRoutineDao(deps.database.routineDao(), held, row.id, rowWriteStarted)))
+        vm.awaitState { it.catalog.size >= 2 }
+        vm.setPickerVisible(true)
+
+        held.value = true
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        // Picks write one at a time, so Row's write reaching the store means Squat's write,
+        // and everything it did after, is over. The screen has still seen neither.
+        withTimeout(TestWaits.FLOW_MS) { rowWriteStarted.await() }
+        vm.togglePicked(squat)
+        held.value = false
+
+        // Wait for the answer, not for a size: while Row is mid-write the store briefly holds
+        // Squat alone, which is also one lift.
+        val saved = awaitRoutine { routine -> routine.exercises.map { it.exercise.id } == listOf(row.id) }
+        assertEquals(listOf(row.id), saved.exercises.map { it.exercise.id })
+        assertEquals(listOf(row.id), vm.awaitState { it.pickedIds == listOf(row.id) && !it.addingLifts }.pickedIds)
+    }
+
+    /**
+     * A tap whose lift another writer changed before the screen caught up does not leave the
+     * editor busy. The tap waits for the screen to agree with it; sync or another screen
+     * took the lift back out first, so the screen never will. The store settles it: "Adding…"
+     * with Save off until the lifter left the screen was the alternative.
+     */
+    @Test
+    fun aTapOverriddenBeforeTheScreenCatchesUpDoesNotLeaveTheEditorBusy() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val held = MutableStateFlow(false)
+        val rowWriteStarted = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", container = withRoutineDao(HeldRoutineDao(deps.database.routineDao(), held, row.id, rowWriteStarted)))
+        vm.awaitState { it.catalog.size >= 2 }
+        vm.setPickerVisible(true)
+
+        held.value = true
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        withTimeout(TestWaits.FLOW_MS) { rowWriteStarted.await() }
+        // Another writer takes Squat out while the screen has seen neither lift.
+        val stored = awaitRoutine { routine -> routine.exercises.map { it.exercise.id } == listOf(squat.id, row.id) }
+        deps.routineRepository.removeExercise(stored.exercises.first { it.exercise.id == squat.id }.id, stored.id)
+        held.value = false
+
+        val settled = vm.awaitState { !it.addingLifts && it.pickedIds == listOf(row.id) }
+        assertEquals(listOf(row.id), settled.pickedIds)
+    }
+
+    @Test
+    fun aRoutineThatCannotBeCreatedDropsTheTap() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel("new", container = withRoutineDao(FailingCreateDao(deps.database.routineDao())))
+        vm.awaitState { it.catalog.isNotEmpty() }
+        vm.setPickerVisible(true)
+        vm.togglePicked(squat)
+        // The tap had nowhere to go: it is not left chosen, and the editor is not left busy.
+        val refused = vm.awaitState {
+            it.error == "Could not create this routine. Try again." && it.pickedIds.isEmpty() && !it.addingLifts
+        }
+        assertTrue(refused.showExercisePicker)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
+    /**
+     * A second tap queued behind the first write on the same lift keeps its word on screen.
+     * The first write used to settle every pick the screen agreed with, including the
+     * second tap's "take it out" whose own write had not run: the screen had no Squat yet,
+     * so it agreed, the pick went, and when the add reached the screen Squat showed as
+     * chosen again against the lifter's last tap, until the removal landed.
+     */
+    @Test
+    fun aQueuedSecondTapIsNotShownUndoneWhenTheFirstWriteLands() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val held = MutableStateFlow(false)
+        val addGate = CompletableDeferred<Unit>()
+        val removeReached = CompletableDeferred<Unit>()
+        val removeGate = CompletableDeferred<Unit>()
+        val dao = QueuedTapDao(deps.database.routineDao(), held, addGate, removeReached, removeGate)
+        val vm = createViewModel("new", container = withRoutineDao(dao))
+        vm.awaitState { it.catalog.isNotEmpty() }
+        vm.setPickerVisible(true)
+
+        held.value = true
+        vm.togglePicked(squat)
+        vm.togglePicked(squat)
+        addGate.complete(Unit)
+        // The removal reaching the store means the add, and everything its write did after,
+        // is over. Then let the screen see the add while the removal is still writing.
+        withTimeout(TestWaits.FLOW_MS) { removeReached.await() }
+        held.value = false
+        val between = vm.awaitState { state -> state.routine?.exercises?.any { it.exercise.id == squat.id } == true }
+        assertTrue("the last tap said take it out, but the picker shows ${between.pickedIds}", squat.id !in between.pickedIds)
+
+        removeGate.complete(Unit)
+        awaitRoutine { it.exercises.isEmpty() }
+        assertTrue(vm.awaitState { it.pickedIds.isEmpty() && !it.addingLifts }.pickedIds.isEmpty())
+    }
+
     @Test
     fun tapOrderIsTheOrderTheRoutineKeeps() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
@@ -623,11 +740,14 @@ class RoutineEditorViewModelTest {
             vm.togglePicked(squat)
             gate.complete(Unit)
 
-            val refused = vm.awaitState { it.error == SessionOrderCopy.ADD_LIFT_FAILED }
             // The pick is dropped with the write: a row still numbered after a failure is a
-            // lift the owner believes is on the routine and is not.
-            assertTrue(refused.pickedIds.isEmpty())
+            // lift the owner believes is on the routine and is not. The refusal and the
+            // dropped pick reach the screen through different inputs, so wait for both: one
+            // frame can carry the refusal before the pick has gone, and that frame is not
+            // the answer.
+            val refused = vm.awaitState { it.error == SessionOrderCopy.ADD_LIFT_FAILED && it.pickedIds.isEmpty() }
             assertTrue(refused.showExercisePicker)
+            assertTrue(deps.routineRepository.observeAll().first().all { it.exercises.isEmpty() })
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
         }
@@ -1557,6 +1677,63 @@ class RoutineEditorViewModelTest {
         override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
             gate.await()
             delegate.upsertRoutineExercise(item)
+        }
+    }
+
+    /**
+     * The routine's own flow held behind the store while [held] is true: writes land, and
+     * the screen's copy of the routine does not move until it is released. Signals when the
+     * write for [signalExerciseId] reaches the store.
+     */
+    private class HeldRoutineDao(
+        private val delegate: RoutineDao,
+        private val held: StateFlow<Boolean>,
+        private val signalExerciseId: String,
+        private val signal: CompletableDeferred<Unit>,
+    ) : RoutineDao by delegate {
+        override fun observeById(id: String): Flow<RoutineWithExercises?> =
+            combine(delegate.observeById(id), held) { routine, hold -> routine to hold }
+                .filter { (_, hold) -> !hold }
+                .map { (routine, _) -> routine }
+
+        override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
+            if (item.exerciseId == signalExerciseId) signal.complete(Unit)
+            delegate.upsertRoutineExercise(item)
+        }
+    }
+
+    /**
+     * The routine's own flow held while [held] is true, the first lift write held at
+     * [addGate], and the removal held at [removeGate] after signalling [removeReached].
+     */
+    private class QueuedTapDao(
+        private val delegate: RoutineDao,
+        private val held: StateFlow<Boolean>,
+        private val addGate: CompletableDeferred<Unit>,
+        private val removeReached: CompletableDeferred<Unit>,
+        private val removeGate: CompletableDeferred<Unit>,
+    ) : RoutineDao by delegate {
+        override fun observeById(id: String): Flow<RoutineWithExercises?> =
+            combine(delegate.observeById(id), held) { routine, hold -> routine to hold }
+                .filter { (_, hold) -> !hold }
+                .map { (routine, _) -> routine }
+
+        override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
+            addGate.await()
+            delegate.upsertRoutineExercise(item)
+        }
+
+        override suspend fun deleteRoutineExercise(id: String) {
+            removeReached.complete(Unit)
+            removeGate.await()
+            delegate.deleteRoutineExercise(id)
+        }
+    }
+
+    /** Every routine it is asked to create fails to write. */
+    private class FailingCreateDao(private val delegate: RoutineDao) : RoutineDao by delegate {
+        override suspend fun upsertRoutine(routine: RoutineEntity) {
+            throw IllegalStateException("disk full")
         }
     }
 
