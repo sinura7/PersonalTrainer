@@ -69,14 +69,16 @@ suspend fun <T> Flow<T>.awaitFirst(predicate: (T) -> Boolean): T {
  * two-in-four wedge vanish for eight consecutive runs. A wait that has already lost has
  * nothing left to disturb.
  *
- * The wedge this exists for is a stall, not a thrown read: it was seen in
- * `leaveAnywayStillDiscardsAnEmptyStubCreatedThisSession`, whose exit catches every
- * exception and then sets its flag unconditionally, so no throw can produce it. What is
- * still unknown is which thread is parked and why — in particular whether Room's
- * single-slot `TransactionExecutor` is BLOCKED on a connection or sitting IDLE in
- * `getTask` with work still queued, which is a leaked slot and a different fault entirely.
+ * It was written for the wedge in `leaveAnywayStillDiscardsAnEmptyStubCreatedThisSession`,
+ * and on 23 Sep 2026 it answered by ruling threads out: every one was idle, so nothing was
+ * parked on anything. The exit had thrown. `joinWrites` copied its set of running writes
+ * with `toList()`, which reads the size and then the first element, and a write finishing
+ * on a Room thread in between emptied it — `NoSuchElementException`, outside the exit's
+ * catch, so the flag was never set. That exception went to the coroutine handler, not to
+ * this wait, and surfaced one class later as `UncaughtExceptionsBeforeTest`. When a timed-out
+ * wait shows every thread idle, look for a throw in the test's stderr before a stall.
  *
- * Filtered to the frames that can answer that, because an unfiltered dump of a Robolectric
+ * Filtered to the frames that tell those apart, because an unfiltered dump of a Robolectric
  * JVM is fifty threads of noise. A thread is kept when its name or any frame names the app,
  * Room, SQLite or coroutines; the state and the top frames of each are what distinguish
  * parked-and-waiting from parked-and-stuck.

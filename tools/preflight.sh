@@ -220,9 +220,11 @@ out="$(tools/syntax-check.sh app/src/main/java)" || fail "syntax-check crashed"
 case "$out" in
     *"No kotlin-compiler-embeddable"*)
         if [ -z "${PT_IN_GRADLE:-}" ] && [ "${PT_ALLOW_NO_COMPILER:-}" != "1" ] && [ -x ./gradlew ]; then
-            echo "preflight: no Kotlin compiler jar; fetching it through Gradle"
-            ./gradlew -q --console=plain :app:syntaxCheckJars >/dev/null 2>&1 \
-                || echo "preflight: Gradle could not fetch the compiler jar" >&2
+            echo "preflight: no Kotlin compiler jar; fetching it through Gradle (a cold cache takes minutes)"
+            if ! gradle_out="$(./gradlew -q --console=plain :app:syntaxCheckJars 2>&1)"; then
+                echo "preflight: Gradle could not fetch the compiler jar; its last words:" >&2
+                printf '%s\n' "$gradle_out" | tail -15 >&2
+            fi
             out="$(tools/syntax-check.sh app/src/main/java)" || fail "syntax-check crashed"
         fi
         ;;

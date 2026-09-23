@@ -20,16 +20,34 @@ def strip_comments_and_strings(src: str) -> str:
             if out[k] != "\n":
                 out[k] = " "
 
+    def skip_char(start: int) -> int:
+        """Index just after the char literal opening at `start`: `'"'`, `'{'`, `'\\''`."""
+        k = start + 1
+        while k < n and src[k] != "'":
+            if src[k] == "\\":
+                k += 1
+            k += 1
+        return k + 1
+
     def skip_string(start: int) -> int:
         """Index just after the string literal opening at `start`, templates and all."""
         quote = '"""' if src.startswith('"""', start) else '"'
         k, depth = start + len(quote), 0
         while k < n:
-            if quote == '"' and src[k] == "\\":
-                k += 2
+            if depth == 0:
+                if quote == '"' and src[k] == "\\":
+                    k += 2
+                    continue
+                if src.startswith(quote, k):
+                    return k + len(quote)
+            elif src[k] == '"':
+                # Inside `${...}` a quote opens another string, and a char literal is a
+                # char literal: neither may be read as this string's end or as a brace.
+                k = skip_string(k)
                 continue
-            if depth == 0 and src.startswith(quote, k):
-                return k + len(quote)
+            elif src[k] == "'":
+                k = skip_char(k)
+                continue
             if src.startswith("${", k):
                 depth += 1
                 k += 2
@@ -57,11 +75,15 @@ def strip_comments_and_strings(src: str) -> str:
                 # Keep the interpolation's code, but strip it like any other code: a string
                 # nested in it — `"${System.getenv("PT_FLAG")}"` — is literal text too, and
                 # left in place it read as an undeclared constant. Braces inside that nested
-                # string do not close the interpolation.
+                # string do not close the interpolation, and neither a brace nor a quote in a
+                # char literal — `"${if (c == '"') 1 else 2}"` — opens or closes anything.
                 depth, j = 0, i + 1
                 while j < n:
                     if src[j] == '"':
                         j = skip_string(j)
+                        continue
+                    if src[j] == "'":
+                        j = skip_char(j)
                         continue
                     if src[j] == "{":
                         depth += 1

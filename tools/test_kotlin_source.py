@@ -42,6 +42,22 @@ def main() -> int:
     expect("AFTER_TEXT" not in out, "a brace inside a nested string does not end the interpolation")
     expect("OUTSIDE_CODE" in out, "code after the string is still code")
 
+    # A quote in a char literal inside an interpolation is not a string. Read as one, it swapped
+    # code and text for the rest of the file: the next line's code blanked, its literal shown.
+    quote_char = 'val a = "${if (c == \'"\') 1 else 2} TEXT_A"\nval b = CODE_B\nval c = "LIT_C"\n'
+    out = strip(quote_char)
+    expect("CODE_B" in out, "a quote in a char literal inside an interpolation does not open a string")
+    expect("TEXT_A" not in out and "LIT_C" not in out, "the literals on either side are still blanked")
+
+    brace_char = 'val d = "${if (c == \'}\') 1 else 2} TEXT_D"\nval e = CODE_E\n'
+    out = strip(brace_char)
+    expect("TEXT_D" not in out and "CODE_E" in out, "a brace in a char literal does not end the interpolation")
+
+    deep = 'val f = "${g("${h(\'"\')} INNER_TEXT")} OUTER_TEXT"\nval k = CODE_K\n'
+    out = strip(deep)
+    expect("INNER_TEXT" not in out and "OUTER_TEXT" not in out and "CODE_K" in out,
+           "a char literal two interpolations deep is stepped over too")
+
     simple = 'val t = "$name has sets"\n'
     out = strip(simple)
     expect("name" in out and "has sets" not in out, "a simple $name interpolation keeps the name")

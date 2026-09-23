@@ -368,15 +368,18 @@ val unpackRobolectricAndroidAll by tasks.registering(Copy::class) {
 // carries into execution may reference this script. isEnabled is resolved here, at
 // configuration time, into a Boolean — an onlyIf {} spec would close over `providers`
 // and fail the build with "cannot serialize Gradle script object references".
-val syntaxCheckJars by tasks.registering(Sync::class) {
-    description = "Fetches the Kotlin compiler tools/syntax-check.sh runs"
-    from(syntaxCheckCompiler)
-    into(layout.buildDirectory.dir("syntax-check-jars"))
-}
-
 val staticChecks = run {
     val repoRoot = rootDir
     val skip = providers.gradleProperty("skipStaticChecks").isPresent
+    // The compiler tools/syntax-check.sh parses with, copied to the one place it looks
+    // besides the module cache — so the gate works whatever Gradle user home or IDE
+    // filled that cache. Skipped with the checks: a disabled task's dependencies still run.
+    val syntaxCheckJars = tasks.register<Sync>("syntaxCheckJars") {
+        description = "Fetches the Kotlin compiler tools/syntax-check.sh runs"
+        from(syntaxCheckCompiler)
+        into(layout.buildDirectory.dir("syntax-check-jars"))
+        isEnabled = !skip
+    }
     tasks.register<Exec>("staticChecks") {
         group = "verification"
         description = "Runs the tools/preflight.sh static ratchets (no JVM tests)"

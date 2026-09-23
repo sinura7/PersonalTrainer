@@ -51,12 +51,15 @@ CLT_ZIP="commandlinetools-linux-13114758_latest.zip"
 # the first try. The mirror serves Central's bytes and gradle/verification-metadata.xml still
 # checks every one, so this changes the road, not what arrives. It lives in ~/.gradle, never
 # in the repository: CI and developer machines keep Central. Before the SDK check below,
-# because that one exits early once the SDK is in place.
+# because that one exits early once the SDK is in place. A mirror that does not answer
+# takes an init script from an earlier start with it, so Central is never left pointing
+# at a dead road.
 MIRROR="https://maven-central.storage-download.googleapis.com/maven2/"
+MIRROR_INIT="${GRADLE_USER_HOME:-$HOME/.gradle}/init.d/temper-central-mirror.gradle"
 if curl -fsS -o /dev/null --max-time 20 \
      "${MIRROR}org/jetbrains/kotlin/kotlin-stdlib/2.0.21/kotlin-stdlib-2.0.21.pom"; then
-  mkdir -p "$HOME/.gradle/init.d"
-  cat > "$HOME/.gradle/init.d/temper-central-mirror.gradle" <<GRADLE
+  mkdir -p "$(dirname "$MIRROR_INIT")"
+  cat > "$MIRROR_INIT" <<GRADLE
 // Written by .claude/hooks/session-start.sh (cloud sessions only). See that file.
 def mirror = '$MIRROR'
 def redirect = { repos ->
@@ -70,6 +73,9 @@ settingsEvaluated { settings ->
 }
 GRADLE
   echo "gradle: Maven Central through Google's mirror (checksums still verified)"
+elif [ -f "$MIRROR_INIT" ]; then
+  rm -f "$MIRROR_INIT"
+  echo "gradle: Google's mirror did not answer; Maven Central directly"
 fi
 
 if [ -d "$SDK/platforms/android-36" ] && [ -d "$SDK/build-tools/36.0.0" ] && [ -x "$SDK/platform-tools/adb" ]; then

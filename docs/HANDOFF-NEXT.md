@@ -57,8 +57,10 @@ Done so far:
 - **X3:** the retired emulator goldens left the hosted lane.
 - **W1c:** the entry wells hold still on the first working set (drop 103).
 - **X4:** a rest length picked while the rest page or a lift is still loading
-  survives; the static gate and the cloud build were made dependable (see
-  below).
+  survives; the routine editor's Leave anyway no longer strands the screen
+  when a save finishes at that instant (the `RoutineEditorViewModelTest`
+  30-second wedge, open since 10 September, was this); the static gate and
+  the cloud build were made dependable (see below).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
@@ -88,8 +90,8 @@ independent, one adversarial.
   goldens were removed in X3, so what fails there now is a crash, a journey
   or a reachability check, and is worth reading. The first run after X3
   (#395) reached the 38 entry and 15 completion layout cases' own checks
-  for the first time since 17 September and found three things the goldens
-  had hidden: stale expectations in three cases (the progress line is drawn
+  for the first time since 17 September and found what the goldens had
+  hidden: stale expectations in three cases (the progress line is drawn
   in upper case on purpose; an edit scrolls the lift's identity away on
   purpose; a finished plan's dock gives the notification row no room), which
   X4 corrects, and a 99,999.99 kg weight that pushes its unit out at 360 dp,

@@ -536,7 +536,18 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 .drop(1)
                 .collect { last ->
                     if (last != null && !restTimer.snapshot.value.running) {
-                        restTotal.value = PlannedRest(seconds = last, chosenFor = selectedExerciseId.value)
+                        // A pick on the dock comes back here as an echo, and it can land after
+                        // the owner has moved on. It is already the plan, marked with the lift
+                        // it was picked on; marked again with whichever lift is selected now, it
+                        // would stop that lift's own seed. Only a length the dock does not hold
+                        // yet — one picked on the rest page — is news.
+                        restTotal.update { plan ->
+                            if (plan.seconds == last) {
+                                plan
+                            } else {
+                                PlannedRest(seconds = last, chosenFor = selectedExerciseId.value)
+                            }
+                        }
                     }
                 }
         }

@@ -629,8 +629,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * The outcomes are what the exit decides on — a failure here used to be logged and walked
      * past. The screen's error slot is left alone: the aggregate says it once, at the dock.
      */
+    // A copy the map makes itself, not toList(): a key can go on another thread (see joinWrites).
     private suspend fun flushStagedTargets(): List<RoutineTargetsOutcome> =
-        stagedTargets.keys.toList().mapNotNull { commitTargetsNow(it)?.outcome }
+        stagedTargets.keys.toTypedArray().mapNotNull { commitTargetsNow(it)?.outcome }
 
     /**
      * Set when this screen should be popped. Held as state for the same reason as forward
@@ -1345,7 +1346,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     private suspend fun joinWrites() {
         while (true) {
-            val snapshot = inFlight.toList()
+            // Copied by the set itself, never with toList(). A write that finishes on a Room
+            // thread takes itself out at any instant, and toList() reads the size and then the
+            // first element: a set of one emptied in between threw NoSuchElementException,
+            // which ended Leave anyway before it set the flag and left the editor deaf to
+            // Back, Save and every edit — the "wedge" RoutineEditorViewModelTest hit for weeks.
+            val snapshot = inFlight.toTypedArray()
             if (snapshot.isEmpty()) return
             snapshot.forEach { it.join() }
         }

@@ -17,14 +17,16 @@ KOTLIN="${PT_KOTLIN:-$(catalog_ver kotlin)}"
 KOTLIN="${KOTLIN:-2.0.21}"
 COROUTINES="${PT_COROUTINES:-$(catalog_ver coroutines)}"
 
-# The Gradle cache is the normal source of these jars. PT_JARS is the fallback for
-# environments that cannot reach Google's Maven and so can never run a Gradle build —
-# see tools/run-domain-tests.sh, which uses the same directory.
+# The Gradle cache is the normal source of these jars, and :app:syntaxCheckJars copies
+# them to app/build/syntax-check-jars so a Gradle run with its own user home (-g, an IDE)
+# still leaves them where this looks. PT_JARS is the fallback for environments that
+# cannot reach Google's Maven and so can never run a Gradle build — see
+# tools/run-domain-tests.sh, which uses the same directory.
 compiler_jar="kotlin-compiler-embeddable-${KOTLIN}.jar"
 stdlib_jar="kotlin-stdlib-${KOTLIN}.jar"
 coroutines_pat="kotlinx-coroutines-core-jvm-${COROUTINES:-*}.jar"
 
-CP=$(find "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2" "${PT_JARS:-build/test-jars}" \( \
+CP=$(find "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2" app/build/syntax-check-jars "${PT_JARS:-build/test-jars}" \( \
   -name "$compiler_jar" \
   -o -name "$stdlib_jar" \
   -o -name "$coroutines_pat" \
