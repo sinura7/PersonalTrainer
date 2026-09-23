@@ -114,9 +114,6 @@ the next visible drop.
 
 ## Known tooling gaps
 
-- A cold container downgrades the static gate with only a warning, and still
-  exits OK, when no compiler jar is present. Make the skip non-zero unless
-  `PT_ALLOW_NO_COMPILER=1`.
 - `required_args_mixed` is the largest debt family in
   `tools/checker-baselines.toml`.
 

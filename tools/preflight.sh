@@ -207,14 +207,32 @@ summary "check-when-exhaustive" "0 non-exhaustive" \
 summary "check-unused-imports" "0 unused import(s)" \
     python3 tools/check-unused-imports.py app/src/main/java
 
-# syntax-check.sh exits 0 even on findings, and legitimately skips when no
-# compiler jar exists: pass on "NO SYNTAX ERRORS", warn on skip, fail otherwise.
+# syntax-check.sh exits 0 even on findings, and skips when no compiler jar exists:
+# pass on "NO SYNTAX ERRORS", fail on anything else. A skip used to be a warning,
+# so a cold container reported "preflight: OK" without checking a line of Kotlin.
+# Now a missing jar is fetched through Gradle, and a gate that still cannot parse
+# fails unless PT_ALLOW_NO_COMPILER=1 says this environment cannot run Gradle.
+# Inside Gradle (:app:staticChecks sets PT_IN_GRADLE) the jar is resolved before
+# this script starts, and calling ./gradlew from here would wait on its own build.
 step "syntax-check (main)"
 out="$(tools/syntax-check.sh app/src/main/java)" || fail "syntax-check crashed"
+case "$out" in
+    *"No kotlin-compiler-embeddable"*)
+        if [ -z "${PT_IN_GRADLE:-}" ] && [ "${PT_ALLOW_NO_COMPILER:-}" != "1" ] && [ -x ./gradlew ]; then
+            echo "preflight: no Kotlin compiler jar; fetching it through Gradle"
+            ./gradlew -q --console=plain :app:syntaxCheckJars >/dev/null 2>&1 \
+                || echo "preflight: Gradle could not fetch the compiler jar" >&2
+            out="$(tools/syntax-check.sh app/src/main/java)" || fail "syntax-check crashed"
+        fi
+        ;;
+esac
 printf '%s\n' "$out" | tail -1
 case "$out" in
     *"NO SYNTAX ERRORS"*) ;;
-    *"No kotlin-compiler-embeddable"*) echo "preflight: WARNING — syntax check skipped (no compiler jar)" ;;
+    *"No kotlin-compiler-embeddable"*)
+        [ "${PT_ALLOW_NO_COMPILER:-}" = "1" ] \
+            || fail "syntax check could not run: no Kotlin compiler jar. Run a Gradle build first, or set PT_ALLOW_NO_COMPILER=1 where Gradle cannot run"
+        echo "preflight: WARNING — syntax check skipped (no compiler jar; PT_ALLOW_NO_COMPILER=1)" ;;
     *) fail "syntax-check" ;;
 esac
 

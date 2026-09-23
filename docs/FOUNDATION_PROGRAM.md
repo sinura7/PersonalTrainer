@@ -742,7 +742,8 @@ Implements [ADR-007](architecture/ADR-007-activity-model.md),
   Volt command; Add session is the Plan fill act (ADR-017). Lighter stays
   a quiet Plan chip. Library stays a pushed route (FND-032). FND-044
   remains evidence-only — no
-  Switch/FAB/menu skin without a golden mismatch.
+  Switch/FAB/menu skin without rendered or runtime evidence of a mismatch
+  (ADR-005 §6; the emulator goldens are retired, ADR-032).
   Evidence:
   [P9.6 Home evidence](foundation-program/evidence/P9.6-home.md),
   [audit follow-up](foundation-program/evidence/P9.6-audit-followup.md),

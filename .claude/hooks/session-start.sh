@@ -56,7 +56,7 @@ if ! curl -fsS -o /dev/null --max-time 45 \
      "https://dl.google.com/android/repository/repository2-3.xml"; then
   echo "android-sdk: dl.google.com is not reachable from this environment — skipping."
   echo "  ./gradlew cannot resolve the Android plugin here. Use the offline lanes instead:"
-  echo "    PT_STATIC_ONLY=1 sh tools/preflight.sh     (static gate)"
+  echo "    PT_STATIC_ONLY=1 PT_ALLOW_NO_COMPILER=1 sh tools/preflight.sh  (static gate; no Kotlin syntax check without Gradle)"
   echo "    PT_JARS=build/test-jars tools/run-domain-tests.sh  (host-runnable tests)"
   exit 0
 fi
