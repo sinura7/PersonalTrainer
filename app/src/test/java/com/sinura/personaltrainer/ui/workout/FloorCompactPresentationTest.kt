@@ -48,16 +48,9 @@ class FloorCompactPresentationTest {
         )
         assertFalse(FloorCompactChrome.showIdleStartNext())
         assertFalse(FloorCompactChrome.idleStartNextIsVolt())
-        assertTrue(card.contains("spoken = RestIdleCopy.startSpoken(safeTotal)"))
-        assertTrue(card.contains("tag = WorkoutTestTags.START_REST"))
         assertFalse("idle controls are quiet marks, not full-width rows", card.contains("TextButton("))
-        // The three pills became one segmented track; the card names the segments, and
-        // RestSegments itself lives beside RestControl so the card still names no Haptics.
-        assertTrue(card.contains("RestSegments("))
-        assertTrue(card.contains("val idle = !running && !justFinished"))
-        assertTrue(card.contains("else -> PLANNED"))
-        assertTrue(card.contains("else -> RestIdleCopy.dockSpoken(clock, afterWarmup)"))
-        assertTrue(card.contains("onClick = if (idle) onEditDuration else onOpenRest"))
+        // The three pills became one segmented track, each segment its own 48 dp button; what
+        // the idle card shows, says and does is rendered in RestTimerCardRenderTest.
         assertFalse(FloorCompactChrome.idleRestIsInstrumentBar())
         assertTrue(FloorCompactChrome.restIsDockCard())
         assertTrue(FloorCompactChrome.oneClockTwoModes())
@@ -72,15 +65,12 @@ class FloorCompactPresentationTest {
         assertTrue(dock.contains("LogCommitCopy.disabledReason"))
         assertTrue(dock.contains("key(action.identity)"))
         assertTrue(dock.contains("else -> WorkoutTestTags.LOG_SET"))
-        assertTrue(dock.contains("RestTimerCard("))
-        assertTrue(dock.contains("SetWorkDock("))
         assertTrue(FloorCompactChrome.logButtonStaysAnchored())
         assertFalse("effort left the dock for its own row", dock.contains("RpeCopy"))
         assertFalse(dock.contains("RPE_TRACK"))
         assertFalse(dock.contains("LazyRow("))
-        val rpe = readOwned("ui/workout/RpeSelector.kt")
-        assertTrue(rpe.contains("WorkoutTestTags.RPE_TRACK"))
-        assertTrue(rpe.contains("WorkoutTestTags.RPE_WARMUP_REASON"))
+        // The dock's clocks and the effort track are rendered in WorkoutDockTimerRenderTest and
+        // RpeSelectorRenderTest.
         assertTrue(FloorCompactChrome.showOptionalLogOptions(isWarmup = false))
         assertFalse(FloorCompactChrome.showOptionalLogOptions(isWarmup = true))
         assertTrue(FloorCompactChrome.warmupOutsideRpeTrack())
@@ -153,10 +143,7 @@ class FloorCompactPresentationTest {
         assertTrue(menu.contains("Session summary"))
         val tags = readOwned("ui/workout/ActiveWorkoutScreen.kt")
         assertFalse(tags.contains("SetEntryPanel("))
-        val dock = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dock.contains("-> SetWorkDock("))
-        val restUi = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(restUi.contains("workout-hold-clock"))
+        // The hold and set clocks ride the dock: SetWorkDockRenderTest, WorkoutDockTimerRenderTest.
         val entry = readOwned("ui/components/SetEntryPanel.kt")
         val weightStepper = entry.indexOf("fun WeightStepper")
         assertTrue(weightStepper >= 0)
@@ -180,7 +167,6 @@ class FloorCompactPresentationTest {
         assertTrue(bottomBar >= 0 && dock > bottomBar)
         assertTrue(lazy > dock)
         val dockFile = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dockFile.contains("RestTimerCard("))
         assertTrue(dockFile.contains("PinnedDock("))
         assertFalse(workout.substring(lazy).contains("WorkoutDock("))
         assertFalse(workout.substring(lazy).contains("RestTimerCard("))

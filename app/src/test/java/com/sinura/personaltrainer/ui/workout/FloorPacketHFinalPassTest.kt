@@ -87,14 +87,10 @@ class FloorPacketHFinalPassTest {
         )
         // A chosen chip is not also "recommended"; its Selected state says it is chosen.
         assertEquals("RPE 10, max", RpeCopy.spoken(value = 10, selected = true, recommended = true))
+        // What each chip says and whether it is selected, the recommended one included, and the
+        // named ends under the track: RpeSelectorRenderTest.
         val selector = readOwned("ui/workout/RpeSelector.kt")
-        assertTrue(selector.contains("val selected = rpe == value"))
-        assertTrue(selector.contains("val recommended = recommendedRpe == value && !selected"))
-        assertTrue(selector.contains("recommended = recommended,"))
-        assertTrue(selector.contains("spoken = RpeCopy.spoken(value = value, selected = selected, recommended = recommended)"))
         assertFalse("a recommendation outlines a chip; it never selects one", selector.contains("selected = recommendedRpe"))
-        assertTrue(selector.contains("RpeCopy.EASY_END"))
-        assertTrue(selector.contains("RpeCopy.MAX_END"))
         assertEquals("Easy", RpeCopy.EASY_END)
         assertEquals("Max effort", RpeCopy.MAX_END)
     }
@@ -104,11 +100,8 @@ class FloorPacketHFinalPassTest {
         assertFalse(TalkBackPolicy.announceRestKicker(justFinished = false))
         assertTrue(TalkBackPolicy.announceRestKicker(justFinished = true))
         assertEquals("Back to the bar", TalkBackPolicy.restKicker(justFinished = true))
-        // The dock's rest card is a live region only at the finished flash, never per tick.
-        val card = readOwned("ui/workout/RestTimerCard.kt")
-        assertTrue(card.contains("if (TalkBackPolicy.announceRestKicker(justFinished)) {"))
-        assertTrue(card.contains("liveRegion = LiveRegionMode.Polite"))
-        assertEquals(1, card.split("liveRegion = LiveRegionMode.Polite").size - 1)
+        // The dock's rest card is a live region only at the finished flash, never per tick:
+        // RestTimerCardRenderTest finds none while it runs and exactly one at the flash.
         // One live region for the rest kicker, the card's: the old bar's copy is gone.
         val rest = readOwned("ui/components/RestTimerUi.kt")
         assertFalse(rest.contains("TalkBackPolicy.announceRestKicker"))
@@ -201,17 +194,14 @@ class FloorPacketHFinalPassTest {
         assertEquals("Back to the bar", TalkBackPolicy.REST_FINISHED_KICKER)
         // Every chip state is a word beside its Volt ring, and TalkBack hears it: the chips'
         // Current / Editing / Saved captions and spoken states are in SetHistoryStripRenderTest.
-        assertTrue(readOwned("ui/workout/NextSetRecommendation.kt").contains("\"Applied\""))
         val table = readOwned("ui/components/SetTable.kt")
         assertTrue(table.contains("Latest"))
+        // "Applied" on the coach card, and "Last ten seconds", "Rest complete" and "Back to the
+        // bar" on the rest card: NextSetRecommendationRenderTest, RestTimerCardRenderTest.
         val card = readOwned("ui/workout/RestTimerCard.kt")
-        assertTrue(card.contains("Last ten seconds"))
         assertFalse(card.contains("\"10 seconds\""))
-        assertTrue(card.contains("private const val REST_COMPLETE = \"Rest complete\""))
-        assertTrue(card.contains("justFinished -> TalkBackPolicy.REST_FINISHED_KICKER"))
         val rest = readOwned("ui/components/RestTimerUi.kt")
         // The floor's rest words live on the card now; the bar file keeps none of its own.
-        assertTrue(card.contains("Last ten seconds"))
         assertFalse(card.contains("\"10 seconds\""))
         val colors = readMain("ui/theme/Color.kt")
         assertTrue(colors.contains("val PrGold = Color(0xFFFFC53D)"))

@@ -28,22 +28,14 @@ class FloorRpePresentationTest {
                 isWarmup = true,
             ),
         )
+        // The track itself (five radio chips, the named ends, help, a warm-up's reason) is
+        // rendered in RpeSelectorRenderTest, and the screen's wiring (a chip writes the draft,
+        // a warm-up hides the track, the coach's effort is recommended but not chosen) is tapped
+        // through the ViewModel in FloorRestAndCoachWiringRenderTest.
         // The draft's set type alone decides; rest state never reaches the track.
         val selector = readOwned("ui/workout/RpeSelector.kt")
-        assertTrue(selector.contains("warmup: Boolean"))
-        assertTrue(selector.contains("if (warmup) {"))
         assertFalse(selector.contains("restRunning"))
-        assertTrue(selector.contains("WorkoutTestTags.RPE_WARMUP_REASON"))
-        assertTrue(selector.contains("Effort is recorded for working sets. Warm-ups leave RPE blank."))
-        assertTrue(selector.contains("WorkoutTestTags.RPE_TRACK"))
-        assertTrue(selector.contains("Kicker(\"RPE\")"))
-        assertTrue(selector.contains("RPE help"))
-        assertTrue(selector.contains("RpeCopy.HELP_TITLE"))
-        assertTrue(selector.contains("RpeCopy.helpBody()"))
         assertEquals("Effort (RPE)", com.sinura.personaltrainer.domain.RpeCopy.HELP_TITLE)
-        assertTrue(selector.contains("InstrumentChip("))
-        assertTrue(selector.contains("role = Role.RadioButton"))
-        assertTrue(selector.contains("selectableGroup()"))
         // The chip publishes its selected state to TalkBack (ExerciseHeaderRenderTest reads it
         // on the set-type radio).
         val chip = readOwned("ui/components/InstrumentChip.kt")
@@ -60,10 +52,6 @@ class FloorRpePresentationTest {
         assertTrue(chip.contains(".size(Metrics.markDot)"))
         assertTrue(chip.contains(".align(Alignment.TopEnd)"))
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertTrue(screen.contains("RpeSelector("))
-        assertTrue(screen.contains("warmup = state.draft.isWarmup"))
-        assertTrue(screen.contains("onRpe = viewModel::setRpe"))
-        assertTrue(screen.contains("recommendedRpe = microRec?.nextRpe"))
         assertFalse(screen.contains("rpeHelperVisible"))
         assertFalse(screen.contains("viewModel::dismissRpeHelper"))
         // Set context and the warm-up ramp moved with the entry: the header names the set,

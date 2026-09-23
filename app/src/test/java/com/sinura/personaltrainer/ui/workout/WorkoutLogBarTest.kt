@@ -72,17 +72,8 @@ class WorkoutLogBarTest {
             "Warm-up must not share a scrolling row with RPE",
             selector.contains("LazyRow("),
         )
-        assertTrue("reflow, never scroll", selector.contains("FlowRow("))
-        assertTrue("persistent help", selector.contains("RPE help"))
-        assertTrue("RPE label", selector.contains("Kicker(\"RPE\")"))
-        assertTrue("RPE track tag", selector.contains("WorkoutTestTags.RPE_TRACK"))
-        assertTrue("RPE values", selector.contains("RpeCopy.VALUES"))
-        assertTrue("compact chips", selector.contains("compact = true"))
-        assertTrue("equal weight chips", selector.contains(".weight(1f)"))
-        assertTrue("radio semantics", selector.contains("role = Role.RadioButton"))
-        assertTrue("TalkBack meaning", selector.contains("RpeCopy.spoken("))
-        assertTrue("named ends", selector.contains("RpeCopy.EASY_END") && selector.contains("RpeCopy.MAX_END"))
-        assertTrue("warmup reason", selector.contains("Warm-ups leave RPE blank"))
+        // The track's five equal radio chips, their spoken meaning, the named ends, help, the
+        // warm-up's reason and the reflow at large text are rendered in RpeSelectorRenderTest.
         assertFalse("Warm-up chip lives in the header toggle", selector.contains("label = \"Warm-up\""))
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.warmupOutsideRpeTrack())
         assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.rpeTrackFitsWithoutScroll())
