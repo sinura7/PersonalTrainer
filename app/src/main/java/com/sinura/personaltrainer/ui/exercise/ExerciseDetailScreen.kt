@@ -36,8 +36,6 @@ import com.sinura.personaltrainer.domain.AddToRoutineCopy
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.domain.ExerciseFloorStats
-import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
 import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.HistoryKind
@@ -108,24 +106,9 @@ fun ExerciseDetailScreen(
     var routinePickerOpen by rememberSaveable { mutableStateOf(false) }
     val unit = LocalWeightUnit.current
     val history = state.history
-    // The floor's own Best set and Volume for this lift in the workout in progress. At large
-    // text the floor shows Last alone and these two are read here (ADR-030, owner decision of
-    // 23 September 2026).
-    val live = state.liveSession
-    val exerciseId = state.exercise?.id
-    val thisWorkout = remember(live, exerciseId, state.priorWorkingSets, unit) {
-        if (live == null || exerciseId == null) {
-            null
-        } else {
-            ExerciseFloorStatsCalculator.of(
-                session = live,
-                exerciseId = exerciseId,
-                lastPerformance = null,
-                priorHistory = state.priorWorkingSets,
-                unit = unit,
-            )
-        }
-    }
+    // The floor's own Best set and Volume for this lift in the workout in progress, once a
+    // working set of it is logged there (ADR-030, owner decision of 23 September 2026).
+    val sessionInProgress = state.sessionInProgress
 
     // Sessions that produced an estimate, oldest first, kept alongside their values so the
     // chart's x-axis labels are the dates of the points actually plotted.
@@ -202,7 +185,7 @@ fun ExerciseDetailScreen(
                         modifier = emptyModifier,
                     )
                 }
-                if (thisWorkout == null) {
+                if (sessionInProgress == null) {
                     nothingLogged(Modifier.padding(Metrics.gutter))
                 } else {
                     // A first session with this lift has no finished history yet, but its sets
@@ -218,7 +201,7 @@ fun ExerciseDetailScreen(
                         ),
                         verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
                     ) {
-                        item(key = "this-workout") { ThisWorkoutCard(stats = thisWorkout, unit = unit) }
+                        item(key = "this-workout") { SessionInProgressCard(sessionInProgress) }
                         item(key = "nothing-logged") { nothingLogged(Modifier) }
                     }
                 }
@@ -235,8 +218,8 @@ fun ExerciseDetailScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
                 ) {
-                    if (thisWorkout != null) {
-                        item(key = "this-workout") { ThisWorkoutCard(stats = thisWorkout, unit = unit) }
+                    if (sessionInProgress != null) {
+                        item(key = "this-workout") { SessionInProgressCard(sessionInProgress) }
                     }
                     if (history.records.isNotEmpty()) {
                         item(key = "records") { RecordsCard(records = history.records, unit = unit) }
@@ -494,21 +477,25 @@ private fun RecordsCard(
  * Best set and Volume for this lift in the workout in progress: the floor's stats row without
  * the Last cell it keeps, in the floor's words, from the same calculator. At large text these
  * two leave the floor so the entry holds still, and this is where they are read.
+ *
+ * Best set is the floor's: the lift's standing best, with today's sets in the running, marked
+ * `Today` only when one of them beat it. So the heading names the session the card belongs to,
+ * the app's own words for it, rather than claiming every number on it for today.
  */
 @Composable
-private fun ThisWorkoutCard(
-    stats: ExerciseFloorStats,
-    unit: WeightUnit,
-) {
+private fun SessionInProgressCard(sessionInProgress: SessionInProgressStats) {
     GymCard(modifier = Modifier.testTag(ExerciseDetailTags.THIS_WORKOUT)) {
-        Kicker("This workout")
+        Kicker(SESSION_IN_PROGRESS)
         ExerciseStatsRow(
-            stats = stats,
-            unit = unit,
+            stats = sessionInProgress.stats,
+            unit = sessionInProgress.unit,
             visibility = ExerciseFloorStatsPresentation.RowVisibility.BEST_AND_VOLUME,
+            standalone = true,
         )
     }
 }
+
+private const val SESSION_IN_PROGRESS = "Session in progress"
 
 @Composable
 private fun RecordMetric(

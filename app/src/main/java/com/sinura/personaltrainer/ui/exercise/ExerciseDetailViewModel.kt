@@ -8,13 +8,16 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseFloorStats
+import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
+import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.ExerciseHistory
 import com.sinura.personaltrainer.domain.ExerciseHistoryBuilder
 import com.sinura.personaltrainer.domain.ExerciseSetEntry
-import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -23,6 +26,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -31,6 +35,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -46,13 +51,18 @@ data class ExerciseDetailUiState(
     val routines: List<RoutineMembership> = emptyList(),
     val notice: String? = null,
     /**
-     * The workout in progress, while it holds this lift. Its Best set and Volume are the floor's
-     * own, read here: at large text the floor shows Last alone and these two live in Details
-     * (ADR-030, owner decision of 23 September 2026).
+     * The floor's Best set and Volume for this lift in the workout in progress, once a working set
+     * of it is logged there: at large text the floor shows Last alone and these two are read here
+     * (ADR-030, owner decision of 23 September 2026). Null otherwise, and whenever that workout
+     * cannot be read: the card is optional, and never holds the screen.
      */
-    val liveSession: WorkoutSession? = null,
-    /** This lift's finished working sets from workouts: what the floor judges Best set against. */
-    val priorWorkingSets: List<ExerciseSetRecord> = emptyList(),
+    val sessionInProgress: SessionInProgressStats? = null,
+)
+
+/** The floor's own stats for this lift, and the unit they were worded in. */
+data class SessionInProgressStats(
+    val stats: ExerciseFloorStats,
+    val unit: WeightUnit,
 )
 
 /**
@@ -130,19 +140,59 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
         }
     }
 
-    /** The in-progress workout while it holds this lift, else null. */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val liveSession: Flow<WorkoutSession?> = container.workoutRepository.observeInProgress()
-        .map { it?.id }
-        .distinctUntilChanged()
-        .flatMapLatest { id -> if (id == null) flowOf(null) else container.workoutRepository.observeSession(id) }
-        .map { session -> session?.takeIf { live -> live.exercises.any { it.exercise.id == exerciseId } } }
+    /** The workout in progress and the unit it is worded in, or null: none, finished, or unreadable. */
+    private data class LiveInputs(val session: WorkoutSession, val unit: WeightUnit)
 
-    private data class SetsAndLive(val entries: List<ExerciseSetEntry>, val live: WorkoutSession?)
+    /**
+     * The workout in progress, read for the optional "Session in progress" card. It starts as
+     * null and falls back to null on any failure: the in-progress read drops a failed value
+     * rather than emitting one, and a Details screen that waited on it would spin for good.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val liveInputs: Flow<LiveInputs?> = combine(
+        container.workoutRepository.observeInProgress()
+            .map { it?.id }
+            .distinctUntilChanged()
+            .flatMapLatest { id -> if (id == null) flowOf(null) else container.workoutRepository.observeSession(id) }
+            // The in-progress read and the session row can disagree for a moment when a workout
+            // is finished; a finished workout is History's, not in progress.
+            .map { session -> session?.takeIf { it.finishedAt == null } },
+        container.preferencesRepository.weightUnit,
+    ) { session, unit -> session?.let { LiveInputs(it, unit) } }
+        .onStart { emit(null) }
+        .catch { thrown ->
+            AppLog.w(TAG, "the workout in progress could not be read for Details", thrown)
+            emit(null)
+        }
+        .distinctUntilChanged()
+
+    private data class SetsAndLive(val entries: List<ExerciseSetEntry>, val live: LiveInputs?)
+
+    /**
+     * The floor's Best set and Volume for this lift, from the floor's calculator, once the workout
+     * in progress holds a working set of it: the floor's own rule for when those two appear
+     * (ADR-030 decision 2). Before that set they would be last time's best and an empty volume
+     * under a heading that says this session.
+     */
+    private fun sessionInProgress(live: LiveInputs?, entries: List<ExerciseSetEntry>): SessionInProgressStats? {
+        if (live == null) return null
+        if (ExerciseFloorStatsPresentation.workingSetsLoggedToday(live.session, exerciseId) <= 0) return null
+        val stats = ExerciseFloorStatsCalculator.of(
+            session = live.session,
+            exerciseId = exerciseId,
+            lastPerformance = null,
+            // The floor judges Best set against workouts' finished working sets
+            // (WorkoutRepository.historyBefore); a backdated activity is History's, not the
+            // floor's record to beat.
+            priorHistory = entries.filter { it.kind == HistoryKind.WORKOUT }.map { it.record },
+            unit = live.unit,
+        )
+        return SessionInProgressStats(stats = stats, unit = live.unit)
+    }
 
     val uiState: StateFlow<ExerciseDetailUiState> = combine(
         container.exerciseRepository.observeById(exerciseId).onEach { resolved.value = true },
-        combine(container.completedTrainingRepository.observeExerciseSets(exerciseId), liveSession) { entries, live ->
+        combine(container.completedTrainingRepository.observeExerciseSets(exerciseId), liveInputs) { entries, live ->
             SetsAndLive(entries, live)
         },
         container.preferencesRepository.schedulePreferences,
@@ -177,13 +227,11 @@ class ExerciseDetailViewModel @JvmOverloads constructor(
                 )
             },
             notice = extras.notice,
-            liveSession = setsAndLive.live,
-            // The floor's history is workouts' finished working sets (WorkoutRepository.historyBefore);
-            // a backdated activity is History's, not the floor's record to beat.
-            priorWorkingSets = entries.filter { it.kind == HistoryKind.WORKOUT }.map { it.record },
+            sessionInProgress = sessionInProgress(setsAndLive.live, entries),
         )
     }
-        // Bucketing a lift's whole history is real work and does not belong on the main thread.
+        // Bucketing a lift's whole history is real work and does not belong on the main thread,
+        // and nor does the floor's calculator.
         .flowOn(container.computeDispatcher)
         .stateIn(
             scope = viewModelScope,

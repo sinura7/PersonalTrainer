@@ -62,16 +62,16 @@ Done so far:
   30-second wedge, open since 10 September, was this); the static gate and
   the cloud build were made dependable (see below).
 - **W1d:** the workout floor holds still and whole at large text: Last alone
-  at font 1.6 and above with today's Best and Volume in Details, stats
-  values that shrink to one line, a − / + drawn whole, an outsized weight
-  that keeps its unit (drop 104).
+  at font 1.6 and above, with Best and Volume in Details once a working set
+  is logged; stats values that shrink to one line where they can (ADR-030
+  says when one still wraps); a − / + drawn whole; an outsized weight that
+  keeps its unit (drop 104).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next: T1c, then W2a–d and W3. Still open from
-Wave 0: **X2b**, a
-copy of `temper.db` taken before any migration runs. It must land before the
-next schema bump (S2b's v8).
+Next: T1c, then W2a–d and W3. Still open from Wave 0: **X2b**, a copy of
+`temper.db` taken before any migration runs. It must land before the next
+schema bump (S2b's v8).
 
 ## What is verified, and how
 
@@ -105,13 +105,11 @@ independent, one adversarial.
   955 → 997 px on every run since #374. The Last-only stats cell before the
   first working set was one caption line (16 dp) shorter than the full row, so
   the entry wells moved down when that set was saved. W1c fixed it at
-  side-by-side sizes, and W1d the two cases left: a stats value that wrapped,
-  and stacked large text (font 1.6 and above) (ADR-030).
-  `FirstWorkingSetRenderTest` holds all of them on the JVM gate. So every
-  failure the lane has shown since X3 now has a fix, and the lane is expected
-  to be green on W1d's first hosted run. That is expected, not yet seen: the
-  journey's later checks have not run since #374, so that run is worth
-  reading.
+  side-by-side sizes, and W1d the two cases left: stacked large text (font
+  1.6 and above), and a stats value that wrapped, except one too long even at
+  its label's size, which still wraps (ADR-030 lists when).
+  `FirstWorkingSetRenderTest` holds all of them on the JVM gate. The lane was
+  green on W1d's first hosted runs (#399, both runs).
 - **"Tests, lint, debug build"** is the hosted check that must be green
   ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)).
 - **GitHub-hosted runners** are not the test lane.

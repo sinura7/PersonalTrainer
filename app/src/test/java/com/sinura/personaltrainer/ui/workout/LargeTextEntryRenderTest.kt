@@ -8,12 +8,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -104,6 +106,49 @@ class LargeTextEntryRenderTest {
     @Config(qualifiers = "w412dp-h840dp-xhdpi")
     fun aRealLoadJustWiderThanTheSampleKeepsItsUnitAt412Font10() =
         keepsItsUnit(widthDp = 412, fontScale = 1f, shown = WeightUnit.LBS, kg = WeightConverter.lbsToKg(1_102.5))
+
+    /**
+     * The editor on every pixel width across the one where `1102.5 lb` starts to fit `numeralXl`
+     * beside reps. Where the row is an odd number of pixels, Compose gives the
+     * weight column the smaller half, a pixel less than the width the numeral's room is worked
+     * out from, so at the very edge a value that "fits" by that sum would leave its unit a pixel
+     * short. The room keeps one pixel back for it; here every width must lay out the digits and
+     * the unit whole, and the sweep must see the value both at its sample's size and stepped down.
+     */
+    @Test
+    @Config(qualifiers = "w560dp-h840dp-xhdpi")
+    fun aValueAtTheEdgeOfItsRoomKeepsItsUnitOnEveryPixelWidth() {
+        unit = WeightUnit.LBS
+        weightKg = WeightConverter.lbsToKg(1_102.5)
+        var widthPx by mutableStateOf(EDGE_SWEEP_FROM_PX)
+        compose.showFloor(fontScale = 1f) {
+            val density = LocalDensity.current
+            Box(Modifier.width(with(density) { widthPx.toDp() }).background(Pit)) {
+                WeightRepsEditor(
+                    enabled = true, weightKg = weightKg, reps = 10, unit = unit,
+                    loadClass = LoadClass.LOADED, loadType = LoadType.EXTERNAL, equipment = EquipmentType.MACHINE,
+                    movementKey = null, plated = false, hold = false, holdSeconds = null, holdRunning = false,
+                    holdRemainingSeconds = 0, onWeightKgChange = {}, onRepsChange = {}, onSecondsChange = {},
+                )
+            }
+        }
+        val value = SetCopy.weightEntryHero(WeightMeaning.LIFTED, weightKg, unit).value
+        val sizes = mutableSetOf<Float>()
+        for (px in EDGE_SWEEP_FROM_PX..EDGE_SWEEP_TO_PX) {
+            widthPx = px
+            compose.waitForIdle()
+            listOf(value, unit.suffix).forEach { words ->
+                val node = compose.onNode(hasText(words) and hasAnyAncestor(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER)), useUnmergedTree = true)
+                val layout = node.textLayout()
+                assertTrue(
+                    "\"$words\" must be laid out whole on a $px px row (needs ${layout.multiParagraph.intrinsics.maxIntrinsicWidth}, has ${layout.size.width})",
+                    layout.fitsItsWidth(),
+                )
+                if (words == value) sizes += layout.layoutInput.style.fontSize.value
+            }
+        }
+        assertTrue("the sweep must cross the edge: the value at its sample's size and stepped down, were $sizes", sizes.size >= 2)
+    }
 
     private fun showEditor(fontScale: Float) {
         compose.showFloor(fontScale = fontScale) {
@@ -284,6 +329,10 @@ class LargeTextEntryRenderTest {
     }
 
     private companion object {
+        /** The sweep across the edge, in whole pixels at xhdpi (380 to 520 dp): odd and even widths alike. */
+        const val EDGE_SWEEP_FROM_PX = 760
+        const val EDGE_SWEEP_TO_PX = 1_040
+
         /** How far a glyph's ink may sit from its plate's centre: a glyph's own optical offset, not a cut. */
         const val CENTRE_TOLERANCE_DP = 3f
 

@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.sp
  *
  * Three more places yield by size rather than by layout (packet W1d): a
  * stats value too wide for its cell steps down to fit one line
- * ([statValueFloor]); a hero value wider than its sample steps down the
+ * ([STAT_VALUE_SIZES]); a hero value wider than its sample steps down the
  * numeral ramp ([fittedNumeral]); and a glyph inside a plate of fixed size
  * is drawn at a fixed size ([fixedGlyph]).
  */
@@ -53,8 +53,24 @@ object LogLoopScale {
         lineHeightStyle = LineHeightStyle(alignment = LineHeightStyle.Alignment.Proportional, trim = LineHeightStyle.Trim.None),
     )
 
+    /**
+     * A stats value at its full size, laid out as [statValueFloor] is: the line every stats cell
+     * reserves and the baseline every value, drawn at any size, sits on.
+     */
+    val statValueLine: TextStyle = statValueFloor.copy(fontSize = InstrumentType.numeralSm.fontSize)
+
     /** How far a stats value steps down at a time on its way to fitting. */
-    val STAT_VALUE_STEP: TextUnit = 0.5.sp
+    private const val STAT_VALUE_STEP_SP = 0.5f
+
+    /**
+     * The sizes a stats value may be drawn at, largest first: `numeralSm`'s own size down to the
+     * caption's, [STAT_VALUE_STEP_SP] at a time. The value takes the first that holds it on one
+     * line, and the last when none does.
+     */
+    val STAT_VALUE_SIZES: List<TextUnit> = generateSequence(InstrumentType.numeralSm.fontSize.value) { it - STAT_VALUE_STEP_SP }
+        .takeWhile { it >= statValueFloor.fontSize.value }
+        .map { it.sp }
+        .toList()
 
     /**
      * The hero numeral's style for [text] in [roomPx]: the sample's [style] whenever the value
@@ -64,13 +80,15 @@ object LogLoopScale {
      * load reaches.
      */
     fun fittedNumeral(text: String, style: TextStyle, roomPx: Int, widthPx: (String, TextStyle) -> Int): TextStyle {
-        if (widthPx(text, style) <= roomPx) return style
+        // A field with no room left at all still draws its value at some positive size.
+        val room = roomPx.coerceAtLeast(1)
+        if (widthPx(text, style) <= room) return style
         listOf(InstrumentType.numeralLg, InstrumentType.numeralMd)
             .filter { it.fontSize < style.fontSize }
-            .firstOrNull { widthPx(text, it) <= roomPx }
+            .firstOrNull { widthPx(text, it) <= room }
             ?.let { return it }
         val floor = InstrumentType.numeralMd
-        val scale = (roomPx.toFloat() / widthPx(text, floor)).coerceAtMost(1f)
+        val scale = (room.toFloat() / widthPx(text, floor).coerceAtLeast(1)).coerceAtMost(1f)
         return floor.copy(fontSize = floor.fontSize * scale, lineHeight = floor.lineHeight * scale)
     }
 
@@ -80,7 +98,12 @@ object LogLoopScale {
      * would outgrow the plate and be cut.
      */
     fun fixedGlyph(style: TextStyle, density: Density): TextStyle = with(density) {
-        style.copy(fontSize = style.fontSize.value.dp.toSp(), lineHeight = style.lineHeight.value.dp.toSp())
+        require(style.fontSize.isSp) { "a fixed glyph is read from a design size in sp, was ${style.fontSize}" }
+        style.copy(
+            fontSize = style.fontSize.value.dp.toSp(),
+            // A line height in em already follows the font size, and an unspecified one the font.
+            lineHeight = if (style.lineHeight.isSp) style.lineHeight.value.dp.toSp() else style.lineHeight,
+        )
     }
 
     fun tileNumeral(fontScale: Float): TextStyle {

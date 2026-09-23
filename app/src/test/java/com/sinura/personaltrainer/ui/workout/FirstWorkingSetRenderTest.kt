@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
@@ -25,6 +26,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
@@ -40,6 +42,7 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import java.io.File
 import java.io.FileOutputStream
 import java.time.Duration
+import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -97,6 +100,9 @@ class FirstWorkingSetRenderTest {
     /** The floor's own text measurer, at its density and font scale: what a value needs at a given size. */
     private lateinit var measurer: TextMeasurer
 
+    /** The system font scale the floor is drawn at, which a test may change with the floor open. */
+    private val systemFontScale = mutableFloatStateOf(1f)
+
     @Before
     fun setUp() {
         // The ViewModel's scope runs inline on the test thread, as in FloorScreenWiringRenderTest.
@@ -120,6 +126,16 @@ class FirstWorkingSetRenderTest {
     /** One of Android's own text-size steps below the stacked layout (Android 14 and later also offer 1.5). */
     @Test
     fun theFirstWorkingSetHoldsTheEntryAt360By640AtFont13() = holdsTheEntry(widthDp = 360, heightDp = 640, fontScale = 1.3f)
+
+    /**
+     * The system font raised with the floor open: drawn first at 1.0, at 1.3 by the first working
+     * set. Compose's `minLines` keeps the two-line height it first measured for a text style and
+     * screen density, and does not measure again when only the font scale changes, so on
+     * fc6b6c57 the lone Last label reserved 1.0's two lines at 1.3 and the save grew the row.
+     */
+    @Test
+    fun raisingTheSystemFontWithTheFloorOpenStillHoldsTheEntry() =
+        holdsTheEntry(widthDp = 360, heightDp = 640, fontScale = 1.3f, openedAtFontScale = 1f)
 
     @Test
     @Config(qualifiers = "w412dp-h840dp-xhdpi")
@@ -234,17 +250,27 @@ class FirstWorkingSetRenderTest {
         weightLb: Double = 70.0,
         lastTimeLb: Double? = null,
         valuesMustShrink: Boolean = false,
+        openedAtFontScale: Float = fontScale,
     ) {
         assertTrue(!LogLoopScale.stackEntryWells(fontScale))
         val vm = openLegExtension(weightLb = weightLb, lastTimeLb = lastTimeLb)
-        show(vm, widthDp, heightDp, fontScale)
+        show(vm, widthDp, heightDp, openedAtFontScale)
+        if (openedAtFontScale != fontScale) {
+            // The floor lays out at the first size, then the system font changes under it.
+            reachTheEntry()
+            assertLastAlone()
+            systemFontScale.floatValue = fontScale
+            compose.waitForIdle()
+        }
         // The fixture's working set, whatever last time's progression would suggest instead.
         compose.runOnIdle {
             vm.setWeight(WeightConverter.lbsToKg(weightLb))
             vm.setReps(10)
         }
         compose.waitForIdle()
-        val name = "${widthDp}x$heightDp-font$fontScale" + if (weightLb != 70.0) "-${WeightConverter.formatDisplayNumber(weightLb)}lb" else ""
+        val name = "${widthDp}x$heightDp-font$fontScale" +
+            (if (weightLb != 70.0) "-${WeightConverter.formatDisplayNumber(weightLb)}lb" else "") +
+            (if (openedAtFontScale != fontScale) "-opened-at-font$openedAtFontScale" else "")
         reachTheEntry()
         assertLastAlone()
         capture("$name-before")
@@ -252,6 +278,10 @@ class FirstWorkingSetRenderTest {
         val entry = entryTop()
         val numeral = lastNumeralBaseline()
         logAndWait(vm, sets = 1)
+        // Back to where "before" was drawn and read, by the same scrolls, so the two frames can
+        // be laid over each other.
+        reachTheEntry()
+        reachTheStatsRow()
         capture("$name-after")
         val saved = vm.uiState.value.session!!.sets.single()
         assertEquals("the save must be the fixture's working set", WeightConverter.lbsToKg(weightLb), saved.weightKg, 0.001)
@@ -292,6 +322,8 @@ class FirstWorkingSetRenderTest {
         reachTheEntry()
         logAndWait(vm, sets = 1)
         assertFalse("the save must be a working set", vm.uiState.value.session!!.sets.single().isWarmup)
+        reachTheEntry()
+        reachTheStatsRow()
         capture("$name-after")
         assertEquals("stacked, the first working set must not grow the stats row", stats, statsRowHeight(), 1f)
         if (entry != null) assertEquals("stacked, the first working set must not move the numerals", entry, entryTop(), 1f)
@@ -460,6 +492,24 @@ class FirstWorkingSetRenderTest {
             val floor = measurer.measure(words, style = InstrumentType.numeralSm.copy(fontSize = InstrumentType.caption.fontSize))
                 .multiParagraph.intrinsics.maxIntrinsicWidth
             assertTrue("\"$words\" is never drawn smaller than its label's size ($drawn px against $floor)", drawn >= floor - 1f)
+            // And no smaller than it has to be: within one step of the largest size that fits
+            // the cell. The value is laid out in the cell's content width, its tagged box.
+            val cellWidth = compose.onNodeWithTag(tag).fetchSemanticsNode().size.width
+            // The sizes the owner's rule allows, set out here rather than read from the code under
+            // test: the value's own size down to its label's, half a point at a time.
+            val ladder = generateSequence(InstrumentType.numeralSm.fontSize.value) { it - 0.5f }
+                .takeWhile { it >= InstrumentType.caption.fontSize.value }
+                .map { it.sp }
+                .toList()
+            val widths = ladder.map { size ->
+                measurer.measure(words, style = InstrumentType.numeralSm.copy(fontSize = size)).multiParagraph.intrinsics.maxIntrinsicWidth
+            }
+            val largestThatFits = widths.indexOfFirst { it <= cellWidth }.takeIf { it >= 0 } ?: ladder.lastIndex
+            val drawnAt = widths.indices.minBy { abs(widths[it] - drawn) }
+            assertTrue(
+                "\"$words\" is drawn at ${ladder[drawnAt]} where ${ladder[largestThatFits]} fits its $cellWidth px cell",
+                drawnAt <= largestThatFits + 1,
+            )
             words to (drawn < full - 1f)
         }
         if (mustShrink) {
@@ -486,7 +536,8 @@ class FirstWorkingSetRenderTest {
     }
 
     private fun show(vm: ActiveWorkoutViewModel, widthDp: Int, heightDp: Int, fontScale: Float) {
-        compose.showFloor(fontScale = fontScale) {
+        systemFontScale.floatValue = fontScale
+        compose.showFloor(fontScale = systemFontScale) {
             measurer = rememberTextMeasurer()
             Box(modifier = Modifier.width(widthDp.dp).height(heightDp.dp).background(Pit)) {
                 ActiveWorkoutScreen(
