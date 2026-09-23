@@ -99,6 +99,14 @@ object MastheadCopy {
     /** Beside the date line whenever another day of the week is selected. */
     const val BACK_TO_TODAY = "Back to today"
 
+    /**
+     * The day "Back to today" goes to, or null when it should not show: today is already
+     * selected, or today is not in the week on screen (at a rollover the strip can briefly hold
+     * last week, and a route to a day it cannot show goes nowhere).
+     */
+    fun backToTodayTarget(selectedEpochDay: Long, todayEpochDay: Long, weekStartEpochDay: Long): Long? =
+        todayEpochDay.takeIf { it != selectedEpochDay && it in weekStartEpochDay..weekStartEpochDay + 6 }
+
     private fun nounFor(kind: SessionFocusKind): String = when (kind) {
         SessionFocusKind.UPPER -> "UPPER DAY"
         SessionFocusKind.LOWER -> "LOWER BODY DAY"

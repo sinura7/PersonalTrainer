@@ -2,6 +2,9 @@
 
 - **Status:** Accepted
 - **Date:** 2026-09-21
+- **Amended:** 23 September 2026 — §2: the chooser is a real gate (touch, Back,
+  TalkBack, scroll) and the permission walk waits until Settings is left
+  (whole-app audit Q1)
 - **Supersedes / Related:** [ADR-004](ADR-004-offline-core-and-entitlements.md),
   [ADR-009](ADR-009-backup-privacy-sync.md), [sync-personal-build.md](sync-personal-build.md)
 
@@ -23,6 +26,13 @@ to change that choice later.
    via Settings → Account) or continue on this phone, with an optional path into
    Settings → Backup for Drive. The choice is persisted (`save_posture_chosen`);
    the chooser does not repeat until the owner changes posture in Settings.
+   *Amended 23 Sep 2026 (whole-app audit Q1):* the chooser is a real gate over
+   the Home drawn beneath it — it is the touch target for its whole area, owns
+   Back (which leaves the app; nothing is chosen, so it asks again next time),
+   is announced as its own pane with the app beneath hidden from TalkBack, and
+   scrolls so every choice is reachable in landscape and at large text. After
+   Account or Drive, the permission walk waits until the owner is on a tab other
+   than Settings, so its dialogs never cover the sign-in or backup form.
 3. **Upgrades.** Installs that already used permissions, plan setup, Drive, or
    Account are migrated to a chosen posture without re-showing the chooser.
 4. **Settings → How you save.** Owners can switch posture and open Account or

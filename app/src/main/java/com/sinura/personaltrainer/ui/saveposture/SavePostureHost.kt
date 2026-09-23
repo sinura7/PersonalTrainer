@@ -28,14 +28,18 @@ fun SavePostureHost(
 
     val account by viewModel.account.uiState.collectAsStateWithLifecycle()
     if (!savePostureChooserShowing(coldStartIntroVisible, viewModel)) return
-    val activity = LocalContext.current.findActivity()
+    val context = LocalContext.current
 
     SavePostureChooser(
         modifier = modifier,
         syncPaused = account.sync.paused,
-        // Back leaves the app, as it does from Home, and never reaches the screen beneath.
-        // Nothing is chosen, so the question is asked again next time.
-        onBack = { activity.moveTaskToBack(true) },
+        // Back leaves the app, as Back from Home does on Android 12 and later, and never reaches
+        // the screen beneath. Nothing is chosen, so the question is asked again next time. The
+        // cost: no predictive back-to-home animation while the chooser is up.
+        onBack = { context.findActivity().moveTaskToBack(true) },
+        // Account and Drive: the choice is saved through DataStore (it lands a moment later)
+        // and the Settings page is requested at once. The permission walk waits on that pending
+        // page (LaunchPermissions.walkMayShow), so the request must not move after the save.
         onChooseAccount = {
             viewModel.chooseSavePosture(SavePosture.ACCOUNT)
             viewModel.requestSettingsSubpage(SettingsPage.ACCOUNT)

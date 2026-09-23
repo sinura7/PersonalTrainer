@@ -13,12 +13,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import com.sinura.personaltrainer.domain.SavePostureCopy
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import org.junit.Assert.assertEquals
@@ -40,6 +43,7 @@ class SavePostureChooserTest {
     private var tapsBeneath = 0
     private var backsBeneath = 0
     private var chooserBacks = 0
+    private var localChoices = 0
 
     private fun show(syncPaused: Boolean = true) {
         compose.setContent {
@@ -58,7 +62,7 @@ class SavePostureChooserTest {
                     }
                     SavePostureChooser(
                         onChooseAccount = {},
-                        onChooseLocal = {},
+                        onChooseLocal = { localChoices++ },
                         onSetUpDrive = {},
                         onBack = { chooserBacks++ },
                         syncPaused = syncPaused,
@@ -89,6 +93,35 @@ class SavePostureChooserTest {
             click(Offset(x = centerX, y = bottom - 40f))
         }
         compose.waitForIdle()
+        assertEquals(0, tapsBeneath)
+    }
+
+    @Test
+    fun aTapThatWobblesStillPressesTheButton() {
+        // A real finger moves a pixel or two between down and up. The chooser must not treat
+        // that movement as its own: a consumed move cancels the button's click.
+        show()
+        compose.onNodeWithTag(SavePostureTags.LOCAL).performTouchInput {
+            down(center)
+            moveBy(Offset(x = 0f, y = 1f))
+            moveBy(Offset(x = 1f, y = 0f))
+            up()
+        }
+        compose.waitForIdle()
+        assertEquals(1, localChoices)
+        assertEquals(0, tapsBeneath)
+    }
+
+    @Test
+    @Config(qualifiers = "w800dp-h360dp-xhdpi")
+    fun aSlowDragScrollsTheChooserToItsLastChoiceInLandscape() {
+        show()
+        compose.onNodeWithTag(SavePostureTags.DRIVE).assertIsNotDisplayed()
+        // Slow, so the first move stays inside touch slop: the drag must be picked up on the
+        // chooser's own terms, not only by a flick.
+        compose.onNodeWithTag(SavePostureTags.ROOT).performTouchInput { swipeUp(durationMillis = 2_000) }
+        compose.waitForIdle()
+        compose.onNodeWithTag(SavePostureTags.DRIVE).assertIsDisplayed()
         assertEquals(0, tapsBeneath)
     }
 

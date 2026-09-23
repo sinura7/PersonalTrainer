@@ -7,13 +7,13 @@ import org.junit.Test
 
 class LaunchPermissionsTest {
     @Test
-    fun theWalkWaitsForHomeAfterTheChoice() {
+    fun theWalkWaitsUntilSettingsIsLeftAfterTheChoice() {
         // Choosing Account or Drive opens Settings in the same moment; the dialogs used to
         // land over the sign-in form.
         assertFalse(
             LaunchPermissions.walkMayShow(
                 postureChosen = true,
-                onHome = true,
+                onTabAwayFromSettings = true,
                 settingsPageOpening = true,
                 alreadyShowing = false,
             ),
@@ -21,7 +21,7 @@ class LaunchPermissionsTest {
         assertFalse(
             LaunchPermissions.walkMayShow(
                 postureChosen = true,
-                onHome = false,
+                onTabAwayFromSettings = false,
                 settingsPageOpening = false,
                 alreadyShowing = false,
             ),
@@ -29,7 +29,7 @@ class LaunchPermissionsTest {
         assertTrue(
             LaunchPermissions.walkMayShow(
                 postureChosen = true,
-                onHome = true,
+                onTabAwayFromSettings = true,
                 settingsPageOpening = false,
                 alreadyShowing = false,
             ),
@@ -41,7 +41,7 @@ class LaunchPermissionsTest {
         assertFalse(
             LaunchPermissions.walkMayShow(
                 postureChosen = false,
-                onHome = true,
+                onTabAwayFromSettings = true,
                 settingsPageOpening = false,
                 alreadyShowing = false,
             ),
@@ -49,11 +49,11 @@ class LaunchPermissionsTest {
     }
 
     @Test
-    fun aWalkAlreadyShowingSurvivesLeavingHome() {
+    fun aWalkAlreadyShowingSurvivesNavigatingAway() {
         assertTrue(
             LaunchPermissions.walkMayShow(
                 postureChosen = true,
-                onHome = false,
+                onTabAwayFromSettings = false,
                 settingsPageOpening = true,
                 alreadyShowing = true,
             ),

@@ -52,7 +52,12 @@ class FirstLaunchRenderTest {
     fun rendersTheChooserAtEveryPhoneSizeAndTextScale() {
         SIZES.forEach { (width, height) ->
             SCALES.forEach { scale ->
-                render(name = "chooser-${width}x$height-font$scale", widthDp = width, heightDp = height, fontScale = scale) {
+                render(
+                    name = "chooser-${width}x$height-font$scale",
+                    widthDp = width,
+                    heightDp = height,
+                    fontScale = scale,
+                ) {
                     SavePostureChooser(
                         onChooseAccount = {},
                         onChooseLocal = {},
@@ -97,7 +102,7 @@ class FirstLaunchRenderTest {
                     // Keyed so each frame starts fresh: otherwise the chooser keeps the previous
                     // frame's scroll position.
                     key(name) {
-                        Box(Modifier.width(widthDp.dp).height(heightDp.dp).background(Pit)) { content() }
+                        Box(modifier = Modifier.width(widthDp.dp).height(heightDp.dp).background(Pit)) { content() }
                     }
                 }
             }
@@ -111,7 +116,11 @@ class FirstLaunchRenderTest {
         // window ourselves, then crop to the frame.
         val bitmap = compose.runOnIdle {
             val decor = compose.activity.window.decorView
-            val full = Bitmap.createBitmap(decor.width.coerceAtLeast(1), decor.height.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+            val full = Bitmap.createBitmap(
+                decor.width.coerceAtLeast(1),
+                decor.height.coerceAtLeast(1),
+                Bitmap.Config.ARGB_8888,
+            )
             decor.draw(Canvas(full))
             val px = decor.resources.displayMetrics.density
             Bitmap.createBitmap(

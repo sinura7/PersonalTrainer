@@ -341,8 +341,25 @@ class MastheadCopyTest {
     fun aRestDayBehindYouIsStillARestDay() {
         assertEquals(
             "REST DAY",
-            MastheadCopy.headline(day(SessionFocusKind.RECOVERY).copy(isRest = true), loggedOnDay = false, liftCount = null, relation = DayRelation.PAST),
+            MastheadCopy.headline(
+                day(SessionFocusKind.RECOVERY).copy(isRest = true),
+                loggedOnDay = false,
+                liftCount = null,
+                relation = DayRelation.PAST,
+            ),
         )
+    }
+
+    @Test
+    fun backToTodayShowsOnlyForAnotherDayInTheWeekOnScreen() {
+        val monday = 20_000L
+        val wednesday = monday + 2
+        fun target(selected: Long, today: Long) =
+            MastheadCopy.backToTodayTarget(selectedEpochDay = selected, todayEpochDay = today, weekStartEpochDay = monday)
+        assertEquals(wednesday, target(selected = monday, today = wednesday))
+        assertNull(target(selected = wednesday, today = wednesday))
+        // At a rollover the strip can still hold last week, which today is not in.
+        assertNull(target(selected = monday, today = monday + 7))
     }
 
     @Test

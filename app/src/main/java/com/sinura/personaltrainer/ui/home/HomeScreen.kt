@@ -2,8 +2,8 @@ package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -160,6 +160,13 @@ fun HomeScreen(
     val focusEpochDay by viewModel.focusEpochDay.collectAsStateWithLifecycle()
     val debugUpdate = rememberDebugUpdatePort()
     val updateUi by debugUpdate.ui.collectAsStateWithLifecycle()
+    // Someone looking at today at midnight is looking at today, not at what just became
+    // yesterday; a day chosen on purpose stays chosen.
+    var lastToday by rememberSaveable { mutableLongStateOf(today) }
+    LaunchedEffect(today) {
+        if (selectedEpochDay == lastToday) selectedEpochDay = today
+        lastToday = today
+    }
     LaunchedEffect(weekStart, today) {
         val end = weekStart + 6
         if (selectedEpochDay !in weekStart..end) {
@@ -280,13 +287,11 @@ fun HomeScreen(
                         agenda = selectedAgenda,
                         relation = DayRelation.of(epochDay = selectedEpochDay, todayEpochDay = today),
                     ),
-                    // Only when today is in the week on screen: at a rollover the strip can
-                    // briefly hold last week, and a route to a day it cannot show goes nowhere.
-                    onBackToToday = if (selectedEpochDay != today && today in weekStart..weekStart + 6) {
-                        { selectedEpochDay = today }
-                    } else {
-                        null
-                    },
+                    onBackToToday = MastheadCopy.backToTodayTarget(
+                        selectedEpochDay = selectedEpochDay,
+                        todayEpochDay = today,
+                        weekStartEpochDay = weekStart,
+                    )?.let { target -> { selectedEpochDay = target } },
                 )
                 WeekStrip(
                     cells = weekCells,

@@ -56,8 +56,8 @@ object SavePostureTags {
 /**
  * The first-launch question: where does this phone keep your training?
  *
- * It is drawn over Home, which stays composed underneath. So the chooser owns every touch that
- * lands on it (taps on its empty space used to fall through to Home and the tab bar), owns
+ * It is drawn over Home, which stays composed underneath. So the chooser is the target of every
+ * touch that lands on it (taps on its empty space used to fall through to Home and the tab bar), owns
  * Back (which used to reach the screen beneath), and is announced as its own pane. TalkBack
  * isolation needs the screen beneath hidden too — see [hiddenUnderFirstLaunchOverlay].
  */
@@ -79,7 +79,7 @@ fun SavePostureChooser(
         modifier = modifier
             .fillMaxSize()
             .background(Pit)
-            .consumeAllPointerInput()
+            .blockTouchesBeneath()
             .semantics { paneTitle = SavePostureCopy.CHOOSER_HEADLINE }
             .testTag(SavePostureTags.ROOT),
     ) {
@@ -181,15 +181,16 @@ fun SavePostureChooser(
 }
 
 /**
- * Takes every pointer event that reaches this node, after its children have had theirs. A
- * pointer-input node also stops hit-testing at this layer, so nothing drawn beneath it is
- * touched.
+ * Makes this layer a touch target without acting on any touch. Hit-testing stops at the top-most
+ * sibling with a pointer-input node, so nothing drawn beneath the chooser is reached.
+ *
+ * It must not consume: the chooser's buttons and its scroll check for consumed moves in the
+ * Final pass, after this parent's Main pass, and cancel. A finger that wobbles a pixel between
+ * down and up would then press nothing.
  */
-private fun Modifier.consumeAllPointerInput(): Modifier = pointerInput(Unit) {
+private fun Modifier.blockTouchesBeneath(): Modifier = pointerInput(Unit) {
     awaitPointerEventScope {
-        while (true) {
-            awaitPointerEvent().changes.forEach { it.consume() }
-        }
+        while (true) awaitPointerEvent()
     }
 }
 

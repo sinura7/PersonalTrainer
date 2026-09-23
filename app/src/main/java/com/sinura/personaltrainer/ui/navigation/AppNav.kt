@@ -208,6 +208,16 @@ internal val shippingTabs = listOf(
 )
 
 /**
+ * Where the first-open permission walk may put its dialogs up: any tab but Settings, where
+ * Account or Drive setup may still be open, and no pushed screen. A null route never counts.
+ * The back stack is collected with a null initial value, so after a rotation or a text-size
+ * change on Settings the first frame has no route at all; treating that as Home put the walk
+ * over the sign-in form. On a cold start it costs one frame.
+ */
+internal fun routeAllowsPermissionWalk(route: String?): Boolean =
+    route != null && shippingTabs.any { it.route != Route.Settings && it.matchPattern == route }
+
+/**
  * Where the start sheet's actions land. Body, History, and Plan share
  * one mapping so a host never invents a mode string. `past` is not
  * cardio or mixed, so the composer reads it as STRENGTH — "Log a past
@@ -340,12 +350,10 @@ fun PersonalTrainerNav(
     val finishedActivityNavigation by liveBarViewModel.finishedActivityNavigation.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-    // Before the back stack emits, the start destination (Home) is what is on screen.
-    val onHome = navBackStackEntry == null || currentDestination?.route == Route.Home.path
     var permissionWalkShowing by rememberSaveable { mutableStateOf(false) }
     val permissionWalkMayShow = LaunchPermissions.walkMayShow(
         postureChosen = savePostureUi.loaded && savePostureUi.chosen,
-        onHome = onHome,
+        onTabAwayFromSettings = routeAllowsPermissionWalk(route = currentDestination?.route),
         settingsPageOpening = pendingSettingsSubpage != null,
         alreadyShowing = permissionWalkShowing,
     )
