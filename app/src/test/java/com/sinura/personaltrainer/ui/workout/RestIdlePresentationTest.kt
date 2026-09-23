@@ -69,8 +69,8 @@ class RestIdlePresentationTest {
 
     @Test
     fun idleFloorNamesPlannedRestAndRingYieldsToLargeText() {
+        // The idle page's "Planned rest" is rendered in RestPagesRenderTest.
         val floor = readOwned("ui/workout/RestTimerScreen.kt")
-        assertTrue(floor.contains("else -> \"Planned rest\""))
         assertTrue(floor.contains("remainingSeconds = if (rest.running) safeRemaining else 0"))
         assertTrue(floor.contains("if (showRing)"))
         assertFalse(floor.contains("\"Next rest\""))
@@ -79,7 +79,7 @@ class RestIdlePresentationTest {
     @Test
     fun talkBackIdleClockAndStartMatchTheInstrument() {
         assertEquals(
-            "Rest is not running. Rest 2:30. Tap to change duration.",
+            "Rest is not running. Planned rest 2:30. Tap to change duration.",
             RestIdleCopy.dockSpoken(clock = "2:30", afterWarmup = false),
         )
         assertEquals(

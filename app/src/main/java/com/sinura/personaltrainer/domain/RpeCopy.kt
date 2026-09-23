@@ -9,7 +9,20 @@ package com.sinura.personaltrainer.domain
  */
 object RpeCopy {
     const val OPTIONAL = "Optional."
-    const val LABEL = "RPE · OPTIONAL"
+    /**
+     * The track's heading. "RPE" alone was unfamiliar (design audit D12); effort is the word
+     * a lifter uses, and "optional" says the set logs without it. The help keeps the term.
+     */
+    const val LABEL = "Effort · optional"
+
+    /**
+     * The heading where [LABEL] would not fit beside the help mark and Clear: large text or a
+     * small phone. TalkBack still hears [LABEL_SPOKEN].
+     */
+    const val SHORT_LABEL = "Effort"
+    const val LABEL_SPOKEN = "Effort, optional"
+    const val HELP_SPOKEN = "Effort help"
+    const val CLEAR = "Clear"
     const val HELPER = "6 = four reps left · 10 = max"
     const val HELPER_DISMISS = "Got it"
     const val WARMUP_REASON = "Warm-up"
@@ -44,6 +57,17 @@ object RpeCopy {
         9 -> "one rep left"
         10 -> "max"
         else -> null
+    }
+
+    /**
+     * Under the track once a value is chosen, in place of its Easy / Max effort ends: what the
+     * choice means, so it can be read without opening the help (D12). The same row, so it
+     * costs no height on every set.
+     */
+    fun selectedLine(value: Int): String? = when (val body = meaning(value)) {
+        null -> null
+        "max" -> "RPE $value · max effort"
+        else -> "RPE $value · about $body"
     }
 
     /**

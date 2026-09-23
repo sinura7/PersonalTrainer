@@ -43,6 +43,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestIdleCopy
+import com.sinura.personaltrainer.domain.RestNudgeCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.TalkBackPolicy
@@ -69,13 +70,15 @@ import kotlinx.coroutines.delay
 
 /**
  * The rest clock as its own quiet instrument in the dock: a small countdown ring, the
- * REST kicker, the time, the target, and −15 / +15 / Skip.
+ * REST kicker, the time left, "Planned 2:00", and −15 / +15 / Skip ([RestNudgeCopy], the
+ * same three as the rest page's).
  *
  * One card, three moods. Running is cyan and draining; the last ten seconds turn Warn
  * with the words to match; done flashes gold with "Back to the bar" for
  * [Motion.FINISHED_DWELL_MS], then the card is the same instrument at rest: dim, the
- * planned length, Start rest. The clock itself is the timer service's — this reads its
- * state and sends it commands, and never counts on its own (ADR-012).
+ * length with "Planned" under it, Start rest. The clock itself is the timer
+ * service's — this reads its state and sends it commands, and never counts on its own
+ * (ADR-012).
  */
 @Composable
 internal fun RestTimerCard(
@@ -134,14 +137,15 @@ internal fun RestTimerCard(
     val targetClock = RestTimer.formatClock(safeTotal)
     val caption = when {
         justFinished -> REST_COMPLETE
-        running -> "$TARGET $targetClock"
+        // Running, the clock is the time left and the plan is said apart from it (D11).
+        running -> RestIdleCopy.plannedBeside(targetClock)
         afterWarmup -> RestIdleCopy.afterWarmupHint()
-        else -> PLANNED
+        else -> RestIdleCopy.PLANNED
     }
     val spoken = when {
         justFinished -> "$kicker. $REST_COMPLETE."
         running -> buildString {
-            append("Rest $clock remaining. $TARGET $targetClock.")
+            append("Rest $clock remaining. ${RestIdleCopy.plannedSpoken(targetClock)}.")
             if (urgent) append(" Last ten seconds.")
             append(" Open rest timer.")
         }
@@ -155,7 +159,7 @@ internal fun RestTimerCard(
     val measurer = rememberTextMeasurer()
     val controls = when {
         justFinished -> emptyList()
-        running -> listOf(MINUS, PLUS, SKIP)
+        running -> listOf(RestNudgeCopy.MINUS, RestNudgeCopy.PLUS, RestNudgeCopy.SKIP)
         offerSetClock -> listOf(SetStopwatchCopy.START, START_REST)
         else -> listOf(START_REST)
     }
@@ -243,19 +247,19 @@ internal fun RestTimerCard(
                     segments = if (running) {
                         listOf(
                             RestSegment(
-                                label = MINUS,
-                                spoken = "Minus ${RestTimer.NUDGE_SECONDS} seconds",
+                                label = RestNudgeCopy.MINUS,
+                                spoken = RestNudgeCopy.MINUS_SPOKEN,
                                 tag = WorkoutTestTags.REST_MINUS,
                                 onClick = { onNudge(-RestTimer.NUDGE_SECONDS) },
                             ),
                             RestSegment(
-                                label = PLUS,
-                                spoken = "Plus ${RestTimer.NUDGE_SECONDS} seconds",
+                                label = RestNudgeCopy.PLUS,
+                                spoken = RestNudgeCopy.PLUS_SPOKEN,
                                 tag = WorkoutTestTags.REST_PLUS,
                                 onClick = { onNudge(RestTimer.NUDGE_SECONDS) },
                             ),
                             RestSegment(
-                                label = SKIP,
+                                label = RestNudgeCopy.SKIP,
                                 spoken = null,
                                 tag = WorkoutTestTags.REST_SKIP,
                                 onClick = onSkip,
@@ -331,10 +335,5 @@ private fun RestMiniRing(
 }
 
 private const val LAST_SECONDS = 10
-private val MINUS = "−${RestTimer.NUDGE_SECONDS}"
-private val PLUS = "+${RestTimer.NUDGE_SECONDS}"
-private const val SKIP = "Skip"
 private const val START_REST = "Start rest"
-private const val TARGET = "Target"
-private const val PLANNED = "Planned"
 private const val REST_COMPLETE = "Rest complete"

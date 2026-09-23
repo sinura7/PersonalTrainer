@@ -80,8 +80,8 @@ import org.robolectric.annotation.GraphicsMode
  * viewModel::startSelectedRest`, `onSelectRestDuration = viewModel::selectRestDuration`,
  * `onNudgeRest = viewModel::nudgeRest`, `onRpe = viewModel::setRpe`, `recommendedRpe =
  * microRec?.nextRpe`, `onApply = viewModel::applyMicroRec`, `compact = coachCompact`,
- * `BackHandler(…) { keepAndExit() }`). W1b rewires the rest controls and the coach goal,
- * and a renamed reference would fail those lines while a broken tap passed.
+ * `BackHandler(…) { keepAndExit() }`). A renamed reference failed those lines while a broken
+ * tap passed; W1b reworded the rest controls and wired the coach goal against these taps.
  *
  * The phone check of 12 September rides along as behaviour, beside its source bans: the
  * header's X and system Back leave with the session kept and no popup, Finish owns the end,
@@ -168,8 +168,7 @@ class FloorRestAndCoachWiringRenderTest {
         show(vm)
         val planned = vm.restTimerState.value.totalSeconds
         idleTile().performClick()
-        // W1b changes this: the sheet's own +15 gives way to the ±15 set shared with the rest
-        // page; today it steps the planned rest through the ViewModel's nudge.
+        // The sheet's +15 steps the planned rest through the ViewModel's nudge.
         compose.onNodeWithTag("workout-rest-sheet-plus").performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.totalSeconds == planned + 15 }
         // Off the presets now, the Custom chip (at the end of the preset row) carries the
@@ -197,7 +196,6 @@ class FloorRestAndCoachWiringRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.running }
         val started = vm.restTimerState.value.remainingSeconds
-        // W1b changes this: the running +15 becomes the ±15 set shared with the rest page.
         compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.remainingSeconds == started + 15 }
         compose.onNode(hasClickAction() and hasAnyAncestor(hasTestTag(WorkoutTestTags.REST_BAR)) and hasText("REST")).performClick()
@@ -295,9 +293,7 @@ class FloorRestAndCoachWiringRenderTest {
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
         onIdleCard("WARM-UP").assertIsDisplayed()
-        // W1b changes this: its planned-rest caption ("Planned rest · 1:30") takes this line's
-        // place on the idle card, so the warm-up words may be reworded with it. What must hold
-        // is below: logging a warm-up leaves rest idle.
+        // After a warm-up the idle card says why rest did not start in place of "Planned".
         onIdleCard("Warm-ups do not start rest").assertIsDisplayed()
         assertTrue("a warm-up does not start rest", !vm.restTimerState.value.running)
     }
@@ -412,19 +408,46 @@ class FloorRestAndCoachWiringRenderTest {
     }
 
     @Test
-    fun theFloorsCoachSpeaksWithoutTheTrainingGoal() {
+    fun theFloorsCoachSpeaksWithTheTrainingGoal() {
         runBlocking { deps.preferencesRepository.setTrainingGoal(TrainingGoal.STRENGTH) }
         // Ten of ten at RPE 7: reps in the tank, add weight.
+        val vm = openLegExtension(loggedSets = listOf(set(reps = 10, rpe = 7)))
+        show(vm)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value?.explanation?.contains("strength bias") == true }
+        vm.setWeight(FLOOR_KG70)
+        compose.waitForIdle()
+        scrollTo(WorkoutTestTags.NEXT_SET)
+        // The card keeps the rule and Target RPE, drawn whole: text found by its words can
+        // still be cut on screen, so the last drawn line is checked too.
+        assertReasonDrawnWhole("Had more in you — add weight · Target RPE 7")
+        // The goal set in Settings reaches the floor (audit C-1, W1b): a Strength lifter reads
+        // the strength reason on the Why sheet, not the goal-free one it used to get.
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        compose.onNodeWithText(
+            "Rule: Had more in you — add weight · strength bias keeps reps before big jumps",
+            substring = true,
+        ).assertIsDisplayed()
+    }
+
+    @Test
+    fun aGeneralGoalKeepsThePlainReason() {
+        // The default goal adds nothing, so the card's reason is the rule alone.
         val vm = openLegExtension(loggedSets = listOf(set(reps = 10, rpe = 7)))
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         vm.setWeight(FLOOR_KG70)
         compose.waitForIdle()
         scrollTo(WorkoutTestTags.NEXT_SET)
-        // W1b changes this: with the goal wired through to the workout, a Strength lifter reads
-        // "… · strength bias keeps reps before big jumps" here; today the floor drops the goal.
-        compose.onNode(hasText("Had more in you — add weight · Target RPE 7"), useUnmergedTree = true).assertIsDisplayed()
+        assertReasonDrawnWhole("Had more in you — add weight · Target RPE 7")
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        compose.onNodeWithText("Rule: Had more in you — add weight\n", substring = true).assertIsDisplayed()
         compose.onAllNodesWithText("strength bias", substring = true, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    private fun assertReasonDrawnWhole(reason: String) {
+        val layout = compose.onNode(hasText(reason), useUnmergedTree = true).assertIsDisplayed().textLayout()
+        assertTrue("\"$reason\" is not cut short", !layout.isLineEllipsized(layout.lineCount - 1))
+        assertTrue("\"$reason\" is laid out whole", !layout.hasVisualOverflow)
     }
 
     @Test

@@ -47,8 +47,9 @@ import org.robolectric.annotation.Config
  * `onEditDuration = { durationSheet = true }`, `onNudge = events.onNudgeRest`, `onStop =
  * events.onStopSetClock.takeIf { timer.stopwatchRunning && !holdActive }`, the `"Rest …"` /
  * `"Hold …"` / `"Timers"` label lines and the `error / undo / Cancel edit / honesty /
- * caption` order. W1b rewires the rest controls (one ±15 set for the dock and the rest page;
- * "Planned rest · 1:30"), so each wire is held here as a tap and the callback it reaches.
+ * caption` order. Each wire is held here as a tap and the callback it reaches, so W1b could
+ * reword the rest controls (one ±15 set for the dock and the rest page; "Planned rest · 2:00")
+ * without these checks reading source text.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
@@ -119,8 +120,7 @@ class WorkoutDockTimerRenderTest {
     fun theSheetsStepsCustomLengthAndStartRestReachTheDock() {
         showDock(restAt())
         cardTile(WorkoutTestTags.REST_IDLE, clock = "2:00").performClick()
-        // W1b changes this: the sheet's own ±15 pair gives way to the one set shared with the
-        // rest page; today it writes the planned length through the dock's nudge.
+        // The sheet's ±15 pair writes the planned length through the dock's nudge.
         compose.onNodeWithTag("workout-rest-sheet-minus").performClick()
         compose.onNodeWithTag("workout-rest-sheet-plus").performClick()
         assertEquals(listOf(-15, 15), nudges)
@@ -179,7 +179,6 @@ class WorkoutDockTimerRenderTest {
         showDock(restRunning())
         compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertDoesNotExist()
-        // W1b changes this: the running ±15 become the one set shared with the rest page.
         compose.onNodeWithTag(WorkoutTestTags.REST_MINUS).performClick()
         compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).performClick()
         assertEquals(listOf(-15, 15), nudges)

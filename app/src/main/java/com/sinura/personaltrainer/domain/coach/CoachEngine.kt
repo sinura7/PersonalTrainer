@@ -49,6 +49,7 @@ data class CoachSuggestion(
         restSeconds = restSeconds,
         anotherSetAdvised = anotherSetAdvised,
         warmupSets = warmupSets,
+        explanation = explanationShort,
     )
 
     fun primaryEvidence(): EvidenceEntry? =

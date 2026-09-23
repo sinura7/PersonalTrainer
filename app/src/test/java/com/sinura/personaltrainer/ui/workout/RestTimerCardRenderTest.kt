@@ -44,16 +44,17 @@ import org.robolectric.annotation.Config
  * three moods, and what each tap does.
  *
  * At rest it is dim and shows the planned length, and a tap edits that length; running it
- * counts down in cyan beside its target, and a tap opens the rest page; the last ten seconds
+ * counts down in cyan beside the planned length, and a tap opens the rest page; the last ten seconds
  * turn Warn and say so; done, it flashes "Back to the bar" in gold, announces that once, and
  * after the dwell settles back to rest. Its controls are Start rest (with Time set when the
  * lift allows) at rest and −15 / +15 / Skip while running.
  *
  * All of this was held as lines of RestTimerCard.kt (`else -> PLANNED`,
  * `onClick = if (idle) onEditDuration else onOpenRest`, `running -> listOf(MINUS, PLUS,
- * SKIP)`, one `liveRegion = LiveRegionMode.Polite`). W1b rewrites exactly those lines: the
- * "Planned" caption and the idle sentence become "Planned rest · 1:30", and the dock and the
- * rest page share one ±15 set. The checks W1b changes on purpose say so where they stand.
+ * SKIP)`, one `liveRegion = LiveRegionMode.Polite`). W1b (design audit D11) names the planned
+ * length one way: "Planned" under the idle clock, "Planned 2:00" under the running one, apart
+ * from the time left, and "Planned rest 2:00" aloud, as the rest page says it. Its −15 / +15 /
+ * Skip are the rest page's and the lock screen's too (RestPagesRenderTest).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
@@ -112,11 +113,10 @@ class RestTimerCardRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertDoesNotExist()
         val tile = tile(WorkoutTestTags.REST_IDLE, clock = "2:00").assert(isButton).assertHeightIsAtLeast(Metrics.touchMin)
         compose.onAllNodesWithText("0:45", useUnmergedTree = true).assertCountEquals(0)
+        // The clock at rest is the length the next rest starts with, and says so (D11).
         word("REST").assertIsDisplayed()
-        // W1b changes this: "Planned rest · 1:30" replaces the "Planned" caption and this
-        // sentence; the dock and the rest page then say the planned length the same way.
         word("Planned").assertIsDisplayed()
-        assertEquals(listOf("Rest is not running. Rest 2:00. Tap to change duration."), tile.spokenDescriptions())
+        assertEquals(listOf("Rest is not running. Planned rest 2:00. Tap to change duration."), tile.spokenDescriptions())
         // Dim at rest: the clock and its kicker are secondary ink, a numeral in the medium size.
         assertEquals(TextSecondary, inkOf("2:00"))
         assertEquals(TextSecondary, inkOf("REST"))
@@ -164,7 +164,7 @@ class RestTimerCardRenderTest {
     }
 
     @Test
-    fun runningTheCardCountsDownBesideItsTargetAndATapOpensTheRestPage() {
+    fun runningTheCardCountsDownBesideThePlannedLengthAndATapOpensTheRestPage() {
         running.value = true
         remaining.value = 92
         showCard()
@@ -172,8 +172,10 @@ class RestTimerCardRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertDoesNotExist()
         val tile = tile(WorkoutTestTags.REST_BAR, clock = "1:32").assert(isButton)
         word("REST").assertIsDisplayed()
-        word("Target 2:00").assertIsDisplayed()
-        assertEquals(listOf("Rest 1:32 remaining. Target 2:00. Open rest timer."), tile.spokenDescriptions())
+        // The time left is the clock; the plan is said apart from it, in the idle card's word.
+        // That it stays on one line is measured in RestTimerCardFitRenderTest.
+        word("Planned 2:00").assertIsDisplayed()
+        assertEquals(listOf("Rest 1:32 remaining. Planned rest 2:00. Open rest timer."), tile.spokenDescriptions())
         // Bright while it runs: the time in primary ink, the kicker in rest cyan. The kicker
         // is a label inside the tile, not a heading TalkBack would jump to.
         assertEquals(TextPrimary, inkOf("1:32"))
@@ -190,8 +192,7 @@ class RestTimerCardRenderTest {
         running.value = true
         remaining.value = 92
         showCard()
-        // W1b changes this: one ±15 set is shared by the dock and the full rest screen, so
-        // these two controls move; today each is its own segment on the card.
+        // The rest page and the lock screen show these three in the same words and order.
         val minus = compose.onNodeWithTag(WorkoutTestTags.REST_MINUS).assert(isButton).assertHeightIsAtLeast(Metrics.touchMin)
         val plus = compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).assert(isButton).assertHeightIsAtLeast(Metrics.touchMin)
         assertEquals(listOf("−15"), minus.mergedTexts())
@@ -219,12 +220,12 @@ class RestTimerCardRenderTest {
         remaining.value = 11
         showCard()
         val tile = tile(WorkoutTestTags.REST_BAR, clock = "0:11")
-        assertEquals(listOf("Rest 0:11 remaining. Target 2:00. Open rest timer."), tile.spokenDescriptions())
+        assertEquals(listOf("Rest 0:11 remaining. Planned rest 2:00. Open rest timer."), tile.spokenDescriptions())
         assertEquals(RestCyan, inkOf("REST"))
         remaining.value = 10
         compose.waitForIdle()
         assertEquals(
-            listOf("Rest 0:10 remaining. Target 2:00. Last ten seconds. Open rest timer."),
+            listOf("Rest 0:10 remaining. Planned rest 2:00. Last ten seconds. Open rest timer."),
             tile(WorkoutTestTags.REST_BAR, clock = "0:10").spokenDescriptions(),
         )
         assertEquals(Warn, inkOf("REST"))
@@ -311,9 +312,8 @@ class RestTimerCardRenderTest {
         word("WARM-UP").assertIsDisplayed()
         word("Warm-ups do not start rest").assertIsDisplayed()
         compose.onAllNodesWithText("Planned", useUnmergedTree = true).assertCountEquals(0)
-        // W1b changes this: the planned-rest wording of the idle sentence.
         assertEquals(
-            listOf("Rest is not running. Warm-ups do not start rest. Rest 2:00. Tap to change duration."),
+            listOf("Rest is not running. Warm-ups do not start rest. Planned rest 2:00. Tap to change duration."),
             tile.spokenDescriptions(),
         )
         compose.onNodeWithTag(WorkoutTestTags.START_REST).assertIsDisplayed()
@@ -328,10 +328,10 @@ class RestTimerCardRenderTest {
         showCard()
         val tile = tile(WorkoutTestTags.REST_BAR, clock = "1:32")
         word("REST").assertIsDisplayed()
-        word("Target 2:00").assertIsDisplayed()
+        word("Planned 2:00").assertIsDisplayed()
         compose.onAllNodesWithText("WARM-UP", useUnmergedTree = true).assertCountEquals(0)
         compose.onAllNodesWithText("Warm-ups do not start rest", useUnmergedTree = true).assertCountEquals(0)
-        assertEquals(listOf("Rest 1:32 remaining. Target 2:00. Open rest timer."), tile.spokenDescriptions())
+        assertEquals(listOf("Rest 1:32 remaining. Planned rest 2:00. Open rest timer."), tile.spokenDescriptions())
     }
 
     @Test

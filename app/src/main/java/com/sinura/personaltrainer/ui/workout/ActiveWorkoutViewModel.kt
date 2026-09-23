@@ -19,6 +19,7 @@ import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
+import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.FloorTimerCue
@@ -612,23 +613,30 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }.combine(lastPerformance) { core, last ->
             core.copy(lastPerformance = last)
         },
-        combine(editingSetId, lighterWeek, container.preferencesRepository.weightUnit) { editing, lighter, unit ->
-            Triple(editing, lighter, unit)
+        combine(
+            editingSetId,
+            lighterWeek,
+            container.preferencesRepository.weightUnit,
+            container.preferencesRepository.coachPreferences,
+        ) { editing, lighter, unit, coach ->
+            MicroRecExtras(editingSetId = editing, lighterWeek = lighter, unit = unit, coachPrefs = coach)
         },
     ) { core, extras ->
-        cachedWeightUnit = extras.third
+        cachedWeightUnit = extras.unit
         workoutMicroRec(
             session = core.session,
             selectedExerciseId = core.selected,
             draft = core.draft,
             hint = core.hint,
-            editingSetId = extras.first,
-            lighterWeek = extras.second,
-            unit = extras.third,
+            editingSetId = extras.editingSetId,
+            lighterWeek = extras.lighterWeek,
+            unit = extras.unit,
             wantAnotherSet = core.wantAnother,
             nowMs = time.nowMillis(),
             todayEpochDay = todayEpochDay(),
             historySets = core.lastPerformance?.sets.orEmpty(),
+            // The goal set in Settings reaches the floor's coach (audit C-1); it was DEFAULT.
+            coachPrefs = extras.coachPrefs,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -855,6 +863,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     nowMs = time.nowMillis(),
                     todayEpochDay = todayEpochDay(),
                     historySets = lastPerformance.value?.sets.orEmpty(),
+                    coachPrefs = container.preferencesRepository.coachPreferences.first(),
                 )?.restSeconds,
             )
             if (!isCurrentPrefill(exerciseId, generation)) return
@@ -2520,6 +2529,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val hint: ProgressionHint?,
         val wantAnother: Boolean,
         val lastPerformance: ExerciseSessionSummary? = null,
+    )
+
+    private data class MicroRecExtras(
+        val editingSetId: String?,
+        val lighterWeek: Boolean,
+        val unit: WeightUnit,
+        val coachPrefs: CoachPreferences,
     )
 
     private data class WorkoutExtras(

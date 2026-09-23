@@ -85,6 +85,7 @@ import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.RestBatteryCopy
 import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.RestIdleCopy
+import com.sinura.personaltrainer.domain.RestNudgeCopy
 import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
@@ -154,7 +155,7 @@ fun FloorInstrumentBar(
         val measurer = rememberTextMeasurer()
         val clockWidth = measurer.measure(clock, style = InstrumentType.numeralMd, softWrap = false).size.width
         val labels = when {
-            showRestControls -> listOf("−15", "+15", "Skip")
+            showRestControls -> listOf(RestNudgeCopy.MINUS, RestNudgeCopy.PLUS, RestNudgeCopy.SKIP)
             showIdleStart -> if (offerSetClock) listOf(SetStopwatchCopy.START, "Start rest") else listOf("Start rest")
             onStop != null -> listOf(SetStopwatchCopy.STOP)
             else -> emptyList()
@@ -248,23 +249,23 @@ fun FloorInstrumentBar(
                 val controlModifier = if (wrapControls) Modifier.weight(1f) else Modifier
                 if (showRestControls) {
                     RestControl(
-                        label = "−15",
-                        spoken = "Minus 15 seconds",
+                        label = RestNudgeCopy.MINUS,
+                        spoken = RestNudgeCopy.MINUS_SPOKEN,
                         onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
                         modifier = controlModifier
                             .widthIn(min = Metrics.touchMin)
                             .testTag("workout-rest-minus"),
                     )
                     RestControl(
-                        label = "+15",
-                        spoken = "Plus 15 seconds",
+                        label = RestNudgeCopy.PLUS,
+                        spoken = RestNudgeCopy.PLUS_SPOKEN,
                         onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
                         modifier = controlModifier
                             .widthIn(min = Metrics.touchMin)
                             .testTag("workout-rest-plus"),
                     )
                     RestControl(
-                        label = "Skip",
+                        label = RestNudgeCopy.SKIP,
                         onClick = onSkip,
                         confirm = true,
                         modifier = controlModifier
@@ -529,16 +530,16 @@ fun RestDurationSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 RestControl(
-                    label = "−15",
-                    spoken = "Minus 15 seconds",
+                    label = RestNudgeCopy.MINUS,
+                    spoken = RestNudgeCopy.MINUS_SPOKEN,
                     onClick = { onNudge(-RestTimer.NUDGE_SECONDS) },
                     modifier = Modifier
                         .widthIn(min = Metrics.touchMin)
                         .testTag("workout-rest-sheet-minus"),
                 )
                 RestControl(
-                    label = "+15",
-                    spoken = "Plus 15 seconds",
+                    label = RestNudgeCopy.PLUS,
+                    spoken = RestNudgeCopy.PLUS_SPOKEN,
                     onClick = { onNudge(RestTimer.NUDGE_SECONDS) },
                     modifier = Modifier
                         .widthIn(min = Metrics.touchMin)
@@ -733,6 +734,49 @@ fun RestControl(
             color = TextPrimary,
             maxLines = 2,
             textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/**
+ * The running rest's −15 / +15 / Skip as three equal buttons, on the rest page and on the
+ * lock-screen rest page: one row, so the two cannot drift apart in words, order or step
+ * again ([RestNudgeCopy]). The dock card shows the same three as segments ([RestSegments]).
+ * [perRow] drops to two at large text on the rest page so no label is squeezed.
+ */
+@Composable
+internal fun RestNudgeButtons(
+    onNudge: (Int) -> Unit,
+    onSkip: () -> Unit,
+    minusTag: String,
+    plusTag: String,
+    skipTag: String,
+    modifier: Modifier = Modifier,
+    perRow: Int = 3,
+) {
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        maxItemsInEachRow = perRow,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        RestControl(
+            label = RestNudgeCopy.MINUS,
+            spoken = RestNudgeCopy.MINUS_SPOKEN,
+            onClick = { onNudge(-RestTimer.NUDGE_SECONDS) },
+            modifier = Modifier.weight(1f).testTag(minusTag),
+        )
+        RestControl(
+            label = RestNudgeCopy.PLUS,
+            spoken = RestNudgeCopy.PLUS_SPOKEN,
+            onClick = { onNudge(RestTimer.NUDGE_SECONDS) },
+            modifier = Modifier.weight(1f).testTag(plusTag),
+        )
+        RestControl(
+            label = RestNudgeCopy.SKIP,
+            onClick = onSkip,
+            confirm = true,
+            modifier = Modifier.weight(1f).testTag(skipTag),
         )
     }
 }

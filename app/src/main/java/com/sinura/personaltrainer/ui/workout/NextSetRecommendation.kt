@@ -77,7 +77,9 @@ internal fun NextSetRecommendation(
     val canUse = rec.showApply && !rec.previewOnly
     val numbers = SetMicroRecCopy.numbers(rec, loadClass, unit)
     val delta = SetMicroRecCopy.deltaLine(rec, loadClass, unit)
-    val reason = suggestion.explanationShort
+    // The rule alone: the goal's words (C-1) are on the Why sheet's Rule line, since two
+    // caption lines beside the numbers cannot hold them and Target RPE too.
+    val reason = SetMicroRecCopy.ruleLine(rec.reasonCode)
     val target = rec.nextRpe?.let { "Target RPE $it" }
     Column(
         modifier = modifier

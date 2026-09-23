@@ -77,6 +77,13 @@ data class SetMicroRec(
      */
     val equipment: EquipmentType? = null,
     val loadType: LoadType? = null,
+    /**
+     * The coach's own words for this call, the lifter's training goal included, when the
+     * rec came from a coach call ([com.sinura.personaltrainer.domain.coach.CoachSuggestion.toMicroRec]).
+     * The Why sheet's Rule line shows these ([SetMicroRecCopy.whyLines]); the card's two-line
+     * reason keeps the goal-free rule so Target RPE always fits beside it.
+     */
+    val explanation: String? = null,
 ) {
     /**
      * True once the entry already holds this set exactly as Apply would write it, so the
@@ -626,7 +633,12 @@ object SetMicroRecCopy {
         ProgressionKickerCopy.BACK_OFF to "Back off",
     )
 
-    fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.whySheet(rec.trace)
+    /**
+     * The Why sheet. Its Rule line carries the coach's own words for this call
+     * ([SetMicroRec.explanation], the training goal included), which the card's two-line
+     * reason has no room for.
+     */
+    fun whyLines(rec: SetMicroRec): List<String> = RuleTraceCopy.whySheet(rec.trace, ruleLine = rec.explanation)
         .ifEmpty { RuleTraceCopy.lines(rec.trace) }
 
     fun anotherSetLine(rec: SetMicroRec): String? =

@@ -491,7 +491,7 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
         compose.onNodeWithText("REST").assertIsDisplayed()
         compose.onNodeWithText("1:32").assertIsDisplayed()
-        compose.onNodeWithText("Target 2:00").assertIsDisplayed()
+        compose.onNodeWithText("Planned 2:00").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.REST_MINUS).performClick()
         assertEquals(-15, nudged)
         compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).performClick()
@@ -527,7 +527,7 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithTag(WorkoutTestTags.START_SET_CLOCK).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
         assertEquals(1, started)
-        compose.onNodeWithContentDescription("Rest is not running. Rest 2:00. Tap to change duration.").performClick()
+        compose.onNodeWithContentDescription("Rest is not running. Planned rest 2:00. Tap to change duration.").performClick()
         assertEquals(1, edits)
     }
 }

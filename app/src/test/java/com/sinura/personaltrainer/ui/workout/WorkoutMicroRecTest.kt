@@ -4,6 +4,7 @@ import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WorkoutSession
 import org.junit.Assert.assertEquals
@@ -19,8 +20,9 @@ import org.junit.Test
  * `historyWorking = historySets.map`, `toMicroRec()`). What the lifter depends on is that
  * the log's Next-set card and the rest page make the same call from the same inputs, that
  * the last session's effort seeds the first set, that a warm-up draft is never a preview,
- * and that the coach's goal changes the words it gives. Whether the workout hands a goal in
- * at all is W1b's to wire; these call the functions directly.
+ * and that the coach's goal changes the words it gives. That the workout hands the Settings
+ * goal in (W1b) is held by FloorRestAndCoachWiringRenderTest; these call the functions
+ * directly.
  */
 class WorkoutMicroRecTest {
     private fun session(sets: List<Pair<Int, Int?>>, warmupFirst: Boolean = false): WorkoutSession {
@@ -151,6 +153,9 @@ class WorkoutMicroRecTest {
         assertEquals("Had more in you — add weight", general.explanationShort)
         assertEquals("Had more in you — add weight · strength bias keeps reps before big jumps", strength.explanationShort)
         assertNotEquals(general.explanationShort, strength.explanationShort)
-        assertEquals(general.toMicroRec(), strength.toMicroRec())
+        // The numbers are the same; the rec carries the call's own words to the Why sheet.
+        assertEquals(general.toMicroRec().copy(explanation = null), strength.toMicroRec().copy(explanation = null))
+        assertEquals(strength.explanationShort, strength.toMicroRec().explanation)
+        assertEquals("Rule: ${strength.explanationShort}", SetMicroRecCopy.whyLines(strength.toMicroRec()).first { it.startsWith("Rule: ") })
     }
 }

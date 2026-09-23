@@ -11,8 +11,8 @@ import org.junit.Test
 /**
  * The dock's clocks after the redesign. HOLD and SET keep the one 56 dp
  * instrument bar (countdown fill, mode controls). Rest is its own quiet
- * card ([RestTimerCard]): a 48 dp countdown ring, REST, the time, the
- * target and −15 / +15 / Skip. Honesty stays in the dock companion so
+ * card ([RestTimerCard]): a 48 dp countdown ring, REST, the time, the planned length
+ * and −15 / +15 / Skip. Honesty stays in the dock companion so
  * neither clock grows to hold it and rest cannot collide with the coach
  * line at 360×800.
  *
