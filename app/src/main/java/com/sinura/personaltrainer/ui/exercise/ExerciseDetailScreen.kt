@@ -36,6 +36,7 @@ import com.sinura.personaltrainer.domain.AddToRoutineCopy
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.LoadClass
@@ -74,6 +75,7 @@ import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.workout.ExerciseStatsRow
 import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.util.toLocalDate
 import java.text.DateFormat
@@ -104,6 +106,9 @@ fun ExerciseDetailScreen(
     var routinePickerOpen by rememberSaveable { mutableStateOf(false) }
     val unit = LocalWeightUnit.current
     val history = state.history
+    // The floor's own Best set and Volume for this lift in the workout in progress, once a
+    // working set of it is logged there (ADR-030, owner decision of 23 September 2026).
+    val sessionInProgress = state.sessionInProgress
 
     // Sessions that produced an estimate, oldest first, kept alongside their values so the
     // chart's x-axis labels are the dates of the points actually plotted.
@@ -170,14 +175,36 @@ fun ExerciseDetailScreen(
                 // filled control on "Back" duplicates the header arrow. That was right about
                 // Back and wrong about there being nothing else: the way to get history for a
                 // lift is to put it in a routine, which is exactly what this state is missing.
-                EmptyState(
-                    scene = EmptyScene.LOG,
-                    title = "Nothing logged yet",
-                    body = "Records and trends appear here once you have finished a session with this lift.",
-                    actionLabel = "Add to a routine",
-                    onAction = { routinePickerOpen = true },
-                    modifier = Modifier.padding(Metrics.gutter),
-                )
+                val nothingLogged: @Composable (Modifier) -> Unit = { emptyModifier ->
+                    EmptyState(
+                        scene = EmptyScene.LOG,
+                        title = "Nothing logged yet",
+                        body = "Records and trends appear here once you have finished a session with this lift.",
+                        actionLabel = "Add to a routine",
+                        onAction = { routinePickerOpen = true },
+                        modifier = emptyModifier,
+                    )
+                }
+                if (sessionInProgress == null) {
+                    nothingLogged(Modifier.padding(Metrics.gutter))
+                } else {
+                    // A first session with this lift has no finished history yet, but its sets
+                    // today are the floor's, and they stand above the promise of more. A list, so
+                    // both stay reachable at large text and in landscape.
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = Metrics.gutter,
+                            end = Metrics.gutter,
+                            top = Metrics.space2,
+                            bottom = Metrics.space7,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+                    ) {
+                        item(key = "this-workout") { SessionInProgressCard(sessionInProgress) }
+                        item(key = "nothing-logged") { nothingLogged(Modifier) }
+                    }
+                }
             }
 
             else -> {
@@ -191,6 +218,9 @@ fun ExerciseDetailScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(Metrics.cardGap),
                 ) {
+                    if (sessionInProgress != null) {
+                        item(key = "this-workout") { SessionInProgressCard(sessionInProgress) }
+                    }
                     if (history.records.isNotEmpty()) {
                         item(key = "records") { RecordsCard(records = history.records, unit = unit) }
                     }
@@ -443,6 +473,30 @@ private fun RecordsCard(
     }
 }
 
+/**
+ * Best set and Volume for this lift in the workout in progress: the floor's stats row without
+ * the Last cell it keeps, in the floor's words, from the same calculator. At large text these
+ * two leave the floor so the entry holds still, and this is where they are read.
+ *
+ * Best set is the floor's: the lift's standing best, with today's sets in the running, marked
+ * `Today` only when one of them beat it. So the heading names the session the card belongs to,
+ * the app's own words for it, rather than claiming every number on it for today.
+ */
+@Composable
+private fun SessionInProgressCard(sessionInProgress: SessionInProgressStats) {
+    GymCard(modifier = Modifier.testTag(ExerciseDetailTags.THIS_WORKOUT)) {
+        Kicker(SESSION_IN_PROGRESS)
+        ExerciseStatsRow(
+            stats = sessionInProgress.stats,
+            unit = sessionInProgress.unit,
+            visibility = ExerciseFloorStatsPresentation.RowVisibility.BEST_AND_VOLUME,
+            standalone = true,
+        )
+    }
+}
+
+private const val SESSION_IN_PROGRESS = "Session in progress"
+
 @Composable
 private fun RecordMetric(
     value: String,
@@ -641,4 +695,5 @@ private fun groupedRowShape(index: Int, count: Int): Shape = when {
 object ExerciseDetailTags {
     const val BACK = "exercise-detail-back"
     const val ADD_TO_ROUTINE = "exercise-detail-add-to-routine"
+    const val THIS_WORKOUT = "exercise-detail-this-workout"
 }

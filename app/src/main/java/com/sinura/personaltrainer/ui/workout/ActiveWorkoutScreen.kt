@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -74,6 +75,7 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -648,8 +650,11 @@ private fun ActiveWorkoutContent(
                                             exerciseId = currentLift.exercise.id,
                                         )
                                     }
-                                    val statsVisibility = remember(workingSetsToday) {
-                                        ExerciseFloorStatsPresentation.rowVisibility(workingSetsToday)
+                                    // Large text keeps Last alone above the entry; Best and Volume are
+                                    // in Details (ADR-030, owner decision of 23 September 2026).
+                                    val stackedText = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
+                                    val statsVisibility = remember(workingSetsToday, stackedText) {
+                                        ExerciseFloorStatsPresentation.rowVisibility(workingSetsToday, stackedText)
                                     }
                                     val stats = remember(session, currentLift.exercise.id, state.lastPerformance, exerciseHistory, unit) {
                                         ExerciseFloorStatsCalculator.of(

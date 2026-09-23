@@ -226,7 +226,8 @@ internal fun WeightRepsEditor(
         val columnWidth = if (showWeight && !stack) fullWidth / 2 - Metrics.space2 else fullWidth
         // The largest numeral whose widest sample (a decimal weight with its unit, or a long
         // hold) fits the column: decided from fixed samples, so the size never jumps as the
-        // value changes, and a 102.5 lbs never crosses the divider on a narrow phone.
+        // value changes, and a 102.5 lbs never crosses the divider on a narrow phone. Only a
+        // value wider than the sample steps down from it (HeroNumeral), on the sample's line.
         val heroStyle = remember(columnWidth, density, hold, unit) {
             val textWidth = columnWidth - Metrics.space1 * 2
             val unitWidth = with(density) {
@@ -353,21 +354,33 @@ private fun HeroNumeral(
     val density = LocalDensity.current
     Box(modifier = modifier) {
         // The unit rides the numeral's baseline, so it counts toward the widest sample too.
-        val numeralWidth = with(density) {
-            measurer.measure(sample, style = style, softWrap = false).size.width.toDp()
-        }
-        val sampleWidth = if (unitLabel == null) {
-            numeralWidth
+        val sampleLayout = remember(sample, style, density) { measurer.measure(sample, style = style, softWrap = false) }
+        val numeralWidth = with(density) { sampleLayout.size.width.toDp() }
+        val unitWidth = if (unitLabel == null) {
+            0.dp
         } else {
-            numeralWidth + Metrics.space1 + with(density) {
+            Metrics.space1 + with(density) {
                 measurer.measure(unitLabel, style = InstrumentType.unit, softWrap = false).size.width.toDp()
             }
         }
+        val sampleWidth = numeralWidth + unitWidth
         val inline = sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth
+        // The sample's one line, held by the field whatever size a value is drawn at, so a value
+        // that steps down below does not pull the plates beneath it up (ADR-027 decision 7).
+        val sampleLine = with(density) { sampleLayout.size.height.toDp() }
+        // What the digits have once the field's padding, the plates beside it and the unit have
+        // theirs, in whole pixels as the layout hands them out, less one for the rounding of a
+        // shared row. The unit's width comes off first, so a fitted value always leaves it whole.
+        val numeralRoomPx = with(density) {
+            availableWidth.roundToPx() -
+                (if (inline) (Metrics.stepperRound.roundToPx() + Metrics.space2.roundToPx()) * 2 else 0) -
+                Metrics.space1.roundToPx() * 2 -
+                unitWidth.roundToPx() - 1
+        }
         val numeral: @Composable (Modifier) -> Unit = { numeralModifier ->
             Box(
                 modifier = numeralModifier
-                    .heightIn(min = Metrics.stepperRound)
+                    .heightIn(min = maxOf(Metrics.stepperRound, sampleLine))
                     .clip(RoundedCornerShape(Radius.sm))
                     .testTag(tag)
                     // The numeral is a field, and it looks like one (design audit D10): a quiet
@@ -407,11 +420,20 @@ private fun HeroNumeral(
                     animationSpec = instrumentTween(Motion.TAP),
                     label = "hero-numeral",
                 ) { shown ->
+                    // Sized from the sample so nothing jumps, and stepped down the ramp only for a
+                    // value wider than the sample would otherwise cut, drawn past its field and
+                    // leave its unit no room (99,999.99 kg at 360 dp and font 2.0; 1102.5 lb at
+                    // 412 dp) — packet W1d.
+                    val shownStyle = remember(shown, style, numeralRoomPx, density) {
+                        LogLoopScale.fittedNumeral(shown, style, numeralRoomPx) { text, candidate ->
+                            measurer.measure(text, style = candidate, softWrap = false).size.width
+                        }
+                    }
                     Row(horizontalArrangement = Arrangement.Center) {
                         Text(
                             shown,
                             modifier = Modifier.alignByBaseline(),
-                            style = style,
+                            style = shownStyle,
                             color = if (enabled) TextPrimary else TextDisabled,
                             maxLines = 1,
                             softWrap = false,

@@ -110,13 +110,32 @@ class ExerciseFloorStatsTest {
         assertTrue(ExerciseFloorStatsPresentation.isPreparePhase(0))
         assertEquals(
             ExerciseFloorStatsPresentation.RowVisibility.FULL,
-            ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = 1),
+            ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = 1, stackedText = false),
         )
-        val prepare = ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = 0)
+        val prepare = ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = 0, stackedText = false)
+        assertEquals(true, prepare.showLast)
         assertEquals(false, prepare.showBest)
         assertEquals(false, prepare.showVolume)
         val session = session(sets = listOf(set(number = 1, weightKg = kg70, reps = 10, at = 10L, warmup = true)))
         assertEquals(0, ExerciseFloorStatsPresentation.workingSetsLoggedToday(session, "leg-ext"))
+    }
+
+    /**
+     * Large text (font 1.6 and above) keeps Last alone on the floor before and after the first
+     * working set, so that set never moves the entry; Best and Volume are read in Details, which
+     * shows those two without the Last the floor keeps (owner decision of 23 September 2026).
+     */
+    @Test
+    fun stackedTextKeepsLastAloneOnTheFloorAndDetailsShowsTheOtherTwo() {
+        listOf(0, 1, 5).forEach { logged ->
+            assertEquals(
+                "stacked, $logged working sets",
+                ExerciseFloorStatsPresentation.RowVisibility.LAST_ALONE,
+                ExerciseFloorStatsPresentation.rowVisibility(workingSetsLoggedToday = logged, stackedText = true),
+            )
+        }
+        val details = ExerciseFloorStatsPresentation.RowVisibility.BEST_AND_VOLUME
+        assertEquals(listOf(false, true, true), listOf(details.showLast, details.showBest, details.showVolume))
     }
 
     @Test

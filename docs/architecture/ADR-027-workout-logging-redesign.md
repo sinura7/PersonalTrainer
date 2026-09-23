@@ -6,6 +6,10 @@
   question that repeat it, by [ADR-032](ADR-032-jvm-evidence-lanes.md): the
   floor goldens are retired, not re-recorded, and packet X3 removed them; JVM
   renders with reachability assertions are the evidence
+- **Amended:** 23 September 2026 — decision 7 and the density pass's item 5,
+  by packet W1d on the owner's decisions of 23 September 2026: a value wider
+  than the numeral's sample steps its size down on the sample's line, and the
+  − / + glyph is drawn at a fixed size inside its plate
 - **Amends:** [ADR-026](ADR-026-frontend-redesign.md) decision 3 (the compact
   64 dp identity and its order) and the *Workout contracts* order in
   [FRONTEND_REDESIGN.md](../FRONTEND_REDESIGN.md). ADR-026 decisions 2, 4 and 8
@@ -76,6 +80,13 @@ that packet's state model and derived primary action and changes the composition
    hero numeral or beneath it is decided from a fixed widest sample, not the
    live value; large system text stacks the two columns
    (`LogLoopScale.stackEntryWells`).
+   *Amended 23 September 2026 (packet W1d):* the numeral's size still comes
+   from the sample, and only a value wider than the sample steps down the
+   ramp (`numeralLg`, then `numeralMd`; `numeralMd` scaled to the room only
+   past that), so every digit and the unit are laid out whole. The field
+   keeps the sample's line, so the plates beneath do not move. Before this,
+   99,999.99 kg at 360 dp and font 2.0, or 1102.5 lb at 412 dp, took the
+   whole field and left the unit no width (`LogLoopScale.fittedNumeral`).
 8. **Native evidence is re-recorded, not skipped.** The nine floor goldens under
    `app/src/androidTest/assets/goldens` describe the F3 composition and must be
    re-recorded on `temper-tests-api29` before the emulator lane is read as green
@@ -150,6 +161,12 @@ untouched.
    other caller composes exactly as before. **This is not licence to shrink the
    target later** — the arithmetic in item 2 still holds, and the reference's
    proportions still need the numerals to come down, which they have not.
+   *Amended 23 September 2026 (packet W1d):* the glyph is drawn at a fixed
+   size in the 36 dp circle, its style's design size read as dp
+   (`LogLoopScale.fixedGlyph`), in the circle's whole height rather than a
+   padded 20 dp slice. Text that grew with the system font was cut to "_" or
+   "." at font 1.6 and 2.0, and at 2.0 the − drew nothing. The 48 dp target
+   and the inset are unchanged.
 
 `WorkoutFloorRenderTest.theEntryLoopStaysWithinItsHeightBudget` now measures the
 loop end to end at 360 dp — identity top to set-history bottom — and holds it at

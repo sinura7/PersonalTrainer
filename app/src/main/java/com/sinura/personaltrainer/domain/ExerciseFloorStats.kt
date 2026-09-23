@@ -94,9 +94,11 @@ object FloorStatCopy {
 }
 
 /**
- * Which stats cells earn space on the gym floor before the first working set
- * of this lift is logged today. Richer numbers return once work exists; Details
- * and history screens are unchanged.
+ * Which stats cells earn space on the gym floor. Before the first working set
+ * of this lift is logged today only Last shows; richer numbers return once work
+ * exists (ADR-030 §2). At large system text they never join it on the floor:
+ * Best and Volume are read in the lift's Details instead (owner decision of
+ * 23 September 2026).
  */
 object ExerciseFloorStatsPresentation {
     fun workingSetsLoggedToday(session: WorkoutSession, exerciseId: String): Int =
@@ -107,15 +109,26 @@ object ExerciseFloorStatsPresentation {
     data class RowVisibility(
         val showBest: Boolean,
         val showVolume: Boolean,
+        val showLast: Boolean = true,
     ) {
         companion object {
             val FULL = RowVisibility(showBest = true, showVolume = true)
+            val LAST_ALONE = RowVisibility(showBest = false, showVolume = false)
+
+            /** The lift's Details: the two cells the floor leaves out, without the Last it keeps. */
+            val BEST_AND_VOLUME = RowVisibility(showBest = true, showVolume = true, showLast = false)
         }
     }
 
-    fun rowVisibility(workingSetsLoggedToday: Int): RowVisibility =
-        if (isPreparePhase(workingSetsLoggedToday)) {
-            RowVisibility(showBest = false, showVolume = false)
+    /**
+     * @param stackedText large system text (`LogLoopScale.stackEntryWells`, font 1.6 and above),
+     * where the row is a column of full-width cells above the entry. Best and Volume would arrive
+     * there with the first working set and push the entry down, so at those sizes the floor keeps
+     * Last alone before and after that set.
+     */
+    fun rowVisibility(workingSetsLoggedToday: Int, stackedText: Boolean): RowVisibility =
+        if (stackedText || isPreparePhase(workingSetsLoggedToday)) {
+            RowVisibility.LAST_ALONE
         } else {
             RowVisibility.FULL
         }

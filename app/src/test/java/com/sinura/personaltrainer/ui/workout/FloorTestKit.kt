@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.workout
 import android.os.Looper
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -196,12 +198,20 @@ internal fun floorDockEvents(
  * scale the test asks for. Font scale is the one input that reshapes the floor: from
  * `LogLoopScale.STACK_WELLS_FROM` the numerals stack and the identity's still shrinks.
  */
-internal fun ComposeContentTestRule.showFloor(fontScale: Float = 1f, content: @Composable () -> Unit) {
+internal fun ComposeContentTestRule.showFloor(fontScale: Float = 1f, content: @Composable () -> Unit) =
+    showFloor(fontScale = mutableFloatStateOf(fontScale), content = content)
+
+/**
+ * As [showFloor], with the font scale read from [fontScale] during composition: a test that
+ * changes it moves the screen to the new size while it is up, as a user raising the system font
+ * with the app open does.
+ */
+internal fun ComposeContentTestRule.showFloor(fontScale: State<Float>, content: @Composable () -> Unit) {
     this.setContent {
         val base = LocalDensity.current
         CompositionLocalProvider(
             LocalWeightUnit provides FLOOR_UNIT,
-            LocalDensity provides Density(density = base.density, fontScale = fontScale),
+            LocalDensity provides Density(density = base.density, fontScale = fontScale.value),
         ) {
             PersonalTrainerTheme { content() }
         }
