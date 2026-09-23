@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.workout
 import android.app.Application
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -22,6 +23,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.PrGold
@@ -70,8 +72,8 @@ class RestTimerCardRenderTest {
     private var setClocks = 0
     private var opened = 0
 
-    private fun showCard(total: Int = 120, offerSetClock: Boolean = false) {
-        compose.showFloor {
+    private fun showCard(total: Int = 120, offerSetClock: Boolean = false, fontScale: Float = 1f) {
+        compose.showFloor(fontScale = fontScale) {
             RestTimerCard(
                 remainingSeconds = remaining.value,
                 totalSeconds = total,
@@ -198,6 +200,8 @@ class RestTimerCardRenderTest {
         assertEquals(listOf("Plus 15 seconds"), plus.spokenDescriptions())
         val skip = compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).assert(isButton).assertHeightIsAtLeast(Metrics.touchMin)
         assertEquals(listOf("Skip"), skip.mergedTexts())
+        // Skip is read by its word; it is not a number of seconds the way −15 and +15 are.
+        assertTrue("was ${skip.spokenDescriptions()}", skip.spokenDescriptions().none { spoken -> spoken.any { it.isDigit() } })
         // Minus, plus, then Skip, left to right.
         val order = listOf(minus, plus, skip).map { it.getBoundsInRoot().left }
         assertEquals(order.sorted(), order)
@@ -264,6 +268,7 @@ class RestTimerCardRenderTest {
             val live = compose.onAllNodes(liveRegions, useUnmergedTree = true).fetchSemanticsNodes()
             assertEquals(1, live.size)
             assertEquals(listOf("Back to the bar. Rest complete."), live.single().config[SemanticsProperties.ContentDescription])
+            assertEquals("the flash waits its turn; it never cuts TalkBack off", LiveRegionMode.Polite, live.single().config[SemanticsProperties.LiveRegion])
             // The flash is not a moment to act: no controls until it settles.
             compose.onNodeWithTag(WorkoutTestTags.START_REST).assertDoesNotExist()
             compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).assertDoesNotExist()
@@ -312,6 +317,33 @@ class RestTimerCardRenderTest {
             tile.spokenDescriptions(),
         )
         compose.onNodeWithTag(WorkoutTestTags.START_REST).assertIsDisplayed()
+    }
+
+    @Test
+    fun aRunningRestAfterAWarmupIsTheOrdinaryRunningCard() {
+        // The warm-up words belong to the idle card only: once rest runs, it reads as rest.
+        afterWarmup.value = true
+        running.value = true
+        remaining.value = 92
+        showCard()
+        val tile = tile(WorkoutTestTags.REST_BAR, clock = "1:32")
+        word("REST").assertIsDisplayed()
+        word("Target 2:00").assertIsDisplayed()
+        compose.onAllNodesWithText("WARM-UP", useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithText("Warm-ups do not start rest", useUnmergedTree = true).assertCountEquals(0)
+        assertEquals(listOf("Rest 1:32 remaining. Target 2:00. Open rest timer."), tile.spokenDescriptions())
+    }
+
+    @Test
+    fun atLargeTextTheRunningControlsDropUnderTheClock() {
+        // From the stacking scale the −15 / +15 / Skip row wraps under the clock instead of
+        // squeezing it into what is left beside the controls.
+        running.value = true
+        remaining.value = 92
+        showCard(fontScale = LogLoopScale.STACK_WELLS_FROM)
+        val tile = tile(WorkoutTestTags.REST_BAR, clock = "1:32").getBoundsInRoot()
+        val minus = compose.onNodeWithTag(WorkoutTestTags.REST_MINUS).assertIsDisplayed().getBoundsInRoot()
+        assertTrue("−15 sits under the clock (top ${minus.top}, clock bottom ${tile.bottom})", minus.top >= tile.bottom)
     }
 
     private companion object {

@@ -22,6 +22,7 @@ import com.sinura.personaltrainer.ui.components.SetWorkDock
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.RestCyan
+import com.sinura.personaltrainer.ui.theme.TextPrimary
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -90,6 +91,8 @@ class SetWorkDockRenderTest {
         compose.onAllNodesWithText("0:05", useUnmergedTree = true).assertCountEquals(0)
         assertEquals(listOf("HOLD 0:25 remaining"), clockSpoken())
         assertEquals(RestCyan, inkOf("HOLD"))
+        // The time itself is primary ink, the brightest thing on the bar.
+        assertEquals(TextPrimary, inkOf("0:25"))
         word("HOLD").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Heading))
         compose.onNodeWithTag(STOP).assertDoesNotExist()
         compose.onAllNodes(liveRegions, useUnmergedTree = true).assertCountEquals(0)
@@ -125,6 +128,9 @@ class SetWorkDockRenderTest {
         word("SET TIME").assertIsDisplayed()
         word("0:12").assertIsDisplayed()
         assertEquals(listOf("Set time 0:12 elapsed"), clockSpoken())
+        // The same instrument as a hold: a cyan kicker over a primary time.
+        assertEquals(RestCyan, inkOf("SET TIME"))
+        assertEquals(TextPrimary, inkOf("0:12"))
         val stop = compose.onNodeWithTag(STOP)
             .assertIsDisplayed()
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))

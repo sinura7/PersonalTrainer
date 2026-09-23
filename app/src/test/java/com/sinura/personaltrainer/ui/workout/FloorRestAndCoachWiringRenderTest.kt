@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -9,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -34,14 +37,19 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
+import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.domain.HoldWork
+import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.domain.RestTimer
+import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -58,6 +66,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.GraphicsMode
 
 /**
@@ -89,15 +98,22 @@ class FloorRestAndCoachWiringRenderTest {
     private var exits = 0
     private val restPages = mutableListOf<String>()
 
+    /** When set, a set's row waits here before it is written: a save the lifter is waiting on. */
+    private var insertGate: CompletableDeferred<Unit>? = null
+
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher(scheduler = TestCoroutineScheduler()))
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            workoutDaoDecorator = { real -> GatedInserts(real) },
+        )
         runBlocking { deps.preferencesRepository.setWeightUnit(WeightUnit.LBS) }
     }
 
     @After
     fun tearDown() {
+        insertGate?.complete(Unit)
         runBlocking { viewModels.forEach { it.clearAndJoinForTest() } }
         viewModels.clear()
         deps.restTimerController.stop()
@@ -245,6 +261,64 @@ class FloorRestAndCoachWiringRenderTest {
     }
 
     @Test
+    fun theRestAlertsFixOpensTheAppsNotificationSettings() {
+        val vm = openLegExtension(loggedSets = sets(1))
+        show(vm, notificationsEnabled = false)
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        shadowOf(app).clearNextStartedActivities()
+        compose.onNodeWithTag("workout-notif-recovery").performClick()
+        compose.waitForIdle()
+        val opened = checkNotNull(shadowOf(app).nextStartedActivity) { "the fix opened nothing" }
+        assertEquals(Settings.ACTION_APP_NOTIFICATION_SETTINGS, opened.action)
+        assertEquals(app.packageName, opened.getStringExtra(Settings.EXTRA_APP_PACKAGE))
+    }
+
+    @Test
+    fun aRunningRestThatMayNotSurviveLeavingTheAppSaysSo() {
+        batteryRuleAlreadyRead()
+        val vm = openLegExtension(loggedSets = sets(1))
+        show(vm)
+        compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.running }
+        compose.onNodeWithTag(HONESTY).assertDoesNotExist()
+        // The rest's row did not reach storage: the floor says the rest may be lost.
+        deps.setRestPersistenceHealthy(false)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.restTimerState.value.persistenceHealthy }
+        compose.waitForIdle()
+        compose.onNodeWithTag(HONESTY).assertIsDisplayed()
+        compose.onNodeWithText(RestHonestyCopy.PERSISTENCE).assertIsDisplayed()
+    }
+
+    @Test
+    fun afterAWarmupTheIdleCardSaysWarmupsDoNotStartRest() {
+        val vm = openLegExtension(loggedSets = listOf(TestSetInput(weightKg = FLOOR_KG70, reps = 8, isWarmup = true)))
+        show(vm)
+        compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
+        onIdleCard("WARM-UP").assertIsDisplayed()
+        // W1b changes this: its planned-rest caption ("Planned rest · 1:30") takes this line's
+        // place on the idle card, so the warm-up words may be reworded with it. What must hold
+        // is below: logging a warm-up leaves rest idle.
+        onIdleCard("Warm-ups do not start rest").assertIsDisplayed()
+        assertTrue("a warm-up does not start rest", !vm.restTimerState.value.running)
+    }
+
+    @Test
+    fun whileASaveIsUnderwayTheEffortChoicesAreLocked() {
+        val vm = openLegExtension(loggedSets = sets(1))
+        show(vm)
+        scrollTo(WorkoutTestTags.RPE_TRACK)
+        RpeCopy.VALUES.forEach { compose.onNodeWithTag(WorkoutTestTags.rpeChoice(it)).assertIsEnabled() }
+        val gate = CompletableDeferred<Unit>().also { insertGate = it }
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.entryLocked }
+        compose.waitForIdle()
+        scrollTo(WorkoutTestTags.RPE_TRACK)
+        RpeCopy.VALUES.forEach { compose.onNodeWithTag(WorkoutTestTags.rpeChoice(it)).assertIsNotEnabled() }
+        gate.complete(Unit)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }
+    }
+
+    @Test
     fun anEffortChipWritesTheDraftAndAWarmupHidesTheTrack() {
         val vm = openLegExtension(loggedSets = sets(1))
         show(vm)
@@ -389,6 +463,10 @@ class FloorRestAndCoachWiringRenderTest {
             (if (clock == null) hasText("REST") else hasText(clock)),
     )
 
+    /** A word drawn on the idle rest card, found where it is drawn rather than in the merged tile. */
+    private fun onIdleCard(text: String) =
+        compose.onNode(hasText(text) and hasAnyAncestor(hasTestTag(WorkoutTestTags.REST_IDLE)), useUnmergedTree = true)
+
     private fun scrollTo(tag: String) {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
         compose.waitForIdle()
@@ -466,8 +544,17 @@ class FloorRestAndCoachWiringRenderTest {
         undoTimeout = { it.toLong() },
     ).also(viewModels::add)
 
+    /** Every write the floor makes, except that a set's row first waits for [insertGate]. */
+    private inner class GatedInserts(private val real: WorkoutDao) : WorkoutDao by real {
+        override suspend fun insertSet(set: SetLogEntity) {
+            insertGate?.await()
+            real.insertSet(set)
+        }
+    }
+
     private companion object {
         const val WAIT_MS = 20_000L
+        const val HONESTY = "workout-rest-honesty"
         const val LEG_EXTENSION = "leg-extension"
         const val NEXT_LIFT = "romanian-deadlift"
         const val SHEET = "workout-rest-duration-sheet"

@@ -181,6 +181,16 @@ class RpeSelectorRenderTest {
     }
 
     @Test
+    fun aDifferentEffortReplacesTheChosenOne() {
+        rpe = 8
+        showTrack()
+        choice(8).assertIsSelected()
+        // Only a second tap on the chosen value clears it; another value is a new pick.
+        choice(9).performClick()
+        assertEquals(listOf<Int?>(9), picks)
+    }
+
+    @Test
     fun helpIsOneTapAwayAndExplainsEachValue() {
         showTrack()
         val help = compose.onNodeWithTag(WorkoutTestTags.RPE_HELPER)

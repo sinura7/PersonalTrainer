@@ -95,6 +95,23 @@ class WorkoutMicroRecTest {
     }
 
     @Test
+    fun afterOnlyAWarmupTheCallSaysTheWarmupIsDone() {
+        val warmedUp = checkNotNull(call(session(sets = emptyList(), warmupFirst = true)))
+        assertEquals(SetMicroRecCalculator.WARMUP_DONE, warmedUp.reasonCode)
+        // With nothing logged at all it is simply the first set.
+        assertEquals(SetMicroRecCalculator.FIRST_SET, checkNotNull(call(session(emptyList()))).reasonCode)
+    }
+
+    @Test
+    fun aLeadingWarmupDoesNotChangeTheCallForTheWorkingSets() {
+        // Two of three working sets: a warm-up before them is not counted as the third.
+        val plain = checkNotNull(call(session(listOf(10 to 8, 10 to 8))))
+        val warmedUp = checkNotNull(call(session(sets = listOf(10 to 8, 10 to 8), warmupFirst = true)))
+        assertNotEquals(SetMicroRecCalculator.LIFT_DONE, plain.reasonCode)
+        assertEquals(plain, warmedUp)
+    }
+
+    @Test
     fun anEditOrAMissingSessionHasNoCall() {
         assertNull(call(session(listOf(10 to 8)), editingSetId = "set-2"))
         assertNull(call(null))

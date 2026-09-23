@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
+import androidx.activity.ComponentDialog
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -12,6 +13,8 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
@@ -41,6 +44,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
 
 /**
  * The rest-length sheet the idle rest card opens, composed on its own: the length it names,
@@ -140,6 +144,8 @@ class RestDurationSheetRenderTest {
             compose.onNodeWithText("Custom rest").assertExists()
             compose.onNodeWithText("Seconds (90) or mm:ss (1:30). 15 seconds to 30 minutes.").assertExists()
             compose.onNodeWithTag(SHEET).assertDoesNotExist()
+            // Set is a thumb's height, not the text button's default 40 dp.
+            compose.onNode(hasText("Set") and hasClickAction()).assertHeightIsAtLeast(Metrics.touchMin)
             compose.onNode(hasSetTextAction()).performTextReplacement("1:45")
             compose.settle()
             compose.onNodeWithText("Set").performSemanticsAction(SemanticsActions.OnClick)
@@ -179,8 +185,15 @@ class RestDurationSheetRenderTest {
         showSheet()
         // W1b changes this: one ±15 set is shared by the dock and the full rest screen, and
         // this pair is the one that moves; today the sheet carries its own.
-        val minus = compose.onNodeWithTag("workout-rest-sheet-minus").assert(isButton).assertHeightIsAtLeast(Metrics.touchMin)
-        val plus = compose.onNodeWithTag("workout-rest-sheet-plus").assert(isButton).assertHeightIsAtLeast(Metrics.touchMin)
+        val minus = compose.onNodeWithTag("workout-rest-sheet-minus")
+            .assert(isButton)
+            .assertHeightIsAtLeast(Metrics.touchMin)
+            .assertWidthIsAtLeast(Metrics.touchMin)
+        val plus = compose.onNodeWithTag("workout-rest-sheet-plus")
+            .assert(isButton)
+            .assertHeightIsAtLeast(Metrics.touchMin)
+            .assertWidthIsAtLeast(Metrics.touchMin)
+        assertTrue("−15 sits left of +15", minus.getBoundsInRoot().right <= plus.getBoundsInRoot().left)
         assertEquals(listOf("−15"), minus.mergedTexts())
         assertEquals(listOf("Minus 15 seconds"), minus.spokenDescriptions())
         assertEquals(listOf("+15"), plus.mergedTexts())
@@ -190,6 +203,18 @@ class RestDurationSheetRenderTest {
         assertEquals(listOf(-15, 15), nudges)
         assertEquals("a nudge keeps the sheet open", 0, dismissed)
         assertTrue(selected.isEmpty())
+    }
+
+    @Test
+    fun backClosesTheSheetWithoutPickingALength() {
+        showSheet()
+        compose.onNodeWithTag(SHEET).assertIsDisplayed()
+        // The sheet is a window of its own, so system Back goes to it, not to the floor beneath.
+        val sheetWindow = ShadowDialog.getLatestDialog() as ComponentDialog
+        compose.runOnUiThread { sheetWindow.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        assertEquals("Back asks the host to close the sheet", 1, dismissed)
+        assertTrue("Back is not a pick", selected.isEmpty() && nudges.isEmpty())
     }
 
     @Test

@@ -229,6 +229,27 @@ class NextSetRecommendationRenderTest {
     }
 
     @Test
+    fun theCompactStripsWhyOpensTheRuleTrace() {
+        showCard(compact = true)
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        compose.onNodeWithText("Why this set").assertIsDisplayed()
+        compose.onNodeWithText("Use suggestion").performClick()
+        assertEquals(1, applies)
+    }
+
+    @Test
+    fun theCompactStripsApplySaysTheNumbersAndStandsDownOnceApplied() {
+        showCard(compact = true)
+        val apply = compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assert(isButton).assertIsEnabled()
+        assertEquals(listOf("Apply suggestion, 70 lb × 10"), apply.spokenDescriptions())
+        applied = true
+        apply.assertIsNotEnabled()
+        assertEquals(listOf("Suggestion applied, 70 lb × 10"), apply.spokenDescriptions())
+        apply.performClick()
+        assertEquals("the same suggestion cannot be taken twice from the strip either", 0, applies)
+    }
+
+    @Test
     fun theEvidenceLineOpensTheEvidence() {
         rec = recAfter(set(reps = 10, rpe = 8))
         val suggestion = CoachEngine.fromMicroRec(rec)

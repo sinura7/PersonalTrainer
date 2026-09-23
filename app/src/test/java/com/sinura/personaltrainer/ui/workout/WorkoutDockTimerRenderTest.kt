@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -286,6 +287,42 @@ class WorkoutDockTimerRenderTest {
         compose.onNodeWithText("Keep timing").assertIsDisplayed()
         compose.onNodeWithText("Stop timing").performClick()
         assertEquals(1, clockStops)
+    }
+
+    @Test
+    fun keepTimingClosesTheDialogAndLeavesTheClockRunning() {
+        showDock(WorkoutDockTimer(show = true, stopwatchRunning = true, stopwatchElapsedSeconds = 12), error = "Could not save")
+        compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).performClick()
+        compose.onNodeWithText("Keep timing").performClick()
+        assertEquals("Keep timing does not stop the set clock", 0, clockStops)
+        compose.onAllNodes(isDialog()).assertCountEquals(0)
+    }
+
+    @Test
+    fun theTimingDialogGoesAwayWhenTheStopwatchStops() {
+        showDock(WorkoutDockTimer(show = true, stopwatchRunning = true, stopwatchElapsedSeconds = 12), error = "Could not save")
+        compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).performClick()
+        compose.onNodeWithText("Stop timing").assertIsDisplayed()
+        // Stopped from elsewhere (the bar, the notification): nothing is left timing, so the
+        // dialog does not linger as a "Return to workout" with nothing to return from.
+        dockState = dockState.copy(timer = restAt())
+        compose.waitForIdle()
+        compose.onAllNodes(isDialog()).assertCountEquals(0)
+        compose.onAllNodesWithText("Return to workout").assertCountEquals(0)
+        assertEquals(0, clockStops)
+    }
+
+    @Test
+    fun theLengthSheetClosesWhenRestStartsRunning() {
+        showDock(restAt())
+        cardTile(WorkoutTestTags.REST_IDLE, clock = "2:00").performClick()
+        compose.onNodeWithTag(SHEET).assertIsDisplayed()
+        // Rest started from elsewhere (the rest page, the notification): the planned length
+        // is no longer the thing to edit, so the sheet stands down.
+        dockState = dockState.copy(timer = restRunning())
+        compose.waitForIdle()
+        assertTrue("a running rest closes the length sheet", !sheetIsOpen())
+        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
     }
 
     @Test
