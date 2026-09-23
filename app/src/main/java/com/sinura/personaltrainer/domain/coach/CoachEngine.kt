@@ -49,6 +49,7 @@ data class CoachSuggestion(
         restSeconds = restSeconds,
         anotherSetAdvised = anotherSetAdvised,
         warmupSets = warmupSets,
+        explanation = explanationShort,
     )
 
     fun primaryEvidence(): EvidenceEntry? =
@@ -90,7 +91,10 @@ object CoachEngine {
             equipment = rec.equipment,
             loadType = rec.loadType,
         )
-        return fromDecision(decision, prefs)
+        val suggestion = fromDecision(decision, prefs)
+        // A rec made by a coach call keeps that call's words, goal included; rebuilding them
+        // here from [prefs] (DEFAULT on the card) is what dropped the Settings goal (C-1).
+        return rec.explanation?.let { suggestion.copy(explanationShort = it) } ?: suggestion
     }
 
     private fun fromDecision(

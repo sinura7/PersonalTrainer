@@ -37,7 +37,7 @@ import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.components.RestControl
+import com.sinura.personaltrainer.ui.components.RestNudgeButtons
 import com.sinura.personaltrainer.ui.components.RestSweepRing
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -170,7 +170,7 @@ class RestLockActivity : ComponentActivity() {
 private const val URGENT_SECONDS = 10
 
 @Composable
-private fun RestLockScreen(
+internal fun RestLockScreen(
     controller: RestTimerController,
     finishedLaunch: Boolean,
     onSkip: () -> Unit,
@@ -217,7 +217,7 @@ private fun RestLockScreen(
     val kicker = when {
         justFinished -> "Back to the bar"
         snapshot.running -> "REST"
-        else -> RestIdleCopy.KICKER
+        else -> RestIdleCopy.NOT_RUNNING
     }
 
     Column(
@@ -278,32 +278,15 @@ private fun RestLockScreen(
             )
             when {
                 snapshot.running -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    ) {
-                        RestControl(
-                            label = "−15s",
-                            onClick = { onAdjust(-15) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag(RestLockTags.MINUS),
-                        )
-                        RestControl(
-                            label = "Skip",
-                            onClick = onSkip,
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag(RestLockTags.SKIP),
-                        )
-                        RestControl(
-                            label = "+15s",
-                            onClick = { onAdjust(15) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .testTag(RestLockTags.PLUS),
-                        )
-                    }
+                    // The dock card's three, in its order and words. Skip sat between the two
+                    // here, so a thumb reaching for +15 on the lock screen could end rest.
+                    RestNudgeButtons(
+                        onNudge = onAdjust,
+                        onSkip = onSkip,
+                        minusTag = RestLockTags.MINUS,
+                        plusTag = RestLockTags.PLUS,
+                        skipTag = RestLockTags.SKIP,
+                    )
                 }
                 justFinished -> {
                     PrimaryGymButton(

@@ -53,10 +53,10 @@ import org.robolectric.shadows.ShadowDialog
  *
  * It was held as a slice of RestTimerUi.kt between `fun RestDurationSheet` and `fun
  * RestSweepRing` (`RestPresetChips(`, `CustomRestDialog(`, `workout-rest-sheet-minus`,
- * `onNudge(-RestTimer.NUDGE_SECONDS)`, `verticalScroll`). W1b shares one ±15 control set
- * between the dock and the full rest screen, which is where this sheet's pair goes, and the
- * slice would have thrown rather than said what moved. What a lifter can pick here, and what
- * each pick sends back, is what these tests hold.
+ * `onNudge(-RestTimer.NUDGE_SECONDS)`, `verticalScroll`). W1b gave every ±15 in the app one
+ * set of words (RestNudgeCopy); this pair keeps its place, because it steps the planned length
+ * before rest runs. What a lifter can pick here, and what each pick sends back, is what these
+ * tests hold.
  *
  * Native graphics, because where the preset row ends is a matter of real text widths: at
  * 360 dp the five presets fill it, and Custom waits past its edge until the row is scrolled.
@@ -183,8 +183,7 @@ class RestDurationSheetRenderTest {
     @Test
     fun thePlannedLengthStepsByFifteenSeconds() {
         showSheet()
-        // W1b changes this: one ±15 set is shared by the dock and the full rest screen, and
-        // this pair is the one that moves; today the sheet carries its own.
+        // The running rest's −15 and +15, in its words, stepping the length before rest runs.
         val minus = compose.onNodeWithTag("workout-rest-sheet-minus")
             .assert(isButton)
             .assertHeightIsAtLeast(Metrics.touchMin)

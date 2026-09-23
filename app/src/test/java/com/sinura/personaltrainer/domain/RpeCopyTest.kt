@@ -20,8 +20,19 @@ class RpeCopyTest {
             RpeCopy.spoken(8, selected = false),
         )
         assertEquals("RPE 10, max", RpeCopy.spoken(10, selected = true))
-        assertEquals(RpeCopy.LABEL, "RPE · OPTIONAL")
+        assertEquals("Effort · optional", RpeCopy.LABEL)
+        assertEquals("Effort help", RpeCopy.HELP_SPOKEN)
         assertEquals(RpeCopy.HELPER, "6 = four reps left · 10 = max")
         assertEquals(RpeCopy.WARMUP_REASON, "Warm-up")
+    }
+
+    @Test
+    fun theChosenValueSaysWhatItMeans() {
+        // Shown under the track once a value is chosen (design audit D12), in the chips' words.
+        assertEquals("RPE 6 · about four reps left", RpeCopy.selectedLine(6))
+        assertEquals("RPE 9 · about one rep left", RpeCopy.selectedLine(9))
+        assertEquals("RPE 10 · max effort", RpeCopy.selectedLine(10))
+        assertNull(RpeCopy.selectedLine(5))
+        assertNull(RpeCopy.selectedLine(11))
     }
 }

@@ -62,7 +62,7 @@ class RestFloorCopyTest {
         assertEquals("Squat", floor.exerciseName)
         assertEquals("Last set · 100 kg × 5", floor.lastSetLine)
         assertEquals("Next: 100 kg × 5 · RPE 8", floor.sessionTargetLine)
-        assertEquals("Planned rest: 1:30", floor.prescribedRestLine)
+        assertEquals("Planned rest · 1:30", floor.prescribedRestLine)
         assertEquals(false, floor.afterWarmup)
     }
 
@@ -98,8 +98,9 @@ class RestFloorCopyTest {
 
     @Test
     fun prescribedRestLineNamesTheClock() {
-        assertEquals("Planned rest: 2:30", RestFloorCopy.prescribedLine(150))
-        assertEquals("Planned rest: 1:00", RestFloorCopy.prescribedLine(60))
+        // The rest card's words for the planned length, so the page and the dock agree.
+        assertEquals("Planned rest · 2:30", RestFloorCopy.prescribedLine(150))
+        assertEquals(RestIdleCopy.planned("1:00"), RestFloorCopy.prescribedLine(60))
     }
 
     @Test

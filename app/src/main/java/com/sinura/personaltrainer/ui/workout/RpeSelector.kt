@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.sinura.personaltrainer.domain.RpeCopy
@@ -68,14 +69,14 @@ internal fun RpeSelector(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
-            Kicker("RPE")
+            Kicker(RpeCopy.LABEL)
             Box(
                 modifier = Modifier
                     .size(Metrics.touchMin)
                     .clip(Radius.full)
                     .clickable(role = Role.Button, onClick = { helpOpen = true })
                     .testTag(WorkoutTestTags.RPE_HELPER)
-                    .semantics { contentDescription = "RPE help" },
+                    .semantics { contentDescription = RpeCopy.HELP_SPOKEN },
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
@@ -134,11 +135,24 @@ internal fun RpeSelector(
                             )
                         }
                     }
-                    // The ends stay under the track whether it fits one row or wraps.
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Text(RpeCopy.EASY_END, style = InstrumentType.caption, color = TextTertiary)
-                        Spacer(Modifier.weight(1f))
-                        Text(RpeCopy.MAX_END, style = InstrumentType.caption, color = TextTertiary)
+                    // Under the track, whether it fits one row or wraps: the chosen value's
+                    // meaning once there is one, the track's ends until then. One row either way.
+                    val chosen = rpe?.let { RpeCopy.selectedLine(it) }
+                    if (chosen != null) {
+                        Text(
+                            text = chosen,
+                            // The chosen chip already says this aloud; the line is for the eyes,
+                            // not a second stop for TalkBack on every set.
+                            modifier = Modifier.testTag(WorkoutTestTags.RPE_MEANING).semantics { hideFromAccessibility() },
+                            style = InstrumentType.caption,
+                            color = TextSecondary,
+                        )
+                    } else {
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            Text(RpeCopy.EASY_END, style = InstrumentType.caption, color = TextTertiary)
+                            Spacer(Modifier.weight(1f))
+                            Text(RpeCopy.MAX_END, style = InstrumentType.caption, color = TextTertiary)
+                        }
                     }
                 }
             }

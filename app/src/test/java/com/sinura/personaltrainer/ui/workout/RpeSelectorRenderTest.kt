@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -32,6 +33,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.ui.theme.Metrics
 import kotlin.math.abs
@@ -46,15 +48,15 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The effort track under the numerals, composed on its own: five equal radio choices, 6 to
- * 10, with the ends named; a coach recommendation that is spoken but never selected; one
- * tap to the help; and, for a warm-up, the reason in place of the track.
+ * The effort track under the numerals, composed on its own: headed "Effort · optional", five
+ * equal radio choices, 6 to 10, with the ends named until one is chosen and then what the
+ * chosen one means; a coach recommendation that is spoken but never selected; one tap to the
+ * help; and, for a warm-up, the reason in place of the track.
  *
  * It was held as lines of RpeSelector.kt (`Kicker("RPE")`, `FlowRow(`, `.weight(1f)`,
  * `role = Role.RadioButton`, `val recommended = recommendedRpe == value && !selected`,
- * `rememberTextMeasurer`, "Warm-ups leave RPE blank"). W1b replaces the "RPE" kicker with
- * "Effort · optional" and shows each value's meaning inline, which rewrites those lines; the
- * heading check below says so where it stands. Native graphics, because whether the five
+ * `rememberTextMeasurer`, "Warm-ups leave RPE blank"). W1b (design audit D12) renamed the
+ * heading and added the chosen value's meaning. Native graphics, because whether the five
  * fit one row is decided by measuring the widest label.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -75,7 +77,7 @@ class RpeSelectorRenderTest {
         screenWidth: Dp = 360.dp,
     ) {
         compose.showFloor(fontScale = fontScale) {
-            Box(modifier = Modifier.width(screenWidth).padding(horizontal = Metrics.gutter)) {
+            Box(modifier = Modifier.width(screenWidth).padding(horizontal = Metrics.gutter).testTag(HOST)) {
                 RpeSelector(
                     enabled = enabled,
                     warmup = warmup,
@@ -94,11 +96,11 @@ class RpeSelectorRenderTest {
     @Test
     fun effortIsFiveEqualRadioChoicesWithTheirMeaningSpoken() {
         showTrack()
-        // W1b changes this: "Effort · optional" replaces the "RPE" kicker, with each value's
-        // meaning shown inline rather than only spoken.
-        compose.onNode(hasText("RPE"), useUnmergedTree = true)
+        // "RPE" alone was unfamiliar (D12): the heading names effort and says it can be left.
+        compose.onNode(hasText("EFFORT · OPTIONAL"), useUnmergedTree = true)
             .assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        compose.onAllNodesWithText("RPE", useUnmergedTree = true).assertCountEquals(0)
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK)
             .assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
@@ -155,6 +157,40 @@ class RpeSelectorRenderTest {
     }
 
     @Test
+    fun aChosenEffortSaysWhatItMeansWhereTheEndsWere() {
+        showTrack()
+        val track = compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).getBoundsInRoot()
+        val height = compose.onNodeWithTag(HOST).getBoundsInRoot().height
+        compose.onAllNodesWithTag(WorkoutTestTags.RPE_MEANING, useUnmergedTree = true).assertCountEquals(0)
+        compose.onNodeWithText("Easy").assertIsDisplayed()
+        rpe = 8
+        compose.waitForIdle()
+        val meaning = compose.onNodeWithTag(WorkoutTestTags.RPE_MEANING, useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(listOf("RPE 8 · about two reps left"), meaning.mergedTexts())
+        assertTrue("the meaning sits under the track", meaning.getBoundsInRoot().top >= track.bottom)
+        compose.onAllNodesWithText("Easy").assertCountEquals(0)
+        compose.onAllNodesWithText("Max effort").assertCountEquals(0)
+        // In the ends' row, so choosing costs no height on every set.
+        assertEquals(height, compose.onNodeWithTag(HOST).getBoundsInRoot().height)
+        // The chosen chip already says this aloud; the line is not a second stop for TalkBack.
+        meaning.assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.HideFromAccessibility))
+        rpe = 10
+        compose.onNode(hasText("RPE 10 · max effort"), useUnmergedTree = true).assertIsDisplayed()
+        // Cleared, the ends come back.
+        rpe = null
+        compose.onNodeWithText("Easy").assertIsDisplayed()
+        compose.onAllNodesWithTag(WorkoutTestTags.RPE_MEANING, useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun atTheLargestTextTheChosenMeaningIsLaidOutWhole() {
+        rpe = 9
+        showTrack(fontScale = 2f)
+        val meaning = compose.onNodeWithTag(WorkoutTestTags.RPE_MEANING, useUnmergedTree = true).assertIsDisplayed()
+        assertTrue("the meaning keeps to its one row", meaning.textLayout().fitsItsWidth())
+    }
+
+    @Test
     fun aRecommendationIsSpokenButNeverSelected() {
         showTrack(recommended = 8)
         choice(8).assertIsNotSelected()
@@ -197,7 +233,7 @@ class RpeSelectorRenderTest {
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
             .assertHeightIsAtLeast(Metrics.touchMin)
             .assertWidthIsAtLeast(Metrics.touchMin)
-        assertEquals(listOf("RPE help"), help.spokenDescriptions())
+        assertEquals(listOf("Effort help"), help.spokenDescriptions())
         help.performClick()
         compose.onNodeWithText("Effort (RPE)").assertIsDisplayed()
         compose.onNodeWithText("6 · four reps left", substring = true).assertIsDisplayed()
@@ -228,5 +264,9 @@ class RpeSelectorRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).assertIsNotEnabled().performClick()
         assertTrue("was $picks", picks.isEmpty())
         compose.onNodeWithTag(WorkoutTestTags.RPE_HELPER).assertIsEnabled()
+    }
+
+    private companion object {
+        const val HOST = "rpe-host"
     }
 }

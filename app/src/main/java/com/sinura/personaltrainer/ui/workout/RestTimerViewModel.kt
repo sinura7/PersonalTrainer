@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -71,6 +72,7 @@ class RestTimerViewModel @JvmOverloads constructor(
                     hint.value = loadHint(current, exerciseId)
                 }
                 val unit = container.preferencesRepository.weightUnit.first()
+                val coachPrefs = container.preferencesRepository.coachPreferences.first()
                 val cached = container.workoutDraftCache.get(sessionId)
                 val rec = workoutMicroRec(
                     session = current,
@@ -87,6 +89,7 @@ class RestTimerViewModel @JvmOverloads constructor(
                     unit = unit,
                     nowMs = time.nowMillis(),
                     todayEpochDay = todayEpochDay(),
+                    coachPrefs = coachPrefs,
                 )
                 restTotal.value = RestTimer.secondsToStart(
                     planned?.restSeconds,
@@ -134,12 +137,19 @@ class RestTimerViewModel @JvmOverloads constructor(
                 exactAlarmBestEffort = attempt == ExactAlarmAttempt.BEST_EFFORT,
             )
         },
-        combine(hint, lighterWeek, container.preferencesRepository.weightUnit) { currentHint, lighter, unit ->
-            Triple(currentHint, lighter, unit)
+        combine(
+            hint,
+            lighterWeek,
+            container.preferencesRepository.weightUnit,
+            container.preferencesRepository.coachPreferences,
+        ) { currentHint, lighter, unit, coach ->
+            RestFloorInputs(hint = currentHint, lighterWeek = lighter, unit = unit, coachPrefs = coach)
         },
     ) { read, rest, extras ->
         val current = read.session
-        val (currentHint, lighter, unit) = extras
+        val currentHint = extras.hint
+        val lighter = extras.lighterWeek
+        val unit = extras.unit
         val missing = current == null || current.isFinished
         RestTimerScreenState(
             loadState = when {
@@ -168,6 +178,8 @@ class RestTimerViewModel @JvmOverloads constructor(
                     unit = unit,
                     nowMs = time.nowMillis(),
                     todayEpochDay = todayEpochDay(),
+                    // The rest page makes the same call as the floor, goal included.
+                    coachPrefs = extras.coachPrefs,
                 )
                 val loadClass = exerciseId?.let { current.loadClassOf(it) } ?: LoadClass.LOADED
                 RestFloorCopy.context(
@@ -258,3 +270,11 @@ class RestTimerViewModel @JvmOverloads constructor(
         )
     }
 }
+
+/** The rest page's inputs to its coach call, beside the session and the clock. */
+private data class RestFloorInputs(
+    val hint: ProgressionHint?,
+    val lighterWeek: Boolean,
+    val unit: WeightUnit,
+    val coachPrefs: CoachPreferences,
+)

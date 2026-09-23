@@ -110,6 +110,7 @@ object WorkoutTestTags {
     const val RPE_HELPER = "workout-rpe-helper"
     const val RPE_CLEAR = "workout-clear-rpe"
     const val RPE_WARMUP_REASON = "workout-rpe-warmup-reason"
+    const val RPE_MEANING = "workout-rpe-meaning"
     const val SET_CONTEXT = "workout-set-context"
     const val SET_TYPE = "workout-set-type"
     const val WORKING_CHIP = "workout-working-choice"

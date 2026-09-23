@@ -77,6 +77,12 @@ data class SetMicroRec(
      */
     val equipment: EquipmentType? = null,
     val loadType: LoadType? = null,
+    /**
+     * The coach's own words for this call, the lifter's training goal included, when the
+     * rec came from a coach call ([com.sinura.personaltrainer.domain.coach.CoachSuggestion.toMicroRec]).
+     * The Next-set card shows these rather than rebuilding them without the goal.
+     */
+    val explanation: String? = null,
 ) {
     /**
      * True once the entry already holds this set exactly as Apply would write it, so the

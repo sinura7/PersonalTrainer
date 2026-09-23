@@ -3,7 +3,6 @@ package com.sinura.personaltrainer.ui.workout
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,12 +33,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.RestFloorContext
 import com.sinura.personaltrainer.domain.RestHonestyCopy
+import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.RestHonestyRow
-import com.sinura.personaltrainer.ui.components.RestControl
+import com.sinura.personaltrainer.ui.components.RestNudgeButtons
 import com.sinura.personaltrainer.ui.components.RestPresetChips
 import com.sinura.personaltrainer.ui.components.RestSweepRing
 import com.sinura.personaltrainer.ui.components.ScreenHeader
@@ -184,7 +184,7 @@ internal fun RestFloorBody(
     val label = when {
         completed -> "Rest complete"
         rest.running -> "Rest"
-        else -> "Planned rest"
+        else -> RestIdleCopy.PLANNED_REST
     }
     var showCustom by rememberSaveable { mutableStateOf(false) }
     val largeText = LocalDensity.current.fontScale >= 1.6f
@@ -224,7 +224,7 @@ internal fun RestFloorBody(
                     floor.sessionTargetLine?.let {
                         Text(it, modifier = Modifier.testTag(RestFloorTags.NEXT), style = InstrumentType.body, color = TextSecondary)
                     }
-                    Text("Planned rest: ${RestTimer.formatClock(rest.totalSeconds)}", style = InstrumentType.body, color = TextSecondary)
+                    Text(RestIdleCopy.planned(RestTimer.formatClock(rest.totalSeconds)), style = InstrumentType.body, color = TextSecondary)
                 }
                 if (!rest.running && !completed) RestPresetChips(
                     selectedSeconds = rest.totalSeconds, onSelect = onSelectPreset,
@@ -240,19 +240,12 @@ internal fun RestFloorBody(
             // The actions stay within reach; the context above owns any required scrolling.
             Column(modifier = Modifier.fillMaxWidth().padding(vertical = Metrics.space4)) {
                 when {
-                    rest.running -> FlowRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        maxItemsInEachRow = if (largeText) 2 else 3,
-                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    ) {
-                        RestControl(label = "−15s", spoken = "Subtract 15 seconds", onClick = { onAdjust(-15) },
-                            modifier = Modifier.weight(1f).testTag(RestFloorTags.MINUS))
-                        RestControl(label = "+15s", spoken = "Add 15 seconds", onClick = { onAdjust(15) },
-                            modifier = Modifier.weight(1f).testTag(RestFloorTags.PLUS))
-                        RestControl(label = "Skip", onClick = onSkip, confirm = true,
-                            modifier = Modifier.weight(1f).testTag(RestFloorTags.SKIP))
-                    }
+                    // The dock card's three, in its order and words.
+                    rest.running -> RestNudgeButtons(
+                        onNudge = onAdjust, onSkip = onSkip,
+                        minusTag = RestFloorTags.MINUS, plusTag = RestFloorTags.PLUS, skipTag = RestFloorTags.SKIP,
+                        perRow = if (largeText) 2 else 3,
+                    )
                     completed -> PrimaryGymButton(
                         text = "Return to workout", onClick = onBackToBar,
                         modifier = Modifier.testTag(RestFloorTags.BACK_TO_BAR),
