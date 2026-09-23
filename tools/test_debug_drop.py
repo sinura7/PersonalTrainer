@@ -56,6 +56,13 @@ def init_repo(code: int = 1) -> Path:
     return root
 
 
+def add_origin(repo: Path) -> None:
+    """Give [repo] a bare `origin`: the only place plan_drop asks which names are spent."""
+    origin = Path(tempfile.mkdtemp(prefix="debug-drop-origin-"))
+    subprocess.run(["git", "init", "--bare", str(origin)], check=True, capture_output=True)
+    run(repo, "remote", "add", "origin", str(origin))
+
+
 def commit_code(repo: Path, code: int, tag: str | None = None, note: str | None = None) -> None:
     """Commit a drop code, optionally alongside an unrelated change.
 
@@ -155,12 +162,45 @@ def main() -> int:
         next_free_suffix(taken, "2026-09-10", limit=2) is None,
         "a day with no room inside the limit refuses rather than guesses",
     )
+    expect(
+        next_free_suffix(["debug-live-2026-09-22", "debug-live/2026-09-22-2"], "2026-09-22")
+        == "2026-09-22-3",
+        "a drop branch spends its suffix just as a tag does",
+    )
 
+    # plan_drop asks origin, not this clone. With nowhere to ask it refuses, even
+    # though the clone holds tags of its own.
+    expect(
+        not plan_drop(repo, today="2026-09-10").ok,
+        "a clone with no origin refuses rather than trusting its own tags",
+    )
+    add_origin(repo)
+    run(repo, "push", "origin", "--tags")
     plan = plan_drop(repo, today="2026-09-10")
     expect(plan.ok and plan.suffix == "2026-09-10-2", "plan_drop skips the taken suffix")
     expect(plan.tag == "debug-live-2026-09-10-2", "and names the tag it would claim")
     expect(not plan_drop(repo, today="10-09-2026").ok, "a suffix that is not a date is refused")
     expect(not plan_drop(bare, today="2026-09-10").ok, "no git means no plan")
+
+    # THE 22 SEP INCIDENT. Run 113 failed after its branch was pushed, so origin
+    # held debug-live/2026-09-22-2 with no tag. The planner named -2 again, the
+    # push was refused as non-fast-forward, and a suffix was picked by hand.
+    orphan = init_repo(code=90)
+    add_origin(orphan)
+    run(orphan, "tag", "debug-live-2026-09-22")
+    run(orphan, "push", "origin", "debug-live-2026-09-22", "HEAD:refs/heads/debug-live/2026-09-22")
+    run(orphan, "push", "origin", "HEAD:refs/heads/debug-live/2026-09-22-2")
+    # The tag's spelling on a branch is neither the push nor the claim.
+    run(orphan, "push", "origin", "HEAD:refs/heads/debug-live-2026-09-22-3")
+    plan = plan_drop(orphan, today="2026-09-22")
+    expect(
+        plan.ok and plan.suffix != "2026-09-22-2",
+        "a suffix with an orphan branch and no tag is not free",
+    )
+    expect(
+        plan.suffix == "2026-09-22-3" and plan.tag == "debug-live-2026-09-22-3",
+        "the first suffix with neither a tag nor a branch is chosen",
+    )
 
     print("test_debug_drop: all assertions passed")
     return 0

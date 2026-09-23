@@ -20,9 +20,15 @@ The rules here are the ones a person cannot lose a race to:
   `debug-live-*` tag names a commit, and that commit's `debugLiveCode` is what
   that drop carried. The working tree's code must be strictly above every one
   of them. Nothing else is a drop, so nothing else moves the floor.
-- **The suffix is the first free one for the day.** Free means no tag of that
-  name exists — the same question the workflow asks git when it claims the
-  tag, so the two answers cannot disagree for long.
+- **The suffix is the first free one for the day.** Free means origin holds
+  neither the tag `debug-live-<suffix>` nor the branch `debug-live/<suffix>`.
+  The branch is what the push that cuts a drop creates; the tag is what the
+  workflow claims once the build succeeds. A drop that failed in between
+  leaves the branch and no tag. On 22 Sep 2026 a planner that asked only
+  about tags named `-2` again, a name an orphan branch from failed run 113
+  already held; the push was refused as non-fast-forward and `-4` was picked
+  by hand. Both are asked of origin itself, because that is where the push
+  and the claim land, and a clone's own copy of either can be stale.
 
 This is a drop-time rule, not a preflight one, and deliberately so. The moment
 a drop of code N is cut, a tag carries N, and a tree still at N would fail —
@@ -31,10 +37,10 @@ no reason to touch. `.github/workflows/debug-live.yml` runs the ratchet where it
 belongs: on the way to the phone. `tools/test_debug_drop.py` proves the rule on
 every commit without gating on what has shipped.
 
-Fail closed. Where git cannot answer — no repository, an unreadable tag, a
-build file with no `debugLiveCode` — these return a refusal rather than a
-pass, because "I could not tell" and "it is fine" are not the same sentence
-and only one of them should let an APK reach the phone.
+Fail closed. Where git cannot answer — no repository, no origin to ask, an
+unreadable tag, a build file with no `debugLiveCode` — these return a refusal
+rather than a pass, because "I could not tell" and "it is fine" are not the
+same sentence and only one of them should let an APK reach the phone.
 """
 from __future__ import annotations
 
@@ -45,6 +51,8 @@ from pathlib import Path
 
 DEBUG_CODE = re.compile(r"^val debugLiveCode = (\d+)\s*$", re.M)
 DROP_TAG = re.compile(r"^debug-live-(\d{4}-\d{2}-\d{2})(?:-(\d+))?$")
+#: The tag-less spelling: pushing this branch is how a drop is cut.
+DROP_BRANCH = re.compile(r"^debug-live/(\d{4}-\d{2}-\d{2})(?:-(\d+))?$")
 GRADLE_REL = Path("app") / "build.gradle.kts"
 
 #: How many same-day suffixes to walk before giving up. A day that has already
@@ -180,31 +188,73 @@ def check_code(repo: Path) -> DropCheck:
     )
 
 
+def drop_suffix(name: str) -> str | None:
+    """The suffix a drop tag (`debug-live-<s>`) or drop branch (`debug-live/<s>`) spends."""
+    if DROP_TAG.match(name):
+        return name[len("debug-live-"):]
+    if DROP_BRANCH.match(name):
+        return name[len("debug-live/"):]
+    return None
+
+
+def list_origin_drop_refs(repo: Path) -> list[str] | None:
+    """Every drop tag and drop branch on origin, or None when origin could not be asked.
+
+    Tags come back as `debug-live-<suffix>` and branches as `debug-live/<suffix>`.
+    Each spelling counts only in its own namespace: a branch called
+    `debug-live-<suffix>` is neither what the push creates nor what the workflow
+    claims, so it spends nothing.
+
+    `ls-remote` rather than this clone's refs: a remote-tracking branch is only as
+    fresh as the last fetch, and nothing prunes the ones origin has dropped.
+    """
+    result = _git(
+        repo,
+        "ls-remote",
+        "origin",
+        "refs/heads/debug-live/*",
+        "refs/tags/debug-live-*",
+    )
+    if result.returncode != 0:
+        return None
+    names: set[str] = set()
+    for line in result.stdout.splitlines():
+        ref = line.partition("\t")[2].strip()
+        for namespace, pattern in (("refs/tags/", DROP_TAG), ("refs/heads/", DROP_BRANCH)):
+            name = ref[len(namespace):]
+            if ref.startswith(namespace) and pattern.match(name):
+                names.add(name)
+    return sorted(names)
+
+
 def next_free_suffix(
-    tags: list[str],
+    names: list[str],
     today: str,
     limit: int = SUFFIX_LIMIT,
 ) -> str | None:
-    """The first `YYYY-MM-DD[-N]` for [today] that no tag has taken."""
-    taken = {tag for tag in tags if DROP_TAG.match(tag)}
+    """The first `YYYY-MM-DD[-N]` for [today] that no drop tag or drop branch has taken."""
+    taken = {suffix for suffix in map(drop_suffix, names) if suffix is not None}
     for index in range(1, limit + 1):
         suffix = today if index == 1 else f"{today}-{index}"
-        if f"debug-live-{suffix}" not in taken:
+        if suffix not in taken:
             return suffix
     return None
 
 
 def plan_drop(repo: Path, today: str, limit: int = SUFFIX_LIMIT) -> DropPlan:
-    """Name the drop that is free to cut today, refusing when git cannot say."""
+    """Name the drop that is free to cut today, refusing when origin cannot say."""
     if not DROP_TAG.match(f"debug-live-{today}"):
         return DropPlan(ok=False, message=f"debug-drop: {today} is not YYYY-MM-DD")
-    tags = list_drop_tags(repo)
-    if tags is None:
+    names = list_origin_drop_refs(repo)
+    if names is None:
         return DropPlan(
             ok=False,
-            message="debug-drop: git could not list tags; cannot tell which suffix is free",
+            message=(
+                "debug-drop: could not ask origin for its debug-live tags and "
+                "branches; cannot tell which suffix is free"
+            ),
         )
-    suffix = next_free_suffix(tags, today, limit=limit)
+    suffix = next_free_suffix(names, today, limit=limit)
     if suffix is None:
         return DropPlan(
             ok=False,
