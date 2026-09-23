@@ -16,10 +16,11 @@
 > `Signed:` in this file.
 >
 > 23 Sep 2026 — Whole-app audit packet X4, a clean foundation. A rest length
-> picked on the rest page while it was still loading was overwritten by the
-> coach's (a user's 1:45 became 2:30, and Start ran 2:30); the page's seed now
-> fills only a length nobody chose. It surfaced as a once-in-a-hundred test
-> timeout, and a new test forces the timing. The hosted layout tests' three
+> picked while the rest page, or a lift on the Log, was still loading was
+> overwritten by the coach's (a user's 1:45 became 2:30, and Start ran 2:30);
+> both seeds now fill only a length nobody chose for that lift. It surfaced as
+> a once-in-a-hundred test timeout, and two new tests force the timing. Weight,
+> reps and effort were already safe. The hosted layout tests' three
 > stale expectations are corrected. The static gate fetches the Kotlin
 > compiler when it is missing and fails when it still cannot parse, unless
 > `PT_ALLOW_NO_COMPILER=1`. Kotlin's plugin markers come from Maven Central

@@ -192,9 +192,10 @@ class RestTimerViewModelTest {
     fun selectingDurationOnTheFloorUpdatesTheLogPlannedRest() = runBlocking {
         val fixture = seedWorkout(restSeconds = 90)
         val workout = createWorkoutViewModel(fixture.session.id)
-        // READY, not FOUND: prefill sets the lift's rest (the coach's 2:30 for five reps) as
-        // its last step before READY, and a length chosen before then is replaced by it — the
-        // wait below for 105 then ran out (23 Sept).
+        // READY, not FOUND, so this test is about the floor reaching the Log, not load timing.
+        // A length chosen before READY used to be replaced by prefill's seed (the coach's 2:30
+        // for five reps), and the wait below for 105 ran out (23 Sept). Both pages now keep a
+        // length someone picked: see the two "…OutlivesThe…" tests.
         workout.awaitState { it.loadState == SessionLoadState.FOUND && it.liftReadiness == LiftEntryReadiness.READY }
         val floor = createViewModel(fixture.session.id)
         floor.awaitState { it.loadState == SessionLoadState.FOUND }

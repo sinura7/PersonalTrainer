@@ -56,8 +56,9 @@ Done so far:
   routine picker's second tap (drops 101, 102).
 - **X3:** the retired emulator goldens left the hosted lane.
 - **W1c:** the entry wells hold still on the first working set (drop 103).
-- **X4:** a rest length picked while the rest page loads survives; the static
-  gate and the cloud build were made dependable (see below).
+- **X4:** a rest length picked while the rest page or a lift is still loading
+  survives; the static gate and the cloud build were made dependable (see
+  below).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 

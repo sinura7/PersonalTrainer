@@ -1428,8 +1428,9 @@ class ActiveWorkoutViewModelTest {
     fun manualRestUsesSelectedDurationAndCanBeSkipped() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
-        // Prefill sets the lift's planned rest when it lands after FOUND; a duration chosen
-        // before then is replaced by it (105 became 150 in a local run, 23 Sept).
+        // Waits for prefill so this test is about starting and skipping, not load timing. A
+        // duration chosen before prefill landed used to be replaced by it (105 became 150, 23
+        // Sept); aRestLengthPickedWhileTheLiftIsStillLoadingOutlivesThePrefill holds the fix.
         vm.awaitPrefilled()
 
         vm.selectRestDuration(105)
@@ -2103,6 +2104,50 @@ class ActiveWorkoutViewModelTest {
         } finally {
             if (!gate.isCompleted) gate.complete(Unit)
         }
+    }
+
+    @Test
+    fun aRestLengthPickedWhileTheLiftIsStillLoadingOutlivesThePrefill() = runBlocking {
+        val fixture = seedWorkout(restSeconds = 90)
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedHistory(gate))
+        try {
+            // FOUND with the lift's history read held: the dock's rest card is on screen and
+            // takes a pick, but prefill has not reached its planned-rest seed, which only runs
+            // after that read returns.
+            vm.awaitFound()
+            vm.selectRestDuration(105)
+            deps.preferencesRepository.restTimerPreferences.first { it.lastPresetSeconds == 105 }
+            gate.complete(Unit)
+            vm.awaitPrefilled()
+
+            vm.startSelectedRest()
+            awaitRestRunning()
+            assertEquals(105, deps.restTimerStore.current().totalSeconds)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun aRestPickedOnOneLiftDoesNotStopTheNextLiftSeedingItsOwn() = runBlocking {
+        val fixture = seedTwoLifts(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.startSelectedRest()
+        awaitRestRunning()
+        val seeded = deps.restTimerStore.current().totalSeconds
+        vm.skipRest()
+        assertTrue(seeded != 105)
+
+        vm.selectRestDuration(105)
+        deps.preferencesRepository.restTimerPreferences.first { it.lastPresetSeconds == 105 }
+        vm.selectExercise(ROW)
+        vm.awaitPrefilled(weightKg = 80.0)
+
+        vm.startSelectedRest()
+        awaitRestRunning()
+        assertEquals(seeded, deps.restTimerStore.current().totalSeconds)
     }
 
     @Test
