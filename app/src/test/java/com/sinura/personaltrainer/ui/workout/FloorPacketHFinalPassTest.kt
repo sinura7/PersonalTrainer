@@ -117,7 +117,7 @@ class FloorPacketHFinalPassTest {
     fun liftPicturesStayDecorativeInsideTheNamedIdentity() {
         val thumb = readOwned("ui/components/ExerciseThumb.kt")
         assertTrue(thumb.contains("clearAndSetSemantics { }"))
-        // Inside the identity the still adds no words to its one merged sentence:
+        // On the floor the still is the Details button and is spoken only as that:
         // ExerciseHeaderRenderTest.
         // The session progress bar is decorative too: the progress line says it in words.
         val chrome = readOwned("ui/workout/WorkoutHeader.kt")

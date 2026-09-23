@@ -26,8 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
@@ -140,11 +140,13 @@ fun InstrumentChip(
                     )
                 },
             )
+            // A spoken form replaces the label rather than joining it: set beside the merged
+            // label, both were read out, one after the other.
             .then(
                 if (spoken == null) {
                     Modifier
                 } else {
-                    Modifier.semantics { contentDescription = spoken }
+                    Modifier.clearAndSetSemantics { contentDescription = spoken }
                 },
             ),
         contentAlignment = Alignment.Center,

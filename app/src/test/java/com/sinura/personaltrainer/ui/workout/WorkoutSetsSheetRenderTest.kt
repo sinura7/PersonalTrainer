@@ -104,8 +104,8 @@ class WorkoutSetsSheetRenderTest {
     @Test
     fun addAnotherSetSitsAtTheFootOnceThePlanIsMet() {
         showSheet(showAddSet = true)
-        // W1a changes this: the floor has two "Add set" controls today (the strip's chip and
-        // the dock's "Add another set"), and this sheet repeats the dock's words. W1a keeps one.
+        // The sheet covers the dock, so it repeats the dock's "Add another set" in the same
+        // words; the set history's own "Add set" chip is gone (W1a).
         compose.onNodeWithText("Add another set").performScrollTo().assertIsDisplayed().performClick()
         assertEquals(1, added)
     }
@@ -113,8 +113,7 @@ class WorkoutSetsSheetRenderTest {
     @Test
     fun addAnotherSetStaysAwayUntilThePlanIsMet() {
         showSheet(sets = listOf(warmup) + working.take(2), showAddSet = false)
-        // W1a changes this: W1a keeps one "Add set" on the floor and may take this one out of
-        // the sheet. Wherever it lands, it stays away until the plan is met.
+        // Like the dock's, it stays away until the plan is met.
         compose.onNodeWithText("Add another set").assertDoesNotExist()
     }
 

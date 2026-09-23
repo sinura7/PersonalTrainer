@@ -49,14 +49,12 @@ class SetHistoryStripRenderTest {
     private var edited: String? = null
     private var deleted: String? = null
     private var openedAll = 0
-    private var added = 0
 
     private fun showStrip(
         sets: List<SetLog> = listOf(floorSet(1, FLOOR_KG70, 10, rpe = 8), floorSet(2, FLOOR_KG70, 10, rpe = 9)),
         editingSetId: String? = null,
         receiptSetId: String? = null,
         current: CurrentSetMark? = CurrentSetMark(mark = "3", label = "Set 3 of 3"),
-        showAddSet: Boolean = false,
         enabled: Boolean = true,
     ) {
         compose.showFloor {
@@ -68,12 +66,10 @@ class SetHistoryStripRenderTest {
                 editingSetId = editingSetId,
                 receiptSetId = receiptSetId,
                 current = current,
-                showAddSet = showAddSet,
                 enabled = enabled,
                 onEdit = { edited = it },
                 onDelete = { deleted = it },
                 onOpenAll = { openedAll += 1 },
-                onAddSet = { added += 1 },
             )
         }
     }
@@ -87,20 +83,19 @@ class SetHistoryStripRenderTest {
     )
 
     @Test
-    fun eachChipSaysItsOrdinalSetAndStateAndTodayItsLineToo() {
+    fun eachChipSaysItsOrdinalSetAndStateOnce() {
         val sets = listOf(floorSet(1, FLOOR_KG70, 10, rpe = 8), floorSet(2, FLOOR_KG70, 10, rpe = 9), floorSet(3, FLOOR_KG70, 11))
         showStrip(sets = sets, editingSetId = "set-3", receiptSetId = "set-2", current = null)
         val states = listOf("logged", "saved", "editing")
         sets.forEachIndexed { index, set ->
             val ordinal = SetOrdinalCopy.working(index + 1, 3)
             val chip = compose.onNodeWithTag(WorkoutTestTags.setChip(set.id))
-            // The sentence stays through W1a: ordinal, set, state, said once per chip.
+            // The sentence is the whole announcement: ordinal, set, state, said once per chip.
             assertEquals(listOf("$ordinal, ${spokenSet(set)}, ${states[index]}"), chip.spokenDescriptions())
             compose.onAllNodes(hasContentDescription("$ordinal, ", substring = true)).assertCountEquals(1)
-            // W1a changes this: the chip also merges its visible line into what TalkBack
-            // reads, the double announcement W1a removes.
-            val line = FloorStatCopy.compactSet(weightKg = set.weightKg, reps = set.reps, loadClass = LoadClass.LOADED, unit = FLOOR_UNIT, rpe = set.rpe)
-            assertTrue("today the chip also carries \"$line\", was ${chip.mergedTexts()}", line in chip.mergedTexts())
+            // The visible line under it is not read a second time (the double announcement
+            // the audit found).
+            assertTrue("the chip must not also carry its visible line, was ${chip.mergedTexts()}", chip.mergedTexts().isEmpty())
             // "Double-tap to" names the menu this chip opens, with the chip's own ordinal.
             assertEquals(SetRowCopy.actionsFor(ordinal), chip.clickLabel())
             chip.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
@@ -160,6 +155,10 @@ class SetHistoryStripRenderTest {
         compose.onNodeWithText("SET HISTORY").assertIsDisplayed()
         val edit = compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS)
         assertEquals(listOf("Edit saved sets"), edit.spokenDescriptions())
+        // Said once: the short visible "Edit" is not read after the full name, and the
+        // button is still a button (clearing its words must not clear its role or action).
+        assertTrue("was ${edit.mergedTexts()}", edit.mergedTexts().isEmpty())
+        edit.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
         edit.assertHeightIsAtLeast(Metrics.touchMin).performClick()
         assertEquals(1, openedAll)
     }
@@ -173,52 +172,32 @@ class SetHistoryStripRenderTest {
 
     @Test
     fun anEmptyStripComposesNothing() {
-        showStrip(sets = emptyList(), current = null, showAddSet = false)
+        showStrip(sets = emptyList(), current = null)
         compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertDoesNotExist()
     }
 
     @Test
-    fun addSetIsTheLastChipOnceThePlanIsMet() {
+    fun theStripNeverOffersAnExtraSetEvenOnceThePlanIsMet() {
+        // One "Add set" on the floor (W1a): the dock's "Add another set", beside Next exercise
+        // and Finish where that decision is made. The strip only shows what was logged.
         val sets = (1..3).map { floorSet(it, FLOOR_KG70, 10) }
-        showStrip(sets = sets, current = null, showAddSet = true)
-        // W1a changes this: today the floor has two "Add set" controls, this chip and the
-        // dock's "Add another set"; W1a keeps one.
-        val add = compose.onNodeWithTag(WorkoutTestTags.ADD_SET)
-            .assertIsDisplayed()
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
-            .assertHeightIsAtLeast(Metrics.touchMin)
-        assertEquals(listOf("Add set"), add.spokenDescriptions())
-        val addBounds = add.getBoundsInRoot()
-        val lastChip = compose.onNodeWithTag(WorkoutTestTags.setChip("set-3")).getBoundsInRoot()
-        assertTrue(
-            "Add set follows the last saved chip, was $addBounds after $lastChip",
-            addBounds.top > lastChip.top || (addBounds.top == lastChip.top && addBounds.left >= lastChip.right),
-        )
-        add.performClick()
-        assertEquals(1, added)
-    }
-
-    @Test
-    fun addSetStaysAwayUntilThePlanIsMet() {
-        showStrip(showAddSet = false)
-        // W1a changes this: W1a keeps one "Add set" on the floor and may not keep this chip.
-        // Whichever it keeps must still stay away until the plan is met.
+        showStrip(sets = sets, current = null)
+        compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertDoesNotExist()
+        compose.onNodeWithText("Add set").assertDoesNotExist()
     }
 
     @Test
     fun aLockedEntryLocksEveryChip() {
-        showStrip(showAddSet = true, enabled = false)
+        showStrip(enabled = false)
         compose.onNodeWithTag(WorkoutTestTags.setChip("set-1")).assertIsNotEnabled().performClick()
         compose.onNodeWithText(SetRowCopy.revise(SetOrdinalCopy.working(1, 3))).assertDoesNotExist()
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertIsNotEnabled().performClick()
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).assertIsNotEnabled()
-        assertEquals(0, added)
     }
 
     @Test
     fun theHistoryIsNeverTheLogLoopsScrollAnchor() {
-        showStrip(showAddSet = true)
+        showStrip()
         compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
         compose.onAllNodesWithTag(WorkoutTestTags.SET_ENTRY, useUnmergedTree = true).assertCountEquals(0)
     }

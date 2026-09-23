@@ -41,6 +41,8 @@ internal fun LiftOverflowMenu(
     onSummary: () -> Unit,
     onSkip: () -> Unit = {},
     onSwitch: (() -> Unit)? = null,
+    /** The lift's own screen, also on its picture; here too so a menu reader finds it. */
+    onDetails: (() -> Unit)? = null,
     enabled: Boolean = true,
 ) {
     var menuOpen by rememberSaveable(liftId) { mutableStateOf(false) }
@@ -64,6 +66,12 @@ internal fun LiftOverflowMenu(
                 DropdownMenuItem(
                     text = { Text(CurrentLiftCopy.SWITCH, style = InstrumentType.bodyStrong, color = TextPrimary) },
                     onClick = { menuOpen = false; onSwitch() },
+                )
+            }
+            if (onDetails != null) {
+                DropdownMenuItem(
+                    text = { Text(CurrentLiftCopy.DETAILS_SPOKEN, style = InstrumentType.bodyStrong, color = TextPrimary) },
+                    onClick = { menuOpen = false; onDetails() },
                 )
             }
             DropdownMenuItem(

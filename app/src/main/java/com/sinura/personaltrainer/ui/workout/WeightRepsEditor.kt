@@ -25,10 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
@@ -59,6 +61,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentPreset
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.StepperButton
 import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -367,8 +370,26 @@ private fun HeroNumeral(
                     .heightIn(min = Metrics.stepperRound)
                     .clip(RoundedCornerShape(Radius.sm))
                     .testTag(tag)
+                    // The numeral is a field, and it looks like one (design audit D10): a quiet
+                    // underline says "type here" where a readout said nothing, so a lifter no
+                    // longer spends ten taps on ± to reach a number they could type.
+                    .drawBehind {
+                        if (enabled) {
+                            val stroke = Metrics.emphasisBorder.toPx()
+                            val y = size.height - stroke / 2
+                            drawLine(
+                                color = HairlineStrong,
+                                start = Offset(x = 0f, y = y),
+                                end = Offset(x = size.width, y = y),
+                                strokeWidth = stroke,
+                                cap = StrokeCap.Round,
+                            )
+                        }
+                    }
                     .clickable(enabled = enabled, role = Role.Button, onClick = onType, onClickLabel = typeLabel)
-                    .semantics(mergeDescendants = true) {
+                    // The spoken value is the whole announcement; the digits under it are not
+                    // read a second time.
+                    .clearAndSetSemantics {
                         contentDescription = spoken
                         customActions = if (!enabled) emptyList() else listOf(
                             CustomAccessibilityAction(decrementSpoken) { onDecrement(); true },

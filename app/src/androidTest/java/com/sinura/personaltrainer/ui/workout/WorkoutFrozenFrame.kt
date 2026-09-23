@@ -188,7 +188,7 @@ internal fun WorkoutFrozenFrame(scenario: String) {
                     ) {
                         item(key = "exercise-header") {
                             ExerciseHeader(
-                                lift = lift, number = 1, total = 2, workingLogged = workingLogged, setContext = setContext,
+                                lift = lift, number = 1, total = 2, setContext = setContext,
                                 draftWarmup = draft.isWarmup, onWarmup = {}, onOpenSwitcher = {}, onDetails = {}, enabled = entryEnabled,
                             )
                         }
@@ -227,8 +227,8 @@ internal fun WorkoutFrozenFrame(scenario: String) {
                                 HairlineDivider(startIndent = 0.dp)
                                 SetHistoryStrip(
                                     sets = sets, targetSets = lift.targetSets, loadClass = loadClass, unit = unit,
-                                    editingSetId = null, receiptSetId = receipt?.setId, current = current, showAddSet = complete,
-                                    enabled = entryEnabled, onEdit = {}, onDelete = {}, onOpenAll = {}, onAddSet = {},
+                                    editingSetId = null, receiptSetId = receipt?.setId, current = current,
+                                    enabled = entryEnabled, onEdit = {}, onDelete = {}, onOpenAll = {},
                                 )
                             }
                         }

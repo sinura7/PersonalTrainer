@@ -142,6 +142,7 @@ object WorkoutTestTags {
     const val PROGRESS_LINE = "workout-progress-line"
     const val PROGRESS_BAR = "workout-progress-bar"
     const val DETAILS = "workout-details"
+    const val LIFT_SWITCH = "workout-lift-switch"
     const val STATS_ROW = "workout-stats"
     const val STAT_LAST = "workout-stat-last"
     const val STAT_BEST = "workout-stat-best"
@@ -422,6 +423,7 @@ private fun ActiveWorkoutContent(
                             onSummary = { sessionSummaryOpen = true },
                             onSkip = viewModel::skipForNow,
                             onSwitch = { liftSwitcherOpen = true },
+                            onDetails = { onOpenExercise(lift.exercise.id) },
                             enabled = !state.entryLocked,
                         )
                     }
@@ -631,7 +633,6 @@ private fun ActiveWorkoutContent(
                                         lift = currentLift,
                                         number = currentIndex + 1,
                                         total = session.exercises.size,
-                                        workingLogged = workingLogged,
                                         setContext = setContext,
                                         draftWarmup = state.draft.isWarmup,
                                         onWarmup = viewModel::setWarmup,
@@ -789,16 +790,10 @@ private fun ActiveWorkoutContent(
                                             editingSetId = state.editingSetId,
                                             receiptSetId = logReceipt?.setId,
                                             current = current,
-                                            showAddSet = WorkoutAdvance.cardOffersAnotherSet(logged, currentLift.targetSets) &&
-                                                !extraSetRequested && state.editingSetId == null,
                                             enabled = entryEnabled,
                                             onEdit = viewModel::editSet,
                                             onDelete = viewModel::deleteSet,
                                             onOpenAll = { setsOpen = true },
-                                            onAddSet = {
-                                                Haptics.tick(view)
-                                                viewModel.requestExtraSet()
-                                            },
                                         )
                                     }
                                 }

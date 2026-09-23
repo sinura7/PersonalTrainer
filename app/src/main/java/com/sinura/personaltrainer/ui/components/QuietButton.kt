@@ -52,6 +52,8 @@ fun QuietButton(
     spoken: String? = null,
     /** No fill or border: a quiet inline link (Details) that still keeps its 48 dp target. */
     plain: Boolean = false,
+    /** What "double-tap to …" says when the visible words name a thing, not the act. */
+    onClickLabel: String? = null,
 ) {
     val view = LocalView.current
     // An accented control reports a state (Applied), so it keeps its ink while disabled.
@@ -67,7 +69,7 @@ fun QuietButton(
             .clip(RoundedCornerShape(Radius.md))
             .then(if (plain) Modifier else Modifier.background(Surface2))
             .then(if (plain) Modifier else Modifier.border(Metrics.hairline, if (accent) Volt else Hairline, RoundedCornerShape(Radius.md)))
-            .clickable(enabled = enabled, role = Role.Button) {
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = onClickLabel) {
                 Haptics.tickLight(view)
                 onClick()
             }

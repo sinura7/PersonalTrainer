@@ -176,8 +176,8 @@ class WorkoutCompletionLayoutInstrumentedTest(
             // With rest alerts denied, an edit in progress still owns the companion slot:
             // Cancel edit outranks the notification honesty row, which returns once the
             // edit stands down. The identity and the commit's verb announce the edit too.
-            compose.onNodeWithTag(WorkoutTestTags.liftCard(checkNotNull(fixture.vm.uiState.value.selectedExerciseId)))
-                .assert(hasContentDescription(value = "Editing saved set", substring = true))
+            compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true)
+                .assert(hasText(text = "Editing saved set", substring = true))
             assertEquals("Save changes", verb)
             compose.onNodeWithTag(WorkoutTestTags.CANCEL_EDIT).assertIsDisplayed().performClick()
             compose.waitUntil(15_000) { fixture.vm.uiState.value.editingSetId == null }

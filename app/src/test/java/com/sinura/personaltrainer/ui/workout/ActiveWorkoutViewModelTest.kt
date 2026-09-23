@@ -1127,6 +1127,9 @@ class ActiveWorkoutViewModelTest {
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
+        // The row lands mid-save; typing and the ask are refused, by design, until the save
+        // releases.
+        vm.awaitEntryUnlocked()
         vm.setWeight(80.0)
         vm.setReps(12)
         vm.awaitState { it.draft.weightKg == 80.0 && it.draft.reps == 12 }
@@ -1152,6 +1155,8 @@ class ActiveWorkoutViewModelTest {
         withTimeout(TestWaits.FLOW_MS) { vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.LIFT_DONE } }
         assertFalse(deps.restTimerStore.current().running)
 
+        // The row lands mid-save; the ask is refused, by design, until the save releases.
+        vm.awaitEntryUnlocked()
         vm.requestExtraSet()
         assertTrue(vm.extraSetRequested.value)
         val rec = checkNotNull(
@@ -1204,6 +1209,8 @@ class ActiveWorkoutViewModelTest {
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
+        // The row lands mid-save; the ask is refused, by design, until the save releases.
+        vm.awaitEntryUnlocked()
         vm.requestExtraSet()
         assertTrue(vm.extraSetRequested.value)
 

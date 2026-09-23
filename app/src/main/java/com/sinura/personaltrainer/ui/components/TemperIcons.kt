@@ -111,6 +111,10 @@ object TemperIcons {
     val Chevron: ImageVector
         get() = chevron ?: chevronMark().also { chevron = it }
 
+    /** [Chevron] turned to point down: a control that opens a list (the lift switch). */
+    val ChevronDown: ImageVector
+        get() = chevronDown ?: chevronDownMark().also { chevronDown = it }
+
     /** [Chevron] mirrored: the back control on pushed routes. */
     val Back: ImageVector
         get() = back ?: backMark().also { back = it }
@@ -143,6 +147,7 @@ object TemperIcons {
     private var foundation: ImageVector? = null
     private var check: ImageVector? = null
     private var chevron: ImageVector? = null
+    private var chevronDown: ImageVector? = null
     private var back: ImageVector? = null
     private var stopwatch: ImageVector? = null
 }
@@ -227,6 +232,10 @@ private fun checkMark(): ImageVector = vector("Check") {
 
 private fun chevronMark(): ImageVector = vector("Chevron") {
     plate(8.8f, 4.8f, 11.4f, 4.8f, 17.4f, 12.0f, 11.4f, 19.2f, 8.8f, 19.2f, 14.4f, 12.0f)
+}
+
+private fun chevronDownMark(): ImageVector = vector("ChevronDown") {
+    plate(19.2f, 8.8f, 19.2f, 11.4f, 12.0f, 17.4f, 4.8f, 11.4f, 4.8f, 8.8f, 12.0f, 14.4f)
 }
 
 private fun backMark(): ImageVector = vector("Back") {

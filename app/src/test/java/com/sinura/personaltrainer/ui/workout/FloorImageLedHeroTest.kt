@@ -42,8 +42,11 @@ class FloorImageLedHeroTest {
         assertFalse(hero.contains("EquipmentGlyphIcon("))
         assertFalse(hero.contains("VoltDim"))
         assertFalse(hero.contains("emphasisBorder"))
-        assertFalse("no card around the identity", hero.contains("Surface2"))
-        assertFalse(hero.contains(".background("))
+        // No card around the identity: the header's one fill is the small corner mark on the
+        // picture that says it opens Details (W1a).
+        assertEquals("no card around the identity", 1, Regex("Surface2\\)").findAll(hero).count())
+        assertEquals(1, Regex("\\.background\\(").findAll(hero).count())
+        assertTrue(hero.contains(".background(Surface2)"))
         val thumb = readOwned("ui/components/ExerciseThumb.kt")
         assertTrue(thumb.contains("ContentScale.Fit"))
         assertTrue(thumb.contains("showBadge: Boolean = true"))
@@ -160,8 +163,8 @@ class FloorImageLedHeroTest {
         assertTrue(spoken.contains("Lift 3 of 7"))
         assertTrue(spoken.contains("1 of 3 done"))
         assertTrue(spoken.contains("Dumbbell"))
-        // What the identity and Details announce, and what a tap on each does, is rendered in
-        // ExerciseHeaderRenderTest; W1a changes the identity's sentence on purpose.
+        // What the identity, the switch and Details announce, and what a tap on each does, is
+        // rendered in ExerciseHeaderRenderTest.
         val hero = readOwned("ui/workout/ExerciseHeader.kt")
         assertFalse("session telemetry belongs to Session summary", hero.contains("heroSpoken("))
         assertFalse(hero.contains("telemetry"))
