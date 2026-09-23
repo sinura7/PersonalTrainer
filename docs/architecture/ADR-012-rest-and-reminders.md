@@ -9,7 +9,8 @@
   unconditionally reliable is superseded.
 - **Amended:** 29 August 2026 — [ADR-019](ADR-019-move-to-today.md)
   lets one leftover occurrence move onto today from Home; week-level
-  missed-work is unchanged
+  missed-work is unchanged; 23 September 2026 — owner decision: the rest a
+  logged set starts is the coach's suggested length (decision 18)
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -78,6 +79,19 @@ day. The agreed product asks once, then adapts only if the user says so.
     ([ADR-019](ADR-019-move-to-today.md)). The leftover
     slot-week strip may still derive a shifted day; that is not the
     product rule and must not grow.
+
+### Rest length after a logged set
+
+18. **The coach deals with the timing** (owner decision, 23 September 2026).
+    The rest a logged working set starts runs the coach's suggested length
+    for that lift. A length picked on the dock or the rest page is the next
+    *manual* rest and the fallback when the coach has none; it never
+    overrides the coach's suggestion after a set. The order is: the coach's
+    suggestion, then the routine's rest for the lift, then the length
+    showing on the dock (`ActiveWorkoutViewModel.startRestAfterSet` through
+    `RestTimer.secondsToStart`).
+    `ActiveWorkoutViewModelTest.afterALoggedSetRestRunsTheCoachsLengthNotOnePickedOnTheDock`
+    holds it.
 
 ## Consequences
 

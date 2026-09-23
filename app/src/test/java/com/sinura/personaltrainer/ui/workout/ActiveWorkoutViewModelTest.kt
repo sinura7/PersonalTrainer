@@ -1336,6 +1336,28 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun afterALoggedSetRestRunsTheCoachsLengthNotOnePickedOnTheDock() = runBlocking {
+        // Owner decision of 23 September 2026 (ADR-012 decision 18): the coach deals with the
+        // timing. A length picked on the dock is the next manual rest; the rest a logged set
+        // starts is the coach's.
+        val fixture = seedWorkout(targetSets = 3, restSeconds = 90)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.startSelectedRest()
+        awaitRestRunning()
+        val coach = deps.restTimerStore.current().totalSeconds
+        vm.skipRest()
+        assertTrue(coach != 105)
+
+        vm.selectRestDuration(105)
+        deps.preferencesRepository.restTimerPreferences.first { it.lastPresetSeconds == 105 }
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        awaitRestRunning()
+        assertEquals(coach, deps.restTimerStore.current().totalSeconds)
+    }
+
+    @Test
     fun advanceNowTakesTheStandingNextLift() = runBlocking {
         val fixture = seedTwoLifts(targetSets = 1)
         val vm = createViewModel(fixture.session.id)
