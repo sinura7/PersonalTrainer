@@ -330,8 +330,8 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.waitUntil(15_000) { fixture.vm.uiState.value.session?.exercises?.size == 2 }
         compose.runOnIdle { fixture.vm.startSetStopwatch() }
         compose.waitUntil(5_000) { fixture.vm.setStopwatch.value.running }
-        // The exercise identity is the way into the switcher.
-        scrollContentTo(WorkoutTestTags.liftCard(original)).performClick()
+        // The visible "Lift n of N" control is the way into the switcher (W1a).
+        scrollContentTo(WorkoutTestTags.LIFT_SWITCH).performClick()
         compose.onNodeWithTag(WorkoutTestTags.liftSwitcherRow(original)).assertIsDisplayed()
         captureWindow("switcher-font20")
         compose.onNodeWithTag("workout-switcher-list").performScrollToNode(hasTestTag(WorkoutTestTags.liftSwitcherRow(next.id)))

@@ -15,10 +15,10 @@ import org.junit.Test
  * Next exercise / Add another set stand in the dock until chosen (no dwell
  * auto-advance).
  *
- * The set-type toggle, the entry's order and the dock's "Add another set" are tapped in
- * ExerciseHeaderRenderTest, FloorScreenWiringRenderTest and WorkoutDockRenderTest, where
- * W1a's one "Add set" will change them on purpose. The no-auto-advance bans stay here and
- * are also held in behaviour by those tests.
+ * The set-type toggle, the entry's order and the dock's "Add another set" (the floor's one
+ * extra-set control since W1a) are tapped in ExerciseHeaderRenderTest,
+ * FloorScreenWiringRenderTest and WorkoutDockRenderTest. The no-auto-advance bans stay here
+ * and are also held in behaviour by those tests.
  */
 class WorkoutLogBarTest {
     @Test

@@ -129,8 +129,10 @@ object FloorCompactChrome {
     fun setTypeToggleUsesCompactChips(): Boolean = true
 
     /**
-     * Today's sets are a strip of chips under the recommendation, with the current set
-     * ringed and Add set as the last chip once the plan is met. Edit opens the full sheet.
+     * Asking for another set stays on the floor: once the plan is met the dock offers Add
+     * another set beside Next exercise and Finish. Today's sets are a strip of chips under
+     * the recommendation with the current set ringed, and since W1a the strip no longer
+     * repeats Add set. Edit opens the full sheet.
      */
     fun addSetHiddenOnFloor(): Boolean = false
 

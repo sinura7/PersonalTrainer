@@ -78,14 +78,15 @@ class FloorPacketHFinalPassTest {
     @Test
     fun recommendedRpeRemainsUnselectedSupportingText() {
         assertEquals(
-            "RPE 8, about two reps left, not selected",
+            "RPE 8, about two reps left",
             RpeCopy.spoken(value = 8, selected = false),
         )
         assertEquals(
-            "RPE 8, about two reps left, not selected, recommended",
+            "RPE 8, about two reps left, recommended",
             RpeCopy.spoken(value = 8, selected = false, recommended = true),
         )
-        assertEquals("RPE 10, max, selected", RpeCopy.spoken(value = 10, selected = true, recommended = true))
+        // A chosen chip is not also "recommended"; its Selected state says it is chosen.
+        assertEquals("RPE 10, max", RpeCopy.spoken(value = 10, selected = true, recommended = true))
         val selector = readOwned("ui/workout/RpeSelector.kt")
         assertTrue(selector.contains("val selected = rpe == value"))
         assertTrue(selector.contains("val recommended = recommendedRpe == value && !selected"))
@@ -117,7 +118,7 @@ class FloorPacketHFinalPassTest {
     fun liftPicturesStayDecorativeInsideTheNamedIdentity() {
         val thumb = readOwned("ui/components/ExerciseThumb.kt")
         assertTrue(thumb.contains("clearAndSetSemantics { }"))
-        // Inside the identity the still adds no words to its one merged sentence:
+        // On the floor the still is the Details button and is spoken only as that:
         // ExerciseHeaderRenderTest.
         // The session progress bar is decorative too: the progress line says it in words.
         val chrome = readOwned("ui/workout/WorkoutHeader.kt")

@@ -190,6 +190,21 @@ class WorkoutFloorRenderTest {
         render(name = "working-360x800-font20", vm = vm, fontScale = 2f)
     }
 
+    /** ADR-032's middle text size: the header's still shrinks from 1.6 (LogLoopScale). */
+    @Test
+    fun rendersTheFloorAtMediumSystemText() {
+        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        render(name = "working-360x800-font16", vm = vm, fontScale = 1.6f)
+    }
+
+    /** ADR-032's smallest phone: 360 x 640 at default text. */
+    @Test
+    @Config(qualifiers = "w360dp-h640dp-xhdpi")
+    fun rendersTheFloorAt360By640() {
+        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        render(name = "working-360x640", vm = vm, heightDp = 640)
+    }
+
     @Test
     @Config(qualifiers = "w412dp-h840dp-xhdpi")
     fun rendersTheFloorAt412By840() {

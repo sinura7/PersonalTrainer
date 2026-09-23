@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.sinura.personaltrainer.domain.FloorStatCopy
@@ -44,7 +45,6 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
-import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -61,8 +61,9 @@ internal data class CurrentSetMark(
 )
 
 /**
- * Today's sets for this lift, as a row of chips: saved ones with a tick, the one being
- * logged with a Volt ring, and Add set once the plan is met.
+ * Today's sets for this lift, as a row of chips: saved ones with a tick and the one being
+ * logged with a Volt ring. Asking for an extra set is the dock's job, next to Next exercise
+ * and Finish where that decision is made; the floor used to offer it here as well.
  *
  * Every chip is the saved row it stands for. Tapping a saved chip opens its Edit / Delete
  * menu — a menu, not a swipe, so a sweaty thumb cannot delete by accident. Edit opens
@@ -78,15 +79,13 @@ internal fun SetHistoryStrip(
     editingSetId: String?,
     receiptSetId: String?,
     current: CurrentSetMark?,
-    showAddSet: Boolean,
     enabled: Boolean,
     onEdit: (String) -> Unit,
     onDelete: (String) -> Unit,
     onOpenAll: () -> Unit,
-    onAddSet: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    if (sets.isEmpty() && current == null && !showAddSet) return
+    if (sets.isEmpty() && current == null) return
     var openMenuFor by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(sets, editingSetId, enabled) {
         if (openMenuFor != null && sets.none { it.id == openMenuFor }) openMenuFor = null
@@ -121,7 +120,13 @@ internal fun SetHistoryStrip(
                         modifier = Modifier.size(Metrics.chevron),
                     )
                     Spacer(Modifier.width(Metrics.space1))
-                    Text("Edit", style = InstrumentType.bodyStrong, color = if (enabled) TextSecondary else TextDisabled)
+                    // The button says "Edit saved sets"; the short visible word is not read after it.
+                    Text(
+                        text = "Edit",
+                        modifier = Modifier.clearAndSetSemantics { },
+                        style = InstrumentType.bodyStrong,
+                        color = if (enabled) TextSecondary else TextDisabled,
+                    )
                 }
             }
         }
@@ -173,7 +178,7 @@ internal fun SetHistoryStrip(
                         .heightIn(min = Metrics.touchMin)
                         .padding(horizontal = Metrics.space2)
                         .testTag(WorkoutTestTags.CURRENT_SET)
-                        .semantics(mergeDescendants = true) { contentDescription = "Current set, ${current.label}" },
+                        .clearAndSetSemantics { contentDescription = "Current set, ${current.label}" },
                     horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -182,22 +187,6 @@ internal fun SetHistoryStrip(
                         Text(CURRENT, style = InstrumentType.bodyStrong, color = Volt)
                         Text(current.label, style = InstrumentType.caption, color = TextSecondary)
                     }
-                }
-            }
-            if (showAddSet) {
-                Row(
-                    modifier = Modifier
-                        .heightIn(min = Metrics.touchMin)
-                        .clip(RoundedCornerShape(Radius.xs))
-                        .clickable(enabled = enabled, role = Role.Button, onClick = onAddSet)
-                        .padding(horizontal = Metrics.space2)
-                        .testTag(WorkoutTestTags.ADD_SET)
-                        .semantics { contentDescription = ADD_SET },
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    SetMarker(mark = "+", ring = HairlineStrong, ink = TextSecondary)
-                    Text(ADD_SET, style = InstrumentType.bodyStrong, color = if (enabled) TextSecondary else TextDisabled)
                 }
             }
         }
@@ -246,7 +235,8 @@ private fun SavedSetChip(
             .then(if (editing) Modifier.border(Metrics.hairline, Volt, RoundedCornerShape(Radius.xs)) else Modifier)
             .clickable(enabled = enabled, role = Role.Button, onClickLabel = spokenAction, onClick = onClick)
             .testTag(WorkoutTestTags.setChip(set.id))
-            .semantics(mergeDescendants = true) { contentDescription = "$ordinal, $spokenSet, $state" }
+            // The sentence is the whole announcement; the visible line under it is not read again.
+            .clearAndSetSemantics { contentDescription = "$ordinal, $spokenSet, $state" }
             .padding(horizontal = Metrics.space2),
         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
         verticalAlignment = Alignment.CenterVertically,
@@ -316,5 +306,4 @@ private const val SET_HISTORY_KICKER = "Set history"
 private const val CURRENT = "Current"
 private const val EDITING = "Editing"
 private const val SAVED = "Saved"
-private const val ADD_SET = "Add set"
 private const val EDIT_ALL_SPOKEN = "Edit saved sets"

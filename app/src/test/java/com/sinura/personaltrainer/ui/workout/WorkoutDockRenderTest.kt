@@ -62,8 +62,7 @@ class WorkoutDockRenderTest {
     @Test
     fun onceThePlanIsMetAddAnotherSetStandsBesideNextAndTheClock() {
         showDock(floorDockState(action = next, payload = "Leg Curl", spokenPayload = "Leg Curl"))
-        // W1a changes this: today the floor offers "Add set" twice — here and as the set
-        // history's last chip. W1a keeps one of them.
+        // The floor's one "Add set" (W1a): the set history no longer offers its own chip.
         val add = compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET)
             .assertIsDisplayed()
             .assertIsEnabled()
@@ -86,8 +85,7 @@ class WorkoutDockRenderTest {
     fun finishingTheWorkoutAlsoOffersAnotherSet() {
         showDock(floorDockState(action = finish, payload = null))
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed()
-        // W1a changes this: the dock's "Add another set" is one of the two controls W1a
-        // folds into one; Finish keeping a way back to one more set is what stays.
+        // Finish keeps a way back to one more set.
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().performClick()
         assertEquals(1, another)
     }
@@ -95,7 +93,6 @@ class WorkoutDockRenderTest {
     @Test
     fun addAnotherSetIsDisabledWhileTheEntryIsLocked() {
         showDock(floorDockState(action = next, payload = "Leg Curl", showAnother = false))
-        // W1a changes this: the control may move, but a locked entry still refuses the tap.
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsNotEnabled().performClick()
         assertEquals(0, another)
     }

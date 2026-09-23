@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.workout
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.WeightMeaning
 import java.io.File
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -12,8 +13,8 @@ import org.junit.Test
  * one set-position line from [SetOrdinalCopy] (no duplicate x/y working sets); switcher
  * rows carry a still, set progress, and a rest badge.
  *
- * The identity's spoken lift position and its still are rendered in
- * ExerciseHeaderRenderTest (W1a adds a visible "Lift n of N" there on purpose), and the
+ * The identity's visible "Lift n of N" switch and its still are rendered in
+ * ExerciseHeaderRenderTest, and the
  * screen composing the identity and the switcher is tapped in FloorScreenWiringRenderTest.
  */
 class WorkoutLiftChipTest {
@@ -31,8 +32,11 @@ class WorkoutLiftChipTest {
             equipmentLabel = "Machine",
             meaning = WeightMeaning.LIFTED,
         )
-        assertTrue("the ordinal is spoken on the identity", spoken.contains(CurrentLiftCopy.heroOrdinal(2, 5)))
+        assertTrue(spoken.contains(CurrentLiftCopy.heroOrdinal(2, 5)))
         assertTrue(spoken.contains(CurrentLiftCopy.heroProgress(1, 4)))
+        // Since W1a the floor shows the ordinal on its switch rather than speaking it on the
+        // identity (ExerciseHeaderRenderTest); the two say the same words.
+        assertEquals(CurrentLiftCopy.heroOrdinal(2, 5), CurrentLiftCopy.switchLabel(2, 5))
         val chrome = readOwned("ui/workout/WorkoutHeader.kt")
         assertTrue(
             "the ordinal is shown on the header's progress line",

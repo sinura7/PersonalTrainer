@@ -20,8 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -33,7 +33,7 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
- * A quiet, self-sized secondary control: Details ›, Apply, Edit.
+ * A quiet, self-sized secondary control: Lift 1 of 3 ⌄, Apply, Edit.
  *
  * [SecondaryGymButton] fills its row and is the right size for a dialog's alternative
  * action; this is the same surface at the size of its own label, for the actions that sit
@@ -50,8 +50,10 @@ fun QuietButton(
     /** Volt ink for a control that reports a live state (Applied). Never a Volt fill. */
     accent: Boolean = false,
     spoken: String? = null,
-    /** No fill or border: a quiet inline link (Details) that still keeps its 48 dp target. */
+    /** No fill or border: a quiet inline link that still keeps its 48 dp target. */
     plain: Boolean = false,
+    /** What "double-tap to …" says when the visible words name a thing, not the act. */
+    onClickLabel: String? = null,
 ) {
     val view = LocalView.current
     // An accented control reports a state (Applied), so it keeps its ink while disabled.
@@ -67,11 +69,13 @@ fun QuietButton(
             .clip(RoundedCornerShape(Radius.md))
             .then(if (plain) Modifier else Modifier.background(Surface2))
             .then(if (plain) Modifier else Modifier.border(Metrics.hairline, if (accent) Volt else Hairline, RoundedCornerShape(Radius.md)))
-            .clickable(enabled = enabled, role = Role.Button) {
+            .clickable(enabled = enabled, role = Role.Button, onClickLabel = onClickLabel) {
                 Haptics.tickLight(view)
                 onClick()
             }
-            .then(if (spoken != null) Modifier.semantics { contentDescription = spoken } else Modifier)
+            // A spoken form replaces the visible words rather than joining them (they were read
+            // one after the other). It sits after clickable, so the role and action survive.
+            .then(if (spoken != null) Modifier.clearAndSetSemantics { contentDescription = spoken } else Modifier)
             .padding(horizontal = Metrics.space3),
         horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
         verticalAlignment = Alignment.CenterVertically,

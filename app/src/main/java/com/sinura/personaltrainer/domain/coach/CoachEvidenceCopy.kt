@@ -4,6 +4,9 @@ package com.sinura.personaltrainer.domain.coach
  * User-visible strings for literature citations on the gym floor.
  */
 object CoachEvidenceCopy {
+    /** What "double-tap to …" says on the evidence line under a suggestion. */
+    const val OPEN_EVIDENCE = "Open the evidence"
+
     fun chipLabel(entry: EvidenceEntry): String =
         buildString {
             append(entry.authorsShort)

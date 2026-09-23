@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
@@ -145,17 +146,19 @@ class FloorScreenWiringRenderTest {
         // The identity names the set about to be logged, from the saved rows.
         compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true)
             .assert(hasText(SetOrdinalCopy.draftLine(isWarmup = false, warmupLogged = 0, workingLogged = 2, targetSets = 3)))
-        compose.onNodeWithTag(WorkoutTestTags.liftCard(LEG_EXTENSION))
-            .assert(hasContentDescription(CurrentLiftCopy.heroOrdinal(1, 1), substring = true))
+        // Where the lift sits in the session is on the switch, in words a lifter can see.
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).assert(hasText(CurrentLiftCopy.switchLabel(1, 1)))
     }
 
     @Test
-    fun tappingTheIdentityOpensTheSessionSwitcherAndARowSwitchesLift() {
+    fun theLiftSwitchOpensTheSessionSwitcherAndARowSwitchesLift() {
         val vm = openLegExtension(loggedSets = sets(1), withNextLift = true)
         show(vm)
-        // W1a changes this: the switch moves from the whole identity to a visible
-        // "Lift n of N" control; the switcher it opens stays the same.
+        // The switcher opens from the visible "Lift 1 of 2" control (D09). The identity is
+        // words now: a tap on the name opens nothing.
         compose.onNodeWithTag(WorkoutTestTags.liftCard(LEG_EXTENSION)).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCHER).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).assert(hasText(CurrentLiftCopy.switchLabel(1, 2))).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCHER).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.liftSwitcherRow(NEXT_LIFT)).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.selectedExerciseId == NEXT_LIFT }
@@ -186,9 +189,7 @@ class FloorScreenWiringRenderTest {
     fun theSwitchersAddExerciseOpensThePicker() {
         val vm = openLegExtension(loggedSets = emptyList())
         show(vm)
-        // W1a changes this: the switcher opens from a visible "Lift n of N" control rather
-        // than a tap on the whole identity; its Add exercise row stays.
-        compose.onNodeWithTag(WorkoutTestTags.liftCard(LEG_EXTENSION)).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).performClick()
         compose.onNodeWithTag(WorkoutTestTags.SWITCHER_ADD_LIFT).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.showExercisePicker }
         compose.waitForIdle()
@@ -202,6 +203,17 @@ class FloorScreenWiringRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.DETAILS).performClick()
         assertEquals(listOf(LEG_EXTENSION), openedExercises)
         compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCHER).assertDoesNotExist()
+    }
+
+    @Test
+    fun theLiftMenuAlsoOpensDetails() {
+        // The picture is not the only way in: someone reading the ⋮ menu finds it by name.
+        val vm = openLegExtension(loggedSets = emptyList())
+        show(vm)
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.onNodeWithText(CurrentLiftCopy.DETAILS_SPOKEN).performClick()
+        assertEquals(listOf(LEG_EXTENSION), openedExercises)
+        compose.onNodeWithText(CurrentLiftCopy.DETAILS_SPOKEN).assertDoesNotExist()
     }
 
     @Test
@@ -352,16 +364,14 @@ class FloorScreenWiringRenderTest {
     fun beforeThePlanIsMetNoAddSetIsOffered() {
         val vm = openLegExtension(loggedSets = sets(2), withNextLift = true)
         show(vm, heightDp = 1600)
-        // Two of three saved: the lifter's next act is the third set, so neither "Add set"
-        // control is offered yet, and the saved-sets sheet does not offer one either.
+        // Two of three saved: the lifter's next act is the third set, so the dock does not
+        // offer "Add another set" yet, and the saved-sets sheet does not offer one either.
         val saved = checkNotNull(vm.uiState.value.session).sets.map { it.id }
         assertEquals(2, saved.size)
-        // The history is on screen through its last chip, so a missing Add set is missing
-        // rather than not yet composed.
+        // The history is on screen through its last chip: the floor is composed, not pending.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_HISTORY))
         saved.forEach { compose.onNodeWithTag(WorkoutTestTags.setChip(it)).assertIsDisplayed() }
         compose.onNodeWithTag(WorkoutTestTags.CURRENT_SET).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
@@ -371,19 +381,19 @@ class FloorScreenWiringRenderTest {
 
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
-    fun onceThePlanIsMetTheHistorysAddSetAsksForAnExtraSet() {
+    fun onceThePlanIsMetTheFloorOffersOneWayToAddASet() {
         val vm = openLegExtension(loggedSets = sets(3), withNextLift = true)
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
-        // W1a changes this: two controls ask for the same extra set today, the history's
-        // "Add set" chip and the dock's "Add another set". W1a keeps one.
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).performClick()
+        // One control asks for an extra set: the dock's "Add another set", beside Next
+        // exercise and Finish (W1a). The history used to offer a second "Add set" chip. The
+        // tall window composes the whole floor, so "not there" means not on the floor.
+        compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
+        compose.onAllNodes(hasText("Add set") or hasText("Add another set"), useUnmergedTree = true).assertCountEquals(1)
+        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.extraSetRequested.value }
         compose.waitForIdle()
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
     }
@@ -394,8 +404,7 @@ class FloorScreenWiringRenderTest {
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
-        // W1a changes this: the dock's "Add another set" is one of the two controls W1a folds
-        // into one. What stays is an extra set asked for on the same lift.
+        // The floor's one extra-set control asks for it on the same lift.
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.extraSetRequested.value }
         compose.waitForIdle()
@@ -409,9 +418,8 @@ class FloorScreenWiringRenderTest {
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
-        // W1a changes this: the sheet repeats the dock's words for a third way to ask for the
-        // same extra set, and W1a keeps one. The dock says the same words; this is the
-        // sheet's own button.
+        // The sheet covers the dock, so it keeps its own "Add another set" in the dock's
+        // words: the same act, said the same way, wherever the lifter is looking.
         compose.onNode(hasText("Add another set") and hasAnyAncestor(hasTestTag(WorkoutTestTags.SAVED_SETS_SHEET)))
             .performScrollTo()
             .performClick()

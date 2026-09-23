@@ -8,10 +8,9 @@ import org.junit.Test
 /**
  * One current lift on the floor, and a session switcher (never the library) to change it.
  *
- * Tapping the identity or the header overflow's Switch exercise, and the switcher's Add
- * exercise, are tapped through the screen in FloorScreenWiringRenderTest; what the identity
- * announces is rendered in ExerciseHeaderRenderTest. W1a moves the switch to a visible
- * control, so those are behaviour now rather than source lines.
+ * The visible "Lift n of N" switch, the header overflow's Switch exercise and the
+ * switcher's Add exercise are tapped through the screen in FloorScreenWiringRenderTest;
+ * what the switch and the identity announce is rendered in ExerciseHeaderRenderTest.
  */
 class LiftSwitcherPresentationTest {
     @Test

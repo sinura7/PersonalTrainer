@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -90,7 +91,6 @@ class WorkoutFloorComponentsTest {
                 lift = floorLift(targetSets = 3),
                 number = 1,
                 total = 2,
-                workingLogged = 2,
                 setContext = "Working set 3 of 3",
                 draftWarmup = false,
                 onWarmup = { warmup = it },
@@ -100,7 +100,6 @@ class WorkoutFloorComponentsTest {
         }
         compose.onNodeWithText("Leg Extension").assertIsDisplayed()
         compose.onNodeWithText("MACHINE").assertIsDisplayed()
-        // The identity merges its words into one spoken button; read the parts unmerged.
         compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("2/3 working sets", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
@@ -108,7 +107,10 @@ class WorkoutFloorComponentsTest {
         assertEquals(true, warmup)
         compose.onNodeWithTag(WorkoutTestTags.DETAILS).performClick()
         assertEquals(1, details)
+        // The switcher opens from its own visible control, not from the whole identity.
         compose.onNodeWithTag(WorkoutTestTags.liftCard("leg-ext")).performClick()
+        assertEquals(0, switched)
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).assertTextContains("Lift 1 of 2").performClick()
         assertEquals(1, switched)
     }
 
@@ -205,9 +207,10 @@ class WorkoutFloorComponentsTest {
         compose.onAllNodesWithText("WEIGHT").assertCountEquals(0)
         compose.onAllNodesWithText("REPS").assertCountEquals(0)
         compose.onAllNodesWithText("Plan").assertCountEquals(0)
-        compose.onNodeWithText("lb").assertIsDisplayed()
-        compose.onNodeWithText("70").assertIsDisplayed()
-        compose.onNodeWithText("10").assertIsDisplayed()
+        // Each numeral is spoken as its field and value, so its digits are read unmerged.
+        compose.onNodeWithText("lb", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("70", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("10", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assert(hasContentDescription("Weight 70 lb"))
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assert(hasContentDescription("Reps 10"))
         compose.onNodeWithContentDescription("Increase reps by 1").performClick()
@@ -273,7 +276,7 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithTag(WorkoutTestTags.HOLD_STEPPER).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assertDoesNotExist()
         compose.onAllNodesWithText("TIME").assertCountEquals(0)
-        compose.onNodeWithText("0:30").assertIsDisplayed()
+        compose.onNodeWithText("0:30", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.HOLD_STEPPER).assert(hasContentDescription("Time 0:30"))
     }
 
@@ -285,7 +288,11 @@ class WorkoutFloorComponentsTest {
         compose.onNodeWithText("Easy").assertIsDisplayed()
         compose.onNodeWithText("Max effort").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).assertDoesNotExist()
-        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).assert(hasContentDescription("RPE 8, about two reps left, not selected, recommended"))
+        // One sentence per chip: its digit is not read after it, and "selected" is left to
+        // the radio's own state.
+        val eight = compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8))
+        assertEquals(listOf("RPE 8, about two reps left, recommended"), eight.spokenDescriptions())
+        assertTrue("was ${eight.mergedTexts()}", eight.mergedTexts().isEmpty())
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(9)).performClick()
         assertEquals(9, chosen)
     }
@@ -419,13 +426,14 @@ class WorkoutFloorComponentsTest {
         if (!(rec.showApply && !rec.previewOnly)) return
         show { NextSetRecommendation(rec = rec, loadClass = LoadClass.LOADED, unit = unit, applied = true, enabled = true, onApply = {}) }
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsNotEnabled()
-        compose.onNodeWithText("Applied").assertIsDisplayed()
+        compose.onNodeWithText("Applied", useUnmergedTree = true).assertIsDisplayed()
+        // Said once: "Suggestion applied, …" and not the visible word after it.
+        assertTrue(compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).mergedTexts().isEmpty())
     }
 
     @Test
-    fun setHistoryChipsOpenTheirMenuAndOfferAddSet() {
+    fun setHistoryChipsOpenTheirMenu() {
         var edited: String? = null
-        var added = 0
         show {
             SetHistoryStrip(
                 sets = listOf(floorSet(1, kg70, 10, rpe = 8), floorSet(2, kg70, 10, rpe = 9)),
@@ -435,29 +443,28 @@ class WorkoutFloorComponentsTest {
                 editingSetId = null,
                 receiptSetId = "set-2",
                 current = CurrentSetMark(mark = "3", label = "Working set 3 of 3"),
-                showAddSet = true,
                 enabled = true,
                 onEdit = { edited = it },
                 onDelete = {},
                 onOpenAll = {},
-                onAddSet = { added += 1 },
             )
         }
         compose.onNodeWithText("SET HISTORY").assertIsDisplayed()
-        compose.onNodeWithText("70 × 10 @ 8").assertIsDisplayed()
+        // Each chip is spoken as one sentence, so its visible words are read unmerged.
+        compose.onNodeWithText("70 × 10 @ 8", useUnmergedTree = true).assertIsDisplayed()
         // A resting chip no longer repeats the number its marker ring already shows; the
         // ordinal stays in the row's spoken form and in the menu that opens from it.
-        compose.onAllNodesWithText("Set 1 of 3").assertCountEquals(0)
+        compose.onAllNodesWithText("Set 1 of 3", useUnmergedTree = true).assertCountEquals(0)
         compose.onNodeWithTag(WorkoutTestTags.setChip("set-1"))
             .assert(hasContentDescription("Set 1 of 3", substring = true))
-        compose.onNodeWithText("Saved · Set 2 of 3").assertIsDisplayed()
+        compose.onNodeWithText("Saved · Set 2 of 3", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.CURRENT_SET).assertIsDisplayed()
-        compose.onNodeWithText("Current").assertIsDisplayed()
+        compose.onNodeWithText("Current", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.setChip("set-1")).performClick()
         compose.onNodeWithText("Revise Set 1 of 3").performClick()
         assertEquals("set-1", edited)
-        compose.onNodeWithTag(WorkoutTestTags.ADD_SET).performClick()
-        assertEquals(1, added)
+        // One "Add set" on the floor, and it is the dock's (W1a): none in the history.
+        compose.onNodeWithText("Add set", substring = true, useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).assertExists()
     }
 

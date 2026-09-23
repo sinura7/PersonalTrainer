@@ -16,6 +16,15 @@ object CurrentLiftCopy {
     const val SWITCH = "Switch exercise"
     const val DETAILS = "Details"
 
+    /** The picture's spoken name: it opens the lift's own screen. */
+    const val DETAILS_SPOKEN = "Exercise details"
+
+    /** What "double-tap to …" says on the picture. */
+    const val OPEN_DETAILS = "Open exercise details"
+
+    /** The visible switch: where this lift sits, on the control that opens the list. */
+    fun switchLabel(number: Int, total: Int): String = SessionOrderCopy.liftIndex(number, total)
+
     /**
      * Packet G: swap/remove stay visible on a logged lift, disabled with this reason.
      * The lift is part of what happened — take its sets out first, or skip it for now.
@@ -59,8 +68,8 @@ object CurrentLiftCopy {
         equipmentLabel: String,
         meaning: WeightMeaning,
         /**
-         * When false, working-set progress is omitted because the floor identity
-         * speaks [set position][SetOrdinalCopy.draftLine] on the next phrase.
+         * When false, working-set progress is omitted, for a caller that states
+         * [set position][SetOrdinalCopy.draftLine] on its own line.
          */
         includeWorkingProgress: Boolean = true,
     ): String = buildString {
