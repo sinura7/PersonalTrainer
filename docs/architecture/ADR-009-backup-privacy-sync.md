@@ -85,9 +85,11 @@ safety. Incremental account sync is a later product, not a rename of Drive.
     *Amended 23 September 2026 by [ADR-031](ADR-031-trusted-server-sync-lane.md)
     for Temper Account:* §14's gate was not met when the lane shipped on
     21 September. The lane is trusted-server, not E2EE; it stays paused until
-    ADR-031 decision 3 is met; conflicts resolve by server-ordered change time.
-    Opt-in, outbox-transactional, local data kept on sign-out, and no tokens in
-    exports or logs all still hold.
+    ADR-031 decision 3 is met and the owner says yes; when two phones change
+    the same row the later save wins (sessions compare revision first; the
+    phone's clock decides "later" until packet S2a, the server after).
+    Opt-in, local data kept on sign-out and no tokens in exports or logs still
+    hold; outbox-transactional remains a requirement, not yet met (packet S1).
 
 ### Diagnostics
 
@@ -110,4 +112,6 @@ safety. Incremental account sync is a later product, not a rename of Drive.
 - Is Auto Backup the recovery path? No.
 - Is Drive sync? No.
 - Can a catalog-only file wipe history? Not after P3.2, and not by design.
-- When may incremental sync begin? Only after the Phase 11 start gate.
+- When may incremental sync begin? Only after the Phase 11 start gate. *For
+  the Temper Account lane, amended by ADR-031:* only when its decision 3 is
+  met and the owner says yes.

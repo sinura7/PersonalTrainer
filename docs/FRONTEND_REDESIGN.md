@@ -29,7 +29,10 @@ are approved. A beautiful normal state alone does not close a screen.
 Only one implementation packet is open at a time. Each has targeted checks,
 the complete local gate, native evidence where relevant, independent review,
 an adversarial review, and integrated verification. A packet is not complete
-because source assertions or JVM tests alone pass.
+because source assertions or JVM tests alone pass. *Since 23 September the
+JVM render set, with its reachability assertions, is the native visual
+evidence ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)); source
+assertions alone still do not complete a packet.*
 
 | Packet | Deliverable | Status |
 |---|---|---|
@@ -47,7 +50,7 @@ because source assertions or JVM tests alone pass.
 | F10 | Settings labels/status, backup/restore, diagnostics and About | Pending |
 | F11 | Integrated visual, accessibility, performance and upgrade acceptance | Pending |
 
-Milestone A follows F3; B follows F6; C follows F11. Each has native captures,
+Milestone A follows F3 (since the audit, W3); B follows F6 (F6b); C follows F11. Each has native captures,
 executed checks, limitations, a focused phone checklist and an Obtainium drop
 through the existing stable-signing and monotonically increasing version flow.
 
@@ -71,7 +74,7 @@ evidence is the JVM render set ([ADR-032](architecture/ADR-032-jvm-evidence-lane
 | 7 | W1a | Visible "Lift n of N" switch; numeric-entry cue; one Add set; 48 dp evidence chip; no double announcements | V | Pending |
 | 8 | W1b | "Effort · optional"; planned-rest copy; one ±15 control set; coach goal reaches the workout | V | Pending |
 | 9–12 | W2a–d | Dead code and lower token ceilings · shared rest commands, atomic `adjust` · coach/picker performance · save/undo and session-state extraction | Q | Pending |
-| 13 | W3 | Floor renders at 360×640, 412, landscape, font 2.0 become the floor's gate | V | Pending — Milestone A |
+| 13 | W3 | Floor renders across the ADR-032 matrix, with reachability assertions, become the floor's gate; retired goldens leave the hosted lane | V | Pending — Milestone A |
 | 14 | S1 | Outbox in the save's transaction; enrolled user id; delete callers; tombstone time; poison-row quarantine; restore/sign-out reset cursors → unpause | V | Pending |
 | 15 | F8a | Single-choice radio roles app-wide; keyboard focus stays out of Home under the chooser | Q | Pending |
 | 16 | F4 | Home: finished block links to its session (D14); 48 dp week strip; read-error state; set-up-my-week; saved selected date; `ThisWeekCard` on other days | V | Pending |
@@ -192,7 +195,9 @@ layouts, places actions within reach and has a clear completion state.
 
 ## Acceptance matrix and evidence
 
-Native layouts: 360x640, 360x800, 412x840, 600 dp width and 640x360 landscape.
+*The per-packet render matrix is [ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)
+decision 1; the list below is the full F11 acceptance scope.* Native layouts:
+360x640, 360x800, 412x840, 600 dp width and 640x360 landscape.
 Primary changed screens at font 1.0/1.6/2.0; gesture/three-button navigation,
 RTL, normal/reduced motion, keyboards, long labels/numbers, sparse/populated/
 large data, rotation/background/process recreation. API 29 reference renderer,

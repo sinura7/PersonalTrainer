@@ -39,6 +39,7 @@ has moved on, the status column says so.
 | Screen proof | JVM/Robolectric renders count as evidence; emulator goldens retire as a gate |
 | Body figure | Redrawn as vector muscles: one geometry for the art, the heat and the taps |
 | Phone text size | Default (1.6 and 2.0 are still tested) |
+| Conflict rule | Proposed in ADR-031 §4: when two phones change the same row, the later save wins. **The owner confirms it before sync resumes.** |
 
 ## Findings
 
@@ -49,7 +50,7 @@ has moved on, the status column says so.
 | S-1 | Pull destroyed local rows. Activity sessions were deleted and re-inserted; blocks, templates and routines used `REPLACE`. SQLite deletes the old row, and the foreign keys cascade: activity sets gone, routine lifts gone, finished `workout_sessions.routineId` set to NULL. Sets used `ABORT`, so a row already present threw and stalled every later table on every pass. Proven by a running test before the fix. | Sync **paused** (S0a, #380). Pull writes in place (S0b, #383). |
 | S-2 | The pull cursor trusts phone clocks: `gt` on `updated_at_ms` with no tiebreaker skips tied rows; tombstones keep the old `updated_at_ms`, so deletes never reach other devices; the server upsert is unconditional (last arrival wins). | Open: S1 (tombstone stamp), S2a/S2b (server change time, composite cursor, conditional upsert). |
 | S-3 | The outbox is written after the save commits, not in the same transaction (ADR-009 §15). If queuing throws, the user sees "Could not save" and a retry duplicates the session. Changes made while the auth session is loading or offline are never queued. | Open: S1. |
-| S-4 | Four delete enqueuers have no callers, so plan-day and occurrence deletes never reach the server. | Open: S1. |
+| S-4 | Four delete enqueuers have no callers (`enqueueRuleDelete`, `enqueueOccurrenceDelete`, `enqueueTemplateDelete`, `enqueueBodyweightDelete`), so deleting a plan rule, a plan day, a template or a weigh-in never reaches the server. | Open: S1. |
 | S-5 | One bad upload blocks the whole queue forever. WorkManager `APPEND_OR_REPLACE` retries without limit; HTTP calls have no timeouts. | Open: S1 (quarantine), S4 (WorkManager hygiene, timeouts). |
 | S-6 | Live strength workouts (`workout_sessions`, `session_exercises`, `set_logs`) are never synced, yet PRIVACY.md said they were. | Copy made honest (S0a). Sync of strength history: S3a/S3b. |
 | S-7 | Account deletion always failed: blocking `HttpURLConnection` on the main thread, and after wiping the cloud tables it called `DELETE /auth/v1/user`, which Supabase does not offer to a signed-in user. | Button hidden, deletion request route shown (S0a). Server-side delete: S2a/S2b. |
@@ -114,7 +115,8 @@ late can fall behind another phone's cursor; nothing serialises two passes.
 - No test ran `MIGRATION_TEMPER_6_7`; the device test stopped at v6. Fixed
   (X2a, #382): JVM tests for 5→6 and 6→7, the debug-asset schemas completed,
   and a guard that each version has its schema, asset and migration test.
-- `lintDebug` ran only at release. It now runs on every visible packet.
+- The container gate skipped `lintDebug` (hosted CI and release ran it). The
+  container gate now runs it on every packet.
 - `SyncWorker` casts the Application. S4.
 
 ## Delivery order
@@ -125,7 +127,7 @@ progress, is kept in [FRONTEND_REDESIGN.md](../../FRONTEND_REDESIGN.md).
 
 | Wave | Packets |
 |---|---|
-| 0 · protect data, fix the record | S0a (V, done) · X2 (Q; X2a done, X2b before v8) · S0b (Q, done) · Q1 (V) · X1 (Q) |
+| 0 · protect data, fix the record | S0a (V, done) · X2 (Q; X2a done, X2b before v8) · S0b (Q, done) · Q1 (V, done) · X1 (Q, this record) |
 | 1 · finish the workout floor → Milestone A | T1 · W1a · W1b · W2a–d · W3 |
 | 2 · tabs, interleaved with sync | S1 (unpause) · F8a · F4 · F6a · F6b (Milestone B) · S2a · S2b · F10a–c · S3a · S3b · F7a–b · S4 · F5a–c · F8b · F8c · F9 · F11 (Milestone C) |
 

@@ -101,11 +101,16 @@ uninterrupted Phase 5 cutover train ([ADR-002](architecture/ADR-002-execution-pr
   packet.
 - `connectedDebugAndroidTest` for database, restore, migration, critical
   Compose journey, and Android-platform packets, always against
-  `com.sinura.personaltrainer.debug` on an emulator.
+  `com.sinura.personaltrainer.debug` on an emulator. *Since 23 September
+  ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) this is evidence,
+  not the gate, for migrations and screens: the JVM migration tests and the
+  JVM render set gate. Its 17 September goldens are retired.*
 - Physical-device checks for Doze, notifications, OAuth, haptics/sound,
   TalkBack, release upgrade, and performance where named.
-- Changed UI states at 360 dp, 412 dp, and 600 dp; font scales 1.0, 1.6,
-  and 2.0; relevant RTL, IME, rotation, and reduced-motion evidence.
+- Changed UI states in the render matrix of
+  [ADR-032](architecture/ADR-032-jvm-evidence-lanes.md) decision 1 (360×640,
+  412 dp, landscape, 600 dp where the layout adapts; font 1.0, 1.6, 2.0);
+  relevant RTL, IME, rotation, and reduced-motion evidence.
 - A short evidence manifest: commit SHA, Android/API/device profile,
   commands, results, screenshots, known limitations, fixtures.
 
@@ -824,9 +829,10 @@ does not accept, reject, or defer a finding without naming a packet.
 
 | Need | Open |
 |---|---|
-| What to build next | this file, §6 |
+| Where things stand, start here | [HANDOFF-NEXT.md](HANDOFF-NEXT.md) |
+| What to build next | the packet order in [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md), set by the [whole-app audit](design-audit/2026-09-22/AUDIT.md); this file, §6, for the phases |
 | Why a decision is binding | [architecture/](architecture/README.md) |
-| What the app does today | [foundation-audit/](foundation-audit/README.md) |
+| What the app does today | [architecture/CURRENT_STRUCTURE.md](architecture/CURRENT_STRUCTURE.md); the dated [foundation-audit/](foundation-audit/README.md) for how it started |
 | How to build and test | [DEVELOPMENT.md](DEVELOPMENT.md) |
 | How to recover a phone | [RECOVERY.md](RECOVERY.md) |
 | How the strength logger was built | [ROADMAP.md](ROADMAP.md) (historical) |

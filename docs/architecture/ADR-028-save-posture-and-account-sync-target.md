@@ -44,9 +44,8 @@ to change that choice later.
    settings, workouts, and history are fully cloud-backed with local Room as
    cache. **Packet 1 ships posture + UX only.** Replication today matches
    [sync-personal-build.md](sync-personal-build.md) scope (`SyncEntityType`).
-   The lane that reaches this target is trusted-server and currently paused
-   ([ADR-031](ADR-031-trusted-server-sync-lane.md)); this record's reference to
-   ADR-009 for that lane is read through ADR-031.
+   The lane that reaches this target is trusted-server and currently paused;
+   its rules are [ADR-031](ADR-031-trusted-server-sync-lane.md)'s.
 
 ## Consequences
 

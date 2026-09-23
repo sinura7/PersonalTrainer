@@ -15,6 +15,15 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 23 Sep 2026 — Whole-app audit packet X1: the docs tell the truth again.
+> HANDOFF-NEXT is rewritten (Room v7, sync paused, the audit's packet order),
+> CURRENT_STRUCTURE is re-measured, and README and FOUNDATION_PROGRAM no longer
+> say sync does not exist. The audit is recorded in
+> `docs/design-audit/2026-09-22/AUDIT.md`. ADR-031 makes Temper Account a
+> trusted-server lane (not E2EE) that stays paused until a named bar is met and
+> the owner says yes; ADR-032 makes JVM renders and JVM migration tests the
+> evidence lanes and retires the emulator goldens.
+>
 > 23 Sep 2026 — Whole-app audit packet Q1: the first-launch chooser is a real
 > gate — taps, Back and TalkBack no longer reach Home beneath it, and it scrolls
 > so every choice is reachable in landscape and at large text. After Account or

@@ -1,5 +1,10 @@
 # Start here
 
+**In plain terms:** Temper works offline on the phone. Its optional cloud sync
+(Temper Account) is switched off until it is made safe. The work under way is
+the 22 September whole-app audit, done in small packets, each one tested and
+shipped to Temper Debug through Obtainium.
+
 The first thing a new session on this repository should read. Rewritten
 23 September 2026, during the whole-app audit program (packet X1). The one
 before it was written on 12 September and still said live code 46 and Room v4.
@@ -18,10 +23,10 @@ before it was written on 12 September and still said live code 46 and Room v4.
   `fallbackToDestructiveMigration`, and there never will be.
 - **Temper Account sync** (Temper Debug only) is **paused**
   (`AccountSyncGate.SYNC_PAUSED`): no pass uploads or downloads, and edits
-  still queue. The pull now updates rows in place (packet S0b). Packet S1
+  made while signed in, with the session loaded, still queue. The pull now updates rows in place (packet S0b). Packet S1
   resumes sync, and only when
   [ADR-031](architecture/ADR-031-trusted-server-sync-lane.md) decision 3 is
-  met. In-app account deletion is off; Settings → Account says how to request
+  met and the owner says yes. In-app account deletion is off; Settings → Account says how to request
   it.
 - **Structure:** see
   [architecture/CURRENT_STRUCTURE.md](architecture/CURRENT_STRUCTURE.md).
@@ -46,8 +51,12 @@ Done so far:
 - **Q1:** the first-launch chooser is a real gate, and Home's headline follows
   the selected day.
 - **X1:** this docs pass, plus ADR-031 and ADR-032.
+- **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
+  later save wins), before sync resumes.
 
-Next: T1 (workout test triage), then W1a.
+Next: T1 (workout test triage), then W1a. Still open from Wave 0: **X2b**, a
+copy of `temper.db` taken before any migration runs. It must land before the
+next schema bump (S2b's v8).
 
 ## What is verified, and how
 
@@ -56,7 +65,7 @@ Every packet goes through the same gate, run in this container:
 ```bash
 PT_STATIC_ONLY=1 sh tools/preflight.sh
 sh tools/hang-watchdog.sh ./gradlew testDebugUnitTest assembleDebug
-./gradlew lintDebug   # at least on every visible packet
+./gradlew lintDebug   # every packet (FOUNDATION_PROGRAM §4)
 ```
 
 Then a squash merge into `trunk`. For every defect, a test that fails on
@@ -93,8 +102,8 @@ the next visible drop.
 - `tools/debug_drop.py` treats a suffix as free when no *tag* exists. A failed
   drop leaves a `debug-live/<suffix>` branch with no tag, and the planner names
   it again. Until that is fixed, pick the next free suffix by hand.
-- A cold container silently downgrades the static gate, and still exits OK,
-  when no compiler jar is present. Make the skip non-zero unless
+- A cold container downgrades the static gate with only a warning, and still
+  exits OK, when no compiler jar is present. Make the skip non-zero unless
   `PT_ALLOW_NO_COMPILER=1`.
 - `required_args_mixed` is the largest debt family in
   `tools/checker-baselines.toml`.
@@ -109,8 +118,9 @@ the next visible drop.
 
 ## Process
 
-- One packet open at a time, on a branch, squash-merged
-  ([ADR-002](architecture/ADR-002-execution-protocol.md) decision 1).
+- One packet open at a time, one branch per packet
+  ([ADR-002](architecture/ADR-002-execution-protocol.md) decisions 1–2),
+  squash-merged.
 - `trunk` is the only sitting line. After a merge, delete the remote branch.
   Do not recreate `main`.
 - How replies to the owner are written is in [CLAUDE.md](../CLAUDE.md). The

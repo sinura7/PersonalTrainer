@@ -2,6 +2,9 @@
 
 - **Status:** Accepted
 - **Date:** 18 September 2026
+- **Amended:** 23 September 2026 — decision 8 by
+  [ADR-032](ADR-032-jvm-evidence-lanes.md): the floor goldens are retired, not
+  re-recorded; JVM renders with reachability assertions are the evidence
 - **Amends:** [ADR-026](ADR-026-frontend-redesign.md) decision 3 (the compact
   64 dp identity and its order) and the *Workout contracts* order in
   [FRONTEND_REDESIGN.md](../FRONTEND_REDESIGN.md). ADR-026 decisions 2, 4 and 8
@@ -76,6 +79,9 @@ that packet's state model and derived primary action and changes the composition
    `app/src/androidTest/assets/goldens` describe the F3 composition and must be
    re-recorded on `temper-tests-api29` before the emulator lane is read as green
    again. JVM renders (`WorkoutFloorRenderTest`) are review artifacts, not goldens.
+   *Amended 23 September 2026 by [ADR-032](ADR-032-jvm-evidence-lanes.md):* the
+   goldens are retired rather than re-recorded, and the JVM render set is the
+   evidence.
 9. **Last time is reachable, but no longer a strip.** The F2 floor listed every set
    of the previous session as tappable chips. The reference has no such row, so:
    the Last set cell shows last time's final set and applies it on tap until the

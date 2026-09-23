@@ -14,7 +14,7 @@ entities, four tabs and no cardio.
 ## Shape
 
 One Gradle module, `:app`. No sub-modules — see the note at the end on why not
-yet.
+yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
@@ -30,13 +30,14 @@ Everything is under `com.sinura.personaltrainer`.
 
 | Package | Files | Lines | What it is |
 |---|---|---|---|
-| `ui` | 170 | 46,418 | 18 screens, 22 ViewModels, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
-| `domain` | 207 | 23,696 | Models, rules, calculators, policies, ports, CoachEngine, and 68 `*Copy` text objects |
+| `ui` | 170 | 46,418 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
+| `domain` | 207 | 23,696 | Models, rules, calculators, policies, ports, CoachEngine, and 64 `*Copy` text objects (68 app-wide) |
 | `data` | 114 | 16,760 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup`, `sync` (15 files, 2,266 lines), `auth` (4, 224) |
 | `timer` | 18 | 2,642 | Rest foreground service, alarm scheduler, notifications, persistence |
 | `workout` | 13 | 1,367 | Use cases: start, finish, discard, `CompleteTraining` façade, draft cache and recovery |
 | `update` | 9 | 764 | Temper Debug's in-app update check and banner |
 | `reminder` | 11 | 681 | WorkManager scheduling, receivers, worker |
+| (root) | 6 | 954 | `PersonalTrainerApp`, `MainActivity`, `AppContainer`, `AppDependencies`, `AppViewModel` |
 | `diagnostics` | 4 | 332 | Redacted diagnostic bundle, crash store, event ring |
 | `util` | 6 | 297 | `JvmTime`, `IdFactory`, quantity formatting, coroutine error helpers |
 | `insights` | 2 | 345 | `TrainingInsightsPublisher` and the one source behind it |
@@ -78,7 +79,7 @@ flowchart TB
     PREFS[("user_settings DataStore<br/>56 keys · 6 prefs stores")]
     REPOS["10 repositories<br/>+ stores, BackupService, sync"]
     UC["workout/ + activity/ use cases"]
-    VMS["22 ViewModels<br/>AppViewModel : AndroidViewModel"]
+    VMS["21 ViewModels<br/>AppViewModel : AndroidViewModel"]
     NAV["AppNav.kt<br/>sealed Route · 5 tabs"]
     SCR["18 Compose screens"]
     TIM["timer/<br/>RestTimerStore + FGS + alarm"]
@@ -108,7 +109,9 @@ default and tests pass `FakeAppDependencies`, which is the same repositories
 over an in-memory Room database. There is no mocking library and there should
 not be one; `AppViewModelSeamTest` locks the constructor shape.
 
-`timer/`, `reminder/` and `data/sync/SyncWorker` reach the graph by casting
+`timer/`, `reminder/`, `data/sync/SyncWorker`, `MainActivity`,
+`ui/update/DebugUpdateBanner` and `AppNav` (which calls
+`application.appContainer()` inside a composable) reach the graph by casting
 the application to `PersonalTrainerApp` rather than through `AppDependencies`.
 Those are the places the seam is bypassed, and they are service-locator shaped
 (audit packet S4 moves the worker to a `WorkerFactory`).
@@ -133,9 +136,11 @@ survives only as migration-test substrate.
 by `SyncAuthoring` hooks, a `SyncEngine` that pushes then pulls over Supabase
 PostgREST, and a WorkManager `SyncWorker`. It is paused
 (`domain/AccountSyncGate`, [ADR-031](ADR-031-trusted-server-sync-lane.md)): no
-pass runs, and edits still queue.
+pass runs, and edits made while signed in, with the session loaded, still
+queue.
 
-**Preferences** are one DataStore named `user_settings` holding 56 keys. The
+**Preferences** are one DataStore named `user_settings` holding 56 keys
+(Temper Debug's update check keeps a separate small `debug_update` store). The
 keys are package-level in `data/repository/prefs/`, and six areas —
 `DisplayPrefs`, `CoachingPrefs`, `PlanningPrefs`, `RestPrefs`, `ReminderPrefs`,
 `BackupPrefs` — sit behind interfaces that `PreferencesRepository` mixes in by
@@ -152,8 +157,8 @@ rehydration, the alarm and the service cannot each fire the same finish.
 
 `./gradlew testDebugUnitTest` runs the unit tests **and** the whole
 static gate: every `Test` task depends on `:app:staticChecks`, which runs
-`tools/preflight.sh` with `PT_STATIC_ONLY=1`. That is 26 checkers plus their
-fixture proofs — domain seams, design-token ceilings, unbounded waits,
+`tools/preflight.sh` with `PT_STATIC_ONLY=1`. That is 24 checkers, 8 fixture
+proofs and a syntax check — domain seams, design-token ceilings, unbounded waits,
 swallowed cancellation, supply-chain ledger, version floor. Until 11 September
 2026 none of it was wired into Gradle, so the push gate could go green on a
 branch that broke all of it.
@@ -195,7 +200,9 @@ rediscover.
   `domain/*Copy.kt` objects and inline literals; `stringResource` is used
   nowhere in `ui`. There is no localisation path today, and that is a decision
   nobody has written down.
-- **One of eleven required goldens is committed.**
+- **Emulator goldens are retired** ([ADR-032](ADR-032-jvm-evidence-lanes.md));
+  `GoldenPageCatalog` and the golden checks leave in packet W3. Before that:
+  **one of eleven required goldens is committed.**
   `domain/GoldenPageCatalog.missingPageGoldens` names the rest. Page-level
   visual regression is defined and unenforced.
 - **`PlanDayViewModel` has no tests**, and `ui/components` sits at roughly

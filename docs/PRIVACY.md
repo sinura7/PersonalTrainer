@@ -2,6 +2,7 @@
 
 **Status:** Current published posture (P12.2 / Phase 11 account sync)  
 **Related:** [ADR-009](architecture/ADR-009-backup-privacy-sync.md),
+[ADR-031](architecture/ADR-031-trusted-server-sync-lane.md),
 [backup-threat-model.md](architecture/backup-threat-model.md),
 [sync-personal-build.md](architecture/sync-personal-build.md),
 [DATA_SAFETY.md](DATA_SAFETY.md)
@@ -67,11 +68,13 @@ When you sign in with email and password:
   and your save-posture choice replicate when signed in. Built-in catalog seed rows (the
   ~98 default lifts) stay on this phone only. Email for sign-in lives in Supabase Auth;
   Temper does not sync a separate display name or avatar.
-- **Who processes it:** Your Supabase project (Auth + Postgres with row-level
-  security). The app uses the public anon key and your signed-in access token; there
-  is no separate Temper-operated backend beyond that project. Cloud data is **not**
-  end-to-end encrypted in v1; the server can read synced rows (honest trusted-server
-  posture per [ADR-009](architecture/ADR-009-backup-privacy-sync.md)).
+- **Who processes it:** Temper's Supabase project (Auth + Postgres). Each synced
+  table is meant to let an account read and write only its own rows (row-level
+  security); that is being checked table by table before sync resumes. The app uses
+  the public anon key and your signed-in access token; there is no separate
+  Temper-operated backend beyond that project. Cloud data is **not** end-to-end
+  encrypted in v1; the server can read synced rows (honest trusted-server posture per
+  [ADR-031](architecture/ADR-031-trusted-server-sync-lane.md)).
 
 When you are signed out or never use Temper Account, **none** of the above leaves
 the phone except what you explicitly export or back up.
