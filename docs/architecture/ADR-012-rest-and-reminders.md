@@ -10,7 +10,8 @@
 - **Amended:** 29 August 2026 — [ADR-019](ADR-019-move-to-today.md)
   lets one leftover occurrence move onto today from Home; week-level
   missed-work is unchanged; 23 September 2026 — owner decision: the rest a
-  logged set starts is the coach's suggested length (decision 18)
+  logged set starts is the coach's suggested length (decision 18); the same
+  day, W2b-1 made decision 1 hold across threads (see Consequences)
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -104,6 +105,15 @@ day. The agreed product asks once, then adapts only if the user says so.
   `RestLockActivity` is `showWhenLocked`. That is not overlay rest on the
   live log. Full-screen intent is rest-done only, never onboarding.
   Completion still uses `SCHEDULE_EXACT_ALARM`.
+- Decision 1 holds across threads, not only in order (W2b-1, 23 September
+  2026). The notification's ±15 and the screens write the rest on Main; the
+  alarm's completion clears it on a background thread. `RestTimerStore`'s
+  `adjust` and `clearIfCurrent` are compare-and-set, and the controller
+  chooses what to do from what they return, not from a second read of the
+  store: a late ±15 cannot revive a finished rest, and a completion for the
+  old id cannot clear the timer a ±15 just replaced it with (it takes its
+  "rest done" back instead). A ±15 that finds the rest already finished does
+  nothing, so it cannot turn "rest done" into a skip.
 
 ## Review questions
 

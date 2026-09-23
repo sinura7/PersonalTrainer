@@ -15,6 +15,17 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 23 Sep 2026 — Whole-app audit packet W2b-1: the rest timer's ±15 s and
+> its finish can no longer undo each other. They run on different threads
+> (the screens and the notification on the main thread, the alarm's finish
+> on a background one), and a +15 landing as the rest ended could bring the
+> finished rest back, or a finish landing as a +15 went in could wipe the
+> extra time just bought. Both now take effect only if nothing changed
+> underneath them (compare-and-set). A late ±15 on a finished rest now does
+> nothing, so it can no longer make "rest done" look like a skip. ADR-012
+> decision 1 now holds across threads. Quiet; rides along with the next
+> drop.
+>
 > 23 Sep 2026 — Whole-app audit packet X2b: before Room migrates `temper.db`,
 > the app now copies it — the file with its WAL, byte for byte — into
 > `files/pre-migration/temper-v<n>/`, and keeps the newest two. The legacy
