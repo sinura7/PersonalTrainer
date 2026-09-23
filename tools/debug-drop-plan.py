@@ -31,16 +31,17 @@ def main() -> int:
     parser.add_argument(
         "--no-fetch",
         action="store_true",
-        help="Do not refresh tags first (tests pass a fixture with no remote)",
+        help="Do not refresh tags first (the suffix is still asked of origin)",
     )
     args = parser.parse_args()
     repo = Path(args.root)
     today = args.today or datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # Tags are the whole answer, and a clone only knows the ones it has fetched.
-    # A drop cut minutes ago from another session is invisible until then, so this
-    # would cheerfully name a suffix that is already taken. The workflow's own
-    # checkout fetches everything; a laptop does not.
+    # The suffix is asked of origin directly, but the number is not: the ratchet
+    # reads the build file at every drop tag, and a clone only has the tags it has
+    # fetched. A drop cut minutes ago from another session would be missing from
+    # the floor until then. The workflow's own checkout fetches everything; a
+    # laptop does not.
     if not args.no_fetch:
         fetched = subprocess.run(
             ["git", "-C", str(repo), "fetch", "origin", "--tags", "--quiet"],

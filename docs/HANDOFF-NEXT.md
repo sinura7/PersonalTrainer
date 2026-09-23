@@ -99,9 +99,6 @@ the next visible drop.
 
 ## Known tooling gaps
 
-- `tools/debug_drop.py` treats a suffix as free when no *tag* exists. A failed
-  drop leaves a `debug-live/<suffix>` branch with no tag, and the planner names
-  it again. Until that is fixed, pick the next free suffix by hand.
 - A cold container downgrades the static gate with only a warning, and still
   exits OK, when no compiler jar is present. Make the skip non-zero unless
   `PT_ALLOW_NO_COMPILER=1`.
