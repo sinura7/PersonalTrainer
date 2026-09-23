@@ -587,6 +587,50 @@ class RoutineEditorViewModelTest {
     }
 
     /**
+     * A tap whose lift another writer changed before the screen caught up does not leave the
+     * editor busy. The tap waits for the screen to agree with it; sync or another screen
+     * took the lift back out first, so the screen never will. The store settles it: "Adding…"
+     * with Save off until the lifter left the screen was the alternative.
+     */
+    @Test
+    fun aTapOverriddenBeforeTheScreenCatchesUpDoesNotLeaveTheEditorBusy() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val row = insertTestExercise(deps, "row", "Row")
+        val held = MutableStateFlow(false)
+        val rowWriteStarted = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", container = withRoutineDao(HeldRoutineDao(deps.database.routineDao(), held, row.id, rowWriteStarted)))
+        vm.awaitState { it.catalog.size >= 2 }
+        vm.setPickerVisible(true)
+
+        held.value = true
+        vm.togglePicked(squat)
+        vm.togglePicked(row)
+        withTimeout(TestWaits.FLOW_MS) { rowWriteStarted.await() }
+        // Another writer takes Squat out while the screen has seen neither lift.
+        val stored = awaitRoutine { routine -> routine.exercises.map { it.exercise.id } == listOf(squat.id, row.id) }
+        deps.routineRepository.removeExercise(stored.exercises.first { it.exercise.id == squat.id }.id, stored.id)
+        held.value = false
+
+        val settled = vm.awaitState { !it.addingLifts && it.pickedIds == listOf(row.id) }
+        assertEquals(listOf(row.id), settled.pickedIds)
+    }
+
+    @Test
+    fun aRoutineThatCannotBeCreatedDropsTheTap() = runBlocking {
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val vm = createViewModel("new", container = withRoutineDao(FailingCreateDao(deps.database.routineDao())))
+        vm.awaitState { it.catalog.isNotEmpty() }
+        vm.setPickerVisible(true)
+        vm.togglePicked(squat)
+        // The tap had nowhere to go: it is not left chosen, and the editor is not left busy.
+        val refused = vm.awaitState {
+            it.error == "Could not create this routine. Try again." && it.pickedIds.isEmpty() && !it.addingLifts
+        }
+        assertTrue(refused.showExercisePicker)
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
+    /**
      * A second tap queued behind the first write on the same lift keeps its word on screen.
      * The first write used to settle every pick the screen agreed with, including the
      * second tap's "take it out" whose own write had not run: the screen had no Squat yet,
@@ -1683,6 +1727,13 @@ class RoutineEditorViewModelTest {
             removeReached.complete(Unit)
             removeGate.await()
             delegate.deleteRoutineExercise(id)
+        }
+    }
+
+    /** Every routine it is asked to create fails to write. */
+    private class FailingCreateDao(private val delegate: RoutineDao) : RoutineDao by delegate {
+        override suspend fun upsertRoutine(routine: RoutineEntity) {
+            throw IllegalStateException("disk full")
         }
     }
 

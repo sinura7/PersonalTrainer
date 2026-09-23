@@ -211,9 +211,13 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     init {
         hydrate()
         // The routine is the cart, so every emission of it settles the taps it now carries.
-        // A pick is held for exactly as long as the write behind it is in flight.
+        // A pick is held until its own write has landed and the screen shows it, or the
+        // store shows it was overridden.
         viewModelScope.launch {
-            routineFlow.collect { routine -> settlePicks(committedIds(routine)) }
+            routineFlow.collect { routine ->
+                settlePicks(committedIds(routine))
+                dropOverriddenPicks(routine)
+            }
         }
     }
 
@@ -1099,7 +1103,11 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // not. Only landed taps settle, so a newer tap still queued behind this one keeps
             // its intent on screen.
             pendingPicks.update { LiftCart.land(pending = it, id = exercise.id, tap = tap) }
+            // The screen may already show this write: its emission can beat the mark above,
+            // and then the collector saw the tap before it had landed. Settle here as well,
+            // or that tap would wait for an emission that has already gone by.
             settlePicks(committedIds(routineFlow.value))
+            dropOverriddenPicks(routineFlow.value)
             error.clearFrom(source = source, before = started)
             error.clearFrom(source = ERR_SAVE, before = started)
         } catch (thrown: CancellationException) {
@@ -1128,6 +1136,30 @@ class RoutineEditorViewModel @JvmOverloads constructor(
 
     private fun settlePicks(committed: List<String>) {
         pendingPicks.update { LiftCart.settle(committed = committed, pending = it) }
+    }
+
+    /**
+     * A landed tap the screen still disagrees with is either waiting for the screen to catch
+     * up, or was overridden after it landed: sync, or another screen, changed the same lift
+     * first. Only the store can tell which. If the store disagrees too, nothing will ever
+     * agree with the tap, and holding it would leave the editor saying "Adding…" with Save
+     * off; it goes, and the screen's answer is the one shown. Otherwise the screen is behind
+     * a store that differs from what it last showed, so another emission is on its way.
+     */
+    private suspend fun dropOverriddenPicks(routine: Routine?) {
+        val id = routine?.id ?: return
+        val shown = committedIds(routine).toSet()
+        val waiting = pendingPicks.value.filter { it.landed && (it.id in shown) != it.adding }
+        if (waiting.isEmpty()) return
+        val stored = runCatchingCancellable { container.routineRepository.getById(id) }
+            .getOrNull()
+            ?.let { committedIds(it).toSet() }
+            ?: return
+        val overridden = waiting.filter { (it.id in stored) != it.adding }
+        if (overridden.isEmpty()) return
+        pendingPicks.update { current ->
+            current.filterNot { pick -> overridden.any { it.id == pick.id && it.tap == pick.tap } }
+        }
     }
 
     fun onSearchQuery(value: String) {
