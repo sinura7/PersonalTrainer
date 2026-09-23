@@ -103,6 +103,13 @@ class SetWorkDockRenderTest {
     }
 
     @Test
+    fun aRunningHoldNeverCountsFromAboveItsTarget() {
+        showClock(elapsed = 0, remaining = 35, total = 30, hold = true)
+        word("0:30").assertIsDisplayed()
+        assertEquals(listOf("HOLD 0:30 remaining"), clockSpoken())
+    }
+
+    @Test
     fun aHoldThatReachedItsTargetSaysDoneAndLogsWithTheElapsedTime() {
         showClock(elapsed = 32, remaining = 0, total = 30, hold = true, targetReached = true)
         word("HOLD DONE").assertIsDisplayed()

@@ -93,9 +93,9 @@ class NextSetRecommendationRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().assertHeightIsAtLeast(Metrics.touchMin)
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed().assertIsEnabled()
         // The reason cites its evidence, as a control of its own.
-        val line = CoachEvidenceCopy.basedOnLine(CoachEngine.fromMicroRec(rec))
-        if (line != null) shown(line)
-        compose.onAllNodesWithTag(WorkoutTestTags.COACH_EVIDENCE_CHIP).assertCountEquals(if (line != null) 1 else 0)
+        val line = checkNotNull(CoachEvidenceCopy.basedOnLine(CoachEngine.fromMicroRec(rec))) { "this reason cites evidence" }
+        shown(line)
+        compose.onAllNodesWithTag(WorkoutTestTags.COACH_EVIDENCE_CHIP).assertCountEquals(1)
     }
 
     @Test
@@ -236,7 +236,8 @@ class NextSetRecommendationRenderTest {
         showCard()
         compose.onNodeWithTag(WorkoutTestTags.COACH_EVIDENCE_CHIP).performClick()
         compose.onNodeWithText("Evidence").assertIsDisplayed()
-        if (details.isNotEmpty()) compose.onNodeWithText(details.first(), substring = true).assertIsDisplayed()
+        assertTrue("this reason has evidence to show", details.isNotEmpty())
+        compose.onNodeWithText(details.first(), substring = true).assertIsDisplayed()
         compose.onNodeWithText("Close").performClick()
         compose.onAllNodesWithText("Evidence").assertCountEquals(0)
     }

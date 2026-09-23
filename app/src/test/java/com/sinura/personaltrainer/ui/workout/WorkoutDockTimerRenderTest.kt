@@ -219,6 +219,24 @@ class WorkoutDockTimerRenderTest {
     }
 
     @Test
+    fun aRunningHoldNeverCountsFromAboveItsTarget() {
+        // The dock hands the hold's target to the clock, which caps the countdown at it: a
+        // remaining time past the target (a stale tick after the target changed) reads 0:30.
+        showDock(
+            WorkoutDockTimer(
+                show = true,
+                restTotalSeconds = 120,
+                holdRunning = true,
+                holdElapsedSeconds = 0,
+                holdRemainingSeconds = 35,
+                holdTotalSeconds = 30,
+            ),
+        )
+        compose.onNode(hasText("0:30"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onAllNodesWithText("0:35", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
     fun theSetStopwatchTakesTheSlotAndStopsFromIt() {
         showDock(WorkoutDockTimer(show = true, restTotalSeconds = 120, stopwatchRunning = true, stopwatchElapsedSeconds = 12))
         compose.onNodeWithTag(WorkoutTestTags.HOLD_CLOCK).assertIsDisplayed()

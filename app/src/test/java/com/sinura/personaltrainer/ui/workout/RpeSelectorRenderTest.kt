@@ -96,7 +96,9 @@ class RpeSelectorRenderTest {
         showTrack()
         // W1b changes this: "Effort · optional" replaces the "RPE" kicker, with each value's
         // meaning shown inline rather than only spoken.
-        compose.onNode(hasText("RPE"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(hasText("RPE"), useUnmergedTree = true)
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK)
             .assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))

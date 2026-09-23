@@ -262,7 +262,9 @@ class ActiveWorkoutViewModelTest {
     fun logSetRejectsZeroWeightWorkingSetBeforeWriting() = runBlocking {
         val fixture = seedWorkout(targetWeightKg = 0.0)
         val vm = createViewModel(fixture.session.id)
-        vm.awaitFound()
+        // Settled, not merely FOUND: a tap during prefill's tail is dropped without a word,
+        // and then no refusal ever comes.
+        vm.awaitPrefilled(weightKg = 0.0)
 
         vm.setWeight(0.0)
         // A refusal writes nothing, so there is no save to wait for; wait for the refusal.
@@ -2272,7 +2274,8 @@ class ActiveWorkoutViewModelTest {
     fun logSetRejectsZeroWeightWithoutSuccessHaptic() = runBlocking {
         val fixture = seedWorkout(targetWeightKg = 0.0)
         val vm = createViewModel(fixture.session.id)
-        vm.awaitFound()
+        // Settled, not merely FOUND: a tap during prefill's tail is dropped without a word.
+        vm.awaitPrefilled(weightKg = 0.0)
         val seen = mutableListOf<LogCommitFeedback>()
         val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
         try {

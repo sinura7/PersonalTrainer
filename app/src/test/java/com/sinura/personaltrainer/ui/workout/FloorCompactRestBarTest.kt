@@ -81,6 +81,10 @@ class FloorCompactRestBarTest {
         assertTrue(FloorCompactChrome.logButtonStaysAnchored())
 
         val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
+        // Kept as text (T1b review): the hold's target only shows when the clock would run
+        // past it, a state the ViewModel's timer never produces, so no render can see this
+        // wire. The dock's own use of it is rendered in WorkoutDockTimerRenderTest.
+        assertTrue(screen.contains("holdTotalSeconds = holdTimer.totalSeconds"))
         assertTrue(screen.contains("exactBestEffort = rest.exactAlarmBestEffort"))
     }
 

@@ -329,7 +329,12 @@ class FloorRestAndCoachWiringRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.isWarmup }
         compose.waitForIdle()
+        // Look where the card would be: the effort track's warm-up line sits just above it,
+        // so the card's place is composed and a card there would be found.
+        scrollTo(WorkoutTestTags.RPE_WARMUP_REASON)
+        compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON).assertIsDisplayed()
         compose.onAllNodesWithTag(WorkoutTestTags.NEXT_SET).assertCountEquals(0)
+        compose.onAllNodesWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertCountEquals(0)
     }
 
     @Test
