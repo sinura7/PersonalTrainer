@@ -45,6 +45,39 @@ PLATFORM="platforms;android-36"
 BUILD_TOOLS="build-tools;36.0.0"
 CLT_ZIP="commandlinetools-linux-13114758_latest.zip"
 
+# Maven Central, through Google's mirror of it. Central rate-limits the shared address these
+# sessions leave from (HTTP 429 on about one request in ten, 23 September 2026), so a build
+# with a cold cache failed on most attempts; through the mirror the same cold build passed at
+# the first try. The mirror serves Central's bytes and gradle/verification-metadata.xml still
+# checks every one, so this changes the road, not what arrives. It lives in ~/.gradle, never
+# in the repository: CI and developer machines keep Central. Before the SDK check below,
+# because that one exits early once the SDK is in place. A mirror that does not answer
+# takes an init script from an earlier start with it, so Central is never left pointing
+# at a dead road.
+MIRROR="https://maven-central.storage-download.googleapis.com/maven2/"
+MIRROR_INIT="${GRADLE_USER_HOME:-$HOME/.gradle}/init.d/temper-central-mirror.gradle"
+if curl -fsS -o /dev/null --max-time 20 \
+     "${MIRROR}org/jetbrains/kotlin/kotlin-stdlib/2.0.21/kotlin-stdlib-2.0.21.pom"; then
+  mkdir -p "$(dirname "$MIRROR_INIT")"
+  cat > "$MIRROR_INIT" <<GRADLE
+// Written by .claude/hooks/session-start.sh (cloud sessions only). See that file.
+def mirror = '$MIRROR'
+def redirect = { repos ->
+    repos.withType(MavenArtifactRepository).configureEach { r ->
+        if (r.url.toString().startsWith('https://repo.maven.apache.org/maven2')) { r.url = mirror }
+    }
+}
+settingsEvaluated { settings ->
+    redirect(settings.pluginManagement.repositories)
+    redirect(settings.dependencyResolutionManagement.repositories)
+}
+GRADLE
+  echo "gradle: Maven Central through Google's mirror (checksums still verified)"
+elif [ -f "$MIRROR_INIT" ]; then
+  rm -f "$MIRROR_INIT"
+  echo "gradle: Google's mirror did not answer; Maven Central directly"
+fi
+
 if [ -d "$SDK/platforms/android-36" ] && [ -d "$SDK/build-tools/36.0.0" ] && [ -x "$SDK/platform-tools/adb" ]; then
   echo "android-sdk: already installed at $SDK"
   exit 0
@@ -56,7 +89,7 @@ if ! curl -fsS -o /dev/null --max-time 45 \
      "https://dl.google.com/android/repository/repository2-3.xml"; then
   echo "android-sdk: dl.google.com is not reachable from this environment — skipping."
   echo "  ./gradlew cannot resolve the Android plugin here. Use the offline lanes instead:"
-  echo "    PT_STATIC_ONLY=1 sh tools/preflight.sh     (static gate)"
+  echo "    PT_STATIC_ONLY=1 PT_ALLOW_NO_COMPILER=1 sh tools/preflight.sh  (static gate; no Kotlin syntax check without Gradle)"
   echo "    PT_JARS=build/test-jars tools/run-domain-tests.sh  (host-runnable tests)"
   exit 0
 fi

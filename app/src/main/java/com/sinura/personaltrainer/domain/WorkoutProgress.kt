@@ -99,7 +99,7 @@ object WorkoutProgressCalculator {
     }
 
     /**
-     * The header's second line: `Exercise 4 of 7 · 9 of 16 sets`.
+     * The header's second line: `4 of 7 exercises · 9 of 16 sets`.
      *
      * A free workout has no prescribed count, so it reads `9 sets logged` instead of
      * `9 of 0`. Nothing selected drops the lift half. Empty is empty.

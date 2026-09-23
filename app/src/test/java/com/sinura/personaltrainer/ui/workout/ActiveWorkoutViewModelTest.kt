@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.AppDependencies
@@ -34,6 +36,7 @@ import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.ControllableTimePort
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CompletableDeferred
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.Dispatchers
@@ -1428,8 +1431,9 @@ class ActiveWorkoutViewModelTest {
     fun manualRestUsesSelectedDurationAndCanBeSkipped() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
-        // Prefill sets the lift's planned rest when it lands after FOUND; a duration chosen
-        // before then is replaced by it (105 became 150 in a local run, 23 Sept).
+        // Waits for prefill so this test is about starting and skipping, not load timing. A
+        // duration chosen before prefill landed used to be replaced by it (105 became 150, 23
+        // Sept); aRestLengthPickedWhileTheLiftIsStillLoadingOutlivesThePrefill holds the fix.
         vm.awaitPrefilled()
 
         vm.selectRestDuration(105)
@@ -2106,6 +2110,113 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun aRestLengthPickedWhileTheLiftIsStillLoadingOutlivesThePrefill() = runBlocking {
+        val fixture = seedWorkout(restSeconds = 90)
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel(fixture.session.id, container = gatedHistory(gate))
+        try {
+            // FOUND with the lift's history read held: the dock's rest card is on screen and
+            // takes a pick, but prefill has not reached its planned-rest seed, which only runs
+            // after that read returns.
+            vm.awaitFound()
+            vm.selectRestDuration(105)
+            deps.preferencesRepository.restTimerPreferences.first { it.lastPresetSeconds == 105 }
+            gate.complete(Unit)
+            vm.awaitPrefilled()
+
+            vm.startSelectedRest()
+            awaitRestRunning()
+            assertEquals(105, deps.restTimerStore.current().totalSeconds)
+        } finally {
+            if (!gate.isCompleted) gate.complete(Unit)
+        }
+    }
+
+    @Test
+    fun aRestPickedOnOneLiftDoesNotStopTheNextLiftSeedingItsOwn() = runBlocking {
+        val fixture = seedTwoLifts(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        vm.startSelectedRest()
+        awaitRestRunning()
+        val seeded = deps.restTimerStore.current().totalSeconds
+        vm.skipRest()
+        assertTrue(seeded != 105)
+
+        vm.selectRestDuration(105)
+        deps.preferencesRepository.restTimerPreferences.first { it.lastPresetSeconds == 105 }
+        vm.selectExercise(ROW)
+        vm.awaitPrefilled(weightKg = 80.0)
+
+        vm.startSelectedRest()
+        awaitRestRunning()
+        assertEquals(seeded, deps.restTimerStore.current().totalSeconds)
+    }
+
+    @Test
+    fun aPickWhoseEchoLandsAfterALiftSwitchDoesNotPinItToTheNextLift() = runBlocking {
+        // A pick is saved as the last preset, and that preference comes back to the dock as an
+        // echo. On a phone the echo can land after the next tap: here the pick's write is held
+        // until the owner has moved to the second lift, whose own reads are still running.
+        val holdNextWrite = AtomicBoolean(false)
+        val writeHeld = CompletableDeferred<Unit>()
+        val releaseWrite = CompletableDeferred<Unit>()
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            prefsStoreDecorator = { real ->
+                object : DataStore<Preferences> by real {
+                    override suspend fun updateData(
+                        transform: suspend (Preferences) -> Preferences,
+                    ): Preferences {
+                        if (holdNextWrite.compareAndSet(true, false)) {
+                            writeHeld.complete(Unit)
+                            releaseWrite.await()
+                        }
+                        return real.updateData(transform)
+                    }
+                }
+            },
+        )
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+        val holdHistory = AtomicBoolean(false)
+        val releaseHistory = CompletableDeferred<Unit>()
+        val fixture = seedTwoLifts(targetSets = 3)
+        val vm = createViewModel(
+            sessionId = fixture.session.id,
+            container = historyHeldOnceArmed(hold = holdHistory, release = releaseHistory),
+        )
+        try {
+            vm.awaitPrefilled()
+            vm.startSelectedRest()
+            awaitRestRunning()
+            val seeded = deps.restTimerStore.current().totalSeconds
+            vm.skipRest()
+            assertTrue(seeded != 105)
+
+            holdNextWrite.set(true)
+            vm.selectRestDuration(105)
+            withTimeout(TestWaits.FLOW_MS) { writeHeld.await() }
+            holdHistory.set(true)
+            vm.selectExercise(ROW)
+            vm.awaitState { it.selectedExerciseId == ROW }
+            releaseWrite.complete(Unit)
+            deps.preferencesRepository.restTimerPreferences.first { it.lastPresetSeconds == 105 }
+            releaseHistory.complete(Unit)
+            vm.awaitPrefilled(weightKg = 80.0)
+
+            // The echo is the squat's pick coming home, not a pick made on the row.
+            vm.startSelectedRest()
+            awaitRestRunning()
+            assertEquals(seeded, deps.restTimerStore.current().totalSeconds)
+        } finally {
+            if (!releaseWrite.isCompleted) releaseWrite.complete(Unit)
+            if (!releaseHistory.isCompleted) releaseHistory.complete(Unit)
+        }
+    }
+
+    @Test
     fun stalePrefillForPreviousLiftIsIgnored() = runBlocking {
         val fixture = seedTwoLifts()
         val gate = CompletableDeferred<Unit>()
@@ -2357,6 +2468,28 @@ class ActiveWorkoutViewModelTest {
         val repo = WorkoutRepository(
             deps.database,
             GatedHistoryDao(deps.database.workoutDao(), gate, fail),
+        )
+        return object : AppDependencies by deps {
+            override val workoutRepository: WorkoutRepository = repo
+        }
+    }
+
+    /** History reads pass until [hold] is set; from then on each waits for [release]. */
+    private fun historyHeldOnceArmed(
+        hold: AtomicBoolean,
+        release: CompletableDeferred<Unit>,
+    ): AppDependencies {
+        val real = deps.database.workoutDao()
+        val repo = WorkoutRepository(
+            deps.database,
+            object : WorkoutDao by real {
+                override suspend fun finishedWorkingSetsForExercises(
+                    exerciseIds: List<String>,
+                ): List<FinishedWorkingSetRow> {
+                    if (hold.get()) release.await()
+                    return real.finishedWorkingSetsForExercises(exerciseIds)
+                }
+            },
         )
         return object : AppDependencies by deps {
             override val workoutRepository: WorkoutRepository = repo

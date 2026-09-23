@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
@@ -111,8 +112,11 @@ class WorkoutEntryLayoutInstrumentedTest(
         if (width == 360 && height == 800 && font == 1f && scenario == "working") {
             // The baseline profile shows the whole log loop without a scroll: the header's
             // progress line, identity with the set-type toggle, the stats row, both hero
-            // numerals and the RPE track.
-            compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertIsDisplayed().assertTextEquals("1 of 1 exercise · 0 of 12 sets")
+            // numerals and the RPE track. The progress line is drawn in the kicker voice,
+            // which is upper case (ADR-027), and spoken in sentence case.
+            compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertIsDisplayed()
+                .assertTextEquals("1 OF 1 EXERCISE · 0 OF 12 SETS")
+                .assertContentDescriptionEquals("1 of 1 exercise · 0 of 12 sets")
             compose.onNodeWithTag(WorkoutTestTags.SET_TYPE).assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsDisplayed()

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Fixture proof for the Temper Debug drop rules.
 
-Not wired into preflight: the checker is, and this proves the checker's rule
-the way test_version_ratchet.py proves the gym-floor one.
+tools/preflight.sh runs it on every commit, as it runs test_version_ratchet.py
+for the gym-floor rule, so the drop rules are proven without gating on what
+has shipped.
 Run: python3 tools/test_debug_drop.py
 """
 from __future__ import annotations

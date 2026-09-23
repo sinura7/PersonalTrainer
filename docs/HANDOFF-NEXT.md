@@ -51,10 +51,21 @@ Done so far:
 - **Q1:** the first-launch chooser is a real gate, and Home's headline follows
   the selected day.
 - **X1:** this docs pass, plus ADR-031 and ADR-032.
+- **T1a, T1b:** workout tests hold rendered behaviour, not source text.
+- **W1a, W1b, R0:** the lift switch, effort and planned-rest wording, the
+  routine picker's second tap (drops 101, 102).
+- **X3:** the retired emulator goldens left the hosted lane.
+- **W1c:** the entry wells hold still on the first working set (drop 103).
+- **X4:** a rest length picked while the rest page or a lift is still loading
+  survives; the routine editor's Leave anyway no longer strands the screen
+  when a save finishes at that instant (the `RoutineEditorViewModelTest`
+  30-second wedge, open since 10 September, was this); the static gate and
+  the cloud build were made dependable (see below).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next: T1 (workout test triage), then W1a. Still open from Wave 0: **X2b**, a
+Next: W1d (the large-text floor), then T1c, W2a–d and W3. Still open from
+Wave 0: **X2b**, a
 copy of `temper.db` taken before any migration runs. It must land before the
 next schema bump (S2b's v8).
 
@@ -79,11 +90,12 @@ independent, one adversarial.
   goldens were removed in X3, so what fails there now is a crash, a journey
   or a reachability check, and is worth reading. The first run after X3
   (#395) reached the 38 entry and 15 completion layout cases' own checks
-  for the first time since 17 September and found three things the goldens
-  had hidden, all W1d's: two stale expectations (the progress line is drawn
+  for the first time since 17 September and found what the goldens had
+  hidden: stale expectations in three cases (the progress line is drawn
   in upper case on purpose; an edit scrolls the lift's identity away on
-  purpose) and a 99,999.99 kg weight that pushes its unit out at 360 dp,
-  font 2.0. One failure was known and
+  purpose; a finished plan's dock gives the notification row no room), which
+  X4 corrects, and a 99,999.99 kg weight that pushes its unit out at 360 dp,
+  font 2.0, which is W1d's. One failure was known and
   standing: `WorkoutEntryJourneyInstrumentedTest`'s entry-position check,
   955 → 997 px on every run since #374. The Last-only stats cell before the
   first working set was one caption line (16 dp) shorter than the full row, so
@@ -111,12 +123,19 @@ the next visible drop.
   to date". Only the owner can change that setting.
 - **Supabase changes** (packet S2a) are shown to the owner before they are
   applied ([ADR-031](architecture/ADR-031-trusted-server-sync-lane.md) §5).
+- **Eight stale branches** on GitHub are the owner's to delete: sessions may
+  not delete branches (the git proxy answers 403). Every one is already on
+  `trunk` or was a draft the owner closed on 23 September:
+  `claude/app-audit-optimization-xnqf5e`, `claude/ecstatic-galileo-pw9iub`,
+  `claude/file-visibility-check-jraqc2`,
+  `claude/google-signin-integration-xijk5e`, `codex/home-day-design`,
+  `cursor/live-workout-clarity-a-35c4`,
+  `cursor/live-workout-clarity-research-3c1f`,
+  `probe/delete-permission-test`. The `debug-live/*` branches stay: they are
+  the drop record the planner reads.
 
 ## Known tooling gaps
 
-- A cold container downgrades the static gate with only a warning, and still
-  exits OK, when no compiler jar is present. Make the skip non-zero unless
-  `PT_ALLOW_NO_COMPILER=1`.
 - `required_args_mixed` is the largest debt family in
   `tools/checker-baselines.toml`.
 

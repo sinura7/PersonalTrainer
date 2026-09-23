@@ -15,6 +15,25 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 23 Sep 2026 — Whole-app audit packet X4, a clean foundation. A rest length
+> picked while the rest page, or a lift on the Log, was still loading was
+> overwritten by the coach's (a user's 1:45 became 2:30, and Start ran 2:30);
+> both seeds now fill only a length nobody chose for that lift. It surfaced as
+> a once-in-a-hundred test timeout, and three new tests force the timing. Weight,
+> reps and effort were already safe. The routine editor's Leave anyway threw
+> when a save finished at the same instant — its copy of the running saves
+> read a size, then an element that had just gone — and the screen stopped
+> answering Back, Save and every edit. That was the 30-second
+> `RoutineEditorViewModelTest` wedge open since 10 September; the copies are
+> now made safely. The hosted layout tests' three
+> stale expectations are corrected. The static gate fetches the Kotlin
+> compiler when it is missing and fails when it still cannot parse, unless
+> `PT_ALLOW_NO_COMPILER=1`. Kotlin's plugin markers come from Maven Central
+> only, so a refused request reads as a network error, not a supply-chain
+> one; cloud sessions reach Central through Google's mirror of it, checksums
+> still checked. The checkers' string stripper handles a string or a char
+> literal nested in a template. Quiet; rides along with the next drop.
+>
 > 23 Sep 2026 — Whole-app audit packet W1c: the weight and reps wells hold
 > still when the first working set of a lift is saved. Until that set, the
 > stats row shows Last alone, and that cell was one caption line shorter than

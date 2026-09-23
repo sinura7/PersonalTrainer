@@ -20,6 +20,45 @@ def strip_comments_and_strings(src: str) -> str:
             if out[k] != "\n":
                 out[k] = " "
 
+    def skip_char(start: int) -> int:
+        """Index just after the char literal opening at `start`: `'"'`, `'{'`, `'\\''`."""
+        k = start + 1
+        while k < n and src[k] != "'":
+            if src[k] == "\\":
+                k += 1
+            k += 1
+        return k + 1
+
+    def skip_string(start: int) -> int:
+        """Index just after the string literal opening at `start`, templates and all."""
+        quote = '"""' if src.startswith('"""', start) else '"'
+        k, depth = start + len(quote), 0
+        while k < n:
+            if depth == 0:
+                if quote == '"' and src[k] == "\\":
+                    k += 2
+                    continue
+                if src.startswith(quote, k):
+                    return k + len(quote)
+            elif src[k] == '"':
+                # Inside `${...}` a quote opens another string, and a char literal is a
+                # char literal: neither may be read as this string's end or as a brace.
+                k = skip_string(k)
+                continue
+            elif src[k] == "'":
+                k = skip_char(k)
+                continue
+            if src.startswith("${", k):
+                depth += 1
+                k += 2
+                continue
+            if depth and src[k] == "}":
+                depth -= 1
+            elif depth and src[k] == "{":
+                depth += 1
+            k += 1
+        return n
+
     def scan_string(start: int, quote: str) -> int:
         """Blank literal text from `start`, stepping over `${...}`; return the index after it."""
         triple = quote == '"""'
@@ -33,9 +72,19 @@ def strip_comments_and_strings(src: str) -> str:
                 blank(i, i + len(quote))
                 return i + len(quote)
             if src.startswith("${", i):
-                # Keep the interpolation verbatim; find its matching brace.
+                # Keep the interpolation's code, but strip it like any other code: a string
+                # nested in it — `"${System.getenv("PT_FLAG")}"` — is literal text too, and
+                # left in place it read as an undeclared constant. Braces inside that nested
+                # string do not close the interpolation, and neither a brace nor a quote in a
+                # char literal — `"${if (c == '"') 1 else 2}"` — opens or closes anything.
                 depth, j = 0, i + 1
                 while j < n:
+                    if src[j] == '"':
+                        j = skip_string(j)
+                        continue
+                    if src[j] == "'":
+                        j = skip_char(j)
+                        continue
                     if src[j] == "{":
                         depth += 1
                     elif src[j] == "}":
@@ -44,6 +93,7 @@ def strip_comments_and_strings(src: str) -> str:
                             break
                     j += 1
                 blank(i, i + 2)          # the `${`
+                out[i + 2:j] = strip_comments_and_strings(src[i + 2:j])
                 if j < n:
                     blank(j, j + 1)      # the `}`
                 i = j + 1

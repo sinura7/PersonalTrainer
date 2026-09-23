@@ -96,6 +96,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -302,7 +303,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val priorHistory = MutableStateFlow<List<ExerciseSetRecord>>(emptyList())
     val exerciseHistory: StateFlow<List<ExerciseSetRecord>> = priorHistory.asStateFlow()
     private val lighterWeek = MutableStateFlow(false)
-    private val restTotal = MutableStateFlow(90)
+    private val restTotal = MutableStateFlow(PlannedRest(seconds = 90, chosenFor = null))
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
 
@@ -535,7 +536,18 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 .drop(1)
                 .collect { last ->
                     if (last != null && !restTimer.snapshot.value.running) {
-                        restTotal.value = last
+                        // A pick on the dock comes back here as an echo, and it can land after
+                        // the owner has moved on. It is already the plan, marked with the lift
+                        // it was picked on; marked again with whichever lift is selected now, it
+                        // would stop that lift's own seed. Only a length the dock does not hold
+                        // yet — one picked on the rest page — is news.
+                        restTotal.update { plan ->
+                            if (plan.seconds == last) {
+                                plan
+                            } else {
+                                PlannedRest(seconds = last, chosenFor = selectedExerciseId.value)
+                            }
+                        }
                     }
                 }
         }
@@ -569,7 +581,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         ) { remaining, snapshot, planned, completedId, healthy ->
             RestTimerUiState(
                 remainingSeconds = remaining,
-                totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
+                totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned.seconds,
                 running = snapshot.running,
                 completedTimerId = completedId,
                 persistenceHealthy = healthy,
@@ -686,7 +698,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             },
         ) { first, second ->
             WorkoutExtras(
-                restTotal = first.first,
+                restTotal = first.first.seconds,
                 query = first.second,
                 showPicker = first.third,
                 notes = second.notes,
@@ -849,7 +861,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             priorHistory.value = container.workoutRepository
                 .historyBefore(sessionId, listOf(exerciseId))[exerciseId].orEmpty()
             if (!isCurrentPrefill(exerciseId, generation)) return
-            restTotal.value = RestTimer.secondsToStart(
+            val seededRest = RestTimer.secondsToStart(
                 planned?.restSeconds,
                 restPrefs,
                 prescribedSeconds = workoutMicroRec(
@@ -867,6 +879,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 )?.restSeconds,
             )
             if (!isCurrentPrefill(exerciseId, generation)) return
+            // The seed fills in this lift's plan; it never replaces a length picked for this
+            // lift while the reads above were running. A pick made on another lift does not
+            // count, so switching lifts still brings the new lift's own rest.
+            restTotal.update { plan ->
+                if (plan.chosenFor == exerciseId) plan else PlannedRest(seconds = seededRest, chosenFor = null)
+            }
             if (keepDraft || draftDirty.value || saveOperation.value.pending) {
                 liftReadiness.value = LiftEntryReadiness.READY
                 suggestionUnavailable.value = false
@@ -2205,13 +2223,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         if (restTimer.snapshot.value.running) {
             restTimer.adjust(deltaSeconds)
         } else {
-            selectRestDuration(RestTimer.nudgeSeconds(restTotal.value, deltaSeconds))
+            selectRestDuration(RestTimer.nudgeSeconds(restTotal.value.seconds, deltaSeconds))
         }
     }
 
     /** Names the next rest. Does not start the clock. */
     fun selectRestDuration(seconds: Int) {
-        restTotal.value = seconds
+        restTotal.value = PlannedRest(seconds = seconds, chosenFor = selectedExerciseId.value)
         viewModelScope.launch {
             container.preferencesRepository.setLastRestPresetSeconds(seconds)
         }
@@ -2228,7 +2246,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         bumpTimedGeneration()
         stopHoldTimer()
         clearSetStopwatch()
-        val seconds = restTotal.value.coerceIn(
+        val seconds = restTotal.value.seconds.coerceIn(
             RestTimerPreferences.MIN_SECONDS,
             RestTimerPreferences.MAX_SECONDS,
         )
@@ -2458,14 +2476,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val seconds = RestTimer.secondsToStart(
             planned?.restSeconds,
             RestTimerPreferences(
-                defaultRestSeconds = restTotal.value.coerceIn(
+                defaultRestSeconds = restTotal.value.seconds.coerceIn(
                     RestTimerPreferences.MIN_SECONDS,
                     RestTimerPreferences.MAX_SECONDS,
                 ),
             ),
             prescribedSeconds = prescribedSeconds,
         )
-        restTotal.value = seconds
+        restTotal.update { it.copy(seconds = seconds) }
         restTimer.start(seconds, sessionId)
         viewModelScope.launch {
             container.preferencesRepository.markRestAlarmEligible()
@@ -2537,6 +2555,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val unit: WeightUnit,
         val coachPrefs: CoachPreferences,
     )
+
+    /**
+     * The rest the dock will start. [chosenFor] is the lift someone picked it on — on the dock,
+     * or on the rest page through the shared last preset — and that lift's late prefill seed
+     * leaves it alone. Null when it is a seed or the default.
+     */
+    private data class PlannedRest(val seconds: Int, val chosenFor: String?)
 
     private data class WorkoutExtras(
         val restTotal: Int,

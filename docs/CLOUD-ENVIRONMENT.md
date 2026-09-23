@@ -92,3 +92,19 @@ dependency and runs a supply-chain checker, and pulling the build toolchain
 itself from an unverified source would defeat the thing that policy exists
 to protect. Name the blocked host instead; the agent proxy records it at
 `$HTTPS_PROXY/__agentproxy/status`.
+
+**Maven Central goes through Google's mirror of it in cloud sessions.**
+Central rate-limits the shared address these sessions leave from: on 23
+September 2026 about one request in ten came back HTTP 429, and a build with
+a cold cache failed on most attempts (one needed fourteen). The session-start
+hook (`.claude/hooks/session-start.sh`) therefore writes
+`~/.gradle/init.d/temper-central-mirror.gradle`, which points Central at
+`maven-central.storage-download.googleapis.com`, Google's mirror of Central.
+Through it the same cold build, 1.9 GB of dependencies, passed at the first
+try. This is not the unverified source the paragraph above warns against:
+the mirror serves Central's own bytes, and the checksum ledger checks every
+one of them, so a byte that differed would fail the build exactly as it
+would from Central. It is written only in cloud sessions and only when the
+mirror answers; `ci.yml`, the drop workflow and every developer machine
+still use Central directly, and nothing in the repository's build files
+names the mirror.

@@ -21,6 +21,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
@@ -53,7 +54,9 @@ class WorkoutCompletionLayoutInstrumentedTest(
     @After fun cleanup() = fixture.close()
 
     @Test fun primaryActionAndRecoveryRemainReachable() {
-        fixture.seed(targetSets = 1)
+        // Edit-denied plans two sets so one is still to come after the edit stands down: a
+        // complete dock (Next or Finish) deliberately gives the honesty row no room.
+        fixture.seed(targetSets = if (scenario == "edit-denied") 2 else 1)
         if (scenario == "next" || scenario == "removed-owner") fixture.addNextExercise(longName = true, targetSets = 3)
         val repo = fixture.container.workoutRepository
         val sessionId = fixture.sessionId
@@ -91,6 +94,7 @@ class WorkoutCompletionLayoutInstrumentedTest(
             action.enabled && action.kind == when {
                 scenario.startsWith("removed") -> WorkoutPrimaryKind.REVIEW_SAVE
                 scenario == "next" -> WorkoutPrimaryKind.NEXT_EXERCISE
+                scenario == "edit-denied" -> WorkoutPrimaryKind.LOG_SET
                 else -> WorkoutPrimaryKind.FINISH
             }
         }
@@ -168,6 +172,10 @@ class WorkoutCompletionLayoutInstrumentedTest(
             // With rest alerts denied, an edit in progress still owns the companion slot:
             // Cancel edit outranks the notification honesty row, which returns once the
             // edit stands down. The identity and the commit's verb announce the edit too.
+            // An edit reveals the entry it edits (LogLoopBringIntoView.editRevealIndex), so the
+            // identity with its set line sits above it; scroll back to read it.
+            compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.CURRENT_LIFT))
             compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true)
                 .assert(hasText(text = "Editing saved set", substring = true))
             assertEquals("Save changes", verb)

@@ -213,6 +213,18 @@ val robolectricAndroidAll: Configuration by configurations.creating {
     isVisible = false
 }
 
+// The static gate's Kotlin parse check (tools/syntax-check.sh) runs this compiler, and finds
+// it in the Gradle cache. Resolving it here puts it there before :app:staticChecks starts, so
+// the gate never skips the check for want of a jar (tools/preflight.sh).
+val syntaxCheckCompiler: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isVisible = false
+    // syntax-check.sh looks for the stdlib of the catalog's Kotlin; newer coroutines would
+    // otherwise pull a newer one into this configuration and leave that jar out of the cache.
+    resolutionStrategy.force("org.jetbrains.kotlin:kotlin-stdlib:${libs.versions.kotlin.get()}")
+}
+
 // Copy the release APK to PersonalTrainer-<version>.apk for GitHub / Obtainium.
 // No ABI or density splits — this stays a single standard APK.
 //
@@ -284,6 +296,10 @@ dependencies {
     androidTestImplementation(libs.androidx.test.rules)
     androidTestImplementation(libs.androidx.room.testing)
     add(robolectricAndroidAll.name, libs.robolectric.android.all.instrumented)
+    add(syntaxCheckCompiler.name, libs.kotlin.compiler.embeddable)
+    // syntax-check.sh starts the compiler with the catalog's coroutines, not the older one the
+    // compiler itself names; without this line a cold cache holds only the older one.
+    add(syntaxCheckCompiler.name, libs.kotlinx.coroutines.core)
 }
 
 val jacocoExcludes = listOf(
@@ -355,12 +371,24 @@ val unpackRobolectricAndroidAll by tasks.registering(Copy::class) {
 val staticChecks = run {
     val repoRoot = rootDir
     val skip = providers.gradleProperty("skipStaticChecks").isPresent
+    // The compiler tools/syntax-check.sh parses with, copied to the one place it looks
+    // besides the module cache — so the gate works whatever Gradle user home or IDE
+    // filled that cache. Skipped with the checks: a disabled task's dependencies still run.
+    val syntaxCheckJars = tasks.register<Sync>("syntaxCheckJars") {
+        description = "Fetches the Kotlin compiler tools/syntax-check.sh runs"
+        from(syntaxCheckCompiler)
+        into(layout.buildDirectory.dir("syntax-check-jars"))
+        isEnabled = !skip
+    }
     tasks.register<Exec>("staticChecks") {
         group = "verification"
         description = "Runs the tools/preflight.sh static ratchets (no JVM tests)"
         workingDir = repoRoot
         commandLine("sh", "tools/preflight.sh")
         environment("PT_STATIC_ONLY", "1")
+        // preflight.sh must not start a second Gradle build from inside this one.
+        environment("PT_IN_GRADLE", "1")
+        dependsOn(syntaxCheckJars)
         isEnabled = !skip
     }
 }

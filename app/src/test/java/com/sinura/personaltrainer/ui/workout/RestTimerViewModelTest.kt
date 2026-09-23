@@ -5,6 +5,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
@@ -16,6 +18,7 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.ui.theme.Motion
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -43,6 +46,9 @@ class RestTimerViewModelTest {
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<RestTimerViewModel>()
     private val workoutViewModels = mutableListOf<ActiveWorkoutViewModel>()
+    /** Armed by a test to hold the floor's coach read after it has read Room; null is a pass-through. */
+    private var coachReadGate: CompletableDeferred<Unit>? = null
+    private val coachReadHeld = CompletableDeferred<Unit>()
 
     @Before
     fun setUp() {
@@ -50,12 +56,22 @@ class RestTimerViewModelTest {
         deps = FakeAppDependencies(
             ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
+            workoutDaoDecorator = { real -> object : WorkoutDao by real {
+                override suspend fun finishedWorkingSetsForExercises(
+                    exerciseIds: List<String>,
+                ): List<FinishedWorkingSetRow> {
+                    val rows = real.finishedWorkingSetsForExercises(exerciseIds)
+                    coachReadGate?.let { gate -> coachReadHeld.complete(Unit); gate.await() }
+                    return rows
+                }
+            } },
         )
         runBlocking { deps.preferencesRepository.setWeightUnit(WeightUnit.KG) }
     }
 
     @After
     fun tearDown() {
+        coachReadGate?.complete(Unit)
         runBlocking {
             viewModels.forEach { it.clearAndJoinForTest() }
             workoutViewModels.forEach { it.clearAndJoinForTest() }
@@ -176,9 +192,10 @@ class RestTimerViewModelTest {
     fun selectingDurationOnTheFloorUpdatesTheLogPlannedRest() = runBlocking {
         val fixture = seedWorkout(restSeconds = 90)
         val workout = createWorkoutViewModel(fixture.session.id)
-        // READY, not FOUND: prefill sets the lift's rest (the coach's 2:30 for five reps) as
-        // its last step before READY, and a length chosen before then is replaced by it — the
-        // wait below for 105 then ran out (23 Sept).
+        // READY, not FOUND, so this test is about the floor reaching the Log, not load timing.
+        // A length chosen before READY used to be replaced by prefill's seed (the coach's 2:30
+        // for five reps), and the wait below for 105 ran out (23 Sept). Both pages now keep a
+        // length someone picked: see the two "…OutlivesThe…" tests.
         workout.awaitState { it.loadState == SessionLoadState.FOUND && it.liftReadiness == LiftEntryReadiness.READY }
         val floor = createViewModel(fixture.session.id)
         floor.awaitState { it.loadState == SessionLoadState.FOUND }
@@ -192,6 +209,28 @@ class RestTimerViewModelTest {
         // The floor's uiState is its own combine of the same clock and can publish a beat
         // after the workout's flow just awaited; wait on it rather than read it.
         assertEquals(105, floor.awaitState { it.rest.totalSeconds == 105 }.rest.totalSeconds)
+    }
+
+    @Test
+    fun aLengthPickedWhileTheFloorIsStillLoadingOutlivesTheCoachSeed() = runBlocking {
+        val fixture = seedWorkout(restSeconds = 90)
+        // Hold the floor's load in its coach read, the last slow step before it seeds the
+        // prescribed 2:30. The page is already FOUND and its chips already answer a tap —
+        // the window a slow phone, or a busy test JVM on 23 Sept, opens by chance.
+        val gate = CompletableDeferred<Unit>().also { coachReadGate = it }
+        val floor = createViewModel(fixture.session.id)
+        floor.awaitState { it.loadState == SessionLoadState.FOUND }
+        withTimeout(TestWaits.FLOW_MS) { coachReadHeld.await() }
+
+        floor.selectRestDuration(105)
+        // Main is unconfined here, so the held load resumes on this thread and runs to its
+        // seed before complete() returns: what follows reads the settled plan.
+        gate.complete(Unit)
+
+        assertEquals(105, floor.uiState.value.rest.totalSeconds)
+        floor.startSelectedRest()
+        awaitRestRunning()
+        assertEquals(105, deps.restTimerStore.current().totalSeconds)
     }
 
     @Test
