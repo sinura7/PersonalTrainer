@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasSetTextAction
@@ -13,7 +14,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.text.AnnotatedString
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.RestTimer
@@ -75,7 +77,8 @@ class WorkoutTimerOverlayInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed().assertTextContains("Log set").assertTextContains(payload)
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).assertIsDisplayed().performClick()
         compose.onNodeWithText("Custom").performScrollTo().performClick()
-        compose.onNode(hasSetTextAction()).performTextReplacement("2:15")
+        // Typed without focus: focus raises the keyboard, whose late hide after restore moves this dialog under the tap on Set.
+        compose.onNode(hasSetTextAction()).performSemanticsAction(SemanticsActions.SetText) { it(AnnotatedString("2:15")) }
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithText("Custom rest").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.REST_DURATION_SHEET).assertDoesNotExist()

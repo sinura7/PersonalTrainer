@@ -75,6 +75,8 @@ evidence is the JVM render set ([ADR-032](architecture/ADR-032-jvm-evidence-lane
 | 7a | R0 | A second tap on a lift in the routine picker is never lost | Q | Done — #391 |
 | 8 | W1b | "Effort · optional"; planned-rest copy; one ±15 control set; coach goal reaches the workout | V | In review |
 | 8a | X3 | Retired goldens leave the hosted lane: the golden checks, their PNGs and manifests, `FloorGoldenTest`, `FoundationGoldenTest`, `WorkoutFrozenFrame`, `GoldenImageAssert` and `GoldenPageCatalog` go; the layout and journey tests keep their reachability checks ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) | Q | Done — #395 |
+| 8b | W1c | Entry wells hold still on the first working set at side-by-side sizes (ADR-030 amended); timer overlay test types without the keyboard | V | Done — #396 |
+| 8c | W1d | Large-text floor (owner decisions of 23 September): at font 1.6 and above the stats row shows Last alone, Best and Volume in Details; stats values shrink to fit one line; the stepper's − / + drawn whole at large text; an outsized weight keeps its unit; the hosted layout tests' stale expectations (progress-line case, edit reveal) | V | Next |
 | 9–12 | W2a–d | Dead code and lower token ceilings · shared rest commands, atomic `adjust` · coach/picker performance · save/undo and session-state extraction | Q | Pending |
 | 13 | W3 | Floor renders across the ADR-032 matrix, with reachability assertions, become the floor's gate | V | Pending — Milestone A |
 | 14 | S1 | Outbox in the save's transaction; enrolled user id; delete callers; tombstone time; poison-row quarantine; restore/sign-out reset cursors → unpause | V | Pending |

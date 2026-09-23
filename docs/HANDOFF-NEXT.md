@@ -77,15 +77,21 @@ independent, one adversarial.
   ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)).
 - **The hosted "Instrumented smoke" job** is non-blocking. Its retired
   goldens were removed in X3, so what fails there now is a crash, a journey
-  or a reachability check, and is worth reading. The first run after X3 is
-  also the first since 17 September to reach the layout checks in the 38
-  entry and 15 completion layout cases, which used to stop at the golden; a
-  red there was already on `trunk`, hidden. One failure is known and
+  or a reachability check, and is worth reading. The first run after X3
+  (#395) reached the 38 entry and 15 completion layout cases' own checks
+  for the first time since 17 September and found three things the goldens
+  had hidden, all W1d's: two stale expectations (the progress line is drawn
+  in upper case on purpose; an edit scrolls the lift's identity away on
+  purpose) and a 99,999.99 kg weight that pushes its unit out at 360 dp,
+  font 2.0. One failure was known and
   standing: `WorkoutEntryJourneyInstrumentedTest`'s entry-position check,
   955 → 997 px on every run since #374. The Last-only stats cell before the
-  first working set is one caption line (16 dp) shorter than the full row, so
-  the entry wells move down when that set is saved. The owner decided on
-  23 September to fix it in its own visible packet.
+  first working set was one caption line (16 dp) shorter than the full row, so
+  the entry wells moved down when that set was saved. Packet W1c fixes it at
+  side-by-side sizes, and `FirstWorkingSetRenderTest` holds it on the JVM
+  gate. A stats value that wraps, and stacked large text (font 1.6 and
+  above), still move it; W1d fixes both (ADR-030). The journey's later checks
+  have not run since #374, so the first hosted run after W1c is worth reading.
 - **"Tests, lint, debug build"** is the hosted check that must be green
   ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)).
 - **GitHub-hosted runners** are not the test lane.

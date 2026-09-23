@@ -15,6 +15,16 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 23 Sep 2026 — Whole-app audit packet W1c: the weight and reps wells hold
+> still when the first working set of a lift is saved. Until that set, the
+> stats row shows Last alone, and that cell was one caption line shorter than
+> the full row, so the save pushed the entry down 16 dp (the hosted journey's
+> 955 → 997 px since #374). The lone cell now keeps the full row's height at
+> side-by-side text sizes (ADR-030 amended). A value that wraps, and font 1.6
+> and above, still move it; the owner chose on 23 September how W1d fixes both.
+> The timer overlay's restore test now types without raising the keyboard, so
+> its tap on Set no longer races the keyboard closing.
+>
 > 23 Sep 2026 — Whole-app audit packet X3: the retired emulator goldens leave
 > the hosted instrumented lane. The golden checks, their 232 PNGs and 7
 > manifests, `FloorGoldenTest`, `FoundationGoldenTest`, `WorkoutFrozenFrame`,
