@@ -20,6 +20,27 @@ def strip_comments_and_strings(src: str) -> str:
             if out[k] != "\n":
                 out[k] = " "
 
+    def skip_string(start: int) -> int:
+        """Index just after the string literal opening at `start`, templates and all."""
+        quote = '"""' if src.startswith('"""', start) else '"'
+        k, depth = start + len(quote), 0
+        while k < n:
+            if quote == '"' and src[k] == "\\":
+                k += 2
+                continue
+            if depth == 0 and src.startswith(quote, k):
+                return k + len(quote)
+            if src.startswith("${", k):
+                depth += 1
+                k += 2
+                continue
+            if depth and src[k] == "}":
+                depth -= 1
+            elif depth and src[k] == "{":
+                depth += 1
+            k += 1
+        return n
+
     def scan_string(start: int, quote: str) -> int:
         """Blank literal text from `start`, stepping over `${...}`; return the index after it."""
         triple = quote == '"""'
@@ -33,9 +54,15 @@ def strip_comments_and_strings(src: str) -> str:
                 blank(i, i + len(quote))
                 return i + len(quote)
             if src.startswith("${", i):
-                # Keep the interpolation verbatim; find its matching brace.
+                # Keep the interpolation's code, but strip it like any other code: a string
+                # nested in it — `"${System.getenv("PT_FLAG")}"` — is literal text too, and
+                # left in place it read as an undeclared constant. Braces inside that nested
+                # string do not close the interpolation.
                 depth, j = 0, i + 1
                 while j < n:
+                    if src[j] == '"':
+                        j = skip_string(j)
+                        continue
                     if src[j] == "{":
                         depth += 1
                     elif src[j] == "}":
@@ -44,6 +71,7 @@ def strip_comments_and_strings(src: str) -> str:
                             break
                     j += 1
                 blank(i, i + 2)          # the `${`
+                out[i + 2:j] = strip_comments_and_strings(src[i + 2:j])
                 if j < n:
                     blank(j, j + 1)      # the `}`
                 i = j + 1

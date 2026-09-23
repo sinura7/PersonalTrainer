@@ -169,6 +169,7 @@ for c in "check-internal-imports.py" \
          "test_unbounded_waits.py" \
          "test_cancellation.py" \
          "test_debug_drop.py" \
+         "test_kotlin_source.py" \
          "test_version_ratchet.py"; do
     step "$c"
     # shellcheck disable=SC2086

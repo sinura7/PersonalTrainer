@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/RestTimerVM"
@@ -54,7 +55,7 @@ class RestTimerViewModel @JvmOverloads constructor(
 ) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val restTimer = container.restTimerController
-    private val restTotal = MutableStateFlow(RestTimerPreferences.DEFAULT_SECONDS)
+    private val restTotal = MutableStateFlow(PlannedRest(seconds = RestTimerPreferences.DEFAULT_SECONDS, chosen = false))
     private val hint = MutableStateFlow<ProgressionHint?>(null)
     private val lighterWeek = MutableStateFlow(false)
     private val sessionReader = WorkoutSessionReader(container.workoutRepository, sessionId, viewModelScope)
@@ -91,11 +92,15 @@ class RestTimerViewModel @JvmOverloads constructor(
                     todayEpochDay = todayEpochDay(),
                     coachPrefs = coachPrefs,
                 )
-                restTotal.value = RestTimer.secondsToStart(
+                val seeded = RestTimer.secondsToStart(
                     planned?.restSeconds,
                     prefs,
                     prescribedSeconds = rec?.restSeconds,
                 )
+                // The seed fills in the plan; it never replaces a length someone already picked.
+                // This load can finish after a tap here or on the Log, and a plain write put the
+                // coach's 2:30 back over the 1:45 just chosen (23 Sept).
+                restTotal.update { plan -> if (plan.chosen) plan else PlannedRest(seconds = seeded, chosen = false) }
             }.onFailure { AppLog.w(TAG, "Loading rest floor context failed", it) }
         }
         viewModelScope.launch {
@@ -105,7 +110,7 @@ class RestTimerViewModel @JvmOverloads constructor(
                 .drop(1)
                 .collect { last ->
                     if (last != null && !restTimer.snapshot.value.running) {
-                        restTotal.value = last
+                        restTotal.value = PlannedRest(seconds = last, chosen = true)
                     }
                 }
         }
@@ -123,7 +128,7 @@ class RestTimerViewModel @JvmOverloads constructor(
             ) { remaining, snapshot, planned, completedId, healthy ->
                 RestTimerUiState(
                     remainingSeconds = remaining,
-                    totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned,
+                    totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned.seconds,
                     running = snapshot.running,
                     completedTimerId = completedId,
                     persistenceHealthy = healthy,
@@ -210,7 +215,7 @@ class RestTimerViewModel @JvmOverloads constructor(
     }
 
     fun selectRestDuration(seconds: Int) {
-        restTotal.value = seconds
+        restTotal.value = PlannedRest(seconds = seconds, chosen = true)
         viewModelScope.launch {
             container.preferencesRepository.setLastRestPresetSeconds(seconds)
         }
@@ -223,7 +228,7 @@ class RestTimerViewModel @JvmOverloads constructor(
     }
 
     fun startSelectedRest() {
-        val seconds = restTotal.value.coerceIn(
+        val seconds = restTotal.value.seconds.coerceIn(
             RestTimerPreferences.MIN_SECONDS,
             RestTimerPreferences.MAX_SECONDS,
         )
@@ -270,6 +275,12 @@ class RestTimerViewModel @JvmOverloads constructor(
         )
     }
 }
+
+/**
+ * The length this page will start. [chosen] once someone picked it — here, or on the Log
+ * through the shared last preset — and from then on the loader's seed leaves it alone.
+ */
+private data class PlannedRest(val seconds: Int, val chosen: Boolean)
 
 /** The rest page's inputs to its coach call, beside the session and the clock. */
 private data class RestFloorInputs(
