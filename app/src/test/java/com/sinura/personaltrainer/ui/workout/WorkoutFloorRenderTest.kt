@@ -25,16 +25,12 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
-import com.sinura.personaltrainer.testutil.TestWorkoutFixture
-import com.sinura.personaltrainer.testutil.insertTestExercise
-import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -95,19 +91,19 @@ class WorkoutFloorRenderTest {
 
     @Test
     fun rendersTheWorkingFloorAt360By800() {
-        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "working-360x800", vm = vm)
     }
 
     @Test
     fun rendersTheWarmupFloor() {
-        val vm = openLegExtension(loggedSets = emptyList())
+        val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
         render(name = "warmup-360x800", vm = vm) { vm.setWarmup(true) }
     }
 
     @Test
     fun rendersTheRestingFloor() {
-        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "resting-360x800", vm = vm, expectRest = true) {
             deps.restTimerController.start(totalSeconds = 120, sessionId = vm.uiState.value.session?.id)
             deps.restTimerController.adjust(deltaSeconds = -28)
@@ -126,13 +122,13 @@ class WorkoutFloorRenderTest {
 
     @Test
     fun rendersTheLiftCompleteFloor() {
-        val vm = openLegExtension(loggedSets = threeSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = threeSetsLogged())
         render(name = "complete-360x800", vm = vm)
     }
 
     @Test
     fun rendersTheEditingFloor() {
-        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "editing-360x800", vm = vm) {
             val setId = vm.uiState.value.session?.sets?.firstOrNull()?.id
             if (setId != null) {
@@ -148,7 +144,7 @@ class WorkoutFloorRenderTest {
 
     @Test
     fun rendersTheFirstSetFloor() {
-        val vm = openLegExtension(loggedSets = emptyList())
+        val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
         render(name = "first-set-360x800", vm = vm)
     }
 
@@ -168,7 +164,7 @@ class WorkoutFloorRenderTest {
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
     fun theEntryLoopStaysWithinItsHeightBudget() {
-        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "budget-360x1600", vm = vm, heightDp = 1600) {
             compose.waitUntil(timeoutMillis = 20_000) {
                 compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty()
@@ -186,14 +182,14 @@ class WorkoutFloorRenderTest {
 
     @Test
     fun rendersTheFloorAtLargeSystemText() {
-        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "working-360x800-font20", vm = vm, fontScale = 2f)
     }
 
     /** ADR-032's middle text size: the header's still shrinks from 1.6 (LogLoopScale). */
     @Test
     fun rendersTheFloorAtMediumSystemText() {
-        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "working-360x800-font16", vm = vm, fontScale = 1.6f)
     }
 
@@ -201,21 +197,21 @@ class WorkoutFloorRenderTest {
     @Test
     @Config(qualifiers = "w360dp-h640dp-xhdpi")
     fun rendersTheFloorAt360By640() {
-        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "working-360x640", vm = vm, heightDp = 640)
     }
 
     @Test
     @Config(qualifiers = "w412dp-h840dp-xhdpi")
     fun rendersTheFloorAt412By840() {
-        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "working-412x840", vm = vm, widthDp = 412, heightDp = 840)
     }
 
     @Test
     @Config(qualifiers = "w800dp-h360dp-land-xhdpi")
     fun rendersTheFloorInLandscape() {
-        val vm = openLegExtension(loggedSets = twoSetsLogged())
+        val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "working-800x360-land", vm = vm, widthDp = 800, heightDp = 360)
     }
 
@@ -225,7 +221,7 @@ class WorkoutFloorRenderTest {
         // The emulator lane's 360 x 640 font 2.0 "next" profile, less its 24 dp status and
         // navigation bars: one planned set logged, a second lift waiting, and a routine name
         // that used to take two display-size lines and leave the scrolling floor under 48 dp.
-        val vm = openLegExtension(loggedSets = oneSetLogged(), targetSets = 1, withNextLift = true, routineName = LONG_ROUTINE_NAME)
+        val vm = openLegExtension(deps, viewModels, loggedSets = oneSetLogged(), targetSets = 1, withNextLift = true, routineName = LONG_ROUTINE_NAME, nextLiftName = NEXT_LIFT_NAME)
         render(name = "next-360x592-font20", vm = vm, widthDp = 360, heightDp = 592, fontScale = 2f) {
             compose.waitUntil(timeoutMillis = 20_000) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         }
@@ -237,7 +233,7 @@ class WorkoutFloorRenderTest {
     @Config(qualifiers = "w640dp-h360dp-land-xhdpi")
     fun keepsTheLogReachableWithTheNextLiftPendingInLandscapeAtLargeText() {
         // 640 x 360 less the bars: the header must be one row for the floor to keep 48 dp.
-        val vm = openLegExtension(loggedSets = oneSetLogged(), targetSets = 1, withNextLift = true, routineName = LONG_ROUTINE_NAME)
+        val vm = openLegExtension(deps, viewModels, loggedSets = oneSetLogged(), targetSets = 1, withNextLift = true, routineName = LONG_ROUTINE_NAME, nextLiftName = NEXT_LIFT_NAME)
         render(name = "next-640x312-land-font20", vm = vm, widthDp = 640, heightDp = 312, fontScale = 2f) {
             compose.waitUntil(timeoutMillis = 20_000) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         }
@@ -284,38 +280,6 @@ class WorkoutFloorRenderTest {
         TestSetInput(weightKg = WeightConverter.lbsToKg(70.0), reps = 11, rpe = 9)
 
     private fun oneSetLogged() = twoSetsLogged().take(1)
-
-    private fun openLegExtension(
-        loggedSets: List<TestSetInput>,
-        targetSets: Int = 3,
-        withNextLift: Boolean = false,
-        routineName: String = "Lower B",
-    ): ActiveWorkoutViewModel {
-        val fixture: TestWorkoutFixture = runBlocking {
-            seedTestWorkout(
-                deps = deps,
-                exerciseId = "leg-extension",
-                exerciseName = "Leg Extension",
-                routineName = routineName,
-                targetSets = targetSets,
-                targetReps = 10,
-                targetWeightKg = WeightConverter.lbsToKg(70.0),
-                restSeconds = 120,
-                loggedSets = loggedSets,
-            ).also { seeded ->
-                if (withNextLift) {
-                    val next = insertTestExercise(deps, id = "romanian-deadlift", name = NEXT_LIFT_NAME, muscleGroup = "Hamstrings")
-                    deps.workoutRepository.addExerciseToSession(seeded.session.id, next, targetSets = 3, targetReps = 8, targetWeightKg = 40.0, restSeconds = 90)
-                }
-            }
-        }
-        return ActiveWorkoutViewModel(
-            application = ApplicationProvider.getApplicationContext(),
-            savedStateHandle = SavedStateHandle(mapOf("sessionId" to fixture.session.id)),
-            container = deps,
-            undoTimeout = { it.toLong() },
-        ).also(viewModels::add)
-    }
 
     /**
      * Composes the screen in a fixed frame, waits for the session to land, runs [drive]

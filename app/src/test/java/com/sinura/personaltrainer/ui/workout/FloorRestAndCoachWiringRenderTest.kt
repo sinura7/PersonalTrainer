@@ -47,7 +47,6 @@ import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
-import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -124,7 +123,7 @@ class FloorRestAndCoachWiringRenderTest {
     @Test
     fun startRestOnTheIdleCardRunsTheRestClockAndNothingOffersStartNext() {
         batteryRuleAlreadyRead()
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
         assertNoStartNext()
@@ -135,9 +134,26 @@ class FloorRestAndCoachWiringRenderTest {
     }
 
     @Test
+    fun aRunningRestIsTheCurrentLiftsAloneInTheSwitcher() {
+        // The switcher's rows through the real screen: the current lift's rest is the one
+        // running, and says so; every other lift names its own planned rest.
+        batteryRuleAlreadyRead()
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1), withNextLift = true)
+        show(vm)
+        compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
+        compose.awaitThat(what = "the rest runs", now = vm.restTimerState::value) { vm.restTimerState.value.running }
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCHER).assertIsDisplayed()
+        val current = compose.onNodeWithTag(WorkoutTestTags.liftRest(FLOOR_LIFT_ID), useUnmergedTree = true).mergedTexts().single()
+        assertTrue("the current lift's rest is running, was \"$current\"", current.startsWith("Rest remaining: "))
+        val other = compose.onNodeWithTag(WorkoutTestTags.liftRest(FLOOR_NEXT_LIFT_ID), useUnmergedTree = true).mergedTexts().single()
+        assertEquals("the next lift names its planned rest", "Rest: ${RestTimer.formatClock(NEXT_LIFT_REST_S)}", other)
+    }
+
+    @Test
     fun withThePlannedSetsDoneTheFloorStillOffersNoStartNext() {
         // The idle "Start next" used to stand here, once the plan was met and rest was idle.
-        val vm = openLegExtension(loggedSets = sets(3), withNextLift = true)
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(3), withNextLift = true)
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
@@ -147,7 +163,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun theIdleCardsSheetNamesTheNextRest() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         // A length the rest is not already set to, so the pick has to travel to count.
         assertTrue(vm.restTimerState.value.totalSeconds != 180)
@@ -164,7 +180,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun theSheetsStepAndCustomLengthWriteThePlannedRest() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         val planned = vm.restTimerState.value.totalSeconds
         idleTile().performClick()
@@ -191,7 +207,7 @@ class FloorRestAndCoachWiringRenderTest {
     @Test
     fun theRunningRestStepsSkipsAndOpensTheRestPage() {
         batteryRuleAlreadyRead()
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.running }
@@ -207,7 +223,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun theFirstRestNamesTheBatteryRuleUntilItIsAcknowledged() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.batteryHint }
@@ -219,7 +235,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun timeSetRunsTheSetStopwatchAndStopEndsIt() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.START_SET_CLOCK).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.setStopwatch.value.running }
@@ -251,7 +267,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun withRestAlertsOffTheDockSaysSo() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm, notificationsEnabled = false)
         compose.onNodeWithTag("workout-notif-recovery").assertIsDisplayed()
         compose.onNodeWithText(RestNotificationCopy.RECOVERY_TITLE, useUnmergedTree = true).assertIsDisplayed()
@@ -260,7 +276,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun theRestAlertsFixOpensTheAppsNotificationSettings() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm, notificationsEnabled = false)
         val app = ApplicationProvider.getApplicationContext<Application>()
         shadowOf(app).clearNextStartedActivities()
@@ -274,7 +290,7 @@ class FloorRestAndCoachWiringRenderTest {
     @Test
     fun aRunningRestThatMayNotSurviveLeavingTheAppSaysSo() {
         batteryRuleAlreadyRead()
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.START_REST).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.running }
@@ -289,7 +305,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun afterAWarmupTheIdleCardSaysWarmupsDoNotStartRest() {
-        val vm = openLegExtension(loggedSets = listOf(TestSetInput(weightKg = FLOOR_KG70, reps = 8, isWarmup = true)))
+        val vm = openLegExtension(deps, viewModels, loggedSets = listOf(TestSetInput(weightKg = FLOOR_KG70, reps = 8, isWarmup = true)))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
         onIdleCard("WARM-UP").assertIsDisplayed()
@@ -300,7 +316,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun whileASaveIsUnderwayTheEffortChoicesAreLocked() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         scrollTo(WorkoutTestTags.RPE_TRACK)
         RpeCopy.VALUES.forEach { compose.onNodeWithTag(WorkoutTestTags.rpeChoice(it)).assertIsEnabled() }
@@ -316,7 +332,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun anEffortChipWritesTheDraftAndAWarmupHidesTheTrack() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         val choice = if (vm.uiState.value.draft.rpe == 9) 7 else 9
         scrollTo(WorkoutTestTags.RPE_TRACK)
@@ -335,7 +351,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun theCoachsEffortIsRecommendedOnTheTrackButNeverChosenForTheLifter() {
-        val vm = openLegExtension(loggedSets = listOf(set(reps = 9, rpe = 8)))
+        val vm = openLegExtension(deps, viewModels, loggedSets = listOf(set(reps = 9, rpe = 8)))
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value?.nextRpe != null }
         vm.setRpe(null)
@@ -350,7 +366,7 @@ class FloorRestAndCoachWiringRenderTest {
     @Test
     fun applyCopiesTheCoachsCallIntoTheDraftAndTheCardStandsDown() {
         // Nine of ten: the coach calls one more rep at the same weight.
-        val vm = openLegExtension(loggedSets = listOf(set(reps = 9, rpe = 8)))
+        val vm = openLegExtension(deps, viewModels, loggedSets = listOf(set(reps = 9, rpe = 8)))
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         vm.setReps(8)
@@ -374,7 +390,7 @@ class FloorRestAndCoachWiringRenderTest {
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
     fun theCoachsCardSitsAfterTheEntryAndTheEffort() {
-        val vm = openLegExtension(loggedSets = listOf(set(reps = 9, rpe = 8)))
+        val vm = openLegExtension(deps, viewModels, loggedSets = listOf(set(reps = 9, rpe = 8)))
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         vm.setReps(8)
@@ -389,7 +405,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun beforeTheFirstWorkingSetTheCoachIsTheCompactStripAndAWarmupHidesIt() {
-        val vm = openLegExtension(loggedSets = emptyList())
+        val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         compose.waitForIdle()
@@ -411,7 +427,7 @@ class FloorRestAndCoachWiringRenderTest {
     fun theFloorsCoachSpeaksWithTheTrainingGoal() {
         runBlocking { deps.preferencesRepository.setTrainingGoal(TrainingGoal.STRENGTH) }
         // Ten of ten at RPE 7: reps in the tank, add weight.
-        val vm = openLegExtension(loggedSets = listOf(set(reps = 10, rpe = 7)))
+        val vm = openLegExtension(deps, viewModels, loggedSets = listOf(set(reps = 10, rpe = 7)))
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value?.explanation?.contains("strength bias") == true }
         vm.setWeight(FLOOR_KG70)
@@ -432,7 +448,7 @@ class FloorRestAndCoachWiringRenderTest {
     @Test
     fun aGeneralGoalKeepsThePlainReason() {
         // The default goal adds nothing, so the card's reason is the rule alone.
-        val vm = openLegExtension(loggedSets = listOf(set(reps = 10, rpe = 7)))
+        val vm = openLegExtension(deps, viewModels, loggedSets = listOf(set(reps = 10, rpe = 7)))
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         vm.setWeight(FLOOR_KG70)
@@ -452,7 +468,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun theHeadersXAndSystemBackLeaveWithTheSessionKeptAndNoPopup() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         compose.onNodeWithContentDescription("Exit workout").performClick()
         compose.waitForIdle()
@@ -467,11 +483,30 @@ class FloorRestAndCoachWiringRenderTest {
 
     @Test
     fun finishOwnsTheEndOfTheWorkout() {
-        val vm = openLegExtension(loggedSets = sets(1))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
         compose.onNodeWithText("End workout?").assertIsDisplayed()
         assertEquals("Finish is not an exit", 0, exits)
+    }
+
+    @Test
+    fun finishWaitsWhileASetIsStillBeingSaved() {
+        // The header's Finish follows the ViewModel's canFinish: a set is saved and nothing is
+        // being written. Mid-save it waits, so a workout cannot be ended over a write in flight.
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
+        show(vm)
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled()
+        val gate = CompletableDeferred<Unit>().also { insertGate = it }
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.entryLocked }
+        compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsNotEnabled().performClick()
+        compose.onAllNodesWithText("End workout?").assertCountEquals(0)
+        gate.complete(Unit)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }
+        compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled()
     }
 
     /** No "Start next" anywhere: not a word on screen, not a control's spoken name. */
@@ -508,7 +543,9 @@ class FloorRestAndCoachWiringRenderTest {
             }
         }
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.loadState == SessionLoadState.FOUND }
-        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.session?.exercises?.isNotEmpty() == true }
+        // Found is not ready: while the lift's numbers are still being filled in, the commit
+        // cannot log and a tap on it is dropped, so wait for the lift itself to be ready.
+        compose.awaitThat(what = "the lift is ready to log", now = vm.uiState::value) { FLOOR_LIFT_READY(vm.uiState.value) }
         compose.waitForIdle()
     }
 
@@ -520,28 +557,6 @@ class FloorRestAndCoachWiringRenderTest {
     private fun set(reps: Int, rpe: Int?) = TestSetInput(weightKg = FLOOR_KG70, reps = reps, rpe = rpe)
 
     private fun sets(count: Int) = (1..count).map { set(reps = 10, rpe = 8) }
-
-    private fun openLegExtension(loggedSets: List<TestSetInput>, withNextLift: Boolean = false): ActiveWorkoutViewModel {
-        val sessionId = runBlocking {
-            val seeded = seedTestWorkout(
-                deps = deps,
-                exerciseId = LEG_EXTENSION,
-                exerciseName = "Leg Extension",
-                routineName = "Lower B",
-                targetSets = 3,
-                targetReps = 10,
-                targetWeightKg = FLOOR_KG70,
-                restSeconds = 120,
-                loggedSets = loggedSets,
-            )
-            if (withNextLift) {
-                val next = insertTestExercise(deps = deps, id = NEXT_LIFT, name = "Romanian Deadlift", muscleGroup = "Hamstrings")
-                deps.workoutRepository.addExerciseToSession(seeded.session.id, next, targetSets = 3, targetReps = 8, targetWeightKg = 40.0, restSeconds = 90)
-            }
-            seeded.session.id
-        }
-        return viewModel(sessionId)
-    }
 
     /** A plank first: a hold, timed against its target rather than counted in reps. */
     private fun openPlank(): ActiveWorkoutViewModel {
@@ -578,9 +593,10 @@ class FloorRestAndCoachWiringRenderTest {
     private companion object {
         const val WAIT_MS = 20_000L
         const val HONESTY = "workout-rest-honesty"
-        const val LEG_EXTENSION = "leg-extension"
-        const val NEXT_LIFT = "romanian-deadlift"
         const val SHEET = "workout-rest-duration-sheet"
         const val STOP = "workout-stop-set-clock"
+
+        /** The kit's next lift rests 90 s between its sets. */
+        const val NEXT_LIFT_REST_S = 90
     }
 }

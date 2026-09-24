@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 24 Sep 2026 — Whole-app audit packet T1c-2 (tests only): the last
+> eleven workout test files stop reading the app's code as text. What they
+> pinned is now checked on the screen (the dock's one bright button, the
+> options button, the lift's picture and name, the entry wheels and their
+> feel, the switcher, session notes, an empty workout, reduced motion), and
+> every "never do this" rule is kept. One old rule that had never run now
+> does. Quiet.
+>
 > 24 Sep 2026 — Whole-app audit packet W2b-1d (owner decision of 24
 > September): the notification's Skip names the rest its card shows. A tap
 > just as the rest runs out keeps "rest done" instead of turning it into a

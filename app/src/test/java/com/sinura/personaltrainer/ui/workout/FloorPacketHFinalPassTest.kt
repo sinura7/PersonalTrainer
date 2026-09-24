@@ -1,8 +1,8 @@
 package com.sinura.personaltrainer.ui.workout
 
+import androidx.compose.ui.graphics.Color
 import com.sinura.personaltrainer.domain.AccessibilityMatrix
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
-import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.RpeCopy
@@ -13,40 +13,35 @@ import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Motion
-import java.io.File
+import com.sinura.personaltrainer.ui.theme.PrGold
+import com.sinura.personaltrainer.ui.theme.Warn
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Packet H (WE-H): goldens / accessibility final pass on the redesigned floor. Evidence,
- * not a rewrite.
+ * Packet H (WE-H): goldens / accessibility final pass on the redesigned floor. Evidence, not a
+ * rewrite.
  *
- * Every assertion here pins a Packet H ticket against the floor as it now stands: H2
- * TalkBack channels (hero numeral actions, the round plates, the named commit, the rest
- * card's one announcement), H3 widths / fonts / reduced motion (side-by-side numerals
- * that stack at large text, a rest card without a pulse), H4 colour-independent words
- * (Saved / Editing / Current on the chips, Applied on the card, Last ten seconds, the
- * recommended RPE chip's spoken word).
+ * Each case pins a Packet H ticket against the floor as it now stands: H2 TalkBack channels,
+ * H3 widths / fonts / reduced motion, H4 colour-independent words. What a TalkBack user hears
+ * and what the screen draws are rendered now: the numerals' actions, the plates' words, the
+ * identity's one sentence and the chips' spoken states in WeightRepsEditorRenderTest,
+ * ExerciseHeaderRenderTest and SetHistoryStripRenderTest; the commit's spoken payload and its
+ * disabled reason in DockCommitRenderTest; and, since audit T1c-2, the ⋮ "Workout options" in
+ * WorkoutHeaderRowRenderTest, the switcher's silent stills in LiftSwitcherSheetRenderTest, the
+ * plan bar that says nothing in WorkoutHeaderRowRenderTest, and reduced motion snapping the
+ * instrument specs and the dock card's ring in ReducedMotionRenderTest. What stays is copy,
+ * tokens and the bans.
  *
- * The numerals' actions, the plates' words, the identity's one sentence and the chips'
- * spoken states are rendered now (WeightRepsEditorRenderTest, ExerciseHeaderRenderTest,
- * SetHistoryStripRenderTest): W1a changes those lines, and a rendered check says what a
- * TalkBack user actually hears.
+ * The rest ring's pulse cannot be rendered: the Compose test clock stops every infinite
+ * animation (the test rule adds its own infinite-animation policy after anything a test passes
+ * in), so no render sees it pulse, reduced motion or not. It is held as a ban instead: no
+ * infinite transition in RestTimerUi.kt without `!reduceMotion` ahead of it, and that flag is
+ * always the composition's own.
  */
 class FloorPacketHFinalPassTest {
-    @Test
-    fun heroNumeralsExposeDecreaseIncreaseAndTypeActions() {
-        // The floor's numerals and plates are rendered in WeightRepsEditorRenderTest: each
-        // numeral offers Decrease / Increase / Type, and each plate says the same words.
-        // The history edit sheet's panel keeps the same three actions.
-        val panel = readOwned("ui/components/SetEntryPanel.kt")
-        assertTrue(panel.contains("CustomAccessibilityAction(\"Decrease \$label\")"))
-        assertTrue(panel.contains("CustomAccessibilityAction(\"Increase \$label\")"))
-        assertTrue(panel.contains("CustomAccessibilityAction(typeLabel)"))
-    }
-
     @Test
     fun weightWellIsNamedForWhatTheLiftMeasures() {
         assertEquals("Weight", WeightMeaning.LIFTED.fieldLabel)
@@ -65,11 +60,7 @@ class FloorPacketHFinalPassTest {
 
     @Test
     fun logNamesItsPayloadAndItsDisabledReason() {
-        val dock = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dock.contains("LogCommitCopy.disabledReason("))
-        assertTrue(dock.contains("supporting = state.payload"))
-        assertTrue(dock.contains("val spokenAction = listOfNotNull(state.verb, state.spokenPayload ?: state.payload).joinToString(\" · \")"))
-        assertTrue(dock.contains(".semantics { contentDescription = spokenAction }"))
+        // The commit's words, their spoken form and its reason for waiting: DockCommitRenderTest.
         assertTrue(LogCommitCopy.LOGGING_WAIT.isNotBlank())
         assertTrue(LogCommitCopy.disabledReason(logging = true, liftReady = true)!!.isNotBlank())
         assertTrue(LogCommitCopy.disabledReason(logging = false, liftReady = false)!!.isNotBlank())
@@ -88,9 +79,12 @@ class FloorPacketHFinalPassTest {
         // A chosen chip is not also "recommended"; its Selected state says it is chosen.
         assertEquals("RPE 10, max", RpeCopy.spoken(value = 10, selected = true, recommended = true))
         // What each chip says and whether it is selected, the recommended one included, and the
-        // named ends under the track: RpeSelectorRenderTest.
-        val selector = readOwned("ui/workout/RpeSelector.kt")
-        assertFalse("a recommendation outlines a chip; it never selects one", selector.contains("selected = recommendedRpe"))
+        // named ends under the track: RpeSelectorRenderTest. How a recommendation is drawn (a
+        // corner dot, never the chosen chip's Volt edge): RpeChipDrawingRenderTest.
+        assertFalse(
+            "a recommendation outlines a chip; it never selects one",
+            ownedSource("ui/workout/RpeSelector.kt").contains("selected = recommendedRpe"),
+        )
         assertEquals("Easy", RpeCopy.EASY_END)
         assertEquals("Max effort", RpeCopy.MAX_END)
     }
@@ -103,20 +97,15 @@ class FloorPacketHFinalPassTest {
         // The dock's rest card is a live region only at the finished flash, never per tick:
         // RestTimerCardRenderTest finds none while it runs and exactly one at the flash.
         // One live region for the rest kicker, the card's: the old bar's copy is gone.
-        val rest = readOwned("ui/components/RestTimerUi.kt")
-        assertFalse(rest.contains("TalkBackPolicy.announceRestKicker"))
+        assertFalse(ownedSource("ui/components/RestTimerUi.kt").contains("TalkBackPolicy.announceRestKicker"))
     }
 
     @Test
     fun liftPicturesStayDecorativeInsideTheNamedIdentity() {
-        val thumb = readOwned("ui/components/ExerciseThumb.kt")
-        assertTrue(thumb.contains("clearAndSetSemantics { }"))
-        // On the floor the still is the Details button and is spoken only as that:
-        // ExerciseHeaderRenderTest.
-        // The session progress bar is decorative too: the progress line says it in words.
-        val chrome = readOwned("ui/workout/WorkoutHeader.kt")
-        assertTrue(chrome.contains(".testTag(WorkoutTestTags.PROGRESS_BAR)"))
-        assertTrue(chrome.contains(".clearAndSetSemantics { }"))
+        // On the floor the still is the Details button and is spoken only as that
+        // (ExerciseHeaderRenderTest); in the switcher a row is spoken once and its still adds
+        // nothing (LiftSwitcherSheetRenderTest); the session bar says nothing either, the line
+        // above it says it in words (WorkoutHeaderRowRenderTest).
         assertTrue(
             CurrentLiftCopy.cardSpoken(
                 name = "Bench",
@@ -138,15 +127,12 @@ class FloorPacketHFinalPassTest {
         assertEquals("Remove lift", CurrentLiftCopy.REMOVE)
         assertEquals("Delete its sets first", CurrentLiftCopy.EDIT_BLOCKED_REASON)
         assertEquals("Switch exercise", CurrentLiftCopy.SWITCH)
-        // Each chip's spoken sentence and the menu it names: SetHistoryStripRenderTest.
-        val menu = readOwned("ui/workout/WorkoutOverflowMenu.kt")
-        assertTrue(menu.contains("contentDescription = \"Workout options\""))
+        // Each chip's spoken sentence and the menu it names: SetHistoryStripRenderTest. The ⋮
+        // is spoken "Workout options": WorkoutHeaderRowRenderTest.
     }
 
     @Test
     fun floorPutsWeightAndRepsSideBySideUntilLargeText() {
-        assertFalse(FloorCompactChrome.stackWeightAboveReps())
-        assertTrue(FloorCompactChrome.heroNumeralsSideBySide())
         assertFalse(LogLoopScale.stackEntryWells(1f))
         assertTrue(LogLoopScale.stackEntryWells(LogLoopScale.STACK_WELLS_FROM))
         // Side by side until large text, and plates placed from a fixed sample so they never
@@ -167,22 +153,21 @@ class FloorPacketHFinalPassTest {
         assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.REST_DONE_MS))
         assertEquals(240, Motion.REST_DONE_MS)
         // The dock's rest card has no pulse at all; its ring and accent go through the
-        // instrument specs, which snap under reduced motion.
-        val card = readOwned("ui/workout/RestTimerCard.kt")
+        // instrument specs, which snap under reduced motion (ReducedMotionRenderTest).
+        val card = ownedSource("ui/workout/RestTimerCard.kt")
         assertFalse(card.contains("rememberInfiniteTransition"))
         assertFalse(card.lowercase().contains("pulse"))
-        assertTrue(card.contains("animationSpec = instrumentLinear(Motion.TICK_MS)"))
-        assertTrue(card.contains("animationSpec = instrumentTween(Motion.BASE)"))
-        val motion = readOwned("ui/theme/Motion.kt")
-        assertTrue(motion.contains("if (LocalReducedMotion.current) snap() else tween(durationMs)"))
-        val linear = motion.substring(motion.indexOf("fun <T> instrumentLinear"))
-        assertTrue(linear.contains("LocalReducedMotion.current"))
-        assertTrue(linear.contains("snap()"))
-        // The rest page's own bar and ring still stop their pulse under reduced motion.
-        val rest = readOwned("ui/components/RestTimerUi.kt")
-        assertTrue(rest.contains("!reduceMotion"))
-        assertTrue(rest.contains("LocalReducedMotion.current"))
-        assertTrue(rest.substring(rest.indexOf("fun RestDurationSheet")).contains("Motion.durationMs"))
+        // The rest pages' ring pulses in the last ten seconds, never under reduced motion.
+        val rest = ownedSource("ui/components/RestTimerUi.kt")
+        val unguarded = Regex("rememberInfiniteTransition\\(").findAll(rest).filterNot { call ->
+            rest.substring(0, call.range.first).lines().takeLast(GUARD_LINES).joinToString("\n").contains("!reduceMotion")
+        }
+        assertFalse("an infinite transition in RestTimerUi runs under reduced motion", unguarded.any())
+        // Every reduceMotion the file declares, a val, a var or a parameter, is the composition's
+        // own: a parameter defaulting to false would switch the guard off from outside.
+        val declared = Regex("\\b(?:val|var)\\s+reduceMotion\\b|\\breduceMotion\\s*:").findAll(rest).count()
+        val fromComposition = Regex("\\bval reduceMotion = LocalReducedMotion\\.current\\b").findAll(rest).count()
+        assertEquals("reduced motion is the composition's, never a value of the file's own", fromComposition, declared)
     }
 
     @Test
@@ -194,18 +179,15 @@ class FloorPacketHFinalPassTest {
         assertEquals("Back to the bar", TalkBackPolicy.REST_FINISHED_KICKER)
         // Every chip state is a word beside its Volt ring, and TalkBack hears it: the chips'
         // Current / Editing / Saved captions and spoken states are in SetHistoryStripRenderTest.
-        val table = readOwned("ui/components/SetTable.kt")
-        assertTrue(table.contains("Latest"))
         // "Applied" on the coach card, and "Last ten seconds", "Rest complete" and "Back to the
         // bar" on the rest card: NextSetRecommendationRenderTest, RestTimerCardRenderTest.
-        val card = readOwned("ui/workout/RestTimerCard.kt")
-        assertFalse(card.contains("\"10 seconds\""))
-        val rest = readOwned("ui/components/RestTimerUi.kt")
+        assertFalse(ownedSource("ui/workout/RestTimerCard.kt").contains("\"10 seconds\""))
         // The floor's rest words live on the card now; the bar file keeps none of its own.
-        assertFalse(card.contains("\"10 seconds\""))
-        val colors = readMain("ui/theme/Color.kt")
-        assertTrue(colors.contains("val PrGold = Color(0xFFFFC53D)"))
-        assertTrue(colors.contains("val Warn = Color(0xFFFFB020)"))
+        assertFalse(ownedSource("ui/components/RestTimerUi.kt").contains("\"10 seconds\""))
+        // The two colours the floor's words stand beside: the gold of a record and a finished
+        // rest, and the warning amber, which ADR-023 keeps from drifting toward orange.
+        assertEquals("record gold", Color(0xFFFFC53D), PrGold)
+        assertEquals("warning amber", Color(0xFFFFB020), Warn)
     }
 
     @Test
@@ -224,13 +206,8 @@ class FloorPacketHFinalPassTest {
         assertTrue(AccessibilityMatrix.publicCandidateReady())
     }
 
-    private fun readOwned(relative: String): String {
-        val roots = listOf(
-            File("app/src/main/java/com/sinura/personaltrainer"),
-            File("../app/src/main/java/com/sinura/personaltrainer"),
-        )
-        return roots.map { File(it, relative) }.first { it.isFile }.readText()
+    private companion object {
+        /** A guard sits on the line that starts the transition or the one before it. */
+        const val GUARD_LINES = 2
     }
-
-    private fun readMain(relative: String): String = readOwned(relative)
 }

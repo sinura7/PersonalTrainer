@@ -3,12 +3,10 @@ package com.sinura.personaltrainer.ui.workout
 import com.sinura.personaltrainer.domain.AccessibilityMatrix
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.DefaultExercises
-import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.theme.Metrics
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -16,110 +14,65 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The image-led floor: a 112 dp identity with Details beside it and Working /
- * Warm-up under it, stats under the identity, entry before effort before the
- * recommendation, and one companion above commit. Rendered geometry is
- * exercised by WorkoutEntryLayoutInstrumentedTest.
+ * The image-led floor: an 88 dp identity with Details on its picture, Working / Warm-up
+ * under it, stats under the identity, entry before effort before the recommendation, and one
+ * companion above the commit.
  *
- * What the identity, the set-type toggle, the entry order and the dock's companion do is
- * held by rendered tests now (ExerciseHeaderRenderTest, WorkoutDockRenderTest,
- * FloorScreenWiringRenderTest), because W1a rebuilds those lines on purpose. What stays
- * here is the static policy around them: bans, tokens, and surfaces W1a does not touch.
+ * What the identity, the set-type toggle, the entry order and the dock's companion do is held
+ * by rendered tests (ExerciseHeaderRenderTest, WorkoutDockRenderTest, FloorScreenWiringRenderTest,
+ * DockCommitRenderTest), and since audit T1c-2 so is what used to be read here as text: no card
+ * around the identity, whose one fill is the Details mark (IdentityDrawingRenderTest); the commit
+ * as the dock's one filled Volt (DockVoltRenderTest); the upright plan line spoken once over a
+ * bar that says nothing (WorkoutHeaderRowRenderTest); a still's badge and its cap
+ * (ExerciseThumbRenderTest); Add exercise on an empty session's dock
+ * (EmptySessionFloorRenderTest); a still fitted whole into a box of any shape
+ * (ExerciseThumbRenderTest). What stays is the static policy around them: bans, tokens, copy and
+ * catalog facts, and a ban on every scale but Fit beside that render, since a render sees only
+ * the boxes it is given.
  */
 class FloorImageLedHeroTest {
     @Test
-    fun imageLedIdentityPreservesUncroppedExerciseArtwork() {
+    fun stillsAreNeverCroppedOrStretchedAndTheIdentityWearsNoVoltOrGlyph() {
         assertEquals(88, Metrics.exerciseHeroImage.value.toInt())
         assertEquals(64, Metrics.workoutIdentityImage.value.toInt())
         assertEquals(24, Metrics.equipmentGlyph.value.toInt())
-        assertTrue(FloorCompactChrome.imageLedHero())
-        assertTrue(FloorCompactChrome.oneCurrentLiftOnFloor())
-        // The 88 dp still, its 64 dp fallback at large text, and the equipment kicker are
-        // rendered in ExerciseHeaderRenderTest.
-        val hero = readOwned("ui/workout/ExerciseHeader.kt")
-        assertTrue(hero.contains("fun ExerciseHeader("))
+        val hero = ownedSource("ui/workout/ExerciseHeader.kt")
         assertFalse(hero.contains("EquipmentGlyphIcon("))
         assertFalse(hero.contains("VoltDim"))
         assertFalse(hero.contains("emphasisBorder"))
-        // No card around the identity: the header's one fill is the small corner mark on the
-        // picture that says it opens Details (W1a).
-        assertEquals("no card around the identity", 1, Regex("Surface2\\)").findAll(hero).count())
-        assertEquals(1, Regex("\\.background\\(").findAll(hero).count())
-        assertTrue(hero.contains(".background(Surface2)"))
-        val thumb = readOwned("ui/components/ExerciseThumb.kt")
-        assertTrue(thumb.contains("ContentScale.Fit"))
-        assertTrue(thumb.contains("showBadge: Boolean = true"))
-        assertTrue(thumb.contains("Metrics.equipmentGlyph"))
+        val thumb = ownedSource("ui/components/ExerciseThumb.kt")
         assertFalse(thumb.contains("ContentScale.Crop"))
+        assertFalse("a still is fitted whole into its box, at no other scale", NOT_FIT.containsMatchIn(thumb))
     }
 
     @Test
-    fun setTypePrecedesEntryAndRecommendationsFollowEffort() {
-        // The toggle's radio semantics sit under the identity (ExerciseHeaderRenderTest),
-        // and the loop's order, receipt chip and saved-sets sheet are tapped through the
-        // screen in FloorScreenWiringRenderTest.
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
+    fun noLatestSavedRowAndNoSecondaryButtonInTheSetLoop() {
+        val screen = ownedSource("ui/workout/ActiveWorkoutScreen.kt")
         assertFalse(screen.contains("LatestWorkoutSet("))
         assertFalse(screen.contains("workout-latest-saved"))
-        assertTrue(FloorCompactChrome.progressionKickerInline())
-        assertTrue(FloorCompactChrome.setHistoryOnFloor())
-        assertFalse(FloorCompactChrome.addSetHiddenOnFloor())
-        assertTrue(FloorCompactChrome.addLiftLivesInSwitcher())
-        val switcher = readOwned("ui/workout/LiftSwitcherSheet.kt")
-        assertTrue(switcher.contains("onAddLift"))
-        assertTrue(switcher.contains("SWITCHER_ADD_LIFT"))
-        val lazy = screen.indexOf("LazyColumn(")
-        val afterLazy = screen.substring(lazy)
-        assertFalse(afterLazy.contains("SecondaryGymButton"))
-        assertTrue(screen.contains("WorkoutTestTags.DOCK_ADD_LIFT"))
+        assertFalse(sourceFrom(screen, "LazyColumn(").contains("SecondaryGymButton"))
     }
 
     @Test
-    fun dockHasOneCompanionWithoutAnEmptyContextReservation() {
-        assertTrue(FloorCompactChrome.logButtonStaysAnchored())
-        assertFalse(FloorCompactChrome.liftCompleteReplacesClock())
-        assertTrue(FloorCompactChrome.oneClockTwoModes())
+    fun theDockKeepsItsTokensAndNoContextRailReceiptOrHiddenClock() {
         assertEquals(56, Metrics.logTimerRow.value.toInt())
         assertEquals(72, Metrics.commit.value.toInt())
-        assertTrue(FloorCompactChrome.timerIsCompactInstrumentBar())
-        assertFalse(FloorCompactChrome.idleRestIsInstrumentBar())
-        assertTrue(FloorCompactChrome.restIsDockCard())
-        val dock = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dock.contains("PinnedDock("))
+        val dock = ownedSource("ui/workout/WorkoutDock.kt")
         assertFalse(dock.contains("CONTEXT_RAIL"))
         assertFalse(dock.contains("logContextRail"))
         assertFalse(dock.contains("GymReceiptBanner("))
         assertFalse(dock.contains("LOG_RECEIPT"))
-        assertTrue(dock.contains("nextAct -> WorkoutTestTags.NEXT"))
-        assertTrue(dock.contains("finishAct -> WorkoutTestTags.DOCK_FINISH"))
-        assertTrue(dock.contains("else -> WorkoutTestTags.LOG_SET"))
-        assertTrue(dock.contains("height = Metrics.commit"))
-        val volt = dock.substring(dock.indexOf("volt = {"), dock.indexOf("if (saveDetails"))
-        assertTrue(volt.contains("key(action.identity)"))
-        assertTrue(volt.contains("hapticFeedback = false"))
-        assertTrue(volt.contains("text = state.verb"))
-        assertTrue(volt.contains("supporting = state.payload"))
-        assertTrue(volt.contains("textStyle = InstrumentType.commit"))
-        assertTrue(volt.contains("contentDescription = spokenAction"))
-        assertEquals(1, Regex("PrimaryGymButton\\(").findAll(dock).count())
         // The clock stays reachable in every companion: beside error / undo / Cancel edit,
         // beside Add another set, and as the surface itself when nothing else needs the room.
         // WorkoutDockRenderTest composes each of those companions and finds the clock.
         assertFalse(dock.contains("showTimer && !completeDock"))
-        // The rest card's 72 dp and its idle / running tags: RestTimerCardRenderTest.
+        // One companion above one commit: DockVoltRenderTest draws the commit as the dock's only
+        // filled Volt in each companion state; this keeps a second filled button out of the rest.
+        assertEquals("one filled Volt in the dock", 1, PRIMARY_BUTTON.findAll(dock).count())
     }
 
     @Test
-    fun talkBackOrderAndHeroCopyStayWords() {
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        val topBar = screen.indexOf("topBar = {")
-        val bottomBar = screen.indexOf("bottomBar = {")
-        val dock = screen.indexOf("WorkoutDock(")
-        val header = screen.indexOf("item(key = \"exercise-header\")")
-        val entry = screen.indexOf("item(key = \"entry\")")
-        assertTrue(topBar in 0 until bottomBar)
-        assertTrue(dock in bottomBar until header)
-        assertTrue(header in 0 until entry)
+    fun heroCopyStaysWordsAndTheIdentityCarriesNoTelemetry() {
         assertEquals("Lift 3 of 7", CurrentLiftCopy.heroOrdinal(3, 7))
         assertEquals("1 of 3 done", CurrentLiftCopy.heroProgress(1, 3))
         assertEquals("Switch exercise", CurrentLiftCopy.SWITCH)
@@ -139,25 +92,12 @@ class FloorImageLedHeroTest {
         assertTrue(spoken.contains("1 of 3 done"))
         assertTrue(spoken.contains("Dumbbell"))
         // What the identity, the switch and Details announce, and what a tap on each does, is
-        // rendered in ExerciseHeaderRenderTest.
-        val hero = readOwned("ui/workout/ExerciseHeader.kt")
+        // rendered in ExerciseHeaderRenderTest; the reading order (header, identity, entry,
+        // dock) is where each sits on screen, top to bottom, in LandscapeChromeRenderTest and
+        // FloorScreenWiringRenderTest.
+        val hero = ownedSource("ui/workout/ExerciseHeader.kt")
         assertFalse("session telemetry belongs to Session summary", hero.contains("heroSpoken("))
         assertFalse(hero.contains("telemetry"))
-        assertTrue(FloorCompactChrome.headerShowsSessionProgress())
-        assertFalse(FloorCompactChrome.headerShowsMinuteTelemetryOnly())
-        val chrome = readOwned("ui/workout/WorkoutHeader.kt")
-        val line = chrome.indexOf(".testTag(WorkoutTestTags.PROGRESS_LINE)")
-        val bar = chrome.indexOf(".testTag(WorkoutTestTags.PROGRESS_BAR)")
-        assertTrue(line in 0 until bar)
-        assertTrue(
-            "the progress line is spoken once",
-            chrome.substring(line, bar).contains(".semantics { contentDescription = spokenForm }"),
-        )
-        // The same tag and spoken form wherever the plan's words sit: the compact title in
-        // landscape (with the routine name), the caption line in portrait.
-        assertTrue(chrome.contains("titleModifier = if (planAsTitle) progressLine(\"\$routineName. \$spoken\") else Modifier,"))
-        assertTrue(chrome.contains("modifier = progressLine(spoken),"))
-        assertTrue("the segmented bar is decorative", chrome.substring(bar).contains(".clearAndSetSemantics { }"))
         val notes = AccessibilityMatrix.page("active-strength").talkBackNotes
         assertTrue(notes.contains("header with its progress line, exercise identity"))
         assertTrue(notes.contains("decorative"))
@@ -173,9 +113,9 @@ class FloorImageLedHeroTest {
         val curl = DefaultExercises.catalog().first { it.name == "Leg Curl" }
         assertTrue(lunge.imageKey.isNotBlank())
         assertTrue(curl.imageKey.isNotBlank())
-        val thumb = readOwned("ui/components/ExerciseThumb.kt")
-        assertTrue(thumb.contains("contentScale = ContentScale.Fit"))
+        val thumb = ownedSource("ui/components/ExerciseThumb.kt")
         assertFalse(thumb.contains("ContentScale.Crop"))
+        assertFalse("a long-limbed still is fitted whole, never cut, stretched or drawn at its own size", NOT_FIT.containsMatchIn(thumb))
         assertEquals("no weight", SetCopy.NO_WEIGHT)
         assertEquals(
             "Weight, no weight",
@@ -192,14 +132,17 @@ class FloorImageLedHeroTest {
         // WeightRepsEditorRenderTest and WorkoutFloorComponentsTest. The Next-set card and the
         // effort track, one row at 360 dp and wrapping where it runs out of room, are rendered
         // in NextSetRecommendationRenderTest and RpeSelectorRenderTest.
-        assertTrue(FloorCompactChrome.rpeTrackFitsWithoutScroll())
     }
 
-    private fun readOwned(relative: String): String {
-        val roots = listOf(
-            File("app/src/main/java/com/sinura/personaltrainer"),
-            File("../app/src/main/java/com/sinura/personaltrainer"),
-        )
-        return roots.map { File(it, relative) }.first { it.isFile }.readText()
+    private companion object {
+        /**
+         * Any scale but Fit: Crop, FillWidth and FillHeight cut whatever overflows, FillBounds
+         * stretches the still out of its proportions, None draws it at its own size and cuts the
+         * rest, and Inside is Fit only while the still is larger than its box.
+         */
+        val NOT_FIT = Regex("ContentScale\\.(?!Fit\\b)")
+
+        /** A call of the filled Volt button. */
+        val PRIMARY_BUTTON = Regex("\\bPrimaryGymButton\\(")
     }
 }

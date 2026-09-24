@@ -14,12 +14,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -50,6 +53,7 @@ import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
+import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -279,27 +283,31 @@ internal fun floorViewModel(
 )
 
 /**
- * A live "Lower B" on its leg extension, 3 × 10 at 70 lb with 120 s rest, with [loggedSets]
- * already saved; with [withNextLift], a Romanian deadlift (3 × 8) after it. The session's id.
+ * A live [routineName] (by default "Lower B") on its leg extension, [targetSets] × 10 at 70 lb
+ * with 120 s rest, with [loggedSets] already saved; with [withNextLift], a Romanian deadlift
+ * (3 × 8), named [nextLiftName], after it. The session's id.
  */
 internal suspend fun seedLegExtension(
     deps: FakeAppDependencies,
     loggedSets: List<TestSetInput>,
     withNextLift: Boolean = false,
+    targetSets: Int = 3,
+    routineName: String = "Lower B",
+    nextLiftName: String = FLOOR_NEXT_LIFT_NAME,
 ): String {
     val seeded = seedTestWorkout(
         deps = deps,
         exerciseId = FLOOR_LIFT_ID,
         exerciseName = "Leg Extension",
-        routineName = "Lower B",
-        targetSets = 3,
+        routineName = routineName,
+        targetSets = targetSets,
         targetReps = 10,
         targetWeightKg = FLOOR_KG70,
         restSeconds = 120,
         loggedSets = loggedSets,
     )
     if (withNextLift) {
-        val next = insertTestExercise(deps = deps, id = FLOOR_NEXT_LIFT_ID, name = FLOOR_NEXT_LIFT_NAME, muscleGroup = "Hamstrings")
+        val next = insertTestExercise(deps = deps, id = FLOOR_NEXT_LIFT_ID, name = nextLiftName, muscleGroup = "Hamstrings")
         deps.workoutRepository.addExerciseToSession(seeded.session.id, next, targetSets = 3, targetReps = 8, targetWeightKg = 40.0, restSeconds = 90)
     }
     return seeded.session.id
@@ -312,8 +320,20 @@ internal fun openLegExtension(
     loggedSets: List<TestSetInput>,
     withNextLift: Boolean = false,
     undoTimeout: UndoTimeoutProvider = FLOOR_BASE_DWELL,
+    targetSets: Int = 3,
+    routineName: String = "Lower B",
+    nextLiftName: String = FLOOR_NEXT_LIFT_NAME,
 ): ActiveWorkoutViewModel {
-    val sessionId = runBlocking { seedLegExtension(deps = deps, loggedSets = loggedSets, withNextLift = withNextLift) }
+    val sessionId = runBlocking {
+        seedLegExtension(
+            deps = deps,
+            loggedSets = loggedSets,
+            withNextLift = withNextLift,
+            targetSets = targetSets,
+            routineName = routineName,
+            nextLiftName = nextLiftName,
+        )
+    }
     return floorViewModel(deps = deps, sessionId = sessionId, undoTimeout = undoTimeout).also(viewModels::add)
 }
 
@@ -490,6 +510,73 @@ internal fun ComposeContentTestRule.runCustomAction(node: SemanticsNodeInteracti
     val action = offered.firstOrNull { it.label == label }
         ?: throw AssertionError("no TalkBack action \"$label\"; the node offers ${offered.map { it.label }}")
     runOnIdle { action.action() }
+}
+
+/**
+ * The exercise pictures drawn at [size] under [under], each wearing its equipment badge. A still
+ * is decorative, since the words beside it name the lift, so it clears its own semantics: nothing
+ * reads it, and there is no tag to find it by. It is still a node of the unmerged tree, sized,
+ * and one that clears what is under it and says nothing itself. A blank square does that too,
+ * so a still is also known by its badge: one square child, [badgeSide] across, flush in its
+ * bottom-end corner (see [badgesOf]). Counting them needs no production tag.
+ */
+internal fun ComposeContentTestRule.stillsUnder(under: SemanticsMatcher, size: Dp): List<SemanticsNode> =
+    silentSquaresUnder(under, size).filter { still -> badgesOf(still, size).size == 1 }
+
+/**
+ * The silent [size] squares under [under], badged or not: what [stillsUnder] narrows to the
+ * stills that wear their badge. Only a test about the badge itself wants the bare squares.
+ */
+internal fun ComposeContentTestRule.silentSquaresUnder(under: SemanticsMatcher, size: Dp): List<SemanticsNode> {
+    val side = with(density) { size.roundToPx() }
+    val silentSquare: (SemanticsNode) -> Boolean = { node ->
+        node.config.isClearingSemantics &&
+            node.config.getOrNull(SemanticsProperties.ContentDescription) == null &&
+            node.size.width == side && node.size.height == side
+    }
+    val still = SemanticsMatcher(description = "a silent $size still", matcher = silentSquare)
+    return onAllNodes(still and hasAnyAncestor(under), useUnmergedTree = true).fetchSemanticsNodes()
+}
+
+/**
+ * The equipment badges drawn flush in [still]'s bottom-end corner: square children [badgeSide]
+ * across for a [size] still.
+ *
+ * The badge says nothing either, so it is found only because Compose UI's shape modifiers (its
+ * clip and background) publish a Shape semantics node in the unmerged tree, even under the
+ * still's cleared semantics. Compose 1.11.4 does. If a later Compose stops publishing it, every
+ * still stops being found and the tests that count stills fail loudly, never quietly pass.
+ */
+internal fun ComposeContentTestRule.badgesOf(still: SemanticsNode, size: Dp): List<SemanticsNode> {
+    val side = with(density) { badgeSide(size).roundToPx() }
+    val stillBounds = still.boundsInRoot
+    return still.children.filter { child ->
+        child.size.width == side && child.size.height == side &&
+            child.boundsInRoot.right == stillBounds.right && child.boundsInRoot.bottom == stillBounds.bottom
+    }
+}
+
+/** A [size] still's badge: its share of the still's edge, capped at the equipment glyph's size. */
+internal fun badgeSide(size: Dp): Dp = minOf(size * STILL_BADGE_SHARE, Metrics.equipmentGlyph)
+
+/** The badge's share of a still's edge, before the cap. */
+internal const val STILL_BADGE_SHARE = 0.45f
+
+/**
+ * Waits, bounded, for [condition], and on a timeout says [what] never came and what [now]
+ * showed at the end, not the bare "Condition still not satisfied after 20000 ms".
+ */
+internal fun ComposeContentTestRule.awaitThat(
+    what: String,
+    now: () -> Any?,
+    timeoutMillis: Long = FLOOR_WAIT_MS,
+    condition: () -> Boolean,
+) {
+    try {
+        waitUntil(timeoutMillis = timeoutMillis, condition = condition)
+    } catch (timedOut: ComposeTimeoutException) {
+        throw AssertionError("$what, not within $timeoutMillis ms; at the end: ${now()}", timedOut)
+    }
 }
 
 /** What a tap is announced as doing ("double-tap to …"), or null when the node gives no label. */
