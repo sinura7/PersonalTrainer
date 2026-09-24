@@ -103,7 +103,16 @@ Done so far:
   loader, not the tests. The same tests read timer 74.7 %, workout 86.8 %
   and the workout screen's package 85.9 %; the floors are re-based just
   under those readings, and the workout screen's package and the code
-  that saves sets get floors of their own.
+  that saves sets get floors of their own (#410).
+- **W2b-2:** the Log's dock and the rest page share one set of rest
+  commands (`RestCommands`: the rest card's state, saving a pick, starting
+  a rest by hand, the battery line, the pick echo) and one hint loader
+  (`ProgressionHintLoader`), instead of two copies. Nothing a lifter sees
+  changes: six new tests pinned today's behaviour on the old code first.
+  ADR-012 decision 18 now says in writing that a length picked on the
+  dock holds until a logged set starts a rest or the lift changes.
+  Running the rest page against the Log confirmed that its next-set line
+  can differ from the Log's; W2b-4 fixes that.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -127,8 +136,8 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): W2b-2, W2b-3, W2b-4,
-W2c, W2d, the rest-alarm packet, then a check-only phone drop, then
+live order is the table in FRONTEND_REDESIGN.md): W2b-3, W2b-4, W2c,
+W2d, the rest-alarm packet, then a check-only phone drop, then
 W3. X2b completed Wave 0.
 
 ## What is verified, and how

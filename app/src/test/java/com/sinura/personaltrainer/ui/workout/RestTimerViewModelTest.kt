@@ -12,7 +12,9 @@ import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.LiftEntryReadiness
+import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.RestHonestyCopy
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestWaits
@@ -29,6 +31,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -245,6 +248,172 @@ class RestTimerViewModelTest {
         }
         assertTrue(state.rest.exactAlarmBestEffort)
         assertFalse(RestHonestyCopy.EXACT_DENIED.contains("precise", ignoreCase = true))
+    }
+
+    @Test
+    fun aPickWhileTheRestRunsNamesTheNextRestNotTheRunningOne() = runBlocking {
+        val fixture = seedWorkout(restSeconds = 90)
+        val floor = createViewModel(fixture.session.id)
+        floor.awaitState { it.loadState == SessionLoadState.FOUND && it.rest.totalSeconds == 150 }
+        floor.startSelectedRest()
+        awaitRestRunning()
+
+        floor.selectRestDuration(105)
+        val running = floor.awaitState { it.rest.running }
+        assertEquals("a running rest shows its own length", 150, running.rest.totalSeconds)
+
+        floor.skipRest()
+        val idle = floor.awaitState { !it.rest.running }
+        assertEquals("once it ends, the page names the pick", 105, idle.rest.totalSeconds)
+    }
+
+    @Test
+    fun theStoredLastPresetIsNotANewPickWhenThePageOpens() = runBlocking {
+        // The last preset saved before the page opened is not an echo of anything: the page
+        // seeds its own coach length (2:30 for a heavy five), not the 1:45 saved earlier.
+        val fixture = seedWorkout(restSeconds = 90)
+        deps.preferencesRepository.setLastRestPresetSeconds(105)
+        val floor = createViewModel(fixture.session.id)
+
+        val seeded = withTimeoutOrNull(TestWaits.FLOW_MS) {
+            floor.uiState.first { it.loadState == SessionLoadState.FOUND && it.rest.totalSeconds == 150 }
+        }
+        assertEquals(
+            "the page seeds the coach's length, not the preset it found saved",
+            150,
+            (seeded ?: floor.uiState.value).rest.totalSeconds,
+        )
+    }
+
+    @Test
+    fun aSettingChangeIsNotAPickSoTheOpenPageKeepsItsLength() = runBlocking {
+        // Only a new last preset is news. Turning the rest sound off rewrites the same stored
+        // preferences with the saved 1:45 unchanged; the open page must keep its 2:30 rather
+        // than hear 1:45 as a pick (the W2b-2 adversarial review: dropping the first value
+        // before filtering repeats did exactly that).
+        val fixture = seedWorkout(restSeconds = 90)
+        deps.preferencesRepository.setLastRestPresetSeconds(105)
+        val floor = createViewModel(fixture.session.id)
+        floor.awaitState { it.loadState == SessionLoadState.FOUND && it.rest.totalSeconds == 150 }
+
+        deps.preferencesRepository.setRestSoundEnabled(false)
+        deps.preferencesRepository.restTimerPreferences.awaitFirst { !it.soundEnabled && it.lastPresetSeconds == 105 }
+        dispatcher.scheduler.runCurrent()
+        assertEquals("a setting change is not a pick", 150, floor.uiState.value.rest.totalSeconds)
+    }
+
+    @Test
+    fun aDockPickWhileTheRestPageIsStillLoadingReachesIt() = runBlocking {
+        // The page hears the dock's picks from the moment it opens, not once it has loaded: a
+        // length picked on the Log while the page's load is held in its coach read is the
+        // page's next rest when the load lands (the W2b-2 adversarial review: a page that
+        // began listening after its seed kept its own length instead).
+        val fixture = seedWorkout(restSeconds = 90)
+        val workout = createWorkoutViewModel(fixture.session.id)
+        workout.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.liftReadiness == LiftEntryReadiness.READY && !it.entryLocked
+        }
+        val gate = CompletableDeferred<Unit>().also { coachReadGate = it }
+        val floor = createViewModel(fixture.session.id)
+        floor.awaitState { it.loadState == SessionLoadState.FOUND }
+        withTimeout(TestWaits.FLOW_MS) { coachReadHeld.await() }
+
+        workout.selectRestDuration(90)
+        deps.preferencesRepository.restTimerPreferences.awaitFirst { it.lastPresetSeconds == 90 }
+        gate.complete(Unit)
+
+        val loaded = withTimeoutOrNull(TestWaits.FLOW_MS) { floor.uiState.first { it.rest.totalSeconds == 90 } }
+        assertEquals(
+            "a dock pick made while the page loaded is the page's next rest",
+            90,
+            (loaded ?: floor.uiState.value).rest.totalSeconds,
+        )
+    }
+
+    @Test
+    fun aDockPickReachesAnOpenRestPageButNotWhileARestRuns() = runBlocking {
+        val fixture = seedWorkout(restSeconds = 90)
+        val workout = createWorkoutViewModel(fixture.session.id)
+        workout.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.liftReadiness == LiftEntryReadiness.READY && !it.entryLocked
+        }
+        val floor = createViewModel(fixture.session.id)
+        floor.awaitState { it.loadState == SessionLoadState.FOUND && it.rest.totalSeconds == 150 }
+
+        workout.selectRestDuration(105)
+        val echoed = withTimeoutOrNull(TestWaits.FLOW_MS) {
+            floor.uiState.first { it.rest.totalSeconds == 105 }
+        }
+        assertEquals("a pick on the dock reaches the open rest page", 105, (echoed ?: floor.uiState.value).rest.totalSeconds)
+
+        workout.startSelectedRest()
+        awaitRestRunning()
+        // The echo of this pick reaches the page while the rest still runs: the fake preference
+        // store writes on the unconfined test dispatcher, so the page hears it before the Skip
+        // below, as in the Log's own echo test.
+        workout.selectRestDuration(120)
+        deps.preferencesRepository.restTimerPreferences.awaitFirst { it.lastPresetSeconds == 120 }
+        workout.skipRest()
+        val idle = floor.awaitState { !it.rest.running }
+        assertEquals("a pick heard while a rest ran is not the page's next rest", 105, idle.rest.totalSeconds)
+    }
+
+    @Test
+    fun customLengthAndTheBatteryLineOnTheRestPage() = runBlocking {
+        val fixture = seedWorkout(restSeconds = 90)
+        val floor = createViewModel(fixture.session.id)
+        floor.awaitState { it.loadState == SessionLoadState.FOUND && it.rest.totalSeconds == 150 }
+
+        assertTrue(floor.selectCustomRest("2:15"))
+        assertEquals(135, floor.awaitState { it.rest.totalSeconds == 135 }.rest.totalSeconds)
+        assertFalse(floor.selectCustomRest("abc"))
+        assertEquals(135, floor.uiState.value.rest.totalSeconds)
+        deps.preferencesRepository.restTimerPreferences.awaitFirst { it.lastPresetSeconds == 135 }
+
+        floor.startSelectedRest()
+        awaitRestRunning()
+        assertEquals(135, deps.restTimerStore.current().totalSeconds)
+        val warned = withTimeoutOrNull(TestWaits.FLOW_MS) {
+            floor.uiState.first { it.rest.running && it.rest.batteryHint }
+        }
+        assertTrue("the first rest names the battery rule", (warned ?: floor.uiState.value).rest.batteryHint)
+
+        floor.acknowledgeRestBatteryHint()
+        val read = withTimeoutOrNull(TestWaits.FLOW_MS) {
+            floor.uiState.first { it.rest.running && !it.rest.batteryHint }
+        }
+        assertFalse("an acknowledged battery line goes", (read ?: floor.uiState.value).rest.batteryHint)
+        assertTrue("acknowledging it leaves the rest running", deps.restTimerStore.current().running)
+    }
+
+    @Test
+    fun theRestPagesNextLineIsTheLogsFirstSetCallForALiftWithHistory() = runBlocking {
+        // A prior 100 kg × 5 with no RPE: the hint moves the first set's call off the routine's
+        // 100 kg, so the page can only match the Log by loading the same hint. (With an RPE on
+        // the prior set the two lines differ today; that is packet W2b-4, not this test.)
+        val fixture = seedWorkout(restSeconds = 90, priorWeightKg = 100.0)
+        val workout = createWorkoutViewModel(fixture.session.id)
+        val ready = workout.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.liftReadiness == LiftEntryReadiness.READY && it.hint != null
+        }
+        val suggested = checkNotNull(ready.hint).suggestedWeightKg
+        assertTrue("the history must move the call, or this test proves nothing", suggested != 100.0)
+        val rec = checkNotNull(
+            withTimeout(TestWaits.FLOW_MS) {
+                workout.microRec.first { it != null && it.nextWeightKg == suggested }
+            },
+        )
+        val logLine = SetMicroRecCopy.line(rec, LoadClass.LOADED, WeightUnit.KG)
+
+        val floor = createViewModel(fixture.session.id)
+        val page = withTimeoutOrNull(TestWaits.FLOW_MS) {
+            floor.uiState.first { it.floor.sessionTargetLine == logLine }
+        }
+        assertEquals(
+            "the rest page's Next line is the Log's",
+            logLine,
+            (page ?: floor.uiState.value).floor.sessionTargetLine,
+        )
     }
 
     private fun createViewModel(sessionId: String): RestTimerViewModel =

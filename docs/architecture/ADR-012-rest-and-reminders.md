@@ -15,8 +15,9 @@
   24 September 2026 — W2b-1b: a stop names its rest, and a skipped rest
   does not say "Rest done" (owner decisions; see Consequences); the same
   day, W2b-1c: no call cancels another's disk job, and a SYNC is owed until
-  one is sent; and W2b-1d: the notification's Skip names its rest (see
-  Consequences)
+  one is sent; W2b-1d: the notification's Skip names its rest (see
+  Consequences); and W2b-2: decision 18 says what the dock and the rest
+  page show, which the code already did
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -97,7 +98,18 @@ day. The agreed product asks once, then adapts only if the user says so.
     showing on the dock (`ActiveWorkoutViewModel.startRestAfterSet` through
     `RestTimer.secondsToStart`).
     `ActiveWorkoutViewModelTest.afterALoggedSetRestRunsTheCoachsLengthNotOnePickedOnTheDock`
-    holds it.
+    holds it. What the screens show follows from it (24 September 2026,
+    packet W2b-2, no behaviour change): after a logged set that starts a
+    rest, the dock shows the coach's length; a length picked on the dock
+    holds until a logged set starts a rest or the lift changes (a warm-up
+    starts none, and leaves the pick); and the rest page, when it opens,
+    seeds its own length (the coach's, else the routine's, else the last
+    length picked, else the default) without counting that seed as a pick.
+    Held by
+    `ActiveWorkoutViewModelTest.aPickHoldsUntilTheNextLoggedSetThenTheDockShowsTheCoachsLength`,
+    `ActiveWorkoutViewModelTest.aWarmUpStartsNoRestSoAPickOnTheDockHoldsThroughIt`,
+    `ActiveWorkoutViewModelTest.aRestPickedOnOneLiftDoesNotStopTheNextLiftSeedingItsOwn`
+    and `RestTimerViewModelTest.theStoredLastPresetIsNotANewPickWhenThePageOpens`.
 
 ## Consequences
 

@@ -7,7 +7,6 @@ import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.CoachPreferences
-import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestFloorContext
@@ -17,17 +16,13 @@ import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
-import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -59,6 +54,8 @@ class RestTimerViewModel @JvmOverloads constructor(
     private val hint = MutableStateFlow<ProgressionHint?>(null)
     private val lighterWeek = MutableStateFlow(false)
     private val sessionReader = WorkoutSessionReader(container.workoutRepository, sessionId, viewModelScope)
+    private val restCommands = RestCommands(container, viewModelScope, sessionId)
+    private val hintLoader = ProgressionHintLoader(container, sessionId)
 
     init {
         viewModelScope.launch {
@@ -104,44 +101,15 @@ class RestTimerViewModel @JvmOverloads constructor(
             }.onFailure { AppLog.w(TAG, "Loading rest floor context failed", it) }
         }
         viewModelScope.launch {
-            container.preferencesRepository.restTimerPreferences
-                .map { it.lastPresetSeconds }
-                .distinctUntilChanged()
-                .drop(1)
-                .collect { last ->
-                    if (last != null && !restTimer.snapshot.value.running) {
-                        restTotal.value = PlannedRest(seconds = last, chosen = true)
-                    }
-                }
+            restCommands.presetEchoes.collect { last ->
+                restTotal.value = PlannedRest(seconds = last, chosen = true)
+            }
         }
     }
 
     val uiState: StateFlow<RestTimerScreenState> = combine(
         sessionReader.observations,
-        combine(
-            combine(
-                restTimer.remainingSeconds,
-                restTimer.snapshot,
-                restTotal,
-                restTimer.lastCompletedTimerId,
-                restTimer.persistenceHealthy,
-            ) { remaining, snapshot, planned, completedId, healthy ->
-                RestTimerUiState(
-                    remainingSeconds = remaining,
-                    totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned.seconds,
-                    running = snapshot.running,
-                    completedTimerId = completedId,
-                    persistenceHealthy = healthy,
-                )
-            },
-            container.preferencesRepository.restBatteryHintShown,
-            restTimer.exactAlarmAttempt,
-        ) { rest, shown, attempt ->
-            rest.copy(
-                batteryHint = rest.running && !shown,
-                exactAlarmBestEffort = attempt == ExactAlarmAttempt.BEST_EFFORT,
-            )
-        },
+        restCommands.restState(restTotal) { it.seconds },
         combine(
             hint,
             lighterWeek,
@@ -216,9 +184,7 @@ class RestTimerViewModel @JvmOverloads constructor(
 
     fun selectRestDuration(seconds: Int) {
         restTotal.value = PlannedRest(seconds = seconds, chosen = true)
-        viewModelScope.launch {
-            container.preferencesRepository.setLastRestPresetSeconds(seconds)
-        }
+        restCommands.rememberPick(seconds)
     }
 
     fun selectCustomRest(input: String): Boolean {
@@ -228,21 +194,11 @@ class RestTimerViewModel @JvmOverloads constructor(
     }
 
     fun startSelectedRest() {
-        val seconds = restTotal.value.seconds.coerceIn(
-            RestTimerPreferences.MIN_SECONDS,
-            RestTimerPreferences.MAX_SECONDS,
-        )
-        restTimer.start(seconds, sessionId)
-        viewModelScope.launch {
-            container.preferencesRepository.setLastRestPresetSeconds(seconds)
-            container.preferencesRepository.markRestAlarmEligible()
-        }
+        restCommands.startPlanned(restTotal.value.seconds)
     }
 
     fun acknowledgeRestBatteryHint() {
-        viewModelScope.launch {
-            container.preferencesRepository.markRestBatteryHintShown()
-        }
+        restCommands.acknowledgeBatteryHint()
     }
 
     private fun resolveExerciseId(current: WorkoutSession?): String? {
@@ -252,27 +208,9 @@ class RestTimerViewModel @JvmOverloads constructor(
 
     private suspend fun loadHint(current: WorkoutSession, exerciseId: String): ProgressionHint? {
         val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
-        val schedule = container.preferencesRepository.schedulePreferences.first()
-        val thisWeek = LighterWeek.weekStartEpochDay(
-            civilToday(),
-            schedule.weekStart,
-        )
-        val lighter = LighterWeek.isCurrent(
-            container.preferencesRepository.lighterWeekStartEpochDay.first(),
-            thisWeek,
-        )
+        val lighter = hintLoader.isLighterWeek(hintLoader.thisWeekStart())
         lighterWeek.value = lighter
-        val unit: WeightUnit = container.preferencesRepository.weightUnit.first()
-        return container.workoutRepository.progressionFor(
-            exerciseId = exerciseId,
-            exerciseName = planned?.exercise?.name ?: "",
-            targetReps = planned?.targetReps ?: 5,
-            excludeSessionId = sessionId,
-            loadType = planned?.exercise?.loadType,
-            unit = unit,
-            lighterWeek = lighter,
-            equipment = planned?.exercise?.equipment,
-        )
+        return hintLoader.progression(exerciseId, planned, lighter)
     }
 }
 

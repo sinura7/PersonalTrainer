@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.UndoEntry
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
 import com.sinura.personaltrainer.workout.WorkoutDraft
 import kotlinx.coroutines.Dispatchers
@@ -1313,6 +1314,68 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun aPickHoldsUntilTheNextLoggedSetThenTheDockShowsTheCoachsLength() = runBlocking {
+        // ADR-012 decision 18 as the dock shows it (W2b-2, 24 September 2026). A length picked
+        // on the dock names the next rest until a set is logged. That set's rest is the coach's,
+        // and once it ends the dock names the coach's length, not the pick. The pick is still
+        // the saved last preset: the rest a logged set starts saves none.
+        val fixture = seedWorkout(targetSets = 3, restSeconds = 90)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+
+        vm.selectRestDuration(105)
+        deps.preferencesRepository.restTimerPreferences.awaitFirst { it.lastPresetSeconds == 105 }
+        vm.restTimerState.awaitFirst { !it.running && it.totalSeconds == 105 }
+
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        awaitRestRunning()
+        val coach = deps.restTimerStore.current().totalSeconds
+        assertTrue("the coach's length must differ from the pick, or this test proves nothing", coach != 105)
+        vm.restTimerState.awaitFirst { it.running && it.totalSeconds == coach }
+        // Nothing before this set started a rest, so this is the after-set rest's one write.
+        deps.preferencesRepository.restAlarmEligible.awaitFirst { it }
+        assertEquals(
+            "the rest a logged set starts is not saved as a pick",
+            105,
+            deps.preferencesRepository.restTimerPreferences.first().lastPresetSeconds,
+        )
+
+        vm.skipRest()
+        val idle = withTimeoutOrNull(TestWaits.FLOW_MS) {
+            vm.restTimerState.first { !it.running && it.totalSeconds == coach }
+        }
+        assertEquals(
+            "after the set's rest, the dock names the coach's length",
+            coach,
+            (idle ?: vm.restTimerState.value).totalSeconds,
+        )
+    }
+
+    @Test
+    fun aWarmUpStartsNoRestSoAPickOnTheDockHoldsThroughIt() = runBlocking {
+        // ADR-012 decision 18 (W2b-2, 24 September 2026): only a logged set that starts a rest
+        // replaces a pick. A warm-up starts none, so the length picked before it still names
+        // the next rest.
+        val fixture = seedWorkout(targetSets = 3, restSeconds = 90)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+
+        vm.selectRestDuration(105)
+        deps.preferencesRepository.restTimerPreferences.awaitFirst { it.lastPresetSeconds == 105 }
+        vm.restTimerState.awaitFirst { !it.running && it.totalSeconds == 105 }
+
+        vm.setWarmup(true)
+        vm.awaitState { it.draft.isWarmup }
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 && it.sets.single().isWarmup }
+        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+        dispatcher.scheduler.runCurrent()
+        assertFalse("a warm-up starts no rest", deps.restTimerStore.current().running)
+        assertEquals("the pick still names the next rest", 105, vm.restTimerState.value.totalSeconds)
+    }
+
+    @Test
     fun stepperWithoutRpeDoesNotChangeMicroRec() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
@@ -2223,6 +2286,20 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun aFailedHintReadDegradesTheEntryEvenWhenLaterReadsWork() = runBlocking {
+        // Only the hint's history read fails; the reads after it work. The failure must reach
+        // the Log and degrade the entry: a hint loader that caught it and carried on would
+        // leave the lift looking fully prefilled with no coach behind it (W2b-2 review).
+        val fixture = seedWorkout(targetWeightKg = 100.0)
+        val vm = createViewModel(fixture.session.id, container = failingHistory(failures = 1))
+        val state = vm.awaitState {
+            it.loadState == SessionLoadState.FOUND && it.liftReadiness == LiftEntryReadiness.DEGRADED
+        }
+        assertTrue(state.suggestionUnavailable)
+        assertTrue(state.canLog)
+    }
+
+    @Test
     fun emptySessionHidesRestAndOffersDiscard() = runBlocking {
         val session = deps.workoutRepository.startFreeWorkout()
         val vm = createViewModel(session.id)
@@ -2457,14 +2534,18 @@ class ActiveWorkoutViewModelTest {
         }
     }
 
-    private fun failingHistory(): AppDependencies {
+    /** History reads fail; with [failures], only that many of them, and the rest work. */
+    private fun failingHistory(failures: Int = Int.MAX_VALUE): AppDependencies {
+        val failed = AtomicInteger(0)
+        val real = deps.database.workoutDao()
         val repo = WorkoutRepository(
             deps.database,
-            object : WorkoutDao by deps.database.workoutDao() {
+            object : WorkoutDao by real {
                 override suspend fun finishedWorkingSetsForExercises(
                     exerciseIds: List<String>,
                 ): List<FinishedWorkingSetRow> {
-                    error("history unavailable")
+                    if (failed.getAndIncrement() < failures) error("history unavailable")
+                    return real.finishedWorkingSetsForExercises(exerciseIds)
                 }
             },
         )

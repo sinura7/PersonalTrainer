@@ -18,8 +18,8 @@ yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 562 | 93,976 | — |
-| `app/src/test` | 458 | 78,215 | 3,127 |
+| `app/src/main` | 564 | 94,032 | — |
+| `app/src/test` | 458 | 78,465 | 3,137 |
 | `app/src/androidTest` | 33 | 5,914 | 112 `@Test` methods (some parameterised) |
 | `app/src/debug` | 12 | 1,618 | Compose previews and the state galleries |
 | `app/src/sharedTest` | 5 | 171 | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
@@ -30,7 +30,7 @@ Everything is under `com.sinura.personaltrainer`.
 
 | Package | Files | Lines | What it is |
 |---|---|---|---|
-| `ui` | 170 | 46,034 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
+| `ui` | 172 | 46,090 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
 | `domain` | 206 | 23,281 | Models, rules, calculators, policies, ports, CoachEngine, and 65 `*Copy` text objects (69 app-wide) |
 | `data` | 115 | 16,948 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup`, `sync` (15 files, 2,266 lines), `auth` (4, 224) |
 | `timer` | 18 | 2,835 | Rest foreground service, alarm scheduler, notifications, persistence |
@@ -176,7 +176,7 @@ gate, the emulator and the phone gate the signed release.
 Not a to-do list — a list of things a reader will notice and should not have to
 rediscover.
 
-- **`ActiveWorkoutViewModel` is 2,431 lines** with 31 `MutableStateFlow`
+- **`ActiveWorkoutViewModel` is 2,362 lines** with 31 `MutableStateFlow`
   references, and still holds rule decisions that belong in `domain` — prefill,
   lift selection, the log-set sequence.
 - **`RoutineEditorViewModel` is 1,490 lines**, mostly the staged-targets
