@@ -95,7 +95,15 @@ Done so far:
   ViewModel functions and four flows no screen uses, test-only constants
   and the old RPE helper (its stored flag is left unread). Four design-token ceilings are
   lower, each swap proven identical. The rest-length sheet opens in place,
-  without its slide, when the phone asks for reduced motion (ADR-023).
+  without its slide, when the phone asks for reduced motion (ADR-023;
+  #409).
+- **X5:** the local coverage check (`tools/verify.sh`) counts the classes
+  the JVM tests load through Robolectric. Until now it left them out, so
+  the timer and workout floors failed on numbers that measured the class
+  loader, not the tests. The same tests read timer 74.7 %, workout 86.8 %
+  and the workout screen's package 85.9 %; the floors are re-based just
+  under those readings, and the workout screen's package and the code
+  that saves sets get floors of their own.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -119,8 +127,8 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): X5, W2b-2, W2b-3,
-W2b-4, W2c, W2d, the rest-alarm packet, then a check-only phone drop, then
+live order is the table in FRONTEND_REDESIGN.md): W2b-2, W2b-3, W2b-4,
+W2c, W2d, the rest-alarm packet, then a check-only phone drop, then
 W3. X2b completed Wave 0.
 
 ## What is verified, and how

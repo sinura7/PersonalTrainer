@@ -2,9 +2,24 @@
 # Raise a floor when a packet adds tests. Never lower one to hide a regression.
 # Generated Room/Compose/R/BuildConfig classes are excluded in jacocoTestReport.
 #
+# Re-based 24 September 2026 (audit X5). Until then JaCoCo left out every class Robolectric
+# loads, so code that only Robolectric tests ran counted as never run: timer read 14.5 %
+# and workout 18.6 %, below their floors of 18 and 23, and ui.workout 2.6 %. With those
+# classes counted (app/build.gradle.kts, the test tasks' JaCoCo settings) the same tests
+# read backup 82.99, domain 93.28, data.repository 86.54, timer 74.69, ui.workout 85.95
+# and workout 86.78. Three full runs moved no floored package by more than 0.2. Each floor
+# is the reading rounded down, less 1. ui.workout, which the W2 packets reshape, and
+# data.repository, which saves the lifter's sets, get floors of their own.
+# util is the exception: it is 597 instructions, so one point is six, and 22 of its
+# covered ones are reached only through screens that format numbers. Its floor is what
+# the plain JVM tests alone reach (76.7, the reading before X5), rounded down, so tidying
+# a screen cannot trip it.
+#
 # package<TAB>min_percent
-com.sinura.personaltrainer.domain	90
-com.sinura.personaltrainer.data.backup	70
-com.sinura.personaltrainer.timer	18
-com.sinura.personaltrainer.util	30
-com.sinura.personaltrainer.workout	23
+com.sinura.personaltrainer.data.backup	81
+com.sinura.personaltrainer.data.repository	85
+com.sinura.personaltrainer.domain	92
+com.sinura.personaltrainer.timer	73
+com.sinura.personaltrainer.ui.workout	84
+com.sinura.personaltrainer.util	76
+com.sinura.personaltrainer.workout	85

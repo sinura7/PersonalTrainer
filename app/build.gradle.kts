@@ -415,6 +415,17 @@ tasks.withType<Test>().configureEach {
             listOf("-Drobolectric.dependency.dir=$dir")
         },
     )
+    // Robolectric loads the app's classes through its own class loader, which gives them no
+    // code-source location, and JaCoCo leaves such classes out unless told to count them. Code
+    // that only Robolectric tests ran therefore counted as never run: ui.workout read 2.6 %,
+    // and the timer and workout floors failed on numbers that measured the loader, not the
+    // tests (audit X5). `includes` limits instrumentation to the app's own classes: the
+    // Android framework Robolectric loads the same way is left alone, and so is jdk.internal,
+    // which JaCoCo cannot instrument once no-location classes are counted.
+    extensions.configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        includes = listOf("com.sinura.personaltrainer.*")
+    }
     testLogging {
         events("failed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
