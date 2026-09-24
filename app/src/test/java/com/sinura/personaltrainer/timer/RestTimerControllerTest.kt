@@ -13,10 +13,14 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.IdFactory
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -679,6 +683,335 @@ class RestTimerControllerTest {
         }
     }
 
+    @Test
+    fun aStartAndAnAdjustEachTellTheService() {
+        // The card in the shade follows a rest only once the service is told: a start, and a
+        // ±15 that leaves the rest running, each send one SYNC after the row lands.
+        val events = mutableListOf<String>()
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = EventPersistence(events),
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            startedServiceIntents()
+            controller.start(90, "session-1")
+            assertEquals(listOf(RestTimerService.ACTION_SYNC), startedServiceActions())
+            controller.adjust(15)
+            assertEquals(listOf(RestTimerService.ACTION_SYNC), startedServiceActions())
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aRestStartedAsTheLastOneFinishesStillReachesTheService() {
+        // The owner logs a set as the last rest finishes on another thread: the next rest starts
+        // after the finish emptied the store and before the finish queued its own disk job. That
+        // job is the newest, so it decides what lands. The new rest must still reach the service,
+        // or it counts down with no card in the shade.
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val capability = EventCapability(events, alarmManager)
+        val io = StandardTestDispatcher()
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, capability),
+            ioDispatcher = io,
+        )
+        try {
+            controller.start(90, "session-1")
+            io.scheduler.advanceUntilIdle()
+            val finished = store.current().timerId
+            startedServiceIntents()
+            capability.onCancel = { controller.start(60, "session-1") }
+
+            assertTrue(controller.completeIfCurrent(finished, fromService = true))
+            val next = store.current()
+            io.scheduler.advanceUntilIdle()
+
+            assertTrue(next.running)
+            assertEquals("the new rest's row landed", next.timerId, persistence.saved?.timerId)
+            assertEquals("and its wakeup is armed", "arm", events.last { it == "arm" || it == "cancel" })
+            assertEquals(
+                "and the service was told about it, once",
+                listOf(RestTimerService.ACTION_SYNC),
+                startedServiceActions(),
+            )
+        } finally {
+            capability.onCancel = null
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aFinishThatTookItsNumberFirstNeverCancelsTheNextRestsSave() {
+        // The finish takes its number, then the next set's rest starts in full before the finish
+        // reads the store and queues its job. A finish that cancelled the job before its own
+        // cancelled the start's, and its own then did nothing: no row, no wakeup, no card.
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val io = StandardTestDispatcher()
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = io,
+        )
+        try {
+            controller.start(90, "session-1")
+            io.scheduler.advanceUntilIdle()
+            val finished = store.current().timerId
+            startedServiceIntents()
+            controller.afterPersistNumberTaken = {
+                controller.afterPersistNumberTaken = null
+                controller.start(60, "session-1")
+            }
+
+            assertTrue(controller.completeIfCurrent(finished, fromService = true))
+            val next = store.current()
+            io.scheduler.advanceUntilIdle()
+
+            assertTrue(next.running)
+            assertEquals("the new rest's row landed", next.timerId, persistence.saved?.timerId)
+            assertEquals("and its wakeup is armed", "arm", events.last { it == "arm" || it == "cancel" })
+            assertEquals("and the service was told, once", listOf(RestTimerService.ACTION_SYNC), startedServiceActions())
+        } finally {
+            controller.afterPersistNumberTaken = null
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aRestStartedJustBeforeTheFinishTakesItsNumberStillLands() {
+        // The finish reads the store after it takes its number. Read before, it would hold the
+        // empty store while the next rest's start, landing just before the number, took an
+        // older one: the finish's job, the newest, would then clear the row, and the new rest
+        // would have none.
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val io = StandardTestDispatcher()
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = io,
+        )
+        try {
+            controller.start(90, "session-1")
+            io.scheduler.advanceUntilIdle()
+            val finished = store.current().timerId
+            startedServiceIntents()
+            controller.beforePersistNumberTaken = {
+                controller.beforePersistNumberTaken = null
+                controller.start(60, "session-1")
+            }
+
+            assertTrue(controller.completeIfCurrent(finished, fromService = true))
+            val next = store.current()
+            io.scheduler.advanceUntilIdle()
+
+            assertTrue(next.running)
+            assertEquals("the new rest's row landed", next.timerId, persistence.saved?.timerId)
+            assertEquals("and its wakeup is armed", "arm", events.last { it == "arm" || it == "cancel" })
+            assertEquals("and the service was told, once", listOf(RestTimerService.ACTION_SYNC), startedServiceActions())
+        } finally {
+            controller.beforePersistNumberTaken = null
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aStartOvertakenByALaterCallStillReachesTheService() {
+        // The SYNC is owed before the call takes its number. A later call that takes a newer
+        // number and runs its job first must find it owed, or the rest never reaches the shade.
+        // On the phone that later call is a finish on another thread; a single-threaded test
+        // cannot pause a finish there, so a disk retry (the exact-alarm permission changing)
+        // stands in for it.
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            persistence.saveResult = false
+            controller.start(90, "session-1")
+            assertFalse(controller.persistenceHealthy.value)
+            persistence.saveResult = true
+            startedServiceIntents()
+            controller.afterPersistNumberTaken = {
+                controller.afterPersistNumberTaken = null
+                controller.refreshAlarmCapability()
+            }
+
+            controller.adjust(15)
+
+            assertEquals(store.current().timerId, persistence.saved?.timerId)
+            assertEquals(listOf(RestTimerService.ACTION_SYNC), startedServiceActions())
+        } finally {
+            controller.afterPersistNumberTaken = null
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aJobANewerCallOvertookBeforeItRanWritesNothing() {
+        // Two queued jobs can start in either order on the IO pool. When a Skip's job runs first
+        // and clears the row, the start's job, run after it, must not write the skipped rest
+        // back: after the process dies it would come back as "Rest done". Nor may either job
+        // tell the service about a rest after its STOP: only a job that writes a running rest
+        // sends the SYNC it owes.
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val io = NewestFirstDispatcher()
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = io,
+        )
+        startedServiceIntents()
+        controller.start(90, "session-1")
+        controller.stop()
+        io.runAll()
+
+        assertNull("the skipped rest's row stays cleared", persistence.saved)
+        assertEquals(listOf("clear"), events.filter { it == "save" || it == "clear" })
+        assertEquals("nothing follows the STOP", listOf(RestTimerService.ACTION_STOP), startedServiceActions())
+    }
+
+    @Test
+    fun aSaveThatANewerChangeOvertakesArmsNothing() {
+        // A +15 lands while the start's row is being written. The start's job must then leave
+        // the wakeup to the +15's job: arming now would arm the +15's rest before its row exists.
+        val io = StandardTestDispatcher()
+        val store = RestTimerStore()
+        lateinit var controller: RestTimerController
+        val persistence = object : RestTimerStatePersistence {
+            @Volatile var saved: PersistedRestTimer? = null
+            var overtake = true
+            override fun save(state: PersistedRestTimer): Boolean {
+                if (overtake) {
+                    overtake = false
+                    controller.adjust(15)
+                }
+                saved = state
+                return true
+            }
+            override fun load(): PersistedRestTimer? = saved
+            override fun clear(): Boolean {
+                saved = null
+                return true
+            }
+        }
+        val armedWithoutRow = mutableListOf<String?>()
+        val capability = object : ExactAlarmCapability {
+            override val sdkInt: Int = 35
+            override fun nowElapsedRealtime(): Long = SystemClock.elapsedRealtime()
+            override fun alarmManagerOrNull(): AlarmManager? = alarmManager
+            override fun canScheduleExactAlarms(): Boolean = true
+            override fun setExactElapsed(triggerAtElapsed: Long, operation: PendingIntent) {
+                val armed = shadowOf(operation).savedIntent.getStringExtra(RestTimerService.EXTRA_TIMER_ID)
+                if (persistence.saved?.timerId != armed) armedWithoutRow += armed
+            }
+            override fun setInexactElapsed(triggerAtElapsed: Long, operation: PendingIntent) {
+                setExactElapsed(triggerAtElapsed, operation)
+            }
+            override fun cancel(operation: PendingIntent) = Unit
+        }
+        controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, capability),
+            ioDispatcher = io,
+        )
+        try {
+            controller.start(90, "session-1")
+            io.scheduler.advanceUntilIdle()
+
+            assertEquals("no wakeup armed ahead of its row", emptyList<String?>(), armedWithoutRow)
+            assertEquals(store.current().timerId, persistence.saved?.timerId)
+        } finally {
+            controller.stop()
+            io.scheduler.advanceUntilIdle()
+        }
+    }
+
+    @Test
+    fun aFinishOnAnotherThreadNeverCostsTheNextRestItsRowOrWakeup() {
+        // A finish on another thread queued its disk job while the next rest's start queued its
+        // own, and could cancel the start's job: the new rest counted down with no row and no
+        // wakeup, and nothing would end it. aFinishThatTookItsNumberFirstNeverCancelsTheNextRestsSave
+        // holds that through the seam; this runs the same race on real threads and the IO
+        // dispatcher, as a smoke test that cannot promise to catch a cancel coming back.
+        repeat(RACE_ROUNDS) { round ->
+            val events = java.util.Collections.synchronizedList(mutableListOf<String>())
+            val persistence = EventPersistence(events)
+            val capability = EventCapability(events, alarmManager)
+            val store = RestTimerStore()
+            val controller = RestTimerController(
+                context = context,
+                store = store,
+                persistence = persistence,
+                alarms = RestTimerAlarmScheduler(context, capability),
+                ioDispatcher = Dispatchers.IO,
+            )
+            try {
+                controller.start(90, "session-1")
+                assertTrue("round $round: the first rest settles", settles(store, persistence, events))
+                val finished = store.current().timerId
+                val emptied = CountDownLatch(1)
+                capability.onCancel = { emptied.countDown() }
+
+                val finisher = thread { controller.completeIfCurrent(finished, fromService = true) }
+                assertTrue(emptied.await(3, TimeUnit.SECONDS))
+                controller.start(60, "session-1")
+                finisher.join(3_000)
+
+                assertTrue(
+                    "round $round: the next rest has its row and its wakeup",
+                    settles(store, persistence, events),
+                )
+            } finally {
+                capability.onCancel = null
+                controller.stop()
+            }
+        }
+    }
+
+    /** Bounded wait for the running rest's row to be on disk with a wakeup armed after it. */
+    private fun settles(store: RestTimerStore, persistence: EventPersistence, events: List<String>): Boolean {
+        val giveUpAt = System.nanoTime() + TimeUnit.SECONDS.toNanos(3)
+        while (System.nanoTime() < giveUpAt) {
+            val current = store.current()
+            val landed = synchronized(events) {
+                val lastSave = events.lastIndexOf("save")
+                lastSave >= 0 && events.subList(lastSave, events.size).contains("arm")
+            }
+            if (current.running && persistence.saved?.timerId == current.timerId && landed) return true
+            Thread.sleep(5)
+        }
+        return false
+    }
+
     /** The actions sent to the rest service since the last call, in order. */
     private fun startedServiceActions(): List<String?> = startedServiceIntents().map { it.action }
 
@@ -693,6 +1026,17 @@ class RestTimerControllerTest {
         return generateSequence { shadow.nextStartedService }.toList()
     }
 
+    /** Runs queued jobs newest first, the way two IO threads may pick them up. */
+    private class NewestFirstDispatcher : CoroutineDispatcher() {
+        private val queued = ArrayDeque<Runnable>()
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            queued.addLast(block)
+        }
+        fun runAll() {
+            while (queued.isNotEmpty()) queued.removeLast().run()
+        }
+    }
+
     /**
      * A false result leaves the row as it was, the way a refused commit()
      * does; a set error throws before anything is recorded.
@@ -700,7 +1044,7 @@ class RestTimerControllerTest {
     private class EventPersistence(
         private val events: MutableList<String>,
     ) : RestTimerStatePersistence {
-        var saved: PersistedRestTimer? = null
+        @Volatile var saved: PersistedRestTimer? = null
         var cleared = 0
         var saveResult = true
         var clearResult = true
@@ -728,6 +1072,8 @@ class RestTimerControllerTest {
         private val events: MutableList<String>,
         private val alarmManager: AlarmManager,
     ) : ExactAlarmCapability {
+        /** Runs once, on the thread that cancels the wakeup: a halt, after it emptied the store. */
+        @Volatile var onCancel: (() -> Unit)? = null
         override val sdkInt: Int = 35
         override fun nowElapsedRealtime(): Long = 1_000L
         override fun alarmManagerOrNull(): AlarmManager? = alarmManager
@@ -740,6 +1086,14 @@ class RestTimerControllerTest {
         }
         override fun cancel(operation: PendingIntent) {
             events += "cancel"
+            onCancel?.let { hook ->
+                onCancel = null
+                hook()
+            }
         }
+    }
+
+    private companion object {
+        const val RACE_ROUNDS = 25
     }
 }

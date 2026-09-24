@@ -13,7 +13,9 @@
   logged set starts is the coach's suggested length (decision 18); the same
   day, W2b-1 made decision 1 hold across threads (see Consequences);
   24 September 2026 — W2b-1b: a stop names its rest, and a skipped rest
-  does not say "Rest done" (owner decisions; see Consequences)
+  does not say "Rest done" (owner decisions; see Consequences); the same
+  day, W2b-1c: no call cancels another's disk job, and a SYNC is owed until
+  one is sent (see Consequences)
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -132,9 +134,27 @@ day. The agreed product asks once, then adapts only if the user says so.
   (some phones keep the card a beat), so "rest done" stays done. Left as
   they are: a skipped rest whose row clear fails twice, followed by the
   process dying before any recovery, can still announce after the next
-  start, as before; and W2b-1c closes a microsecond window in which a
-  completion's disk job could cancel a newer start's, leaving that rest
-  with no row and no alarm.
+  start, as before.
+- No call cancels another's disk job, and a SYNC is owed until one is sent
+  (W2b-1c, owner decision of 24 September 2026). Every change to the rest
+  queues one job that writes the row, then arms the wakeup; a later call
+  takes a newer number and an older job then does nothing. Each call used
+  to cancel the job before it, and calls come from two threads: a finish
+  off the main thread could cancel the job the next set's rest had just
+  queued, leaving that rest counting down with no row and no wakeup, so
+  nothing would end it. Now nothing is cancelled. When the newest job is a
+  finish's but a new rest runs by the time the finish reads the store (the
+  owner logged a set as the last rest ended), it writes that rest; the SYNC
+  the start asked for is owed until a job that writes a running rest sends
+  it, so the new rest still reaches the shade. The number is taken in one
+  step with a test seam just before and just after it, and tests hold
+  each rule deterministically: a finish overtaken after its number by the
+  next rest's start (the old cancel lost that rest's row); a finish
+  overtaken just before its number (the store must be read after it); a
+  start overtaken by a later call (the SYNC must be owed before the
+  number); a save overtaken by a +15 inside it (the older job arms
+  nothing); and jobs run newest first (the older job writes nothing). A
+  race on real threads stays as a smoke test.
 
 ## Review questions
 

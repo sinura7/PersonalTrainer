@@ -79,7 +79,11 @@ Done so far:
   next set's rest; while the app that skipped it is still running, a
   skipped rest never says "Rest done" and a recovery never brings it back;
   a Skip on a card left on screen after its rest finished leaves it done
-  (ADR-012).
+  (ADR-012; #405).
+- **W2b-1c:** a rest that finishes on one thread can no longer cancel the
+  save of the next set's rest starting on another, which left that rest
+  with no row and no wakeup; a rest started as the last one finishes still
+  reaches the shade (ADR-012).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -93,8 +97,8 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): W2b-1c, T1c-2, W2a,
-W2b-2, W2c, W2d, then a check-only phone drop, then W3. X2b completed
+live order is the table in FRONTEND_REDESIGN.md): T1c-2, W2a, W2b-2,
+W2c, W2d, then a check-only phone drop, then W3. X2b completed
 Wave 0.
 
 ## What is verified, and how
