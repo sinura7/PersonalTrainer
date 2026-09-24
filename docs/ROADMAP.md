@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 24 Sep 2026 — Whole-app audit packet W2b-3 (owner decision of 24
+> September): Skip on the lock screen and on the rest page now ends only
+> the rest the screen shows, as the notification's Skip already did. A
+> tap just as the rest runs out keeps "rest done"; a tap on a screen that
+> has not caught up with a newer rest leaves that rest running. The
+> Log's own Skip is unchanged. ADR-012. Quiet; on the drop 105 phone
+> checklist.
+>
 > 24 Sep 2026 — Whole-app audit packet W2b-2: the Log's dock and the
 > rest page now share one copy of their rest controls (saving a picked
 > length, starting a rest by hand, the battery tip, the coach's hint)

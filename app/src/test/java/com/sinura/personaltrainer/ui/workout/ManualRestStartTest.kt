@@ -132,7 +132,8 @@ class ManualRestStartTest {
         vm.startSelectedRest()
         withTimeout(5_000) { entered.await() }
         assertTrue(deps.restTimerStore.current().running)
-        vm.skipRest()
+        // The page's Skip names the running rest it shows (W2b-3).
+        vm.skipRest(vm.uiState.awaitFirst { it.rest.running }.rest.timerId)
         writeGate!!.complete(Unit)
         deps.preferencesRepository.restAlarmEligible.awaitFirst { it }
         assertFalse(deps.restTimerStore.current().running)

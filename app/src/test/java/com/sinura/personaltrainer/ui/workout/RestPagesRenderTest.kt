@@ -4,8 +4,12 @@ import android.app.Application
 import android.content.Context
 import android.view.HapticFeedbackConstants
 import android.view.View
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -45,7 +49,8 @@ import org.robolectric.annotation.GraphicsMode
  * (design audit D11, W1b). Each used to spell its own ("−15s" and "Subtract 15 seconds" on
  * the page; "−15s", Skip, "+15s" with nothing for TalkBack on the lock screen), and no JVM
  * test composed either page. The page also names the planned length the card's way, "Planned
- * rest · 2:00" apart from the time left, and says it without the dot.
+ * rest · 2:00" apart from the time left, and says it without the dot. Each page's Skip names the
+ * rest it drew (W2b-3); what that name does is RestPageSkipTest's and RestLockSkipTest's.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -151,6 +156,61 @@ class RestPagesRenderTest {
         compose.onNodeWithTag(RestFloorTags.SKIP).assertDoesNotExist()
         compose.onNodeWithTag(RestFloorTags.START).performClick()
         assertEquals(1, starts)
+    }
+
+    @Test
+    fun theRestPagesSkipNamesTheRestItDraws() {
+        val named = mutableListOf<String>()
+        var rest by mutableStateOf(RestTimerUiState(remainingSeconds = 92, totalSeconds = 120, running = true, timerId = "rest-a"))
+        compose.showFloor {
+            RestFloorBody(
+                rest = rest,
+                floor = RestFloorContext(exerciseName = "Leg extension", lastSetLine = null, sessionTargetLine = null),
+                onSkip = { named += it },
+                onAdjust = {},
+                onSelectPreset = {},
+                onCustom = { true },
+                onStart = {},
+                onAcknowledgeBattery = {},
+                onBackToBar = {},
+            )
+        }
+        compose.onNodeWithTag(RestFloorTags.SKIP).performClick()
+        rest = rest.copy(timerId = "rest-b")
+        compose.onNodeWithTag(RestFloorTags.SKIP).performClick()
+        assertEquals(listOf("rest-a", "rest-b"), named)
+    }
+
+    @Test
+    fun theLockScreensSkipNamesTheRestItDrewNotOneThatReplacedIt() {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val controller = RestTimerController(context, RestTimerStore())
+        val named = mutableListOf<String>()
+        try {
+            controller.start(120, "session-1")
+            val drawn = controller.snapshot.value.timerId
+            compose.showFloor {
+                RestLockScreen(
+                    controller = controller,
+                    finishedLaunch = false,
+                    onSkip = { named += it },
+                    onAdjust = {},
+                    onClose = {},
+                    onBackToBar = {},
+                )
+            }
+            val click = compose.onNodeWithTag(RestLockTags.SKIP).fetchSemanticsNode()
+                .config[SemanticsActions.OnClick].action
+            // A +15 lands under a new id before the glance redraws; the tap was on the rest drawn.
+            controller.adjust(15)
+            checkNotNull(click).invoke()
+            assertEquals(listOf(drawn), named)
+            // Redrawn, the Skip names the +15.
+            compose.onNodeWithTag(RestLockTags.SKIP).performClick()
+            assertEquals(listOf(drawn, controller.snapshot.value.timerId), named)
+        } finally {
+            controller.stop()
+        }
     }
 
     @Test

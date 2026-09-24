@@ -78,6 +78,14 @@ class RestTimerController(
 
     @Volatile
     internal var afterPersistNumberTaken: (() -> Unit)? = null
+
+    /**
+     * Test seam: runs on the calling thread inside [skipIfShown], after the rest on screen is
+     * found running and before it is cleared, where a finish on another thread can land. Null in
+     * production.
+     */
+    @Volatile
+    internal var betweenSkipReadAndClear: (() -> Unit)? = null
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
 
     /**
@@ -155,17 +163,24 @@ class RestTimerController(
     }
 
     /**
-     * Ends the rest a notification card showed as [timerId], or the ±15 of it that has replaced
-     * it since: to the owner a ±15 is the same rest under a new id. A newer rest (the next
-     * set's) keeps running, and a rest that finished first keeps its "rest done". Nothing
-     * running is left alone: whoever emptied the store already dropped the wakeup and the row.
+     * Ends the rest a surface showed as [timerId] (the notification card, the lock glance, the
+     * rest page), or the ±15 of it that has replaced it since: to the owner a ±15 is the same
+     * rest under a new id. A newer rest (the next set's) keeps running, and a rest that finished
+     * first keeps its "rest done". Nothing running is left alone: whoever emptied the store
+     * already dropped the wakeup and the row.
      */
-    fun skipIfShown(timerId: String, fromService: Boolean): Boolean {
+    override fun skipIfShown(timerId: String, fromService: Boolean): Boolean {
         while (true) {
             val current = store.current()
             if (!current.running || !store.isSameRest(timerId, current.timerId)) return false
-            if (stopIfCurrent(current.timerId, fromService)) return true
-            // A ±15, a finish or a start landed between the read and the clear: look again.
+            betweenSkipReadAndClear?.invoke()
+            // A ±15 or a start that landed after the read replaced it: look again.
+            val cleared = store.clearIfCurrent(current.timerId) ?: continue
+            // A finish or a stop that landed after the read emptied the store first. Nothing of
+            // ours is left to end, and from the app a halt here would take the done card with it.
+            if (!cleared.running) return false
+            afterHalt(wasRunning = true, fromService = fromService, timerId = cleared.timerId)
+            return true
         }
     }
 

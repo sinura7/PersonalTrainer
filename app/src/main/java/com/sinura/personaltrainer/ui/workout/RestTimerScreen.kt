@@ -160,7 +160,7 @@ fun RestTimerScreen(
 internal fun RestFloorBody(
     rest: RestTimerUiState,
     floor: RestFloorContext,
-    onSkip: () -> Unit,
+    onSkip: (shownTimerId: String) -> Unit,
     onAdjust: (Int) -> Unit,
     onSelectPreset: (Int) -> Unit,
     onCustom: (String) -> Boolean,
@@ -249,9 +249,10 @@ internal fun RestFloorBody(
             // The actions stay within reach; the context above owns any required scrolling.
             Column(modifier = Modifier.fillMaxWidth().padding(vertical = Metrics.space4)) {
                 when {
-                    // The dock card's three, in its order and words.
+                    // The dock card's three, in its order and words. Skip names the rest drawn
+                    // here, not whatever runs when the tap is read (W2b-3).
                     rest.running -> RestNudgeButtons(
-                        onNudge = onAdjust, onSkip = onSkip,
+                        onNudge = onAdjust, onSkip = { onSkip(rest.timerId) },
                         minusTag = RestFloorTags.MINUS, plusTag = RestFloorTags.PLUS, skipTag = RestFloorTags.SKIP,
                         perRow = if (largeText) 2 else 3,
                     )

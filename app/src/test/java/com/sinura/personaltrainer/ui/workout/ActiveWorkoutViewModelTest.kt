@@ -1469,6 +1469,29 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun theDocksSkipStillEndsWhateverRunsAndTakesRestDoneWithIt() = runBlocking {
+        // W2b-3 (24 September 2026) made the lock glance's and the rest page's Skip name the rest
+        // they show. The dock's was left as it was, a separate owner yes/no (ADR-012): it stops
+        // whatever runs, a rest it never showed included, and a "rest done" that landed as it
+        // was tapped goes with it. Pinned so that changes only on purpose, not endorsed.
+        val fixture = seedWorkout()
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        val rest = deps.restTimerController
+
+        rest.start(90, fixture.session.id)
+        val finished = deps.restTimerStore.current().timerId
+        assertTrue(rest.completeIfCurrent(finished))
+        vm.skipRest()
+        assertNull("the dock's Skip still clears rest done", rest.lastCompletedTimerId.value)
+
+        rest.start(90, fixture.session.id)
+        rest.start(120, fixture.session.id)
+        vm.skipRest()
+        assertFalse("the dock's Skip still ends whatever runs", deps.restTimerStore.current().running)
+    }
+
+    @Test
     fun startingRestMarksExactAlarmPromptEligible() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)

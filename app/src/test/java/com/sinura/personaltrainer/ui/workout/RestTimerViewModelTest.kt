@@ -115,7 +115,7 @@ class RestTimerViewModelTest {
         assertEquals(fixture.session.id, rest.sessionId)
         assertEquals(150, rest.totalSeconds)
 
-        vm.skipRest()
+        vm.skipTheRestItShows()
         assertFalse(deps.restTimerStore.current().running)
     }
 
@@ -143,7 +143,7 @@ class RestTimerViewModelTest {
         assertTrue(state.rest.running)
         assertEquals(fixture.session.id, deps.restTimerStore.current().sessionId)
 
-        floor.skipRest()
+        floor.skipTheRestItShows()
         assertFalse(deps.restTimerStore.current().running)
     }
 
@@ -173,7 +173,7 @@ class RestTimerViewModelTest {
         awaitRestRunning()
         vm.adjustRest(15)
         assertTrue(deps.restTimerStore.current().totalSeconds >= 90)
-        vm.skipRest()
+        vm.skipTheRestItShows()
         assertFalse(deps.restTimerStore.current().running)
     }
 
@@ -262,7 +262,7 @@ class RestTimerViewModelTest {
         val running = floor.awaitState { it.rest.running }
         assertEquals("a running rest shows its own length", 150, running.rest.totalSeconds)
 
-        floor.skipRest()
+        floor.skipTheRestItShows()
         val idle = floor.awaitState { !it.rest.running }
         assertEquals("once it ends, the page names the pick", 105, idle.rest.totalSeconds)
     }
@@ -458,6 +458,11 @@ class RestTimerViewModelTest {
         predicate: (RestTimerScreenState) -> Boolean,
     ): RestTimerScreenState = withTimeout(TestWaits.FLOW_MS) {
         uiState.first(predicate)
+    }
+
+    /** The page's Skip as the page taps it: it names the running rest the page shows (W2b-3). */
+    private suspend fun RestTimerViewModel.skipTheRestItShows() {
+        skipRest(awaitState { it.rest.running }.rest.timerId)
     }
 
     private suspend fun ActiveWorkoutViewModel.awaitState(

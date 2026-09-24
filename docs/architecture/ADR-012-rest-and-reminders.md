@@ -16,8 +16,9 @@
   does not say "Rest done" (owner decisions; see Consequences); the same
   day, W2b-1c: no call cancels another's disk job, and a SYNC is owed until
   one is sent; W2b-1d: the notification's Skip names its rest (see
-  Consequences); and W2b-2: decision 18 says what the dock and the rest
-  page show, which the code already did
+  Consequences); W2b-2: decision 18 says what the dock and the rest
+  page show, which the code already did; and W2b-3: the lock glance's and
+  the rest page's Skip name their rest too (see Consequences)
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -152,8 +153,20 @@ day. The agreed product asks once, then adapts only if the user says so.
   alarm for the old deadline cannot end it, and the store remembers which
   rest each id began as, so a Skip tapped as a ±15 lands still ends it. A
   card built before Skip named its rest ends the rest running when the
-  service reads it. The lock glance's Skip and the app's own Skip still
-  end whatever runs. Left as
+  service reads it. Until W2b-3 the lock glance's Skip and the app's own
+  Skip ended whatever ran. *Amended 24 September 2026 (W2b-3, owner decision):*
+  the lock glance's and the rest page's Skip now name their rest, as the
+  notification's does. Each hands over the id of the rest it drew, read as
+  it was drawn, not the rest running when the tap is handled, and the same
+  named skip ends it or its ±15. A rest that ran out as Skip was tapped
+  keeps its "rest done": the glance stays and shows "Back to the bar", and
+  the page shows "Rest complete". A newer rest keeps running, and the
+  glance or the page moves to it. The skip ends a rest only if it cleared
+  one that still ran: a finish that empties the store between its read and
+  its clear leaves it nothing to end, so it reports that and the glance
+  stays on "Back to the bar"
+  (`RestTimerControllerTest.aFinishLandingInsideAnInAppSkipKeepsTheRestDone`). The dock's
+  Skip still ends whatever runs (owner decision pending). Left as
   they are: a skipped rest whose row clear fails twice, followed by the
   process dying before any recovery, can still announce after the next
   start, as before.
