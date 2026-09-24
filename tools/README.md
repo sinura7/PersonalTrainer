@@ -304,6 +304,12 @@ Floors are a ratchet. Raise them when a packet adds tests. Do not lower a floor
 to hide a regression. Generated Room/Compose/R/BuildConfig classes are excluded
 by the `jacocoTestReport` task.
 
+Classes a Robolectric test loads are counted: the test tasks set JaCoCo's
+`isIncludeNoLocationClasses`, limited to the app's own package. Without it they
+counted as never run, and the floors measured the class loader rather than the
+tests. The floors were re-based on the counted numbers on 24 September 2026
+(audit X5); `coverage-floors.txt` records how.
+
 ## `verify.sh`
 
 One local verification command for a foundation-program packet:

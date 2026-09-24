@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 24 Sep 2026 — Whole-app audit packet X5 (owner decision of 24
+> September): the local coverage check now counts the code the JVM tests
+> reach through Robolectric. It had been leaving that code out, so the
+> timer and workout floors failed on a measuring fault, not on missing
+> tests (timer now reads 74.7 %, workout 86.8 %). The floors are re-based
+> just under the true numbers. Tooling only; nothing in the app changes.
+>
 > 24 Sep 2026 — Whole-app audit packet W2a: about 1,600 lines of app
 > code that nothing used are gone (the history set sheet's unused compact
 > entry, unused components and ViewModel functions, test-only constants,
