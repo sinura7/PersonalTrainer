@@ -130,8 +130,26 @@ class RestTimerService : Service() {
         ensureForegroundClaimed()
 
         when (intent.action) {
-            ACTION_STOP, ACTION_SKIP -> {
-                controller.stop(fromService = true)
+            ACTION_STOP -> {
+                // The controller names the rest it stopped. A rest started after that STOP
+                // was sent is a different one, and a late STOP must not end it.
+                val stoppedTimerId = intent.getStringExtra(EXTRA_TIMER_ID)
+                val ended = if (stoppedTimerId == null) {
+                    controller.stop(fromService = true)
+                    true
+                } else {
+                    controller.stopIfCurrent(stoppedTimerId, fromService = true)
+                }
+                if (ended) {
+                    stopNow()
+                    return START_NOT_STICKY
+                }
+                syncForeground()
+            }
+            ACTION_SKIP -> {
+                // Skip on a card still on screen after its rest finished: nothing is running to
+                // skip, and stop() would turn that "rest done" into a skip.
+                if (controller.snapshot.value.running) controller.stop(fromService = true)
                 stopNow()
                 return START_NOT_STICKY
             }

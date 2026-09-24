@@ -54,7 +54,7 @@ Done so far:
 - **T1a, T1b, T1c-1:** workout tests hold rendered behaviour, not source text;
   T1c-1 took the undo, log bar, toolbar, landscape and clock pins, keeping
   every ban and scanning both workout packages, so W2d's moves cannot empty
-  them. T1c-2 has the last eleven files.
+  them (#404). T1c-2 has the last eleven files.
 - **W1a, W1b, R0:** the lift switch, effort and planned-rest wording, the
   routine picker's second tap (drops 101, 102).
 - **X3:** the retired emulator goldens left the hosted lane.
@@ -74,19 +74,26 @@ Done so far:
   schema bump (S2b's v8) has a rollback copy (#402).
 - **W2b-1:** the rest timer's ±15 s and its finish can no longer undo each
   other across threads (ADR-012 decision 1); a late ±15 on a finished rest
-  does nothing, so "rest done" never turns into a skip.
+  does nothing, so "rest done" never turns into a skip (#403).
+- **W2b-1b:** a stop names the rest it is for, so a late one cannot end the
+  next set's rest; while the app that skipped it is still running, a
+  skipped rest never says "Rest done" and a recovery never brings it back;
+  a Skip on a card left on screen after its rest finished leaves it done
+  (ADR-012).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
 - **Owner decisions, 24 September:** fix two rare rest-timer glitches the
   W2b-1 review found (a stop that is not for the running rest; "Rest done"
-  after a Skip) as W2b-1b; the rest-length sheet honours the phone's reduce
-  motion setting (with W2a).
+  after a Skip) as W2b-1b, with two more the review found (a Skip on a
+  finished card; a skipped rest brought back); a finish that could cancel a
+  new rest's save is W2b-1c, straight after; the rest-length sheet honours
+  the phone's reduce motion setting (with W2a).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): W2b-1b, T1c-2, W2a,
+live order is the table in FRONTEND_REDESIGN.md): W2b-1c, T1c-2, W2a,
 W2b-2, W2c, W2d, then a check-only phone drop, then W3. X2b completed
 Wave 0.
 

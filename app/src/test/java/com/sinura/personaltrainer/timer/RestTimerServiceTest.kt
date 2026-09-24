@@ -14,6 +14,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -95,6 +96,166 @@ class RestTimerServiceTest {
             manager.activeNotifications.firstOrNull { it.id == RestTimerNotifications.DONE_ID },
         )
         controller.destroy()
+    }
+
+    @Test
+    fun aStopSentForAnEarlierRestLeavesTheNewOneRunning() {
+        // Skip, then a new rest (the next set's auto-rest) before the service reads the Skip's
+        // STOP. The STOP names the skipped rest, so the new one keeps running.
+        val store = app.container.restTimerStore
+        val rest = app.container.restTimerController
+        rest.start(90, "session-1")
+        val skipped = store.current().timerId
+        rest.stop()
+        rest.start(120, "session-1")
+        val next = store.current().timerId
+
+        val lateStop = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_STOP)
+            .putExtra(RestTimerService.EXTRA_TIMER_ID, skipped)
+        val controller = Robolectric.buildService(RestTimerService::class.java, lateStop)
+        val service = controller.create().startCommand(0, 1).get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue(store.current().running)
+        assertEquals(next, store.current().timerId)
+        assertFalse(shadowOf(service).isStoppedBySelf)
+        val manager = app.getSystemService(NotificationManager::class.java)
+        assertNotNull(
+            manager.activeNotifications.firstOrNull { it.id == RestTimerNotifications.RUNNING_ID },
+        )
+        controller.destroy()
+    }
+
+    @Test
+    fun aStopForTheRestItNamesStopsTheService() {
+        val store = app.container.restTimerStore
+        val rest = app.container.restTimerController
+        rest.start(90, "session-1")
+        val skipped = store.current().timerId
+        rest.stop()
+
+        val stop = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_STOP)
+            .putExtra(RestTimerService.EXTRA_TIMER_ID, skipped)
+        val controller = Robolectric.buildService(RestTimerService::class.java, stop)
+        val service = controller.create().startCommand(0, 1).get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertFalse(store.current().running)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        controller.destroy()
+    }
+
+    @Test
+    fun aStopThatNamesNoRestEndsWhateverRuns() {
+        // The form every STOP had before W2b-1b; the service still honours it.
+        val store = app.container.restTimerStore
+        app.container.restTimerController.start(90, "session-1")
+
+        val stop = Intent(app, RestTimerService::class.java).setAction(RestTimerService.ACTION_STOP)
+        val controller = Robolectric.buildService(RestTimerService::class.java, stop)
+        val service = controller.create().startCommand(0, 1).get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertFalse(store.current().running)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        controller.destroy()
+    }
+
+    @Test
+    fun aLateStopAfterTheNextRestFinishedKeepsItsRestDone() {
+        val store = app.container.restTimerStore
+        val rest = app.container.restTimerController
+        rest.start(90, "session-1")
+        val skipped = store.current().timerId
+        rest.stop()
+        rest.start(60, "session-1")
+        val next = store.current()
+        runBlocking {
+            assertTrue(
+                RestTimerCompletion.completeOnce(
+                    context = app,
+                    incomingTimerId = next.timerId,
+                    expectedTimerId = next.timerId,
+                    deadlineElapsedRealtime = next.endsAtElapsedRealtime,
+                    sessionId = "session-1",
+                    nowElapsedRealtime = next.endsAtElapsedRealtime + 1L,
+                    playCue = false,
+                ),
+            )
+        }
+
+        val lateStop = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_STOP)
+            .putExtra(RestTimerService.EXTRA_TIMER_ID, skipped)
+        val controller = Robolectric.buildService(RestTimerService::class.java, lateStop)
+        val service = controller.create().startCommand(0, 1).get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals("the next rest stays finished", next.timerId, rest.lastCompletedTimerId.value)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        controller.destroy()
+    }
+
+    @Test
+    fun aSkipOnACardLeftAfterItsRestFinishedKeepsItDone() {
+        // Some phones keep the running card a beat after the rest ends; a Skip tapped on it
+        // must not turn "rest done" into a skip.
+        val store = app.container.restTimerStore
+        val rest = app.container.restTimerController
+        rest.start(90, "session-1")
+        val finished = store.current()
+        runBlocking {
+            assertTrue(
+                RestTimerCompletion.completeOnce(
+                    context = app,
+                    incomingTimerId = finished.timerId,
+                    expectedTimerId = finished.timerId,
+                    deadlineElapsedRealtime = finished.endsAtElapsedRealtime,
+                    sessionId = "session-1",
+                    nowElapsedRealtime = finished.endsAtElapsedRealtime + 1L,
+                    playCue = false,
+                ),
+            )
+        }
+
+        val skip = Intent(app, RestTimerService::class.java).setAction(RestTimerService.ACTION_SKIP)
+        val controller = Robolectric.buildService(RestTimerService::class.java, skip)
+        val service = controller.create().startCommand(0, 1).get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals("still done, not skipped", finished.timerId, rest.lastCompletedTimerId.value)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        controller.destroy()
+    }
+
+    @Test
+    fun anAlarmAlreadyOnItsWayAfterASkipPostsNoRestDone() {
+        // The receiver found the skipped rest's disk row before the Skip's clear landed.
+        val store = app.container.restTimerStore
+        val rest = app.container.restTimerController
+        rest.start(90, "session-1")
+        val skipped = store.current()
+        rest.stop()
+
+        runBlocking {
+            val claimed = RestTimerCompletion.completeOnce(
+                context = app,
+                incomingTimerId = skipped.timerId,
+                expectedTimerId = skipped.timerId,
+                deadlineElapsedRealtime = skipped.endsAtElapsedRealtime,
+                sessionId = "session-1",
+                nowElapsedRealtime = skipped.endsAtElapsedRealtime + 1_000L,
+                playCue = false,
+            )
+            assertFalse(claimed)
+        }
+        shadowOf(Looper.getMainLooper()).idle()
+
+        val manager = app.getSystemService(NotificationManager::class.java)
+        assertTrue(manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID })
+        assertNull(rest.lastCompletedTimerId.value)
     }
 
     @Test
@@ -327,6 +488,9 @@ class RestTimerServiceTest {
         val service = controller.create().startCommand(0, 1).get()
         val looper = shadowOf(Looper.getMainLooper())
         looper.idle()
+        // The real read lands on its own thread. Let it land first, or it can overwrite the
+        // "not landed yet" this test stages and tick during the silent stretch below.
+        awaitTickPreferences(service, looper, enabled = true)
 
         service.tickPreferences = null
         looper.idleFor(Duration.ofSeconds(26))

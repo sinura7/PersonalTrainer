@@ -52,8 +52,44 @@ class RestTimerStoreTest {
         val running = store.adjust(15, nowElapsedRealtime = 0L)
         assertTrue(running is RestAdjustment.Running)
         assertEquals(store.current(), (running as RestAdjustment.Running).snapshot)
-        assertEquals(RestAdjustment.Ended, store.adjust(-500, nowElapsedRealtime = 0L))
+        val ending = store.current().timerId
+        assertEquals(RestAdjustment.Ended(ending), store.adjust(-500, nowElapsedRealtime = 0L))
         assertFalse(store.current().running)
+    }
+
+    @Test
+    fun theStoreRemembersTheRestsItHeldAndNotOnesItNeverSaw() {
+        // An empty store that held a rest was emptied by a Skip, a stop or a -15 to zero; one
+        // that never saw it is a process started after death, where the rest ran out on its own.
+        val store = RestTimerStore(ids = sequentialIds())
+        store.start(60, "s", nowElapsedRealtime = 0L)
+        store.adjust(15, nowElapsedRealtime = 1_000L)
+        store.restore(
+            endsAtElapsedRealtime = 90_000L,
+            totalSeconds = 90,
+            sessionId = "s",
+            nowElapsedRealtime = 1_000L,
+            timerId = "timer-from-disk",
+        )
+        store.clear()
+
+        assertTrue("started", store.hasHeld("timer-1"))
+        assertTrue("minted by the +15", store.hasHeld("timer-2"))
+        assertTrue("restored from disk", store.hasHeld("timer-from-disk"))
+        assertFalse(store.hasHeld("timer-never-here"))
+        assertFalse("a new process has held nothing", RestTimerStore(ids = sequentialIds()).hasHeld("timer-1"))
+    }
+
+    @Test
+    fun theStoreForgetsTheOldestRestPastItsMemory() {
+        val store = RestTimerStore(ids = sequentialIds())
+        repeat(RestTimerStore.HELD_MEMORY) { store.start(60, "s", nowElapsedRealtime = 0L) }
+        assertTrue("a full memory still holds the first", store.hasHeld("timer-1"))
+
+        store.start(60, "s", nowElapsedRealtime = 0L)
+
+        assertFalse("one more and the first is forgotten", store.hasHeld("timer-1"))
+        assertTrue(store.hasHeld("timer-${RestTimerStore.HELD_MEMORY + 1}"))
     }
 
     private fun sequentialIds(): IdFactory {
