@@ -7,12 +7,6 @@ package com.sinura.personaltrainer.domain
  * TalkBack pass hears which row is armed, and Delete is a word in Danger — never red alone.
  */
 object SetRowCopy {
-    fun actionsForSet(setNumber: Int): String = "Actions for set $setNumber"
-
-    fun reviseSet(setNumber: Int): String = "Revise set $setNumber"
-
-    fun deleteSet(setNumber: Int): String = "Delete set $setNumber"
-
     /** The floor's chips carry a derived ordinal (`Set 1 of 4`, `WU 1`, `Extra 1`); the menu says the same. */
     fun actionsFor(ordinal: String): String = "Actions for $ordinal"
 

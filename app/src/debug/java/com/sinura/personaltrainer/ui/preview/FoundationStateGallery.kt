@@ -67,7 +67,7 @@ fun FoundationStateGallery(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(4.dp)
+                        .height(Metrics.space1)
                         .background(accent),
                 )
             }

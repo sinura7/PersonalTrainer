@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,6 +59,7 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
 
 object SessionDetailTestTags {
     const val CONTENT = "session-detail-content"
@@ -148,7 +147,7 @@ fun SessionDetailScreen(
                                 modifier = Modifier.testTag(SessionDetailTestTags.OPTIONS),
                             ) {
                                 Icon(
-                                    Icons.Outlined.MoreVert,
+                                    OutlinedMarks.MoreVert,
                                     contentDescription = "Session options",
                                     tint = TextSecondary,
                                 )

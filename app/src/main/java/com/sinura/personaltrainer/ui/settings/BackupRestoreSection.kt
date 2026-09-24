@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -50,6 +48,7 @@ import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.util.JvmTime
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
 
 /**
  * Backup, with the hierarchy the right way round.
@@ -318,7 +317,7 @@ internal fun SafetyCopyRow(
             Box {
                 IconButton(onClick = { menuOpen = true }, enabled = enabled) {
                     Icon(
-                        Icons.Outlined.MoreVert,
+                        OutlinedMarks.MoreVert,
                         contentDescription = "Safety copy options",
                         tint = if (enabled) TextSecondary else TextDisabled,
                     )

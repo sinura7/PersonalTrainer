@@ -10,13 +10,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -32,6 +30,7 @@ import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
+import com.sinura.personaltrainer.ui.theme.Radius
 
 /**
  * One logged set, ready for the shared table.
@@ -45,15 +44,12 @@ data class SetTableLine(
     val line: String,
     val extras: String,
     val isWarmup: Boolean,
-    val isLatest: Boolean = false,
 ) {
     companion object {
         fun fromLog(
             set: SetLog,
             loadClass: LoadClass,
             unit: WeightUnit,
-            isLatest: Boolean = false,
-            ordinal: String? = null,
         ): SetTableLine = SetTableLine(
             id = set.id,
             number = set.setNumber,
@@ -64,18 +60,14 @@ data class SetTableLine(
                 unit,
                 durationSeconds = set.durationSeconds,
             ),
-            extras = buildString {
-                append(SetCopy.tableExtras(ordinal ?: "Set ${set.setNumber}", set.rpe))
-                if (isLatest) append(" · Latest")
-            },
+            extras = SetCopy.tableExtras("Set ${set.setNumber}", set.rpe),
             isWarmup = set.isWarmup,
-            isLatest = isLatest,
         )
     }
 }
 
 /**
- * The one set history. Latest wears a Volt rail. Warm-up wears a cyan
+ * The one set history. Warm-up wears a cyan
  * tick. Trailing is a slot so the floor can offer Revise/Remove and a
  * finished session can offer Edit without a second table.
  */
@@ -127,7 +119,6 @@ private fun SetTableRow(
                 contentDescription = when {
                     onSelect == null -> "${row.extras}, ${row.line}"
                     isSelected -> "${row.extras}, ${row.line}, selected. Revise or Remove."
-                    row.isLatest -> "${row.extras}, ${row.line}, Latest. Tap to revise or remove."
                     else -> "${row.extras}, ${row.line}. Tap to revise or remove."
                 }
             }
@@ -141,17 +132,15 @@ private fun SetTableRow(
             .padding(end = Metrics.space2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(width = LATEST_RULE_WIDTH, height = LATEST_RULE_HEIGHT)
-                .background(if (row.isLatest) Volt else Color.Transparent),
-        )
+        // The column a Volt "latest" rule once filled; nothing draws in it, and it keeps each
+        // row's indent and height.
+        Box(modifier = Modifier.size(width = ROW_RULE_WIDTH, height = ROW_RULE_HEIGHT))
         if (row.isWarmup) {
             Box(
                 modifier = Modifier
                     .padding(start = Metrics.space2)
                     .size(WARMUP_TICK)
-                    .clip(CircleShape)
+                    .clip(Radius.full)
                     .background(RestCyan)
                     .semantics { contentDescription = "Warm-up" },
             )
@@ -181,6 +170,6 @@ private fun SetTableRow(
     }
 }
 
-private val LATEST_RULE_WIDTH = 3.dp
-private val LATEST_RULE_HEIGHT = 44.dp
+private val ROW_RULE_WIDTH = 3.dp
+private val ROW_RULE_HEIGHT = 44.dp
 private val WARMUP_TICK = 6.dp

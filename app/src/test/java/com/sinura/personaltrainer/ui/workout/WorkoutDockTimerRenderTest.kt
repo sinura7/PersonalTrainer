@@ -380,14 +380,6 @@ class WorkoutDockTimerRenderTest {
     }
 
     @Test
-    fun theExactAlarmCaveatStaysOffTheFloor() {
-        // The rest page says an alarm may be late; the floor's dock never does.
-        showDock(restRunning().copy(exactBestEffort = true))
-        compose.onAllNodesWithText(RestHonestyCopy.EXACT_DENIED).assertCountEquals(0)
-        compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
-    }
-
-    @Test
     fun theCompanionSlotGoesToTheMostUrgentThing() {
         showDock(restAt().copy(notificationsEnabled = false), error = "Could not save")
         dockState = dockState.copy(undoMessage = "Set deleted", undoKey = "Set deleted", editing = true, suggestionUnavailable = true)

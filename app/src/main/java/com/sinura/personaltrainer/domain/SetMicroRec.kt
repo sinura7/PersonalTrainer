@@ -532,15 +532,6 @@ object SetMicroRecCopy {
     fun numbers(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String =
         SetCopy.setLine(rec.nextWeightKg, rec.nextReps, loadClass, unit)
 
-    /**
-     * Collapsed strip: `HOLD · 100 kg × 6`. Kicker never travels alone.
-     */
-    fun collapsed(rec: SetMicroRec, loadClass: LoadClass, unit: WeightUnit): String {
-        val numbers = numbers(rec, loadClass, unit)
-        val kicker = kicker(rec, loadClass, unit)
-        return if (kicker != null) "$kicker · $numbers" else line(rec, loadClass, unit)
-    }
-
     fun visibleOnEntry(rec: SetMicroRec): Boolean =
         rec.reasonCode != SetMicroRecCalculator.LIFT_DONE &&
             rec.reasonCode != SetMicroRecCalculator.EDITING
@@ -659,26 +650,13 @@ object SetMicroRecCopy {
 
 /**
  * The three floor verbs for what to do with the load: hold it, add the
- * plate step, or back off. Sourced from [ProgressionHint] / the in-set
- * rec, which already ran [RpeModifier].
+ * plate step, or back off. Sourced from the in-set rec, which already ran
+ * [RpeModifier].
  */
 object ProgressionKickerCopy {
     const val HOLD = "HOLD"
     const val BACK_OFF = "BACK OFF"
     const val PLUS_REP = "+1"
-
-    fun fromHint(hint: ProgressionHint, unit: WeightUnit): String =
-        when (hint.action) {
-            ProgressionAction.HOLD ->
-                if (hint.suggestedReps > hint.lastReps) PLUS_REP else HOLD
-            ProgressionAction.DECREASE -> BACK_OFF
-            ProgressionAction.INCREASE -> plusLabel(
-                loadClass = LoadClass.of(hint.loadType),
-                unit = unit,
-                equipment = hint.equipment,
-                loadType = hint.loadType,
-            )
-        }
 
     private val HOLD_CODES = setOf(
         SetMicroRecCalculator.RPE_HOLD,

@@ -179,8 +179,8 @@ class LandscapeChromeRenderTest {
     }
 
     /**
-     * Header and dock together leave the scrolling floor room to log in: the 96 dp LandscapeChrome
-     * budgeted for it (`LOG_MIN_DP`), which a chrome that grew would eat.
+     * Header and dock together leave the scrolling floor room to log in: the 96 dp the landscape
+     * layout was budgeted to leave it, which a chrome that grew would eat.
      */
     private fun assertTheFloorKeepsRoom() {
         val floor = compose.onNodeWithTag(WorkoutTestTags.CONTENT).getBoundsInRoot()

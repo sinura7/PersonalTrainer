@@ -109,15 +109,17 @@ class WorkoutHeaderRowRenderTest {
         // The bar is the same numbers as shape: nothing under it is read, and it says nothing.
         val bar = compose.onNodeWithTag(WorkoutTestTags.PROGRESS_BAR, useUnmergedTree = true).fetchSemanticsNode()
         assertTrue("the bar clears whatever is drawn under it", bar.config.isClearingSemantics)
-        // Nothing a reader would say: no words, no state, no progress of its own. (A shape the
-        // bar is clipped to may publish a key of its own; that says nothing.)
+        // Nothing a reader would say: the bar carries its test tag and nothing else (no words,
+        // role, heading, live region, state or progress). A shape the bar is clipped to may
+        // publish a key of its own; that says nothing and is set aside.
+        val keys = bar.config.map { it.key }.filterNot { it == SemanticsProperties.Shape }
+        assertEquals("the bar says nothing", listOf(SemanticsProperties.TestTag.name), keys.map { it.name })
         val said = listOf(
             SemanticsProperties.Text,
             SemanticsProperties.ContentDescription,
             SemanticsProperties.StateDescription,
             SemanticsProperties.ProgressBarRangeInfo,
         )
-        assertTrue("the bar says nothing, carried ${bar.config.map { it.key.name }}", said.none { bar.config.contains(it) })
         assertTrue("nothing drawn in the bar says anything", bar.children.none { segment -> said.any { segment.config.contains(it) } })
         val lineBounds = line.fetchSemanticsNode().boundsInRoot
         assertTrue("the words sit above the bar", lineBounds.bottom <= bar.boundsInRoot.top)

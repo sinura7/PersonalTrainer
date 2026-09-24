@@ -48,8 +48,8 @@ class FloorCompactPresentationTest {
         assertFalse("effort left the dock for its own row", dock.contains("RpeCopy"))
         assertFalse(dock.contains("RPE_TRACK"))
         assertFalse(dock.contains("LazyRow("))
-        // The commit is the dock's one filled Volt: DockVoltRenderTest sees it in every
-        // companion state, and this keeps a second filled button out of any state it is not shown.
+        // The commit is the dock's one filled Volt: DockVoltRenderTest sees it in seven dock
+        // states, and this keeps a second filled button out of any state it does not draw.
         assertEquals("one filled Volt in the dock", 1, PRIMARY_BUTTON.findAll(dock).count())
     }
 

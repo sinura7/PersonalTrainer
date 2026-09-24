@@ -11,8 +11,6 @@ import org.junit.Test
 class TalkBackPolicyTest {
     @Test
     fun restKickerIsALiveRegionOnlyWhenFinished() {
-        assertEquals("REST", TalkBackPolicy.restKicker(justFinished = false))
-        assertEquals("Back to the bar", TalkBackPolicy.restKicker(justFinished = true))
         assertFalse(TalkBackPolicy.announceRestKicker(justFinished = false))
         assertTrue(TalkBackPolicy.announceRestKicker(justFinished = true))
         assertTrue(TalkBackPolicy.announceRecordBanner())
@@ -44,10 +42,12 @@ class TalkBackPolicyTest {
 
         val rest = readOwned("ui/components/RestTimerUi.kt")
         assertTrue(rest.contains("role = Role.Button"))
-        assertTrue(rest.contains("LiveRegionMode.Polite"))
-        // ADR-027: the rest clock on the floor is the dock card; it owns the finished-kicker announcement.
+        // ADR-027: the rest clock on the floor is the dock card; it owns the finished-kicker
+        // announcement, a polite live region (rendered: RestTimerCardRenderTest's finish flash).
+        // The bar in RestTimerUi.kt keeps no live region since W2a removed its unused one.
         val restCard = readOwned("ui/workout/RestTimerCard.kt")
         assertTrue(restCard.contains("TalkBackPolicy.announceRestKicker"))
+        assertTrue(restCard.contains("LiveRegionMode.Polite"))
 
         val gymStatus = readOwned("ui/components/GymStatus.kt")
         assertTrue(gymStatus.contains("LiveRegionMode.Polite"))

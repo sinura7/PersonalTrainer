@@ -11,7 +11,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.sinura.personaltrainer.domain.CanonicalMuscle
-import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.HeatEmpty
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Steel
@@ -175,18 +174,6 @@ internal fun isRestFill(color: Color): Boolean =
 
 /** High enough to read as a recolor, low enough that the still's seams survive. */
 internal const val STILL_HEAT_ALPHA = 0.72f
-
-/**
- * Unlit steel figure. [detail] is kept so existing callers do not change; the plates carry
- * the anatomy now, so the old sternum/spine hairlines are gone.
- */
-internal fun DrawScope.drawFigure(view: BodyView, detail: Boolean = true) {
-    drawTemperFigure(
-        view = view,
-        fill = { plate -> if (plate.muscle == null) SteelDim else Steel },
-        edge = if (detail) HairlineStrong else null,
-    )
-}
 
 /** The launcher pose: front torso, one Heat3 plate — the viewer's-right pec. */
 internal fun BodyPlate.isTemperAccent(): Boolean =

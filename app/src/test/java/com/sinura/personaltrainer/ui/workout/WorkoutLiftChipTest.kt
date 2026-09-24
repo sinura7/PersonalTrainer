@@ -1,10 +1,8 @@
 package com.sinura.personaltrainer.ui.workout
 
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
-import com.sinura.personaltrainer.domain.WeightMeaning
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -21,24 +19,13 @@ import org.junit.Test
  */
 class WorkoutLiftChipTest {
     @Test
-    fun liveLiftCardsCarrySetProgressAndARestBadge() {
+    fun theIdentityRepeatsNoSetCountAndTheLoopMapsNoLiftCards() {
         val identity = ownedSource("ui/workout/ExerciseHeader.kt")
         assertFalse(identity.contains("working sets"))
         assertFalse(identity.contains("numeralMd"))
-        val spoken = CurrentLiftCopy.cardSpoken(
-            name = "Leg Curl",
-            number = 2,
-            total = 5,
-            workingLogged = 1,
-            targetSets = 4,
-            equipmentLabel = "Machine",
-            meaning = WeightMeaning.LIFTED,
-        )
-        assertTrue(spoken.contains(CurrentLiftCopy.heroOrdinal(2, 5)))
-        assertTrue(spoken.contains(CurrentLiftCopy.heroProgress(1, 4)))
         // Since W1a the floor shows the ordinal on its switch rather than speaking it on the
-        // identity (ExerciseHeaderRenderTest); the two say the same words.
-        assertEquals(CurrentLiftCopy.heroOrdinal(2, 5), CurrentLiftCopy.switchLabel(2, 5))
+        // identity (ExerciseHeaderRenderTest).
+        assertEquals("Lift 2 of 5", CurrentLiftCopy.switchLabel(2, 5))
         val screen = ownedSource("ui/workout/ActiveWorkoutScreen.kt")
         assertFalse(screen.contains("CurrentLiftCard("))
         assertFalse(

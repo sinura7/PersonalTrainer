@@ -2,7 +2,6 @@ package com.sinura.personaltrainer.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -131,41 +130,6 @@ class FloorStepperTest {
 
     @Test
     fun planLastAndSuggestedAreLabelsNotAnArbitraryChipRow() {
-        assertEquals(
-            WeightDraftSource.SUGGESTED,
-            FloorWeightPresets.source(
-                currentKg = 102.5,
-                plannedKg = 100.0,
-                lastKg = 97.5,
-                suggestedKg = 102.5,
-            ),
-        )
-        assertEquals(
-            WeightDraftSource.PLAN,
-            FloorWeightPresets.source(
-                currentKg = 100.0,
-                plannedKg = 100.0,
-                lastKg = 97.5,
-                suggestedKg = 102.5,
-            ),
-        )
-        assertEquals(
-            WeightDraftSource.LAST_TIME,
-            FloorWeightPresets.source(
-                currentKg = 97.5,
-                plannedKg = 100.0,
-                lastKg = 97.5,
-                suggestedKg = 102.5,
-            ),
-        )
-        assertNull(
-            FloorWeightPresets.source(
-                currentKg = 87.5,
-                plannedKg = 100.0,
-                lastKg = 97.5,
-                suggestedKg = 102.5,
-            ),
-        )
         val chips = FloorWeightPresets.contextActions(
             plannedKg = 100.0,
             lastKg = 97.5,

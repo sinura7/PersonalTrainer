@@ -8,7 +8,9 @@ state_members = 1
 # sharedTest. This counts calls the checker DECLINES to judge, not defects: the defect
 # count is separate and is 0. One more blind spot became visible; none was created.
 # 181 -> 178 on the UX batch-A merge: three mixed call sites became fully named.
-required_args_mixed = 182
+# 182 -> 181 in W2a: NumeralWell's compact branch (its `Kicker(label, asHeading = false)`) went
+# with SetEntryPanel's unused compact path.
+required_args_mixed = 181
 required_args_lambda = 46
 when_exhaustive = 47
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
@@ -20,7 +22,8 @@ when_exhaustive = 47
 # fully-qualified call. The defect count is 0 either way.
 # F1: 18 annotated Compose slots now checked; one isolated test-store factory added.
 # Net reduction from the accepted ceiling of 62. Receiver slots remain out of scope.
-lambda_arity_declined = 47
+# 47 -> 46 in W2a, measured after the dead code went.
+lambda_arity_declined = 46
 # ViewModel-flow `first { }` waits in *ViewModelTest.kt with no withTimeout around
 # them. Each is a wedge, not a failure, when the value it waits for is overwritten
 # (9 Sep 2026, twice). Ratchet down class by class.
@@ -34,18 +37,23 @@ cancellation_swallow = 0
 # preflight. Growth past these numbers still fails closed.
 alpha_copy = 7
 named_color = 2
-rounded_percent = 4
+# 4 -> 0 in W2a: RoundedCornerShape(percent = 50) is Radius.full (TokenIdentityTest).
+rounded_percent = 0
 # Was 11 while the scan counted `import androidx.compose.foundation.shape.CircleShape`
 # alongside every real use, which made the number a function of file layout: splitting one
 # file into nine raised it without changing a call. Imports are skipped now; five
-# actual uses.
-circle = 5
-raw_dp = 20
+# actual uses, 0 since W2a: each is Radius.full, which is CircleShape (TokenIdentityTest).
+circle = 0
+# 20 -> 14 in W2a: the icon vectors' 24 dp is Metrics.icon, the switch's 4 dp inset and a debug
+# gallery bar's 4 dp are Metrics.space1 (TokenIdentityTest). The rest have no honest token.
+raw_dp = 14
 sp_style = 0
 motion = 11
 haptic = 0
 m3_scheme = 0
-stock_icons = 14
+# 14 -> 9 in W2a: five Icons.Outlined.MoreVert are OutlinedMarks.MoreVert, pixel for pixel
+# (MoreVertMarkRenderTest). The nine left: Close ×4, Search, Add ×2, Check ×2.
+stock_icons = 9
 shadow = 0
 defaults_elevation = 1
 stock_component = 1

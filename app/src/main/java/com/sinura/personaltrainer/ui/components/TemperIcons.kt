@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
-import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.ui.theme.Metrics
 
 /**
  * 24dp marks. Tabs and Settings index rows are Allen's 14 Sep 2026 glyphs
@@ -67,18 +67,6 @@ object TemperIcons {
     val Rest: ImageVector
         get() = rest ?: glyph("Rest", TemperGlyphPaths.REST).also { rest = it }
 
-    /** Floor weight well — barbell plates. Replaces the "weight" kicker. */
-    val FloorWeight: ImageVector
-        get() = floorWeight ?: glyph("FloorWeight", TemperGlyphPaths.FLOOR_WEIGHT).also { floorWeight = it }
-
-    /** Floor reps or hold-time well — tally with a crown. */
-    val FloorRepsTime: ImageVector
-        get() = floorRepsTime ?: glyph("FloorRepsTime", TemperGlyphPaths.FLOOR_REPS_TIME).also { floorRepsTime = it }
-
-    /** Floor RPE track — rising effort bars. */
-    val FloorRpe: ImageVector
-        get() = floorRpe ?: glyph("FloorRpe", TemperGlyphPaths.FLOOR_RPE).also { floorRpe = it }
-
     /** Floor rest dock — clock frame. Settings still uses [Rest]. */
     val FloorRest: ImageVector
         get() = floorRest ?: glyph("FloorRest", TemperGlyphPaths.FLOOR_REST).also { floorRest = it }
@@ -134,9 +122,6 @@ object TemperIcons {
     private var reminders: ImageVector? = null
     private var generator: ImageVector? = null
     private var rest: ImageVector? = null
-    private var floorWeight: ImageVector? = null
-    private var floorRepsTime: ImageVector? = null
-    private var floorRpe: ImageVector? = null
     private var floorRest: ImageVector? = null
     private var bodyweight: ImageVector? = null
     private var backup: ImageVector? = null
@@ -170,8 +155,8 @@ private fun ImageVector.Builder.plate(vararg xy: Float) {
 private fun vector(name: String, build: ImageVector.Builder.() -> Unit): ImageVector =
     ImageVector.Builder(
         name = name,
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
+        defaultWidth = Metrics.icon,
+        defaultHeight = Metrics.icon,
         viewportWidth = 24f,
         viewportHeight = 24f,
     ).apply(build).build()

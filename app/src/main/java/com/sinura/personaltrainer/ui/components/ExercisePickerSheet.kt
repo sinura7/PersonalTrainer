@@ -409,7 +409,7 @@ private fun PickerLiftRow(
 
 @Composable
 private fun PickerCartBadge(number: Int) {
-    val badgeShape = RoundedCornerShape(percent = 50)
+    val badgeShape = Radius.full
     Box(
         modifier = Modifier
             .heightIn(min = Metrics.space5)

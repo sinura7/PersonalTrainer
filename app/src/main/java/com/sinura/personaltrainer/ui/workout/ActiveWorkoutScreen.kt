@@ -124,7 +124,6 @@ object WorkoutTestTags {
     const val CURRENT_SET = "workout-current-set"
     const val VIEW_SETS = "workout-view-sets"
     const val SAVED_SETS_SHEET = "workout-saved-sets-sheet"
-    const val SELECTED_LIFT = "workout-selected-lift"
     const val START_REST = "workout-start-rest"
     const val DISCARD = "workout-discard"
     const val DOCK_ADD_LIFT = "workout-dock-add-lift"
@@ -150,7 +149,6 @@ object WorkoutTestTags {
     const val STAT_BEST = "workout-stat-best"
     const val STAT_VOLUME = "workout-stat-volume"
     fun liftCard(exerciseId: String) = "workout-lift-card-$exerciseId"
-    fun liftSets(exerciseId: String) = "workout-lift-sets-$exerciseId"
     fun liftRest(exerciseId: String) = "workout-lift-rest-$exerciseId"
     fun liftSwitcherRow(exerciseId: String) = "workout-lift-switcher-$exerciseId"
     fun setOptions(setId: String) = "workout-set-options-$setId"
@@ -520,7 +518,6 @@ private fun ActiveWorkoutContent(
                                     stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
                                     offerSetClock = offerSetClock,
                                     persistenceHealthy = rest.persistenceHealthy,
-                                    exactBestEffort = rest.exactAlarmBestEffort,
                                     notificationsEnabled = restNotificationsEnabled,
                                 ),
                             ),

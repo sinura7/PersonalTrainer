@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +57,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.Warn
 import com.sinura.personaltrainer.ui.theme.Motion
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
 
 private val RAIL_WIDTH = 3.dp
 private val RAIL_HEIGHT = 24.dp
@@ -215,7 +214,7 @@ fun LiveSessionBar(
                         modifier = Modifier.testTag("live-session-actions"),
                     ) {
                         Icon(
-                            Icons.Outlined.MoreVert,
+                            OutlinedMarks.MoreVert,
                             contentDescription = LiveBarCopy.actionsDescription(state.kind),
                             tint = TextSecondary,
                             modifier = Modifier.size(20.dp),

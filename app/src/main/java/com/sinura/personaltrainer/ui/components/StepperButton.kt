@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,7 +64,6 @@ fun StepperButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    compact: Boolean = false,
     enabled: Boolean = true,
     plateWidth: Dp? = null,
     plateHeight: Dp? = null,
@@ -130,9 +128,7 @@ fun StepperButton(
     val sized = when {
         plateWidth != null && plateHeight != null ->
             modifier.size(width = plateWidth, height = plateHeight)
-        else -> modifier
-            .heightIn(min = if (compact) Metrics.touchMin else Metrics.commit)
-            .then(if (compact) Modifier.widthIn(min = Metrics.touchMin) else Modifier)
+        else -> modifier.heightIn(min = Metrics.commit)
     }
     val press = Modifier.clickable(
         enabled = enabled,
@@ -152,7 +148,7 @@ fun StepperButton(
         .clip(shape)
         .background(background)
         .border(Metrics.hairline, if (emphasis) HairlineStrong else Hairline, shape)
-    val style = (textStyle ?: if (compact) InstrumentType.bodyStrong else InstrumentType.numeralMd)
+    val style = (textStyle ?: InstrumentType.numeralMd)
         .copy(textDirection = TextDirection.Ltr)
     val glyph: @Composable () -> Unit = {
         Text(

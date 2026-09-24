@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
@@ -261,7 +260,7 @@ private fun DayCell(
             Box(
                 modifier = Modifier
                     .size(HEAT_DOT)
-                    .clip(CircleShape)
+                    .clip(Radius.full)
                     .background(
                         if (day.trained) heatColor(trainedHeat(day.intensity)) else Color.Transparent,
                     ),

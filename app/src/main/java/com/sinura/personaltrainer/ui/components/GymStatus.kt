@@ -315,38 +315,6 @@ fun PersonalRecordBanner(
     }
 }
 
-/**
- * Packet F: durable Log success. Polite live region once. Rest is not.
- */
-@Composable
-fun GymReceiptBanner(
-    message: String,
-    onDismissed: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var visible by remember(message) { mutableStateOf(true) }
-    LaunchedEffect(message) {
-        delay(Motion.STATUS_DWELL_MS)
-        visible = false
-        onDismissed()
-    }
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(instrumentTween(Motion.ROW_SETTLE_MS)),
-        exit = fadeOut(instrumentTween(Motion.FAST)),
-        modifier = modifier.semantics {
-            liveRegion = LiveRegionMode.Polite
-        },
-    ) {
-        InstrumentBanner(
-            accent = Volt,
-            container = Surface2,
-            title = message,
-            body = null,
-        )
-    }
-}
-
 /** Tells the lifter something is off with the phone rather than with the workout. */
 @Composable
 fun GymNoticeBanner(

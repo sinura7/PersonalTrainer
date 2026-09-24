@@ -13,8 +13,8 @@ import org.junit.Test
  * "Start next" is shown or spoken anywhere on the floor, with the plan met or not.
  * RestTimerCardRenderTest and WorkoutDockTimerRenderTest hold the card's Start rest.
  *
- * `startNextLift` is read in ActiveWorkoutScreen.kt only: the ViewModel still declares it, with
- * no production caller, until W2a removes it.
+ * `startNextLift` is read in ActiveWorkoutScreen.kt only: W2a removed it from the ViewModel,
+ * where it had no production caller; the bans keep it off the screen.
  */
 class FloorPhoneCheckPresentationTest {
     @Test

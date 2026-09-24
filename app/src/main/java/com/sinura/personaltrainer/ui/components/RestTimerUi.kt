@@ -37,13 +37,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -60,17 +58,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.paneTitle
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
@@ -110,12 +105,14 @@ import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.instrumentTween
 import com.sinura.personaltrainer.ui.theme.instrumentLinear
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
+import com.sinura.personaltrainer.ui.theme.rememberFullSheetState
 
 /**
  * One compact dock instrument: countdown fill behind kicker, time, and
- * mode controls. REST, HOLD, and SET share this geometry. Reserved
- * height is [Metrics.logTimerRow]; font scale may grow the row, extra
- * tracks and honesty captions may not.
+ * Stop when the set can be stopped. HOLD and SET share this geometry
+ * (the rest is the dock's own card). Reserved height is
+ * [Metrics.logTimerRow]; font scale may grow the row, extra tracks and
+ * honesty captions may not.
  */
 @Composable
 fun FloorInstrumentBar(
@@ -126,22 +123,7 @@ fun FloorInstrumentBar(
     spoken: String,
     testTag: String,
     modifier: Modifier = Modifier,
-    pulseScale: Float = 1f,
-    onClockClick: (() -> Unit)? = null,
-    liveRegion: Boolean = false,
-    showRestControls: Boolean = false,
-    onNudgeRest: (Int) -> Unit = {},
-    onSkip: () -> Unit = {},
     onStop: (() -> Unit)? = null,
-    clockColor: Color = TextPrimary,
-    showChevron: Boolean = false,
-    leadingGlyph: ImageVector? = null,
-    glyphTint: Color = TextSecondary,
-    showIdleStart: Boolean = false,
-    onStart: () -> Unit = {},
-    startSpoken: String? = null,
-    offerSetClock: Boolean = false,
-    onStartSetClock: () -> Unit = {},
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -154,12 +136,7 @@ fun FloorInstrumentBar(
         val density = LocalDensity.current
         val measurer = rememberTextMeasurer()
         val clockWidth = measurer.measure(clock, style = InstrumentType.numeralMd, softWrap = false).size.width
-        val labels = when {
-            showRestControls -> listOf(RestNudgeCopy.MINUS, RestNudgeCopy.PLUS, RestNudgeCopy.SKIP)
-            showIdleStart -> if (offerSetClock) listOf(SetStopwatchCopy.START, "Start rest") else listOf("Start rest")
-            onStop != null -> listOf(SetStopwatchCopy.STOP)
-            else -> emptyList()
-        }
+        val labels = if (onStop != null) listOf(SetStopwatchCopy.STOP) else emptyList()
         val controlWidth = labels.sumOf { label ->
             maxOf(with(density) { Metrics.touchMin.roundToPx() },
                 measurer.measure(label, style = InstrumentType.bodyStrong, softWrap = false).size.width +
@@ -194,45 +171,25 @@ fun FloorInstrumentBar(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = Metrics.touchMin)
-                    .then(
-                        if (onClockClick != null) {
-                            Modifier.clickable(role = Role.Button, onClick = onClockClick)
-                        } else {
-                            Modifier
-                        },
-                    )
-                    .semantics {
-                        contentDescription = spoken
-                        if (liveRegion) {
-                            this.liveRegion = LiveRegionMode.Polite
-                        }
-                    },
+                    .semantics { contentDescription = spoken },
             ) {
                 val density = LocalDensity.current
                 val measurer = rememberTextMeasurer()
                 val clockWidth = measurer.measure(clock, style = InstrumentType.numeralMd, softWrap = false).size.width
                 val labelWidth = measurer.measure(kicker.uppercase(), style = InstrumentType.kicker, softWrap = false).size.width
-                val decorations = Metrics.space2 * 2 +
-                    (if (leadingGlyph != null) Metrics.icon + Metrics.space2 else 0.dp) +
-                    (if (showChevron) Metrics.chevron else 0.dp)
+                val decorations = Metrics.space2 * 2
                 val inline = clockWidth + labelWidth + with(density) { decorations.roundToPx() } <= clockSpace
                 val clockText: @Composable () -> Unit = {
                     Text(
                         clock,
-                        modifier = Modifier.graphicsLayer {
-                            scaleX = pulseScale
-                            scaleY = pulseScale
-                        },
                         style = InstrumentType.numeralMd,
-                        color = clockColor,
+                        color = TextPrimary,
                     )
                 }
                 if (inline) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2), verticalAlignment = Alignment.CenterVertically) {
-                        leadingGlyph?.let { FloorFieldGlyph(icon = it, tint = glyphTint) }
                         Kicker(kicker, color = accent, asHeading = false)
                         clockText()
-                        if (showChevron) Icon(TemperIcons.Chevron, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(Metrics.chevron))
                     }
                 } else {
                     Column(modifier = Modifier.padding(vertical = Metrics.space1), verticalArrangement = Arrangement.Center) {
@@ -247,50 +204,6 @@ fun FloorInstrumentBar(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 val controlModifier = if (wrapControls) Modifier.weight(1f) else Modifier
-                if (showRestControls) {
-                    RestControl(
-                        label = RestNudgeCopy.MINUS,
-                        spoken = RestNudgeCopy.MINUS_SPOKEN,
-                        onClick = { onNudgeRest(-RestTimer.NUDGE_SECONDS) },
-                        modifier = controlModifier
-                            .widthIn(min = Metrics.touchMin)
-                            .testTag("workout-rest-minus"),
-                    )
-                    RestControl(
-                        label = RestNudgeCopy.PLUS,
-                        spoken = RestNudgeCopy.PLUS_SPOKEN,
-                        onClick = { onNudgeRest(RestTimer.NUDGE_SECONDS) },
-                        modifier = controlModifier
-                            .widthIn(min = Metrics.touchMin)
-                            .testTag("workout-rest-plus"),
-                    )
-                    RestControl(
-                        label = RestNudgeCopy.SKIP,
-                        onClick = onSkip,
-                        confirm = true,
-                        modifier = controlModifier
-                            .widthIn(min = Metrics.touchMin)
-                            .testTag("workout-rest-skip"),
-                    )
-                }
-                if (showIdleStart) {
-                    if (offerSetClock) {
-                        RestControl(
-                            label = SetStopwatchCopy.START,
-                            spoken = SetStopwatchCopy.START_SPOKEN,
-                            onClick = onStartSetClock,
-                            modifier = controlModifier.widthIn(min = Metrics.touchMin).testTag("workout-start-set-clock"),
-                        )
-                    }
-                    RestControl(
-                        label = "Start rest",
-                        spoken = startSpoken,
-                        onClick = onStart,
-                        modifier = controlModifier
-                            .widthIn(min = Metrics.touchMin)
-                            .testTag("workout-start-rest"),
-                    )
-                }
                 if (onStop != null) {
                     RestControl(
                         label = SetStopwatchCopy.STOP,
@@ -462,7 +375,8 @@ fun RestHonestyRow(
 /**
  * Quick duration editor. Overlay: the dock stays 56 dp. Presets apply and
  * dismiss. Custom opens [CustomRestDialog]. Planned ±15 ticks here; running
- * ±15 stay on the live bar.
+ * ±15 stay on the live bar. Under reduced motion it appears in place, without
+ * its slide.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -478,9 +392,9 @@ fun RestDurationSheet(
 ) {
     var showCustom by rememberSaveable { mutableStateOf(false) }
     val reduceMotion = LocalReducedMotion.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // Under reduced motion the sheet opens already in place, with no slide up.
+    val sheetState = rememberFullSheetState(reduced = reduceMotion)
     val clock = RestTimer.formatClock(selectedSeconds.coerceAtLeast(0))
-    val sheetSnap = Motion.durationMs(reduceMotion, Motion.BASE) == 0
     if (!showCustom) ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -491,7 +405,6 @@ fun RestDurationSheet(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .testTag("workout-rest-duration-sheet")
-                .then(if (sheetSnap) Modifier else Modifier)
                 .padding(horizontal = Metrics.gutter)
                 .padding(bottom = Metrics.space4),
             verticalArrangement = Arrangement.spacedBy(Metrics.space3),

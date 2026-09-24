@@ -2,6 +2,12 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
 import androidx.activity.ComponentDialog
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -15,7 +21,9 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasScrollToIndexAction
@@ -32,8 +40,11 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.RestDurationSheet
+import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import org.junit.Assert.assertEquals
@@ -45,11 +56,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
+import kotlin.math.abs
 
 /**
  * The rest-length sheet the idle rest card opens, composed on its own: the length it names,
- * the presets and Custom, the planned −15 / +15, Time set when the lift offers it, and Start
- * rest when the host hands one in.
+ * the presets and Custom, the planned −15 / +15, Time set when the lift offers it, Start rest
+ * when the host hands one in, and, when the phone asks for reduced motion, no slide (the owner's
+ * decision of 24 September 2026; before it the sheet read the setting and slid up anyway).
  *
  * It was held as a slice of RestTimerUi.kt between `fun RestDurationSheet` and `fun
  * RestSweepRing` (`RestPresetChips(`, `CustomRestDialog(`, `workout-rest-sheet-minus`,
@@ -74,24 +87,31 @@ class RestDurationSheetRenderTest {
     private var timeSets = 0
     private var startedRest = 0
 
+    /** The phone's reduce-motion setting as the sheet reads it; a test may change it while open. */
+    private var phoneReducesMotion by mutableStateOf(false)
+
     private fun showSheet(
         selectedSeconds: Int = 120,
         offerSetClock: Boolean = false,
         offerStart: Boolean = false,
         fontScale: Float = 1f,
+        reducedMotion: Boolean = false,
     ) {
+        phoneReducesMotion = reducedMotion
         compose.showFloor(fontScale = fontScale) {
-            RestDurationSheet(
-                selectedSeconds = selectedSeconds,
-                onSelect = { selected += it },
-                onNudge = { nudges += it },
-                // As the ViewModel does: a length it can read is taken, anything else refused.
-                onCustomRest = { input -> typed += input; RestTimer.parseCustom(input) != null },
-                onDismiss = { dismissed += 1 },
-                offerSetClock = offerSetClock,
-                onTimeSet = { timeSets += 1 },
-                onStartRest = if (offerStart) startRest else null,
-            )
+            CompositionLocalProvider(LocalReducedMotion provides phoneReducesMotion) {
+                RestDurationSheet(
+                    selectedSeconds = selectedSeconds,
+                    onSelect = { selected += it },
+                    onNudge = { nudges += it },
+                    // As the ViewModel does: a length it can read is taken, anything else refused.
+                    onCustomRest = { input -> typed += input; RestTimer.parseCustom(input) != null },
+                    onDismiss = { dismissed += 1 },
+                    offerSetClock = offerSetClock,
+                    onTimeSet = { timeSets += 1 },
+                    onStartRest = if (offerStart) startRest else null,
+                )
+            }
         }
     }
 
@@ -253,8 +273,126 @@ class RestDurationSheetRenderTest {
         chip("Custom").assertIsDisplayed()
     }
 
+    @Test
+    fun underReducedMotionTheSheetIsInPlaceAsSoonAsItIsDrawn() {
+        val path = sheetTopWhileItOpens(reducedMotion = true)
+        // No slide: from its first frame the sheet already stands where it comes to rest.
+        assertEquals("the sheet's top before any frame, against where it settles", path.settled, path.start, EDGE_SLACK_DP)
+        assertEquals("the sheet's top a few frames in, against where it settles", path.settled, path.opening, EDGE_SLACK_DP)
+    }
+
+    @Test
+    fun withMotionTheSheetStillSlidesUpFromTheBottom() {
+        val path = sheetTopWhileItOpens(reducedMotion = false)
+        // The control: with the phone's motion on, the sheet keeps its slide, so a few frames in
+        // it has left where it started and is still on its way up to where it settles.
+        assertTrue("it starts below where it settles: $path", path.start > path.settled + EDGE_SLACK_DP)
+        assertTrue("a few frames in it is on its way, not there yet: $path", path.opening > path.settled + EDGE_SLACK_DP)
+        assertTrue("a few frames in it has left where it started: $path", path.opening < path.start - EDGE_SLACK_DP)
+    }
+
+    // Opening in place must not cost the ways out. The state that starts Expanded is built by
+    // hand (Motion.rememberFullSheetState), so each way Material closes a sheet is tried on it:
+    // the audit W2a review broke that state three ways (refusing Hidden, thresholds no drag
+    // could pass, and no Hidden state at all, which throws on Back) and no test noticed.
+
+    @Test
+    fun underReducedMotionASwipeDownClosesTheSheetAndAShortDragDoesNot() {
+        showSheet(reducedMotion = true)
+        val settled = sheetTop()
+        compose.onNodeWithTag(SHEET).performTouchInput { swipeDown(startY = top + 20f, endY = top + 60f, durationMillis = 600L) }
+        compose.waitForIdle()
+        assertEquals("a short drag leaves the sheet open", 0, dismissed)
+        assertEquals("and springs back to where it stood", settled, sheetTop(), EDGE_SLACK_DP)
+        compose.onNodeWithTag(SHEET).performTouchInput { swipeDown(startY = top + 20f, endY = bottom, durationMillis = 250L) }
+        compose.waitForIdle()
+        assertEquals("a swipe down asks the host to close the sheet", 1, dismissed)
+        assertTrue("a swipe is not a pick", selected.isEmpty() && nudges.isEmpty())
+    }
+
+    @Test
+    fun underReducedMotionATapOutsideClosesTheSheet() {
+        showSheet(reducedMotion = true)
+        // The scrim fills the sheet's window above the sheet: a tap near its top is outside.
+        compose.onNode(isRoot() and hasAnyDescendant(hasTestTag(SHEET))).performTouchInput { click(Offset(centerX, 40f)) }
+        compose.waitForIdle()
+        assertEquals("a tap outside asks the host to close the sheet", 1, dismissed)
+        assertTrue("a tap outside is not a pick", selected.isEmpty() && nudges.isEmpty())
+    }
+
+    @Test
+    fun underReducedMotionBackClosesTheSheet() {
+        showSheet(reducedMotion = true)
+        val sheetWindow = ShadowDialog.getLatestDialog() as ComponentDialog
+        compose.runOnUiThread { sheetWindow.onBackPressedDispatcher.onBackPressed() }
+        compose.waitForIdle()
+        assertEquals("Back asks the host to close the sheet", 1, dismissed)
+    }
+
+    @Test
+    fun turningReducedMotionOffWhileTheSheetIsOpenLeavesItWhereItIs() {
+        showSheet(reducedMotion = true)
+        val settled = sheetTop()
+        // The phone's setting is read again on resume. The open sheet keeps the state it
+        // opened with; before the review it swapped to a new one, dropped out of sight and
+        // slid back up over some twenty frames.
+        val path: List<Float>
+        compose.mainClock.autoAdvance = false
+        try {
+            phoneReducesMotion = false
+            Snapshot.sendApplyNotifications()
+            path = List(SETTING_CHANGE_FRAMES) {
+                compose.mainClock.advanceTimeByFrame()
+                sheetTop()
+            }
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+        compose.waitForIdle()
+        assertTrue("the sheet holds its place, frame by frame, at $settled dp: $path", path.all { abs(it - settled) <= EDGE_SLACK_DP })
+        assertEquals("and stays open", 0, dismissed)
+    }
+
+    /** Where the sheet's top edge is, in dp from the top of its window, as it opens. */
+    private data class SheetPath(val start: Float, val opening: Float, val settled: Float)
+
+    /**
+     * Opens the sheet with the clock held and reads its top edge in its own window: before any
+     * frame runs, after [OPENING_FRAMES] frames, and once it has finished. The sheet is a window
+     * of its own, which a capture of the floor's window cannot see, so its place is read from its
+     * semantics bounds, not its pixels. On trunk's timing the slide begins on the third frame and
+     * takes some seventeen to settle.
+     */
+    private fun sheetTopWhileItOpens(reducedMotion: Boolean): SheetPath {
+        val start: Float
+        val opening: Float
+        compose.mainClock.autoAdvance = false
+        try {
+            showSheet(reducedMotion = reducedMotion)
+            Snapshot.sendApplyNotifications()
+            start = sheetTop()
+            repeat(OPENING_FRAMES) { compose.mainClock.advanceTimeByFrame() }
+            opening = sheetTop()
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+        compose.waitForIdle()
+        return SheetPath(start = start, opening = opening, settled = sheetTop())
+    }
+
+    private fun sheetTop(): Float = compose.onNodeWithTag(SHEET).getBoundsInRoot().top.value
+
     private companion object {
         const val SHEET = "workout-rest-duration-sheet"
         const val SHEET_TIME_SET = "workout-sheet-start-set-clock"
+
+        /** Two frames for the sheet to measure and start, the animation's first, and one to lay it out. */
+        const val OPENING_FRAMES = 4
+
+        /** Longer than the slide a swapped sheet state would make (about twenty frames). */
+        const val SETTING_CHANGE_FRAMES = 30
+
+        /** Half a dp: an edge read twice where it settles is the same edge. */
+        const val EDGE_SLACK_DP = 0.5f
     }
 }

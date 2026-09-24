@@ -7,7 +7,6 @@ package com.sinura.personaltrainer.ui.workout
  * every log scrolled the next entry off the top of a gym-floor phone.
  */
 object LogLoopBringIntoView {
-    const val ANCHOR_TAG = WorkoutTestTags.SET_ENTRY
     /** Packet C: after resume or a lift switch, the one card is at list offset 0. */
     fun entryListIndex(): Int = 0
 
@@ -16,9 +15,4 @@ object LogLoopBringIntoView {
      * floor's list is exercise-header, stats, then the entry, so the numerals are item 2.
      */
     fun editRevealIndex(): Int = 2
-
-    fun shouldScrollEntryToTop(
-        previousLiftId: String?,
-        nextLiftId: String?,
-    ): Boolean = nextLiftId != null && previousLiftId != nextLiftId
 }

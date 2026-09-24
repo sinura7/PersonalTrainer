@@ -1,7 +1,7 @@
 # Current structure
 
-What the code is, as of 23 September 2026 (counts re-measured in whole-app
-audit packet X1 and again in packet X3; the prose was first written on 11 September). Read this before
+What the code is, as of 24 September 2026 (counts re-measured in whole-app
+audit packets X1 and X3, and again in W2a; the prose was first written on 11 September). Read this before
 changing anything structural.
 
 This is a description, not a decision. The decisions are the ADRs beside it,
@@ -18,11 +18,11 @@ yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 562 | 94,706 | — |
-| `app/src/test` | 424 | 71,051 | 2,939 |
-| `app/src/androidTest` | 33 | 5,893 | 112 `@Test` methods (some parameterised) |
+| `app/src/main` | 562 | 93,976 | — |
+| `app/src/test` | 458 | 78,215 | 3,127 |
+| `app/src/androidTest` | 33 | 5,914 | 112 `@Test` methods (some parameterised) |
 | `app/src/debug` | 12 | 1,618 | Compose previews and the state galleries |
-| `app/src/sharedTest` | 5 | 169 | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
+| `app/src/sharedTest` | 5 | 171 | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
 
 ## The layers
 
@@ -30,10 +30,10 @@ Everything is under `com.sinura.personaltrainer`.
 
 | Package | Files | Lines | What it is |
 |---|---|---|---|
-| `ui` | 170 | 46,720 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
-| `domain` | 207 | 23,724 | Models, rules, calculators, policies, ports, CoachEngine, and 65 `*Copy` text objects (69 app-wide) |
-| `data` | 114 | 16,759 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup`, `sync` (15 files, 2,266 lines), `auth` (4, 224) |
-| `timer` | 18 | 2,625 | Rest foreground service, alarm scheduler, notifications, persistence |
+| `ui` | 170 | 46,034 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
+| `domain` | 206 | 23,281 | Models, rules, calculators, policies, ports, CoachEngine, and 65 `*Copy` text objects (69 app-wide) |
+| `data` | 115 | 16,948 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup`, `sync` (15 files, 2,266 lines), `auth` (4, 224) |
+| `timer` | 18 | 2,835 | Rest foreground service, alarm scheduler, notifications, persistence |
 | `workout` | 13 | 1,367 | Use cases: start, finish, discard, `CompleteTraining` façade, draft cache and recovery |
 | `update` | 9 | 764 | Temper Debug's in-app update check and banner |
 | `reminder` | 11 | 681 | WorkManager scheduling, receivers, worker |
@@ -46,7 +46,7 @@ Everything is under `com.sinura.personaltrainer`.
 
 ### `domain` depends on nothing
 
-Six distinct outside imports across 207 files: `kotlin.math.abs`, `max`,
+Six distinct outside imports across 206 files: `kotlin.math.abs`, `max`,
 `round`, `floor`, `kotlinx.coroutines.CancellationException` and
 `kotlinx.coroutines.flow.Flow` (the ports that stream, such as
 `SyncStatusPort`). No app package, no `java.time`, no Android. `tools/check-domain-seams.py` holds that at zero and rejects an import
@@ -176,10 +176,10 @@ gate, the emulator and the phone gate the signed release.
 Not a to-do list — a list of things a reader will notice and should not have to
 rediscover.
 
-- **`ActiveWorkoutViewModel` is 2,541 lines** with 32 `MutableStateFlow`
+- **`ActiveWorkoutViewModel` is 2,431 lines** with 31 `MutableStateFlow`
   references, and still holds rule decisions that belong in `domain` — prefill,
   lift selection, the log-set sequence.
-- **`RoutineEditorViewModel` is 1,438 lines**, mostly the staged-targets
+- **`RoutineEditorViewModel` is 1,490 lines**, mostly the staged-targets
   commit and refusal logic.
 - **`BackupCoordinator` is 985 lines** (audit packet F10c splits it).
 - **`WorkoutRepository` is 1,340 lines** and covers two things: the session

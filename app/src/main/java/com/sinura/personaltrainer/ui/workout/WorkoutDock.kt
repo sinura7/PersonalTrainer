@@ -58,7 +58,6 @@ internal data class WorkoutDockTimer(
     val stopwatchElapsedSeconds: Int = 0,
     val offerSetClock: Boolean = false,
     val persistenceHealthy: Boolean = true,
-    val exactBestEffort: Boolean = false,
     val notificationsEnabled: Boolean = true,
 )
 
@@ -139,7 +138,8 @@ internal fun WorkoutDock(
             restRunning = timer.restRunning,
             notificationsEnabled = timer.notificationsEnabled,
             batteryHint = timer.batteryHint,
-            exactBestEffort = timer.exactBestEffort,
+            // The exact-alarm caveat is the rest page's alone; the floor never says it.
+            exactBestEffort = false,
             onRestPage = false,
         )
     } else {

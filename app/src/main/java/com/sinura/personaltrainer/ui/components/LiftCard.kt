@@ -38,9 +38,6 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
  * header. One chrome is what keeps a squat on the floor looking like the
  * same squat in History. Library and the picker stay [ExerciseRow] — a
  * list, not a card.
- *
- * [menu] sits on the identity row, outside the merged-semantics tap target,
- * so swap / remove stay a real button instead of a second header row.
  */
 @Composable
 fun LiftCard(
@@ -52,7 +49,6 @@ fun LiftCard(
     onClick: (() -> Unit)? = null,
     cardTag: String? = null,
     trailing: @Composable () -> Unit = {},
-    menu: @Composable () -> Unit = {},
     content: @Composable () -> Unit = {},
 ) {
     val shape = RoundedCornerShape(Radius.sm)
@@ -121,7 +117,6 @@ fun LiftCard(
                 }
                 trailing()
             }
-            menu()
         }
         content()
     }

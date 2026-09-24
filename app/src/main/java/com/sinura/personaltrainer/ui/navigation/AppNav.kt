@@ -35,7 +35,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -900,7 +899,7 @@ private fun NavTab(
         Box(
             modifier = Modifier
                 .size(width = NAV_TICK_WIDTH, height = NAV_TICK_HEIGHT)
-                .background(tick, CircleShape),
+                .background(tick, Radius.full),
         )
         val icon: @Composable () -> Unit = {
             Icon(tab.icon, contentDescription = null, tint = content, modifier = Modifier.size(NAV_ICON_SIZE))

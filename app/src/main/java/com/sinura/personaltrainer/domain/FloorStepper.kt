@@ -58,18 +58,6 @@ data class WeightContextAction(
  * Use on the recommendation strip stays Packet F.
  */
 object FloorWeightPresets {
-    fun source(
-        currentKg: Double,
-        plannedKg: Double?,
-        lastKg: Double?,
-        suggestedKg: Double?,
-    ): WeightDraftSource? {
-        if (sameKg(currentKg, suggestedKg)) return WeightDraftSource.SUGGESTED
-        if (sameKg(currentKg, plannedKg)) return WeightDraftSource.PLAN
-        if (sameKg(currentKg, lastKg)) return WeightDraftSource.LAST_TIME
-        return null
-    }
-
     fun contextActions(
         plannedKg: Double?,
         lastKg: Double?,

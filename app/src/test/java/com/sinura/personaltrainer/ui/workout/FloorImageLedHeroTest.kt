@@ -67,30 +67,13 @@ class FloorImageLedHeroTest {
         // WorkoutDockRenderTest composes each of those companions and finds the clock.
         assertFalse(dock.contains("showTimer && !completeDock"))
         // One companion above one commit: DockVoltRenderTest draws the commit as the dock's only
-        // filled Volt in each companion state; this keeps a second filled button out of the rest.
+        // filled Volt in seven dock states; this keeps a second filled button out of the rest.
         assertEquals("one filled Volt in the dock", 1, PRIMARY_BUTTON.findAll(dock).count())
     }
 
     @Test
     fun heroCopyStaysWordsAndTheIdentityCarriesNoTelemetry() {
-        assertEquals("Lift 3 of 7", CurrentLiftCopy.heroOrdinal(3, 7))
-        assertEquals("1 of 3 done", CurrentLiftCopy.heroProgress(1, 3))
         assertEquals("Switch exercise", CurrentLiftCopy.SWITCH)
-        assertEquals("Details", CurrentLiftCopy.DETAILS)
-        val spoken = CurrentLiftCopy.cardSpoken(
-            name = "Walking Lunge",
-            number = 3,
-            total = 7,
-            workingLogged = 1,
-            targetSets = 3,
-            equipmentLabel = "Dumbbell",
-            meaning = WeightMeaning.ADDED,
-        )
-        assertTrue(spoken.startsWith("Current. "))
-        assertTrue(spoken.contains("Walking Lunge"))
-        assertTrue(spoken.contains("Lift 3 of 7"))
-        assertTrue(spoken.contains("1 of 3 done"))
-        assertTrue(spoken.contains("Dumbbell"))
         // What the identity, the switch and Details announce, and what a tap on each does, is
         // rendered in ExerciseHeaderRenderTest; the reading order (header, identity, entry,
         // dock) is where each sits on screen, top to bottom, in LandscapeChromeRenderTest and
