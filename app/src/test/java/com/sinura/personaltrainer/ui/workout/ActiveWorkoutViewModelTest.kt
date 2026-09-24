@@ -16,7 +16,6 @@ import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
-import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.FloorStepper
 import com.sinura.personaltrainer.domain.FloorTimedMode
@@ -36,6 +35,7 @@ import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.ControllableTimePort
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
+import com.sinura.personaltrainer.workout.UndoEntry
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CompletableDeferred
 import com.sinura.personaltrainer.workout.WorkoutDraft
@@ -55,6 +55,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -699,7 +700,6 @@ class ActiveWorkoutViewModelTest {
         vm.setWarmup(true)
         val warmup = vm.awaitState { it.draft.isWarmup }
         assertNull(warmup.draft.rpe)
-        assertFalse(FloorCompactChrome.showOptionalLogOptions(isWarmup = true))
 
         vm.setRpe(8)
         assertNull(vm.awaitState { it.draft.isWarmup }.draft.rpe)
@@ -729,21 +729,6 @@ class ActiveWorkoutViewModelTest {
         assertFalse(deps.restTimerStore.current().running)
         val after = vm.awaitState { !it.logging && !it.draft.isWarmup }
         assertEquals(40.0, after.draft.weightKg, 0.0001)
-    }
-
-    @Test
-    fun rpeHelperDismissesPermanentlyWithoutARoomRow() = runBlocking {
-        val fixture = seedWorkout()
-        val vm = createViewModel(fixture.session.id)
-        vm.awaitFound()
-        assertTrue(vm.rpeHelperVisible.value)
-        assertFalse(deps.preferencesRepository.rpeHelperDismissed.first())
-
-        vm.dismissRpeHelper()
-        assertTrue(deps.preferencesRepository.rpeHelperDismissed.first { it })
-        assertFalse(
-            withTimeout(TestWaits.FLOW_MS) { vm.rpeHelperVisible.first { !it } },
-        )
     }
 
     @Test
@@ -792,42 +777,6 @@ class ActiveWorkoutViewModelTest {
         assertFalse(deps.restTimerStore.current().running)
         assertNull(vm.personalRecord.value)
         assertTrue(checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.isEmpty())
-    }
-
-    /**
-     * Tapping Use on the progression strip must survive the process being reclaimed.
-     *
-     * Every other draft mutator on this class mirrors what it wrote, and nothing else
-     * re-persists on its own: the session collector only persists on a Room emission, and
-     * tapping a chip changes no row. `applySuggestedWeight` was the one that did not, so the
-     * well read 82.5 while both mirrors still held the 70 the lifter had nudged it to — and a
-     * phone reclaimed during the rest handed back the 70.
-     */
-    @Test
-    fun tappingUseOnTheProgressionStripIsMirroredToTheDraft() = runBlocking {
-        val fixture = seedWorkout(priorWeightKg = 80.0)
-        val vm = createViewModel(fixture.session.id)
-        val suggested = vm.awaitState {
-            val hinted = it.hint?.suggestedWeightKg ?: return@awaitState false
-            it.loadState == SessionLoadState.FOUND && it.draft.weightKg == hinted
-        }.hint!!.suggestedWeightKg!!
-
-        // The lifter nudges the well well away from the suggestion. That much was always
-        // mirrored, which is what made the loss look like the app forgetting the LAST tap.
-        vm.setWeight(70.0)
-        vm.awaitState { it.draft.weightKg == 70.0 }
-        assertEquals(70.0, checkNotNull(deps.workoutDraftCache.get(fixture.session.id)).weightKg, 0.0001)
-
-        // Then changes their mind and takes the suggestion.
-        vm.applySuggestedWeight()
-        vm.awaitState { it.draft.weightKg == suggested }
-
-        assertEquals(
-            "the tap must reach the cache the recovery reads, not just the well on screen",
-            suggested,
-            checkNotNull(deps.workoutDraftCache.get(fixture.session.id)).weightKg,
-            0.0001,
-        )
     }
 
     @Test
@@ -1224,28 +1173,10 @@ class ActiveWorkoutViewModelTest {
         vm.requestExtraSet()
         assertTrue(vm.extraSetRequested.value)
 
-        vm.advanceToNextLift(ROW)
+        vm.selectExercise(ROW)
         val state = vm.awaitState { it.selectedExerciseId == ROW }
         assertEquals(ROW, state.selectedExerciseId)
         assertFalse(vm.extraSetRequested.value)
-    }
-
-    @Test
-    fun startNextLiftAdvancesWhenTheCurrentLiftIsDone() = runBlocking {
-        val fixture = seedTwoLifts(targetSets = 1)
-        val vm = createViewModel(fixture.session.id)
-        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
-        vm.setWeight(100.0)
-        vm.awaitState { it.draft.weightKg == 100.0 }
-        vm.logSetAndSettle()
-        awaitSession(fixture.session.id) { it.sets.size == 1 }
-        dispatcher.scheduler.advanceUntilIdle()
-        // The repository flow publishes the row before the ViewModel's own session
-        // projection re-queries it; startNextLift decides "lift done" from the latter.
-        vm.awaitState { it.session?.sets?.size == 1 }
-        vm.startNextLift()
-        vm.awaitState { it.selectedExerciseId == ROW }
-        assertFalse(deps.restTimerStore.current().running)
     }
 
     @Test
@@ -1258,22 +1189,47 @@ class ActiveWorkoutViewModelTest {
         vm.logSetAndSettle()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
-        val pending = withTimeout(TestWaits.FLOW_MS) {
-            vm.pendingAdvance.first { it != null }
+        // The standing offer is the dock's commit: Next exercise, naming the next lift.
+        val next = withTimeout(TestWaits.FLOW_MS) {
+            vm.primaryAction.first { it.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         }
-        assertNotNull(pending)
-        assertEquals(SQUAT, pending!!.finishedExerciseId)
-        assertEquals(ROW, pending.nextExerciseId)
+        assertEquals(ROW, next.identity.nextExerciseId)
         assertEquals(SQUAT, vm.uiState.value.selectedExerciseId)
 
         // Dwell time must not move the loop; the offer stays until chosen.
         dispatcher.scheduler.advanceTimeBy(Motion.STATUS_DWELL_MS + 1_000L)
-        assertNotNull(vm.pendingAdvance.value)
+        assertEquals(WorkoutPrimaryKind.NEXT_EXERCISE, vm.primaryAction.value.kind)
         assertEquals(SQUAT, vm.uiState.value.selectedExerciseId)
 
-        vm.stayOnCurrentExercise()
-        assertNull(vm.pendingAdvance.value)
+        // Another set is the other choice: it clears the offer and stays on the finished lift.
+        vm.awaitEntryUnlocked()
+        vm.requestExtraSet()
         assertTrue(vm.extraSetRequested.value)
+        val cleared = withTimeoutOrNull(TestWaits.FLOW_MS) {
+            vm.primaryAction.first { it.kind == WorkoutPrimaryKind.LOG_SET }
+        }
+        assertNotNull("Another set clears the Next exercise offer; the commit stayed ${vm.primaryAction.value.kind}", cleared)
+        assertEquals(SQUAT, vm.uiState.value.selectedExerciseId)
+    }
+
+    @Test
+    fun loggingALiftsLastSetEndsTheRestStillRunningFromTheSetBefore() = runBlocking {
+        val fixture = seedTwoLifts(targetSets = 2)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
+        vm.setWeight(100.0)
+        vm.awaitState { it.draft.weightKg == 100.0 }
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 1 }
+        awaitRestRunning()
+
+        // The lift's last working set, logged while its first set's rest still counts down.
+        vm.awaitEntryUnlocked()
+        vm.logSetAndSettle()
+        awaitSession(fixture.session.id) { it.sets.size == 2 }
+        // The lift is done and no rest follows its last set, so the one still running ends
+        // rather than counting on to an alarm (audit W2a review; nothing held this before).
+        awaitRestStopped()
         assertEquals(SQUAT, vm.uiState.value.selectedExerciseId)
     }
 
@@ -1288,9 +1244,8 @@ class ActiveWorkoutViewModelTest {
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
-        val pending = withTimeout(TestWaits.FLOW_MS) { vm.pendingAdvance.first { it != null } }
-        assertNotNull(pending)
-        assertNull(pending!!.nextExerciseId)
+        // The last lift's commit is Finish, not another open-ended Log.
+        withTimeout(TestWaits.FLOW_MS) { vm.primaryAction.first { it.kind == WorkoutPrimaryKind.FINISH } }
         val session = checkNotNull(vm.uiState.value.session)
         val advance = WorkoutAdvance.forSelection(
             session = session,
@@ -1358,23 +1313,6 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
-    fun advanceNowTakesTheStandingNextLift() = runBlocking {
-        val fixture = seedTwoLifts(targetSets = 1)
-        val vm = createViewModel(fixture.session.id)
-        vm.awaitState { it.loadState == SessionLoadState.FOUND && it.selectedExerciseId == SQUAT }
-        vm.setWeight(100.0)
-        vm.awaitState { it.draft.weightKg == 100.0 }
-        vm.logSetAndSettle()
-        awaitSession(fixture.session.id) { it.sets.size == 1 }
-        dispatcher.scheduler.advanceUntilIdle()
-        withTimeout(TestWaits.FLOW_MS) { vm.pendingAdvance.first { it != null } }
-        vm.advanceNow()
-        vm.awaitState { it.selectedExerciseId == ROW }
-        assertNull(vm.pendingAdvance.value)
-        assertFalse(vm.extraSetRequested.value)
-    }
-
-    @Test
     fun stepperWithoutRpeDoesNotChangeMicroRec() = runBlocking {
         val fixture = seedWorkout()
         val vm = createViewModel(fixture.session.id)
@@ -1390,7 +1328,7 @@ class ActiveWorkoutViewModelTest {
                 vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
             },
         )
-        vm.adjustWeight(2.5)
+        vm.setWeight(102.5)
         dispatcher.scheduler.advanceUntilIdle()
         val after = checkNotNull(
             withTimeout(TestWaits.FLOW_MS) {
@@ -1515,7 +1453,7 @@ class ActiveWorkoutViewModelTest {
         // draft the open is about to replace with that row's own values.
         vm.awaitEditOpen(logged.id)
         vm.setWeight(105.0)
-        vm.adjustReps(1)
+        vm.setReps(6)
         vm.logSetAndSettle()
 
         val updated = awaitSession(fixture.session.id) {
@@ -1543,7 +1481,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.awaitEntryUnlocked()
         vm.deleteSet(logged.id)
-        vm.awaitOffer(vm.deletedSet)
+        vm.awaitOffer(UndoKind.DELETED_SET)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
         assertFalse(deps.restTimerStore.current().running)
 
@@ -1551,7 +1489,9 @@ class ActiveWorkoutViewModelTest {
         vm.undoDeleteSet()
         val restored = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
         assertEquals(logged.id, restored.id)
-        assertNull(vm.deletedSet.value)
+        // The undo pops its offer inside the same entry mutation that restores the row.
+        vm.awaitEntryUnlocked()
+        assertTrue(vm.undoEntries.value.isEmpty())
         assertFalse(deps.restTimerStore.current().running)
     }
 
@@ -1681,7 +1621,7 @@ class ActiveWorkoutViewModelTest {
         awaitSession(fixture.session.id) { session ->
             session.exercises.none { it.exercise.id == ROW }
         }
-        vm.awaitOffer(vm.removedLift)
+        vm.awaitOffer(UndoKind.REMOVED_LIFT)
         assertEquals(
             SQUAT,
             deps.workoutRepository.getSession(fixture.session.id)!!.exercises.single().exercise.id,
@@ -1694,7 +1634,7 @@ class ActiveWorkoutViewModelTest {
         assertEquals(rowItemId, restoredRow.id)
         assertEquals(rowOrder, restoredRow.sortOrder)
         assertEquals(ROW, vm.awaitState { it.selectedExerciseId == ROW }.selectedExerciseId)
-        assertNull(vm.removedLift.value)
+        assertTrue(vm.undoEntries.value.isEmpty())
     }
 
     @Test
@@ -1710,7 +1650,7 @@ class ActiveWorkoutViewModelTest {
         val (first, second) = sets
 
         vm.deleteSet(first.id)
-        vm.awaitOffer(vm.deletedSet)
+        vm.awaitOffer(UndoKind.DELETED_SET)
         vm.awaitEntryUnlocked()
         vm.deleteSet(second.id)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
@@ -1730,7 +1670,6 @@ class ActiveWorkoutViewModelTest {
         val bothBack = awaitSession(fixture.session.id) { it.sets.size == 2 }
         assertEquals(setOf(first.id, second.id), bothBack.sets.map { it.id }.toSet())
         assertTrue(vm.undoEntries.value.isEmpty())
-        assertNull(vm.deletedSet.value)
     }
 
     @Test
@@ -1746,12 +1685,12 @@ class ActiveWorkoutViewModelTest {
 
         vm.awaitEntryUnlocked()
         vm.deleteSet(logged.id)
-        vm.awaitOffer(vm.deletedSet)
+        vm.awaitOffer(UndoKind.DELETED_SET)
         vm.selectExercise(ROW)
         vm.awaitState { it.selectedExerciseId == ROW }
         vm.awaitEntryUnlocked()
         vm.removeSelectedLift()
-        vm.awaitOffer(vm.removedLift)
+        vm.awaitOffer(UndoKind.REMOVED_LIFT)
 
         assertEquals(2, vm.undoEntries.value.size)
         assertEquals(UndoKind.REMOVED_LIFT, vm.undoEntries.value.last().offer.kind)
@@ -1782,7 +1721,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.awaitEntryUnlocked()
         vm.deleteSet(sets[0].id)
-        vm.awaitOffer(vm.deletedSet)
+        vm.awaitOffer(UndoKind.DELETED_SET)
         vm.awaitEntryUnlocked()
         vm.deleteSet(sets[1].id)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
@@ -1811,7 +1750,7 @@ class ActiveWorkoutViewModelTest {
         val logged = awaitSession(fixture.session.id) { it.sets.size == 1 }.sets.single()
         vm.awaitEntryUnlocked()
         vm.deleteSet(logged.id)
-        vm.awaitOffer(vm.deletedSet)
+        vm.awaitOffer(UndoKind.DELETED_SET)
         awaitSession(fixture.session.id) { it.sets.isEmpty() }
 
         // A new process over the same saved state still offers the delete back.
@@ -1954,7 +1893,7 @@ class ActiveWorkoutViewModelTest {
             it.loadState == SessionLoadState.FOUND && it.draft.weightKg == 100.0
         }
         first.setWeight(132.5)
-        first.adjustReps(3)
+        first.setReps(8)
         first.setRpe(9)
         first.setNotes("survive process")
         assertEquals(
@@ -2609,6 +2548,24 @@ class ActiveWorkoutViewModelTest {
     private suspend fun ActiveWorkoutViewModel.logSetAndSettle() =
         logSetAndSettle(repository = deps.workoutRepository, scheduler = dispatcher.scheduler)
 
+    /**
+     * The rest ends. The log's feedback runs on Room's thread just after the entry unlocks, so
+     * this waits for it, bounded, without moving the virtual clock: advancing it could run the
+     * rest out and pass for the wrong reason.
+     */
+    private suspend fun awaitRestStopped() {
+        try {
+            withTimeout(TestWaits.FLOW_MS) {
+                while (deps.restTimerStore.current().running) {
+                    dispatcher.scheduler.runCurrent()
+                    if (deps.restTimerStore.current().running) delay(10)
+                }
+            }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw AssertionError("The rest is still running; snapshot=${deps.restTimerStore.current()}", timedOut)
+        }
+    }
+
     private suspend fun awaitRestRunning() {
         try {
             withTimeout(TestWaits.FLOW_MS) {
@@ -2645,10 +2602,10 @@ class ActiveWorkoutViewModelTest {
      * An offer that never appears is the same refusal one step earlier. The generic wait can
      * only say "last value was null"; the screen state says which lock was still held.
      */
-    private suspend fun <T : Any> ActiveWorkoutViewModel.awaitOffer(offer: StateFlow<T?>): T = try {
-        val value = checkNotNull(offer.awaitFirst { it != null })
+    private suspend fun ActiveWorkoutViewModel.awaitOffer(kind: UndoKind): UndoEntry = try {
+        val entry = undoEntries.awaitFirst { it.lastOrNull()?.offer?.kind == kind }.last()
         awaitEntryUnlocked()
-        value
+        entry
     } catch (gaveUp: AssertionError) {
         throw AssertionError("${gaveUp.message}\nuiState was ${uiState.value}", gaveUp)
     }

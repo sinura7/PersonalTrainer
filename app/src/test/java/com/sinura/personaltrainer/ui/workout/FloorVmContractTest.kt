@@ -23,9 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -222,15 +220,16 @@ class FloorVmContractTest {
         vm.deleteSet(storedSession(sessionId).sets.single().id)
         vm.awaitOffer()
         assertEquals(TALKBACK_DWELL_MS, vm.undoDwellMs.value)
-        // A process dies after its state is saved, and nothing of it runs on. Here the first
-        // ViewModel's coroutines run on Room's two threads (the test's unconfined dispatcher
-        // resumes them there) and write the same SavedStateHandle, a plain map, that the revived
-        // one reads as it is built; reviving beside it read an empty queue once in three loaded
-        // package runs. So wait until the saved state holds the offer, and end this ViewModel,
-        // before the process comes back.
-        vm.awaitSavedOffer(handle)
+        // A process dies after its state is saved, and nothing of it runs on. The offer is
+        // already saved: the delete writes it (pushUndo, persistUndo) inside the entry mutation
+        // whose release awaitOffer waited for. What raced the revived ViewModel's read was the
+        // first one's other writers to the same SavedStateHandle, a plain map (its draft and
+        // selection mirrors, persistDraft and writeSelection), running on Room's two threads
+        // under the test's unconfined dispatcher; reviving beside it read an empty queue once in
+        // three loaded package runs. So end this ViewModel before the process comes back.
         vm.clearAndJoinForTest()
         viewModels.remove(vm)
+        assertEquals("the saved state holds the offer the process dies with", 1, SavedStateFloorUndo(handle).read().size)
         // The process comes back with a platform answer that would give only the base dwell.
         val revived = viewModel(sessionId, handle, undoTimeout = UndoTimeoutProvider { it.toLong() })
         revived.awaitState { it.loadState == SessionLoadState.FOUND }
@@ -298,17 +297,6 @@ class FloorVmContractTest {
     }
 
     /** Until [handle], the state a process death hands back, holds this ViewModel's undo offers. */
-    private suspend fun ActiveWorkoutViewModel.awaitSavedOffer(handle: SavedStateHandle) {
-        val saved = SavedStateFloorUndo(handle)
-        try {
-            withTimeout(TestWaits.FLOW_MS) {
-                while (saved.read().size != undoEntries.value.size) delay(SAVED_POLL_MS)
-            }
-        } catch (timedOut: TimeoutCancellationException) {
-            throw AssertionError("the saved state never held the ${undoEntries.value.size} offer(s); it held ${saved.read().size}", timedOut)
-        }
-    }
-
     /** The undo offer a delete or remove made, once the mutation that made it has released. */
     private suspend fun ActiveWorkoutViewModel.awaitOffer() {
         assertNotNull(undoEntries.awaitFirst { it.isNotEmpty() })
@@ -327,9 +315,6 @@ class FloorVmContractTest {
         const val SQUAT = "squat"
         const val ROW = "row"
         const val TALKBACK_DWELL_MS = 20_000L
-
-        /** How often the saved state is looked at while a write is on its way into it. */
-        const val SAVED_POLL_MS = 10L
         val SET_100x5 = TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)
     }
 }

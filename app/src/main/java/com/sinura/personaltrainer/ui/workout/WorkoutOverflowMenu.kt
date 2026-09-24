@@ -39,10 +39,10 @@ internal fun LiftOverflowMenu(
     onRemove: () -> Unit,
     onNotes: () -> Unit,
     onSummary: () -> Unit,
-    onSkip: () -> Unit = {},
-    onSwitch: (() -> Unit)? = null,
+    onSwitch: () -> Unit,
     /** The lift's own screen, also on its picture; here too so a menu reader finds it. */
-    onDetails: (() -> Unit)? = null,
+    onDetails: () -> Unit,
+    onSkip: () -> Unit = {},
     enabled: Boolean = true,
 ) {
     var menuOpen by rememberSaveable(liftId) { mutableStateOf(false) }
@@ -62,18 +62,14 @@ internal fun LiftOverflowMenu(
             )
         }
         InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            if (onSwitch != null) {
-                DropdownMenuItem(
-                    text = { Text(CurrentLiftCopy.SWITCH, style = InstrumentType.bodyStrong, color = TextPrimary) },
-                    onClick = { menuOpen = false; onSwitch() },
-                )
-            }
-            if (onDetails != null) {
-                DropdownMenuItem(
-                    text = { Text(CurrentLiftCopy.DETAILS_SPOKEN, style = InstrumentType.bodyStrong, color = TextPrimary) },
-                    onClick = { menuOpen = false; onDetails() },
-                )
-            }
+            DropdownMenuItem(
+                text = { Text(CurrentLiftCopy.SWITCH, style = InstrumentType.bodyStrong, color = TextPrimary) },
+                onClick = { menuOpen = false; onSwitch() },
+            )
+            DropdownMenuItem(
+                text = { Text(CurrentLiftCopy.DETAILS_SPOKEN, style = InstrumentType.bodyStrong, color = TextPrimary) },
+                onClick = { menuOpen = false; onDetails() },
+            )
             DropdownMenuItem(
                 text = { Text("Session summary", style = InstrumentType.bodyStrong, color = TextPrimary) },
                 onClick = { menuOpen = false; onSummary() },

@@ -6,45 +6,14 @@ import org.junit.Test
 
 class CurrentLiftCopyTest {
     @Test
-    fun ordinalAndTalkBackNameTheCurrentLift() {
-        assertEquals("Lift 1/6", CurrentLiftCopy.liftOrdinal(1, 6))
-        assertEquals("Lift 1 of 6", CurrentLiftCopy.heroOrdinal(1, 6))
+    fun workingProgressIsDoneOverTarget() {
         assertEquals("2/4", CurrentLiftCopy.workingProgress(2, 4))
-        assertEquals("2 of 4 done", CurrentLiftCopy.heroProgress(2, 4))
-        assertEquals("3 done", CurrentLiftCopy.heroProgress(3, 0))
-        val spoken = CurrentLiftCopy.cardSpoken(
-            name = "Back Squat",
-            number = 1,
-            total = 6,
-            workingLogged = 2,
-            targetSets = 4,
-            equipmentLabel = "Barbell",
-            meaning = WeightMeaning.LIFTED,
-        )
-        assertTrue(spoken.startsWith(CurrentLiftCopy.CURRENT))
-        assertTrue(spoken.contains("Back Squat"))
-        assertTrue(spoken.contains("Lift 1 of 6"))
-        assertTrue(spoken.contains("2 of 4 done"))
-        // ADR-027: the identity button is this line, then the set context, then Switch exercise.
-        assertEquals("Current. Back Squat. Lift 1 of 6. 2 of 4 done. Barbell", spoken)
-        val identityOnly = CurrentLiftCopy.cardSpoken(
-            name = "Back Squat",
-            number = 1,
-            total = 6,
-            workingLogged = 2,
-            targetSets = 4,
-            equipmentLabel = "Barbell",
-            meaning = WeightMeaning.LIFTED,
-            includeWorkingProgress = false,
-        )
-        assertEquals("Current. Back Squat. Lift 1 of 6. Barbell", identityOnly)
     }
 
     @Test
     fun headerActionsAreNamedNotGuessedFromIcons() {
         assertEquals("Current", CurrentLiftCopy.CURRENT)
         assertEquals("Switch exercise", CurrentLiftCopy.SWITCH)
-        assertEquals("Details", CurrentLiftCopy.DETAILS)
         assertEquals("Session notes", CurrentLiftCopy.SESSION_NOTES)
         assertEquals("Swap lift…", CurrentLiftCopy.SWAP)
         assertEquals("Remove lift", CurrentLiftCopy.REMOVE)
@@ -63,31 +32,6 @@ class CurrentLiftCopyTest {
         assertEquals("Dip belt · Added weight", CurrentLiftCopy.secondaryLine("Dip belt", WeightMeaning.ADDED))
         assertEquals("Added weight", CurrentLiftCopy.secondaryLine("", WeightMeaning.ADDED))
         assertEquals("Machine · Assistance", CurrentLiftCopy.secondaryLine("Machine", WeightMeaning.ASSISTANCE))
-    }
-
-    @Test
-    fun heroSpokenAppendsTelemetryAfterTheIdentity() {
-        val identity = CurrentLiftCopy.heroSpoken(
-            name = "Back Squat",
-            number = 1,
-            total = 6,
-            workingLogged = 2,
-            targetSets = 4,
-            equipmentLabel = "Barbell",
-            meaning = WeightMeaning.LIFTED,
-        )
-        assertEquals("Current. Back Squat. Lift 1 of 6. 2 of 4 done. Barbell", identity)
-        val withTelemetry = CurrentLiftCopy.heroSpoken(
-            name = "Back Squat",
-            number = 1,
-            total = 6,
-            workingLogged = 2,
-            targetSets = 4,
-            equipmentLabel = "Barbell",
-            meaning = WeightMeaning.LIFTED,
-            telemetry = " Set 3 of 4 ",
-        )
-        assertEquals("$identity. Set 3 of 4", withTelemetry)
     }
 
     @Test

@@ -10,7 +10,7 @@ import org.junit.Test
  * controls ›" and its clocks in WorkoutDockTimerRenderTest; the lift card's number badge and
  * the danger button in LiftCardAndDangerButtonRenderTest (audit T1c-1). LandscapeChrome's
  * budget arithmetic (`logBudgetDp`, `logVisibleInLandscape`, `ringSizeDp`, the `*_DP`
- * constants) had no reader but this file; W2a can take it out.
+ * constants) had no reader but this file; W2a took it out.
  */
 class LandscapeChromeTest {
     @Test

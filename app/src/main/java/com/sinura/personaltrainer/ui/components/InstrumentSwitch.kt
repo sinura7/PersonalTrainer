@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +21,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.VoltContainer
+import com.sinura.personaltrainer.ui.theme.Radius
 
 /**
  * G4: a switch that is not a filled Volt slab.
@@ -41,7 +40,7 @@ fun InstrumentSwitch(
     val track = if (checked && enabled) VoltContainer else SurfacePressed
     val stroke = if (checked && enabled) Volt.copy(alpha = 0.55f) else HairlineStrong
     val thumb = if (!enabled) TextDisabled else if (checked) Volt else TextSecondary
-    val shape = RoundedCornerShape(percent = 50)
+    val shape = Radius.full
     val interactive = if (onCheckedChange != null) {
         Modifier.toggleable(
             value = checked,
@@ -64,14 +63,14 @@ fun InstrumentSwitch(
                 .clip(shape)
                 .background(track)
                 .border(Metrics.hairline, stroke, shape)
-                .padding(4.dp),
+                .padding(Metrics.space1),
             contentAlignment = Alignment.CenterStart,
         ) {
             Box(
                 modifier = Modifier
                     .offset(x = if (checked) 20.dp else 0.dp)
                     .size(24.dp)
-                    .clip(CircleShape)
+                    .clip(Radius.full)
                     .background(thumb),
             )
         }

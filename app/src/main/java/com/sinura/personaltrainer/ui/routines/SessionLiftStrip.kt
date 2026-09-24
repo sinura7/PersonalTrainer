@@ -451,7 +451,7 @@ internal fun CartBadge(
     selected: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val badgeShape = RoundedCornerShape(percent = 50)
+    val badgeShape = Radius.full
     Box(
         modifier = modifier
             .heightIn(min = Metrics.space6)

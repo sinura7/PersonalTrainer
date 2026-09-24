@@ -2,8 +2,6 @@ package com.sinura.personaltrainer.ui.workout
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -16,19 +14,12 @@ import org.junit.Test
  * lift switch lands on the new identity with its numerals, an edit reveals the entry, and a
  * save leaves the numerals where they were (FloorScreenWiringRenderTest). Since audit T1c-2 the
  * identity is the list's first row, taking the empty session's placeholder's place, in
- * EmptySessionFloorRenderTest. What stays is the object's own values and the bans.
- *
- * `ANCHOR_TAG` and `shouldScrollEntryToTop` have no production reader; W2a removes them and
- * these direct calls with them.
+ * EmptySessionFloorRenderTest. What stays is the object's own values and the bans. (W2a
+ * removed `ANCHOR_TAG` and `shouldScrollEntryToTop`, which nothing in production read.)
  */
 class LogLoopBringIntoViewTest {
     @Test
-    fun afterLogAnchorIsTheEntryWellsNotTheLoggedSetsPanel() {
-        assertEquals(WorkoutTestTags.SET_ENTRY, LogLoopBringIntoView.ANCHOR_TAG)
-        assertNotEquals(WorkoutTestTags.SET_HISTORY, LogLoopBringIntoView.ANCHOR_TAG)
-        assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains(other = "logged", ignoreCase = true))
-        assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains(other = "sets-panel", ignoreCase = true))
-        assertFalse(LogLoopBringIntoView.ANCHOR_TAG.contains(other = "history", ignoreCase = true))
+    fun theSetHistoryNeverWearsTheEntrysTag() {
         assertFalse(ownedSource("ui/workout/SetHistoryStrip.kt").contains("WorkoutTestTags.SET_ENTRY"))
     }
 
@@ -39,9 +30,6 @@ class LogLoopBringIntoViewTest {
     fun resumeAndLiftSwitchFocusTheEntryNotAVanishedListOffset() {
         assertEquals(0, LogLoopBringIntoView.entryListIndex())
         assertEquals("header, stats, then the numerals", 2, LogLoopBringIntoView.editRevealIndex())
-        assertTrue(LogLoopBringIntoView.shouldScrollEntryToTop(null, "squat"))
-        assertTrue(LogLoopBringIntoView.shouldScrollEntryToTop("squat", "row"))
-        assertFalse(LogLoopBringIntoView.shouldScrollEntryToTop("squat", "squat"))
         assertFalse(ownedSource("ui/workout/ActiveWorkoutScreen.kt").contains("itemsIndexed("))
     }
 }

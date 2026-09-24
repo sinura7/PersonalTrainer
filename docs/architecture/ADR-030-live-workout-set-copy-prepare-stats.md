@@ -12,6 +12,7 @@ On the gym floor, exercise identity showed two competing set lines (for example 
 ## Decisions
 
 1. **One set-position line** — [SetOrdinalCopy.draftLine] is the identity source: `Working set n of m`, `Warm-up n`, `Extra n`. The ringed current-set chip uses [SetOrdinalCopy.draftChipLabel] (`Set n of m` / `WU n`) so the strip stays within the height budget; receipts and TalkBack use the full identity phrases. The identity row no longer repeats an `x/y working sets` caption; [CurrentLiftCopy.cardSpoken] omits working-set progress when the set-position line follows.
+   *Amended 24 September 2026 (packet W2a):* `CurrentLiftCopy.cardSpoken` is removed; nothing read it. TalkBack reads the identity row from its own words: the equipment and name as one stop, then the set-position line, then the switch ([ExerciseHeader]). Working-set progress is still never said twice.
 
 2. **Quieter prepare-phase stats** — Until at least one **working** set of the current lift is logged today, [ExerciseFloorStatsPresentation] shows only the Last / Last time cell on the floor. Best and Volume return after the first working set. Details and history surfaces are unchanged.
    *Amended 23 September 2026 (packet W1d, owner decision):* at font 1.6 and above Best and Volume do not return on the floor; the lift's Details shows them, by the same rule, once a working set of the lift is logged in the workout in progress. Below 1.6 this decision stands as written. See Consequences.

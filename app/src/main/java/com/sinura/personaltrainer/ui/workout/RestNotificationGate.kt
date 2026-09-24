@@ -7,7 +7,6 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -16,9 +15,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -27,9 +24,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
-import com.sinura.personaltrainer.ui.components.InstrumentRow
-import com.sinura.personaltrainer.ui.theme.InstrumentType
-import com.sinura.personaltrainer.ui.theme.Volt
 
 /**
  * Asks for POST_NOTIFICATIONS once, then reports whether rest notifications can actually
@@ -102,28 +96,6 @@ internal fun rememberRestNotificationsEnabled(): Boolean {
     }
 
     return enabled
-}
-
-/**
- * Persistent recovery after the one explanation. One identity line and one
- * act — not a viewport-dominating banner (FND-015).
- */
-@Composable
-internal fun RestNotificationRecoveryRow(modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    InstrumentRow(
-        title = RestNotificationCopy.RECOVERY_TITLE,
-        modifier = modifier.testTag(WorkoutTestTags.NOTIF_RECOVERY),
-        onClick = { openRestNotificationSettings(context) },
-        trailing = {
-            Text(
-                RestNotificationCopy.RECOVERY_ACTION,
-                style = InstrumentType.bodyStrong,
-                color = Volt,
-                maxLines = 1,
-            )
-        },
-    )
 }
 
 internal fun openRestNotificationSettings(context: android.content.Context) {

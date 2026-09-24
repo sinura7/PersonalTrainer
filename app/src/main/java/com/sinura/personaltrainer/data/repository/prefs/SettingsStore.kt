@@ -131,7 +131,6 @@ internal val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
 internal val SAVE_POSTURE = stringPreferencesKey("save_posture")
 internal val SAVE_POSTURE_CHOSEN = booleanPreferencesKey("save_posture_chosen")
 internal val FOUNDATION_GENERATION = stringPreferencesKey("foundation_generation")
-internal val RPE_HELPER_DISMISSED = booleanPreferencesKey("rpe_helper_dismissed")
 
 /** Per-group timestamps for Temper Account sync (Packet 3). */
 internal val COACH_PREFS_UPDATED_AT_MS = longPreferencesKey("coach_prefs_updated_at_ms")

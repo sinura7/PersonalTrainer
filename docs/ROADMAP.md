@@ -15,6 +15,15 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 24 Sep 2026 — Whole-app audit packet W2a: about 1,600 lines of app
+> code that nothing used are gone (the history set sheet's unused compact
+> entry, unused components and ViewModel functions, test-only constants,
+> the old RPE helper), and four design-token ceilings are lower, each swap
+> proven identical. One visible change, by owner decision of 24
+> September: with the phone's reduce motion on, the rest-length sheet
+> opens in place instead of sliding up. ADR-023. Quiet; rides along with
+> the next drop.
+>
 > 24 Sep 2026 — Whole-app audit packet T1c-2 (tests only): the last
 > eleven workout test files stop reading the app's code as text. What they
 > pinned is now checked on the screen (the dock's one bright button, the

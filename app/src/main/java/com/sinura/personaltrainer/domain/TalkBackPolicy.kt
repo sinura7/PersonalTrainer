@@ -14,9 +14,6 @@ object TalkBackPolicy {
     const val BODYWEIGHT_TYPED_SPOKEN = "Type bodyweight"
     const val BODYWEIGHT_TYPED_HELPER = "A whole number in the unit on the wheel."
 
-    fun restKicker(justFinished: Boolean): String =
-        if (justFinished) REST_FINISHED_KICKER else REST_RUNNING_KICKER
-
     /** Announce the rest kicker only at the finished flash, not every second. */
     fun announceRestKicker(justFinished: Boolean): Boolean = justFinished
 

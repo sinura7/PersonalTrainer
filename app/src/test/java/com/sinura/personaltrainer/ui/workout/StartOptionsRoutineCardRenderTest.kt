@@ -42,7 +42,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * A routine on the start sheet, from a seeded four-lift routine: one card, tapped as one, that
  * names the routine and its planned sets, says the kit it uses, lists its lifts numbered in
- * order, pictures only the first three of them, and starts that routine when tapped.
+ * order, shows three stills for its four lifts, and starts that routine when tapped.
  *
  * These were lines of StartOptionsSheet.kt read as text (`RoutineCardCopy.mix`,
  * `RoutineCardCopy.STILL_LIMIT`, `ExerciseThumb(`, `GymCard(`,
@@ -85,7 +85,7 @@ class StartOptionsRoutineCardRenderTest {
     }
 
     @Test
-    fun aRoutineCardPicturesOnlyItsFirstThreeLifts() {
+    fun aRoutineCardShowsThreeStillsWhenItHasMoreLifts() {
         showSheet()
         assertEquals(RoutineCardCopy.STILL_LIMIT, compose.stillsUnder(CARD_WITHIN, ThumbSize.row).size)
         assertTrue("the routine has more lifts than it pictures", LIFTS.size > RoutineCardCopy.STILL_LIMIT)

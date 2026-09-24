@@ -1,23 +1,11 @@
 package com.sinura.personaltrainer.ui.components
 
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.EquipmentType
-import com.sinura.personaltrainer.ui.theme.HairlineStrong
-import com.sinura.personaltrainer.ui.theme.Metrics
-import com.sinura.personaltrainer.ui.theme.SteelDim
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
-import kotlin.math.min
 import kotlin.math.sin
 
 /**
@@ -65,21 +53,6 @@ internal fun poseFor(movementKey: String?): LiftPose = when (movementKey) {
         LiftPose.CORE_FLOOR
     "carry" -> LiftPose.CARRY
     else -> LiftPose.ANATOMY
-}
-
-internal fun DrawScope.drawLiftPose(
-    pose: LiftPose,
-    equipment: EquipmentType,
-    fill: (CanonicalMuscle?) -> Color,
-    kit: Color,
-) {
-    val hair = Metrics.hairline.toPx()
-    val person = personInk(pose)
-    // Underlay, then fills, then hairlines on top so seams survive overlap.
-    person.forEach { paintInk(it, SteelDim) }
-    person.forEach { paintInk(it, fill(it.muscle)) }
-    person.forEach { paintInk(it, fill(it.muscle), edge = HairlineStrong, hair = hair, drawFill = false) }
-    kitInk(pose, equipment).forEach { paintInk(it, kit) }
 }
 
 internal data class PosePlate(
@@ -499,56 +472,6 @@ private fun rigidXform(
     }
 }
 
-private fun DrawScope.paintInk(
-    ink: PoseInk,
-    color: Color,
-    edge: Color? = null,
-    hair: Float = 0f,
-    drawFill: Boolean = true,
-) {
-    val w = size.width
-    val h = size.height
-    val m = min(w, h)
-    fun fillPath(points: List<Pair<Float, Float>>) {
-        val path = instrumentPlatePath(points, w, h)
-        if (drawFill) {
-            drawPath(path = path, color = color)
-        }
-        if (edge != null && hair > 0f) {
-            drawPath(path = path, color = edge, style = Stroke(width = hair))
-        }
-    }
-    when (ink) {
-        is PoseInk.Limb -> if (drawFill) drawLine(
-            color = color,
-            start = Offset(ink.x1 * w, ink.y1 * h),
-            end = Offset(ink.x2 * w, ink.y2 * h),
-            strokeWidth = ink.width * m,
-            cap = StrokeCap.Round,
-        )
-        is PoseInk.Taper -> fillPath(
-            capsule(ink.x1, ink.y1, ink.x2, ink.y2, ink.w1 / 2f, ink.w2 / 2f),
-        )
-        is PoseInk.Fill -> fillPath(ink.points)
-        is PoseInk.Dot -> if (drawFill) drawCircle(
-            color = color,
-            radius = ink.r * m,
-            center = Offset(ink.x * w, ink.y * h),
-        )
-        is PoseInk.Oval -> if (drawFill) drawOval(
-            color = color,
-            topLeft = Offset((ink.x - ink.rx) * w, (ink.y - ink.ry) * h),
-            size = Size(ink.rx * 2f * w, ink.ry * 2f * h),
-        )
-        is PoseInk.Rect -> if (drawFill) drawRoundRect(
-            color = color,
-            topLeft = Offset(ink.left * w, ink.top * h),
-            size = Size((ink.right - ink.left) * w, (ink.bottom - ink.top) * h),
-            cornerRadius = CornerRadius(0.012f * m, 0.012f * m),
-        )
-    }
-}
-
 internal fun PoseInk.toPlate(): PosePlate = when (this) {
     is PoseInk.Limb -> PosePlate(muscle, capsule(x1, y1, x2, y2, width / 2f, width / 2f))
     is PoseInk.Taper -> PosePlate(muscle, capsule(x1, y1, x2, y2, w1 / 2f, w2 / 2f))
@@ -569,41 +492,6 @@ private fun lerp(a: Pair<Float, Float>, b: Pair<Float, Float>, t: Float): Pair<F
 
 private fun clamp(x: Float, y: Float): Pair<Float, Float> =
     x.coerceIn(0f, 1f) to y.coerceIn(0f, 1f)
-
-/**
- * Polygonal plate with a short chamfer. Full midpoint rounding turned posed
- * plates into pills; the generated squat is armor, not a pictogram.
- */
-private const val PLATE_CHAMFER = 0.16f
-
-private fun instrumentPlatePath(
-    points: List<Pair<Float, Float>>,
-    width: Float,
-    height: Float,
-): Path {
-    val n = points.size
-    val path = Path()
-    if (n < 3) return path
-    val t = PLATE_CHAMFER
-    fun px(i: Int) = Offset(points[i].first * width, points[i].second * height)
-    fun lerp(a: Offset, b: Offset, u: Float) =
-        Offset(a.x + (b.x - a.x) * u, a.y + (b.y - a.y) * u)
-    val p0 = px(0)
-    path.moveTo(lerp(p0, px(n - 1), t).x, lerp(p0, px(n - 1), t).y)
-    var i = 0
-    while (i < n) {
-        val curr = px(i)
-        val prev = px(if (i == 0) n - 1 else i - 1)
-        val next = px((i + 1) % n)
-        val arrive = lerp(curr, prev, t)
-        val leave = lerp(curr, next, t)
-        if (i != 0) path.lineTo(arrive.x, arrive.y)
-        path.quadraticTo(curr.x, curr.y, leave.x, leave.y)
-        i++
-    }
-    path.close()
-    return path
-}
 
 private fun ovalPoints(
     cx: Float,

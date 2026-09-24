@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
@@ -234,19 +235,6 @@ data class ActiveWorkoutUiState(
         }
 }
 
-/**
- * A lift finished its prescribed sets. Standing dock choice — not a timed
- * auto-move. [nextExerciseId] is the next unfinished lift, or null when
- * Finish workout is the Volt. Cleared only by Next / Another / Finish,
- * logging, editing, or switching lifts.
- */
-data class PendingAdvance(
-    val finishedExerciseId: String,
-    val finishedName: String,
-    val nextExerciseId: String?,
-    val nextName: String,
-)
-
 /** A record broken by the set just logged, for the in-workout moment. */
 data class PersonalRecordMoment(
     val exerciseName: String,
@@ -324,7 +312,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val draftDirty = MutableStateFlow(false)
     private var prefillGeneration = 0
     private val wantAnotherSet = MutableStateFlow(false)
-    private val _pendingAdvance = MutableStateFlow<PendingAdvance?>(null)
     private var cachedWeightUnit = WeightUnit.KG
 
     /**
@@ -346,18 +333,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     /** How long the current top offer stays readable; extends under TalkBack. */
     val undoDwellMs: StateFlow<Long> = _undoDwellMs.asStateFlow()
-
-    /** What the banner offers, or null when there is nothing to put back. */
-    val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> =
-        _undoEntries.map { entries ->
-            (entries.lastOrNull()?.token as? FloorUndo.DeletedSet)?.deleted
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
-    /** A lift just taken out of the plan, held only for the same undo host. */
-    val removedLift: StateFlow<WorkoutRepository.RemovedLift?> =
-        _undoEntries.map { entries ->
-            (entries.lastOrNull()?.token as? FloorUndo.RemovedLift)?.removed
-        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     private val _deleteFeedback = MutableSharedFlow<DeleteFeedback>(
         extraBufferCapacity = 16,
@@ -599,19 +574,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = RestTimerUiState(),
     )
-
-    /**
-     * Packet D: first-use RPE helper. Hidden after a permanent dismiss
-     * in DataStore — not a Room row.
-     */
-    val rpeHelperVisible: StateFlow<Boolean> =
-        container.preferencesRepository.rpeHelperDismissed
-            .map { dismissed -> !dismissed }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.Eagerly,
-                initialValue = true,
-            )
 
     /**
      * In-set next load. Recomputed on log, RPE, warmup, lift switch, delete/undo, and edit.
@@ -940,7 +902,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         editingSetId.value = null
         clearEditingOriginal()
         persistStopwatchFor(selectedExerciseId.value)
-        _pendingAdvance.value = null
         wantAnotherSet.value = false
         _pendingLiftSwitch.value = null
         stopHoldTimer()
@@ -1036,24 +997,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         _pendingLiftSwitch.value = null
     }
 
-    fun advanceToNextLift(exerciseId: String) {
-        if (!canChangeEntry()) return
-        wantAnotherSet.value = false
-        selectExercise(exerciseId)
-    }
-
     fun requestExtraSet() {
         if (!canChangeEntry()) return
-        _pendingAdvance.value = null
         wantAnotherSet.value = true
-        persistDraft()
-    }
-
-    fun adjustWeight(deltaKg: Double) {
-        if (!canChangeEntry()) return
-        val next = if (deltaKg.isFinite()) draft.value.weightKg + deltaKg else draft.value.weightKg
-        draft.value = draft.value.copy(weightKg = next.coerceAtLeast(0.0))
-        markDraftDirty()
         persistDraft()
     }
 
@@ -1063,10 +1009,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         draft.value = draft.value.copy(weightKg = weightKg.coerceAtLeast(0.0))
         markDraftDirty()
         persistDraft()
-    }
-
-    fun adjustReps(delta: Int) {
-        setReps(draft.value.reps + delta)
     }
 
     /**
@@ -1084,11 +1026,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         draft.value = draft.value.copy(reps = reps.coerceAtLeast(1))
         markDraftDirty()
         persistDraft()
-    }
-
-    fun adjustHoldSeconds(direction: Int) {
-        val current = draft.value.durationSeconds ?: HoldWork.DEFAULT_SECONDS
-        setHoldSeconds(HoldWork.nextSeconds(current, direction))
     }
 
     fun setHoldSeconds(seconds: Int) {
@@ -1420,12 +1357,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         persistDraft()
     }
 
-    fun dismissRpeHelper() {
-        viewModelScope.launch {
-            container.preferencesRepository.dismissRpeHelper()
-        }
-    }
-
     fun setNotes(value: String) {
         notes.value = value
         persistDraft()
@@ -1615,17 +1546,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /** True while the lifter asked to log past the prescription. Cleared on log, Next, or switch. */
     val extraSetRequested: StateFlow<Boolean> = wantAnotherSet.asStateFlow()
 
-    /**
-     * The lift the loop can move to, and the one it just finished, or null when it is
-     * staying put.
-     *
-     * Standing dock choice (Next lift / Another set), not a timed auto-move. The
-     * prescription is a plan and not a rule: a fourth set on a three-set lift is ordinary,
-     * and a loop that jumps the moment the third lands puts the lifter on the wrong card
-     * with a bar in their hands.
-     */
-    val pendingAdvance: StateFlow<PendingAdvance?> = _pendingAdvance.asStateFlow()
-
     private val _logReceipt = MutableStateFlow<LogReceipt?>(null)
     val logReceipt: StateFlow<LogReceipt?> = _logReceipt.asStateFlow()
 
@@ -1730,7 +1650,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         return true
     }
 
-    fun logSet() = logSetWithDuration(displayedDurationSeconds = null, freezeDisplayedDuration = false)
+    /** No production caller: the floor logs through [performPrimary]. Tests drive a plain log. */
+    @VisibleForTesting
+    internal fun logSet() = logSetWithDuration(displayedDurationSeconds = null, freezeDisplayedDuration = false)
 
     private fun logSetWithDuration(displayedDurationSeconds: Int?, freezeDisplayedDuration: Boolean) {
         if (!canChangeEntry()) return
@@ -1924,7 +1846,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             editingSetId.value = null
             clearEditingOriginal()
             wantAnotherSet.value = false
-            _pendingAdvance.value = null
             draft.value = draft.value.copy(isWarmup = false, rpe = null)
             error.clearFrom(source = ERR_LOG_SET, before = error.mark())
             persistDraft()
@@ -1952,15 +1873,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             val complete = !values.isWarmup && WorkoutAdvance.liftComplete(
                 result.workingOrdinal, result.targetSets, wantAnother = false,
             )
-            // Transitional compatibility for the old rail. The new primary derives from saved rows.
-            if (complete) {
-                val nextId = WorkoutAdvance.nextUnfinishedExerciseId(session.value, command.exerciseId)
-                _pendingAdvance.value = PendingAdvance(
-                    finishedExerciseId = command.exerciseId, finishedName = lift?.exercise?.name.orEmpty(),
-                    nextExerciseId = nextId,
-                    nextName = session.value?.exercises?.firstOrNull { it.exercise.id == nextId }?.exercise?.name.orEmpty(),
-                )
-            }
             cancelPendingRest()
             val startRest = RestTimer.shouldStartAfterLog(values.isWarmup, result.workingOrdinal, result.targetSets) ||
                 RestTimer.shouldStartAfterExtra(values.isWarmup, result.workingOrdinal, result.targetSets)
@@ -1976,27 +1888,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             AppLog.w(TAG, "Set saved; subsequent workout feedback failed", failure)
             error.fail(source = ERR_LOAD, message = "Set saved. Timer or feedback could not update.")
         }
-    }
-
-    /** Take the offer: move the loop to the waiting unfinished lift. */
-    fun advanceNow() {
-        if (!canChangeEntry()) return
-        val current = session.value ?: return
-        val selected = selectedExerciseId.value
-        val next = _pendingAdvance.value?.nextExerciseId
-            ?: WorkoutAdvance.nextUnfinishedExerciseId(current, selected)
-            ?: return
-        _pendingAdvance.value = null
-        applySelection(next)
-        wantAnotherSet.value = false
-        persistDraft()
-    }
-
-    /**
-     * Refuse the offer and stay on the lift that just finished, ready for another set.
-     */
-    fun stayOnCurrentExercise() {
-        requestExtraSet()
     }
 
     fun dismissError() {
@@ -2033,8 +1924,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 savedEdit.write(saved)
                 draftCache.putEditingOriginal(sessionId, saved)
             }
-            // Revising a set is not moving on from it.
-            _pendingAdvance.value = null
             stopHoldTimer()
             clearSetStopwatch()
             selectedExerciseId.value = original.exerciseId
@@ -2214,10 +2103,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         restTimer.stop()
     }
 
-    fun adjustRest(deltaSeconds: Int) {
-        restTimer.adjust(deltaSeconds)
-    }
-
     /** Idle: change the planned rest. Running: the same gateway ±15. */
     fun nudgeRest(deltaSeconds: Int) {
         if (restTimer.snapshot.value.running) {
@@ -2259,46 +2144,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Dock primary while idle: go on to the next lift. Does not start rest
-     * (G-05). Start (the small control) is rest only.
-     */
-    fun startNextLift() {
-        val current = session.value ?: return
-        val advance = WorkoutAdvance.forSelection(
-            session = current,
-            selectedExerciseId = selectedExerciseId.value,
-            wantAnother = wantAnotherSet.value,
-            editing = editingSetId.value != null,
-        )
-        val next = advance.nextExerciseId ?: return
-        if (advance.showNext) {
-            advanceToNextLift(next)
-        }
-    }
-
     fun acknowledgeRestBatteryHint() {
         viewModelScope.launch {
             container.preferencesRepository.markRestBatteryHintShown()
         }
-    }
-
-    /**
-     * Copies the progression's suggested load into the weight well. Does not log.
-     *
-     * `persistDraft()` is not optional here, and its absence was a real loss: every other
-     * mutator on this class mirrors the draft, and nothing else re-persists on its own — the
-     * session collector only persists on a Room emission, and tapping a chip changes no row.
-     * Nudge the well down to 70 kg, change your mind and tap Use to take the suggested 82.5,
-     * then pocket the phone for the rest; if Android reclaims the process, recovery hands back
-     * the 70 that was mirrored and the tap is gone.
-     */
-    fun applySuggestedWeight() {
-        if (!canChangeEntry()) return
-        val suggested = hint.value?.suggestedWeightKg ?: return
-        draft.value = draft.value.copy(weightKg = suggested)
-        markDraftDirty()
-        persistDraft()
     }
 
     /** Fills the wells from one working set of the last session. Does not log. */

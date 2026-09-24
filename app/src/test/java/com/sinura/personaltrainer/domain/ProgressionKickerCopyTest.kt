@@ -7,37 +7,18 @@ import org.junit.Test
 
 class ProgressionKickerCopyTest {
     @Test
-    fun hintMapsToHoldPlusAndBackOff() {
+    fun anAddedLoadIsTheStepInTheUnitAndAFailedSetBacksOff() {
+        assertEquals("+2.5", ProgressionKickerCopy.fromMicroRec(rec(SetMicroRecCalculator.IN_TANK), LoadClass.LOADED, WeightUnit.KG))
+        assertEquals("+5", ProgressionKickerCopy.fromMicroRec(rec(SetMicroRecCalculator.IN_TANK), LoadClass.LOADED, WeightUnit.LBS))
         assertEquals(
-            ProgressionKickerCopy.HOLD,
-            ProgressionKickerCopy.fromHint(hint(ProgressionAction.HOLD), WeightUnit.KG),
-        )
-        assertEquals(
-            "+2.5",
-            ProgressionKickerCopy.fromHint(hint(ProgressionAction.INCREASE), WeightUnit.KG),
-        )
-        assertEquals(
-            "+5",
-            ProgressionKickerCopy.fromHint(hint(ProgressionAction.INCREASE), WeightUnit.LBS),
+            "a bodyweight lift has no plate to add",
+            ProgressionKickerCopy.PLUS_REP,
+            ProgressionKickerCopy.fromMicroRec(rec(SetMicroRecCalculator.IN_TANK), LoadClass.BODYWEIGHT, WeightUnit.KG),
         )
         assertEquals(
             ProgressionKickerCopy.BACK_OFF,
-            ProgressionKickerCopy.fromHint(hint(ProgressionAction.DECREASE), WeightUnit.KG),
+            ProgressionKickerCopy.fromMicroRec(rec(SetMicroRecCalculator.FAILED_DROP), LoadClass.LOADED, WeightUnit.KG),
         )
-        assertEquals(
-            ProgressionKickerCopy.PLUS_REP,
-            ProgressionKickerCopy.fromHint(
-                hint(ProgressionAction.INCREASE, LoadType.BODYWEIGHT),
-                WeightUnit.KG,
-            ),
-        )
-    }
-
-    @Test
-    fun rpeHoldUsesTheHoldKicker() {
-        val held = hint(ProgressionAction.INCREASE).let { RpeModifier.apply(it, listOf(9, 10)) }
-        assertEquals(ProgressionAction.HOLD, held.action)
-        assertEquals(ProgressionKickerCopy.HOLD, ProgressionKickerCopy.fromHint(held, WeightUnit.KG))
     }
 
     @Test
@@ -72,14 +53,6 @@ class ProgressionKickerCopyTest {
                 WeightUnit.KG,
             ),
         )
-        assertEquals(
-            "HOLD · 100 kg × 5",
-            SetMicroRecCopy.collapsed(
-                rec(SetMicroRecCalculator.RPE_HOLD),
-                LoadClass.LOADED,
-                WeightUnit.KG,
-            ),
-        )
         assertEquals("Use suggestion", SetMicroRecCopy.USE_SUGGESTION)
         assertEquals("Keep my numbers", SetMicroRecCopy.KEEP_MY_NUMBERS)
         assertFalse(
@@ -88,53 +61,24 @@ class ProgressionKickerCopyTest {
     }
 
     @Test
-    fun aClimbOnTheHintIsPlusOneNotHold() {
-        assertEquals(
-            ProgressionKickerCopy.PLUS_REP,
-            ProgressionKickerCopy.fromHint(
-                hint(ProgressionAction.HOLD).copy(suggestedReps = 6),
-                WeightUnit.KG,
-            ),
-        )
-    }
-
-    @Test
     fun aPinStackIncreaseIsFiveKgNotTheBarStep() {
         assertEquals(
             "+5",
-            ProgressionKickerCopy.fromHint(
-                hint(
-                    action = ProgressionAction.INCREASE,
-                    loadType = LoadType.STACK,
-                ),
+            ProgressionKickerCopy.fromMicroRec(
+                rec(SetMicroRecCalculator.IN_TANK).copy(loadType = LoadType.STACK),
+                LoadClass.LOADED,
                 WeightUnit.KG,
             ),
         )
         assertEquals(
             "+2",
-            ProgressionKickerCopy.fromHint(
-                hint(
-                    action = ProgressionAction.INCREASE,
-                    loadType = LoadType.EXTERNAL,
-                ).copy(equipment = EquipmentType.DUMBBELL),
+            ProgressionKickerCopy.fromMicroRec(
+                rec(SetMicroRecCalculator.IN_TANK).copy(loadType = LoadType.EXTERNAL, equipment = EquipmentType.DUMBBELL),
+                LoadClass.LOADED,
                 WeightUnit.KG,
             ),
         )
     }
-
-    private fun hint(
-        action: ProgressionAction,
-        loadType: LoadType = LoadType.EXTERNAL,
-    ) = ProgressionHint(
-        exerciseId = "ex-bench",
-        exerciseName = "Bench",
-        lastWeightKg = 100.0,
-        lastReps = 5,
-        targetReps = 5,
-        suggestedWeightKg = 102.5,
-        action = action,
-        loadType = loadType,
-    )
 
     private fun rec(reason: String) = SetMicroRec(
         nextWeightKg = 100.0,

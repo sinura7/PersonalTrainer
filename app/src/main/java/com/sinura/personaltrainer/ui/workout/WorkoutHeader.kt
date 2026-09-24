@@ -50,7 +50,7 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
  *
  * Landscape gets the one-row compact form: the plan's words are the title, since the
  * routine name is context the lifter already has and the row is the header's whole budget
- * there (`LandscapeChrome.HEADER_ROW_DP`).
+ * there.
  *
  * The second line and the segmented bar are the same numbers said twice — once as
  * words, once as shape — so a lifter walking back to the phone sees how much of the

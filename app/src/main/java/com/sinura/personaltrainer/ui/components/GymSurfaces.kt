@@ -20,8 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
@@ -506,7 +504,7 @@ fun SessionLogRow(
                 Box {
                     IconButton(onClick = { menuOpen = true }) {
                         Icon(
-                            Icons.Outlined.MoreVert,
+                            OutlinedMarks.MoreVert,
                             contentDescription = "Session options",
                             tint = TextSecondary,
                         )
@@ -613,7 +611,7 @@ fun CountBadge(
     selected: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val badgeShape = RoundedCornerShape(percent = 50)
+    val badgeShape = Radius.full
     Box(
         modifier = modifier
             .heightIn(min = Metrics.space6)

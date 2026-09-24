@@ -8,11 +8,9 @@ import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.SessionTelemetryCopy
 import com.sinura.personaltrainer.domain.SetOrdinalCopy
-import com.sinura.personaltrainer.domain.SetRowCopy
 import com.sinura.personaltrainer.domain.TalkBackPolicy
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
-import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Warn
 import org.junit.Assert.assertEquals
@@ -93,7 +91,6 @@ class FloorPacketHFinalPassTest {
     fun runningClockNeverStreamsSecondsToTalkBack() {
         assertFalse(TalkBackPolicy.announceRestKicker(justFinished = false))
         assertTrue(TalkBackPolicy.announceRestKicker(justFinished = true))
-        assertEquals("Back to the bar", TalkBackPolicy.restKicker(justFinished = true))
         // The dock's rest card is a live region only at the finished flash, never per tick:
         // RestTimerCardRenderTest finds none while it runs and exactly one at the flash.
         // One live region for the rest kicker, the card's: the old bar's copy is gone.
@@ -101,29 +98,7 @@ class FloorPacketHFinalPassTest {
     }
 
     @Test
-    fun liftPicturesStayDecorativeInsideTheNamedIdentity() {
-        // On the floor the still is the Details button and is spoken only as that
-        // (ExerciseHeaderRenderTest); in the switcher a row is spoken once and its still adds
-        // nothing (LiftSwitcherSheetRenderTest); the session bar says nothing either, the line
-        // above it says it in words (WorkoutHeaderRowRenderTest).
-        assertTrue(
-            CurrentLiftCopy.cardSpoken(
-                name = "Bench",
-                number = 1,
-                total = 6,
-                workingLogged = 0,
-                targetSets = 3,
-                equipmentLabel = "Barbell",
-                meaning = WeightMeaning.LIFTED,
-            ).startsWith("Current. Bench"),
-        )
-    }
-
-    @Test
     fun setChipsAndLiftOverflowSpeakWordsNeverGlyphsAlone() {
-        assertEquals("Actions for set 2", SetRowCopy.actionsForSet(2))
-        assertEquals("Revise set 2", SetRowCopy.reviseSet(2))
-        assertEquals("Delete set 2", SetRowCopy.deleteSet(2))
         assertEquals("Remove lift", CurrentLiftCopy.REMOVE)
         assertEquals("Delete its sets first", CurrentLiftCopy.EDIT_BLOCKED_REASON)
         assertEquals("Switch exercise", CurrentLiftCopy.SWITCH)
@@ -140,18 +115,13 @@ class FloorPacketHFinalPassTest {
     }
 
     @Test
-    fun telemetryIsMinuteGrainAndDropsVolumeFirst() {
+    fun telemetryIsMinuteGrain() {
         assertEquals(1, SessionTelemetryCopy.elapsedMinutes(119))
         assertEquals(0, SessionTelemetryCopy.elapsedMinutes(59))
-        assertFalse(SessionTelemetryCopy.includeVolume(fontScale = 2f, widthDp = 360))
-        assertTrue(SessionTelemetryCopy.includeVolume(fontScale = 1f, widthDp = 360))
-        assertTrue(SessionTelemetryCopy.includeVolume(fontScale = 2f, widthDp = 412))
     }
 
     @Test
     fun reducedMotionStopsTheFloorPulseAndSettles() {
-        assertEquals(0, Motion.durationMs(reduced = true, fullMs = Motion.REST_DONE_MS))
-        assertEquals(240, Motion.REST_DONE_MS)
         // The dock's rest card has no pulse at all; its ring and accent go through the
         // instrument specs, which snap under reduced motion (ReducedMotionRenderTest).
         val card = ownedSource("ui/workout/RestTimerCard.kt")

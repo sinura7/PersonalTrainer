@@ -56,7 +56,7 @@ Done so far:
   pins, keeping every ban and scanning both workout packages, so W2d's
   moves cannot empty them (#404). T1c-2 took the last eleven files: the
   floor's chrome, identity, entry, switcher, notes and reduced motion, with
-  every ban kept; its dead-code list is W2a's.
+  every ban kept; its dead-code list is W2a's (#408).
 - **W1a, W1b, R0:** the lift switch, effort and planned-rest wording, the
   routine picker's second tap (drops 101, 102).
 - **X3:** the retired emulator goldens left the hosted lane.
@@ -90,6 +90,12 @@ Done so far:
   tap just as the rest ends keeps "rest done", and a tap on a card that has
   not caught up with the next set's rest leaves that rest running
   (ADR-012; #407).
+- **W2a:** about 1,600 lines of app code that nothing used are gone: the
+  history set sheet's unused compact entry, unused components, ten
+  ViewModel functions and four flows no screen uses, test-only constants
+  and the old RPE helper (its stored flag is left unread). Four design-token ceilings are
+  lower, each swap proven identical. The rest-length sheet opens in place,
+  without its slide, when the phone asks for reduced motion (ADR-023).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -103,13 +109,19 @@ Done so far:
   quirks the W2b-1c review found (an alarm set a moment before its row
   lands; a reschedule that ignores a failed disk write) get one small
   packet after W2d.
+- **Owner decisions, 24 September (later):** the local coverage check
+  counts what the JVM tests really load, as packet X5 straight after W2a;
+  the lock screen's and the rest page's Skip name their rest, as the
+  notification's does (W2b-3, after W2b-2); if a test confirms that the
+  rest page's next-set line can differ from the Log's (after Another set,
+  or a lift's first set), it is fixed in its own packet (W2b-4).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): W2a, W2b-2, W2c, W2d,
-the rest-alarm packet, then a check-only phone drop, then W3. X2b completed
-Wave 0.
+live order is the table in FRONTEND_REDESIGN.md): X5, W2b-2, W2b-3,
+W2b-4, W2c, W2d, the rest-alarm packet, then a check-only phone drop, then
+W3. X2b completed Wave 0.
 
 ## What is verified, and how
 

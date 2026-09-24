@@ -17,10 +17,18 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 
 /**
  * System animator scale, previews, and the page-level reduced-motion
@@ -65,6 +73,52 @@ fun recordEnter(): EnterTransition =
     } else {
         fadeIn(tween(Motion.FAST))
     }
+
+/**
+ * The state of a modal sheet that opens all the way (Material's `skipPartiallyExpanded`). Under
+ * reduced motion it starts expanded, so the sheet appears in place instead of sliding up from the
+ * bottom (owner decision, 24 Sep 2026; ADR-023); otherwise it is Material's own state, which slides.
+ *
+ * Material 3 1.4.0 keeps its motion scheme, and a sheet state with a starting value, internal, so
+ * this builds the same state it would ([SheetState], Material's drag thresholds) starting at
+ * Expanded instead of Hidden. What still moves: a swipe, Back or a tap outside slides the sheet
+ * away, as Material hides it; a pick closes it at once, as before.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun rememberFullSheetState(reduced: Boolean): SheetState {
+    // Read once per opening: a settings change while the sheet is up must not swap its state.
+    val reducedAtOpen = remember { reduced }
+    if (!reducedAtOpen) return rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val density = LocalDensity.current
+    val positionalThreshold = { with(density) { SheetPositionalThreshold.toPx() } }
+    val velocityThreshold = { with(density) { SheetVelocityThreshold.toPx() } }
+    val confirmValueChange: (SheetValue) -> Boolean = { true }
+    return rememberSaveable(
+        saver = SheetState.Saver(
+            skipPartiallyExpanded = true,
+            positionalThreshold = positionalThreshold,
+            velocityThreshold = velocityThreshold,
+            confirmValueChange = confirmValueChange,
+            skipHiddenState = false,
+        ),
+    ) {
+        SheetState(
+            skipPartiallyExpanded = true,
+            positionalThreshold = positionalThreshold,
+            velocityThreshold = velocityThreshold,
+            initialValue = SheetValue.Expanded,
+            confirmValueChange = confirmValueChange,
+            skipHiddenState = false,
+        )
+    }
+}
+
+/** Material 3 1.4.0's BottomSheetDefaults.PositionalThreshold, which it keeps internal. */
+private val SheetPositionalThreshold = 56.dp
+
+/** Material 3 1.4.0's BottomSheetDefaults.VelocityThreshold, which it keeps internal. */
+private val SheetVelocityThreshold = 125.dp
 
 @Suppress("ModifierFactoryExtensionFunction") // animateItem is LazyItemScope-only
 @Composable
@@ -117,25 +171,11 @@ object Motion {
     /** Gold flash on a finished rest before the dock returns to idle. */
     const val FINISHED_DWELL_MS = 3_500L
 
-    /** Clock row swap after a mode change. Reduced motion snaps this to 0. */
-    const val CLOCK_SWAP_MS = 180
-
-    /** Use on the recommendation strip: draft only, not Log success. */
-    const val DRAFT_SETTLE_MS = 150
-
     /** New logged row settle before rest motion. Reduced motion snaps this to 0. */
     const val ROW_SETTLE_MS = 180
 
-    /** Current-lift card swap after Next. Reduced motion snaps this to 0. */
-    const val CARD_SWAP_MS = 240
-
     /** Gold accent after Log success on a personal record (HA-24). */
     const val PR_ACCENT_DELAY_MS = 120
-
-    /** 0:00 → Back to the bar. Reduced motion snaps this to 0. */
-    const val REST_DONE_MS = 240
-
-    fun durationMs(reduced: Boolean, fullMs: Int): Int = if (reduced) 0 else fullMs
 
     val Standard: Easing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
     val Exit: Easing = CubicBezierEasing(0.3f, 0f, 1f, 1f)

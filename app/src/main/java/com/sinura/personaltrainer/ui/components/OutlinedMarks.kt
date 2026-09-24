@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.PathNode
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.graphics.vector.path
-import androidx.compose.ui.unit.dp
+import com.sinura.personaltrainer.ui.theme.Metrics
 
 /**
  * The handful of outlined marks that used to pull
@@ -61,8 +61,8 @@ private const val MORE_VERT =
 private fun svgMark(name: String, d: String, autoMirror: Boolean = false): ImageVector =
     ImageVector.Builder(
         name = name,
-        defaultWidth = 24.dp,
-        defaultHeight = 24.dp,
+        defaultWidth = Metrics.icon,
+        defaultHeight = Metrics.icon,
         viewportWidth = 24f,
         viewportHeight = 24f,
         autoMirror = autoMirror,

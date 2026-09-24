@@ -63,7 +63,7 @@ to change that choice later.
 | Goals | Measurable goals, pause intervals | **Packet 3** — `measurable_goals` |
 | Coach / generator | Coach prefs (goal, emphasis, equipment, age, place, focus, heat window) | **Packet 3** — `coach_prefs`; training blocks stay backup/local |
 | Reminders | Reminder prefs, day alarms | **Packet 3** — `reminder_prefs`; device-local pending occurrence / permission flags stay local |
-| Display | Weight unit, clock format, check-in weekday | **Packet 3** — `display_prefs`; RPE helper dismissed stays device-local |
+| Display | Weight unit, clock format, check-in weekday | **Packet 3** — `display_prefs`; the RPE-helper flag was removed in W2a (24 September 2026), and its old device-local key is left unread |
 | Account profile | Save posture choice | **Packet 3** — `account_profiles`; display name / avatar deferred (no UI) |
 
 ## Review questions

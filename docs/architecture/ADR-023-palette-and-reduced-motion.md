@@ -38,6 +38,11 @@ count-up, record stagger, status banner, rest sweep, and eight
    remaining sites: summary count-up and record entrance, status and
    record banners, rest sweep/pulse, and list placement. Dwell times
    (how long a banner stays readable) are not animations and stay.
+   *Amended 24 September 2026 (packet W2a, owner decision):* the
+   rest-length sheet honours reduced motion too. It opens already in
+   place, with no slide up (`rememberFullSheetState`). Closing it with a
+   swipe, Back or a tap outside still slides it away: Material 3 1.4.0
+   keeps that animation internal. See Consequences.
 
 ## Consequences
 
@@ -45,6 +50,9 @@ count-up, record stagger, status banner, rest sweep, and eight
 - A later signed retune may still shift Warn; it needs a new ADR.
 - `Motion` owns dwell, pulse, and tick constants. Call sites do not
   invent millisecond literals for those.
+- The app's other twelve bottom sheets still slide in under reduced
+  motion (24 September 2026). Each can take `rememberFullSheetState` in
+  a later packet; none is changed without a rendered test.
 
 ## Review questions
 
