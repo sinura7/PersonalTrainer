@@ -111,12 +111,12 @@ class RestTimerController(
         // another thread may have started, stopped or completed a timer this call knows nothing
         // about. The disk write and the alarm still take the store's latest state; the last
         // caller's job wins.
-        when (store.adjust(deltaSeconds, SystemClock.elapsedRealtime())) {
+        when (val adjustment = store.adjust(deltaSeconds, SystemClock.elapsedRealtime())) {
             is RestAdjustment.Running -> persistThenArm(syncService = true)
-            RestAdjustment.Ended -> {
+            is RestAdjustment.Ended -> {
                 alarms.cancel()
                 persistThenArm(syncService = false)
-                dispatch(RestTimerService.ACTION_STOP)
+                dispatch(RestTimerService.ACTION_STOP, timerId = adjustment.timerId)
             }
             // Whoever emptied the store already cancelled the alarm, cleared the row, and the
             // service stops on the snapshot. A STOP from here would run stop() in the service
@@ -135,25 +135,30 @@ class RestTimerController(
         // One compare-and-set, not a check and then a clear: a +15 landing in between
         // would have minted a replacement that the clear then wiped.
         val cleared = store.clearIfCurrent(timerId) ?: return false
-        afterHalt(wasRunning = cleared.running, fromService = fromService)
+        afterHalt(wasRunning = cleared.running, fromService = fromService, timerId = cleared.timerId)
         return true
     }
 
     override fun completeIfCurrent(timerId: String, fromService: Boolean): Boolean {
         val current = store.current()
         if (current.running && current.timerId != timerId) return false
+        // An empty store that held this rest was emptied by a Skip, a stop or a -15 to zero, or
+        // by a finish that already announced it: an alarm already on its way for it is not a
+        // finish. A process started after death has held nothing, so a rest that ran out while
+        // it was dead still completes.
+        if (!current.running && store.hasHeld(timerId)) return false
         // Publish before clearing running. The lock glance collects those
         // two flows separately; stop-then-mark looks like a skip for one
         // frame and dismisses the "Back to the bar" surface.
         markCompleted(timerId)
         val cleared = store.clearIfCurrent(timerId)
-        if (cleared == null) {
-            // A +15 replaced this timer after the check: nothing finished. Take the
-            // completion back, unless something newer has already been published.
+        if (cleared == null || (!cleared.running && store.hasHeld(timerId))) {
+            // After the check, a +15 replaced this timer, or a Skip emptied the store: nothing
+            // finished. Take the completion back, unless something newer has been published.
             _lastCompletedTimerId.compareAndSet(timerId, null)
             return false
         }
-        afterHalt(wasRunning = cleared.running, fromService = fromService)
+        afterHalt(wasRunning = cleared.running, fromService = fromService, timerId = cleared.timerId)
         return true
     }
 
@@ -163,19 +168,19 @@ class RestTimerController(
     }
 
     private fun halt(fromService: Boolean) {
-        val wasRunning = store.current().running
+        val was = store.current()
         store.clear()
-        afterHalt(wasRunning, fromService)
+        afterHalt(was.running, fromService, was.timerId)
     }
 
-    private fun afterHalt(wasRunning: Boolean, fromService: Boolean) {
+    private fun afterHalt(wasRunning: Boolean, fromService: Boolean, timerId: String) {
         // Drop the wakeup immediately so a cancelled rest cannot fire
         // while the IO job is still clearing the row.
         alarms.cancel()
         persistThenArm(syncService = false)
         if (!fromService) {
             if (wasRunning) {
-                dispatch(RestTimerService.ACTION_STOP)
+                dispatch(RestTimerService.ACTION_STOP, timerId = timerId)
             }
             RestTimerNotifications.cancelDone(appContext)
         }
@@ -195,6 +200,19 @@ class RestTimerController(
             nowWallClockMillis = System.currentTimeMillis(),
             nowBootCount = BootSession.count(appContext),
         )
+        // A row for a rest this process held, and no longer runs, is left by a Skip, a stop, a
+        // -15 to zero or a finish whose row clear has not landed yet, or failed. Bring nothing
+        // back and announce nothing; clear the row again. A process started after death has
+        // held nothing.
+        val staleTimerId = when (outcome) {
+            is RestTimerRehydration.Running -> outcome.timerId
+            is RestTimerRehydration.Expired -> outcome.timerId
+            RestTimerRehydration.None -> null
+        }
+        if (staleTimerId != null && store.hasHeld(staleTimerId)) {
+            persistThenArm(syncService = false)
+            return false
+        }
         return when (outcome) {
             is RestTimerRehydration.Running -> {
                 store.restore(
@@ -330,8 +348,13 @@ class RestTimerController(
         )
     }
 
-    private fun dispatch(action: String) {
+    /**
+     * [timerId] names the rest a STOP is for, so the service can tell it from a rest started
+     * after the STOP was sent (ADR-012 decision 1).
+     */
+    private fun dispatch(action: String, timerId: String? = null) {
         val intent = Intent(appContext, RestTimerService::class.java).setAction(action)
+        timerId?.let { intent.putExtra(RestTimerService.EXTRA_TIMER_ID, it) }
         try {
             appContext.startForegroundService(intent)
         } catch (error: Exception) {

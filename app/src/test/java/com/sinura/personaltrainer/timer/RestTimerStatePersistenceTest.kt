@@ -1,5 +1,8 @@
 package com.sinura.personaltrainer.timer
 
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.SharedPreferences
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -11,7 +14,9 @@ import org.robolectric.RobolectricTestRunner
 class RestTimerStatePersistenceTest {
     @Test
     fun saveIsReadableOnTheNextLine() {
-        val persistence = SharedPrefsRestTimerStatePersistence(ApplicationProvider.getApplicationContext())
+        // Its own file: the app's start-up recovery clears the shared row on its own thread,
+        // and could land between this save and the read that follows it.
+        val persistence = SharedPrefsRestTimerStatePersistence(OwnPreferences(ApplicationProvider.getApplicationContext()))
         persistence.clear()
         val state = PersistedRestTimer(
             endsAtElapsedRealtime = 12_000L,
@@ -28,4 +33,12 @@ class RestTimerStatePersistenceTest {
         persistence.clear()
         assertNull(persistence.load())
     }
+}
+
+/** The same context, with preferences of its own and itself as the application context. */
+private class OwnPreferences(base: Context) : ContextWrapper(base) {
+    override fun getApplicationContext(): Context = this
+
+    override fun getSharedPreferences(name: String, mode: Int): SharedPreferences =
+        super.getSharedPreferences("persistence-test-$name", mode)
 }

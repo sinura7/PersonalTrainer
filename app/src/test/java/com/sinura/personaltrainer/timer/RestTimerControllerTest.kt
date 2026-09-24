@@ -4,6 +4,8 @@ import android.app.AlarmManager
 import android.app.Application
 import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.RestFinishFlash
@@ -125,6 +127,7 @@ class RestTimerControllerTest {
         )
         try {
             controller.start(90, "session-1")
+            val ending = store.current().timerId
             events.clear()
             startedServiceActions()
 
@@ -137,7 +140,155 @@ class RestTimerControllerTest {
             val clearAt = events.indexOf("clear")
             assertTrue(cancelAt >= 0)
             assertTrue("the wakeup goes before the row", cancelAt < clearAt)
-            assertTrue(RestTimerService.ACTION_STOP in startedServiceActions())
+            assertEquals("the STOP names the rest that ended", listOf(ending), stopsSent())
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aSkipTellsTheServiceWhichRestItStopped() {
+        // A STOP that named no rest ended whatever was running when the service got to it:
+        // a rest started in between was killed by the Skip before it.
+        val store = RestTimerStore()
+        val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        try {
+            controller.start(90, "session-1")
+            val skipped = store.current().timerId
+            startedServiceActions()
+
+            controller.stop()
+
+            assertEquals(listOf(skipped), stopsSent())
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun anAlarmAlreadyOnItsWayAfterASkipIsNotAFinish() {
+        // The Skip empties the store at once and clears the disk row a moment later; an alarm
+        // that fired in between reads the row and asks to complete a rest the owner skipped.
+        var n = 0
+        val sequential = IdFactory { "timer-${++n}" }
+        val store = RestTimerStore(ids = sequential)
+        val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        val published = mutableListOf<String>()
+        val scope = CoroutineScope(Dispatchers.Unconfined)
+        try {
+            controller.start(90, "session-1")
+            controller.adjust(15)
+            assertEquals("timer-2", store.current().timerId)
+
+            controller.stop()
+            // The lock glance reads this flow; "rest done" must not flash, even for a frame.
+            scope.launch { controller.lastCompletedTimerId.collect { id -> id?.let { published += it } } }
+
+            assertFalse("the skipped rest does not finish", controller.completeIfCurrent("timer-2", fromService = true))
+            assertFalse("nor the one the +15 replaced", controller.completeIfCurrent("timer-1", fromService = true))
+            assertEquals(emptyList<String>(), published)
+            assertNull(controller.lastCompletedTimerId.value)
+        } finally {
+            scope.cancel()
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aSkipLandingAsTheRestFinishesLeavesItSkipped() {
+        // The Skip lands after the completion's check, the moment it publishes "rest done"
+        // (seen inline by a collector on Unconfined). The rest was skipped: nothing finishes.
+        val store = RestTimerStore()
+        val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        val scope = CoroutineScope(Dispatchers.Unconfined)
+        try {
+            controller.start(90, "session-1")
+            val timerId = store.current().timerId
+            scope.launch { controller.lastCompletedTimerId.collect { if (it == timerId) controller.stop() } }
+
+            val finished = controller.completeIfCurrent(timerId, fromService = true)
+
+            assertFalse("no Rest done for a skipped rest", finished)
+            assertFalse(store.current().running)
+            assertNull(controller.lastCompletedTimerId.value)
+        } finally {
+            scope.cancel()
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aRecoveryNeverBringsBackARestThisProcessSkipped() {
+        // A Skip whose row clear did not land (a refused commit), then a recovery in the same
+        // process (the exact-alarm permission changing, say): the skipped rest stays skipped.
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            controller.start(90, "session-1")
+            val row = checkNotNull(persistence.saved)
+            controller.stop()
+            persistence.saved = row
+
+            assertFalse(controller.rehydrate())
+
+            assertFalse("the skipped rest is not running again", store.current().running)
+            assertNull("its row is cleared again", persistence.saved)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aRecoveryNeverAnnouncesARestThisProcessSkipped() {
+        // As above, with the skipped rest's time already up: nothing says Rest done for it, and
+        // its row goes, so a later process death cannot announce it either.
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            controller.start(90, "session-1")
+            val skipped = store.current().timerId
+            controller.stop()
+            val now = SystemClock.elapsedRealtime()
+            persistence.saved = RestTimerRehydrator.toPersisted(
+                endsAtElapsedRealtime = now - 1_000L,
+                totalSeconds = 90,
+                sessionId = "session-1",
+                timerId = skipped,
+            )
+
+            assertFalse(controller.rehydrate())
+
+            assertNull("its row is cleared, not left for a later process to announce", persistence.saved)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aRestThatRanOutWhileTheProcessWasDeadStillFinishes() {
+        // A process started after death holds nothing; the alarm (or rehydration) completes the
+        // rest from the disk row, and it must still say Rest done.
+        val store = RestTimerStore()
+        val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        try {
+            assertTrue(controller.completeIfCurrent("timer-from-disk", fromService = true))
+            assertEquals("timer-from-disk", controller.lastCompletedTimerId.value)
         } finally {
             controller.stop()
         }
@@ -529,9 +680,17 @@ class RestTimerControllerTest {
     }
 
     /** The actions sent to the rest service since the last call, in order. */
-    private fun startedServiceActions(): List<String?> {
+    private fun startedServiceActions(): List<String?> = startedServiceIntents().map { it.action }
+
+    /** The rest each STOP sent since the last call names; null for a STOP that names none. */
+    private fun stopsSent(): List<String?> = startedServiceIntents()
+        .filter { it.action == RestTimerService.ACTION_STOP }
+        .map { it.getStringExtra(RestTimerService.EXTRA_TIMER_ID) }
+
+    /** The intents sent to the rest service since the last call, in order. */
+    private fun startedServiceIntents(): List<Intent> {
         val shadow = shadowOf(context as Application)
-        return generateSequence { shadow.nextStartedService }.map { it.action }.toList()
+        return generateSequence { shadow.nextStartedService }.toList()
     }
 
     /**

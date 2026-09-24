@@ -11,7 +11,9 @@
   lets one leftover occurrence move onto today from Home; week-level
   missed-work is unchanged; 23 September 2026 — owner decision: the rest a
   logged set starts is the coach's suggested length (decision 18); the same
-  day, W2b-1 made decision 1 hold across threads (see Consequences)
+  day, W2b-1 made decision 1 hold across threads (see Consequences);
+  24 September 2026 — W2b-1b: a stop names its rest, and a skipped rest
+  does not say "Rest done" (owner decisions; see Consequences)
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -114,6 +116,25 @@ day. The agreed product asks once, then adapts only if the user says so.
   old id cannot clear the timer a ±15 just replaced it with (it takes its
   "rest done" back instead). A ±15 that finds the rest already finished does
   nothing, so it cannot turn "rest done" into a skip.
+- A stop names its rest, and a skipped rest is not "done" (W2b-1b, owner
+  decisions of 24 September 2026). The service's STOP carries the id of the
+  rest it ends, so a STOP read after a new rest started (the next set's
+  auto-rest) leaves the new rest running. The store remembers the last 16
+  rests it held: an empty store that held a rest was emptied by a Skip, a
+  stop or a −15 to zero, or by a finish that already announced it. So a
+  completion already on its way for that rest (an alarm that fired as the
+  Skip landed, reading the disk row before its clear) announces nothing, and
+  a recovery in the same process (after the exact-alarm permission changes,
+  say) neither brings it back nor announces it; it clears the row again. A
+  process started after death has held nothing, so a rest that ran out
+  while it was dead still says "Rest done". The notification's Skip ends
+  whatever is running, and does nothing to a rest that already finished
+  (some phones keep the card a beat), so "rest done" stays done. Left as
+  they are: a skipped rest whose row clear fails twice, followed by the
+  process dying before any recovery, can still announce after the next
+  start, as before; and W2b-1c closes a microsecond window in which a
+  completion's disk job could cancel a newer start's, leaving that rest
+  with no row and no alarm.
 
 ## Review questions
 
