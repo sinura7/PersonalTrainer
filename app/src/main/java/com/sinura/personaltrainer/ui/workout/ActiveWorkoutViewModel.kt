@@ -31,13 +31,11 @@ import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.PendingLiftSwitch
 import com.sinura.personaltrainer.domain.SetStopwatchUiState
 import com.sinura.personaltrainer.domain.SetStopwatchWork
-import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.LibraryGrouping
-import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LogCommitCopy
@@ -89,7 +87,6 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -243,19 +240,6 @@ data class PersonalRecordMoment(
     val reps: Int,
 )
 
-data class RestTimerUiState(
-    val remainingSeconds: Int = 0,
-    val totalSeconds: Int = 90,
-    val running: Boolean = false,
-    val completedTimerId: String? = null,
-    /** False while the rest row is not on disk; the floor says so in one line. */
-    val persistenceHealthy: Boolean = true,
-    /** First rest in-app: unrestricted battery, or Samsung kills the clock. */
-    val batteryHint: Boolean = false,
-    /** Exact alarm denied: rest page says best-effort, never "precise". */
-    val exactAlarmBestEffort: Boolean = false,
-)
-
 @OptIn(ExperimentalCoroutinesApi::class)
 class ActiveWorkoutViewModel @JvmOverloads constructor(
     application: Application,
@@ -377,6 +361,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     /** The read outcome remains distinct from a successful query with no row. */
     private val sessionReader = WorkoutSessionReader(container.workoutRepository, sessionId, viewModelScope)
+
+    /** The rest commands and the progression read this screen shares with the rest page. */
+    private val restCommands = RestCommands(container, viewModelScope, sessionId)
+    private val hintLoader = ProgressionHintLoader(container, sessionId)
 
     /**
      * The session row, hot for this ViewModel's whole life.
@@ -505,26 +493,20 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             }
         }
         viewModelScope.launch {
-            container.preferencesRepository.restTimerPreferences
-                .map { it.lastPresetSeconds }
-                .distinctUntilChanged()
-                .drop(1)
-                .collect { last ->
-                    if (last != null && !restTimer.snapshot.value.running) {
-                        // A pick on the dock comes back here as an echo, and it can land after
-                        // the owner has moved on. It is already the plan, marked with the lift
-                        // it was picked on; marked again with whichever lift is selected now, it
-                        // would stop that lift's own seed. Only a length the dock does not hold
-                        // yet — one picked on the rest page — is news.
-                        restTotal.update { plan ->
-                            if (plan.seconds == last) {
-                                plan
-                            } else {
-                                PlannedRest(seconds = last, chosenFor = selectedExerciseId.value)
-                            }
-                        }
+            restCommands.presetEchoes.collect { last ->
+                // A pick on the dock comes back here as an echo, and it can land after the
+                // owner has moved on. It is already the plan, marked with the lift it was
+                // picked on; marked again with whichever lift is selected now, it would stop
+                // that lift's own seed. Only a length the dock does not hold yet — one picked
+                // on the rest page — is news.
+                restTotal.update { plan ->
+                    if (plan.seconds == last) {
+                        plan
+                    } else {
+                        PlannedRest(seconds = last, chosenFor = selectedExerciseId.value)
                     }
                 }
+            }
         }
     }
 
@@ -546,34 +528,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
     }
 
-    val restTimerState: StateFlow<RestTimerUiState> = combine(
-        combine(
-            restTimer.remainingSeconds,
-            restTimer.snapshot,
-            restTotal,
-            restTimer.lastCompletedTimerId,
-            restTimer.persistenceHealthy,
-        ) { remaining, snapshot, planned, completedId, healthy ->
-            RestTimerUiState(
-                remainingSeconds = remaining,
-                totalSeconds = if (snapshot.running) snapshot.totalSeconds else planned.seconds,
-                running = snapshot.running,
-                completedTimerId = completedId,
-                persistenceHealthy = healthy,
-            )
-        },
-        container.preferencesRepository.restBatteryHintShown,
-        restTimer.exactAlarmAttempt,
-    ) { rest, shown, attempt ->
-        rest.copy(
-            batteryHint = rest.running && !shown,
-            exactAlarmBestEffort = attempt == ExactAlarmAttempt.BEST_EFFORT,
+    /** The dock's rest card. The shared builder is cold; this screen's sharing is its own. */
+    val restTimerState: StateFlow<RestTimerUiState> =
+        restCommands.restState(restTotal) { it.seconds }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = RestTimerUiState(),
         )
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = RestTimerUiState(),
-    )
 
     /**
      * In-set next load. Recomputed on log, RPE, warmup, lift switch, delete/undo, and edit.
@@ -794,28 +755,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         try {
             val restPrefs = container.preferencesRepository.restTimerPreferences.first()
             if (!isCurrentPrefill(exerciseId, generation)) return
-            val schedule = container.preferencesRepository.schedulePreferences.first()
+            val thisWeek = hintLoader.thisWeekStart()
             if (!isCurrentPrefill(exerciseId, generation)) return
-            val thisWeek = LighterWeek.weekStartEpochDay(
-                civilToday(),
-                schedule.weekStart,
-            )
-            val lighter = LighterWeek.isCurrent(
-                container.preferencesRepository.lighterWeekStartEpochDay.first(),
-                thisWeek,
-            )
+            val lighter = hintLoader.isLighterWeek(thisWeek)
             if (!isCurrentPrefill(exerciseId, generation)) return
             lighterWeek.value = lighter
-            val progression = container.workoutRepository.progressionFor(
-                exerciseId = exerciseId,
-                exerciseName = planned?.exercise?.name ?: "",
-                targetReps = targetReps,
-                excludeSessionId = sessionId,
-                loadType = planned?.exercise?.loadType,
-                unit = container.preferencesRepository.weightUnit.first(),
-                lighterWeek = lighter,
-                equipment = planned?.exercise?.equipment,
-            )
+            val progression = hintLoader.progression(exerciseId, planned, lighter)
             if (!isCurrentPrefill(exerciseId, generation)) return
             hint.value = progression
             lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
@@ -2115,9 +2060,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /** Names the next rest. Does not start the clock. */
     fun selectRestDuration(seconds: Int) {
         restTotal.value = PlannedRest(seconds = seconds, chosenFor = selectedExerciseId.value)
-        viewModelScope.launch {
-            container.preferencesRepository.setLastRestPresetSeconds(seconds)
-        }
+        restCommands.rememberPick(seconds)
     }
 
     fun selectCustomRest(input: String): Boolean {
@@ -2131,23 +2074,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         bumpTimedGeneration()
         stopHoldTimer()
         clearSetStopwatch()
-        val seconds = restTotal.value.seconds.coerceIn(
-            RestTimerPreferences.MIN_SECONDS,
-            RestTimerPreferences.MAX_SECONDS,
-        )
-        // Starting owns the clock immediately. Preference IO must not queue a
-        // late start after Skip, Time set, Finish, or another timer generation.
-        restTimer.start(seconds, sessionId)
-        viewModelScope.launch {
-            container.preferencesRepository.setLastRestPresetSeconds(seconds)
-            container.preferencesRepository.markRestAlarmEligible()
-        }
+        restCommands.startPlanned(restTotal.value.seconds)
     }
 
     fun acknowledgeRestBatteryHint() {
-        viewModelScope.launch {
-            container.preferencesRepository.markRestBatteryHintShown()
-        }
+        restCommands.acknowledgeBatteryHint()
     }
 
     /** Fills the wells from one working set of the last session. Does not log. */

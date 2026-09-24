@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 24 Sep 2026 — Whole-app audit packet W2b-2: the Log's dock and the
+> rest page now share one copy of their rest controls (saving a picked
+> length, starting a rest by hand, the battery tip, the coach's hint)
+> instead of two. Nothing changes on screen; tests written against the
+> old code prove it. ADR-012 decision 18 gains the rule the app already
+> follows: a length picked on the dock holds until a logged set starts
+> a rest or the lift changes. Quiet.
+>
 > 24 Sep 2026 — Whole-app audit packet X5 (owner decision of 24
 > September): the local coverage check now counts the code the JVM tests
 > reach through Robolectric. It had been leaving that code out, so the
