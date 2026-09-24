@@ -147,11 +147,19 @@ class RestTimerService : Service() {
                 syncForeground()
             }
             ACTION_SKIP -> {
-                // Skip on a card still on screen after its rest finished: nothing is running to
-                // skip, and stop() would turn that "rest done" into a skip.
-                if (controller.snapshot.value.running) controller.stop(fromService = true)
-                stopNow()
-                return START_NOT_STICKY
+                // The card names the rest it shows; skip that one only, or the ±15 of it that
+                // replaced it before the card caught up. A finish that lands first keeps its
+                // "rest done" (some phones keep the card a beat after the rest ends), and a newer
+                // rest the card has not caught up with keeps running. A card built before Skip
+                // named its rest skips what runs now.
+                val shownTimerId = intent.getStringExtra(EXTRA_TIMER_ID)
+                    ?: controller.snapshot.value.takeIf { it.running }?.timerId
+                if (shownTimerId != null) controller.skipIfShown(shownTimerId, fromService = true)
+                if (!controller.snapshot.value.running) {
+                    stopNow()
+                    return START_NOT_STICKY
+                }
+                syncForeground()
             }
             ACTION_ADD_15 -> {
                 controller.adjust(15)

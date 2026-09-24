@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 
 @RunWith(RobolectricTestRunner::class)
 class RestTimerNotificationsTest {
@@ -62,6 +63,55 @@ class RestTimerNotificationsTest {
         assertNotNull(notification.contentIntent)
         assertNull(notification.fullScreenIntent)
     }
+
+    @Test
+    fun theRunningCardsSkipNamesItsRest() {
+        // The service skips only the rest the card names: a newer rest the card has not caught
+        // up with keeps running, and a rest that finished first keeps its "rest done".
+        RestTimerNotifications.ensureChannels(context)
+        val notification = RestTimerNotifications.runningNotification(
+            context = context,
+            state = RestTimerSnapshot(
+                running = true,
+                endsAtElapsedRealtime = 90_000L,
+                totalSeconds = 90,
+                sessionId = "session-1",
+                timerId = "timer-shown",
+            ),
+            nowElapsedRealtime = 0L,
+            nowWallClockMillis = 1_000L,
+        )
+
+        val skip = notification.actions.single { it.title.toString() == "Skip" }
+        val sent = shadowOf(skip.actionIntent).savedIntent
+        assertEquals(RestTimerService.ACTION_SKIP, sent.action)
+        assertEquals("timer-shown", sent.getStringExtra(RestTimerService.EXTRA_TIMER_ID))
+    }
+
+    @Test
+    fun aRebuiltCardsSkipNamesTheNewRestNotTheFirst() {
+        // One Skip link serves every card; each rebuild must rename it, or every Skip after the
+        // first rest would name that first rest and end nothing.
+        RestTimerNotifications.ensureChannels(context)
+        runningCard("timer-first")
+
+        val skip = runningCard("timer-second").actions.single { it.title.toString() == "Skip" }
+
+        assertEquals("timer-second", shadowOf(skip.actionIntent).savedIntent.getStringExtra(RestTimerService.EXTRA_TIMER_ID))
+    }
+
+    private fun runningCard(timerId: String): Notification = RestTimerNotifications.runningNotification(
+        context = context,
+        state = RestTimerSnapshot(
+            running = true,
+            endsAtElapsedRealtime = 90_000L,
+            totalSeconds = 90,
+            sessionId = "session-1",
+            timerId = timerId,
+        ),
+        nowElapsedRealtime = 0L,
+        nowWallClockMillis = 1_000L,
+    )
 
     @Test
     fun runningNotificationFreezesAtZeroInsteadOfCountingThrough() {
