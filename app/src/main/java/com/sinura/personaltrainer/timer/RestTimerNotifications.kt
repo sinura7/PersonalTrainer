@@ -167,7 +167,7 @@ object RestTimerNotifications {
             .setContentIntent(lockScreenIntent(appContext, state.sessionId, finished = false))
             .addAction(0, "−15s", serviceIntent(appContext, RestTimerService.ACTION_MINUS_15, 11))
             .addAction(0, "+15s", serviceIntent(appContext, RestTimerService.ACTION_ADD_15, 12))
-            .addAction(0, "Skip", serviceIntent(appContext, RestTimerService.ACTION_SKIP, 13))
+            .addAction(0, "Skip", serviceIntent(appContext, RestTimerService.ACTION_SKIP, 13, state.timerId))
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
         if (live) {
             val whenMillis = RestTimer.endsAtWallClockMillis(
@@ -253,8 +253,19 @@ object RestTimerNotifications {
         return views
     }
 
-    private fun serviceIntent(context: Context, action: String, requestCode: Int): PendingIntent {
+    /**
+     * [timerId] names the rest the card shows. FLAG_UPDATE_CURRENT replaces it each time the
+     * card is rebuilt, so a tap names the rest on screen, not a newer one the card has not
+     * caught up with.
+     */
+    private fun serviceIntent(
+        context: Context,
+        action: String,
+        requestCode: Int,
+        timerId: String? = null,
+    ): PendingIntent {
         val intent = Intent(context, RestTimerService::class.java).setAction(action)
+        timerId?.let { intent.putExtra(RestTimerService.EXTRA_TIMER_ID, it) }
         return PendingIntent.getService(
             context,
             requestCode,

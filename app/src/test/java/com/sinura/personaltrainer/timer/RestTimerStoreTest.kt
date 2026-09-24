@@ -92,6 +92,21 @@ class RestTimerStoreTest {
         assertTrue(store.hasHeld("timer-${RestTimerStore.HELD_MEMORY + 1}"))
     }
 
+    @Test
+    fun aPlusFifteenIsTheSameRestUnderANewId() {
+        val store = RestTimerStore(ids = sequentialIds())
+        store.start(90, "s", nowElapsedRealtime = 0L)
+        store.adjust(15, nowElapsedRealtime = 0L)
+        store.adjust(-15, nowElapsedRealtime = 0L)
+        assertEquals("timer-3", store.current().timerId)
+
+        assertTrue(store.isSameRest("timer-1", "timer-3"))
+        assertTrue(store.isSameRest("timer-2", "timer-3"))
+
+        store.start(60, "s", nowElapsedRealtime = 0L)
+        assertFalse("the next set's rest is another rest", store.isSameRest("timer-3", "timer-4"))
+    }
+
     private fun sequentialIds(): IdFactory {
         var next = 0
         return IdFactory { "timer-${++next}" }

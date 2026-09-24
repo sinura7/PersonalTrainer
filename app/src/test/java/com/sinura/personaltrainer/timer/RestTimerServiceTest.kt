@@ -22,6 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.android.controller.ServiceController
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
@@ -221,6 +222,162 @@ class RestTimerServiceTest {
         }
 
         val skip = Intent(app, RestTimerService::class.java).setAction(RestTimerService.ACTION_SKIP)
+        val controller = Robolectric.buildService(RestTimerService::class.java, skip)
+        val service = controller.create().startCommand(0, 1).get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertEquals("still done, not skipped", finished.timerId, rest.lastCompletedTimerId.value)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        controller.destroy()
+    }
+
+    @Test
+    fun aSkipFromACardForAnEarlierRestLeavesTheNewOneRunning() {
+        // The next set's rest started before the card caught up. The card's Skip names the rest
+        // it shows, so the new one keeps running, and the card moves to it.
+        val store = app.container.restTimerStore
+        val rest = app.container.restTimerController
+        rest.start(90, "session-1")
+        val (controller, service) = runningService()
+        val staleSkip = skipOnTheCard()
+        rest.start(120, "session-1")
+        val next = store.current().timerId
+
+        service.onStartCommand(staleSkip, 0, 2)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertTrue("the new rest keeps running", store.current().running)
+        assertEquals(next, store.current().timerId)
+        assertFalse(shadowOf(service).isStoppedBySelf)
+        assertEquals(
+            "the card moved to the new rest",
+            next,
+            skipOnTheCard().getStringExtra(RestTimerService.EXTRA_TIMER_ID),
+        )
+        controller.destroy()
+    }
+
+    @Test
+    fun aSkipSentJustBeforeAPlusFifteenStillEndsTheRest() = skipSentJustBefore(RestTimerService.ACTION_ADD_15)
+
+    @Test
+    fun aSkipSentJustBeforeAMinusFifteenStillEndsTheRest() = skipSentJustBefore(RestTimerService.ACTION_MINUS_15)
+
+    /** Skip tapped as a ±15 landed, before the card was rebuilt: it names the rest before the ±15. */
+    private fun skipSentJustBefore(adjust: String) {
+        val store = app.container.restTimerStore
+        app.container.restTimerController.start(90, "session-1")
+        val (controller, service) = runningService()
+        val skip = skipOnTheCard()
+
+        service.onStartCommand(Intent(app, RestTimerService::class.java).setAction(adjust), 0, 2)
+        shadowOf(Looper.getMainLooper()).idle()
+        service.onStartCommand(skip, 0, 3)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertFalse("to the owner a ±15 is the same rest", store.current().running)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        controller.destroy()
+    }
+
+    @Test
+    fun aSkipFromTheCardRebuiltAfterAPlusFifteenEndsTheExtendedRest() {
+        val store = app.container.restTimerStore
+        app.container.restTimerController.start(90, "session-1")
+        val (controller, service) = runningService()
+        service.onStartCommand(Intent(app, RestTimerService::class.java).setAction(RestTimerService.ACTION_ADD_15), 0, 2)
+        shadowOf(Looper.getMainLooper()).idle()
+        val extended = store.current().timerId
+
+        val skip = skipOnTheCard()
+        assertEquals("the card names the extended rest", extended, skip.getStringExtra(RestTimerService.EXTRA_TIMER_ID))
+        service.onStartCommand(skip, 0, 3)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertFalse(store.current().running)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        controller.destroy()
+    }
+
+    /** The service, started for the running rest and showing its card. */
+    private fun runningService(): Pair<ServiceController<RestTimerService>, RestTimerService> {
+        val sync = Intent(app, RestTimerService::class.java).setAction(RestTimerService.ACTION_SYNC)
+        val controller = Robolectric.buildService(RestTimerService::class.java, sync)
+        val service = controller.create().startCommand(0, 1).get()
+        shadowOf(Looper.getMainLooper()).idle()
+        return controller to service
+    }
+
+    /** What a tap on the running card's Skip sends now (a copy: the card may be rebuilt). */
+    private fun skipOnTheCard(): Intent {
+        val card = app.getSystemService(NotificationManager::class.java)
+            .activeNotifications.first { it.id == RestTimerNotifications.RUNNING_ID }.notification
+        val skip = card.actions.single { it.title.toString() == "Skip" }
+        return Intent(shadowOf(skip.actionIntent).savedIntent)
+    }
+
+    @Test
+    fun aSkipNamingTheRunningRestEndsIt() {
+        val store = app.container.restTimerStore
+        val rest = app.container.restTimerController
+        rest.start(90, "session-1")
+        val shown = store.current().timerId
+
+        val skip = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_SKIP)
+            .putExtra(RestTimerService.EXTRA_TIMER_ID, shown)
+        val controller = Robolectric.buildService(RestTimerService::class.java, skip)
+        val service = controller.create().startCommand(0, 1).get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertFalse(store.current().running)
+        assertNull("a skip is not a finish", rest.lastCompletedTimerId.value)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        controller.destroy()
+    }
+
+    @Test
+    fun aSkipFromACardThatNamesNoRestEndsTheRunningOne() {
+        // A card built before the Skip carried its rest's id: it ends the rest running when the
+        // service reads it.
+        val store = app.container.restTimerStore
+        app.container.restTimerController.start(90, "session-1")
+
+        val skip = Intent(app, RestTimerService::class.java).setAction(RestTimerService.ACTION_SKIP)
+        val controller = Robolectric.buildService(RestTimerService::class.java, skip)
+        val service = controller.create().startCommand(0, 1).get()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertFalse(store.current().running)
+        assertTrue(shadowOf(service).isStoppedBySelf)
+        controller.destroy()
+    }
+
+    @Test
+    fun aSkipNamingARestThatJustFinishedKeepsItDone() {
+        // The rest ran out as the Skip was tapped, and its finish landed first: the Skip finds
+        // nothing of its own to end, so "rest done" stays.
+        val store = app.container.restTimerStore
+        val rest = app.container.restTimerController
+        rest.start(90, "session-1")
+        val finished = store.current()
+        runBlocking {
+            assertTrue(
+                RestTimerCompletion.completeOnce(
+                    context = app,
+                    incomingTimerId = finished.timerId,
+                    expectedTimerId = finished.timerId,
+                    deadlineElapsedRealtime = finished.endsAtElapsedRealtime,
+                    sessionId = "session-1",
+                    nowElapsedRealtime = finished.endsAtElapsedRealtime + 1L,
+                    playCue = false,
+                ),
+            )
+        }
+
+        val skip = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_SKIP)
+            .putExtra(RestTimerService.EXTRA_TIMER_ID, finished.timerId)
         val controller = Robolectric.buildService(RestTimerService::class.java, skip)
         val service = controller.create().startCommand(0, 1).get()
         shadowOf(Looper.getMainLooper()).idle()

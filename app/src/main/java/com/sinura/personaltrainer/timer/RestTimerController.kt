@@ -154,6 +154,21 @@ class RestTimerController(
         return true
     }
 
+    /**
+     * Ends the rest a notification card showed as [timerId], or the ±15 of it that has replaced
+     * it since: to the owner a ±15 is the same rest under a new id. A newer rest (the next
+     * set's) keeps running, and a rest that finished first keeps its "rest done". Nothing
+     * running is left alone: whoever emptied the store already dropped the wakeup and the row.
+     */
+    fun skipIfShown(timerId: String, fromService: Boolean): Boolean {
+        while (true) {
+            val current = store.current()
+            if (!current.running || !store.isSameRest(timerId, current.timerId)) return false
+            if (stopIfCurrent(current.timerId, fromService)) return true
+            // A ±15, a finish or a start landed between the read and the clear: look again.
+        }
+    }
+
     override fun completeIfCurrent(timerId: String, fromService: Boolean): Boolean {
         val current = store.current()
         if (current.running && current.timerId != timerId) return false

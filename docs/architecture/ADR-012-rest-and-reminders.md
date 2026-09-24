@@ -15,7 +15,8 @@
   24 September 2026 — W2b-1b: a stop names its rest, and a skipped rest
   does not say "Rest done" (owner decisions; see Consequences); the same
   day, W2b-1c: no call cancels another's disk job, and a SYNC is owed until
-  one is sent (see Consequences)
+  one is sent; and W2b-1d: the notification's Skip names its rest (see
+  Consequences)
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -129,9 +130,18 @@ day. The agreed product asks once, then adapts only if the user says so.
   a recovery in the same process (after the exact-alarm permission changes,
   say) neither brings it back nor announces it; it clears the row again. A
   process started after death has held nothing, so a rest that ran out
-  while it was dead still says "Rest done". The notification's Skip ends
-  whatever is running, and does nothing to a rest that already finished
-  (some phones keep the card a beat), so "rest done" stays done. Left as
+  while it was dead still says "Rest done". The notification's Skip names
+  the rest its card shows and ends only that one, in the same
+  compare-and-set as a named STOP (W2b-1d, owner decision of 24 September
+  2026): a finish that lands first keeps its "rest done" (some phones keep
+  the card a beat after the rest ends), and a newer rest the card has not
+  caught up with (the next set's) keeps running while the card moves to
+  it. A ±15 is not a newer rest: it replaces the rest under a new id, so an
+  alarm for the old deadline cannot end it, and the store remembers which
+  rest each id began as, so a Skip tapped as a ±15 lands still ends it. A
+  card built before Skip named its rest ends the rest running when the
+  service reads it. The lock glance's Skip and the app's own Skip still
+  end whatever runs. Left as
   they are: a skipped rest whose row clear fails twice, followed by the
   process dying before any recovery, can still announce after the next
   start, as before.

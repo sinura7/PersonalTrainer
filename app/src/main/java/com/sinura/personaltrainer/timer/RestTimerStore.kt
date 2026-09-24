@@ -23,6 +23,10 @@ import kotlinx.coroutines.flow.asStateFlow
  * rest was emptied by a Skip, a stop or a -15 to zero, or by a finish that already announced
  * it: either way there is nothing left to finish. A process started after death has held
  * nothing, so a rest that ran out while it was dead still completes.
+ *
+ * A ±15 replaces the rest under a new id, so an alarm for the old deadline cannot end it. To
+ * the owner it is still the same rest, and the store remembers which rest each id began as
+ * ([isSameRest]).
  */
 class RestTimerStore(
     private val ids: IdFactory = IdFactory.Uuid,
@@ -30,7 +34,9 @@ class RestTimerStore(
     private val snapshotState = MutableStateFlow(RestTimerSnapshot())
     val snapshot: StateFlow<RestTimerSnapshot> = snapshotState.asStateFlow()
     private val heldLock = Any()
-    private val held = ArrayDeque<String>()
+
+    /** The last [HELD_MEMORY] ids held, oldest first, each with the id its rest began as. */
+    private val held = LinkedHashMap<String, String>()
 
     fun current(): RestTimerSnapshot = snapshotState.value
 
@@ -83,7 +89,7 @@ class RestTimerStore(
                     totalSeconds = maxOf(current.totalSeconds, next),
                     sessionId = current.sessionId,
                     timerId = ids.newId(),
-                ).also { remember(it.timerId) }
+                ).also { remember(it.timerId, beganAs(current.timerId)) }
             }
             if (snapshotState.compareAndSet(current, replacement)) {
                 return if (next == 0) RestAdjustment.Ended(current.timerId) else RestAdjustment.Running(replacement)
@@ -136,17 +142,25 @@ class RestTimerStore(
      */
     fun hasHeld(timerId: String): Boolean = synchronized(heldLock) { timerId in held }
 
+    /**
+     * Whether [a] and [b] name the same rest: one is the other, or a ±15 (or several) of it. A
+     * rest the next set started is another rest. An id past this store's memory is only itself.
+     */
+    fun isSameRest(a: String, b: String): Boolean = beganAs(a) == beganAs(b)
+
+    private fun beganAs(timerId: String): String = synchronized(heldLock) { held[timerId] ?: timerId }
+
     private fun publish(next: RestTimerSnapshot) {
         if (next.running) remember(next.timerId)
         snapshotState.value = next
     }
 
-    private fun remember(timerId: String) {
+    private fun remember(timerId: String, restBeganAs: String = timerId) {
         if (timerId.isBlank()) return
         synchronized(heldLock) {
             held.remove(timerId)
-            held.addLast(timerId)
-            while (held.size > HELD_MEMORY) held.removeFirst()
+            held[timerId] = restBeganAs
+            while (held.size > HELD_MEMORY) held.remove(held.keys.first())
         }
     }
 

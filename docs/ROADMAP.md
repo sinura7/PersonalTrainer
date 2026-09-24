@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 24 Sep 2026 — Whole-app audit packet W2b-1d (owner decision of 24
+> September): the notification's Skip names the rest its card shows. A tap
+> just as the rest runs out keeps "rest done" instead of turning it into a
+> skip, and a tap on a card that has not caught up with the next set's
+> rest leaves that rest running. ADR-012. Quiet; rides along with the next
+> drop.
+>
 > 24 Sep 2026 — Whole-app audit packet W2b-1c (owner decision of 24
 > September): a rest that finishes on one thread can no longer cancel the
 > save of the next set's rest starting on another, which left that rest

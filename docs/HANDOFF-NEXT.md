@@ -83,7 +83,11 @@ Done so far:
 - **W2b-1c:** a rest that finishes on one thread can no longer cancel the
   save of the next set's rest starting on another, which left that rest
   with no row and no wakeup; a rest started as the last one finishes still
-  reaches the shade (ADR-012).
+  reaches the shade (ADR-012; #406).
+- **W2b-1d:** the notification's Skip names the rest its card shows, so a
+  tap just as the rest ends keeps "rest done", and a tap on a card that has
+  not caught up with the next set's rest leaves that rest running
+  (ADR-012).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -92,13 +96,17 @@ Done so far:
   after a Skip) as W2b-1b, with two more the review found (a Skip on a
   finished card; a skipped rest brought back); a finish that could cancel a
   new rest's save is W2b-1c, straight after; the rest-length sheet honours
-  the phone's reduce motion setting (with W2a).
+  the phone's reduce motion setting (with W2a); the notification's Skip
+  names its rest (W2b-1d, straight after W2b-1c); two older rest-alarm
+  quirks the W2b-1c review found (an alarm set a moment before its row
+  lands; a reschedule that ignores a failed disk write) get one small
+  packet after W2d.
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
 live order is the table in FRONTEND_REDESIGN.md): T1c-2, W2a, W2b-2,
-W2c, W2d, then a check-only phone drop, then W3. X2b completed
+W2c, W2d, the rest-alarm packet, then a check-only phone drop, then W3. X2b completed
 Wave 0.
 
 ## What is verified, and how
