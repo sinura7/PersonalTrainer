@@ -53,7 +53,6 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.testutil.TestSetInput
-import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import java.time.Duration
 import kotlin.math.abs
@@ -129,7 +128,7 @@ class FloorScreenWiringRenderTest {
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
     fun theLoopReadsIdentityStatsEntryEffortThenHistory() {
-        val vm = openLegExtension(loggedSets = sets(2))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { exists(WorkoutTestTags.SET_HISTORY) }
         // The Next-set card sits between effort and history when the coach offers one. Whether
@@ -153,7 +152,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun theLiftSwitchOpensTheSessionSwitcherAndARowSwitchesLift() {
-        val vm = openLegExtension(loggedSets = sets(1), withNextLift = true)
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1), withNextLift = true)
         show(vm)
         // The switcher opens from the visible "Lift 1 of 2" control (D09). The identity is
         // words now: a tap on the name opens nothing.
@@ -170,7 +169,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun switchingLiftFromTheOverflowBringsTheNewIdentityAndEntryBackIntoView() {
-        val vm = openLegExtension(loggedSets = sets(2), withNextLift = true)
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2), withNextLift = true)
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_HISTORY))
         compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).assertIsNotDisplayed()
@@ -188,7 +187,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun theSwitchersAddExerciseOpensThePicker() {
-        val vm = openLegExtension(loggedSets = emptyList())
+        val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).performClick()
         compose.onNodeWithTag(WorkoutTestTags.SWITCHER_ADD_LIFT).performClick()
@@ -199,7 +198,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun detailsOpensTheLiftsOwnScreen() {
-        val vm = openLegExtension(loggedSets = emptyList())
+        val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.DETAILS).performClick()
         assertEquals(listOf(LEG_EXTENSION), openedExercises)
@@ -209,7 +208,7 @@ class FloorScreenWiringRenderTest {
     @Test
     fun theLiftMenuAlsoOpensDetails() {
         // The picture is not the only way in: someone reading the ⋮ menu finds it by name.
-        val vm = openLegExtension(loggedSets = emptyList())
+        val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
         compose.onNodeWithText(CurrentLiftCopy.DETAILS_SPOKEN).performClick()
@@ -324,7 +323,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun aSetChipsReviseOpensTheEditAndRevealsTheEntry() {
-        val vm = openLegExtension(loggedSets = sets(2))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         // Short enough that reaching the chips scrolls the numerals off screen.
         show(vm, heightDp = 600)
         val first = checkNotNull(vm.uiState.value.session?.sets?.minByOrNull { it.completedAt })
@@ -346,7 +345,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun theHistorysEditOpensTheSavedSetsSheet() {
-        val vm = openLegExtension(loggedSets = sets(2))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
@@ -359,7 +358,7 @@ class FloorScreenWiringRenderTest {
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
     fun beforeThePlanIsMetNoAddSetIsOffered() {
-        val vm = openLegExtension(loggedSets = sets(2), withNextLift = true)
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2), withNextLift = true)
         show(vm, heightDp = 1600)
         // Two of three saved: the lifter's next act is the third set, so the dock does not
         // offer "Add another set" yet, and the saved-sets sheet does not offer one either.
@@ -379,7 +378,7 @@ class FloorScreenWiringRenderTest {
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
     fun onceThePlanIsMetTheFloorOffersOneWayToAddASet() {
-        val vm = openLegExtension(loggedSets = sets(3), withNextLift = true)
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(3), withNextLift = true)
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
@@ -397,7 +396,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun onceThePlanIsMetTheDocksAddAnotherSetAsksForAnExtraSet() {
-        val vm = openLegExtension(loggedSets = sets(3), withNextLift = true)
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(3), withNextLift = true)
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
@@ -411,7 +410,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun theSavedSetsSheetsAddAnotherSetAsksForAnExtraSetAndCloses() {
-        val vm = openLegExtension(loggedSets = sets(3), withNextLift = true)
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(3), withNextLift = true)
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
@@ -432,7 +431,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun savingASetKeepsTheNumeralsOnScreen() {
-        val vm = openLegExtension(loggedSets = sets(2))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm)
         val before = entryTop()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
@@ -447,7 +446,7 @@ class FloorScreenWiringRenderTest {
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
     fun theJustSavedSetIsTheSavedChip() {
-        val vm = openLegExtension(loggedSets = sets(2))
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm, heightDp = 1600)
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         val saved = "Saved · ${SetOrdinalCopy.working(3, 3)}"
@@ -461,7 +460,7 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun withThePlannedSetsDoneTheFloorWaitsForATapToAdvance() {
-        val vm = openLegExtension(loggedSets = sets(2), withNextLift = true)
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2), withNextLift = true)
         show(vm)
         // The last planned set is saved here, so everything a save sets off runs: the
         // receipt and its dwell on the screen, the settle and rest in the ViewModel. A loop
@@ -522,32 +521,6 @@ class FloorScreenWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.loadState == SessionLoadState.FOUND }
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.session?.exercises?.isNotEmpty() == true }
         compose.waitForIdle()
-    }
-
-    private fun openLegExtension(
-        loggedSets: List<TestSetInput>,
-        targetSets: Int = 3,
-        withNextLift: Boolean = false,
-    ): ActiveWorkoutViewModel {
-        val sessionId = runBlocking {
-            val seeded = seedTestWorkout(
-                deps = deps,
-                exerciseId = LEG_EXTENSION,
-                exerciseName = "Leg Extension",
-                routineName = "Lower B",
-                targetSets = targetSets,
-                targetReps = 10,
-                targetWeightKg = WeightConverter.lbsToKg(70.0),
-                restSeconds = 120,
-                loggedSets = loggedSets,
-            )
-            if (withNextLift) {
-                val next = insertTestExercise(deps, id = NEXT_LIFT, name = "Romanian Deadlift", muscleGroup = "Hamstrings")
-                deps.workoutRepository.addExerciseToSession(seeded.session.id, next, targetSets = 3, targetReps = 8, targetWeightKg = 40.0, restSeconds = 90)
-            }
-            seeded.session.id
-        }
-        return viewModel(sessionId)
     }
 
     /**

@@ -1,113 +1,65 @@
 package com.sinura.personaltrainer.ui.workout
 
-import java.io.File
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Packet B on the redesigned floor: the weight / reps / hold draft are two hero
- * numerals with round plates and tap-to-type ([WeightRepsEditor]), never wheels.
- * Extra / paste typing wells, reminder wheels, and the rest sheet stay as they were.
+ * Packet B on the redesigned floor: the weight / reps / hold draft are two hero numerals with
+ * round plates and tap-to-type ([WeightRepsEditor]), never wheels. Extra / paste typing wells,
+ * reminder wheels, and the rest sheet stay as they were.
  *
- * What the numerals do — their TalkBack actions, the plates, tap-to-type, side by side
- * until large text — is rendered in WeightRepsEditorRenderTest, and the screen's wiring
- * into the ViewModel is tapped in FloorScreenWiringRenderTest. W1a's numeric-entry cue
- * edits exactly the lines those checks used to pin. The bans stay here.
+ * What the numerals do is rendered in WeightRepsEditorRenderTest and tapped through the screen
+ * in FloorScreenWiringRenderTest. Since audit T1c-2 the rest is held where it can be seen too: a
+ * plate's detent, a held plate's paced light ticks and the keypad's Set as a detent, never a
+ * commit, in PlateAndKeypadFeelRenderTest; the history sheet typing its weight and reps in
+ * HistorySetEntryRenderTest; onboarding's bodyweight wheel in BodyweightWheelRenderTest. The
+ * Home strip's wells and the reminder wheel are held by TargetStepperTest and
+ * SettingsHomeLayoutTest. The bans stay here.
  */
 class FloorStepperEntryTest {
     @Test
-    fun floorCompactPathLeavesWheelsAndKeepsLabels() {
-        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.weightAndRepsAreWheels())
-        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.floorFieldGlyphsReplaceLabels())
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertTrue(
-            "the unit rides the weight numeral; no glyph and no heading stand in for it",
-            editor.contains("unitLabel = unit.suffix") && !editor.contains("FloorFieldGlyph"),
-        )
+    fun theFloorEntryHasNoGlyphWheelOrSharedPanel() {
+        val editor = ownedSource("ui/workout/WeightRepsEditor.kt")
+        assertFalse("no glyph stands in for the unit or a heading", editor.contains("FloorFieldGlyph"))
         assertFalse(editor.contains("SnapValueWheel("))
         assertFalse("floor entry must not keep the live wheel tags", editor.contains("workout-weight-wheel"))
         assertFalse("the floor draws its own hero numerals", editor.contains("SetEntryPanel("))
         assertFalse(editor.contains("CompactFloorEntry("))
         assertFalse(editor.contains("FloorNumeralRow("))
         assertFalse(editor.contains("NumeralWell("))
-        val screen = readOwned("ui/workout/ActiveWorkoutScreen.kt")
-        assertFalse(screen.contains("SetEntryPanel("))
+        assertFalse(ownedSource("ui/workout/ActiveWorkoutScreen.kt").contains("SetEntryPanel("))
     }
 
     @Test
-    fun extraPasteAndHistoryKeepTypingWells() {
-        val extra = readOwned("ui/routines/SessionLiftStrip.kt")
-        assertTrue(extra.contains("NumeralWell("))
-        assertTrue(extra.contains("NumberEntryDialog("))
+    fun theHomeStripAndTheHistorySheetKeepTheirWellsNotTheFloorsCompactPath() {
+        val extra = ownedSource("ui/routines/SessionLiftStrip.kt")
         assertFalse(extra.contains("CompactFloorEntry("))
         assertFalse(extra.contains("FloorNumeralRow("))
         assertFalse(extra.contains("SnapValueWheel("))
-        val history = readOwned("ui/history/SetEditSheet.kt")
-        assertTrue(history.contains("SetEntryPanel("))
-        assertFalse(history.contains("compact = true"))
-        val tall = readOwned("ui/components/SetEntryPanel.kt")
-        val weightStepper = tall.indexOf("fun WeightStepper")
-        val wells = tall.substring(weightStepper)
-        assertTrue(wells.contains("NumeralWell("))
-        assertTrue(wells.contains("NumberEntryDialog("))
-        assertTrue(wells.contains("Type a weight") || wells.contains("Type \${if"))
+        assertFalse(ownedSource("ui/history/SetEditSheet.kt").contains("compact = true"))
     }
 
     @Test
-    fun reminderAndOnboardingWheelsStayAndFloorRestWheelIsGone() {
-        val reminder = readOwned("ui/reminders/ReminderTimeWheel.kt")
-        assertTrue(reminder.contains("SnapWheelColumn("))
-        val onboarding = readOwned("ui/onboarding/BodyweightWheel.kt")
-        assertTrue(onboarding.contains("VerticalPager("))
-        assertTrue(onboarding.contains("NumberEntryDialog("))
-        val timers = readOwned("ui/components/RestTimerUi.kt")
-        assertFalse(timers.contains("SnapValueWheel("))
-        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.restLengthIsInlineWheel())
-        val restCard = readOwned("ui/workout/RestTimerCard.kt")
+    fun theRestLengthIsNeverAWheelOnTheFloor() {
+        assertFalse(ownedSource("ui/components/RestTimerUi.kt").contains("SnapValueWheel("))
+        val restCard = ownedSource("ui/workout/RestTimerCard.kt")
         assertFalse(restCard.contains("SnapValueWheel("))
         assertFalse("duration editing stays in the sheet", restCard.contains("RestPresetChips("))
-        val dock = readOwned("ui/workout/WorkoutDock.kt")
-        assertTrue(dock.contains("RestDurationSheet("))
-        assertFalse(dock.contains("SnapValueWheel("))
+        assertFalse(ownedSource("ui/workout/WorkoutDock.kt").contains("SnapValueWheel("))
     }
 
     @Test
-    fun stepperHoldRepeatUsesTheCappedConstantsAndTickLight() {
-        val stepper = readOwned("ui/components/StepperButton.kt")
-        assertTrue(stepper.contains("StepperRepeat.HOLD_BEFORE_REPEAT_MS"))
-        assertTrue(stepper.contains("StepperRepeat.REPEAT_MS"))
-        assertTrue(stepper.contains("Haptics.tick(view)"))
-        assertTrue(stepper.contains("Haptics.tickLight(view)"))
+    fun thePlatesKeepOneCappedRepeatAndTypingNeverFeelsLikeACommit() {
+        val stepper = ownedSource("ui/components/StepperButton.kt")
         assertFalse(stepper.contains("FAST_REPEAT_MS"))
         assertFalse(stepper.contains("60L"))
-        assertTrue("round plates share the one repeat loop", stepper.contains("shape: Shape = RoundedCornerShape(Radius.sm)"))
-        assertTrue(stepper.contains("textStyle: TextStyle? = null"))
-        // The plates share this repeat loop and keep a full 48 dp target: both rendered in
-        // WeightRepsEditorRenderTest (a held plate steps; each plate is at least touchMin).
-        val editor = readOwned("ui/workout/WeightRepsEditor.kt")
-        assertFalse("the plates never carry their own repeat loop", editor.contains("StepperRepeat"))
-        val dialog = readOwned("ui/components/NumberEntryDialog.kt")
-        assertTrue(dialog.contains("Haptics.tick(view)"))
+        assertFalse(
+            "the plates never carry their own repeat loop",
+            ownedSource("ui/workout/WeightRepsEditor.kt").contains("StepperRepeat"),
+        )
         assertFalse(
             "typed confirm is not Log success",
-            dialog.contains("Haptics.commit"),
+            ownedSource("ui/components/NumberEntryDialog.kt").contains("Haptics.commit"),
         )
-    }
-
-    @Test
-    fun heroNumeralsSitSideBySideAndStackOnlyForLargeText() {
-        // Side by side at normal text, stacked from LogLoopScale.STACK_WELLS_FROM, with
-        // SET_ENTRY holding both numerals either way: WeightRepsEditorRenderTest.
-        assertFalse(com.sinura.personaltrainer.domain.FloorCompactChrome.stackWeightAboveReps())
-        assertTrue(com.sinura.personaltrainer.domain.FloorCompactChrome.heroNumeralsSideBySide())
-    }
-
-    private fun readOwned(relative: String): String {
-        val roots = listOf(
-            File("app/src/main/java/com/sinura/personaltrainer"),
-            File("../app/src/main/java/com/sinura/personaltrainer"),
-        )
-        return roots.map { File(it, relative) }.first { it.isFile }.readText()
     }
 }
