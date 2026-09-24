@@ -92,9 +92,11 @@ class RestLockActivity : ComponentActivity() {
                 RestLockScreen(
                     controller = controller,
                     finishedLaunch = finishedLaunch,
-                    onSkip = {
-                        controller.stop()
-                        finish()
+                    onSkip = { shownTimerId ->
+                        // The rest this glance drew, or the ±15 of it (ADR-012, W2b-3). A finish
+                        // that landed first keeps its "rest done" and the glance shows it; a newer
+                        // rest keeps running and the glance moves to it.
+                        if (controller.skipIfShown(shownTimerId, fromService = false)) finish()
                     },
                     onAdjust = controller::adjust,
                     onClose = { finish() },
@@ -173,12 +175,15 @@ private const val URGENT_SECONDS = 10
 internal fun RestLockScreen(
     controller: RestTimerController,
     finishedLaunch: Boolean,
-    onSkip: () -> Unit,
+    onSkip: (shownTimerId: String) -> Unit,
     onAdjust: (Int) -> Unit,
     onClose: () -> Unit,
     onBackToBar: () -> Unit,
 ) {
     val snapshot by controller.snapshot.collectAsStateWithLifecycle()
+    // Skip names the rest drawn here, read as it is drawn. Read when the tap is handled, it
+    // could already be a finish or the next set's rest the glance has not redrawn for.
+    val shownTimerId = snapshot.timerId
     val remaining by controller.remainingSeconds.collectAsStateWithLifecycle(0)
     val completedTimerId by controller.lastCompletedTimerId.collectAsStateWithLifecycle()
     val justFinished = RestFinishFlash.lockShowsFinished(
@@ -282,7 +287,7 @@ internal fun RestLockScreen(
                     // here, so a thumb reaching for +15 on the lock screen could end rest.
                     RestNudgeButtons(
                         onNudge = onAdjust,
-                        onSkip = onSkip,
+                        onSkip = { onSkip(shownTimerId) },
                         minusTag = RestLockTags.MINUS,
                         plusTag = RestLockTags.PLUS,
                         skipTag = RestLockTags.SKIP,

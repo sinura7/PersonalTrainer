@@ -16,6 +16,8 @@ data class RestTimerUiState(
     val remainingSeconds: Int = 0,
     val totalSeconds: Int = 90,
     val running: Boolean = false,
+    /** The running rest's id, blank while none runs. The rest page's Skip names it (W2b-3). */
+    val timerId: String = "",
     val completedTimerId: String? = null,
     /** False while the rest row is not on disk; the floor says so in one line. */
     val persistenceHealthy: Boolean = true,
@@ -65,6 +67,7 @@ internal class RestCommands(
                 remainingSeconds = remaining,
                 totalSeconds = if (snapshot.running) snapshot.totalSeconds else seconds(plan),
                 running = snapshot.running,
+                timerId = snapshot.timerId.takeIf { snapshot.running }.orEmpty(),
                 completedTimerId = completedId,
                 persistenceHealthy = healthy,
             )

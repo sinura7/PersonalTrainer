@@ -170,8 +170,14 @@ class RestTimerViewModel @JvmOverloads constructor(
         initialValue = RestTimerScreenState(),
     )
 
-    fun skipRest() {
-        restTimer.stop()
+    /**
+     * Skip for the rest this page drew ([RestTimerUiState.timerId], handed over by the button
+     * that showed it), not the one running when the tap is read: a rest that finished as Skip
+     * was tapped keeps its "Rest complete", and a newer rest keeps running. A ±15 of the shown
+     * rest is the same rest and still ends (ADR-012, W2b-3). The dock's Skip is not this one.
+     */
+    fun skipRest(shownTimerId: String) {
+        restTimer.skipIfShown(shownTimerId)
     }
 
     fun retrySession() {

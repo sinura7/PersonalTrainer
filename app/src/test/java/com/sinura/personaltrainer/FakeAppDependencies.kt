@@ -385,6 +385,24 @@ private class InMemoryRestTimerGateway(
         store.clear()
     }
 
+    /**
+     * The controller's compare-and-set stop: only the rest [timerId] names, and never a finish's
+     * "rest done". The interface's default is a plain stop, which would let a test that pins
+     * the dock's plain stop pass for a named one too.
+     */
+    override fun stopIfCurrent(timerId: String, fromService: Boolean): Boolean =
+        store.clearIfCurrent(timerId) != null
+
+    /** The controller's named skip on the same store: its ±15 memory, its compare-and-set. */
+    override fun skipIfShown(timerId: String, fromService: Boolean): Boolean {
+        while (true) {
+            val current = store.current()
+            if (!current.running || !store.isSameRest(timerId, current.timerId)) return false
+            val cleared = store.clearIfCurrent(current.timerId) ?: continue
+            return cleared.running
+        }
+    }
+
     override fun rehydrate(): Boolean = false
 }
 

@@ -112,7 +112,13 @@ Done so far:
   ADR-012 decision 18 now says in writing that a length picked on the
   dock holds until a logged set starts a rest or the lift changes.
   Running the rest page against the Log confirmed that its next-set line
-  can differ from the Log's; W2b-4 fixes that.
+  can differ from the Log's; W2b-4 fixes that (#411).
+- **W2b-3:** the lock screen's Skip and the rest page's Skip end only the
+  rest they show, as the notification's already does (W2b-1d). A tap just
+  as the rest runs out keeps "rest done" instead of wiping it, and a tap
+  on a screen that has not caught up with a newer rest leaves that rest
+  running. The dock's Skip is unchanged; naming it too is a separate
+  owner decision (ADR-012).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -136,9 +142,9 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): W2b-3, W2b-4, W2c,
-W2d, the rest-alarm packet, then a check-only phone drop, then
-W3. X2b completed Wave 0.
+live order is the table in FRONTEND_REDESIGN.md): W2b-4, W2c, W2d, the
+rest-alarm packet, then a check-only phone drop, then W3. X2b completed
+Wave 0.
 
 ## What is verified, and how
 

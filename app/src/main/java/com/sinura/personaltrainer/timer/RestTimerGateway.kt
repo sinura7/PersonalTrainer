@@ -55,9 +55,21 @@ interface RestTimerGateway {
     }
 
     /**
-     * Successful completion: publish [timerId] then halt. Skip goes through
-     * [stop] and must not leave a completion id, or the lock glance shows
-     * "Back to the bar".
+     * Skip for the rest a surface showed as [timerId]: ends that rest, or the ±15 of it that
+     * has replaced it since (to the owner a ±15 is the same rest under a new id). A newer rest
+     * (the next set's) keeps running, a rest that finished first keeps its "rest done", and
+     * nothing running is left alone. True when it ended a rest.
+     *
+     * The notification's, the lock glance's and the rest page's Skip come here; the dock's
+     * Skip still [stop]s whatever runs (ADR-012, W2b-3). No default: whether a ±15 is the same
+     * rest is the store's memory, and a fake that guessed would test nothing.
+     */
+    fun skipIfShown(timerId: String, fromService: Boolean = false): Boolean
+
+    /**
+     * Successful completion: publish [timerId] then halt. A skip goes through
+     * [stop] or [skipIfShown] and must not leave a completion id, or the lock
+     * glance shows "Back to the bar".
      */
     fun completeIfCurrent(timerId: String, fromService: Boolean = false): Boolean {
         if (!stopIfCurrent(timerId, fromService)) return false

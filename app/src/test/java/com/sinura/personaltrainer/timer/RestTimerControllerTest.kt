@@ -791,6 +791,46 @@ class RestTimerControllerTest {
     }
 
     @Test
+    fun aFinishLandingInsideAnInAppSkipKeepsTheRestDone() {
+        // W2b-3: the lock glance and the rest page end only the rest they show. A finish that
+        // lands after the Skip has found its rest running, but before it clears it, empties the
+        // store first. The Skip then ended nothing: it says so (the lock glance stays open on
+        // "Back to the bar") and leaves the finish as it is. Before, the empty snapshot counted
+        // as a skip and the glance closed.
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val io = StandardTestDispatcher()
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = io,
+        )
+        try {
+            controller.start(90, "session-1")
+            io.scheduler.advanceUntilIdle()
+            val shown = store.current().timerId
+            startedServiceIntents()
+            controller.betweenSkipReadAndClear = {
+                controller.betweenSkipReadAndClear = null
+                assertTrue("the rest finishes inside the Skip", controller.completeIfCurrent(shown, fromService = true))
+            }
+
+            assertFalse("the Skip ended nothing", controller.skipIfShown(shown, fromService = false))
+            io.scheduler.advanceUntilIdle()
+
+            assertEquals("the rest stays done", shown, controller.lastCompletedTimerId.value)
+            assertFalse(store.current().running)
+            assertTrue("the Skip sent no stop", stopsSent().isEmpty())
+        } finally {
+            controller.betweenSkipReadAndClear = null
+            controller.stop()
+        }
+    }
+
+    @Test
     fun aRestStartedJustBeforeTheFinishTakesItsNumberStillLands() {
         // The finish reads the store after it takes its number. Read before, it would hold the
         // empty store while the next rest's start, landing just before the number, took an
