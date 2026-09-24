@@ -13,7 +13,6 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +29,7 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -59,10 +59,25 @@ class RestTimerController(
         SupervisorJob() + ioDispatcher +
             CoroutineExceptionHandler { _, error -> AppLog.e(TAG, "Rest timer IO failed", error) },
     )
-    /** Serialises persist-then-arm. A later halt bumps [persistSeq]. */
+    /** Serialises persist-then-arm. A later call bumps [persistSeq]; an earlier job then does nothing. */
     private val persistLock = Mutex()
-    private var persistJob: Job? = null
     private val persistSeq = AtomicInteger(0)
+    /**
+     * A SYNC a call asked for that no job has sent yet. Whichever job next writes a running rest
+     * sends it; that is after the call published its rest, and the service reads the live rest.
+     */
+    private val syncOwed = AtomicBoolean(false)
+
+    /**
+     * Test seams: run on the calling thread just before and just after a persist call takes its
+     * number, the points where a call on another thread can overtake it (ADR-012 decision 1).
+     * Null in production.
+     */
+    @Volatile
+    internal var beforePersistNumberTaken: (() -> Unit)? = null
+
+    @Volatile
+    internal var afterPersistNumberTaken: (() -> Unit)? = null
     override val snapshot: StateFlow<RestTimerSnapshot> = store.snapshot
 
     /**
@@ -270,12 +285,23 @@ class RestTimerController(
      * alarm must not be scheduled first — and is not scheduled at all when
      * the row did not commit. Any later call bumps [persistSeq] so an
      * in-flight start skips the whole persist, not just the alarm.
+     *
+     * No call cancels another's job (ADR-012 decision 1). Calls come from more than one thread
+     * (a finish off the main thread, the next rest's start on it), and a cancel could land on a
+     * newer call's job: that rest would count down with no row and no wakeup. An older job sees
+     * the newer number and does nothing instead. A SYNC is owed until a job that writes a
+     * running rest sends it, so a rest started as the last one finished still reaches the
+     * service when the finish's job is the newest.
      */
     private fun persistThenArm(syncService: Boolean) {
-        val seq = persistSeq.incrementAndGet()
+        // Owed before the number is taken: a newer call can run its job before this call has a
+        // job at all, and that job must find the SYNC owed.
+        if (syncService) syncOwed.set(true)
+        val seq = takeNumber()
+        // Read after the number: a call that has not taken one yet published its rest first and
+        // will take a newer number, so the newest job always reads the newest rest.
         val snap = store.current()
-        persistJob?.cancel()
-        persistJob = ioScope.launch {
+        ioScope.launch {
             persistLock.withLock {
                 if (seq != persistSeq.get()) return@withLock
                 if (snap.running) {
@@ -294,12 +320,18 @@ class RestTimerController(
                         _lastAlarmSchedule.value = AlarmScheduleResult.FAILED
                         AppLog.w(TAG, "Rest row did not commit; wakeup not armed")
                     }
-                    if (syncService) dispatch(RestTimerService.ACTION_SYNC)
+                    if (syncOwed.getAndSet(false)) dispatch(RestTimerService.ACTION_SYNC)
                 } else {
                     clearRow()
                 }
             }
         }
+    }
+
+    /** The number and its seams, as one step: nothing may sit between the seams and the number. */
+    private fun takeNumber(): Int {
+        beforePersistNumberTaken?.invoke()
+        return persistSeq.incrementAndGet().also { afterPersistNumberTaken?.invoke() }
     }
 
     /** True when the row is on disk, or there is no disk to write. */

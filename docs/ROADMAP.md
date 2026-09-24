@@ -15,14 +15,21 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 24 Sep 2026 — Whole-app audit packet W2b-1c (owner decision of 24
+> September): a rest that finishes on one thread can no longer cancel the
+> save of the next set's rest starting on another, which left that rest
+> counting down with no row and no wakeup, so nothing would end it. A rest
+> started as the last one finishes still reaches the shade. ADR-012.
+> Quiet; rides along with the next drop.
+>
 > 24 Sep 2026 — Whole-app audit packet W2b-1b (owner decisions of 24
 > September): rare rest-timer glitches. A stop now names the rest it is
 > for, so a stop the service reads after the next set's rest has started
 > leaves that rest running. While the app that skipped it is still
 > running, a skipped rest never says "Rest done", even when its alarm
-> fired as Skip was tapped, and a recovery never brings it back. A Skip tapped on a card still on screen
-> after its rest finished leaves the rest done, not skipped. ADR-012.
-> Quiet; rides along with the next drop.
+> fired as Skip was tapped, and a recovery never brings it back. A Skip
+> tapped on a card still on screen after its rest finished leaves the rest
+> done, not skipped. ADR-012. Quiet; rides along with the next drop.
 >
 > 24 Sep 2026 — Whole-app audit packet T1c-1 (tests only): nine more
 > workout test files stop reading the app's code as text. What they pinned
