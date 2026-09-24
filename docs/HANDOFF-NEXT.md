@@ -68,16 +68,23 @@ Done so far:
   keeps its unit (drop 104).
 - **X2b:** before Room migrates `temper.db`, the app copies it with its WAL
   into `files/pre-migration/temper-v<n>/` (ADR-010 decision 12), so the next
-  schema bump (S2b's v8) has a rollback copy.
+  schema bump (S2b's v8) has a rollback copy (#402).
+- **W2b-1:** the rest timer's ±15 s and its finish can no longer undo each
+  other across threads (ADR-012 decision 1); a late ±15 on a finished rest
+  does nothing, so "rest done" never turns into a skip.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
+- **Owner decisions, 24 September:** fix two rare rest-timer glitches the
+  W2b-1 review found (a stop that is not for the running rest; "Rest done"
+  after a Skip) as W2b-1b; the rest-length sheet honours the phone's reduce
+  motion setting (with W2a).
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next, in order (owner go-ahead of 23 September; the live order is the table
-in FRONTEND_REDESIGN.md): W2b-1 (the rest timer's ±15 s made atomic), T1c,
-W2a, W2b-2, W2c, W2d, then a check-only phone drop, then W3. X2b completes
+Next, in order (owner go-ahead of 23 September, amended 24 September; the
+live order is the table in FRONTEND_REDESIGN.md): T1c-1, W2b-1b, T1c-2, W2a,
+W2b-2, W2c, W2d, then a check-only phone drop, then W3. X2b completed
 Wave 0.
 
 ## What is verified, and how

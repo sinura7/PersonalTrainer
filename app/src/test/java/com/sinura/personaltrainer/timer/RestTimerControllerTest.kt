@@ -1,15 +1,20 @@
 package com.sinura.personaltrainer.timer
 
 import android.app.AlarmManager
+import android.app.Application
 import android.app.PendingIntent
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.IdFactory
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -19,6 +24,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 
 /**
  * The gold flash and lock glance key on a completion id, not on running
@@ -46,16 +52,114 @@ class RestTimerControllerTest {
     }
 
     @Test
+    fun aCompletionThatLosesTheRaceToAnAdjustLeavesTheReplacementRunning() {
+        // ADR-012 decision 1: a completion for the old timer id cannot clear a replacement. The
+        // owner's +15 lands between the completion's check and its clear — the moment the
+        // completion id is published, which a collector on Unconfined sees inline.
+        val store = RestTimerStore()
+        val controller = RestTimerController(context, store)
+        val scope = CoroutineScope(Dispatchers.Unconfined)
+        try {
+            controller.start(90, "session-1")
+            val first = store.current().timerId
+            val racer = scope.launch {
+                controller.lastCompletedTimerId.collect { completed ->
+                    if (completed == first) controller.adjust(15)
+                }
+            }
+
+            val completed = controller.completeIfCurrent(first, fromService = true)
+            racer.cancel()
+
+            assertTrue("the +15 minted a replacement timer", store.current().running)
+            assertFalse("the old id's completion must not claim it", completed)
+            assertTrue(store.current().timerId != first)
+            assertNull("no rest finished: the flash and glance must not show one", controller.lastCompletedTimerId.value)
+        } finally {
+            scope.cancel()
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun anAdjustThatLosesTheRaceToACompletionKeepsTheRestDoneAndSendsNoStop() {
+        // The mirror of the race above: the alarm's completion lands between the +15's read and
+        // its write (the id the +15 mints is that moment). The rest stays finished, and the +15
+        // sends the service no STOP: the service's stop() would wipe the "rest done" just
+        // published, and a finished rest would look skipped.
+        var racing: RestTimerController? = null
+        var minted = 0
+        val completesMidAdjust = IdFactory {
+            minted += 1
+            if (minted == 2) racing?.completeIfCurrent("timer-1", fromService = true)
+            "timer-$minted"
+        }
+        val store = RestTimerStore(ids = completesMidAdjust)
+        val controller = RestTimerController(context = context, store = store, ioDispatcher = Dispatchers.Unconfined)
+        racing = controller
+        try {
+            controller.start(90, "session-1")
+            startedServiceActions()
+
+            controller.adjust(15)
+
+            assertFalse("the finished rest stays finished", store.current().running)
+            assertEquals("timer-1", controller.lastCompletedTimerId.value)
+            assertFalse(RestTimerService.ACTION_STOP in startedServiceActions())
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
+    fun aRestAdjustedToZeroCancelsItsAlarmClearsItsRowAndStopsTheService() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            controller.start(90, "session-1")
+            events.clear()
+            startedServiceActions()
+
+            controller.adjust(-10_000)
+
+            assertFalse(store.current().running)
+            // A row left behind would rehydrate after a process death as a silent "Rest done".
+            assertNull(persistence.saved)
+            val cancelAt = events.indexOf("cancel")
+            val clearAt = events.indexOf("clear")
+            assertTrue(cancelAt >= 0)
+            assertTrue("the wakeup goes before the row", cancelAt < clearAt)
+            assertTrue(RestTimerService.ACTION_STOP in startedServiceActions())
+        } finally {
+            controller.stop()
+        }
+    }
+
+    @Test
     fun completeIfCurrentPublishesTheIdBeforeTheStoreClears() {
         val store = RestTimerStore()
         val controller = RestTimerController(context, store)
+        val order = mutableListOf<String>()
+        val scope = CoroutineScope(Dispatchers.Unconfined)
         try {
             controller.start(90, "session-1")
             val timerId = store.current().timerId
             assertTrue(timerId.isNotBlank())
             assertNull(controller.lastCompletedTimerId.value)
+            // The lock glance collects the two separately; both are seen inline here.
+            scope.launch { controller.lastCompletedTimerId.collect { if (it == timerId) order += "published" } }
+            scope.launch { store.snapshot.collect { if (!it.running) order += "cleared" } }
 
             assertTrue(controller.completeIfCurrent(timerId, fromService = true))
+            assertEquals(listOf("published", "cleared"), order)
             assertFalse(store.current().running)
             assertEquals(timerId, controller.lastCompletedTimerId.value)
             assertTrue(
@@ -66,6 +170,7 @@ class RestTimerControllerTest {
                 ),
             )
         } finally {
+            scope.cancel()
             controller.stop()
         }
     }
@@ -421,6 +526,12 @@ class RestTimerControllerTest {
             persistence.clearError = null
             controller.stop()
         }
+    }
+
+    /** The actions sent to the rest service since the last call, in order. */
+    private fun startedServiceActions(): List<String?> {
+        val shadow = shadowOf(context as Application)
+        return generateSequence { shadow.nextStartedService }.map { it.action }.toList()
     }
 
     /**

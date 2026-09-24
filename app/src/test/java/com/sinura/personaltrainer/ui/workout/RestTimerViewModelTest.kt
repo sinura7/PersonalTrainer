@@ -21,6 +21,8 @@ import com.sinura.personaltrainer.ui.theme.Motion
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -260,7 +262,27 @@ class RestTimerViewModelTest {
         ).also(workoutViewModels::add)
 
     private suspend fun awaitRestRunning() {
-        withTimeout(TestWaits.FLOW_MS) { deps.restTimerStore.snapshot.first { it.running } }
+        try {
+            withTimeout(TestWaits.FLOW_MS) {
+                while (!deps.restTimerStore.current().running) {
+                    // The rest after a logged set waits Motion.ROW_SETTLE_MS on the virtual clock,
+                    // and that delay is scheduled only when Room's write returns — on a real
+                    // thread, possibly after the test's one advance. Waiting on the store alone
+                    // then waits for a delay nothing will ever run (it timed out on a loaded
+                    // machine, 23 September 2026). Drive it while yielding to Room, as
+                    // ActiveWorkoutViewModelTest does; the store stays the success condition.
+                    dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+                    dispatcher.scheduler.runCurrent()
+                    if (!deps.restTimerStore.current().running) delay(10)
+                }
+            }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw AssertionError(
+                "Rest did not start; snapshot=${deps.restTimerStore.current()}, " +
+                    "virtualTime=${dispatcher.scheduler.currentTime}",
+                timedOut,
+            )
+        }
     }
 
     private suspend fun RestTimerViewModel.awaitState(

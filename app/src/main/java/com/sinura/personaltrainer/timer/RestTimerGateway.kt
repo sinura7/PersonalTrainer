@@ -45,7 +45,9 @@ interface RestTimerGateway {
      * Stops only if the live timer still is [timerId]. Completion claims a
      * timer id and must not wipe a NEWER timer the user minted (+15s) between
      * the claim and the stop. Default keeps fakes simple; the production
-     * controller really checks.
+     * controller really checks — as one compare-and-set on the store
+     * ([RestTimerStore.clearIfCurrent]), because a check followed by a clear
+     * lets a +15 from another thread land in between and be wiped.
      */
     fun stopIfCurrent(timerId: String, fromService: Boolean = false): Boolean {
         stop(fromService)

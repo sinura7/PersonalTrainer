@@ -12,6 +12,12 @@ import kotlinx.coroutines.flow.asStateFlow
  * Memory is the fast path. Disk and alarm arming are the controller's
  * ordered IO job (publish snapshot, then persist, then arm) so a Log tap
  * does not `commit()` SharedPreferences on the main thread.
+ *
+ * It is written from more than one thread: the screens and the notification's ±15 on Main,
+ * the alarm's completion on `Dispatchers.Default`. The two changes that depend on what was
+ * there — [adjust] and [clearIfCurrent] — are compare-and-set, so neither lands on a snapshot
+ * it did not read (ADR-012 decision 1). [start], [restore] and [clear] replace whatever is
+ * there by design.
  */
 class RestTimerStore(
     private val ids: IdFactory = IdFactory.Uuid,
@@ -40,35 +46,42 @@ class RestTimerStore(
     }
 
     /**
-     * Add or remove time from a RUNNING rest.
+     * Add or remove time from a RUNNING rest, and say what came of it.
      *
      * A no-op when idle, in either direction. Starting rest is [start]'s job: previously a
      * positive delta on a cleared store would spawn a brand-new running timer with a null
      * session, so tapping "+15s" on a stale notification just as rest completed resurrected
      * a phantom countdown detached from any workout.
+     *
+     * The replacement is written only over the snapshot it was computed from. It used to read,
+     * compute and then write plainly, so a completion that cleared the store in between was
+     * overwritten and the finished rest came back under a new id.
      */
     fun adjust(
         deltaSeconds: Int,
         nowElapsedRealtime: Long,
         nowWallClockMillis: Long = System.currentTimeMillis(),
-    ) {
-        val current = snapshotState.value
-        if (!current.running) return
-        val remaining = current.remainingSeconds(nowElapsedRealtime)
-        val next = (remaining + deltaSeconds).coerceAtLeast(0)
-        if (next == 0) {
-            clear()
-            return
+    ): RestAdjustment {
+        while (true) {
+            val current = snapshotState.value
+            if (!current.running) return RestAdjustment.Idle
+            val remaining = current.remainingSeconds(nowElapsedRealtime)
+            val next = (remaining + deltaSeconds).coerceAtLeast(0)
+            val replacement = if (next == 0) {
+                RestTimerSnapshot()
+            } else {
+                RestTimerSnapshot(
+                    running = true,
+                    endsAtElapsedRealtime = nowElapsedRealtime + next * 1000L,
+                    totalSeconds = maxOf(current.totalSeconds, next),
+                    sessionId = current.sessionId,
+                    timerId = ids.newId(),
+                )
+            }
+            if (snapshotState.compareAndSet(current, replacement)) {
+                return if (next == 0) RestAdjustment.Ended else RestAdjustment.Running(replacement)
+            }
         }
-        publish(
-            RestTimerSnapshot(
-                running = true,
-                endsAtElapsedRealtime = nowElapsedRealtime + next * 1000L,
-                totalSeconds = maxOf(current.totalSeconds, next),
-                sessionId = current.sessionId,
-                timerId = ids.newId(),
-            ),
-        )
     }
 
     /** Restore a timer read back from disk; [endsAtElapsedRealtime] must already be rebased. */
@@ -95,7 +108,29 @@ class RestTimerStore(
         snapshotState.value = RestTimerSnapshot()
     }
 
+    /**
+     * Clears the store when it holds [timerId], or nothing is running. Returns what was there,
+     * or null — and leaves it alone — when a newer timer has replaced [timerId]: a stop or a
+     * completion for an old id must never clear its replacement (ADR-012 decision 1).
+     */
+    fun clearIfCurrent(timerId: String): RestTimerSnapshot? {
+        while (true) {
+            val current = snapshotState.value
+            if (current.running && current.timerId != timerId) return null
+            if (snapshotState.compareAndSet(current, RestTimerSnapshot())) return current
+        }
+    }
+
     private fun publish(next: RestTimerSnapshot) {
         snapshotState.value = next
     }
+}
+
+/** What a [RestTimerStore.adjust] did: nothing was running, the rest ended, or it runs on as [snapshot]. */
+sealed interface RestAdjustment {
+    data object Idle : RestAdjustment
+
+    data object Ended : RestAdjustment
+
+    data class Running(val snapshot: RestTimerSnapshot) : RestAdjustment
 }

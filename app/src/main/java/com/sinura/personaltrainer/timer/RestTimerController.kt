@@ -107,13 +107,22 @@ class RestTimerController(
     }
 
     override fun adjust(deltaSeconds: Int) {
-        store.adjust(deltaSeconds, SystemClock.elapsedRealtime())
-        if (store.current().running) {
-            persistThenArm(syncService = true)
-        } else {
-            alarms.cancel()
-            persistThenArm(syncService = false)
-            dispatch(RestTimerService.ACTION_STOP)
+        // Choose from what this adjust did, not from a second read of the store: by then
+        // another thread may have started, stopped or completed a timer this call knows nothing
+        // about. The disk write and the alarm still take the store's latest state; the last
+        // caller's job wins.
+        when (store.adjust(deltaSeconds, SystemClock.elapsedRealtime())) {
+            is RestAdjustment.Running -> persistThenArm(syncService = true)
+            RestAdjustment.Ended -> {
+                alarms.cancel()
+                persistThenArm(syncService = false)
+                dispatch(RestTimerService.ACTION_STOP)
+            }
+            // Whoever emptied the store already cancelled the alarm, cleared the row, and the
+            // service stops on the snapshot. A STOP from here would run stop() in the service
+            // and wipe the "rest done" a completion just published: a finished rest would
+            // look skipped, and the lock glance would close.
+            RestAdjustment.Idle -> Unit
         }
     }
 
@@ -123,9 +132,10 @@ class RestTimerController(
     }
 
     override fun stopIfCurrent(timerId: String, fromService: Boolean): Boolean {
-        val current = store.current()
-        if (current.running && current.timerId != timerId) return false
-        halt(fromService)
+        // One compare-and-set, not a check and then a clear: a +15 landing in between
+        // would have minted a replacement that the clear then wiped.
+        val cleared = store.clearIfCurrent(timerId) ?: return false
+        afterHalt(wasRunning = cleared.running, fromService = fromService)
         return true
     }
 
@@ -136,7 +146,14 @@ class RestTimerController(
         // two flows separately; stop-then-mark looks like a skip for one
         // frame and dismisses the "Back to the bar" surface.
         markCompleted(timerId)
-        halt(fromService)
+        val cleared = store.clearIfCurrent(timerId)
+        if (cleared == null) {
+            // A +15 replaced this timer after the check: nothing finished. Take the
+            // completion back, unless something newer has already been published.
+            _lastCompletedTimerId.compareAndSet(timerId, null)
+            return false
+        }
+        afterHalt(wasRunning = cleared.running, fromService = fromService)
         return true
     }
 
@@ -148,6 +165,10 @@ class RestTimerController(
     private fun halt(fromService: Boolean) {
         val wasRunning = store.current().running
         store.clear()
+        afterHalt(wasRunning, fromService)
+    }
+
+    private fun afterHalt(wasRunning: Boolean, fromService: Boolean) {
         // Drop the wakeup immediately so a cancelled rest cannot fire
         // while the IO job is still clearing the row.
         alarms.cancel()
@@ -229,7 +250,7 @@ class RestTimerController(
      * Publish already happened on the caller. Persist the row, then arm.
      * The receiver treats a missing disk row as already completed, so the
      * alarm must not be scheduled first — and is not scheduled at all when
-     * the row did not commit. A later [halt] bumps [persistSeq] so an
+     * the row did not commit. Any later call bumps [persistSeq] so an
      * in-flight start skips the whole persist, not just the alarm.
      */
     private fun persistThenArm(syncService: Boolean) {
