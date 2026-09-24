@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 24 Sep 2026 — Whole-app audit packet T1c-1 (tests only): nine more
+> workout test files stop reading the app's code as text. What they pinned
+> is now checked on the screen or in the ViewModel (the undo, the Log
+> button's words, the hold bar, the rest page's fit, landscape), and every
+> "never do this" rule is kept, now reading both workout packages so
+> W2d's planned moves cannot quietly empty them. Quiet.
+>
 > 23 Sep 2026 — Whole-app audit packet W2b-1: the rest timer's ±15 s and
 > its finish can no longer undo each other. They run on different threads
 > (the screens and the notification on the main thread, the alarm's finish

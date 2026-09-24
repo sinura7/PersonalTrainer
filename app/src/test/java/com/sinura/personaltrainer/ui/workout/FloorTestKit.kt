@@ -1,16 +1,26 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.os.Looper
+import android.view.View
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -19,6 +29,13 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.SavedStateHandle
+import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LoadClass
@@ -28,18 +45,33 @@ import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.insertTestExercise
+import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
+import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.time.Duration
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.withTimeout
 import org.robolectric.Shadows
 
 /*
  * The floor's rendered tests describe a state in a line and then look at what the screen
  * does with it. These builders are the shared vocabulary for that: one lift, one session,
- * one saved set, one primary action, one dock. They used to live privately in
- * WorkoutFloorComponentsTest and WorkoutLogBarTest, which is why every new render copied
- * them by hand; one copy here keeps the fixtures from drifting apart.
+ * one saved set, one primary action, one dock; and, for the tests that drive the real
+ * screen through its ViewModel, one seeded leg extension, its ViewModel, the screen around
+ * it, and the ViewModel waits the contract tests share with ActiveWorkoutViewModelTest.
+ * They used to live privately in WorkoutFloorComponentsTest, WorkoutLogBarTest and each
+ * T1c-1 render test, which is why every new render copied them by hand; one copy here keeps
+ * the fixtures from drifting apart.
  */
 
 /** The floor's tests read in pounds, like the owner's phone. */
@@ -218,6 +250,220 @@ internal fun ComposeContentTestRule.showFloor(fontScale: State<Float>, content: 
     }
 }
 
+/** How long a rendered test waits for the screen or its ViewModel to reach a state. */
+internal const val FLOOR_WAIT_MS = 20_000L
+
+/** The lift the rendered floor tests open on. */
+internal const val FLOOR_LIFT_ID = "leg-extension"
+
+/** The lift after it, when a test needs somewhere to move on to. */
+internal const val FLOOR_NEXT_LIFT_ID = "romanian-deadlift"
+internal const val FLOOR_NEXT_LIFT_NAME = "Romanian Deadlift"
+
+/** [count] saved sets of 70 lb × 10 at RPE 8. */
+internal fun floorSets(count: Int): List<TestSetInput> = (1..count).map { TestSetInput(weightKg = FLOOR_KG70, reps = 10, rpe = 8) }
+
+/** The undo dwell a phone with no accessibility timeout gives: the base, unchanged. */
+internal val FLOOR_BASE_DWELL: UndoTimeoutProvider = UndoTimeoutProvider { base -> base.toLong() }
+
+/** The workout screen's ViewModel on [sessionId], built as the app builds it but over [deps]. */
+internal fun floorViewModel(
+    deps: AppDependencies,
+    sessionId: String,
+    undoTimeout: UndoTimeoutProvider = FLOOR_BASE_DWELL,
+): ActiveWorkoutViewModel = ActiveWorkoutViewModel(
+    application = ApplicationProvider.getApplicationContext(),
+    savedStateHandle = SavedStateHandle(mapOf("sessionId" to sessionId)),
+    container = deps,
+    undoTimeout = undoTimeout,
+)
+
+/**
+ * A live "Lower B" on its leg extension, 3 × 10 at 70 lb with 120 s rest, with [loggedSets]
+ * already saved; with [withNextLift], a Romanian deadlift (3 × 8) after it. The session's id.
+ */
+internal suspend fun seedLegExtension(
+    deps: FakeAppDependencies,
+    loggedSets: List<TestSetInput>,
+    withNextLift: Boolean = false,
+): String {
+    val seeded = seedTestWorkout(
+        deps = deps,
+        exerciseId = FLOOR_LIFT_ID,
+        exerciseName = "Leg Extension",
+        routineName = "Lower B",
+        targetSets = 3,
+        targetReps = 10,
+        targetWeightKg = FLOOR_KG70,
+        restSeconds = 120,
+        loggedSets = loggedSets,
+    )
+    if (withNextLift) {
+        val next = insertTestExercise(deps = deps, id = FLOOR_NEXT_LIFT_ID, name = FLOOR_NEXT_LIFT_NAME, muscleGroup = "Hamstrings")
+        deps.workoutRepository.addExerciseToSession(seeded.session.id, next, targetSets = 3, targetReps = 8, targetWeightKg = 40.0, restSeconds = 90)
+    }
+    return seeded.session.id
+}
+
+/** [seedLegExtension], then its ViewModel, kept in [viewModels] for the test's tear-down to clear. */
+internal fun openLegExtension(
+    deps: FakeAppDependencies,
+    viewModels: MutableList<ActiveWorkoutViewModel>,
+    loggedSets: List<TestSetInput>,
+    withNextLift: Boolean = false,
+    undoTimeout: UndoTimeoutProvider = FLOOR_BASE_DWELL,
+): ActiveWorkoutViewModel {
+    val sessionId = runBlocking { seedLegExtension(deps = deps, loggedSets = loggedSets, withNextLift = withNextLift) }
+    return floorViewModel(deps = deps, sessionId = sessionId, undoTimeout = undoTimeout).also(viewModels::add)
+}
+
+/**
+ * A lift is on the floor, its prefill has answered and the entry takes taps: what a rendered test
+ * waits for before it acts. The prefill reads the database on its own thread and writes the draft
+ * when it lands, over anything tapped before then, so an unlocked entry alone is not enough.
+ */
+internal val FLOOR_LIFT_READY: (ActiveWorkoutUiState) -> Boolean = { state ->
+    state.session?.exercises?.isNotEmpty() == true &&
+        state.liftReadiness.allowsCommit() &&
+        !state.entryLocked
+}
+
+/**
+ * Composes the real workout screen for [vm] in a [width] × [height] box, with [view] as the
+ * screen's view when a test writes down what the screen asks the hand to feel, then waits for
+ * the session to load and for [ready].
+ */
+internal fun ComposeContentTestRule.showWorkoutScreen(
+    vm: ActiveWorkoutViewModel,
+    width: Dp = 360.dp,
+    height: Dp = 800.dp,
+    view: View? = null,
+    ready: (ActiveWorkoutUiState) -> Boolean = FLOOR_LIFT_READY,
+) {
+    val screen: @Composable () -> Unit = {
+        Box(modifier = Modifier.width(width).height(height)) {
+            ActiveWorkoutScreen(onExit = {}, onFinished = {}, viewModel = vm, restNotificationsEnabledOverride = true)
+        }
+    }
+    showFloor {
+        if (view == null) {
+            screen()
+        } else {
+            CompositionLocalProvider(LocalView provides view) { screen() }
+        }
+    }
+    waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.loadState == SessionLoadState.FOUND }
+    waitUntil(timeoutMillis = FLOOR_WAIT_MS) { ready(vm.uiState.value) }
+    waitForIdle()
+}
+
+/**
+ * A [FeltView] on this rule's activity, hung off its window and stamping each haptic with the
+ * screen clock's time, for a test to hand [showWorkoutScreen] as the screen's view.
+ */
+internal fun AndroidComposeTestRule<*, out ComponentActivity>.attachedFeltView(): FeltView {
+    val felt = FeltView(context = activity, clock = { mainClock.currentTime })
+    runOnUiThread { felt.attachTo(activity) }
+    return felt
+}
+
+/**
+ * A bare timeout here reports only "Timed out waiting for 30000 ms", which is the one
+ * thing already known. The state the wait never reached is what says whether the action
+ * under test did nothing, did the wrong thing, or did the right thing into a value that
+ * was overwritten before this collector saw it. Reading it in the catch costs nothing on
+ * the happy path and cannot perturb the race that got us here — it has already lost.
+ */
+internal suspend fun ActiveWorkoutViewModel.awaitState(
+    predicate: (ActiveWorkoutUiState) -> Boolean,
+): ActiveWorkoutUiState = try {
+    withTimeout(TestWaits.FLOW_MS) { uiState.first(predicate) }
+} catch (timedOut: TimeoutCancellationException) {
+    throw AssertionError("awaitState gave up; last uiState was ${uiState.value}", timedOut)
+}
+
+/**
+ * The moment a delete, remove or undo may be issued and will be acted on.
+ *
+ * Every entry mutation begins `if (!canChangeEntry()) return`: while a save is
+ * outstanding, another mutation is in flight or the session is not FOUND, the tap is
+ * dropped without a word, by design — a queued tap must never act on a screen that has
+ * moved on. `entryLocked` projects those same flags, and `uiState` is collected for the
+ * ViewModel's whole life by `primaryAction`, so it is live, not a snapshot. A test that
+ * taps the instant a row or an offer appears is otherwise racing the tail of the
+ * operation that produced it: that is how `undoQueueSurvivesProcessDeath` lost trunk
+ * run 35239125454 and reproduced here, with the row still stored and nothing left
+ * running.
+ */
+internal suspend fun ActiveWorkoutViewModel.awaitEntryUnlocked(): ActiveWorkoutUiState =
+    awaitState { !it.entryLocked }
+
+/** The stored session once [predicate] holds, or an AssertionError that shows the stored row. */
+internal suspend fun WorkoutRepository.awaitSession(
+    sessionId: String,
+    predicate: (WorkoutSession) -> Boolean,
+): WorkoutSession = try {
+    withTimeout(TestWaits.FLOW_MS) {
+        checkNotNull(
+            observeSession(sessionId).first { session ->
+                session != null && predicate(session)
+            },
+        )
+    }
+} catch (timedOut: TimeoutCancellationException) {
+    val stored = runCatching { getSession(sessionId) }
+    throw AssertionError("awaitSession gave up; stored row was ${stored.getOrNull()}", timedOut)
+}
+
+/**
+ * Log a set and wait for the whole action, not just for its row; [repository] is where the
+ * row lands and [scheduler] the ViewModel's own clock.
+ *
+ * The session Flow publishes the moment Room commits, which is the middle of
+ * [ActiveWorkoutViewModel.logSet]'s coroutine and not its end: the personal-record
+ * moment, `wantAnotherSet`, `error`, the draft reset and the double-tap guard are all
+ * written after that. Carrying on at the row raced the rest of the action — whatever the
+ * test set next could be taken back by the tail, and a second logSet() could be swallowed
+ * by a guard still true from the first.
+ *
+ * That is what wedged ActiveWorkoutViewModelTest intermittently. The wait below is for an
+ * outcome only this log can produce, not for flags an earlier snapshot also shows.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+internal suspend fun ActiveWorkoutViewModel.logSetAndSettle(repository: WorkoutRepository, scheduler: TestCoroutineScheduler) {
+    val sessionId = checkNotNull(uiState.value.session?.id) { "logSetAndSettle before the session loaded" }
+    val storedBefore = repository.getSession(sessionId)?.sets.orEmpty().toSet()
+    val saveBefore = uiState.value.save
+    logSet()
+    // Wait for THIS log, not for a quiet screen. "Not logging, not saving" is also true of
+    // the snapshot from before the tap: `uiState` combines Room flows on Room's threads,
+    // so for a moment after logSet() it can still show the pre-log flags, and waiting on
+    // them returned before the save began. The next logSet() was then refused by the save
+    // still holding the entry lock (expiredTopOfferRevealsTheNextOneWithoutARestChange,
+    // 23 Sept). So wait for an outcome only this log can produce: the stored rows changed
+    // and the screen shows those rows with the entry unlocked, or this save came to rest
+    // as FAILED / CONFLICT, which the write-failure tests go on to assert.
+    try {
+        withTimeout(TestWaits.FLOW_MS) {
+            while (true) {
+                val state = uiState.value
+                val failed = state.save != saveBefore &&
+                    (state.save.phase == WorkoutSavePhase.FAILED || state.save.phase == WorkoutSavePhase.CONFLICT)
+                if (failed) break
+                val stored = repository.getSession(sessionId)?.sets.orEmpty().toSet()
+                val landed = stored != storedBefore && state.session?.sets.orEmpty().toSet() == stored
+                if (landed && !state.entryLocked) break
+                delay(10)
+            }
+        }
+    } catch (timedOut: TimeoutCancellationException) {
+        throw AssertionError("logSetAndSettle: the log neither landed nor failed; uiState was ${uiState.value}", timedOut)
+    }
+    scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
+    scheduler.runCurrent()
+    scheduler.advanceUntilIdle()
+}
+
 /** The labels TalkBack offers in its actions menu for this node, in order. */
 internal fun SemanticsNodeInteraction.customActionLabels(): List<String> =
     fetchSemanticsNode().config.getOrNull(SemanticsActions.CustomActions).orEmpty().map { it.label }
@@ -227,6 +473,18 @@ internal fun SemanticsNodeInteraction.customActionLabels(): List<String> =
  * missing action fails with the labels the node does offer, so a reworded action reads as
  * what changed rather than as an empty collection.
  */
+/**
+ * Whether one node matching [matcher] is on screen now. For waiting on something still arriving,
+ * like a sheet's rows while it slides up; the caller asserts after the wait.
+ */
+internal fun ComposeContentTestRule.isDisplayed(matcher: SemanticsMatcher): Boolean =
+    try {
+        onNode(matcher).assertIsDisplayed()
+        true
+    } catch (_: AssertionError) {
+        false
+    }
+
 internal fun ComposeContentTestRule.runCustomAction(node: SemanticsNodeInteraction, label: String) {
     val offered = node.fetchSemanticsNode().config.getOrNull(SemanticsActions.CustomActions).orEmpty()
     val action = offered.firstOrNull { it.label == label }

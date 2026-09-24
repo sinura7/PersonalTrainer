@@ -70,7 +70,7 @@ evidence is the JVM render set ([ADR-032](architecture/ADR-032-jvm-evidence-lane
 | 3 | S0b | Pull writes in place; refused custom-lift delete retried | Q | Done — #383 |
 | 4 | Q1 | First-launch chooser is a real gate; permission walk waits; D01 date-aware headline and Back to today | V | Done — #384, drop 100 (S0b and X2a rode along) |
 | 5 | X1 | Docs truth pass; this table; ADR-031 (sync lane), ADR-032 (evidence lanes) | Q | Done |
-| 6 | T1 | Workout test triage: source-string assertions that pin removable code become rendered/semantic checks | Q | T1a done — #388; T1b done — #392; T1c before W2a |
+| 6 | T1 | Workout test triage: source-string assertions that pin removable code become rendered/semantic checks | Q | T1a done — #388; T1b done — #392; T1c-1 in review; T1c-2 before W2a |
 | 7 | W1a | Visible "Lift n of N" switch; numeric-entry cue; one Add set; 48 dp evidence chip; no double announcements | V | Done — #389, drop 101 |
 | 7a | R0 | A second tap on a lift in the routine picker is never lost | Q | Done — #391 |
 | 8 | W1b | "Effort · optional"; planned-rest copy; one ±15 control set; coach goal reaches the workout | V | Done — #393, drop 102 |

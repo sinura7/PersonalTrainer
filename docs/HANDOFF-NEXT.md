@@ -51,7 +51,10 @@ Done so far:
 - **Q1:** the first-launch chooser is a real gate, and Home's headline follows
   the selected day.
 - **X1:** this docs pass, plus ADR-031 and ADR-032.
-- **T1a, T1b:** workout tests hold rendered behaviour, not source text.
+- **T1a, T1b, T1c-1:** workout tests hold rendered behaviour, not source text;
+  T1c-1 took the undo, log bar, toolbar, landscape and clock pins, keeping
+  every ban and scanning both workout packages, so W2d's moves cannot empty
+  them. T1c-2 has the last eleven files.
 - **W1a, W1b, R0:** the lift switch, effort and planned-rest wording, the
   routine picker's second tap (drops 101, 102).
 - **X3:** the retired emulator goldens left the hosted lane.
@@ -83,7 +86,7 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): T1c-1, W2b-1b, T1c-2, W2a,
+live order is the table in FRONTEND_REDESIGN.md): W2b-1b, T1c-2, W2a,
 W2b-2, W2c, W2d, then a check-only phone drop, then W3. X2b completed
 Wave 0.
 

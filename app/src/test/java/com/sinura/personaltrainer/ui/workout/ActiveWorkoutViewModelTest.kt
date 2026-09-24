@@ -2575,22 +2575,6 @@ class ActiveWorkoutViewModelTest {
         awaitState { it.loadState == SessionLoadState.FOUND }
 
     /**
-     * The moment a delete, remove or undo may be issued and will be acted on.
-     *
-     * Every entry mutation begins `if (!canChangeEntry()) return`: while a save is
-     * outstanding, another mutation is in flight or the session is not FOUND, the tap is
-     * dropped without a word, by design — a queued tap must never act on a screen that has
-     * moved on. `entryLocked` projects those same flags, and `uiState` is collected for the
-     * ViewModel's whole life by `primaryAction`, so it is live, not a snapshot. A test that
-     * taps the instant a row or an offer appears is otherwise racing the tail of the
-     * operation that produced it: that is how `undoQueueSurvivesProcessDeath` lost trunk
-     * run 35239125454 and reproduced here, with the row still stored and nothing left
-     * running.
-     */
-    private suspend fun ActiveWorkoutViewModel.awaitEntryUnlocked(): ActiveWorkoutUiState =
-        awaitState { !it.entryLocked }
-
-    /**
      * An edit is open when its mutation has released, not when [ActiveWorkoutUiState.editingSetId]
      * first appears. `editSet` publishes the id before it writes the draft and the saved-edit
      * record (so prefill cannot run over the values), and holds the entry lock until both land;
@@ -2621,52 +2605,9 @@ class ActiveWorkoutViewModelTest {
             !it.entryLocked
     }
 
-    /**
-     * Log a set and wait for the whole action, not just for its row.
-     *
-     * The session Flow publishes the moment Room commits, which is the middle of
-     * [ActiveWorkoutViewModel.logSet]'s coroutine and not its end: the personal-record
-     * moment, `wantAnotherSet`, `error`, the draft reset and the double-tap guard are all
-     * written after that. Carrying on at the row raced the rest of the action — whatever the
-     * test set next could be taken back by the tail, and a second logSet() could be swallowed
-     * by a guard still true from the first.
-     *
-     * That is what wedged this class intermittently. The wait below is for an outcome only
-     * this log can produce, not for flags an earlier snapshot also shows.
-     */
-    private suspend fun ActiveWorkoutViewModel.logSetAndSettle() {
-        val sessionId = checkNotNull(uiState.value.session?.id) { "logSetAndSettle before the session loaded" }
-        val storedBefore = deps.workoutRepository.getSession(sessionId)?.sets.orEmpty().toSet()
-        val saveBefore = uiState.value.save
-        logSet()
-        // Wait for THIS log, not for a quiet screen. "Not logging, not saving" is also true of
-        // the snapshot from before the tap: `uiState` combines Room flows on Room's threads,
-        // so for a moment after logSet() it can still show the pre-log flags, and waiting on
-        // them returned before the save began. The next logSet() was then refused by the save
-        // still holding the entry lock (expiredTopOfferRevealsTheNextOneWithoutARestChange,
-        // 23 Sept). So wait for an outcome only this log can produce: the stored rows changed
-        // and the screen shows those rows with the entry unlocked, or this save came to rest
-        // as FAILED / CONFLICT, which the write-failure tests go on to assert.
-        try {
-            withTimeout(TestWaits.FLOW_MS) {
-                while (true) {
-                    val state = uiState.value
-                    val failed = state.save != saveBefore &&
-                        (state.save.phase == WorkoutSavePhase.FAILED || state.save.phase == WorkoutSavePhase.CONFLICT)
-                    if (failed) break
-                    val stored = deps.workoutRepository.getSession(sessionId)?.sets.orEmpty().toSet()
-                    val landed = stored != storedBefore && state.session?.sets.orEmpty().toSet() == stored
-                    if (landed && !state.entryLocked) break
-                    delay(10)
-                }
-            }
-        } catch (timedOut: TimeoutCancellationException) {
-            throw AssertionError("logSetAndSettle: the log neither landed nor failed; uiState was ${uiState.value}", timedOut)
-        }
-        dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
-        dispatcher.scheduler.runCurrent()
-        dispatcher.scheduler.advanceUntilIdle()
-    }
+    /** FloorTestKit's [logSetAndSettle], on this class's repository and ViewModel clock. */
+    private suspend fun ActiveWorkoutViewModel.logSetAndSettle() =
+        logSetAndSettle(repository = deps.workoutRepository, scheduler = dispatcher.scheduler)
 
     private suspend fun awaitRestRunning() {
         try {
@@ -2691,21 +2632,6 @@ class ActiveWorkoutViewModelTest {
     }
 
     /**
-     * A bare timeout here reports only "Timed out waiting for 30000 ms", which is the one
-     * thing already known. The state the wait never reached is what says whether the action
-     * under test did nothing, did the wrong thing, or did the right thing into a value that
-     * was overwritten before this collector saw it. Reading it in the catch costs nothing on
-     * the happy path and cannot perturb the race that got us here — it has already lost.
-     */
-    private suspend fun ActiveWorkoutViewModel.awaitState(
-        predicate: (ActiveWorkoutUiState) -> Boolean,
-    ): ActiveWorkoutUiState = try {
-        withTimeout(TestWaits.FLOW_MS) { uiState.first(predicate) }
-    } catch (timedOut: TimeoutCancellationException) {
-        throw AssertionError("awaitState gave up; last uiState was ${uiState.value}", timedOut)
-    }
-
-    /**
      * The undo offer for a delete or remove, once the mutation that made it has released.
      *
      * The offer is pushed inside the mutation, while `mutating` is still true, so a test
@@ -2727,21 +2653,11 @@ class ActiveWorkoutViewModelTest {
         throw AssertionError("${gaveUp.message}\nuiState was ${uiState.value}", gaveUp)
     }
 
+    /** FloorTestKit's [awaitSession], on this class's repository. */
     private suspend fun awaitSession(
         sessionId: String,
         predicate: (WorkoutSession) -> Boolean,
-    ): WorkoutSession = try {
-        withTimeout(TestWaits.FLOW_MS) {
-            checkNotNull(
-                deps.workoutRepository.observeSession(sessionId).first { session ->
-                    session != null && predicate(session)
-                },
-            )
-        }
-    } catch (timedOut: TimeoutCancellationException) {
-        val stored = runCatching { deps.workoutRepository.getSession(sessionId) }
-        throw AssertionError("awaitSession gave up; stored row was ${stored.getOrNull()}", timedOut)
-    }
+    ): WorkoutSession = deps.workoutRepository.awaitSession(sessionId, predicate)
 
     private suspend fun seedWorkout(
         targetSets: Int = 3,

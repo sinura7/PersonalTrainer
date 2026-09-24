@@ -87,6 +87,24 @@ class WorkoutPrimaryActionsTest {
         assertTrue(reached.enabled)
     }
 
+    /**
+     * A warm-up on a hold still has to be held: the commit starts its clock first, and only
+     * then logs it as a warm-up. A strength warm-up has no clock and logs at once. This was
+     * `state.draft.isWarmup -> if (isHold && !holdArmed) … START_HOLD else … LOG_WARMUP`, read
+     * as text in WorkoutLogBarTest (audit T1c-1).
+     */
+    @Test
+    fun aWarmupHoldStartsItsClockBeforeItLogsAsAWarmup() {
+        val normal = state()
+        val hold = normal.copy(session = normal.session!!.copy(exercises = listOf(lift("wall_sit"))), selectedExerciseId = "wall_sit")
+        val warmupHold = hold.copy(draft = hold.draft.copy(isWarmup = true))
+        assertEquals(WorkoutPrimaryKind.START_HOLD, derive(warmupHold).kind)
+        val held = derive(warmupHold, hold = HoldTimerUiState(running = true, totalSeconds = 30, remainingSeconds = 18, elapsedSeconds = 12))
+        assertEquals(WorkoutPrimaryKind.LOG_WARMUP, held.kind)
+        assertEquals("Log warm-up", held.verb())
+        assertEquals(WorkoutPrimaryKind.LOG_WARMUP, derive(normal.copy(draft = normal.draft.copy(isWarmup = true))).kind)
+    }
+
     @Test
     fun timerTickPreservesPressIdentityButAChangedDraftOrSavedSetInvalidatesIt() {
         val state = state()
