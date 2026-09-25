@@ -90,9 +90,35 @@ compilation and Robolectric start-up, not by any one test.
 
 ## Render matrix (the temporary harness)
 
-Filled in below once the harness run completes: the frame manifest (file,
-screen, state, size, font, bytes), the screens that never left their loading
-state, and the known limit of the method — the `LocalDensity` override sets
-the font scale for Compose but does not change `Configuration.fontScale`,
-which is the repository's established gate method (W1d) and is accepted as
-such.
+A temporary Robolectric test (`evidence/AuditRenderTest.kt.txt`, 1,260
+lines, three classes, 78 methods) drew every user-facing screen with the real
+composables and real ViewModels over `FakeAppDependencies` (an in-memory Room
+graph seeded the way the ViewModel tests seed it), at four window sizes set
+with `@Config(qualifiers = …)` — `w360dp-h640dp-mdpi`, `w412dp-h915dp-mdpi`,
+`w800dp-h360dp-land-mdpi`, `w600dp-h960dp-mdpi` — and three font scales
+(1.0, 1.6, 2.0) set through `LocalDensity`, the repository's own method
+(W1d). At mdpi one pixel is one dp, so the frames can be measured directly.
+The file was copied under `app/src/test/`, run once with
+`./gradlew -PskipStaticChecks testDebugUnitTest --tests 'com.sinura.personaltrainer.ui.Audit*'`
+and deleted; nothing under `app/` ships. Packet W3 can start from it.
+
+| | |
+|---|---|
+| Run | 04:31 → 04:40 UTC, 7m51s, 78 methods, 510 frames in 21 screen folders (21 MB) |
+| Manifest | `evidence/render-manifest.csv` (510 rows: file, screen, state, width, height, font, bytes) |
+| States | empty and populated for every screen; error where a DAO decorator exists (History, Session detail, Exercise detail, Activity detail); Settings home/backup/account/reminders; rest timer idle/running; shell first-run/home; composer strength/cardio |
+| Curated set | `evidence/frames/` — 40 frames, 1.5 MB, one or two per screen at 360×640 font 1.0, plus font 2.0 and landscape where a finding lives; `evidence/frames/MANIFEST.csv` |
+| Never ready (`evidence/render-never-ready.txt`) | 36 frames stayed in their loading state for the full 8 s: the 12 `history/error-*` frames, because a throwing activity-history read escapes `HistoryViewModel.kt:189` uncaught and the screen stays blank (a finding, see the record); and the 24 `shell/*` frames at 600×960 and 800×360, a limit of the harness, not the app (the production DataStore is a process singleton, so the shell's second and later classes read a store the first already opened) |
+| Failures | the four `history_<size>` methods failed on that escaped exception; every other method passed |
+
+The first run, with the repository's hang-watchdog, was killed after 54
+frames because a quiet readiness wait reads as idle CPU to the watchdog; the
+wait loop now idles the main looper on each poll (Robolectric delivers Room's
+results through it), caps at 8 s, and never fails a method for a slow frame.
+That watchdog trait is worth knowing for any future test that legitimately
+waits.
+
+Known limit: the `LocalDensity` override does not change
+`Configuration.fontScale`, so code that reads the configuration directly
+would not see the larger text. Nothing on these screens does; the gate uses
+the same method.
