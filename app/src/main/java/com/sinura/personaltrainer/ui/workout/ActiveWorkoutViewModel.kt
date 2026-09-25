@@ -2066,6 +2066,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         if (!canChangeEntry()) return
         val rec = microRec.value ?: return
         if (!rec.showApply || rec.previewOnly) return
+        // A hold's call is in reps; its card is not shown, and Apply would give it a rep.
+        val current = session.value
+        val liftId = current?.resolveSelectedExerciseId(selectedExerciseId.value)
+        val lift = current?.exercises?.firstOrNull { it.exercise.id == liftId }
+        if (lift != null && HoldWork.isHold(lift.exercise)) return
         draft.value = draft.value.copy(
             weightKg = rec.nextWeightKg.coerceAtLeast(0.0),
             reps = rec.nextReps.coerceAtLeast(1),

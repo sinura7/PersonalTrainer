@@ -266,6 +266,38 @@ class FloorRestAndCoachWiringRenderTest {
         compose.onNodeWithTag(STOP).assertDoesNotExist()
     }
 
+    /**
+     * Audit DM-1: a hold is logged in seconds with no reps, and the coach counts reps. Before
+     * the first hold its card offered "1 rep" with Apply. The card is not shown for a hold, and
+     * Apply cannot give it a rep.
+     */
+    @Test
+    fun beforeTheFirstHoldTheLogOffersNoRepAndApplyGivesNone() {
+        val vm = openBodyweightPlank(loggedHold = false, heldLastTime = true)
+        show(vm)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
+        compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertDoesNotExist()
+
+        vm.applyMicroRec()
+        compose.waitForIdle()
+
+        assertEquals("a hold's entry counts no reps", 0, vm.uiState.value.draft.reps)
+    }
+
+    /** After the first hold the card said "Hold 0 reps". It says nothing in reps now. */
+    @Test
+    fun afterAHoldTheLogSaysNothingInReps() {
+        val vm = openBodyweightPlank(loggedHold = true, heldLastTime = false)
+        show(vm)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
+        compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertDoesNotExist()
+        compose.onAllNodes(hasText("0 reps", substring = true), useUnmergedTree = true).assertCountEquals(0)
+    }
+
     @Test
     fun withRestAlertsOffTheDockSaysSo() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
@@ -603,6 +635,50 @@ class FloorRestAndCoachWiringRenderTest {
             ).session.id
         }
         return viewModel(sessionId)
+    }
+
+    /**
+     * A plank as the catalog has it, a bodyweight hold. Each hold is logged as the Log writes
+     * it, 30 s at RPE 8 with no weight and no reps: with [heldLastTime] in a finished session
+     * before this one, and with [loggedHold] already in this one.
+     */
+    private fun openBodyweightPlank(loggedHold: Boolean, heldLastTime: Boolean): ActiveWorkoutViewModel {
+        val sessionId = runBlocking {
+            val seeded = seedTestWorkout(
+                deps = deps,
+                exerciseId = "plank",
+                exerciseName = "Plank",
+                routineName = "Core",
+                targetSets = 3,
+                targetReps = 1,
+                targetWeightKg = null,
+                restSeconds = 60,
+            )
+            // Before the Log opens the session, so it reads the lift as the catalog has it.
+            deps.database.openHelper.writableDatabase
+                .execSQL("UPDATE exercises SET loadType = 'BODYWEIGHT' WHERE id = 'plank'")
+            var session = seeded.session
+            if (heldLastTime) {
+                logHold(session.id)
+                deps.workoutRepository.finishSession(session.id, notes = "")
+                session = deps.workoutRepository.startRoutine(seeded.routine)
+            }
+            if (loggedHold) logHold(session.id)
+            session.id
+        }
+        return viewModel(sessionId)
+    }
+
+    private suspend fun logHold(sessionId: String) {
+        deps.workoutRepository.logSet(
+            sessionId = sessionId,
+            exerciseId = "plank",
+            weightKg = 0.0,
+            reps = 0,
+            rpe = 8,
+            isWarmup = false,
+            durationSeconds = 30,
+        )
     }
 
     private fun viewModel(sessionId: String) = ActiveWorkoutViewModel(

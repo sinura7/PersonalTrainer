@@ -15,6 +15,17 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Audit packet R2-4 (audit X6, DM-1; owner decision of 25
+> September): the coach no longer talks in reps about planks, dead
+> hangs, wall sits and stretches. A hold is logged in seconds with no
+> reps, and the coach counts reps: its Next card offered "1 rep" before
+> the first hold and said "Hold 0 reps" after it, and the rest page said
+> "Next: 0 reps". For a hold the Next card and the rest page's Next line
+> are gone, Apply cannot give it a rep, and a hold is never "ready to
+> progress". The coach still sets the rest after a hold and suggests an
+> effort, as before. Rides along with the next drop; phone check: log a
+> plank, and neither the Log nor the rest page mentions reps.
+>
 > 25 Sep 2026 — Audit packet R2-3 (audit X6, AR-2; owner decision of 25
 > September): the diagnostics you can send from Settings now start
 > before the safety copy the app takes ahead of a database upgrade. A

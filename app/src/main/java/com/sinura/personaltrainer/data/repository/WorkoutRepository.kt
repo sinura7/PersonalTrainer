@@ -1268,7 +1268,9 @@ class WorkoutRepository(
         val items = linkedMapOf<String, RoutineExercise>()
         routines.forEach { routine ->
             routine.exercises.forEach { item ->
-                items.putIfAbsent(item.exercise.id, item)
+                // A hold is logged in seconds with no reps; this counts reps, so it would read a
+                // plank as "ready to progress: add a rep" (audit DM-1).
+                if (!HoldWork.isHold(item.exercise)) items.putIfAbsent(item.exercise.id, item)
             }
         }
         if (items.isEmpty()) return emptyList()

@@ -178,6 +178,31 @@ class WorkoutRepositoryInsightsQueriesTest {
         assertNotEquals(before, repository.observeFinishedWorkRevisionHealth().presentValues().first())
     }
 
+    /**
+     * Audit DM-1: a hold is logged in seconds and this counts reps. A plank with a rep on
+     * record (older holds carried one) read as "ready to progress: add a rep".
+     */
+    @Test
+    fun readyForProgressionLeavesHoldsOut() = runBlocking {
+        database.exerciseDao().insertAll(listOf(exerciseRow(PLANK)))
+        insertFinishedSession(
+            id = "s1",
+            finishedAt = START + 1,
+            sets = listOf(Triple(PLANK, 0.0, 1), Triple(SQUAT, 100.0, 5)),
+        )
+        val withPlank = routine().copy(
+            exercises = routine().exercises + item(PLANK, "Plank").copy(
+                exercise = item(PLANK, "Plank").exercise.copy(loadType = LoadType.BODYWEIGHT),
+                targetReps = 1,
+                targetWeightKg = null,
+            ),
+        )
+
+        val hints = repository.readyForProgression(listOf(withPlank), WeightUnit.KG)
+
+        assertEquals(listOf(SQUAT), hints.map { it.exerciseId })
+    }
+
     @Test
     fun readyForProgressionUsesTheTopSetNotTheBackoff() = runBlocking {
         insertFinishedSession(
@@ -410,6 +435,7 @@ class WorkoutRepositoryInsightsQueriesTest {
     private companion object {
         const val SQUAT = "squat"
         const val BENCH = "bench"
+        const val PLANK = "plank"
         const val START = 1_700_000_000_000L
     }
 }
