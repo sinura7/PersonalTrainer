@@ -17,8 +17,9 @@
   day, W2b-1c: no call cancels another's disk job, and a SYNC is owed until
   one is sent; W2b-1d: the notification's Skip names its rest (see
   Consequences); W2b-2: decision 18 says what the dock and the rest
-  page show, which the code already did; and W2b-3: the lock glance's and
-  the rest page's Skip name their rest too (see Consequences)
+  page show, which the code already did; W2b-3: the lock glance's and
+  the rest page's Skip name their rest too; and W2b-4: the rest page's
+  Next line is the Log's (see Consequences)
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -190,6 +191,36 @@ day. The agreed product asks once, then adapts only if the user says so.
   number); a save overtaken by a +15 inside it (the older job arms
   nothing); and jobs run newest first (the older job writes nothing). A
   race on real threads stays as a smoke test.
+- The rest page's Next line is the Log's (*amended 24 September 2026, W2b-4,
+  owner decision*). The page asks the coach the Log's question
+  (`NextSetInputs`): the Log's entry for the lift the page shows, Another
+  set, a set open for correction, and that lift's hint and last session,
+  re-read when the Log has moved to another lift. It shows the answer only
+  where the Log shows its Next card: after the lift's planned sets only with
+  Another set, and not on a warm-up entry, while a set is being corrected,
+  or while the Log holds a save (one in progress, or a failed one waiting
+  for Retry). Its planned length still ignores
+  Another set, so after Another set it plans the dock's length, and last
+  session is read only after that length is set. Moving both the page and
+  the dock to the extra set's length is an owner decision still owed. Held
+  by `RestTimerViewModelTest`: `afterAnotherSetTheRestPagesNextLineIsTheLogs`,
+  `onALiftsFirstSetTheRestPageKeepsLastSessionsRpeAsTheLogDoes`,
+  `afterTheLiftsLastPlannedSetTheRestPageShowsNoNextLineAsTheLogShowsNone`,
+  `whileASetIsOpenForCorrectionTheRestPageShowsNoNextLineAsTheLogShowsNone`,
+  `onAWarmUpEntryTheRestPageShowsNoNextLineAsTheLogShowsNone`,
+  `whileAFailedSaveWaitsForRetryTheRestPageShowsNoNextLineAsTheLogShowsNone`,
+  `aPageOpenedAsTheLogMovesToAnotherLiftShowsThatLiftsCall`,
+  `anotherSetOnOneLiftDoesNotReachTheRestPageForAnother`,
+  `afterAnotherSetTheRestPageStillPlansTheLengthTheDockShows`,
+  `whileLastSessionIsStillBeingReadTheRestPagePlansTheCoachsLength` and
+  `whenLastSessionCannotBeReadTheRestPageStillPlansTheCoachsLength`,
+  `aTimedHoldWithAnRpeGetsTheLogsCallOnTheRestPage` and
+  `withAStrengthGoalAndALighterWeekTheRestPagesNextLineIsTheLogs`; by
+  `RestPageNextLineTest.afterTheLiftsLastPlannedSetThePageDrawsNoNextLine`;
+  by `NextSetInputsTest.theSharedQuestionHasNoDefaults` (a page cannot
+  leave an input out, including the coach's goal, which changes only
+  wording the page does not show); and, for the Log's own rule, by
+  `FloorRestAndCoachWiringRenderTest.whileASaveIsUnderwayTheCoachsCardStandsDown`.
 
 ## Review questions
 
