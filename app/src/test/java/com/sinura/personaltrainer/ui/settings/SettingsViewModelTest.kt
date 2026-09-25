@@ -712,4 +712,39 @@ class SettingsViewModelTest {
         assertTrue(names.isNotEmpty())
         assertEquals("one set of routines, not two: $names", names.distinct(), names)
     }
+
+    @Test
+    fun aSettingsFileThatCannotBeReadNeverRaisesTheSaveQuestionAndChoosingDoesNotCrash() = runBlocking {
+        val unreadable = object : androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> {
+            override val data: kotlinx.coroutines.flow.Flow<androidx.datastore.preferences.core.Preferences> =
+                kotlinx.coroutines.flow.flow { throw java.io.IOException("settings unreadable") }
+
+            override suspend fun updateData(
+                transform: suspend (
+                    androidx.datastore.preferences.core.Preferences,
+                ) -> androidx.datastore.preferences.core.Preferences,
+            ): androidx.datastore.preferences.core.Preferences = throw java.io.IOException("settings unreadable")
+        }
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            prefsStoreDecorator = { unreadable },
+        )
+        val uncaught = java.util.concurrent.atomic.AtomicReference<Throwable?>(null)
+        val thread = Thread.currentThread()
+        val previous = thread.uncaughtExceptionHandler
+        thread.uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, thrown -> uncaught.set(thrown) }
+        try {
+            viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            viewModel!!.ensureSavePostureReady()
+            val ui = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savePostureUi.first { it.loaded } }
+
+            // The front door shows "Settings unavailable" with Retry; the chooser stays off it.
+            assertFalse(ui.needsChooser)
+            viewModel!!.chooseSavePosture(com.sinura.personaltrainer.domain.SavePosture.LOCAL)
+            assertNull(uncaught.get())
+        } finally {
+            thread.uncaughtExceptionHandler = previous
+        }
+    }
 }

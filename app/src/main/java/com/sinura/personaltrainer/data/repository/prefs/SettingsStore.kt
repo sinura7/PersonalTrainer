@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.repository.prefs
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
@@ -10,12 +11,31 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.logging.AppLog
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+
+/**
+ * What `user_settings` does when its file cannot be parsed: start again from defaults.
+ *
+ * Without it, DataStore's `CorruptionException` (an `IOException`) came back from every read
+ * and every write, forever: reads fell back to defaults through [SettingsStore.safePreferences],
+ * but no setting could be saved again, and the front door showed "Settings unavailable" with a
+ * Retry that could never work, because nothing ever replaced the file. The only way out was
+ * clearing the app's storage, which also deleted the training history (audit DB-2). The history
+ * is in Room, not here, so starting this file again costs settings, not training.
+ */
+fun userSettingsCorruptionHandler(): ReplaceFileCorruptionHandler<Preferences> =
+    ReplaceFileCorruptionHandler { thrown ->
+        AppLog.e(SETTINGS_TAG, "user_settings could not be read; starting it again from defaults", thrown)
+        emptyPreferences()
+    }
+
+private const val SETTINGS_TAG = "PT/Settings"
 
 /**
  * The one `user_settings` DataStore, and the two things every reader of it needs.
