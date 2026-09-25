@@ -20,11 +20,12 @@
 > and says what it does: a fresh set of routines added to your plan,
 > removing nothing, so the routines already on your week keep their days
 > (whether it should replace them instead is an owner question). It no
-> longer throws away the training block you are in, finished or not,
-> never logs an old bodyweight as today's weigh-in, and a second confirm
-> while it runs adds nothing; with no block yet, one starts. Rides along with the next drop; phone check: tap Generate a
-> week, Cancel changes nothing; tap again and Generate, and the block's
-> week number in Your plan has not gone back to week 1.
+> longer replaces the training block you are in, finished or not, never
+> logs an old bodyweight as today's weigh-in, and a second confirm while
+> it runs adds nothing; with no block yet, one starts. Rides along with
+> the next drop; phone check, from a block's second week on: tap Generate
+> a week, Cancel changes nothing; tap again and Generate, and the Plan
+> tab's "Week N of 12" has not gone back to week 1.
 >
 > 25 Sep 2026 — Audit packet R1-3 (audit X6, BK-4; owner decision of 25
 > September): the Drive copy after a finished workout no longer stops

@@ -702,6 +702,8 @@ class SettingsViewModelTest {
 
         viewModel!!.generateWeek()
         viewModel!!.requestGenerateWeek()
+        // The button does not even ask again while the first run is writing.
+        assertFalse(viewModel!!.generateConfirm.value)
         viewModel!!.generateWeek()
         withTimeout(TestWaits.FLOW_MS) { viewModel!!.generateNotice.first { it != null } }
 

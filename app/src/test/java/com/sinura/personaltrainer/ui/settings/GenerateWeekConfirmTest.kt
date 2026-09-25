@@ -41,8 +41,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Settings → Week generator → Generate a week wrote at the first tap: a fresh set of routines,
- * a re-pinned week and, before R1-4, a new block over the one running (audit UI-3). It now asks
+ * Settings → Week generator → Generate a week wrote at the first tap: a fresh set of routines
+ * added to the week and, before R1-4, a new block over the one running (audit UI-3). It now asks
  * first, and only the confirm writes.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

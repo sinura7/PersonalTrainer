@@ -190,7 +190,7 @@ class SettingsViewModel @JvmOverloads constructor(
     private val _generateNotice = MutableStateFlow<String?>(null)
     val generateNotice: StateFlow<String?> = _generateNotice.asStateFlow()
 
-    /** "Generate a week" asks first: it adds routines and re-pins the week (audit UI-3). */
+    /** "Generate a week" asks first: it adds a set of routines to the week (audit UI-3). */
     private val _generateConfirm = MutableStateFlow(false)
     val generateConfirm: StateFlow<Boolean> = _generateConfirm.asStateFlow()
 
@@ -348,6 +348,8 @@ class SettingsViewModel @JvmOverloads constructor(
     fun generateWeek() {
         _generateConfirm.value = false
         if (generateJob?.isActive == true) return
+        // A notice left from the last run would make this one look like it did nothing.
+        _generateNotice.value = null
         generateJob = viewModelScope.launch {
             runCatchingCancellable {
                 var catalog = container.exerciseRepository.observeAll().first()
