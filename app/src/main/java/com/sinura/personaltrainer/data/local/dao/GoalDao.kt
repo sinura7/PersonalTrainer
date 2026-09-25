@@ -15,6 +15,9 @@ interface GoalDao {
     @Query("SELECT * FROM measurable_goals ORDER BY createdAtMs ASC")
     suspend fun getAll(): List<MeasurableGoalEntity>
 
+    @Query("SELECT COUNT(*) FROM measurable_goals")
+    suspend fun count(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(goal: MeasurableGoalEntity)
 
