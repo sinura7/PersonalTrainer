@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Whole-app audit packet W2d-1: the workout floor's undo
+> list (what a delete or a removed lift can take back, in what order,
+> for how long, and the copy that survives Android stopping the app)
+> moves out of the workout ViewModel into its own small helper.
+> Nothing changes on screen; tests written on the old code prove it.
+> Quiet.
+>
 > 25 Sep 2026 — Whole-app audit packet W2c (audit C-2): the coach no
 > longer redoes its sum on every tap in the Log or every second on the
 > rest page; it is asked again only when something it reads changes.

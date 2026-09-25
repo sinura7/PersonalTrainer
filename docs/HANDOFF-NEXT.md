@@ -133,7 +133,14 @@ Done so far:
   it suggests follows edits to that lift. Nothing a lifter sees changes:
   pins written on the old code pass on the new, and every part of the
   two "has anything changed" checks has a test that fails when it is
-  left out (ADR-029, ADR-008; audit C-2).
+  left out (ADR-029, ADR-008; audit C-2; #414).
+- **W2d-1:** the floor's undo queue (the offers, their order, how long
+  each shows, and the copy kept for when Android stops the app) moves
+  out of the workout ViewModel into a small helper, `FloorUndoOffers`.
+  Deleting, removing and undoing work exactly as before; 16 tests
+  written on the old code first prove it, among them that an undone or
+  expired offer stays gone after the app is stopped, which nothing
+  held until now. The ViewModel is 2,377 → 2,327 lines.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -157,7 +164,7 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): W2d, the
+live order is the table in FRONTEND_REDESIGN.md): W2d-2, W2d-3, the
 rest-alarm packet, then a check-only phone drop, then W3. X2b completed
 Wave 0.
 
