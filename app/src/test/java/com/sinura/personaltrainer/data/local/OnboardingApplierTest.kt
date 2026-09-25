@@ -15,6 +15,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.RoutineGenerator
 import com.sinura.personaltrainer.domain.TrainingAge
+import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingEmphasis
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingPlace
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -113,6 +115,35 @@ class OnboardingApplierTest {
         place = place,
         bodyweightKg = bodyweight,
     )
+
+    @Test
+    fun setupStartsANewBlockAndRecordsItsOpeningWeighIn() = runBlocking {
+        val input = answers(bodyweight = 82.0)
+        val running = TrainingBlock(startEpochDay = TODAY.toEpochDay() - 21, weeks = 12)
+        preferences.beginBlock(running, TODAY.toEpochDay())
+
+        applier.apply(input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY)
+
+        assertNotEquals(running, preferences.trainingBlock.first())
+        assertEquals(listOf(TODAY.toEpochDay()), preferences.bodyweightLog.first().map { it.epochDay })
+    }
+
+    @Test
+    fun generateAWeekLeavesEvenAFinishedBlockAloneAndRecordsNoWeighIn() = runBlocking {
+        // A finished block stays current until Your plan starts the next twelve.
+        val input = answers(bodyweight = 82.0)
+        val finished = TrainingBlock(startEpochDay = TODAY.toEpochDay() - 84, weeks = 12)
+        preferences.beginBlock(finished, TODAY.toEpochDay())
+
+        applier.apply(
+            input, RoutineGenerator.generate(input, catalog), catalog, WEEK_START, TODAY,
+            keepCurrentBlock = true,
+        )
+
+        assertEquals(finished, preferences.trainingBlock.first())
+        assertTrue(preferences.pastBlocks.first().isEmpty())
+        assertTrue(preferences.bodyweightLog.first().isEmpty())
+    }
 
     @Test
     fun everyPinnedDayPointsAtARoutineThatHasLifts() = runBlocking {

@@ -33,6 +33,7 @@ import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAlarmSettingsIntent
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.util.toLocalDate
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -331,7 +332,11 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
+    /** The generation in flight: a second confirm before it lands would add a second set. */
+    private var generateJob: Job? = null
+
     fun requestGenerateWeek() {
+        if (generateJob?.isActive == true) return
         _generateConfirm.value = true
     }
 
@@ -339,10 +344,11 @@ class SettingsViewModel @JvmOverloads constructor(
         _generateConfirm.value = false
     }
 
-    /** The confirmed "Generate a week": a fresh week inside the block already running. */
+    /** The confirmed "Generate a week": fresh routines inside the current block. */
     fun generateWeek() {
         _generateConfirm.value = false
-        viewModelScope.launch {
+        if (generateJob?.isActive == true) return
+        generateJob = viewModelScope.launch {
             runCatchingCancellable {
                 var catalog = container.exerciseRepository.observeAll().first()
                 if (catalog.isEmpty()) {

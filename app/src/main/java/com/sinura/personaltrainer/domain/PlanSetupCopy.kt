@@ -20,9 +20,10 @@ object PlanSetupCopy {
     const val GENERATE_TITLE = "Generate a new week?"
 
     const val GENERATE_BODY =
-        "This makes a fresh set of routines from your answers and puts them on your week. " +
-            "Your current routines stay in your list, and your training block and history " +
-            "stay as they are."
+        "This makes a fresh set of routines from your answers and adds them to your plan. " +
+            "It removes nothing: the routines already on your week keep their days until you " +
+            "take them off in Plan. Your history, weigh-ins and training block stay; with no " +
+            "block yet, one starts this week."
 
     const val GENERATE_CONFIRM = "Generate"
 }

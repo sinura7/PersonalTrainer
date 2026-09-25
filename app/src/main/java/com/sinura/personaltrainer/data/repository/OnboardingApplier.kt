@@ -59,10 +59,12 @@ class OnboardingApplier(
      * preferences by the caller, used to lay the week out, and written back by nobody.
      * @param today passed in rather than read from the clock here, so the block's start date is
      * testable and so it agrees with the date the rest of the flow is working from.
-     * @param keepCurrentBlock Settings' "Generate a week": re-plan the week inside the block
-     * already running. Setup starts a new block and records its opening weigh-in; this door is
-     * not setup, and doing either there threw away an unfinished block and logged the setup
-     * answer's old bodyweight as today's weigh-in (audit UI-3). With no block yet, one starts.
+     * @param keepCurrentBlock Settings' "Generate a week": add a week's routines inside the
+     * current block, finished or not (the next twelve start from Your plan). Setup starts a new
+     * block and records its opening weigh-in; this door is not setup, and doing either there
+     * threw away an unfinished block and logged the last stored bodyweight, however old, as
+     * today's weigh-in (audit UI-3). It never records a weigh-in, and starts a block only when
+     * there is none.
      */
     suspend fun apply(
         answers: OnboardingAnswers,
@@ -96,13 +98,14 @@ class OnboardingApplier(
             preferencesRepository.setPreferredDays(clean.preferredDays)
             preferencesRepository.setTrainingPlaces(clean.resolvedPlaces())
             preferencesRepository.setTrainingFocus(clean.focus)
-            val keepBlock = keepCurrentBlock && preferencesRepository.trainingBlock.first() != null
-            if (!keepBlock) {
+            if (!keepCurrentBlock) {
                 // Recorded as a weigh-in, not just stored: it is the opening reading of the block
-                // being started on the next line, and the block review compares against it.
+                // being started below, and the block review compares against it.
                 clean.bodyweightKg?.let { kg ->
                     preferencesRepository.recordBodyweight(kg, today.toEpochDay())
                 }
+            }
+            if (!keepCurrentBlock || preferencesRepository.trainingBlock.first() == null) {
                 // The block starts the moment a plan is accepted, not the moment the app was
                 // installed: what is being counted is twelve weeks of *this* programme. beginBlock
                 // keeps the one this replaces if it had finished — re-running setup the week after
