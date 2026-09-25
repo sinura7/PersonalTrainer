@@ -44,6 +44,7 @@ import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RpeCopy
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
@@ -328,6 +329,35 @@ class FloorRestAndCoachWiringRenderTest {
         RpeCopy.VALUES.forEach { compose.onNodeWithTag(WorkoutTestTags.rpeChoice(it)).assertIsNotEnabled() }
         gate.complete(Unit)
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }
+    }
+
+    @Test
+    fun whileASaveIsUnderwayTheCoachsCardStandsDown() {
+        // The card's rule, rewritten in W2b-4 to share shownNextSet with the rest page: the Log
+        // keeps its entry lock on top, so the coach's call stands down while a set is being saved
+        // and comes back when it lands (W2b-4 review, T2).
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
+        show(vm)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
+        scrollTo(WorkoutTestTags.NEXT_SET)
+        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertIsDisplayed()
+        val gate = CompletableDeferred<Unit>().also { insertGate = it }
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.entryLocked }
+        compose.waitForIdle()
+        val call = vm.microRec.value
+        assertTrue("the coach still has a call behind the lock", call != null)
+        // A call the card would show anywhere else: the lock is the only reason it stands down.
+        assertTrue("the call is one the card shows on entry", SetMicroRecCopy.visibleOnEntry(call!!))
+        // Look where the card would be: the effort track sits just above it.
+        scrollTo(WorkoutTestTags.RPE_TRACK)
+        compose.onAllNodesWithTag(WorkoutTestTags.NEXT_SET).assertCountEquals(0)
+        compose.onAllNodesWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertCountEquals(0)
+        gate.complete(Unit)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }
+        compose.waitForIdle()
+        scrollTo(WorkoutTestTags.NEXT_SET)
+        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertIsDisplayed()
     }
 
     @Test

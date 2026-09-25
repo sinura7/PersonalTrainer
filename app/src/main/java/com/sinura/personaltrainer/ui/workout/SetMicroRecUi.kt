@@ -10,7 +10,12 @@ import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
-/** Same CoachEngine inputs on the log and the rest floor. */
+/**
+ * The coach's call for the next set. The Log's Next card and the rest page's Next line reach it
+ * through [NextSetInputs], which has no defaults, so the two ask with the same inputs (W2b-4).
+ * The defaults here serve calls about fewer inputs: the tests', and the Log's rest seed when a
+ * lift is chosen, which has never counted Another set.
+ */
 internal fun workoutCoachSuggestion(
     session: WorkoutSession?,
     selectedExerciseId: String?,

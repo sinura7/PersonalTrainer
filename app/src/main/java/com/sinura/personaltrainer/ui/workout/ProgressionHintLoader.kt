@@ -1,16 +1,18 @@
 package com.sinura.personaltrainer.ui.workout
 
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SessionExercise
 import kotlinx.coroutines.flow.first
 
 /**
- * A lift's progression hint, read the same way by the Log's prefill ([ActiveWorkoutViewModel])
- * and the rest page ([RestTimerViewModel]), so the two coach calls start from the same history.
+ * A lift's progression hint and its last session, read the same way by the Log's prefill
+ * ([ActiveWorkoutViewModel]) and the rest page ([RestTimerViewModel]), so the two coach calls
+ * start from the same history ([NextSetInputs]).
  *
- * Three steps, each one read, and nothing written. The Log checks between the steps that the
+ * Four steps, each one read, and nothing written. The Log checks between the steps that the
  * lift is still the one it is loading for and drops a stale answer, and it publishes the
  * lighter week before the history query, since the coach reads it meanwhile; a loader that
  * wrote at the end would do neither. Nothing is caught either: the Log degrades the entry on
@@ -50,4 +52,11 @@ internal class ProgressionHintLoader(
         lighterWeek = lighterWeek,
         equipment = planned?.exercise?.equipment,
     )
+
+    /**
+     * [exerciseId]'s last finished session, this one left out. A lift's first set takes its RPE
+     * from these sets (W2b-4: the rest page did not read them, and lost last time's "RPE 8").
+     */
+    suspend fun lastPerformance(exerciseId: String): ExerciseSessionSummary? =
+        container.workoutRepository.lastPerformance(exerciseId, sessionId)
 }
