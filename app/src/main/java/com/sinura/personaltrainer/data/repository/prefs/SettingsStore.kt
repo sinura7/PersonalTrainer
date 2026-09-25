@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.preferencesOf
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.sinura.personaltrainer.domain.Weekday
@@ -20,20 +21,28 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 /**
- * What `user_settings` does when its file cannot be parsed: start again from defaults.
+ * What `user_settings` does when its file cannot be parsed: start again from defaults, and say so.
  *
  * Without it, DataStore's `CorruptionException` (an `IOException`) came back from every read
  * and every write, forever: reads fell back to defaults through [SettingsStore.safePreferences],
  * but no setting could be saved again, and the front door showed "Settings unavailable" with a
  * Retry that could never work, because nothing ever replaced the file. The only way out was
- * clearing the app's storage, which also deleted the training history (audit DB-2). The history
- * is in Room, not here, so starting this file again costs settings, not training.
+ * clearing the app's storage, which also deleted the training history (audit DB-2). Workouts,
+ * the weigh-in log and blocks are in Room, not here, so starting this file again costs settings,
+ * not training. Among those settings is automatic backup, so the fresh file carries one note,
+ * the durable note Settings → Backup shows until it is dismissed ([SETTINGS_RESET_NOTE]).
  */
 fun userSettingsCorruptionHandler(): ReplaceFileCorruptionHandler<Preferences> =
     ReplaceFileCorruptionHandler { thrown ->
         AppLog.e(SETTINGS_TAG, "user_settings could not be read; starting it again from defaults", thrown)
-        emptyPreferences()
+        preferencesOf(RESTORE_RECOVERY_NOTE to SETTINGS_RESET_NOTE)
     }
+
+/** Shown in Settings → Backup after the settings file was started again. */
+const val SETTINGS_RESET_NOTE =
+    "Temper's settings file was damaged and has been started again. Your workouts and " +
+        "weigh-in history are safe; settings are back to their defaults, and automatic backup " +
+        "is off. Turn it on again here if you use it."
 
 private const val SETTINGS_TAG = "PT/Settings"
 

@@ -715,26 +715,12 @@ class SettingsViewModelTest {
 
     @Test
     fun aSettingsFileThatCannotBeReadNeverRaisesTheSaveQuestionAndChoosingDoesNotCrash() = runBlocking {
-        val unreadable = object : androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> {
-            override val data: kotlinx.coroutines.flow.Flow<androidx.datastore.preferences.core.Preferences> =
-                kotlinx.coroutines.flow.flow { throw java.io.IOException("settings unreadable") }
-
-            override suspend fun updateData(
-                transform: suspend (
-                    androidx.datastore.preferences.core.Preferences,
-                ) -> androidx.datastore.preferences.core.Preferences,
-            ): androidx.datastore.preferences.core.Preferences = throw java.io.IOException("settings unreadable")
-        }
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
-            prefsStoreDecorator = { unreadable },
+            prefsStoreDecorator = { UnreadableSettings },
         )
-        val uncaught = java.util.concurrent.atomic.AtomicReference<Throwable?>(null)
-        val thread = Thread.currentThread()
-        val previous = thread.uncaughtExceptionHandler
-        thread.uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, thrown -> uncaught.set(thrown) }
-        try {
+        val uncaught = catchingUncaught {
             viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
             viewModel!!.ensureSavePostureReady()
             val ui = withTimeout(TestWaits.FLOW_MS) { viewModel!!.savePostureUi.first { it.loaded } }
@@ -742,9 +728,53 @@ class SettingsViewModelTest {
             // The front door shows "Settings unavailable" with Retry; the chooser stays off it.
             assertFalse(ui.needsChooser)
             viewModel!!.chooseSavePosture(com.sinura.personaltrainer.domain.SavePosture.LOCAL)
-            assertNull(uncaught.get())
+        }
+        assertNull(uncaught)
+    }
+
+    @Test
+    fun aSignedInLaunchOnASettingsFileThatCannotBeReadDoesNotCrash() = runBlocking {
+        // Signed in, the launch-time migration picks the Account posture and writes it.
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            accountAuth = com.sinura.personaltrainer.FakeAccountAuth(
+                initialSession = com.sinura.personaltrainer.domain.AccountSession("owner@example.com", "uid-1"),
+            ),
+            prefsStoreDecorator = { UnreadableSettings },
+        )
+        val uncaught = catchingUncaught {
+            viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            viewModel!!.ensureSavePostureReady()
+            withTimeout(TestWaits.FLOW_MS) { viewModel!!.savePostureUi.first { it.loaded } }
+        }
+        assertNull(uncaught)
+    }
+
+    /** Runs [block] and returns anything a coroutine threw past it to this thread's handler. */
+    private suspend fun catchingUncaught(block: suspend () -> Unit): Throwable? {
+        val uncaught = java.util.concurrent.atomic.AtomicReference<Throwable?>(null)
+        val thread = Thread.currentThread()
+        val previous = thread.uncaughtExceptionHandler
+        thread.uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, thrown -> uncaught.set(thrown) }
+        try {
+            block()
         } finally {
             thread.uncaughtExceptionHandler = previous
         }
+        return uncaught.get()
+    }
+
+    /** A settings file that cannot be read or written, for any reason but corruption. */
+    private object UnreadableSettings :
+        androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> {
+        override val data: kotlinx.coroutines.flow.Flow<androidx.datastore.preferences.core.Preferences> =
+            kotlinx.coroutines.flow.flow { throw java.io.IOException("settings unreadable") }
+
+        override suspend fun updateData(
+            transform: suspend (
+                androidx.datastore.preferences.core.Preferences,
+            ) -> androidx.datastore.preferences.core.Preferences,
+        ): androidx.datastore.preferences.core.Preferences = throw java.io.IOException("settings unreadable")
     }
 }

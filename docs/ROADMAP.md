@@ -17,16 +17,18 @@
 >
 > 25 Sep 2026 — Audit packet R1-5 (audit X6, DB-2 and L-3; owner
 > decision of 25 September): a damaged settings file no longer locks the
-> app. It is started again from defaults, so settings save again and the
-> front door's Retry is no longer stuck; workouts, weigh-ins and blocks
-> live in the database and are untouched, but settings (units, rest,
-> reminders, setup answers, Drive and automatic backup) go back to their
-> defaults, so the app may ask its first-launch questions again. While
-> the settings file cannot be read for any other reason, the save
-> question no longer covers the "Settings unavailable" screen, and
-> answering it can no longer crash the app. This completes R1. Rides
-> along with the next drop; nothing to check on the phone (a damaged
-> file cannot be made by hand).
+> app. It is started again from defaults, and it says so: Settings →
+> Backup shows a note until dismissed. Settings save again and the front
+> door's Retry is no longer stuck. Workouts, the weigh-in history and
+> blocks live in the database and are untouched; settings (units, rest,
+> reminders, setup answers, the current bodyweight, the Drive account)
+> go back to their defaults, automatic backup is switched off, and the
+> app may ask its first-launch questions again. While the settings file
+> cannot be read for any other reason, the save question no longer
+> covers the "Settings unavailable" screen, and neither answering it nor
+> the launch can crash the app. This completes R1. Rides along with the
+> next drop; nothing to check on the phone (a damaged file is not
+> something to make on purpose).
 >
 > 25 Sep 2026 — Audit packet R1-4 (audit X6, UI-3; owner decision of 25
 > September): Settings → Week generator → "Generate a week" asks first,

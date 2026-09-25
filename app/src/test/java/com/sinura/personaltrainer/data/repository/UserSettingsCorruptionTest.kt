@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.data.repository
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.data.repository.prefs.SETTINGS_RESET_NOTE
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.WeightUnit
 import kotlinx.coroutines.flow.first
@@ -45,6 +46,8 @@ class UserSettingsCorruptionTest {
         assertEquals(WeightUnit.KG, prefs.weightUnit.first())
         // The front door reads the file directly; it sees a readable file, not "unavailable".
         assertTrue(prefs.onboardingCompleteHealth.first() is DataHealth.Available)
+        // And the reset is said, in Settings → Backup, where automatic backup is turned back on.
+        assertEquals(SETTINGS_RESET_NOTE, prefs.restoreRecoveryNote.first())
     }
 
     private companion object {
