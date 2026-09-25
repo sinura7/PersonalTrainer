@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer.ui.home
 
 import android.app.Application
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
@@ -22,6 +24,7 @@ import com.sinura.personaltrainer.domain.todayEpochDay
 import com.sinura.personaltrainer.testutil.FailingWeighInsDao
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.ReadGate
+import com.sinura.personaltrainer.testutil.RefusingPlanLinkStore
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.catchingUncaught
@@ -80,6 +83,7 @@ class HomeViewModelTest {
     private fun graph(
         insights: MutableStateFlow<TrainingInsights> = MutableStateFlow(TrainingInsights()),
         bodyweightDaoDecorator: (BodyweightDao) -> BodyweightDao = { it },
+        prefsStoreDecorator: (DataStore<Preferences>) -> DataStore<Preferences> = { it },
     ): FakeAppDependencies {
         val zone = ZoneId.systemDefault()
         val morning = ZonedDateTime.now(zone).toLocalDate().atTime(10, 0).atZone(zone)
@@ -89,6 +93,7 @@ class HomeViewModelTest {
             scheduler = dispatcher,
             time = FrozenTime(morning.toInstant().toEpochMilli(), zone.id),
             bodyweightDaoDecorator = bodyweightDaoDecorator,
+            prefsStoreDecorator = prefsStoreDecorator,
         )
     }
 
@@ -303,6 +308,32 @@ class HomeViewModelTest {
         assertEquals(sessionId, deps.workoutRepository.getInProgress()?.id)
     }
 
+    /**
+     * Audit UI-12: the link between the new session and its planned day is written after the
+     * start has opened. When that write failed it threw past the start and closed the app.
+     */
+    @Test
+    fun aReminderStartWhoseLinkCannotBeSavedStillOpensTheSession() = runBlocking {
+        var store: RefusingPlanLinkStore? = null
+        val occurrence = seedTodayStrength(
+            graph(prefsStoreDecorator = { real -> RefusingPlanLinkStore(real).also { store = it } }),
+        )
+        val refusing = checkNotNull(store)
+        refusing.refuse = true
+
+        var opened: String? = null
+        val crash = catchingUncaught {
+            viewModel!!.startOccurrence(occurrence.id)
+            opened = withTimeoutOrNull(TestWaits.FLOW_MS) {
+                viewModel!!.navigateToSession.first { it != null }
+            }
+        }
+
+        assertNull("a refused link write closed the app", crash)
+        assertTrue("the link write never ran", refusing.refusals.get() > 0)
+        assertEquals(deps.workoutRepository.getInProgress()?.id, opened)
+    }
+
     @Test
     fun reminderReviewOpensConfirmAndStartsNothing() = runBlocking {
         val occurrence = seedTodayStrength()
@@ -337,8 +368,10 @@ class HomeViewModelTest {
         assertNull(viewModel!!.navigateToSession.value)
     }
 
-    private suspend fun seedTodayStrength(): com.sinura.personaltrainer.domain.ScheduleOccurrence {
-        deps = graph()
+    private suspend fun seedTodayStrength(
+        built: FakeAppDependencies = graph(),
+    ): com.sinura.personaltrainer.domain.ScheduleOccurrence {
+        deps = built
         val today = todayEpochDay()
         val weekday = Weekday.fromEpochDay(today)
         val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)

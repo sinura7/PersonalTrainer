@@ -50,6 +50,7 @@ import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.domain.ReminderScheduler
 import com.sinura.personaltrainer.reminder.NoOpReminderScheduler
 import com.sinura.personaltrainer.domain.AccountAuthPort
 import com.sinura.personaltrainer.domain.DisabledSyncStatusPort
@@ -150,6 +151,11 @@ class FakeAppDependencies(
      */
     occurrenceCleanup: (suspend (String) -> Unit)? = null,
     /**
+     * The planner's reminder scheduler. A throwing one makes marking a planned session done
+     * fail after its row is written, as WorkManager refusing a cancel would.
+     */
+    reminderScheduler: ReminderScheduler = NoOpReminderScheduler(),
+    /**
      * Replaces the Drive upload behind the after-workout copy. Null keeps the production
      * wiring, which needs Google Play services a JVM test does not have.
      */
@@ -182,7 +188,7 @@ class FakeAppDependencies(
     )
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,
-        scheduler = NoOpReminderScheduler(),
+        scheduler = reminderScheduler,
         time = time,
     )
     override val routineRepository: RoutineRepository = RoutineRepository(

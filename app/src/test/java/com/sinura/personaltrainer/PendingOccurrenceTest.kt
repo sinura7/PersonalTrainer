@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.ReminderDelivery
+import com.sinura.personaltrainer.domain.ReminderScheduler
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionFocusKind
@@ -184,5 +186,46 @@ class PendingOccurrenceTest {
             deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
                 .single().status,
         )
+    }
+
+    /**
+     * Audit UI-12: marking the planned session done is bookkeeping after a finish that has
+     * already landed. When it failed, it threw past that finish; now it is logged, and the link
+     * stays, since nothing is lost by it and the next start replaces it.
+     */
+    @Test
+    fun aPlanRowThatCannotBeMarkedDoneDoesNotThrowAndKeepsTheLink() = runBlocking {
+        val reminders = FailingCancels()
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            reminderScheduler = reminders,
+        )
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = 18,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+        )
+        val occ = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1L).single()
+        PendingOccurrence.bindForSession(deps, occ.id, "session-planned")
+        reminders.failCancels = true
+
+        PendingOccurrence.complete(deps, "session-planned")
+
+        assertEquals("${occ.id}\nsession-planned", deps.pendingOccurrenceId.value)
+    }
+
+    /** Reminders whose cancel throws once switched on, as WorkManager refusing one would. */
+    private class FailingCancels : ReminderScheduler {
+        @Volatile var failCancels = false
+
+        override fun schedule(delivery: ReminderDelivery) = Unit
+
+        override fun cancel(deliveryId: String) = Unit
+
+        override fun cancelForOccurrence(occurrenceId: String) {
+            if (failCancels) error("boom: the reminders for $occurrenceId could not be cancelled")
+        }
     }
 }

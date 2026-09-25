@@ -3,6 +3,8 @@ package com.sinura.personaltrainer
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.PlannedOccurrence
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.flow.first
 
 /**
@@ -26,9 +28,16 @@ import kotlinx.coroutines.flow.first
  * composer arm, or a row persisted before sessions were recorded) or
  * `occurrenceId\nsessionId` once a session is attached. This object is
  * the only reader of that encoding.
+ *
+ * Every write here is bookkeeping that follows something already done:
+ * a start that opened, a finish or a discard that landed. None of them
+ * throws. A failed one is logged and the action stands; it used to throw
+ * past the finish that had just been saved, closing the app from the
+ * bottom bar with the summary never opened (audit UI-12).
  */
 object PendingOccurrence {
     private const val SEP = '\n'
+    private const val TAG = "PT/PendingOccurrence"
 
     /** Arms the composer: the next composer save follows [occurrenceId]. */
     suspend fun bind(deps: AppDependencies, occurrenceId: String?) {
@@ -67,7 +76,13 @@ object PendingOccurrence {
         val stored = stored(deps) ?: return
         val (occurrenceId, sessionId) = decode(stored)
         if (sessionId != null && sessionId != completedId) return
-        deps.plannerRepository.markOccurrenceDone(occurrenceId, completedId)
+        // A plan row that could not be marked keeps its binding: nothing is lost by it, and
+        // the next start replaces it.
+        runCatchingCancellable { deps.plannerRepository.markOccurrenceDone(occurrenceId, completedId) }
+            .onFailure { thrown ->
+                AppLog.e(TAG, "Marking the planned session done failed", thrown)
+                return
+            }
         write(deps, null)
     }
 
@@ -112,8 +127,13 @@ object PendingOccurrence {
         }
     }
 
+    /**
+     * The in-memory value is set first, so this run follows the binding even when the saved
+     * copy cannot be written; only a restart would find the older one.
+     */
     private suspend fun write(deps: AppDependencies, value: String?) {
         deps.pendingOccurrenceId.value = value
-        deps.preferencesRepository.setPendingOccurrenceId(value)
+        runCatchingCancellable { deps.preferencesRepository.setPendingOccurrenceId(value) }
+            .onFailure { thrown -> AppLog.e(TAG, "Saving the planned-session link failed", thrown) }
     }
 }
