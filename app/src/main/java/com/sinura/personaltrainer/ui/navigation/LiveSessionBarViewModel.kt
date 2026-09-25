@@ -69,6 +69,10 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
      */
     fun setRouteHidesBar(hidden: Boolean) {
         routeHidesBar.value = hidden
+        // A message about the bar's own action is done with once the lifter is on the
+        // session's screen. Left standing, "a set is open for changes" came back on the next
+        // tab after the change was saved, and on the next workout's bar (R2-5 review).
+        if (hidden) _actionError.value = null
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

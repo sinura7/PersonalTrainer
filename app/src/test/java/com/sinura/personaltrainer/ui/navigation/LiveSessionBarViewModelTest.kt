@@ -166,6 +166,10 @@ class LiveSessionBarViewModelTest {
         assertEquals(EndWorkoutCopy.BAR_EDIT_OPEN, vm.actionError.awaitFirst { it != null })
         assertNull(vm.finishedNavigation.value)
         assertNull(deps.workoutRepository.getSession(fixture.session.id)?.finishedAt)
+
+        // Going to the session, as the message says, retires it: it must not come back later.
+        vm.setRouteHidesBar(true)
+        assertNull(vm.actionError.value)
     }
 
     @Test

@@ -96,6 +96,7 @@ class FinishWithOpenCorrectionRenderTest {
         val saved = checkNotNull(runBlocking { deps.workoutRepository.getSession(session.id) })
         assertTrue(saved.isFinished)
         assertEquals(FLOOR_KG70, saved.sets.single().weightKg, 1e-6)
+        assertNull("the open change is gone with the workout", deps.workoutDraftCache.editingOriginal(session.id))
     }
 
     /** A logged set open for correction, its weight changed and the change landed in the entry. */

@@ -24,7 +24,7 @@ object EndWorkoutCopy {
 
     /** The bottom bar's Finish while a logged set is open for changes on the workout screen. */
     const val BAR_EDIT_OPEN =
-        "A set you logged is open for changes. Open the workout to save or cancel it, then finish."
+        "A set you logged is open for changes. Go to the session to save or cancel it, then finish."
 
     fun body(loggedSets: Int): String =
         if (loggedSets > 0) {
