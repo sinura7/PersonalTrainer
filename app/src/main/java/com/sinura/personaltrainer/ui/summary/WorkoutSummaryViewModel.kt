@@ -15,6 +15,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -93,15 +94,19 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
         savedConfirmed: Boolean = false,
         summary: WorkoutSummary = WorkoutSummary(),
     ) {
-        _uiState.value = WorkoutSummaryUiState(
-            isLoading = isLoading,
-            sessionId = sessionId,
-            missing = missing,
-            failed = failed,
-            savedConfirmed = savedConfirmed,
-            summary = summary,
-            autoBackup = _uiState.value.autoBackup,
-        )
+        // update, not read-then-write: the backup's line arrives from its own thread and must
+        // not be lost to a settle landing at the same moment, or overwrite one.
+        _uiState.update { current ->
+            WorkoutSummaryUiState(
+                isLoading = isLoading,
+                sessionId = sessionId,
+                missing = missing,
+                failed = failed,
+                savedConfirmed = savedConfirmed,
+                summary = summary,
+                autoBackup = current.autoBackup,
+            )
+        }
     }
 
     private fun load() {
@@ -162,7 +167,7 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
         if (autoBackupWatch?.isActive == true) return
         autoBackupWatch = viewModelScope.launch {
             backup.status(sessionId).collect { line ->
-                _uiState.value = _uiState.value.copy(autoBackup = line)
+                _uiState.update { it.copy(autoBackup = line) }
             }
         }
     }

@@ -2,12 +2,16 @@ package com.sinura.personaltrainer.data.repository
 
 import android.app.Activity
 import android.content.IntentSender
+import androidx.annotation.VisibleForTesting
 import com.sinura.personaltrainer.data.repository.prefs.BackupPrefs
 import com.sinura.personaltrainer.data.security.BackupPassphraseSealer
 import com.sinura.personaltrainer.domain.AutoBackupPolicy
 import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -67,13 +71,22 @@ class AfterWorkoutBackup(
      */
     fun start(sessionId: String, activity: Activity) {
         synchronized(running) { if (!running.add(sessionId)) return }
-        scope.launch {
-            try {
-                run(sessionId, activity)
-            } finally {
-                synchronized(running) { running.remove(sessionId) }
-            }
+        // invokeOnCompletion, not a finally: a run cancelled before it is dispatched never
+        // enters its body, and its id would then block this session for the rest of the process.
+        scope.launch(crashGuard) { run(sessionId, activity) }.invokeOnCompletion { cause ->
+            synchronized(running) { running.remove(sessionId) }
+            if (cause is CancellationException) lines.update { it - sessionId }
         }
+    }
+
+    /**
+     * This scope outlives every screen, so a throw outside [run]'s catch (a settings read or
+     * write that fails) must not reach the default handler and take the app down on whatever
+     * screen the owner has moved on to. The application scope in `PersonalTrainerApp`
+     * does the same.
+     */
+    private val crashGuard = CoroutineExceptionHandler { _, thrown ->
+        AppLog.e(TAG, "Automatic backup after a finished workout stopped", thrown)
     }
 
     private suspend fun run(sessionId: String, activity: Activity) {
@@ -86,7 +99,7 @@ class AfterWorkoutBackup(
             sessionId = sessionId,
         )
         if (!armed || sealed == null) return
-        if (prefs.driveAccountEmailOnce() == null) {
+        if (settings.driveAccount == null) {
             // Armed with no Drive account: a sign-out on a build that left automatic backup on
             // (audit BK-1). Signing out now turns it off; finish that here rather than let the
             // copy authorize again behind the owner's back.
@@ -123,11 +136,31 @@ class AfterWorkoutBackup(
             throw thrown
         } catch (thrown: Exception) {
             AppLog.e(TAG, "Automatic backup after a finished workout failed", thrown)
-            prefs.setAutoBackupNeedsSignIn(consentWanted)
-            say(sessionId, if (consentWanted) AutoBackupPolicy.NEEDS_SIGN_IN else AutoBackupPolicy.FAILED)
+            try {
+                prefs.setAutoBackupNeedsSignIn(consentWanted)
+            } finally {
+                // Said even if that write throws (to [crashGuard]): a failure never leaves
+                // "Backing up…" on screen.
+                say(sessionId, if (consentWanted) AutoBackupPolicy.NEEDS_SIGN_IN else AutoBackupPolicy.FAILED)
+            }
         } finally {
             passphrase.fill('\u0000')
         }
+    }
+
+    /**
+     * Stops any copy in flight. Drive sign-out and switching automatic backup off both call
+     * this first: a copy that outlives them would write the account, the last-backup lines
+     * and its session back over what they just cleared, with a password the owner turned off.
+     */
+    fun cancelRunning() {
+        scope.coroutineContext[Job]?.children?.forEach { it.cancel() }
+    }
+
+    /** Waits for every copy in flight to end; tests only, after [cancelRunning] or a release. */
+    @VisibleForTesting
+    internal suspend fun joinRunningForTest() {
+        scope.coroutineContext[Job]?.children?.toList()?.joinAll()
     }
 
     private fun say(sessionId: String, line: String) {

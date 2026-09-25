@@ -344,6 +344,7 @@ class BackupCoordinator(
     fun signOut(activity: Activity) {
         runBackupAction("Signing out…") {
             val autoBackupWasOn = container.preferencesRepository.autoBackupSettings().enabled
+            container.afterWorkoutBackup.cancelRunning()
             container.backupService.signOut(activity)
             backups.value = emptyList()
             status.value = if (autoBackupWasOn) {
@@ -385,6 +386,7 @@ class BackupCoordinator(
             dialogs.value = DialogGates(armAutoBackup = true)
         } else {
             runBackupAction("Turning off automatic backup…") {
+                container.afterWorkoutBackup.cancelRunning()
                 container.preferencesRepository.disarmAutoBackup()
                 status.value = "Automatic backup is off. Create backup now still works."
             }

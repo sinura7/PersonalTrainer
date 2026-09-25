@@ -98,6 +98,8 @@ data class AutoBackupSettings(
     /** Base64 IV + ciphertext. Opened by the sealer; never a passphrase in the clear. */
     val sealedPassphrase: String?,
     val lastBackedUpSessionId: String?,
+    /** The signed-in Drive account, read in the same snapshot as the switch it guards. */
+    val driveAccount: String? = null,
 )
 
 /**

@@ -20,9 +20,11 @@
 > when you leave the summary. It ran inside the summary screen, so
 > tapping Done a few seconds after finishing cancelled it without a
 > word; the app now owns it and the summary only shows how it is going.
-> A phone that still has automatic backup on from a Drive sign-out
-> before R1-1 has it switched off at its next finished workout, instead
-> of the copy signing back in by itself. Rides along with the next drop;
+> A phone that signed out of Drive before R1-1 and has finished no
+> workout since still has automatic backup on; its next finished workout
+> switches it off instead of signing back in by itself. Signing out, or
+> switching automatic backup off, now also stops a copy still going, and
+> only one Drive backup runs at a time. Rides along with the next drop;
 > phone check: with automatic backup on, finish a workout and tap Done
 > at once; Settings → Backup then shows a new Last backup.
 >
