@@ -41,8 +41,9 @@ fun userSettingsCorruptionHandler(): ReplaceFileCorruptionHandler<Preferences> =
 /** Shown in Settings → Backup after the settings file was started again. */
 const val SETTINGS_RESET_NOTE =
     "Temper's settings file was damaged and has been started again. Your workouts and " +
-        "weigh-in history are safe; settings are back to their defaults, and automatic backup " +
-        "is off. Turn it on again here if you use it."
+        "weigh-in history are safe. Settings are back to their defaults, this phone is signed " +
+        "out of Google Drive, and automatic backup is off. To use it again, sign in below and " +
+        "turn it back on. Backups already in Drive still open with the password you used before."
 
 private const val SETTINGS_TAG = "PT/Settings"
 
