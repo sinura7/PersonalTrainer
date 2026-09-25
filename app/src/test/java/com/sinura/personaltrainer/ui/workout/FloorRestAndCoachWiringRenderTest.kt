@@ -274,9 +274,11 @@ class FloorRestAndCoachWiringRenderTest {
     @Test
     fun beforeTheFirstHoldTheLogOffersNoRepAndApplyGivesNone() {
         val vm = openBodyweightPlank(loggedHold = false, heldLastTime = true)
-        show(vm)
+        // Tall enough that the whole Log is composed, so an absent card is absent, not unscrolled.
+        show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         compose.waitForIdle()
+        assertOnlyTheHoldHidesTheCard(vm)
         compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertDoesNotExist()
 
@@ -290,12 +292,20 @@ class FloorRestAndCoachWiringRenderTest {
     @Test
     fun afterAHoldTheLogSaysNothingInReps() {
         val vm = openBodyweightPlank(loggedHold = true, heldLastTime = false)
-        show(vm)
+        show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         compose.waitForIdle()
+        assertOnlyTheHoldHidesTheCard(vm)
         compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertDoesNotExist()
         compose.onAllNodes(hasText("0 reps", substring = true), useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    /** The call would show on any other lift: a visible call, an entry that is not locked. */
+    private fun assertOnlyTheHoldHidesTheCard(vm: ActiveWorkoutViewModel) {
+        val call = checkNotNull(vm.microRec.value)
+        assertTrue("the call itself is one the card shows", SetMicroRecCopy.visibleOnEntry(call))
+        assertTrue("the entry is not locked", !vm.uiState.value.entryLocked)
     }
 
     @Test

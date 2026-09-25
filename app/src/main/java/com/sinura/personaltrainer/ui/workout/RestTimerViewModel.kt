@@ -223,8 +223,9 @@ class RestTimerViewModel @JvmOverloads constructor(
         lastFloor?.let { (drawnFrom, floor) -> if (drawnFrom == key) return floor }
         val rec = key.coach.rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
         // The Log's line or none: not after the lift's planned sets (unless Another set),
-        // not on a warm-up entry, not while a set is open for correction (W2b-4), and not
-        // while the Log holds a save, one in progress or a failed one waiting for Retry.
+        // not on a warm-up entry, not while a set is open for correction (W2b-4), not for a
+        // hold (DM-1), and not while the Log holds a save, one in progress or a failed one
+        // waiting for Retry.
         val liftIsHold = exerciseId
             ?.let { id -> current.exercises.firstOrNull { it.exercise.id == id } }
             ?.let { HoldWork.isHold(it.exercise) } == true

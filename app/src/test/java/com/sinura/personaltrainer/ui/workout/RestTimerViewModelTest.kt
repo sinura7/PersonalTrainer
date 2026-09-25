@@ -729,8 +729,13 @@ class RestTimerViewModelTest {
         val floor = createViewModel(fixture.session.id)
         assertNull(
             "for a timed hold the rest page shows no Next line, as the Log shows none",
-            floor.settledNextLine(null) { it.loadState == SessionLoadState.FOUND && it.floor.exerciseName == "Dead Hang" },
+            floor.settledNextLine(null) {
+                it.loadState == SessionLoadState.FOUND && it.floor.exerciseName == "Dead Hang" &&
+                    it.floor.lastSetLine != null
+            },
         )
+        // Its last set reads as the hold's time: it said "Last set · 0 reps".
+        assertEquals("Last set · 30s", floor.uiState.value.floor.lastSetLine)
     }
 
     @Test
