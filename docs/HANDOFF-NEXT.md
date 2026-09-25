@@ -5,8 +5,8 @@
 the 22 September whole-app audit, done in small packets, each one tested and
 shipped to Temper Debug through Obtainium. A second whole-app audit on
 25 September ([design-audit/2026-09-25/AUDIT.md](design-audit/2026-09-25/AUDIT.md))
-re-checked every finding after thirty packets and proposes the next order;
-the owner has not decided on it yet.
+re-checked every finding after thirty packets and set the next order
+(owner decision of 25 September).
 
 The first thing a new session on this repository should read. Rewritten
 23 September 2026, during the whole-app audit program (packet X1). The one
@@ -51,8 +51,8 @@ The **25 September whole-app audit** (packet X6,
 [design-audit/2026-09-25/AUDIT.md](design-audit/2026-09-25/AUDIT.md)) is the
 latest record: it re-verified every 22 September finding, re-ran the gate in
 its own container, drew every screen on the JVM, and proposes a new order
-with six new packets (X7, R1, R2, R3, X8, X9). Until the owner adopts that
-order, the table in FRONTEND_REDESIGN.md stays the live one.
+with six new packets (X7, R1, R2, R3, X8, X9); the owner adopted it on
+25 September, and the table in FRONTEND_REDESIGN.md carries it.
 
 Done so far:
 - **S0a:** sync paused, delete hidden, honest Account copy.
@@ -158,10 +158,10 @@ Done so far:
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): W2c, W2d, the
-rest-alarm packet, then a check-only phone drop, then W3. X2b completed
-Wave 0.
+Next, in order (owner decision of 25 September, audit X6; the live order
+is the table in FRONTEND_REDESIGN.md): X7 (release lane), R1 (data safety),
+R2 (crash and coach), W2c, W2d, the rest-alarm packet, R3 (updater), then a
+check-only phone drop, then W3, S1, X8 and X9. X2b completed Wave 0.
 
 ## What is verified, and how
 

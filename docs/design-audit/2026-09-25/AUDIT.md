@@ -242,15 +242,16 @@ Each is one question. The record proposes; the owner decides.
 4. **The dock's Skip** still ends whatever rest runs and clears "rest done". Name its rest like the other three Skips, or keep it?
 5. **The routines list on Plan** is collapsed by decision (ADR-021 §6) and F7a plans to open it. Amend ADR-021 before F7a?
 6. **Token ceilings.** All 15 families sit exactly on their ceiling, so the next raw dp anywhere fails the gate. Re-base each with a written note, or keep them tight and pay per packet?
-7. **Order.** The proposal below puts the release lane (X7) and a small data-safety packet (R1) ahead of the remaining floor packets. Yes, or keep the floor first?
+7. **Order.** The proposal below puts the release lane (X7) and a small data-safety packet (R1) ahead of the remaining floor packets. Yes, or keep the floor first? **Decided 25 September: yes.** The order below is the live one; `FRONTEND_REDESIGN.md` carries it.
 8. **Owner-only actions carried forward:** delete the eight stale branches (all still present, plus this audit's branch once merged); switch branch protection on (ADR-024); connect Temper's own Supabase project to a session so the read-only row-security check can run before S1.
 
-## Proposed order (a proposal; the owner decides)
+## Proposed order (adopted by the owner on 25 September)
 
 Codes continue the existing families (`X` record and tooling, `R` small
 repair, `S` sync, `F` frontend, `W` floor). **V** gets a drop; **Q** rides
 along. Rows in *italics* are the 22 September order unchanged, with scope
-notes.
+notes. Adopted the day the record was written (decision 7);
+`FRONTEND_REDESIGN.md` carries it as the live table.
 
 | # | Packet | Scope | Kind |
 |---|---|---|---|
