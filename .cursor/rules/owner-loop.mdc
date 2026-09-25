@@ -22,8 +22,10 @@ Studio is not the install path. Do not sit idle waiting for a laptop.
   gate. Run it here, on Cursor. `testDebugUnitTest` now depends on
   `:app:staticChecks`, which runs the whole `tools/preflight.sh` static
   half, so the ratchets fail the gate instead of waiting to be
-  remembered. Running `tools/preflight.sh` first is still the faster
-  loop. Do not reach for `-PskipStaticChecks` to get a branch green.
+  remembered. `assembleDebug` also builds the unsigned release, so a
+  shrinker break fails the gate too. Running `tools/preflight.sh` first
+  is still the faster loop. Do not reach for `-PskipStaticChecks` to get
+  a branch green; it skips both.
 - Before cutting a drop, run `python3 tools/debug-drop-plan.py` and use the
   suffix and the number it gives you. Neither is yours to pick: another
   packet merging while yours waited on CI may already hold them, and a drop

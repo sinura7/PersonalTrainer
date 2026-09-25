@@ -28,7 +28,18 @@ val releaseStoreFile = if (keystorePropertiesFile.exists()) {
 } else {
     null
 }
-val releaseSigningReady = releaseStoreFile != null && releaseStoreFile.exists()
+// A release is signed only when a release task was asked for by its full name
+// (assembleRelease, installRelease, ...), or signingReport, which SETUP.md §5 uses to read
+// the release key's SHA-1. The push gate builds the release too (see "The release build,
+// run by the gate" below). On a machine holding keystore.properties that would otherwise
+// sign a release on every gate run, overwrite the PersonalTrainer-<version>.apk SETUP.md §6
+// says to upload with whatever branch happened to be checked out, and carry the release
+// passwords into the configuration cache (the reason release.yml deletes it). The requested
+// task names are part of the configuration cache key, so reading them here is safe. Android
+// Studio's Run on the release variant names no task this way and gets an unsigned build;
+// Build > Generate Signed APK signs with its own settings and is unaffected.
+val releaseRequested = gradle.startParameter.taskNames.any { "Release" in it || it.endsWith("signingReport") }
+val releaseSigningReady = releaseStoreFile != null && releaseStoreFile.exists() && releaseRequested
 
 // Temper Debug's distribution signer. Two drops signed by two different keys cannot
 // update each other — Android refuses the install and the Drive OAuth client's SHA-1
@@ -394,6 +405,38 @@ val staticChecks = run {
 }
 
 tasks.named("check") { dependsOn(staticChecks) }
+
+// The release build, run by the gate rather than by nobody.
+//
+// Nothing day to day builds the release variant: Temper Debug is unminified, and
+// release.yml runs only on a `v*` tag, of which there has never been one. So when
+// Temper Account's sign-in library brought in slf4j on 21 September, R8 stopped the
+// release build at minifyReleaseWithR8 and nobody saw it until audit X6 built it four
+// days later (BR-1). A keep rule missing, a library that R8 cannot see through, a
+// resource the shrinker refuses: each is invisible until the day a signed Temper is
+// wanted, and then it is the only thing in the way.
+//
+// So `assembleDebug`, the build half of the push gate (`./gradlew testDebugUnitTest
+// assembleDebug`), builds the release too: compile, lint-vital, R8, resource
+// shrinking, packaging, exactly what release.yml runs. It is always unsigned here
+// (releaseRequested above), so it lands as app/build/outputs/apk/release/
+// *-release-unsigned.apk and goes nowhere: ci.yml checks that it exists and uploads only
+// the debug APK; debug-live.yml leaves it out (-x assembleRelease), the gate having
+// proved it at merge. From scratch it costs about three minutes; with an unchanged
+// release it comes from the build cache.
+//
+// `-PskipStaticChecks` skips this with the ratchets, for the same IDE inner loop, and
+// is no more a way through the gate for this than for them. The property is read here,
+// at configuration time, for the configuration-cache reason staticChecks gives above.
+// tools/check-release-lane.py fails the static gate if this wiring goes missing.
+run {
+    val skip = providers.gradleProperty("skipStaticChecks").isPresent
+    if (!skip) {
+        tasks.matching { it.name == "assembleDebug" }.configureEach {
+            dependsOn("assembleRelease")
+        }
+    }
+}
 
 // A failing unit test must say why in the console, not only in an HTML report.
 // ci.yml uploads app/build/reports/tests/, but that artifact lives on a host some

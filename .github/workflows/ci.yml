@@ -58,9 +58,10 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # The same static gate preflight runs locally (20 checkers, 4 fixture proofs,
-      # named-args, syntax). PT_STATIC_ONLY skips its JVM test step — Gradle runs the full
-      # suite next — so the checker list lives in exactly one place.
+      # The same static gate preflight runs locally (its checkers, fixture proofs and
+      # syntax check; DEVELOPMENT.md keeps the count). PT_STATIC_ONLY skips its JVM
+      # test step — Gradle runs the full suite next — so the checker list lives in
+      # exactly one place.
       - name: Static checks (tools/preflight.sh)
         run: PT_STATIC_ONLY=1 sh tools/preflight.sh
 
@@ -84,8 +85,16 @@ jobs:
       - name: Lint
         run: ./gradlew lintDebug --stacktrace
 
+      # assembleDebug also builds the unsigned release (R8, resource shrinking,
+      # lint-vital): app/build.gradle.kts wires it in, so a shrinker break fails here
+      # instead of on the first `v*` tag (audit X6, BR-1). The `ls` proves the wiring end to
+      # end, which reading the build script cannot. It runs even after a red test step, so a
+      # flaky test cannot hide a broken release. The release APK is not uploaded.
       - name: Debug build
-        run: ./gradlew assembleDebug --stacktrace
+        if: ${{ !cancelled() }}
+        run: |
+          ./gradlew assembleDebug --stacktrace
+          ls -l app/build/outputs/apk/release/*-release-unsigned.apk
 
       # Nothing above compiles src/androidTest: testDebugUnitTest, lintDebug and
       # assembleDebug all skip it, and preflight never mentions it. So the emulator

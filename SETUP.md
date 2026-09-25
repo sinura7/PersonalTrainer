@@ -252,6 +252,11 @@ Edit `appVersionCode` and `appVersionName` in `app/build.gradle.kts`. Commit tha
 ./gradlew assembleRelease
 ```
 
+Name the task in full. The build signs a release only when a release task is asked for by
+name, so the push gate, which also builds the release, never signs one or overwrites the file
+below; an abbreviation such as `aR`, or Android Studio's Run on the release variant, gives an
+unsigned APK. Android Studio's Build > Generate Signed APK signs with its own settings.
+
 Gradle writes a standard single APK (no ABI/density splits). Upload this file:
 
 ```
