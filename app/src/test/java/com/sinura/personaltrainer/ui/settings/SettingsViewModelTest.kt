@@ -752,7 +752,6 @@ class SettingsViewModelTest {
         assertNull(uncaught)
     }
 
-    /** Runs [block] and returns anything a coroutine threw past it to this thread's handler. */
     /** A settings file that cannot be read or written, for any reason but corruption. */
     private object UnreadableSettings :
         androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> {

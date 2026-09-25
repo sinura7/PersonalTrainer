@@ -77,13 +77,13 @@ class HistoryStaleRetryTest {
     @Test
     fun aHistoryThatIsBehindOffersRetryAndRetryReadsAgain() {
         compose.waitUntil(TestWaits.FLOW_MS) { staleLineShown() }
-        compose.onNodeWithTag(HistoryTestTags.STALE_RETRY).assertIsDisplayed()
+        compose.onNodeWithTag(HistoryTags.STALE_RETRY).assertIsDisplayed()
 
         gate.shouldFail = false
-        compose.onNodeWithTag(HistoryTestTags.STALE_RETRY).performClick()
+        compose.onNodeWithTag(HistoryTags.STALE_RETRY).performClick()
 
         compose.waitUntil(TestWaits.FLOW_MS) { !staleLineShown() }
-        compose.onNodeWithTag(HistoryTestTags.STALE_RETRY).assertDoesNotExist()
+        compose.onNodeWithTag(HistoryTags.STALE_RETRY).assertDoesNotExist()
     }
 
     private fun staleLineShown(): Boolean =

@@ -88,10 +88,6 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.util.toYearMonth
 import java.time.LocalDate
 
-object HistoryTestTags {
-    const val STALE_RETRY = "history-stale-retry"
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HistoryScreen(
@@ -184,7 +180,7 @@ fun HistoryScreen(
                                         text = DataHealthCopy.RETRY,
                                         onClick = viewModel::retryHistory,
                                         plain = true,
-                                        modifier = Modifier.testTag(HistoryTestTags.STALE_RETRY),
+                                        modifier = Modifier.testTag(HistoryTags.STALE_RETRY),
                                     )
                                 }
                             }
@@ -703,6 +699,7 @@ private fun groupedRowShape(index: Int, count: Int): Shape = when {
 }
 
 object HistoryTags {
+    const val STALE_RETRY = "history-stale-retry"
     const val DAY = "history-horizon-day"
     const val WEEK = "history-horizon-week"
     const val MONTH = "history-horizon-month"

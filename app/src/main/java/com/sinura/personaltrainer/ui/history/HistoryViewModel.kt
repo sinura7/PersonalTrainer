@@ -118,7 +118,8 @@ class HistoryViewModel @JvmOverloads constructor(
     /**
      * Every read here is guarded. The blocks, the weigh-ins and the full log each threw
      * through the catalog and closed the app (audit UI-17); a failed one now marks the page
-     * behind and the section keeps what it last showed.
+     * behind. When the full log fails, the section keeps what it last showed for the blocks
+     * it still has; a block list that cannot be read shows none.
      */
     private val pastBlockReviews = combine(
         container.preferencesRepository.pastBlocksHealth,
@@ -165,7 +166,11 @@ class HistoryViewModel @JvmOverloads constructor(
                     .onFailure { thrown -> AppLog.e(TAG, "Reading past blocks failed", thrown) }
                 emit(
                     HistorySidecar(
-                        value = reviews.getOrDefault(lastPastBlocks),
+                        // Only reviews of blocks still in the list: a restore can replace them
+                        // while this screen lives.
+                        value = reviews.getOrElse {
+                            lastPastBlocks.filter { shown -> shown.block in inputs.blocks }
+                        },
                         stale = inputs.readsBehind || reviews.isFailure,
                     ),
                 )
