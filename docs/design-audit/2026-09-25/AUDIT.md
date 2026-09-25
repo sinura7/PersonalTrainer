@@ -1,8 +1,9 @@
 # Temper: whole-app audit, 25 September 2026
 
 Review date: 25 September 2026. Source baseline: `1ad3b11` on `trunk` (PR
-#412, audit W2b-3); `trunk` moved to `7b077e0` (W2b-4, PR #413) while the
-audit ran, the branch merges it, and nothing below was re-run on it. Packet
+#412, audit W2b-3); `trunk` moved to `7b077e0` (W2b-4, PR #413) and then
+`54c8587` (W2c, PR #414) while the audit ran, the branch merges both, and
+nothing below was re-run on them. Counts are as at `1ad3b11`. Packet
 **X6**: a findings record and a proposed order, not an ADR. It follows the [22 September record](../2026-09-22/AUDIT.md)
 after thirty merged packets, and it is written for the owner first: the
 verdict, the grades, what changed, what is new, what needs a decision. The
@@ -84,7 +85,7 @@ worse than recorded), 1 narrowed, 1 refuted item stands.**
 | L-1 | Chooser let taps, TalkBack and Back through | **Closed** (Q1) | `SavePostureChooser.kt:76-93`, `SavePostureChooserTest` (7). |
 | L-2 | Permission walk covered the sign-in form | **Closed** (Q1) | `LaunchPermissions.kt:42-47`, `AppNav.kt:352-365`. |
 | C-1 | Goal set in Settings never reached the workout | **Closed** (W1b) | chain traced end to end; `FloorRestAndCoachWiringRenderTest`. |
-| C-2 | Engine runs three times per tap; `generatedAtMs` defeats equality | Open, reduced (W2c) | one engine run per draft change on the Log now (the rest page runs its own two); `RuleTrace.generatedAtMs` is still stamped from `nowMs`, so `microRec` never dedupes. |
+| C-2 | Engine runs three times per tap; `generatedAtMs` defeats equality | Open, reduced, at the baseline; closed by W2c (#414) after it | one engine run per draft change on the Log now (the rest page runs its own two); `RuleTrace.generatedAtMs` is still stamped from `nowMs`, so `microRec` never dedupes. |
 
 ### Tabs
 
@@ -110,7 +111,7 @@ worse than recorded), 1 narrowed, 1 refuted item stands.**
 |---|---|
 | D09 switch, D10 typing, two "Add set", evidence chip < 48 dp, chips announced twice | **Closed** (W1a), each with its render test. |
 | Churn debris (~1,600 dead lines) | **Closed** (W2a). Remnants elsewhere: 8 ViewModel functions and 8 composables with no caller in `main` (AR-6). |
-| `ActiveWorkoutViewModel` 2,541 lines, 23-field state, 13-stage combine; rest logic duplicated | Open, reduced (W2c, W2d): 2,362 lines at `1ad3b11`; 18 `combine`s over 24 inputs; the rest commands are shared. W2b-4 was pinned precisely (the Log passed `wantAnotherSet`, `historySets` and `editingSetId` to the coach, the rest page passed defaults) and closed by #413 while this audit ran. |
+| `ActiveWorkoutViewModel` 2,541 lines, 23-field state, 13-stage combine; rest logic duplicated | Open, reduced (W2d; W2c closed by #414 after the baseline): 2,362 lines at `1ad3b11`; 18 `combine`s over 24 inputs; the rest commands are shared. W2b-4 was pinned precisely (the Log passed `wantAnotherSet`, `historySets` and `editingSetId` to the coach, the rest page passed defaults) and closed by #413 while this audit ran. |
 | ~1,100 source-text assertions | **Closed** on the floor (T1a–T1c-2); ~445 remain in 40 files outside `ui/workout` (TS-4). |
 | Every token ceiling at 100 % | Open by construction: all 15 families sit exactly on their ceiling. |
 | Non-atomic `adjust` (P3) | **Closed** (#403). |
@@ -259,8 +260,8 @@ notes. Adopted the day the record was written (decision 7);
 | 2 | **R1** data safety | "Generate a week" confirms and keeps the current block (UI-3); the restore guard counts goals, templates and planner rules (BK-3); Drive sign-out disarms auto-backup and forgets the sealed password (BK-1); the after-workout copy survives leaving the summary (BK-4); a `corruptionHandler` on `user_settings` and the chooser drawn under, not over, the retry screen (DB-2, L-3) | V |
 | 3 | *W2b-4* | done while this audit ran (#413): the rest page's Next line is the Log's | Q |
 | 4 | **R2** crash and coach | the four Home feeds through `observeHealth` and a handler on the insights scope (DB-1, AR-1); History's activity read guarded (UI-17); the bar's finish/discard epilogue guarded (UI-12); diagnostics capture installed before the pre-migration copy (AR-2); hold lifts excluded from rep coaching (DM-1); Finish blocked or warned while a set edit is open (UI-2 B11); a reminder tap that neither ejects a live workout nor consumes a blocked start (UI-1 B9a) | V |
-| 5 | *W2c* | as planned, plus `generatedAtMs` out of equality (C-2), eager `stateIn` on the floor (AR-4), the invalidation fan-out per logged set (AR-3) | Q |
-| 6 | *W2d-1–3* | as planned | Q |
+| 5 | *W2c* | done while this audit ran (#414): `generatedAtMs` out of equality and one coach call per real change (C-2); the eager `stateIn` on the floor (AR-4) and the invalidation fan-out per logged set (AR-3) move to W2d-1–3 | Q |
+| 6 | *W2d-1–3* | as planned, plus AR-4 and AR-3 from W2c | Q |
 | 7 | *rest-alarm packet* | the two quirks (RT-4, RT-5), the rest-alerts gate that asks once (RT-2), the light-theme notification colours (RT-1) | V |
 | 8 | **R3** Temper Debug updater | `MainActivity` handles `STATUS_PENDING_USER_ACTION` (RM-1); staged APKs deleted from cache (RM-6) | Q |
 | 9 | *check-only drop* | as planned | V |

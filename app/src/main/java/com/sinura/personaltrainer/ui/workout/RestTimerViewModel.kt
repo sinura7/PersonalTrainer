@@ -48,6 +48,10 @@ data class RestTimerScreenState(
  * the Log's call, shown only where the Log shows it ([NextSetInputs], [shownNextSet]). A save
  * the Log holds hides it here too: a failed one for as long as it waits for Retry, a set being
  * written for a moment.
+ *
+ * The page redraws each second while a rest runs, and each redraw still reads what the Log last
+ * left in the draft cache. The coach is asked again only when that, or anything else the Next
+ * line is made from, has changed ([FloorKey]); it was asked twice a second (W2c, audit C-2).
  */
 class RestTimerViewModel @JvmOverloads constructor(
     application: Application,
@@ -70,6 +74,9 @@ class RestTimerViewModel @JvmOverloads constructor(
     private val sessionReader = WorkoutSessionReader(container.workoutRepository, sessionId, viewModelScope)
     private val restCommands = RestCommands(container, viewModelScope, sessionId)
     private val hintLoader = ProgressionHintLoader(container, sessionId)
+
+    /** The floor last drawn and what it was drawn from; [uiState]'s one collector reads it. */
+    private var lastFloor: Pair<FloorKey, RestFloorContext>? = null
 
     init {
         viewModelScope.launch {
@@ -137,7 +144,6 @@ class RestTimerViewModel @JvmOverloads constructor(
         },
     ) { read, rest, extras ->
         val current = read.session
-        val unit = extras.unit
         val missing = current == null || current.isFinished
         RestTimerScreenState(
             loadState = when {
@@ -149,27 +155,7 @@ class RestTimerViewModel @JvmOverloads constructor(
             floor = if (missing) {
                 RestFloorContext(exerciseName = null, lastSetLine = null, sessionTargetLine = null)
             } else {
-                val exerciseId = resolveExerciseId(current)
-                readIfNew(exerciseId)
-                val inputs = nextSetInputs(current = current, exerciseId = exerciseId, loaded = extras)
-                val rec = inputs.rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
-                // The Log's line or none: not after the lift's planned sets (unless Another set),
-                // not on a warm-up entry, not while a set is open for correction (W2b-4), and not
-                // while the Log holds a save, one in progress or a failed one waiting for Retry.
-                // The held save is read, not observed: a change shows at the page's next redraw,
-                // each second while a rest runs.
-                val shown = shownNextSet(rec, draftIsWarmup = inputs.draft.isWarmup)
-                    ?.takeIf { container.workoutDraftCache.pendingSave(sessionId) == null }
-                val loadClass = exerciseId?.let { current.loadClassOf(it) } ?: LoadClass.LOADED
-                RestFloorCopy.context(
-                    session = current,
-                    selectedExerciseId = exerciseId,
-                    unit = unit,
-                    nextLine = shown?.let { SetMicroRecCopy.line(it, loadClass, unit) },
-                    // Not drawn; kept on the planned length's question with the seed.
-                    prescribedSeconds = inputs.forPlannedRest()
-                        .rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())?.restSeconds,
-                )
+                floorFor(current, extras)
             },
         )
     }.stateIn(
@@ -213,6 +199,39 @@ class RestTimerViewModel @JvmOverloads constructor(
 
     fun acknowledgeRestBatteryHint() {
         restCommands.acknowledgeBatteryHint()
+    }
+
+    /**
+     * What the page says about the lift, from what the Log last left in the draft cache, read at
+     * every redraw. The coach is asked, and the floor rebuilt, only when [FloorKey] changes.
+     */
+    private fun floorFor(current: WorkoutSession, extras: RestFloorInputs): RestFloorContext {
+        val exerciseId = resolveExerciseId(current)
+        readIfNew(exerciseId)
+        val inputs = nextSetInputs(current = current, exerciseId = exerciseId, loaded = extras)
+        val key = FloorKey(
+            session = current,
+            exerciseId = exerciseId,
+            coach = inputs.coachKey(),
+            draftIsWarmup = inputs.draft.isWarmup,
+            // The held save is read, not observed: a change shows at the page's next redraw,
+            // each second while a rest runs.
+            saveHeld = container.workoutDraftCache.pendingSave(sessionId) != null,
+            unit = extras.unit,
+        )
+        lastFloor?.let { (drawnFrom, floor) -> if (drawnFrom == key) return floor }
+        val rec = key.coach.rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
+        // The Log's line or none: not after the lift's planned sets (unless Another set),
+        // not on a warm-up entry, not while a set is open for correction (W2b-4), and not
+        // while the Log holds a save, one in progress or a failed one waiting for Retry.
+        val shown = shownNextSet(rec, draftIsWarmup = key.draftIsWarmup)?.takeIf { !key.saveHeld }
+        val loadClass = exerciseId?.let { current.loadClassOf(it) } ?: LoadClass.LOADED
+        return RestFloorCopy.context(
+            session = current,
+            selectedExerciseId = exerciseId,
+            unit = key.unit,
+            nextLine = shown?.let { SetMicroRecCopy.line(it, loadClass, key.unit) },
+        ).also { lastFloor = key to it }
     }
 
     private fun resolveExerciseId(current: WorkoutSession?): String? {
@@ -287,6 +306,20 @@ class RestTimerViewModel @JvmOverloads constructor(
         return hintLoader.progression(exerciseId, planned, lighter)
     }
 }
+
+/**
+ * Everything the page's floor is made from: the session, the lift it shows, the coach's question
+ * less the clock ([CoachKey]), the entry's warm-up flag, a save the Log holds, and the unit. Two
+ * equal keys draw the same floor.
+ */
+private data class FloorKey(
+    val session: WorkoutSession,
+    val exerciseId: String?,
+    val coach: CoachKey,
+    val draftIsWarmup: Boolean,
+    val saveHeld: Boolean,
+    val unit: WeightUnit,
+)
 
 /**
  * The question this page's planned length is asked with: the Log's, as this page asked it before

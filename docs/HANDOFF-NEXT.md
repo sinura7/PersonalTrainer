@@ -135,7 +135,15 @@ Done so far:
   shows, and shown only where the Log shows its card. Its planned rest
   length is unchanged. Whether the page and the dock should both plan the
   extra set's shorter rest after Another set is an owner decision still
-  owed (ADR-012).
+  owed (ADR-012; #413).
+- **W2c:** the coach is asked again only when something it reads has
+  changed. A weight step with no effort picked, a note, or a second of
+  rest no longer re-asks it; the rest page used to ask twice a second.
+  The lift picker sorts the library only while it is open, and the lift
+  it suggests follows edits to that lift. Nothing a lifter sees changes:
+  pins written on the old code pass on the new, and every part of the
+  two "has anything changed" checks has a test that fails when it is
+  left out (ADR-029, ADR-008; audit C-2).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -160,7 +168,7 @@ Done so far:
 
 Next, in order (owner decision of 25 September, audit X6; the live order
 is the table in FRONTEND_REDESIGN.md): X7 (release lane), R1 (data safety),
-R2 (crash and coach), W2c, W2d, the rest-alarm packet, R3 (updater), then a
+R2 (crash and coach), W2d, the rest-alarm packet, R3 (updater), then a
 check-only phone drop, then W3, S1, X8 and X9. X2b completed Wave 0.
 
 ## What is verified, and how

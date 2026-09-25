@@ -5,14 +5,16 @@ import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
+import com.sinura.personaltrainer.domain.SetMicroRecInputs
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.coach.CoachEngine
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.workout.WorkoutDraft
 
 /**
  * Everything the coach is asked about the next set, beside the clock. The Log
  * ([ActiveWorkoutViewModel.microRec]) and the rest page's Next line ([RestTimerViewModel]) each
- * fill one of these and ask through [rec], so both ask one question. The rest page's planned
+ * fill one of these and ask through [coachKey], so both ask one question. The rest page's planned
  * length still asks the question it asked before, with three of these set aside (see there).
  *
  * Nothing here has a default, so neither page can leave an input out. The rest page used to
@@ -39,20 +41,45 @@ internal data class NextSetInputs(
     val unit: WeightUnit,
     val coachPrefs: CoachPreferences,
 ) {
-    fun rec(nowMs: Long, todayEpochDay: Long): SetMicroRec? = workoutMicroRec(
-        session = session,
-        selectedExerciseId = selectedExerciseId,
-        draft = draft,
-        hint = hint,
-        editingSetId = editingSetId,
-        lighterWeek = lighterWeek,
-        unit = unit,
-        nowMs = nowMs,
-        todayEpochDay = todayEpochDay,
-        wantAnotherSet = wantAnotherSet,
-        historySets = historySets,
-        coachPrefs = coachPrefs,
+    fun rec(nowMs: Long, todayEpochDay: Long): SetMicroRec? =
+        coachKey().rec(nowMs = nowMs, todayEpochDay = todayEpochDay)
+
+    /** What the coach is asked, less the clock ([CoachKey]). */
+    fun coachKey(): CoachKey = CoachKey(
+        inputs = workoutCoachInputs(
+            session = session,
+            selectedExerciseId = selectedExerciseId,
+            draft = draft,
+            hint = hint,
+            editingSetId = editingSetId,
+            lighterWeek = lighterWeek,
+            unit = unit,
+            nowMs = 0L,
+            todayEpochDay = 0L,
+            wantAnotherSet = wantAnotherSet,
+            historySets = historySets,
+        ),
+        prefs = coachPrefs,
     )
+}
+
+/**
+ * Everything the coach reads to make its call, with the clock left at zero, and its settings
+ * beside it. Two equal keys get the same call; only its trace's time and day can differ, and no
+ * rule reads those (ADR-029). So the Log's card and the rest page's Next line ask the coach
+ * again only when a key changes, not on every redraw: a weight step with no RPE, a note, a
+ * second of rest (W2c, audit C-2). The call is then made with the clock as it is at the ask,
+ * so its trace still says when it was made (ADR-008).
+ */
+internal data class CoachKey(
+    /** Null where the coach makes no call: no session, or no lift to ask about. */
+    val inputs: SetMicroRecInputs?,
+    val prefs: CoachPreferences,
+) {
+    fun rec(nowMs: Long, todayEpochDay: Long): SetMicroRec? = inputs
+        ?.copy(nowMs = nowMs, todayEpochDay = todayEpochDay)
+        ?.let { asked -> CoachEngine.suggest(inputs = asked, prefs = prefs) }
+        ?.toMicroRec()
 }
 
 /**
