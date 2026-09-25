@@ -15,6 +15,16 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Audit packet R2-2 (audit X6, UI-12; owner decision of 25
+> September): finishing or discarding from the bottom bar no longer
+> closes the app when the small write after it fails (the link between
+> the workout and its planned day). The summary opens; if the phone
+> refuses these writes, the planned day may stay not done. The same
+> write after a finish on the workout screen, and after starting a
+> planned session from Home, no longer undoes what just happened
+> either. Rides along with the next drop; nothing to check on the phone
+> (a failing write is not something to make on purpose).
+>
 > 25 Sep 2026 — Audit packet R2-1 (audit X6, DB-1, AR-1 and UI-17; owner
 > decision of 25 September, R2 crash and coach): Home and History no
 > longer close the app when a database read fails. Home keeps the numbers

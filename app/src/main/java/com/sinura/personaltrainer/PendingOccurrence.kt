@@ -3,6 +3,11 @@ package com.sinura.personaltrainer
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.PlannedOccurrence
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.runCatchingCancellable
+import java.util.Collections
+import java.util.WeakHashMap
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 
 /**
@@ -26,9 +31,18 @@ import kotlinx.coroutines.flow.first
  * composer arm, or a row persisted before sessions were recorded) or
  * `occurrenceId\nsessionId` once a session is attached. This object is
  * the only reader of that encoding.
+ *
+ * No write here throws. Most follow something already done (a start
+ * that opened, a finish or a discard that landed) and the rest hand the
+ * link to the composer; a failed one is logged and the action stands. It
+ * used to throw past the finish that had just been saved, closing the app
+ * from the bottom bar with the summary never opened (audit UI-12). Once
+ * this run has written the link, its in-memory copy is the truth: a clear
+ * whose saved copy failed is not read back from the file.
  */
 object PendingOccurrence {
     private const val SEP = '\n'
+    private const val TAG = "PT/PendingOccurrence"
 
     /** Arms the composer: the next composer save follows [occurrenceId]. */
     suspend fun bind(deps: AppDependencies, occurrenceId: String?) {
@@ -52,8 +66,16 @@ object PendingOccurrence {
         return PlannedOccurrence.matching(day, items)?.occurrence?.id
     }
 
+    /**
+     * Loads the saved link at startup, unless this run has already written one. Restore runs
+     * late, on another thread; a start or a finish that got in first is newer than the file,
+     * and the file may hold a clear that failed to save.
+     */
     suspend fun restore(deps: AppDependencies) {
-        deps.pendingOccurrenceId.value = deps.preferencesRepository.pendingOccurrenceId.first()
+        val saved = deps.preferencesRepository.pendingOccurrenceId.first()
+        synchronized(written) {
+            if (deps.pendingOccurrenceId !in written) deps.pendingOccurrenceId.value = saved
+        }
     }
 
     /**
@@ -67,7 +89,13 @@ object PendingOccurrence {
         val stored = stored(deps) ?: return
         val (occurrenceId, sessionId) = decode(stored)
         if (sessionId != null && sessionId != completedId) return
-        deps.plannerRepository.markOccurrenceDone(occurrenceId, completedId)
+        // A plan row that could not be marked keeps its binding: nothing is lost by it, and
+        // the next start replaces it.
+        runCatchingCancellable { deps.plannerRepository.markOccurrenceDone(occurrenceId, completedId) }
+            .onFailure { thrown ->
+                AppLog.e(TAG, "Marking the planned session done failed", thrown)
+                return
+            }
         write(deps, null)
     }
 
@@ -99,9 +127,22 @@ object PendingOccurrence {
         return occurrenceId
     }
 
-    private suspend fun stored(deps: AppDependencies): String? =
-        deps.pendingOccurrenceId.value
-            ?: deps.preferencesRepository.pendingOccurrenceId.first()
+    /**
+     * The link flows this run has written. Until one is written, an empty in-memory value may
+     * only mean [restore] has not run yet, so the file is read; after it, empty means none.
+     * Reading the file then would bring back a clear that failed to save: the composer arm
+     * taken twice, or a later, unrelated finish marking that planned day done.
+     */
+    private val written: MutableSet<MutableStateFlow<String?>> =
+        Collections.synchronizedSet(Collections.newSetFromMap(WeakHashMap()))
+
+    private suspend fun stored(deps: AppDependencies): String? {
+        val link = deps.pendingOccurrenceId
+        val (inMemory, known) = synchronized(written) { link.value to (link in written) }
+        if (inMemory != null) return inMemory
+        if (known) return null
+        return deps.preferencesRepository.pendingOccurrenceId.first()
+    }
 
     private fun decode(stored: String): Pair<String, String?> {
         val cut = stored.indexOf(SEP)
@@ -112,8 +153,17 @@ object PendingOccurrence {
         }
     }
 
+    /**
+     * The in-memory value is set first and is what this run reads from then on, so it follows
+     * the link even when the saved copy cannot be written; only a restart would find the older
+     * one.
+     */
     private suspend fun write(deps: AppDependencies, value: String?) {
-        deps.pendingOccurrenceId.value = value
-        deps.preferencesRepository.setPendingOccurrenceId(value)
+        synchronized(written) {
+            deps.pendingOccurrenceId.value = value
+            written += deps.pendingOccurrenceId
+        }
+        runCatchingCancellable { deps.preferencesRepository.setPendingOccurrenceId(value) }
+            .onFailure { thrown -> AppLog.e(TAG, "Saving the planned-session link failed", thrown) }
     }
 }
