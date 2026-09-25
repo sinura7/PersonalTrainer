@@ -351,6 +351,7 @@ class FloorScreenWiringRenderTest {
             seedLegExtension(deps, loggedSets = sets(2)).also { id ->
                 val dao = deps.database.workoutDao()
                 val saved = dao.setsForExercise(id, FLOOR_LIFT_ID)
+                check(saved.size == 2) { "the tie needs both seeded sets, found ${saved.size}" }
                 saved.forEach { dao.updateSet(it.copy(completedAt = saved.first().completedAt)) }
             }
         }

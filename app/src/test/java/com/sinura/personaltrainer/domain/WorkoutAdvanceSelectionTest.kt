@@ -152,7 +152,10 @@ class WorkoutAdvanceSelectionTest {
         assertEquals("two", WorkoutAdvance.latestSetId(sets))
         assertEquals("two", WorkoutAdvance.latestSetId(sets.reversed()))
         // The clock still decides first: a later stamp wins over a later number.
-        assertEquals("one", WorkoutAdvance.latestSetId(listOf(sets[0].copy(completedAt = STAMP + 1), sets[1])))
+        assertEquals(
+            "one",
+            WorkoutAdvance.latestSetId(listOf(sets[0].copy(completedAt = STAMP + 1), sets[1])),
+        )
     }
 
     private fun session(sets: List<SetLog>): WorkoutSession = WorkoutSession(
