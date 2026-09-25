@@ -18,6 +18,11 @@ data class AuthoredInventory(
     val bodyweightEntries: Int,
     val blocks: Int,
     val activities: Int = 0,
+    /** Saved activity templates. They arrive by sync or restore; no screen reads them yet. */
+    val activityTemplates: Int = 0,
+    /** The weekly plan: one row per planned session a week; its dated days hang off these. */
+    val planRules: Int = 0,
+    val goals: Int = 0,
 ) {
     val isEmpty: Boolean
         get() = sessions == 0 &&
@@ -27,15 +32,32 @@ data class AuthoredInventory(
             scheduleSlots == 0 &&
             bodyweightEntries == 0 &&
             blocks == 0 &&
-            activities == 0
+            activities == 0 &&
+            activityTemplates == 0 &&
+            planRules == 0 &&
+            goals == 0
 
-    fun describe(): String =
-        "$sessions session${plural(sessions)}, $setLogs set${plural(setLogs)}, " +
-            "$routines routine${plural(routines)}, $customExercises custom exercise${plural(customExercises)}, " +
-            "$scheduleSlots scheduled day${plural(scheduleSlots)}, " +
-            "$bodyweightEntries weigh-in${plural(bodyweightEntries)}, " +
-            "$blocks block${plural(blocks)}, " +
-            "$activities activit${if (activities == 1) "y" else "ies"}"
+    /**
+     * The weekly plan mirrors every pinned day as a rule, so a side that has rules names them
+     * once, in place of its days; only a file from before the plan shows days alone. Goals and
+     * activity templates have no screen of their own yet, so they are named only when present.
+     */
+    fun describe(): String = listOfNotNull(
+        "$sessions session${plural(sessions)}",
+        "$setLogs set${plural(setLogs)}",
+        "$routines routine${plural(routines)}",
+        "$customExercises custom exercise${plural(customExercises)}",
+        if (planRules > 0) {
+            "$planRules planned weekly session${plural(planRules)}"
+        } else {
+            "$scheduleSlots scheduled day${plural(scheduleSlots)}"
+        },
+        "$bodyweightEntries weigh-in${plural(bodyweightEntries)}",
+        "$blocks block${plural(blocks)}",
+        "$activities activit${if (activities == 1) "y" else "ies"}",
+        "$goals goal${plural(goals)}".takeIf { goals > 0 },
+        "$activityTemplates activity template${plural(activityTemplates)}".takeIf { activityTemplates > 0 },
+    ).joinToString(", ")
 
     companion object {
         val EMPTY = AuthoredInventory(0, 0, 0, 0, 0, 0, 0)
@@ -69,6 +91,9 @@ data class AuthoredInventory(
                 bodyweightEntries = bodyweight,
                 blocks = current + past.size,
                 activities = document.activities.size,
+                activityTemplates = document.activityTemplates.size,
+                planRules = document.scheduleRules.size,
+                goals = document.measurableGoals.size,
             )
         }
 

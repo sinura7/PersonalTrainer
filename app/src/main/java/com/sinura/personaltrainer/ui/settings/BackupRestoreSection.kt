@@ -28,6 +28,7 @@ import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.domain.DayLabel
 import com.sinura.personaltrainer.domain.OneFilledVolt
+import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
@@ -78,6 +79,7 @@ internal fun BackupRestoreSection(
     onDismissRestoreNote: () -> Unit,
 ) {
     var dismissedStatus by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmSignOut by rememberSaveable { mutableStateOf(false) }
     // Cleared the moment an action starts, so the memo only ever suppresses a message left
     // over from a previous visit. Comparing by value alone meant a second action whose
     // outcome text was identical to the first — "Found 3 backups." twice — showed nothing.
@@ -217,7 +219,13 @@ internal fun BackupRestoreSection(
                 InstrumentRow(
                     title = "Signed in",
                     subtitle = state.accountEmail,
-                    onClick = if (state.isBusy) null else onSignOut,
+                    // Signing out forgets automatic backup's saved password, and every Drive
+                    // backup it wrote opens only with that password, so it asks first.
+                    onClick = when {
+                        state.isBusy -> null
+                        state.autoBackupEnabled -> ({ confirmSignOut = true })
+                        else -> onSignOut
+                    },
                     trailing = { DangerAction("Sign out", enabled = !state.isBusy) },
                 )
                 InstrumentRow(
@@ -297,6 +305,29 @@ internal fun BackupRestoreSection(
             }
         }
     }
+
+    if (confirmSignOut && state.accountEmail != null) {
+        ConfirmActionDialog(
+            title = DriveSignOutCopy.TITLE,
+            body = DriveSignOutCopy.BODY,
+            confirmLabel = DriveSignOutCopy.CONFIRM,
+            destructive = true,
+            onConfirm = {
+                confirmSignOut = false
+                onSignOut()
+            },
+            onDismiss = { confirmSignOut = false },
+        )
+    }
+}
+
+/** The Drive sign-out question, asked only while automatic backup holds a saved password. */
+internal object DriveSignOutCopy {
+    const val TITLE = "Sign out of Google Drive?"
+    const val BODY = "Automatic backup turns off, and the backup password saved on this phone " +
+        "is deleted. The backups it already made to Drive open only with that password: if you " +
+        "might not remember it, cancel and use Show backup password first."
+    const val CONFIRM = "Sign out"
 }
 
 @Composable

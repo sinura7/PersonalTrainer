@@ -80,6 +80,27 @@ class AuthoredInventoryTest {
     }
 
     @Test
+    fun theWeeklyPlanIsNamedOnceAndAbsentGoalsAndTemplatesAreNotNamed() {
+        val days = AuthoredInventory(
+            sessions = 1,
+            setLogs = 0,
+            routines = 0,
+            customExercises = 0,
+            scheduleSlots = 4,
+            bodyweightEntries = 0,
+            blocks = 0,
+        )
+        assertTrue(days.describe().contains("4 scheduled days"))
+        assertFalse(days.describe().contains("goal"))
+        assertFalse(days.describe().contains("activity template"))
+        // Each pinned day is mirrored as a rule of the weekly plan: one count, not two.
+        val planned = days.copy(planRules = 4)
+        assertTrue(planned.describe().contains("4 planned weekly sessions"))
+        assertFalse(planned.describe().contains("scheduled day"))
+        assertTrue(planned.copy(goals = 2).describe().endsWith("2 goals"))
+    }
+
+    @Test
     fun confirmCopyNamesBothSidesAndNeverOffersReset() {
         val incoming = AuthoredInventory.EMPTY
         val local = AuthoredInventory(
