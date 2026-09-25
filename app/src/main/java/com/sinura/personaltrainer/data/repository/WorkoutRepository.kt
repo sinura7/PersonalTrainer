@@ -145,7 +145,7 @@ class WorkoutRepository(
      * finished session.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun observeSessionSummaries(): Flow<List<SessionSummary>> =
+    private fun observeSessionSummaries(): Flow<List<SessionSummary>> =
         workoutDao.observeFinishedWorkGeneration()
             .distinctUntilChanged()
             .mapLatest {
@@ -155,6 +155,11 @@ class WorkoutRepository(
                 }
             }
 
+    /**
+     * The only way out of the summaries read. The raw flow throws whatever Room throws, and a
+     * collector with nowhere to put that closes the app (audit DB-1); Home takes
+     * `presentValues()` of this, History reads its health.
+     */
     fun observeSessionSummariesHealth(): Flow<DataHealth<List<SessionSummary>>> =
         observeSessionSummaries().observeHealth("workout history")
 
@@ -175,6 +180,8 @@ class WorkoutRepository(
                 workoutDao.finishedLastLogged().associate { it.exerciseId to it.lastLoggedAt }
             }
             .distinctUntilChanged()
+            .observeHealth("when each lift was last logged")
+            .presentValues()
 
     fun observeBestWorkingWeights(): Flow<Map<String, Double>> =
         workoutDao.observeBestWorkingWeights().map { rows ->
@@ -188,6 +195,8 @@ class WorkoutRepository(
             .mapLatest {
                 workoutDao.getFinishedSessionsSince(minDateMs).map { it.toDomain() }
             }
+            .observeHealth("recent finished workouts")
+            .presentValues()
 
     suspend fun sessionsBetween(minDateMs: Long, maxDateMs: Long): List<WorkoutSession> =
         workoutDao.getFinishedSessionsBetween(minDateMs, maxDateMs).map { it.toDomain() }
@@ -205,10 +214,14 @@ class WorkoutRepository(
      * A string rather than the entity so callers outside the data layer do not learn the
      * fingerprint's shape; equality is the whole contract.
      */
-    fun observeFinishedWorkRevision(): Flow<String> =
+    private fun observeFinishedWorkRevision(): Flow<String> =
         workoutDao.observeFinishedWorkGeneration()
             .distinctUntilChanged()
             .map { it.revisionToken() }
+
+    /** The only way out of the revision read, as for the summaries (audit DB-1, UI-17). */
+    fun observeFinishedWorkRevisionHealth(): Flow<DataHealth<String>> =
+        observeFinishedWorkRevision().observeHealth("the finished-work revision")
 
     /**
      * Every finished working set with its lift's name and class, for the lifetime records

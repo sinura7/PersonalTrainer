@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.data.local.relation.ActivitySessionGraph
 import com.sinura.personaltrainer.domain.ActivityDraft
 import com.sinura.personaltrainer.domain.ActivityOrigin
 import com.sinura.personaltrainer.domain.ActivityStatus
@@ -15,10 +17,19 @@ import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
+import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.testutil.ActivityReadGate
+import com.sinura.personaltrainer.testutil.FailingObserveCompletedSummariesDao
+import com.sinura.personaltrainer.testutil.FailingPastBlocksDao
+import com.sinura.personaltrainer.testutil.FailingWeighInsDao
+import com.sinura.personaltrainer.testutil.ReadGate
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
+import com.sinura.personaltrainer.testutil.catchingUncaught
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -27,6 +38,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -356,7 +368,152 @@ class HistoryViewModelTest {
         assertEquals("s1", stale.summaries.single().id)
     }
 
+    /**
+     * Audit UI-17: History's change token read the activity log raw, so a log that could not
+     * be read threw through the page instead of reaching its own health: a blank screen and
+     * the app closing, where the design is the workouts with a "may be behind" line.
+     */
+    @Test
+    fun anActivityLogThatCannotBeReadMarksHistoryBehindInsteadOfClosingTheApp() = runBlocking {
+        val gate = ActivityReadGate(shouldFail = true)
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            activityDaoDecorator = { FailingObserveCompletedSummariesDao(it, gate) },
+        )
+        val finished = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)), finish = true)
+
+        var shown: HistoryUiState? = null
+        val crash = catchingUncaught {
+            viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            shown = withTimeoutOrNull(TestWaits.FLOW_MS) { viewModel!!.uiState.first { !it.isLoading } }
+        }
+        assertNull("an unreadable activity log closed the app", crash)
+        val stale = checkNotNull(shown) { "History never left loading" }
+        assertTrue(stale.stale)
+        assertFalse(stale.unavailable)
+        assertEquals(listOf(finished.session.id), stale.summaries.map { it.id })
+
+        gate.shouldFail = false
+        viewModel!!.retryHistory()
+        val recovered = viewModel!!.uiState.awaitFirst { !it.isLoading && !it.stale }
+        assertEquals(listOf(finished.session.id), recovered.summaries.map { it.id })
+    }
+
+    /**
+     * The same for the full-log read behind the period readout (with no finished block it is
+     * the only one): a failure marks the page behind and hides the readout instead of
+     * closing the app.
+     */
+    @Test
+    fun aFullLogThatCannotBeReadMarksHistoryBehindInsteadOfClosingTheApp() = runBlocking {
+        val gate = ActivityReadGate(shouldFail = true)
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            activityDaoDecorator = { FailingFullLogDao(it, gate) },
+        )
+        val finished = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)), finish = true)
+
+        var shown: HistoryUiState? = null
+        val crash = catchingUncaught {
+            viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            shown = withTimeoutOrNull(TestWaits.FLOW_MS) {
+                viewModel!!.uiState.first { !it.isLoading && it.stale }
+            }
+        }
+        assertNull("an unreadable full log closed the app", crash)
+        val stale = checkNotNull(shown) { "History never said it was behind" }
+        assertFalse(stale.unavailable)
+        assertNull(stale.horizonProgress)
+        assertEquals(listOf(finished.session.id), stale.summaries.map { it.id })
+
+        gate.shouldFail = false
+        viewModel!!.retryHistory()
+        val recovered = viewModel!!.uiState.awaitFirst {
+            !it.isLoading && !it.stale && it.horizonProgress != null
+        }
+        assertEquals(listOf(finished.session.id), recovered.summaries.map { it.id })
+    }
+
+    /**
+     * The past-blocks section read the finished blocks and the weigh-ins raw, so either one
+     * failing closed the app on every visit to History. Both now mark the page behind.
+     */
+    @Test
+    fun blocksOrWeighInsThatCannotBeReadMarkHistoryBehindInsteadOfClosingTheApp() = runBlocking {
+        val gate = ReadGate(shouldFail = true)
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            trainingBlockDaoDecorator = { FailingPastBlocksDao(it, gate) },
+            bodyweightDaoDecorator = { FailingWeighInsDao(it, gate) },
+        )
+        val finished = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)), finish = true)
+
+        var shown: HistoryUiState? = null
+        val crash = catchingUncaught {
+            viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            shown = withTimeoutOrNull(TestWaits.FLOW_MS) { viewModel!!.uiState.first { !it.isLoading } }
+        }
+        assertNull("unreadable blocks or weigh-ins closed the app", crash)
+        val stale = checkNotNull(shown) { "History never left loading" }
+        assertTrue(stale.stale)
+        assertEquals(listOf(finished.session.id), stale.summaries.map { it.id })
+
+        gate.shouldFail = false
+        viewModel!!.retryHistory()
+        val recovered = viewModel!!.uiState.awaitFirst { !it.isLoading && !it.stale }
+        assertEquals(listOf(finished.session.id), recovered.summaries.map { it.id })
+    }
+
+    /**
+     * A full-log read that fails after the past blocks were shown keeps them on screen and
+     * marks the page behind, rather than emptying the section.
+     */
+    @Test
+    fun pastBlocksKeepWhatTheyShowedWhenALaterReadFails() = runBlocking {
+        val gate = ActivityReadGate(shouldFail = false)
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            activityDaoDecorator = { FailingFullLogDao(it, gate) },
+        )
+        val bench = insertTestExercise(deps = deps, id = "bench", name = "Bench", muscleGroup = "Chest")
+        val now = System.currentTimeMillis()
+        val today = LocalDate.now().toEpochDay()
+        insertFinishedSession(id = "in-block", at = now - 60 * DAY, exerciseId = bench.id, weightKg = 100.0)
+        deps.preferencesRepository.setTrainingBlock(TrainingBlock(startEpochDay = today - 70, weeks = 2))
+        deps.preferencesRepository.beginBlock(TrainingBlock(startEpochDay = today), todayEpochDay = today)
+
+        viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val shown = viewModel!!.uiState.awaitFirst { !it.isLoading && it.pastBlocks.isNotEmpty() }
+        assertFalse(shown.stale)
+
+        var behind: HistoryUiState? = null
+        val crash = catchingUncaught {
+            gate.shouldFail = true
+            // A weigh-in moves only the past blocks' inputs, so only their full-log read runs.
+            deps.preferencesRepository.recordBodyweight(kg = 80.0, epochDay = today)
+            behind = withTimeoutOrNull(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.stale } }
+        }
+        assertNull("a failed full-log read closed the app", crash)
+        val stale = checkNotNull(behind) { "History never said it was behind" }
+        assertEquals(shown.pastBlocks, stale.pastBlocks)
+    }
+
     private companion object {
         const val DAY = 24L * 60L * 60L * 1000L
+    }
+}
+
+/** The whole activity log read made to throw on demand; every other read is the real one. */
+private class FailingFullLogDao(
+    private val delegate: ActivityDao,
+    private val gate: ActivityReadGate,
+) : ActivityDao by delegate {
+    override suspend fun getAllGraphs(): List<ActivitySessionGraph> {
+        if (gate.shouldFail) error("boom: Room could not read the whole activity log")
+        return delegate.getAllGraphs()
     }
 }

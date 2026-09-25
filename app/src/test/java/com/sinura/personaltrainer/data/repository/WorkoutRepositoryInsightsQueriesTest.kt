@@ -149,7 +149,7 @@ class WorkoutRepositoryInsightsQueriesTest {
             finishedAt = START + 1,
             sets = listOf(Triple(SQUAT, 100.0, 5)),
         )
-        val before = repository.observeFinishedWorkRevision().first()
+        val before = repository.observeFinishedWorkRevisionHealth().presentValues().first()
 
         insertLiveSession("live")
         database.workoutDao().insertSet(
@@ -165,7 +165,7 @@ class WorkoutRepositoryInsightsQueriesTest {
                 completedAt = START + 10_000,
             ),
         )
-        assertEquals(before, repository.observeFinishedWorkRevision().first())
+        assertEquals(before, repository.observeFinishedWorkRevisionHealth().presentValues().first())
 
         // Neither a count nor a timestamp moves for a corrected weight; the sums do.
         repository.updateSet(
@@ -175,7 +175,7 @@ class WorkoutRepositoryInsightsQueriesTest {
             rpe = null,
             isWarmup = false,
         )
-        assertNotEquals(before, repository.observeFinishedWorkRevision().first())
+        assertNotEquals(before, repository.observeFinishedWorkRevisionHealth().presentValues().first())
     }
 
     @Test
@@ -240,7 +240,7 @@ class WorkoutRepositoryInsightsQueriesTest {
         )
         val emissions = MutableStateFlow<List<Int>>(emptyList())
         val job = launch {
-            repository.observeSessionSummaries().collect { summaries ->
+            repository.observeSessionSummariesHealth().presentValues().collect { summaries ->
                 emissions.update { it + summaries.size }
             }
         }
@@ -284,12 +284,14 @@ class WorkoutRepositoryInsightsQueriesTest {
             finishedAt = START + 1,
             sets = listOf(Triple(SQUAT, 100.0, 5)),
         )
-        val initial = repository.observeSessionSummaries().first { it.singleOrNull()?.volumeKg == 500.0 }
+        val initial = repository.observeSessionSummariesHealth().presentValues()
+            .first { it.singleOrNull()?.volumeKg == 500.0 }
         assertEquals(500.0, initial.single().volumeKg, 0.001)
 
         repository.updateSet("done-$SQUAT-0", weightKg = 110.0, reps = 5, rpe = null, isWarmup = false)
 
-        val updated = repository.observeSessionSummaries().first { it.singleOrNull()?.volumeKg == 550.0 }
+        val updated = repository.observeSessionSummariesHealth().presentValues()
+            .first { it.singleOrNull()?.volumeKg == 550.0 }
         assertEquals(550.0, updated.single().volumeKg, 0.001)
     }
 

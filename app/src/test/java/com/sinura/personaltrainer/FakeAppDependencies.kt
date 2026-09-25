@@ -30,6 +30,8 @@ import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.BodyweightDao
+import com.sinura.personaltrainer.data.local.dao.TrainingBlockDao
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.repository.ActivityRepository
 import com.sinura.personaltrainer.data.repository.BackupService
@@ -136,6 +138,13 @@ class FakeAppDependencies(
      */
     workoutDaoDecorator: (WorkoutDao) -> WorkoutDao = { it },
     /**
+     * Wraps the finished-blocks DAO before the settings repository sees it, for the same
+     * read-fault tests as the two above.
+     */
+    trainingBlockDaoDecorator: (TrainingBlockDao) -> TrainingBlockDao = { it },
+    /** Wraps the weigh-ins DAO before the settings repository sees it, as above. */
+    bodyweightDaoDecorator: (BodyweightDao) -> BodyweightDao = { it },
+    /**
      * Replaces the reminder cleanup that runs after an activity commits. Null keeps the
      * production wiring; a throwing one reproduces the cleanup failure R06 is about.
      */
@@ -208,8 +217,8 @@ class FakeAppDependencies(
         PreferencesRepository(
             prefsContext,
             prefsStore,
-            bodyweightDao = database.bodyweightDao(),
-            trainingBlockDao = database.trainingBlockDao(),
+            bodyweightDao = bodyweightDaoDecorator(database.bodyweightDao()),
+            trainingBlockDao = trainingBlockDaoDecorator(database.trainingBlockDao()),
         )
     override val activityRepository: ActivityRepository = ActivityRepository(
         database = database,

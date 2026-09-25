@@ -34,6 +34,7 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
+import com.sinura.personaltrainer.data.repository.presentValues
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartCardioOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
@@ -114,7 +115,8 @@ class HomeViewModel @JvmOverloads constructor(
                 combine(
                     container.preferencesRepository.schedulePreferences,
                     container.preferencesRepository.preferredDays,
-                    container.preferencesRepository.bodyweightLog,
+                    // Guarded: the plain log throws what Room throws (audit DB-1).
+                    container.preferencesRepository.bodyweightLogHealth.presentValues(),
                     container.preferencesRepository.bodyweightCheckInWeekday,
                     container.preferencesRepository.onboardingComplete,
                 ) { preferences, preferredDays, log, checkIn, setupComplete ->

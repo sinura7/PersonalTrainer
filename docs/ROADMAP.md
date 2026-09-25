@@ -15,6 +15,17 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Audit packet R2-1 (audit X6, DB-1, AR-1 and UI-17; owner
+> decision of 25 September, R2 crash and coach): Home and History no
+> longer close the app when a database read fails. Home keeps the numbers
+> it last read and goes on updating from everything else; History keeps
+> the workouts, says it may be behind, and now offers Retry on that line.
+> The past-blocks section keeps what it showed. If a read fails before
+> Home has shown anything, Home waits on its spinner until the next visit
+> instead of crashing; F4 makes that a read-error state. Rides along with
+> the next drop; nothing to check on the phone (a failing database is not
+> something to make on purpose).
+>
 > 25 Sep 2026 — Audit packet R1-5 (audit X6, DB-2 and L-3; owner
 > decision of 25 September): a damaged settings file no longer locks the
 > app. It is started again from defaults, and it says so: Settings →

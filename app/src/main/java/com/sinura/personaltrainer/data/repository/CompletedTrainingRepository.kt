@@ -40,15 +40,21 @@ class CompletedTrainingRepository(
     /**
      * Moves when either store's finished work changes, so History's horizon key cannot
      * stay put after a backdated activity lands.
+     *
+     * Never throws. It used to combine two raw reads, so an activity log that could not be
+     * read took History down with it instead of reaching the list's own health (audit UI-17).
+     * A failed part holds what it last had, or counts as nothing if it never loaded; the
+     * list's own reads say whether the page is behind.
      */
     fun observeRevision(): Flow<String> = combine(
-        workouts.observeFinishedWorkRevision(),
-        activities.observeCompletedSummaries(),
+        workouts.observeFinishedWorkRevisionHealth(),
+        activities.observeCompletedSummariesHealth(),
         activities.observeRecordSetsHealth(),
-    ) { workoutRevision, summaries, records ->
+    ) { workoutRevision, summaryReads, records ->
+        val summaries = summaryReads.presentValue().orEmpty()
         val recordRows = records.presentValue().orEmpty()
         listOf(
-            workoutRevision,
+            workoutRevision.presentValue().orEmpty(),
             summaries.size.toString(),
             (summaries.maxOfOrNull { it.finishedAt ?: it.date } ?: 0L).toString(),
             recordRows.size.toString(),

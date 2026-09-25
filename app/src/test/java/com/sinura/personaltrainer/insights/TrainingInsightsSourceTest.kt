@@ -1,8 +1,15 @@
 package com.sinura.personaltrainer.insights
 
 import android.app.Application
+import android.database.sqlite.SQLiteException
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.data.local.dao.ActivityDao
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
+import com.sinura.personaltrainer.data.local.entity.ExerciseRecencyRow
+import com.sinura.personaltrainer.data.local.entity.SessionStillRow
+import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
+import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -11,11 +18,14 @@ import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingInsightsCalculator
 import com.sinura.personaltrainer.domain.TrainingInsightsInput
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.ReadGate
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.catchingUncaught
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import java.time.ZoneOffset
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -32,11 +42,13 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -324,6 +336,132 @@ class TrainingInsightsSourceTest {
         shareGraceMs = shareGraceMs,
     )
 
+    /**
+     * Audit DB-1: four of the pipeline's inputs skipped the read guard the others use, and
+     * its scope had no handler, so one failed history read closed the app, and Home, which
+     * subscribes on its first frame, closed it again on every open. Now a read that fails
+     * holds what it last had and the summary keeps updating from everything else. One test
+     * per strength read; the activity read is the first-read case below.
+     */
+    @Test
+    fun aSummariesReadThatFailsKeepsHomeUpdatingInsteadOfClosingTheApp() =
+        assertHomeOutlivesAFailed(InsightRead.SUMMARIES) { it.summaries }
+
+    @Test
+    fun aRecentWorkoutsReadThatFailsKeepsHomeUpdatingInsteadOfClosingTheApp() =
+        assertHomeOutlivesAFailed(InsightRead.RECENT_SESSIONS) { it.history }
+
+    @Test
+    fun aLastLoggedReadThatFailsKeepsHomeUpdatingInsteadOfClosingTheApp() =
+        assertHomeOutlivesAFailed(InsightRead.LAST_LOGGED) { it.lastLoggedAtByExerciseId }
+
+    /**
+     * A read that fails before its first value has nothing to hold. It must still not close
+     * the app; the summary waits for the next visit (F4 makes that wait a read-error state).
+     */
+    @Test
+    fun anActivityReadThatFailsFirstDoesNotCloseTheApp() = runBlocking {
+        val gate = ReadGate(shouldFail = true)
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            activityDaoDecorator = { dao -> FailingActivityStillsDao(dao, gate) },
+        )
+        val src = source()
+        val crash = catchingUncaught {
+            val job = launch { src.observeShared(includeWeekPlan = false).collect { } }
+            awaitUntil { gate.refusals.get() > 0 }
+            settle()
+            job.cancel()
+        }
+        assertNull("a failed first activity read closed the app", crash)
+    }
+
+    private fun assertHomeOutlivesAFailed(
+        read: InsightRead,
+        held: (TrainingInsightsInput) -> Any?,
+    ) = runBlocking {
+        var failing: FailingInsightReadsDao? = null
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            workoutDaoDecorator = { dao -> FailingInsightReadsDao(dao, read).also { failing = it } },
+        )
+        val reads = checkNotNull(failing)
+        val seeded = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)), finish = true)
+        val src = source()
+        var afterFailure: TrainingInsightsInput? = null
+        var beforeFailure: Any? = null
+        val crash = catchingUncaught {
+            val job = launch { src.observeShared(includeWeekPlan = false).collect { } }
+            awaitComputes(1)
+            beforeFailure = held(inputs.last())
+            reads.shouldFail = true
+            // Another finished lift moves every finished-work read, so the failing one runs.
+            val another = deps.workoutRepository.startFreeWorkout("Push")
+            deps.workoutRepository.logSet(
+                sessionId = another.id,
+                exerciseId = seeded.exercise.id,
+                weightKg = 105.0,
+                reps = 5,
+                rpe = null,
+                isWarmup = false,
+            )
+            deps.workoutRepository.finishSession(another.id, notes = "")
+            awaitUntil { reads.refusals.get() > 0 }
+            deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+            afterFailure = withTimeoutOrNull(TestWaits.FLOW_MS) {
+                var recomputed: TrainingInsightsInput? = null
+                while (recomputed == null) {
+                    dispatcher.scheduler.runCurrent()
+                    delay(10)
+                    recomputed = inputs.lastOrNull { it.unit == WeightUnit.KG }
+                }
+                recomputed
+            }
+            job.cancel()
+        }
+        assertNull("a failed ${read.name} read closed the app", crash)
+        val recomputed = checkNotNull(afterFailure) { "Home stopped updating after one failed ${read.name} read" }
+        assertEquals("the failed read must hold what it had", beforeFailure, held(recomputed))
+    }
+
+    /**
+     * Audit AR-1: a pass that throws while assembling used to end the process and leave the
+     * shared summary with nothing to restart it. It now ends that pass; the next visit after
+     * the grace period assembles again.
+     */
+    @Test
+    fun aSummaryThatFailsToAssembleDoesNotCloseTheAppAndTheNextVisitTriesAgain() = runBlocking {
+        val attempts = AtomicInteger()
+        val src = source(
+            shareGraceMs = 0L,
+            compute = { input ->
+                if (attempts.getAndIncrement() == 0) error("boom: the summary could not be computed")
+                inputs += input
+                TrainingInsightsCalculator.compute(input)
+            },
+        )
+        var nextVisit: TrainingInsights? = null
+        val crash = catchingUncaught {
+            val firstVisit = launch { src.observeShared(includeWeekPlan = false).collect { } }
+            awaitUntil { attempts.get() > 0 }
+            settle()
+            firstVisit.cancel()
+            settle()
+            nextVisit = withTimeoutOrNull(TestWaits.FLOW_MS) {
+                src.observeShared(includeWeekPlan = false).first()
+            }
+        }
+        assertNull("a failed pass closed the app", crash)
+        assertNotNull("the next visit never assembled the summary again", nextVisit)
+    }
+
+    private suspend fun settle() = repeat(5) {
+        dispatcher.scheduler.runCurrent()
+        delay(10)
+    }
+
     private suspend fun awaitComputes(count: Int) = awaitUntil { inputs.size >= count }
 
     private suspend fun awaitUntil(predicate: () -> Boolean) {
@@ -338,5 +476,50 @@ class TrainingInsightsSourceTest {
     private companion object {
         const val NOW_MS = 1_713_441_600_000L
         val ZONE = ZoneOffset.UTC
+    }
+}
+
+/** The three finished-work reads the insights pipeline makes of the workout store. */
+private enum class InsightRead { SUMMARIES, RECENT_SESSIONS, LAST_LOGGED }
+
+/** One of the pipeline's workout reads made to refuse on demand, as a Room fault would. */
+private class FailingInsightReadsDao(
+    private val delegate: WorkoutDao,
+    private val read: InsightRead,
+) : WorkoutDao by delegate {
+    @Volatile var shouldFail = false
+    val refusals = AtomicInteger()
+
+    override suspend fun sessionSummaries(): List<SessionSummaryRow> {
+        refuseIf(InsightRead.SUMMARIES)
+        return delegate.sessionSummaries()
+    }
+
+    override suspend fun getFinishedSessionsSince(minDateMs: Long): List<SessionWithDetails> {
+        refuseIf(InsightRead.RECENT_SESSIONS)
+        return delegate.getFinishedSessionsSince(minDateMs)
+    }
+
+    override suspend fun finishedLastLogged(): List<ExerciseRecencyRow> {
+        refuseIf(InsightRead.LAST_LOGGED)
+        return delegate.finishedLastLogged()
+    }
+
+    private fun refuseIf(which: InsightRead) {
+        if (shouldFail && read == which) {
+            refusals.incrementAndGet()
+            throw SQLiteException("boom: Room could not read ${which.name}")
+        }
+    }
+}
+
+/** The activity summaries' stills read, refused while the gate is shut. */
+private class FailingActivityStillsDao(
+    private val delegate: ActivityDao,
+    private val gate: ReadGate,
+) : ActivityDao by delegate {
+    override suspend fun completedSessionStills(): List<SessionStillRow> {
+        gate.check("the activity history")
+        return delegate.completedSessionStills()
     }
 }
