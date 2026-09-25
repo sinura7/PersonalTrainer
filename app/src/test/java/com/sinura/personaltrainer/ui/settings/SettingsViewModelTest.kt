@@ -646,4 +646,44 @@ class SettingsViewModelTest {
             names.any { it.contains("Squat") || it.contains("Deadlift") || it.contains("Bench") },
         )
     }
+
+    @Test
+    fun generatingAWeekKeepsTheBlockAlreadyRunningAndItsWeighIns() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        deps.dbMaintenance.seedCatalog()
+        val today = java.time.LocalDate.now().toEpochDay()
+        val running = com.sinura.personaltrainer.domain.TrainingBlock(startEpochDay = today - 21, weeks = 12)
+        deps.preferencesRepository.beginBlock(running, todayEpochDay = today)
+        deps.preferencesRepository.recordBodyweight(80.0, epochDay = today - 7)
+        deps.preferencesRepository.recordBodyweight(81.5, epochDay = today)
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        viewModel!!.generateWeek()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.generateNotice.first { it != null } }
+
+        // Settings' Generate a week re-plans the week; it is not setup starting a new block.
+        assertEquals(running, deps.preferencesRepository.trainingBlock.first())
+        val log = deps.preferencesRepository.bodyweightLog.first()
+        assertEquals(listOf(80.0, 81.5), log.sortedBy { it.epochDay }.map { it.kg })
+        assertTrue(deps.routineRepository.observeAll().first().isNotEmpty())
+    }
+
+    @Test
+    fun generatingAWeekWithNoBlockYetStartsOne() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        deps.dbMaintenance.seedCatalog()
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        assertNull(deps.preferencesRepository.trainingBlock.first())
+
+        viewModel!!.generateWeek()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.generateNotice.first { it != null } }
+
+        assertNotNull(deps.preferencesRepository.trainingBlock.first())
+    }
 }

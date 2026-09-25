@@ -15,6 +15,16 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Audit packet R1-4 (audit X6, UI-3; owner decision of 25
+> September): Settings → Week generator → "Generate a week" asks first
+> ("Generate a new week?", saying it adds a fresh set of routines and
+> puts them on your week, and that your routines, block and history stay).
+> It no longer throws away the training block you are in the middle of,
+> and no longer logs the old setup bodyweight as today's weigh-in; with no
+> block yet, it starts one, as before. Rides along with the next drop;
+> phone check: tap Generate a week, Cancel changes nothing; tap again and
+> Generate, and Your plan still shows the same block week.
+>
 > 25 Sep 2026 — Audit packet R1-3 (audit X6, BK-4; owner decision of 25
 > September): the Drive copy after a finished workout no longer stops
 > when you leave the summary. It ran inside the summary screen, so

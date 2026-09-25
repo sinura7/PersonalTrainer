@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.Weekday
 import java.time.LocalDate
+import kotlinx.coroutines.flow.first
 
 private const val TAG = "PT/Onboarding"
 
@@ -58,6 +59,10 @@ class OnboardingApplier(
      * preferences by the caller, used to lay the week out, and written back by nobody.
      * @param today passed in rather than read from the clock here, so the block's start date is
      * testable and so it agrees with the date the rest of the flow is working from.
+     * @param keepCurrentBlock Settings' "Generate a week": re-plan the week inside the block
+     * already running. Setup starts a new block and records its opening weigh-in; this door is
+     * not setup, and doing either there threw away an unfinished block and logged the setup
+     * answer's old bodyweight as today's weigh-in (audit UI-3). With no block yet, one starts.
      */
     suspend fun apply(
         answers: OnboardingAnswers,
@@ -65,6 +70,7 @@ class OnboardingApplier(
         catalog: List<Exercise>,
         weekStart: Weekday,
         today: LocalDate,
+        keepCurrentBlock: Boolean = false,
     ): ApplyPlanResult {
         val clean = answers.sanitized()
         val createdIds = LinkedHashMap<String, String>()
@@ -90,22 +96,25 @@ class OnboardingApplier(
             preferencesRepository.setPreferredDays(clean.preferredDays)
             preferencesRepository.setTrainingPlaces(clean.resolvedPlaces())
             preferencesRepository.setTrainingFocus(clean.focus)
-            // Recorded as a weigh-in, not just stored: it is the opening reading of the block
-            // being started on the next line, and the block review compares against it.
-            clean.bodyweightKg?.let { kg ->
-                preferencesRepository.recordBodyweight(kg, today.toEpochDay())
+            val keepBlock = keepCurrentBlock && preferencesRepository.trainingBlock.first() != null
+            if (!keepBlock) {
+                // Recorded as a weigh-in, not just stored: it is the opening reading of the block
+                // being started on the next line, and the block review compares against it.
+                clean.bodyweightKg?.let { kg ->
+                    preferencesRepository.recordBodyweight(kg, today.toEpochDay())
+                }
+                // The block starts the moment a plan is accepted, not the moment the app was
+                // installed: what is being counted is twelve weeks of *this* programme. beginBlock
+                // keeps the one this replaces if it had finished — re-running setup the week after
+                // a block ends should not lose the block that ended.
+                preferencesRepository.beginBlock(
+                    next = TrainingBlock.startingIn(
+                        today = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(today.toEpochDay()),
+                        weekStart = weekStart,
+                    ),
+                    todayEpochDay = today.toEpochDay(),
+                )
             }
-            // The block starts the moment a plan is accepted, not the moment the app was
-            // installed: what is being counted is twelve weeks of *this* programme. beginBlock
-            // keeps the one this replaces if it had finished — re-running setup the week after
-            // a block ends should not lose the block that ended.
-            preferencesRepository.beginBlock(
-                next = TrainingBlock.startingIn(
-                    today = com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(today.toEpochDay()),
-                    weekStart = weekStart,
-                ),
-                todayEpochDay = today.toEpochDay(),
-            )
 
             val byId = catalog.associateBy { it.id }
             val pinned = writeGeneratedProgram(blueprint, byId, createdIds)

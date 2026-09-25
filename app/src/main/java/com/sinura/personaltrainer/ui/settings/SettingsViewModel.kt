@@ -189,6 +189,10 @@ class SettingsViewModel @JvmOverloads constructor(
     private val _generateNotice = MutableStateFlow<String?>(null)
     val generateNotice: StateFlow<String?> = _generateNotice.asStateFlow()
 
+    /** "Generate a week" asks first: it adds routines and re-pins the week (audit UI-3). */
+    private val _generateConfirm = MutableStateFlow(false)
+    val generateConfirm: StateFlow<Boolean> = _generateConfirm.asStateFlow()
+
     fun markLaunchPermissionsAsked() {
         viewModelScope.launch {
             container.preferencesRepository.setLaunchPermissionsAsked(true)
@@ -327,7 +331,17 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
+    fun requestGenerateWeek() {
+        _generateConfirm.value = true
+    }
+
+    fun cancelGenerateWeek() {
+        _generateConfirm.value = false
+    }
+
+    /** The confirmed "Generate a week": a fresh week inside the block already running. */
     fun generateWeek() {
+        _generateConfirm.value = false
         viewModelScope.launch {
             runCatchingCancellable {
                 var catalog = container.exerciseRepository.observeAll().first()
@@ -350,6 +364,7 @@ class SettingsViewModel @JvmOverloads constructor(
                         catalog = catalog,
                         weekStart = schedule.weekStart,
                         today = civilToday().toLocalDate(),
+                        keepCurrentBlock = true,
                     )
                 ) {
                     is ApplyPlanResult.Applied -> {

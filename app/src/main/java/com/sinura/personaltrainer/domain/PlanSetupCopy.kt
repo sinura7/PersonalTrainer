@@ -15,4 +15,14 @@ object PlanSetupCopy {
     const val ROW_TITLE = "Add a new block"
 
     const val ROW_SUBTITLE = "Seven questions, then a preview before anything changes"
+
+    /** Settings → Week generator → Generate a week asks this before it writes anything. */
+    const val GENERATE_TITLE = "Generate a new week?"
+
+    const val GENERATE_BODY =
+        "This makes a fresh set of routines from your answers and puts them on your week. " +
+            "Your current routines stay in your list, and your training block and history " +
+            "stay as they are."
+
+    const val GENERATE_CONFIRM = "Generate"
 }
