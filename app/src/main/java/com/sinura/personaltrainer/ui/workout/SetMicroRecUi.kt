@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.domain.coach.CoachSuggestion
 import com.sinura.personaltrainer.domain.LoggedSetView
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.SetMicroRec
+import com.sinura.personaltrainer.domain.SetMicroRecInputs
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.setMicroRecInputs
@@ -29,7 +30,37 @@ internal fun workoutCoachSuggestion(
     wantAnotherSet: Boolean = false,
     historySets: List<ExerciseSetRecord> = emptyList(),
     coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
-): CoachSuggestion? {
+): CoachSuggestion? = workoutCoachInputs(
+    session = session,
+    selectedExerciseId = selectedExerciseId,
+    draft = draft,
+    hint = hint,
+    editingSetId = editingSetId,
+    lighterWeek = lighterWeek,
+    unit = unit,
+    nowMs = nowMs,
+    todayEpochDay = todayEpochDay,
+    wantAnotherSet = wantAnotherSet,
+    historySets = historySets,
+)?.let { inputs -> CoachEngine.suggest(inputs = inputs, prefs = coachPrefs) }
+
+/**
+ * What [workoutCoachSuggestion] asks the coach, or null where it makes no call (no session, or
+ * no lift to ask about). The coach's settings go beside these, not in them.
+ */
+internal fun workoutCoachInputs(
+    session: WorkoutSession?,
+    selectedExerciseId: String?,
+    draft: ActiveExerciseDraft,
+    hint: ProgressionHint?,
+    editingSetId: String?,
+    lighterWeek: Boolean,
+    unit: WeightUnit,
+    nowMs: Long,
+    todayEpochDay: Long,
+    wantAnotherSet: Boolean = false,
+    historySets: List<ExerciseSetRecord> = emptyList(),
+): SetMicroRecInputs? {
     if (session == null) return null
     val exerciseId = session.resolveSelectedExerciseId(selectedExerciseId) ?: return null
     val planned = session.exercises.firstOrNull { it.exercise.id == exerciseId }
@@ -45,36 +76,33 @@ internal fun workoutCoachSuggestion(
     val lastAny = sets.maxByOrNull { it.completedAt }
     // Warm-up drafts are not a preview of the next working set.
     val draftRpe = draft.rpe.takeUnless { draft.isWarmup }
-    return CoachEngine.suggest(
-        setMicroRecInputs(
-            editing = editingSetId != null,
-            loadType = planned?.exercise?.loadType,
-            unit = unit,
-            equipment = planned?.exercise?.equipment,
-            targetSets = planned?.targetSets ?: 0,
-            targetReps = planned?.targetReps ?: 5,
-            targetWeightKg = planned?.targetWeightKg,
-            working = working,
-            lastAnySetWasWarmup = lastAny?.isWarmup == true,
-            hint = hint,
-            lighterWeek = lighterWeek,
-            draftWeightKg = if (draftRpe != null) draft.weightKg else 0.0,
-            draftReps = if (draftRpe != null) draft.reps else 0,
-            draftRpe = draftRpe,
-            nowMs = nowMs,
-            todayEpochDay = todayEpochDay,
-            allowExtra = wantAnotherSet,
-            rpeIntent = true,
-            historyWorking = historySets.map { set ->
-                LoggedSetView(
-                    weightKg = set.weightKg,
-                    reps = set.reps,
-                    rpe = set.rpe,
-                    isWarmup = false,
-                )
-            },
-        ),
-        prefs = coachPrefs,
+    return setMicroRecInputs(
+        editing = editingSetId != null,
+        loadType = planned?.exercise?.loadType,
+        unit = unit,
+        equipment = planned?.exercise?.equipment,
+        targetSets = planned?.targetSets ?: 0,
+        targetReps = planned?.targetReps ?: 5,
+        targetWeightKg = planned?.targetWeightKg,
+        working = working,
+        lastAnySetWasWarmup = lastAny?.isWarmup == true,
+        hint = hint,
+        lighterWeek = lighterWeek,
+        draftWeightKg = if (draftRpe != null) draft.weightKg else 0.0,
+        draftReps = if (draftRpe != null) draft.reps else 0,
+        draftRpe = draftRpe,
+        nowMs = nowMs,
+        todayEpochDay = todayEpochDay,
+        allowExtra = wantAnotherSet,
+        rpeIntent = true,
+        historyWorking = historySets.map { set ->
+            LoggedSetView(
+                weightKg = set.weightKg,
+                reps = set.reps,
+                rpe = set.rpe,
+                isWarmup = false,
+            )
+        },
     )
 }
 

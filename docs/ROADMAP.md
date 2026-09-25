@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Whole-app audit packet W2c (audit C-2): the coach no
+> longer redoes its sum on every tap in the Log or every second on the
+> rest page; it is asked again only when something it reads changes.
+> The lift picker sorts the library only while it is open, and the lift
+> it suggests follows edits to that lift. Nothing changes on screen.
+> ADR-029, ADR-008. Quiet.
+>
 > 25 Sep 2026 — Whole-app audit packet W2b-4 (owner decision of 24
 > September): the rest page's "Next" line now says exactly what the Log's
 > Next card says: after Another set it names the extra set, on a lift's

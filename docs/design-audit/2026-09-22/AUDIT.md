@@ -77,7 +77,7 @@ late can fall behind another phone's cursor; nothing serialises two passes.
 | # | Finding | Status |
 |---|---|---|
 | C-1 | The goal set in Settings never reaches the workout (`workoutCoachSuggestion(coachPrefs = DEFAULT)`). | Open: W1b. |
-| C-2 | The engine runs three times per tap, and `RuleTrace.generatedAtMs` defeats equality, so the flow re-emits on every tap. | Open: W2c. |
+| C-2 | The engine runs three times per tap, and `RuleTrace.generatedAtMs` defeats equality, so the flow re-emits on every tap. | Fixed (W2c, 25 September 2026). What W2c found: the Log asked once per entry change (a weight step included) and re-issued its call; the rest page asked twice a second while a rest ran. Now the Log asks only when what the coach reads changes (`CoachKey`: the inputs with the clock at zero, plus the coach settings), the page only when that or the rest of its floor changes, and the page's second, undrawn call is gone. |
 
 ### Tabs
 
