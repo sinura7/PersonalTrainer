@@ -53,7 +53,7 @@ class SettingsHomeLayoutTest {
         assertTrue(screen.contains("SchedulePrefsSection("))
         assertTrue(screen.contains("BackupRestoreSection("))
         assertTrue(screen.contains("Generate a week"))
-        assertTrue(screen.contains("viewModel::generateWeek"))
+        assertTrue(screen.contains("viewModel::requestGenerateWeek"))
         assertTrue(screen.contains("SecondaryGymButton("))
         val homeBranch = screen.substringAfter("SettingsPage.HOME").substringBefore("SettingsPage.DISPLAY")
         assertFalse(homeBranch.contains("SchedulePrefsSection"))
@@ -96,7 +96,7 @@ class SettingsHomeLayoutTest {
         assertFalse(schedule.contains("FlowRow"))
         assertFalse(schedule.contains("PreferenceBlock"))
         val screen = readOwned("ui/settings/SettingsScreen.kt")
-        assertTrue(screen.contains("viewModel::generateWeek"))
+        assertTrue(screen.contains("viewModel::requestGenerateWeek"))
         assertTrue(screen.contains("viewModel::setTrainingAge"))
         assertTrue(screen.contains("viewModel::setTrainingPlace"))
     }

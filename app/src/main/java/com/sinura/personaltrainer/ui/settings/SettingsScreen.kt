@@ -26,6 +26,7 @@ import com.sinura.personaltrainer.diagnostics.DiagnosticMetadata
 import com.sinura.personaltrainer.data.backup.BackupJson
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.PlanSetupCopy
 import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.AccountAuthCopy
 import com.sinura.personaltrainer.domain.LegalCopy
@@ -71,6 +72,7 @@ fun SettingsScreen(
     val trainingAge = prefs.trainingAge
     val trainingPlace = prefs.trainingPlace
     val generateNotice by viewModel.generateNotice.collectAsStateWithLifecycle()
+    val generateConfirm by viewModel.generateConfirm.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = context.findActivity()
     val debugUpdate = rememberDebugUpdatePort()
@@ -263,6 +265,7 @@ fun SettingsScreen(
                     trainingPlace = trainingPlace,
                     coachPrefs = coachPrefs,
                     generateNotice = generateNotice,
+                    generateConfirm = generateConfirm,
                     viewModel = viewModel,
                 )
             }
@@ -504,13 +507,14 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsGeneratorPane(
+internal fun SettingsGeneratorPane(
     schedulePrefs: SchedulePreferences,
     preferredDays: Set<Weekday>,
     trainingAge: TrainingAge,
     trainingPlace: TrainingPlace?,
     coachPrefs: CoachPreferences,
     generateNotice: String?,
+    generateConfirm: Boolean,
     viewModel: SettingsViewModel,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap)) {
@@ -542,8 +546,17 @@ private fun SettingsGeneratorPane(
         }
         SecondaryGymButton(
             text = "Generate a week",
-            onClick = viewModel::generateWeek,
+            onClick = viewModel::requestGenerateWeek,
             height = Metrics.touchMin,
+        )
+    }
+    if (generateConfirm) {
+        ConfirmActionDialog(
+            title = PlanSetupCopy.GENERATE_TITLE,
+            body = PlanSetupCopy.GENERATE_BODY,
+            confirmLabel = PlanSetupCopy.GENERATE_CONFIRM,
+            onConfirm = viewModel::generateWeek,
+            onDismiss = viewModel::cancelGenerateWeek,
         )
     }
 }

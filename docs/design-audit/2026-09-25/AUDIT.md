@@ -155,7 +155,7 @@ means the person training with the app.
 
 | ID | What it means for you | Where it goes |
 |---|---|---|
-| UI-3 (B10b) | One tap on Settings → Week generator → "Generate a week" silently restarts your 12-week block from this week and adds a second copy of every routine; the other door to the same code warns and previews first. | R1 |
+| UI-3 (B10b) | One tap on Settings → Week generator → "Generate a week" silently restarts your 12-week block from this week and adds a second copy of every routine; the other door to the same code warns and previews first. | R1-4: fixed 25 September (#422): it asks first and keeps the block; whether it should replace the week instead of adding beside it is an owner question |
 | BK-3 (B5) | The check that stops an empty backup from wiping your data does not know about goals, saved cardio templates or the planned week, so a catalog-only file can wipe those without the warning. The safety copy taken just before still holds them. | R1-2: fixed 25 September (#420) |
 | BK-1 (B5) | Signing out of Google Drive is supposed to forget your backup password and switch automatic backup off; it does neither, it just hides the switch, and backups resume by themselves on the next sign-in. The privacy page says otherwise. | R1-1: fixed 25 September (#419); sign-out now asks first while automatic backup is on |
 | BK-4 (B5) | The after-workout Drive copy runs only while the summary is open; tapping Done a few seconds after finishing cancels it, and nothing retries or says so. | R1-3: fixed 25 September (#421) |

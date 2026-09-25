@@ -33,6 +33,7 @@ import com.sinura.personaltrainer.timer.RestTimerAlerts
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAlarmSettingsIntent
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.util.toLocalDate
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -189,6 +190,10 @@ class SettingsViewModel @JvmOverloads constructor(
     private val _generateNotice = MutableStateFlow<String?>(null)
     val generateNotice: StateFlow<String?> = _generateNotice.asStateFlow()
 
+    /** "Generate a week" asks first: it adds a set of routines to the week (audit UI-3). */
+    private val _generateConfirm = MutableStateFlow(false)
+    val generateConfirm: StateFlow<Boolean> = _generateConfirm.asStateFlow()
+
     fun markLaunchPermissionsAsked() {
         viewModelScope.launch {
             container.preferencesRepository.setLaunchPermissionsAsked(true)
@@ -327,8 +332,25 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
+    /** The generation in flight: a second confirm before it lands would add a second set. */
+    private var generateJob: Job? = null
+
+    fun requestGenerateWeek() {
+        if (generateJob?.isActive == true) return
+        _generateConfirm.value = true
+    }
+
+    fun cancelGenerateWeek() {
+        _generateConfirm.value = false
+    }
+
+    /** The confirmed "Generate a week": fresh routines inside the current block. */
     fun generateWeek() {
-        viewModelScope.launch {
+        _generateConfirm.value = false
+        if (generateJob?.isActive == true) return
+        // A notice left from the last run would make this one look like it did nothing.
+        _generateNotice.value = null
+        generateJob = viewModelScope.launch {
             runCatchingCancellable {
                 var catalog = container.exerciseRepository.observeAll().first()
                 if (catalog.isEmpty()) {
@@ -350,6 +372,7 @@ class SettingsViewModel @JvmOverloads constructor(
                         catalog = catalog,
                         weekStart = schedule.weekStart,
                         today = civilToday().toLocalDate(),
+                        keepCurrentBlock = true,
                     )
                 ) {
                     is ApplyPlanResult.Applied -> {

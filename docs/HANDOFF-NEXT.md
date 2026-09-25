@@ -182,6 +182,11 @@ Done so far:
   so tapping Done no longer cancels it; one Drive backup runs at a time,
   sign-out and switch-off stop a copy in flight, and a copy gives up
   after ten minutes (audit BK-4; #421).
+- **R1-4:** Settings' "Generate a week" asks first, keeps the training
+  block you are in (finished or not), never logs an old bodyweight as
+  today's weigh-in, and cannot run twice. It still adds its routines
+  beside the ones on your week; whether it should replace them is an
+  owner question (audit UI-3; #422).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -206,7 +211,7 @@ Done so far:
 
 Next, in order (owner decision of 25 September, audit X6; the live order
 is the table in FRONTEND_REDESIGN.md): the rest of R1 (data safety:
-R1-4 "Generate a week", R1-5 the settings file), R2 (crash and coach), W2d-2 and W2d-3, the rest-alarm packet,
+R1-5, the settings file), R2 (crash and coach), W2d-2 and W2d-3, the rest-alarm packet,
 R3 (updater), then a check-only phone drop, then W3, S1, X8 and X9. X2b
 completed Wave 0.
 

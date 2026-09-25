@@ -646,4 +646,70 @@ class SettingsViewModelTest {
             names.any { it.contains("Squat") || it.contains("Deadlift") || it.contains("Bench") },
         )
     }
+
+    @Test
+    fun generatingAWeekKeepsTheBlockAlreadyRunningAndItsWeighIns() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        deps.dbMaintenance.seedCatalog()
+        val today = java.time.LocalDate.now().toEpochDay()
+        val running = com.sinura.personaltrainer.domain.TrainingBlock(startEpochDay = today - 21, weeks = 12)
+        deps.preferencesRepository.beginBlock(running, todayEpochDay = today)
+        deps.preferencesRepository.recordBodyweight(80.0, epochDay = today - 7)
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        viewModel!!.generateWeek()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.generateNotice.first { it != null } }
+
+        // Settings' Generate a week re-plans the week; it is not setup starting a new block.
+        assertEquals(running, deps.preferencesRepository.trainingBlock.first())
+        // No weigh-in today: the week-old 80 kg is not re-logged as today's reading.
+        val log = deps.preferencesRepository.bodyweightLog.first()
+        assertEquals(listOf(today - 7), log.map { it.epochDay })
+        assertTrue(deps.routineRepository.observeAll().first().isNotEmpty())
+    }
+
+    @Test
+    fun generatingAWeekWithNoBlockYetStartsOne() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        deps.dbMaintenance.seedCatalog()
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        assertNull(deps.preferencesRepository.trainingBlock.first())
+        val today = java.time.LocalDate.now().toEpochDay()
+        deps.preferencesRepository.recordBodyweight(80.0, epochDay = today - 30)
+
+        viewModel!!.generateWeek()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.generateNotice.first { it != null } }
+
+        assertNotNull(deps.preferencesRepository.trainingBlock.first())
+        // Starting the block here is not setup: the month-old reading stays the only one.
+        assertEquals(listOf(today - 30), deps.preferencesRepository.bodyweightLog.first().map { it.epochDay })
+    }
+
+    @Test
+    fun aSecondConfirmWhileAWeekIsBeingGeneratedAddsNothing() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        deps.dbMaintenance.seedCatalog()
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        viewModel!!.generateWeek()
+        viewModel!!.requestGenerateWeek()
+        // The button does not even ask again while the first run is writing.
+        assertFalse(viewModel!!.generateConfirm.value)
+        viewModel!!.generateWeek()
+        withTimeout(TestWaits.FLOW_MS) { viewModel!!.generateNotice.first { it != null } }
+
+        assertFalse(viewModel!!.generateConfirm.value)
+        val names = deps.routineRepository.observeAll().first().map { it.name }
+        assertTrue(names.isNotEmpty())
+        assertEquals("one set of routines, not two: $names", names.distinct(), names)
+    }
 }
