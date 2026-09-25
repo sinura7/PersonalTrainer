@@ -11,6 +11,7 @@ import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
+import com.sinura.personaltrainer.testutil.catchingUncaught
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -752,19 +753,6 @@ class SettingsViewModelTest {
     }
 
     /** Runs [block] and returns anything a coroutine threw past it to this thread's handler. */
-    private suspend fun catchingUncaught(block: suspend () -> Unit): Throwable? {
-        val uncaught = java.util.concurrent.atomic.AtomicReference<Throwable?>(null)
-        val thread = Thread.currentThread()
-        val previous = thread.uncaughtExceptionHandler
-        thread.uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, thrown -> uncaught.set(thrown) }
-        try {
-            block()
-        } finally {
-            thread.uncaughtExceptionHandler = previous
-        }
-        return uncaught.get()
-    }
-
     /** A settings file that cannot be read or written, for any reason but corruption. */
     private object UnreadableSettings :
         androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences> {

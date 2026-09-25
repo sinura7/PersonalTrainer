@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.BodyweightDao
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.LoadType
@@ -18,14 +19,18 @@ import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.testutil.FailingWeighInsDao
 import com.sinura.personaltrainer.testutil.FrozenTime
+import com.sinura.personaltrainer.testutil.ReadGate
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
+import com.sinura.personaltrainer.testutil.catchingUncaught
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -33,6 +38,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -73,6 +79,7 @@ class HomeViewModelTest {
 
     private fun graph(
         insights: MutableStateFlow<TrainingInsights> = MutableStateFlow(TrainingInsights()),
+        bodyweightDaoDecorator: (BodyweightDao) -> BodyweightDao = { it },
     ): FakeAppDependencies {
         val zone = ZoneId.systemDefault()
         val morning = ZonedDateTime.now(zone).toLocalDate().atTime(10, 0).atZone(zone)
@@ -81,7 +88,36 @@ class HomeViewModelTest {
             insights,
             scheduler = dispatcher,
             time = FrozenTime(morning.toInstant().toEpochMilli(), zone.id),
+            bodyweightDaoDecorator = bodyweightDaoDecorator,
         )
+    }
+
+    /**
+     * Audit DB-1: Home read the weigh-in log raw, so one failed read closed the app, and
+     * Home is the first screen. It now keeps the log it had and goes on updating.
+     */
+    @Test
+    fun aWeighInReadThatFailsKeepsHomeUpInsteadOfClosingTheApp() = runBlocking {
+        val gate = ReadGate(shouldFail = false)
+        val insights = MutableStateFlow(TrainingInsights())
+        deps = graph(insights = insights, bodyweightDaoDecorator = { FailingWeighInsDao(it, gate) })
+        viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        viewModel!!.uiState.awaitFirst { !it.isLoading }
+
+        var updated: HomeUiState? = null
+        val crash = catchingUncaught {
+            gate.shouldFail = true
+            deps.preferencesRepository.recordBodyweight(kg = 80.0, epochDay = todayEpochDay())
+            withTimeout(TestWaits.FLOW_MS) {
+                while (gate.refusals.get() == 0) delay(10)
+            }
+            insights.value = TrainingInsights(recommendations = listOf(rec("coverage-chest")))
+            updated = withTimeoutOrNull(TestWaits.FLOW_MS) {
+                viewModel!!.uiState.first { state -> state.recommendations.any { it.id == "coverage-chest" } }
+            }
+        }
+        assertNull("a failed weigh-in read closed the app", crash)
+        assertNotNull("Home stopped updating after one failed weigh-in read", updated)
     }
 
     /**

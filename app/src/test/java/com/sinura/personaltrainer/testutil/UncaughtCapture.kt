@@ -4,8 +4,9 @@ import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Runs [block] and returns the first exception that reached an uncaught-exception handler
- * meanwhile, on this thread or any other, or null. On a phone that exception closes the app;
- * in a JVM test it is only printed, so a test that means "does not crash" has to catch it.
+ * meanwhile, or null: on this thread, or on any thread without a handler of its own. On a
+ * phone that exception closes the app; in a JVM test it is only printed, so a test that means
+ * "does not crash" has to catch it.
  *
  * The default handler is swapped too because a coroutine resumed by Room's own threads
  * fails there, not on the test's thread.

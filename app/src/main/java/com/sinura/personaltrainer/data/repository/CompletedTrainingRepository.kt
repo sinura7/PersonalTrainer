@@ -43,10 +43,11 @@ class CompletedTrainingRepository(
      *
      * Never throws. It used to combine two raw reads, so an activity log that could not be
      * read took History down with it instead of reaching the list's own health (audit UI-17).
-     * A failed part holds what it last had; the list's reads say whether the page is behind.
+     * A failed part holds what it last had, or counts as nothing if it never loaded; the
+     * list's own reads say whether the page is behind.
      */
     fun observeRevision(): Flow<String> = combine(
-        workouts.observeFinishedWorkRevision().observeHealth("the finished-work revision"),
+        workouts.observeFinishedWorkRevisionHealth(),
         activities.observeCompletedSummariesHealth(),
         activities.observeRecordSetsHealth(),
     ) { workoutRevision, summaryReads, records ->

@@ -475,6 +475,14 @@ class PreferencesRepository(
             ?: pref { prefs -> BodyweightLog.decode(prefs[BODYWEIGHT_LOG]) }
 
     /**
+     * [bodyweightLog] as [DataHealth], for screens. The plain flow throws what Room throws,
+     * which is right for a backup (a copy without the weigh-ins is worse than no copy) and
+     * closed the app on a screen (audit DB-1, UI-17).
+     */
+    val bodyweightLogHealth: Flow<DataHealth<List<BodyweightEntry>>> =
+        bodyweightLog.observeHealth("the weigh-ins")
+
+    /**
      * Record what the lifter weighs today, keeping the history.
      *
      * The only writer anything should use. [setBodyweightKg] survives for clearing the value,
@@ -553,6 +561,10 @@ class PreferencesRepository(
             ?.map { rows -> rows.map { it.toDomain() } }
             ?.distinctUntilChanged()
             ?: pref { prefs -> BlockArchive.decode(prefs[PAST_BLOCKS]) }
+
+    /** [pastBlocks] as [DataHealth], for screens, as [bodyweightLogHealth] is. */
+    val pastBlocksHealth: Flow<DataHealth<List<TrainingBlock>>> =
+        pastBlocks.observeHealth("past blocks")
 
     /**
      * Make [next] the current block, keeping the one it replaces if it was finished.

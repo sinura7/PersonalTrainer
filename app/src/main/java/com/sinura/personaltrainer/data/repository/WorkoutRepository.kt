@@ -214,10 +214,14 @@ class WorkoutRepository(
      * A string rather than the entity so callers outside the data layer do not learn the
      * fingerprint's shape; equality is the whole contract.
      */
-    fun observeFinishedWorkRevision(): Flow<String> =
+    private fun observeFinishedWorkRevision(): Flow<String> =
         workoutDao.observeFinishedWorkGeneration()
             .distinctUntilChanged()
             .map { it.revisionToken() }
+
+    /** The only way out of the revision read, as for the summaries (audit DB-1, UI-17). */
+    fun observeFinishedWorkRevisionHealth(): Flow<DataHealth<String>> =
+        observeFinishedWorkRevision().observeHealth("the finished-work revision")
 
     /**
      * Every finished working set with its lift's name and class, for the lifetime records

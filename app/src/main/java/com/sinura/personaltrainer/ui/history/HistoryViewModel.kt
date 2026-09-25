@@ -111,39 +111,62 @@ class HistoryViewModel @JvmOverloads constructor(
      */
     private val revision = container.completedTrainingRepository.observeRevision()
 
+    /** The reviews last built, shown while a later read fails (the sidecar rule). */
+    @Volatile
+    private var lastPastBlocks: List<FinishedBlock> = emptyList()
+
+    /**
+     * Every read here is guarded. The blocks, the weigh-ins and the full log each threw
+     * through the catalog and closed the app (audit UI-17); a failed one now marks the page
+     * behind and the section keeps what it last showed.
+     */
     private val pastBlockReviews = combine(
-        container.preferencesRepository.pastBlocks,
+        container.preferencesRepository.pastBlocksHealth,
         container.preferencesRepository.weightUnit,
-        container.preferencesRepository.bodyweightLog,
+        container.preferencesRepository.bodyweightLogHealth,
         revision,
-    ) { blocks, unit, log, finishedWork -> PastBlockInputs(blocks, unit, log, finishedWork) }
+    ) { blocks, unit, log, finishedWork ->
+        PastBlockInputs(
+            blocks = blocks.presentValue().orEmpty(),
+            unit = unit,
+            bodyweightLog = log.presentValue().orEmpty(),
+            revision = finishedWork,
+            readsBehind = blocks !is DataHealth.Available || log !is DataHealth.Available,
+        )
+    }
         .distinctUntilChanged()
         .flatMapLatest { inputs ->
             flow {
-                // A full-log read that fails marks the page behind. It used to throw through
-                // the catalog and close the app (audit UI-17).
-                val reviews = runCatchingCancellable {
-                    val items = container.completedTrainingRepository.all()
-                    inputs.blocks
-                        .asReversed()
-                        .map { block ->
-                            FinishedBlock(
-                                block = block,
-                                review = BlockReviewBuilder.build(
+                // With no finished block there is nothing to review, so the whole log is
+                // not read at all.
+                val reviews = if (inputs.blocks.isEmpty()) {
+                    Result.success(emptyList<FinishedBlock>())
+                } else {
+                    runCatchingCancellable {
+                        val items = container.completedTrainingRepository.all()
+                        inputs.blocks
+                            .asReversed()
+                            .map { block ->
+                                FinishedBlock(
                                     block = block,
-                                    items = items,
-                                    unit = inputs.unit,
-                                    bodyweightLog = inputs.bodyweightLog,
-                                ),
-                            )
-                        }
-                        .filterNot { it.review.isEmpty }
+                                    review = BlockReviewBuilder.build(
+                                        block = block,
+                                        items = items,
+                                        unit = inputs.unit,
+                                        bodyweightLog = inputs.bodyweightLog,
+                                    ),
+                                )
+                            }
+                            .filterNot { it.review.isEmpty }
+                    }
                 }
-                reviews.onFailure { thrown -> AppLog.e(TAG, "Reading past blocks failed", thrown) }
+                reviews
+                    .onSuccess { built -> lastPastBlocks = built }
+                    .onFailure { thrown -> AppLog.e(TAG, "Reading past blocks failed", thrown) }
                 emit(
                     HistorySidecar(
-                        value = reviews.getOrDefault(emptyList()),
-                        stale = reviews.isFailure,
+                        value = reviews.getOrDefault(lastPastBlocks),
+                        stale = inputs.readsBehind || reviews.isFailure,
                     ),
                 )
             }
@@ -396,6 +419,8 @@ class HistoryViewModel @JvmOverloads constructor(
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
         val revision: String,
+        /** The blocks or the weigh-ins came from a failed read: what they last had, or none. */
+        val readsBehind: Boolean,
     )
 
     private data class HistoryCatalog(

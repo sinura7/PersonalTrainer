@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 
 /** Flipped by a test between reads, so the same screen can see one failure and then recover. */
-class ActivityReadGate(var shouldFail: Boolean)
+class ActivityReadGate(@Volatile var shouldFail: Boolean)
 
 /**
  * The activity DAO with its single-row read made to throw on demand. Every other method

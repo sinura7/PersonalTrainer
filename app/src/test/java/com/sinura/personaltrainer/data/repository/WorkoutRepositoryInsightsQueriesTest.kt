@@ -149,7 +149,7 @@ class WorkoutRepositoryInsightsQueriesTest {
             finishedAt = START + 1,
             sets = listOf(Triple(SQUAT, 100.0, 5)),
         )
-        val before = repository.observeFinishedWorkRevision().first()
+        val before = repository.observeFinishedWorkRevisionHealth().presentValues().first()
 
         insertLiveSession("live")
         database.workoutDao().insertSet(
@@ -165,7 +165,7 @@ class WorkoutRepositoryInsightsQueriesTest {
                 completedAt = START + 10_000,
             ),
         )
-        assertEquals(before, repository.observeFinishedWorkRevision().first())
+        assertEquals(before, repository.observeFinishedWorkRevisionHealth().presentValues().first())
 
         // Neither a count nor a timestamp moves for a corrected weight; the sums do.
         repository.updateSet(
@@ -175,7 +175,7 @@ class WorkoutRepositoryInsightsQueriesTest {
             rpe = null,
             isWarmup = false,
         )
-        assertNotEquals(before, repository.observeFinishedWorkRevision().first())
+        assertNotEquals(before, repository.observeFinishedWorkRevisionHealth().presentValues().first())
     }
 
     @Test

@@ -66,6 +66,7 @@ import com.sinura.personaltrainer.ui.components.InstrumentChoiceGroup
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
+import com.sinura.personaltrainer.ui.components.QuietButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SessionLogRow
 import com.sinura.personaltrainer.domain.LiveBarCopy
@@ -86,6 +87,10 @@ import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.util.toYearMonth
 import java.time.LocalDate
+
+object HistoryTestTags {
+    const val STALE_RETRY = "history-stale-retry"
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -167,13 +172,21 @@ fun HistoryScreen(
                             item(key = "stale") {
                                 // Degraded pipeline: the list below is the last loaded
                                 // read, not fresh. Rendering it indistinguishably from
-                                // live data hid the DataHealth signal entirely.
-                                Text(
-                                    HistoryCopy.STALE_LIST,
-                                    modifier = Modifier.padding(bottom = Metrics.space2),
-                                    style = InstrumentType.caption,
-                                    color = TextSecondary,
-                                )
+                                // live data hid the DataHealth signal entirely. Retry reads
+                                // every part again; before it, only leaving the tab did.
+                                Column(modifier = Modifier.padding(bottom = Metrics.space2)) {
+                                    Text(
+                                        HistoryCopy.STALE_LIST,
+                                        style = InstrumentType.caption,
+                                        color = TextSecondary,
+                                    )
+                                    QuietButton(
+                                        text = DataHealthCopy.RETRY,
+                                        onClick = viewModel::retryHistory,
+                                        plain = true,
+                                        modifier = Modifier.testTag(HistoryTestTags.STALE_RETRY),
+                                    )
+                                }
                             }
                         }
                         item(key = "horizon") {

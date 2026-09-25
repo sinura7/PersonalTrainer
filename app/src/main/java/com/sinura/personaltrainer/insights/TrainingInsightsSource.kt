@@ -134,9 +134,9 @@ class TrainingInsightsSource(
         if (includeWeekPlan) assembledWithPlan else assembledWithoutPlan
 
     /**
-     * A throw ends this pass quietly: screens keep the last summary they had, and the next
-     * subscription after the grace period assembles again, where an uncaught one used to
-     * close the app and leave nothing to restart (audit DB-1, AR-1).
+     * A throw ends this pass quietly: screens keep the summary they had, if any, and the next
+     * subscription after the grace period assembles again. An uncaught one used to close the
+     * app and leave nothing to restart (audit DB-1, AR-1).
      */
     private fun shareAssembled(includeWeekPlan: Boolean): Flow<Assembled> =
         assemble(includeWeekPlan)
@@ -175,8 +175,10 @@ class TrainingInsightsSource(
     }
 
     private fun assemble(includeWeekPlan: Boolean): Flow<Assembled> {
-        // Every input is a guarded read: a failed one holds what it last had instead of
-        // throwing through the combine (audit DB-1).
+        // Every input is a guarded read: one that fails after its first value holds that value
+        // instead of throwing through the combine (audit DB-1). One that fails before it has
+        // nothing to hold, so the summary waits, and Home stays on its spinner, until the next
+        // visit reads again; F4 turns that wait into a read-error state.
         val activitySummaries = activityRepository?.observeCompletedSummariesHealth()?.presentValues()
             ?: flowOf(emptyList())
         val windowStart = nowMs() - WINDOW_MS
