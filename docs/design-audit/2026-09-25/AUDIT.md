@@ -163,7 +163,7 @@ means the person training with the app.
 | DB-1 (B4b) | If storage hiccups while Home reads your history, the app closes instead of showing the last numbers; four of Home's twelve feeds skip the rule the other eight follow. | R2-1: fixed 25 September (#424): every Home feed is guarded, and the pipeline's scope logs |
 | UI-17 (B10a) | The same on History: an unreadable activity log leaves the screen blank and closes the app instead of offering Retry. Proven by the render harness. | R2-1: fixed 25 September (#424): every History read is guarded, and the behind line offers Retry |
 | UI-12 (B9a) | Finishing or discarding from the bottom bar saves the workout, but if the small follow-up write fails the app crashes, the plan still shows the workout not done and no summary opens. | R2-2: fixed 25 September (#425): the follow-up write is logged and the finish stands |
-| AR-2 (B13a) | The one error the rollback copy exists to warn about is never captured in diagnostics, because the capture is installed a line too late. | R2 |
+| AR-2 (B13a) | The one error the rollback copy exists to warn about is never captured in diagnostics, because the capture is installed a line too late. | R2-3: fixed 25 September (#426) for a copy that fails while being written; a skipped copy (warnings) and a record that outlives the app are follow-ups |
 
 ### The floor, the coach and the rest timer
 
