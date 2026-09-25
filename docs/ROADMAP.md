@@ -19,11 +19,14 @@
 > owner decision of 25 September, "Finish blocked or warned"; warned was
 > taken): tapping Finish while you are correcting a set you already
 > logged used to end the workout and drop the correction without a word.
-> The "End workout?" question now says first that the change is not
-> saved, and offers "Back to my change". Save as is still ends the
-> workout with that set as it was saved. Rides along with the next drop;
-> phone check: open a logged set, change its weight, tap Finish, and
-> read the warning.
+> On the workout screen, the "End workout?" question now says first that
+> a set is open for changes and offers "Back to my change"; Save as is
+> still ends the workout with that set as it was saved. The question
+> scrolls, so at the largest text or with the phone sideways nothing is
+> cut off. The bottom bar's Finish, on other screens, no longer finishes
+> while a set is open for changes: it says to open the workout first.
+> Rides along with the next drop; phone check: open a logged set, change
+> its weight, tap Finish, and read the warning.
 >
 > 25 Sep 2026 — Audit packet R2-4 (audit X6, DM-1; owner decision of 25
 > September): the coach no longer talks in reps about planks, dead

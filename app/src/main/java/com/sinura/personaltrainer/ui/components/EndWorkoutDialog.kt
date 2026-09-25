@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,12 +42,25 @@ fun EndWorkoutDialog(
         onDismissRequest = onDismiss,
         title = { Text(EndWorkoutCopy.TITLE, style = InstrumentType.title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+            // Material's text slot is bounded before the actions: at large text the warning,
+            // the body and the notes scroll here rather than being cut off.
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
                 if (editOpen) {
                     Text(
                         EndWorkoutCopy.EDIT_OPEN,
                         style = InstrumentType.body,
                         modifier = Modifier.testTag(EndWorkoutTags.EDIT_OPEN),
+                    )
+                    // Beside the warning it answers, and in the scroll rather than the button
+                    // row: a third button there left a phone held sideways no room to show the
+                    // warning at all.
+                    SecondaryGymButton(
+                        text = EndWorkoutCopy.BACK_TO_EDIT,
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag(EndWorkoutTags.BACK_TO_EDIT),
                     )
                 }
                 Text(
@@ -66,13 +81,6 @@ fun EndWorkoutDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                if (editOpen) {
-                    SecondaryGymButton(
-                        text = EndWorkoutCopy.BACK_TO_EDIT,
-                        onClick = onDismiss,
-                        modifier = Modifier.testTag(EndWorkoutTags.BACK_TO_EDIT),
-                    )
-                }
                 PrimaryGymButton(
                     text = EndWorkoutCopy.SAVE,
                     onClick = onSave,

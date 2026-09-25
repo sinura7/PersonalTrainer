@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.EndWorkoutTags
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +21,9 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -62,6 +65,41 @@ class FinishWithOpenCorrectionRenderTest {
 
     @Test
     fun finishWhileASetIsBeingCorrectedSaysTheChangeIsNotSavedAndLeadsBackToIt() {
+        val (vm, session) = openACorrection()
+
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.onNodeWithTag(EndWorkoutTags.EDIT_OPEN).assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.BACK_TO_EDIT).performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertDoesNotExist()
+        val back = vm.uiState.value
+        assertFalse("going back must not start a finish", back.mutating || back.finished)
+        assertEquals("the change is still open", session.sets.single().id, back.editingSetId)
+        assertEquals("the change itself is kept", CORRECTED, back.draft.weightKg, 1e-6)
+        assertEquals(WorkoutPrimaryKind.SAVE_CHANGES, vm.primaryAction.value.kind)
+        assertNull(
+            "going back must not end the workout",
+            runBlocking { deps.workoutRepository.getSession(session.id) }?.finishedAt,
+        )
+    }
+
+    /** What the warning says Save as is does: the workout ends, the set as it was saved. */
+    @Test
+    fun saveAsIsEndsTheWorkoutWithTheSetAsItWasSaved() {
+        val (vm, session) = openACorrection()
+
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).performClick()
+
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.finished }
+        val saved = checkNotNull(runBlocking { deps.workoutRepository.getSession(session.id) })
+        assertTrue(saved.isFinished)
+        assertEquals(FLOOR_KG70, saved.sets.single().weightKg, 1e-6)
+    }
+
+    /** A logged set open for correction, its weight changed and the change landed in the entry. */
+    private fun openACorrection(): Pair<ActiveWorkoutViewModel, com.sinura.personaltrainer.domain.WorkoutSession> {
         val vm = openLegExtension(deps, viewModels, loggedSets = floorSets(1))
         compose.showWorkoutScreen(vm)
         val session = checkNotNull(vm.uiState.value.session)
@@ -70,20 +108,12 @@ class FinishWithOpenCorrectionRenderTest {
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {
             vm.uiState.value.editingSetId == setId && !vm.uiState.value.entryLocked
         }
-        vm.setWeight(FLOOR_KG70 + 5.0)
+        vm.setWeight(CORRECTED)
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {
+            kotlin.math.abs(vm.uiState.value.draft.weightKg - CORRECTED) < 1e-6
+        }
         compose.waitForIdle()
-
-        compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
-        compose.onNodeWithTag(EndWorkoutTags.EDIT_OPEN).assertIsDisplayed()
-        compose.onNodeWithTag(EndWorkoutTags.BACK_TO_EDIT).performClick()
-        compose.waitForIdle()
-
-        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertDoesNotExist()
-        assertEquals("the change is still open", setId, vm.uiState.value.editingSetId)
-        assertNull(
-            "going back must not end the workout",
-            runBlocking { deps.workoutRepository.getSession(session.id) }?.finishedAt,
-        )
+        return vm to session
     }
 
     @Test
@@ -96,5 +126,10 @@ class FinishWithOpenCorrectionRenderTest {
         compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsDisplayed()
         compose.onNodeWithTag(EndWorkoutTags.EDIT_OPEN).assertDoesNotExist()
         compose.onNodeWithTag(EndWorkoutTags.BACK_TO_EDIT).assertDoesNotExist()
+    }
+
+    private companion object {
+        /** 75 lb, one clean step from the logged 70. */
+        val CORRECTED: Double = WeightConverter.lbsToKg(75.0)
     }
 }

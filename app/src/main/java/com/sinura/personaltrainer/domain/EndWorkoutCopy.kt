@@ -18,9 +18,13 @@ object EndWorkoutCopy {
      * drop the change without a word; the set kept its saved values (audit UI-2).
      */
     const val EDIT_OPEN =
-        "You are still changing a set you logged. Save as is keeps that set as it was saved. " +
-            "To keep your change, go back and tap Save changes."
+        "A set you logged is open for changes. Save as is keeps it as it was saved. " +
+            "To keep a change, go back and tap Save changes."
     const val BACK_TO_EDIT = "Back to my change"
+
+    /** The bottom bar's Finish while a logged set is open for changes on the workout screen. */
+    const val BAR_EDIT_OPEN =
+        "A set you logged is open for changes. Open the workout to save or cancel it, then finish."
 
     fun body(loggedSets: Int): String =
         if (loggedSets > 0) {
