@@ -18,8 +18,8 @@ yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 566 | 94,427 | — |
-| `app/src/test` | 470 | 82,218 | 3,206 |
+| `app/src/main` | 566 | 94,432 | — |
+| `app/src/test` | 470 | 82,245 | 3,207 |
 | `app/src/androidTest` | 33 | 5,914 | 112 `@Test` methods (some parameterised) |
 | `app/src/debug` | 12 | 1,618 | Compose previews and the state galleries |
 | `app/src/sharedTest` | 5 | 171 | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
