@@ -1,6 +1,8 @@
 package com.sinura.personaltrainer
 
 import android.content.Context
+import com.sinura.personaltrainer.data.repository.AfterWorkoutBackup
+import com.sinura.personaltrainer.data.repository.AfterWorkoutUpload
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -356,5 +358,13 @@ class AppContainer(context: Context) : AppDependencies {
         restoreJournal = RestoreJournalStore(java.io.File(context.filesDir, "restore-journal")),
         plannerRepository = plannerRepository,
         ioDispatcher = ioDispatcher,
+    )
+    override val afterWorkoutBackup: AfterWorkoutBackup = AfterWorkoutBackup(
+        prefs = preferencesRepository,
+        sealer = backupPassphraseSealer,
+        scope = CoroutineScope(SupervisorJob() + ioDispatcher),
+        upload = AfterWorkoutUpload { activity, launchResolution, password ->
+            backupService.createBackup(activity = activity, launchResolution = launchResolution, password = password)
+        },
     )
 }

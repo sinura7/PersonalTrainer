@@ -15,6 +15,17 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Audit packet R1-3 (audit X6, BK-4; owner decision of 25
+> September): the Drive copy after a finished workout no longer stops
+> when you leave the summary. It ran inside the summary screen, so
+> tapping Done a few seconds after finishing cancelled it without a
+> word; the app now owns it and the summary only shows how it is going.
+> A phone that still has automatic backup on from a Drive sign-out
+> before R1-1 has it switched off at its next finished workout, instead
+> of the copy signing back in by itself. Rides along with the next drop;
+> phone check: with automatic backup on, finish a workout and tap Done
+> at once; Settings → Backup then shows a new Last backup.
+>
 > 25 Sep 2026 — Audit packet R1-2 (audit X6, BK-3; owner decision of 25
 > September): the check that stops an empty backup from wiping the phone
 > now knows about goals, saved activity templates and the weekly plan. A

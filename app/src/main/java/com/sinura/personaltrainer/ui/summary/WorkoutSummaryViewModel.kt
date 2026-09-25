@@ -2,18 +2,15 @@ package com.sinura.personaltrainer.ui.summary
 
 import android.app.Activity
 import android.app.Application
-import android.content.IntentSender
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
-import com.sinura.personaltrainer.domain.AutoBackupPolicy
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -64,8 +61,8 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
 
     private val _uiState = MutableStateFlow(WorkoutSummaryUiState(sessionId = sessionId))
 
-    /** The automatic backup in flight, so a recreated screen cannot start a second one. */
-    private var autoBackupJob: Job? = null
+    /** Watches the automatic backup's line; the copy itself belongs to the app. */
+    private var autoBackupWatch: Job? = null
     val uiState: StateFlow<WorkoutSummaryUiState> = _uiState.asStateFlow()
 
     private var loading: Job? = null
@@ -147,90 +144,25 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Copies this finished workout to Drive, if the owner armed that and nothing is in the
-     * way. Called once from the screen, which is the only place an Activity is reachable.
-     *
-     * Three properties this deliberately has:
-     *
-     * 1. **It never shows a consent sheet.** [launchResolution] answers false, so a lapsed
-     *    Google grant can never hijack the moment after a workout with a Google dialog. It
-     *    becomes a line here and a note in Settings instead.
-     * 2. **It cannot upload twice.** The session it covered is persisted, not remembered, so
-     *    process death rebuilding this screen with the same session does not re-upload.
-     * 3. **It cannot break the summary.** It runs in its own coroutine with its own catch and
-     *    touches only [WorkoutSummaryUiState.autoBackup] — never isLoading or missing. A Drive
-     *    failure must not render "Nothing to summarise" over a workout that happened.
+     * Starts this finished workout's copy to Drive, if the owner armed that; the app, not
+     * this screen, owns the copy ([com.sinura.personaltrainer.data.repository.AfterWorkoutBackup]).
+     * It ran on this ViewModel's scope, so Done or Back a few seconds after finishing
+     * cancelled it silently (audit BK-4). Called once from the screen, which is the only place
+     * an Activity is reachable; a second call while the copy runs does nothing.
      *
      * It runs after the finish is committed, which is the only correct moment: the snapshot
      * behind a backup keeps finished sessions only, so a copy taken any earlier would omit
-     * the very workout being celebrated.
+     * the very workout being celebrated. Its line reaches [WorkoutSummaryUiState.autoBackup]
+     * only, never isLoading or missing: a Drive failure must not render "Nothing to
+     * summarise" over a workout that happened.
      */
     fun maybeAutoBackup(activity: Activity) {
-        // The persisted guard below closes only when the upload FINISHES, so for the whole of
-        // a long upload it is still open. This screen calls in from `LaunchedEffect(Unit)`, and
-        // MainActivity declares no `configChanges`, so a rotation — or a dark/light switch, or
-        // a font-size change — destroys the composition and re-runs the effect while this view
-        // model survives on its nav entry. That started a SECOND concurrent snapshot, encrypt
-        // and upload of the same session.
-        //
-        // Skipping, not restarting: `activity` is wanted only by `rememberAuthorizedSession`
-        // at the top of the upload, so a run already past that point does not need the new
-        // one, and cancelling a live upload to start again could leave a half-written file in
-        // Drive.
-        if (autoBackupJob?.isActive == true) return
-        autoBackupJob = viewModelScope.launch {
-            val settings = container.preferencesRepository.autoBackupSettings()
-            val sealed = settings.sealedPassphrase
-            val armed = AutoBackupPolicy.shouldBackUp(
-                enabled = settings.enabled,
-                hasStoredPassphrase = sealed != null,
-                lastBackedUpSessionId = settings.lastBackedUpSessionId,
-                sessionId = sessionId,
-            )
-            if (!armed || sealed == null) return@launch
-
-            val passphrase = container.backupPassphraseSealer.open(sealed)
-            if (passphrase == null) {
-                // A reinstall or a cleared Keystore. Disarm rather than half-run: the next
-                // Settings visit shows the toggle off, which is the truth.
-                AppLog.e(TAG, "Sealed backup passphrase would not open; disarming auto-backup")
-                container.preferencesRepository.disarmAutoBackup()
-                return@launch
-            }
-
-            // Set by the resolver below, which is the structural signal that Google wanted
-            // consent — more robust than matching the copy of the exception that follows.
-            var consentWanted = false
-            val declineConsent: suspend (IntentSender) -> Boolean = {
-                consentWanted = true
-                false
-            }
-
-            _uiState.value = _uiState.value.copy(autoBackup = AutoBackupPolicy.RUNNING)
-            try {
-                container.backupService.createBackup(
-                    activity = activity,
-                    launchResolution = declineConsent,
-                    password = passphrase,
-                )
-                container.preferencesRepository.setAutoBackupLastSession(sessionId)
-                container.preferencesRepository.setAutoBackupNeedsSignIn(false)
-                _uiState.value = _uiState.value.copy(autoBackup = AutoBackupPolicy.DONE)
-            } catch (thrown: CancellationException) {
-                // Leaving the summary mid-upload. Not a failure, and not something to caption.
-                throw thrown
-            } catch (thrown: Exception) {
-                AppLog.e(TAG, "Automatic backup after a finished workout failed", thrown)
-                container.preferencesRepository.setAutoBackupNeedsSignIn(consentWanted)
-                _uiState.value = _uiState.value.copy(
-                    autoBackup = if (consentWanted) {
-                        AutoBackupPolicy.NEEDS_SIGN_IN
-                    } else {
-                        AutoBackupPolicy.FAILED
-                    },
-                )
-            } finally {
-                passphrase.fill('\u0000')
+        val backup = container.afterWorkoutBackup
+        backup.start(sessionId, activity)
+        if (autoBackupWatch?.isActive == true) return
+        autoBackupWatch = viewModelScope.launch {
+            backup.status(sessionId).collect { line ->
+                _uiState.value = _uiState.value.copy(autoBackup = line)
             }
         }
     }

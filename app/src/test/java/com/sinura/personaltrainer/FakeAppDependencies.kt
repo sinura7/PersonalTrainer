@@ -8,6 +8,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
+import com.sinura.personaltrainer.data.repository.AfterWorkoutBackup
+import com.sinura.personaltrainer.data.repository.AfterWorkoutUpload
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -132,6 +134,11 @@ class FakeAppDependencies(
      * production wiring; a throwing one reproduces the cleanup failure R06 is about.
      */
     occurrenceCleanup: (suspend (String) -> Unit)? = null,
+    /**
+     * Replaces the Drive upload behind the after-workout copy. Null keeps the production
+     * wiring, which needs Google Play services a JVM test does not have.
+     */
+    afterWorkoutUpload: AfterWorkoutUpload? = null,
 ) : AppDependencies {
     /**
      * Real threads, not the test scheduler. See the constructor KDoc on why Room stays
@@ -299,8 +306,20 @@ class FakeAppDependencies(
         restoreJournal = restoreJournal,
         ioDispatcher = ioDispatcher,
     )
+    private val afterWorkoutScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    override val afterWorkoutBackup: AfterWorkoutBackup = AfterWorkoutBackup(
+        prefs = preferencesRepository,
+        sealer = backupPassphraseSealer,
+        scope = afterWorkoutScope,
+        upload = afterWorkoutUpload ?: AfterWorkoutUpload { activity, launchResolution, password ->
+            backupService.createBackup(activity = activity, launchResolution = launchResolution, password = password)
+        },
+    )
 
     fun close() {
+        val afterWorkoutJob = afterWorkoutScope.coroutineContext[Job]
+        afterWorkoutJob?.cancel()
+        runBlocking { afterWorkoutJob?.join() }
         val preferencesJob = prefsScope.coroutineContext[Job]
         preferencesJob?.cancel()
         runBlocking { preferencesJob?.join() }
