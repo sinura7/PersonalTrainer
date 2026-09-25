@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.LiveSessionRules
 import com.sinura.personaltrainer.logging.AppLog
@@ -68,6 +69,10 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
      */
     fun setRouteHidesBar(hidden: Boolean) {
         routeHidesBar.value = hidden
+        // A message about the bar's own action is done with once the lifter is on the
+        // session's screen. Left standing, "a set is open for changes" came back on the next
+        // tab after the change was saved, and on the next workout's bar (R2-5 review).
+        if (hidden) _actionError.value = null
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -212,6 +217,11 @@ class LiveSessionBarViewModel @JvmOverloads constructor(
                         AppLog.w(TAG, "Finishing live cardio from the bar threw", thrown)
                         _actionError.value = CompleteTraining.LIVE_FINISH_FAILED
                     }
+            } else if (container.workoutDraftCache.editingOriginal(live.sessionId) != null) {
+                // A logged set is open for changes on the workout screen. Finishing here
+                // dropped the change without a word (audit UI-2); the bar sends the lifter
+                // there instead, where Finish says so.
+                _actionError.value = EndWorkoutCopy.BAR_EDIT_OPEN
             } else {
                 applyFinishOutcome(
                     outcome = container.completeTraining.finishWorkout(

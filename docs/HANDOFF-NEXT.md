@@ -213,6 +213,9 @@ Done so far:
   "ready to progress", and the rest page's last set reads its time
   (audit DM-1; #427). Owner question raised: the rest after a hold is a
   flat two minutes; should it follow the plan?
+- **R2-5:** Finish warns while a logged set is open for changes and
+  offers "Back to my change"; the bottom bar's Finish waits for it and
+  says why (audit UI-2 on the floor; #428).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -237,7 +240,7 @@ Done so far:
 
 Next, in order (owner decision of 25 September, audit X6; the live order
 is the table in FRONTEND_REDESIGN.md): the rest of R2 (crash and coach:
-R2-5 onward), W2d-2 and W2d-3, the rest-alarm packet,
+R2-6, the reminder tap), W2d-2 and W2d-3, the rest-alarm packet,
 R3 (updater), then a check-only phone drop, then W3, S1, X8 and X9. X2b
 completed Wave 0.
 

@@ -4,6 +4,9 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
+import com.sinura.personaltrainer.domain.WorkoutSetSave
+import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.testutil.FakeClock
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.awaitFirst
@@ -132,6 +135,41 @@ class LiveSessionBarViewModelTest {
 
         vm.onFinishNavigationHandled()
         assertNull(vm.finishedNavigation.value)
+    }
+
+    /**
+     * Audit UI-2: a logged set left open for changes on the workout screen survives leaving
+     * it, and the bar's Finish ended the workout and dropped the change without a word. The
+     * bar now sends the lifter back to the workout, where Finish says so.
+     */
+    @Test
+    fun finishFromBarWithACorrectionOpenFinishesNothingAndSaysWhy() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)))
+        val logged = checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.single()
+        val saved = WorkoutSetValues.from(logged)
+        deps.workoutDraftCache.putEditingOriginal(
+            fixture.session.id,
+            WorkoutSetSave(
+                sessionId = fixture.session.id,
+                exerciseId = logged.exerciseId,
+                setId = logged.id,
+                completedAt = logged.completedAt,
+                values = saved,
+                original = saved,
+            ),
+        )
+        val vm = createViewModel(FakeClock(fixture.session.startedAt + 1_000))
+        vm.uiState.awaitFirst { it?.canFinish == true }
+
+        vm.finishFromBar()
+
+        assertEquals(EndWorkoutCopy.BAR_EDIT_OPEN, vm.actionError.awaitFirst { it != null })
+        assertNull(vm.finishedNavigation.value)
+        assertNull(deps.workoutRepository.getSession(fixture.session.id)?.finishedAt)
+
+        // Going to the session, as the message says, retires it: it must not come back later.
+        vm.setRouteHidesBar(true)
+        assertNull(vm.actionError.value)
     }
 
     @Test

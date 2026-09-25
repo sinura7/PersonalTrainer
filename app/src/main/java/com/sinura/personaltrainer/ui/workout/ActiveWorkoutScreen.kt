@@ -954,6 +954,7 @@ private fun ActiveWorkoutContent(
                 confirmDiscard = true
             },
             onDismiss = { confirmEnd = false },
+            editOpen = state.editingSetId != null,
         )
     }
 

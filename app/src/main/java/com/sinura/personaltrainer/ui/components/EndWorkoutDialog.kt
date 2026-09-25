@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +21,9 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  * X / back is go-Home with the session still live. This dialog is the
  * explicit end. Discard still routes through a named confirm so destroy
  * is never one tap (G-07).
+ *
+ * With [editOpen], a logged set is open for correction and the change is not saved yet: the
+ * dialog says so first and offers the way back to it (audit UI-2).
  */
 @Composable
 fun EndWorkoutDialog(
@@ -30,13 +35,34 @@ fun EndWorkoutDialog(
     notesExpanded: Boolean = false,
     onToggleNotes: () -> Unit = {},
     onNotesChange: (String) -> Unit = {},
+    editOpen: Boolean = false,
 ) {
     val canSave = EndWorkoutCopy.canSave(loggedSets)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(EndWorkoutCopy.TITLE, style = InstrumentType.title) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+            // Material's text slot is bounded before the actions: at large text the warning,
+            // the body and the notes scroll here rather than being cut off.
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                if (editOpen) {
+                    Text(
+                        EndWorkoutCopy.EDIT_OPEN,
+                        style = InstrumentType.body,
+                        modifier = Modifier.testTag(EndWorkoutTags.EDIT_OPEN),
+                    )
+                    // Beside the warning it answers, and in the scroll rather than the button
+                    // row: a third button there left a phone held sideways no room to show the
+                    // warning at all.
+                    SecondaryGymButton(
+                        text = EndWorkoutCopy.BACK_TO_EDIT,
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag(EndWorkoutTags.BACK_TO_EDIT),
+                    )
+                }
                 Text(
                     EndWorkoutCopy.body(loggedSets),
                     style = InstrumentType.body,
@@ -74,4 +100,6 @@ fun EndWorkoutDialog(
 object EndWorkoutTags {
     const val SAVE = "workout-end-save"
     const val DISCARD = "workout-end-discard"
+    const val EDIT_OPEN = "workout-end-edit-open"
+    const val BACK_TO_EDIT = "workout-end-back-to-edit"
 }

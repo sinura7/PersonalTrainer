@@ -170,7 +170,7 @@ means the person training with the app.
 | ID | What it means for you | Where it goes |
 |---|---|---|
 | DM-1 (B8) | For planks, dead hangs and stretches the coach talks in reps instead of seconds, and after your first hold it says "Hold 0 reps". | R2-4: fixed 25 September (#427): no rep line, Apply or "ready to progress" for a hold; the rest after a hold (two minutes) is an owner question |
-| UI-2 (B11) | Correcting a logged set and tapping Finish at the top ends the workout and throws the correction away without a word; the old number stays and can still be fixed from History. | R2 |
+| UI-2 (B11) | Correcting a logged set and tapping Finish at the top ends the workout and throws the correction away without a word; the old number stays and can still be fixed from History. | R2-5: fixed 25 September (#428): Finish warns and leads back to the change; the bar's Finish waits for it |
 | RT-2 (B6) | Once you have said no to notifications, the "Rest alerts" box comes back every time you open a workout or the rest page, and after two refusals its Continue does nothing. | rest-alarm packet |
 | RT-1 (B6) | On a phone set to the light system theme the rest countdown in the shade and on the lock screen is near-white on white. | rest-alarm packet |
 | RT-3 (B6) | A brand-new user is asked for alarms, notifications and battery access right after choosing how to save, before any rest, which ADR-012 and the privacy page say never happens. Decision 2. | X9 |
