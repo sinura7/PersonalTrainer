@@ -38,7 +38,15 @@ object RestFloorCopy {
         val loadClass = last?.let { session.loadClassOf(it.exerciseId) } ?: LoadClass.LOADED
         return RestFloorContext(
             exerciseName = exercise?.name ?: last?.exerciseName,
-            lastSetLine = last?.let { lastSetLine(it.weightKg, it.reps, loadClass, unit) },
+            lastSetLine = last?.let {
+                lastSetLine(
+                    weightKg = it.weightKg,
+                    reps = it.reps,
+                    loadClass = loadClass,
+                    unit = unit,
+                    durationSeconds = it.durationSeconds,
+                )
+            },
             sessionTargetLine = nextLine,
             afterWarmup = last?.isWarmup == true,
             prescribedRestLine = prescribedSeconds?.let { prescribedLine(it) },
@@ -47,12 +55,23 @@ object RestFloorCopy {
 
     fun prescribedLine(seconds: Int): String = RestIdleCopy.planned(RestTimer.formatClock(seconds))
 
+    /**
+     * A hold reads as its time, "Last set · 30s". Without the duration a plank read "Last set ·
+     * 0 reps", since a hold is logged with none (audit DM-1).
+     */
     fun lastSetLine(
         weightKg: Double,
         reps: Int,
         loadClass: LoadClass,
         unit: WeightUnit,
-    ): String = "Last set · ${SetCopy.setLine(weightKg, reps, loadClass, unit)}"
+        durationSeconds: Int? = null,
+    ): String = "Last set · ${SetCopy.setLine(
+        weightKg = weightKg,
+        reps = reps,
+        loadClass = loadClass,
+        unit = unit,
+        durationSeconds = durationSeconds,
+    )}"
 
     fun sessionTargetLine(hint: ProgressionHint, unit: WeightUnit): String =
         ProgressionCopy.stripReason(hint, unit)

@@ -741,7 +741,11 @@ private fun ActiveWorkoutContent(
                                     )
                                 }
                                 // The rest page follows the same rule (W2b-4); the entry lock is this screen's own.
-                                val rec = shownNextSet(microRec, draftIsWarmup = state.draft.isWarmup)?.takeIf { entryEnabled }
+                                val rec = shownNextSet(
+                                    rec = microRec,
+                                    draftIsWarmup = state.draft.isWarmup,
+                                    liftIsHold = hold,
+                                )?.takeIf { entryEnabled }
                                 if (rec != null) {
                                     item(key = "next-set") {
                                         val applied = rec.isApplied(

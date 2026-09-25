@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.RestHonestyCopy
@@ -708,10 +709,11 @@ class RestTimerViewModelTest {
     }
 
     @Test
-    fun aTimedHoldWithAnRpeGetsTheLogsCallOnTheRestPage() = runBlocking {
-        // W2b-4 review, F3. A hold's entry counts no reps; the page read it as one. The coach's
-        // answer does not read the entry's reps (the Log asks with the RPE as intent), so the two
-        // lines agreed before too: this holds the page to the Log's entry, not a visible fix.
+    fun aTimedHoldGetsNoRepLineOnTheRestPageAsTheLogShowsNone() = runBlocking {
+        // W2b-4 review, F3: the page reads a hold's entry the Log's way, with no reps. Audit DM-1:
+        // the coach's call for a hold is in reps ("Hold 0 reps" after the first hold), so neither
+        // the Log's card nor the page's Next line shows it. The call is still made, for the rest
+        // it sets and the effort it suggests.
         val fixture = seedDeadHang()
         val workout = createWorkoutViewModel(fixture.session.id)
         val ready = workout.awaitState {
@@ -722,15 +724,18 @@ class RestTimerViewModelTest {
         workout.setRpe(8)
         val entry = workout.awaitState { it.draft.rpe == 8 && !it.entryLocked }
         workout.awaitCall("the Log's call for the next hold") { it != null }
-        val logLine = workout.shownNextLine(entry)
-        assertTrue("the Log shows a Next card for the hold", logLine != null)
+        assertNull("the Log shows no Next card for a hold", workout.shownNextLine(entry))
 
         val floor = createViewModel(fixture.session.id)
-        assertEquals(
-            "for a timed hold with an RPE the rest page's Next line is the Log's",
-            logLine,
-            floor.settledNextLine(logLine) { it.loadState == SessionLoadState.FOUND && it.floor.exerciseName == "Dead Hang" },
+        assertNull(
+            "for a timed hold the rest page shows no Next line, as the Log shows none",
+            floor.settledNextLine(null) {
+                it.loadState == SessionLoadState.FOUND && it.floor.exerciseName == "Dead Hang" &&
+                    it.floor.lastSetLine != null
+            },
         )
+        // Its last set reads as the hold's time: it said "Last set · 0 reps".
+        assertEquals("Last set · 30s", floor.uiState.value.floor.lastSetLine)
     }
 
     @Test
@@ -912,13 +917,15 @@ class RestTimerViewModelTest {
 
     /**
      * The Log's Next line as its card shows it, or null where the card is hidden: after the
-     * lift's planned sets, on a warm-up entry, while the entry is locked, or with no call. Spelled
-     * out from the Log's screen here rather than taken from [shownNextSet], so the rest page is
-     * held to the Log and not to itself.
+     * lift's planned sets, on a warm-up entry, while the entry is locked, on a hold, or with no
+     * call. Spelled out from the Log's screen here rather than taken from [shownNextSet], so the
+     * rest page is held to the Log and not to itself.
      */
     private fun ActiveWorkoutViewModel.shownNextLine(entry: ActiveWorkoutUiState): String? {
         val call = microRec.value ?: return null
-        val shown = !entry.entryLocked && !entry.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(call)
+        val lift = entry.session?.exercises?.firstOrNull { it.exercise.id == entry.selectedExerciseId }
+        val hold = lift != null && HoldWork.isHold(lift.exercise)
+        val shown = !entry.entryLocked && !entry.draft.isWarmup && !hold && SetMicroRecCopy.visibleOnEntry(call)
         val loadClass = entry.selectedExerciseId?.let { entry.session?.loadClassOf(it) } ?: LoadClass.LOADED
         return if (shown) SetMicroRecCopy.line(call, loadClass, WeightUnit.KG) else null
     }

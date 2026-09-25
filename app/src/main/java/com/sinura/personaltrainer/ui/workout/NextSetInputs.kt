@@ -85,16 +85,22 @@ internal data class CoachKey(
 /**
  * [rec] as the Log's Next card shows it, or null where the card is hidden: the lift's planned
  * sets are done and Another set was not asked for, the entry is a warm-up (the Log shows the
- * ramp instead), or there is no call (a set is open for correction). The Log's card and the rest
- * page's Next line both go through here, so the page shows the Log's line or none (W2b-4).
+ * ramp instead), there is no call (a set is open for correction), or the lift is a hold. The
+ * Log's card and the rest page's Next line both go through here, so the page shows the Log's
+ * line or none (W2b-4).
+ *
+ * A hold (plank, dead hang, a stretch) is logged in seconds with no reps, and the coach counts
+ * reps: it offered "1 rep" before the first hold and said "Hold 0 reps" after it (audit DM-1).
+ * The call is still made, for the rest it sets and the effort it suggests; only its line, in
+ * reps, is not shown.
  *
  * The Log also hides its card while its entry is locked. The rest page follows the part of
  * that lock it can see, a save the Log holds in the draft cache: a failed save waiting for Retry
  * is held for as long as it waits, a set being written only for a moment. The Log's other locks
  * (a set being deleted or opened for correction, the session still loading) are its own.
  */
-internal fun shownNextSet(rec: SetMicroRec?, draftIsWarmup: Boolean): SetMicroRec? =
-    rec?.takeIf { !draftIsWarmup && SetMicroRecCopy.visibleOnEntry(it) }
+internal fun shownNextSet(rec: SetMicroRec?, draftIsWarmup: Boolean, liftIsHold: Boolean): SetMicroRec? =
+    rec?.takeIf { !draftIsWarmup && !liftIsHold && SetMicroRecCopy.visibleOnEntry(it) }
 
 /**
  * The Log's entry as the draft cache holds it: a timed hold keeps its 0 reps, any other lift

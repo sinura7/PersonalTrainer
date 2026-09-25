@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestFloorContext
@@ -222,9 +223,17 @@ class RestTimerViewModel @JvmOverloads constructor(
         lastFloor?.let { (drawnFrom, floor) -> if (drawnFrom == key) return floor }
         val rec = key.coach.rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
         // The Log's line or none: not after the lift's planned sets (unless Another set),
-        // not on a warm-up entry, not while a set is open for correction (W2b-4), and not
-        // while the Log holds a save, one in progress or a failed one waiting for Retry.
-        val shown = shownNextSet(rec, draftIsWarmup = key.draftIsWarmup)?.takeIf { !key.saveHeld }
+        // not on a warm-up entry, not while a set is open for correction (W2b-4), not for a
+        // hold (DM-1), and not while the Log holds a save, one in progress or a failed one
+        // waiting for Retry.
+        val liftIsHold = exerciseId
+            ?.let { id -> current.exercises.firstOrNull { it.exercise.id == id } }
+            ?.let { HoldWork.isHold(it.exercise) } == true
+        val shown = shownNextSet(
+            rec = rec,
+            draftIsWarmup = key.draftIsWarmup,
+            liftIsHold = liftIsHold,
+        )?.takeIf { !key.saveHeld }
         val loadClass = exerciseId?.let { current.loadClassOf(it) } ?: LoadClass.LOADED
         return RestFloorCopy.context(
             session = current,
