@@ -28,6 +28,13 @@
 > phone check: with automatic backup on, finish a workout and tap Done
 > at once; Settings → Backup then shows a new Last backup.
 >
+> 25 Sep 2026 — Whole-app audit packet W2d-1: the workout floor's undo
+> list (what a delete or a removed lift can take back, in what order,
+> for how long, and the copy that survives Android stopping the app)
+> moves out of the workout ViewModel into its own small helper.
+> Nothing changes on screen; tests written on the old code prove it.
+> Quiet.
+>
 > 25 Sep 2026 — Audit packet R1-2 (audit X6, BK-3; owner decision of 25
 > September): the check that stops an empty backup from wiping the phone
 > now knows about goals, saved activity templates and the weekly plan. A

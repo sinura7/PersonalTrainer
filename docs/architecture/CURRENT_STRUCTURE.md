@@ -18,8 +18,8 @@ yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 565 | 94,362 | — |
-| `app/src/test` | 468 | 81,440 | 3,190 |
+| `app/src/main` | 566 | 94,531 | — |
+| `app/src/test` | 473 | 82,636 | 3,219 |
 | `app/src/androidTest` | 33 | 5,914 | 112 `@Test` methods (some parameterised) |
 | `app/src/debug` | 12 | 1,618 | Compose previews and the state galleries |
 | `app/src/sharedTest` | 5 | 171 | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
@@ -30,7 +30,7 @@ Everything is under `com.sinura.personaltrainer`.
 
 | Package | Files | Lines | What it is |
 |---|---|---|---|
-| `ui` | 173 | 46,388 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
+| `ui` | 174 | 46,491 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
 | `domain` | 206 | 23,281 | Models, rules, calculators, policies, ports, CoachEngine, and 65 `*Copy` text objects (69 app-wide) |
 | `data` | 115 | 16,948 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup`, `sync` (15 files, 2,266 lines), `auth` (4, 224) |
 | `timer` | 18 | 2,867 | Rest foreground service, alarm scheduler, notifications, persistence |
@@ -74,7 +74,7 @@ import further out than anything it banned.
 ```mermaid
 flowchart TB
     PTA["PersonalTrainerApp<br/>(manifest android:name)"]
-    AC["AppContainer(context) : AppDependencies<br/>38 typed ports"]
+    AC["AppContainer(context) : AppDependencies<br/>39 typed ports"]
     DB[("TemperDatabase v7<br/>24 entities · 11 DAOs")]
     PREFS[("user_settings DataStore<br/>56 keys · 6 prefs stores")]
     REPOS["10 repositories<br/>+ stores, BackupService, sync"]
@@ -102,7 +102,7 @@ flowchart TB
 
 **Dependency injection is a hand-rolled composition root.** No Hilt, no
 Dagger, no Koin. `PersonalTrainerApp.onCreate` builds one `AppContainer`, which
-implements `AppDependencies` — an interface of 38 typed ports. Every ViewModel
+implements `AppDependencies` — an interface of 39 typed ports. Every ViewModel
 is `@JvmOverloads constructor(application, container: AppDependencies =
 application.appContainer())`, so production gets the real graph through the
 default and tests pass `FakeAppDependencies`, which is the same repositories
@@ -178,7 +178,7 @@ gate, the emulator and the phone gate the signed release.
 Not a to-do list — a list of things a reader will notice and should not have to
 rediscover.
 
-- **`ActiveWorkoutViewModel` is 2,377 lines** with 31 `MutableStateFlow`
+- **`ActiveWorkoutViewModel` is 2,327 lines** with 29 `MutableStateFlow`
   references, and still holds rule decisions that belong in `domain` — prefill,
   lift selection, the log-set sequence.
 - **`RoutineEditorViewModel` is 1,490 lines**, mostly the staged-targets
