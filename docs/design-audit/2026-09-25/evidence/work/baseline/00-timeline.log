@@ -1,0 +1,19 @@
+=== 01 preflight static === 2026-09-25T01:45:41Z
+--- exit 0 --- 2026-09-25T01:48:39Z
+=== 02 gradle testDebugUnitTest assembleDebug jacocoTestReport (watchdog, --continue) === 2026-09-25T01:48:39Z
+--- exit 0 --- 2026-09-25T01:57:44Z
+=== 03 lintDebug === 2026-09-25T01:57:44Z
+--- exit 0 --- 2026-09-25T02:01:11Z
+=== 04 check-coverage === 2026-09-25T02:01:11Z
+--- exit 0 --- 2026-09-25T02:01:12Z
+=== 05 assembleDebugAndroidTest === 2026-09-25T02:01:12Z
+--- exit 0 --- 2026-09-25T02:01:24Z
+=== 06 collect artefacts === 2026-09-25T02:01:24Z
+=== PHASE A DONE === 2026-09-25T02:01:24Z
+=== 07 full preflight probe (expected to fail in the plain-JVM lane) === 2026-09-25T02:02:05Z
+--- exit 1 --- 2026-09-25T02:04:23Z
+=== 08 assembleRelease (unsigned; R8 + lintVitalRelease) === 2026-09-25T02:04:23Z
+--- exit 1 --- 2026-09-25T02:06:00Z
+=== PROBES DONE === 2026-09-25T02:06:00Z
+=== harness run 2026-09-25T02:14:17Z ===
+--- harness exit 42 --- 2026-09-25T02:17:39Z

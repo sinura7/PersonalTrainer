@@ -1,0 +1,10 @@
+check-coverage: app/build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml
+ok    com.sinura.personaltrainer.data.backup: 83.0%  floor 81.0%
+ok    com.sinura.personaltrainer.data.repository: 86.5%  floor 85.0%
+ok    com.sinura.personaltrainer.domain: 93.3%  floor 92.0%
+ok    com.sinura.personaltrainer.timer: 81.7%  floor 73.0%
+ok    com.sinura.personaltrainer.ui.workout: 88.2%  floor 84.0%
+ok    com.sinura.personaltrainer.util: 82.1%  floor 76.0%
+ok    com.sinura.personaltrainer.workout: 86.8%  floor 85.0%
+
+0 coverage finding(s)

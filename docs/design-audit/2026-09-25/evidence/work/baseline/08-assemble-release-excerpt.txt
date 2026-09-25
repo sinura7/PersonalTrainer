@@ -1,0 +1,4 @@
+55:> Task :app:minifyReleaseWithR8 FAILED
+56:ERROR: Missing classes detected while running R8. Please add the missing classes or apply additional keep rules that are generated in /home/user/PersonalTrainer/app/build/outputs/mapping/release/missing_rules.txt.
+57:ERROR: R8: Missing class org.slf4j.impl.StaticLoggerBinder (referenced from: void org.slf4j.LoggerFactory.bind() and 3 other contexts)
+79:BUILD FAILED in 1m 37s
