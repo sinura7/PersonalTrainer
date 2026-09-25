@@ -11,18 +11,24 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.backup.BackupException
+import com.sinura.personaltrainer.data.repository.AfterWorkoutBackup
 import com.sinura.personaltrainer.data.repository.AfterWorkoutUpload
 import com.sinura.personaltrainer.domain.AutoBackupPolicy
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import com.sinura.personaltrainer.ui.settings.SettingsViewModel
 import java.io.IOException
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -66,6 +72,7 @@ class AfterWorkoutBackupTest {
     private var afterRelease: suspend (suspend (IntentSender) -> Boolean) -> Unit = {}
     private lateinit var deps: FakeAppDependencies
     private val viewModels = mutableListOf<WorkoutSummaryViewModel>()
+    private val settingsModels = mutableListOf<SettingsViewModel>()
 
     @Before
     fun setUp() {
@@ -90,7 +97,10 @@ class AfterWorkoutBackupTest {
     @After
     fun tearDown() {
         release.complete(Unit)
-        runBlocking { viewModels.forEach { it.clearAndJoinForTest() } }
+        runBlocking {
+            viewModels.forEach { it.clearAndJoinForTest() }
+            settingsModels.forEach { it.clearAndJoinForTest() }
+        }
         deps.close()
         Dispatchers.resetMain()
     }
@@ -204,6 +214,51 @@ class AfterWorkoutBackupTest {
         deps.afterWorkoutBackup.joinRunningForTest()
 
         assertNull(deps.preferencesRepository.autoBackupSettings().lastBackedUpSessionId)
+        // A stopped copy leaves no "Backing up…" behind.
+        assertNull(deps.afterWorkoutBackup.status(sessionId).first())
+    }
+
+    @Test
+    fun switchingAutomaticBackupOffInSettingsStopsACopyInFlight() = runBlocking {
+        val sessionId = armedWorkout()
+        summary(sessionId).maybeAutoBackup(activity())
+        withTimeout(TestWaits.FLOW_MS) { started.await() }
+        val settings = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        settingsModels += settings
+
+        settings.backup.setAutoBackupEnabled(false)
+        withTimeout(TestWaits.FLOW_MS) {
+            while (deps.preferencesRepository.autoBackupSettings().enabled) delay(10)
+        }
+        release.complete(Unit)
+        deps.afterWorkoutBackup.joinRunningForTest()
+
+        // Left running, the copy would have written its session back after the switch-off.
+        assertNull(deps.preferencesRepository.autoBackupSettings().lastBackedUpSessionId)
+    }
+
+    @Test
+    fun aCopyThatGoogleNeverAnswersGivesUpAndSaysSo() = runBlocking {
+        deps.preferencesRepository.setDriveAccountEmail("owner@example.com")
+        deps.preferencesRepository.armAutoBackup(checkNotNull(deps.backupPassphraseSealer.seal(PASSWORD.toCharArray())))
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        try {
+            val backup = AfterWorkoutBackup(
+                prefs = deps.preferencesRepository,
+                sealer = deps.backupPassphraseSealer,
+                scope = scope,
+                upload = AfterWorkoutUpload { _, _, _ -> awaitCancellation() },
+                uploadLimitMs = 200,
+            )
+
+            backup.start("session-1", activity())
+
+            withTimeout(TestWaits.FLOW_MS) { backup.status("session-1").first { it == AutoBackupPolicy.FAILED } }
+            backup.joinRunningForTest()
+            assertNull(deps.preferencesRepository.autoBackupSettings().lastBackedUpSessionId)
+        } finally {
+            scope.cancel()
+        }
     }
 
     private suspend fun armedWorkout(): String {

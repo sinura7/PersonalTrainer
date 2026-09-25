@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.repository.prefs.BackupPrefs
 import com.sinura.personaltrainer.data.security.BackupPassphraseSealer
 import com.sinura.personaltrainer.domain.AutoBackupPolicy
 import com.sinura.personaltrainer.logging.AppLog
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -18,8 +19,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 private const val TAG = "PT/AfterWorkoutBackup"
+private const val UPLOAD_LIMIT_MS = 10L * 60L * 1_000L
 
 /** One Drive backup with the owner's password, declining any consent sheet through [launchResolution]. */
 fun interface AfterWorkoutUpload {
@@ -57,6 +60,13 @@ class AfterWorkoutBackup(
     private val sealer: BackupPassphraseSealer,
     private val scope: CoroutineScope,
     private val upload: AfterWorkoutUpload,
+    /**
+     * How long a copy may take before it gives up and says it failed. Google's authorization
+     * has no time limit of its own, and a copy stuck there would hold the one-backup-at-a-time
+     * lock in [BackupService] — and so a Create backup now tapped behind it — for good. Drive's
+     * own reads time out in seconds, so a copy that is merely slow finishes well inside this.
+     */
+    private val uploadLimitMs: Long = UPLOAD_LIMIT_MS,
 ) {
     private val lines = MutableStateFlow<Map<String, String>>(emptyMap())
     private val running = HashSet<String>()
@@ -74,8 +84,11 @@ class AfterWorkoutBackup(
         // invokeOnCompletion, not a finally: a run cancelled before it is dispatched never
         // enters its body, and its id would then block this session for the rest of the process.
         scope.launch(crashGuard) { run(sessionId, activity) }.invokeOnCompletion { cause ->
-            synchronized(running) { running.remove(sessionId) }
-            if (cause is CancellationException) lines.update { it - sessionId }
+            synchronized(running) {
+                // The line first: once the id is gone a new run may start and say its own.
+                if (cause is CancellationException) lines.update { it - sessionId }
+                running.remove(sessionId)
+            }
         }
     }
 
@@ -127,7 +140,8 @@ class AfterWorkoutBackup(
 
         say(sessionId, AutoBackupPolicy.RUNNING)
         try {
-            upload.upload(activity, declineConsent, passphrase)
+            withTimeoutOrNull(uploadLimitMs) { upload.upload(activity, declineConsent, passphrase) }
+                ?: throw IOException("Automatic backup gave up after $uploadLimitMs ms")
             prefs.setAutoBackupLastSession(sessionId)
             prefs.setAutoBackupNeedsSignIn(false)
             say(sessionId, AutoBackupPolicy.DONE)
