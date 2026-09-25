@@ -153,8 +153,8 @@ Done so far:
   release as well (unsigned, even where a release key is present), which
   holds the slf4j rule, and `tools/check-release-lane.py` keeps the
   workflow fixes and that gate wiring in place (audit X6, BR-1, BR-2,
-  BR-7). The shrunk APK was inspected, not launched: the first signed
-  release gets a launch on the phone before anyone relies on it.
+  BR-7; #416). The shrunk APK was inspected, not launched: the first
+  signed release gets a launch on the phone before anyone relies on it.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).

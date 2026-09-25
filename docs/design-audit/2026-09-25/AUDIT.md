@@ -144,8 +144,8 @@ means the person training with the app.
 
 | ID | What it means for you | Where it goes |
 |---|---|---|
-| BR-1 (B14) | The signed gym-floor version cannot be built at all: a library added on 21 September trips the code shrinker (`org.slf4j.impl.StaticLoggerBinder`), and nobody has built the release flavour since. Temper Debug is unshrunk and unaffected. One line fixes it. | X7: fixed 25 September; the gate now builds the release |
-| BR-2 (B14) | The release robot has a second, independent break in its very first step (the retired `tools` SDK package), already fixed in the other two workflows. | X7: fixed 25 September |
+| BR-1 (B14) | The signed gym-floor version cannot be built at all: a library added on 21 September trips the code shrinker (`org.slf4j.impl.StaticLoggerBinder`), and nobody has built the release flavour since. Temper Debug is unshrunk and unaffected. One line fixes it. | X7: fixed 25 September (#416); the gate now builds the release |
+| BR-2 (B14) | The release robot has a second, independent break in its very first step (the retired `tools` SDK package), already fixed in the other two workflows. | X7: fixed 25 September (#416) |
 | TS-2 (B13b) | The "quick test run without Android" cannot start: four test files sit in folders the lane compiles wholesale. `tools/verify.sh` therefore cannot pass. | X8 |
 | TS-1 (B13b) | The coverage floors are checked by no automatic step: the one script that checks them dies first, and the cloud build never runs the report. | X8 |
 | TS-3 (B13b) | Only the workout floor is ever drawn by the merge gate; twenty of 25 screens are checked by reading code, not by showing them (Home 16 %, Plan 14 %, Settings 17 %, navigation 9 % covered). | W3 |
@@ -256,7 +256,7 @@ notes. Adopted the day the record was written (decision 7);
 
 | # | Packet | Scope | Kind |
 |---|---|---|---|
-| 1 | **X7** release lane (done 25 September) | `-dontwarn org.slf4j.impl.StaticLoggerBinder` (BR-1); `packages: ''` in `release.yml` (BR-2); the swallowed upload failure (BR-7); an unsigned `assembleRelease` in the local gate so the release cannot rot silently again | Q |
+| 1 | **X7** release lane (done 25 September, #416) | `-dontwarn org.slf4j.impl.StaticLoggerBinder` (BR-1); `packages: ''` in `release.yml` (BR-2); the swallowed upload failure (BR-7); an unsigned `assembleRelease` in the local gate so the release cannot rot silently again | Q |
 | 2 | **R1** data safety | "Generate a week" confirms and keeps the current block (UI-3); the restore guard counts goals, templates and planner rules (BK-3); Drive sign-out disarms auto-backup and forgets the sealed password (BK-1); the after-workout copy survives leaving the summary (BK-4); a `corruptionHandler` on `user_settings` and the chooser drawn under, not over, the retry screen (DB-2, L-3) | V |
 | 3 | *W2b-4* | done while this audit ran (#413): the rest page's Next line is the Log's | Q |
 | 4 | **R2** crash and coach | the four Home feeds through `observeHealth` and a handler on the insights scope (DB-1, AR-1); History's activity read guarded (UI-17); the bar's finish/discard epilogue guarded (UI-12); diagnostics capture installed before the pre-migration copy (AR-2); hold lifts excluded from rep coaching (DM-1); Finish blocked or warned while a set edit is open (UI-2 B11); a reminder tap that neither ejects a live workout nor consumes a blocked start (UI-1 B9a) | V |
