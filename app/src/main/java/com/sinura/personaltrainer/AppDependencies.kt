@@ -5,6 +5,7 @@ import com.sinura.personaltrainer.activity.DiscardActivity
 import com.sinura.personaltrainer.activity.FinishActivity
 import com.sinura.personaltrainer.activity.StartLiveActivity
 import com.sinura.personaltrainer.data.repository.ActivityRepository
+import com.sinura.personaltrainer.data.repository.AfterWorkoutBackup
 import com.sinura.personaltrainer.data.repository.BackupService
 import com.sinura.personaltrainer.data.repository.CompletedTrainingRepository
 import com.sinura.personaltrainer.data.repository.DbMaintenance
@@ -97,4 +98,7 @@ interface AppDependencies {
 
     /** Opens the stored backup passphrase so a finished workout can back itself up. */
     val backupPassphraseSealer: BackupPassphraseSealer
+
+    /** The Drive copy after a finished workout; outlives the summary that starts it. */
+    val afterWorkoutBackup: AfterWorkoutBackup
 }

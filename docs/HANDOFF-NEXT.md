@@ -164,6 +164,24 @@ Done so far:
   held until now. The ViewModel is 2,377 → 2,327 lines. Built before
   the 25 September order landed; the owner chose to merge it ahead of
   R1 and R2.
+- **T2:** the Log test that failed on about one GitHub run in fifteen
+  was a real tie, not bad luck: two sets saved in one millisecond made the
+  saved-sets sheet call the first "Latest" while the Last set cell called
+  the second. The sheet now takes the later set, and the test makes the
+  tie every run. The emulator lane's font and keyboard waits went from 10
+  to 30 seconds (#418).
+- **R1-1:** signing out of Drive switches automatic backup off and
+  forgets its password, as the privacy page says; with automatic backup
+  on it asks first and points to Show backup password (audit BK-1;
+  #419). Found by its review, not fixed: sign-out has never withdrawn
+  Drive access (`RevokeAccessRequest` built with no scopes).
+- **R1-2:** the restore guard counts goals, activity templates and the
+  weekly plan, and the restore question names the plan once (audit BK-3;
+  #420).
+- **R1-3:** the Drive copy after a finished workout belongs to the app,
+  so tapping Done no longer cancels it; one Drive backup runs at a time,
+  sign-out and switch-off stop a copy in flight, and a copy gives up
+  after ten minutes (audit BK-4; #421).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -187,8 +205,8 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner decision of 25 September, audit X6; the live order
-is the table in FRONTEND_REDESIGN.md): R1 (data safety),
-R2 (crash and coach), W2d-2 and W2d-3, the rest-alarm packet,
+is the table in FRONTEND_REDESIGN.md): the rest of R1 (data safety:
+R1-4 "Generate a week", R1-5 the settings file), R2 (crash and coach), W2d-2 and W2d-3, the rest-alarm packet,
 R3 (updater), then a check-only phone drop, then W3, S1, X8 and X9. X2b
 completed Wave 0.
 

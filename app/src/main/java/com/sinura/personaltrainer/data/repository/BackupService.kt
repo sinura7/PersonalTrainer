@@ -31,6 +31,8 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -83,11 +85,26 @@ class BackupService(
         driveAuthClient.signOut(activity)
     }
 
+    /**
+     * One Drive backup at a time. The copy after a workout now outlives the summary, so it can
+     * meet a second workout's copy or a tap on Create backup now: two first-ever backups would
+     * each make a "PersonalTrainer Backups" folder, and an older snapshot finishing last would
+     * list as the newest file.
+     */
+    private val driveBackupLock = Mutex()
+
     suspend fun createBackup(
         activity: Activity,
         launchResolution: suspend (IntentSender) -> Boolean,
         password: CharArray? = null,
         iterations: Int = BackupEnvelope.DEFAULT_ITERATIONS,
+    ): DriveBackupFile = driveBackupLock.withLock { createBackupLocked(activity, launchResolution, password, iterations) }
+
+    private suspend fun createBackupLocked(
+        activity: Activity,
+        launchResolution: suspend (IntentSender) -> Boolean,
+        password: CharArray?,
+        iterations: Int,
     ): DriveBackupFile = withContext(ioDispatcher) {
         networkChecker.requireOnline()
         val session = rememberAuthorizedSession(activity, launchResolution)

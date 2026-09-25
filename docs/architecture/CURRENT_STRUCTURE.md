@@ -74,7 +74,7 @@ import further out than anything it banned.
 ```mermaid
 flowchart TB
     PTA["PersonalTrainerApp<br/>(manifest android:name)"]
-    AC["AppContainer(context) : AppDependencies<br/>38 typed ports"]
+    AC["AppContainer(context) : AppDependencies<br/>39 typed ports"]
     DB[("TemperDatabase v7<br/>24 entities · 11 DAOs")]
     PREFS[("user_settings DataStore<br/>56 keys · 6 prefs stores")]
     REPOS["10 repositories<br/>+ stores, BackupService, sync"]
@@ -102,7 +102,7 @@ flowchart TB
 
 **Dependency injection is a hand-rolled composition root.** No Hilt, no
 Dagger, no Koin. `PersonalTrainerApp.onCreate` builds one `AppContainer`, which
-implements `AppDependencies` — an interface of 38 typed ports. Every ViewModel
+implements `AppDependencies` — an interface of 39 typed ports. Every ViewModel
 is `@JvmOverloads constructor(application, container: AppDependencies =
 application.appContainer())`, so production gets the real graph through the
 default and tests pass `FakeAppDependencies`, which is the same repositories

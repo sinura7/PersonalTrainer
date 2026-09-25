@@ -115,6 +115,7 @@ internal class BackupPrefsStore(private val store: SettingsStore) : BackupPrefs 
             enabled = prefs[AUTO_BACKUP_ENABLED] ?: false,
             sealedPassphrase = prefs[AUTO_BACKUP_SECRET]?.takeIf { it.isNotBlank() },
             lastBackedUpSessionId = prefs[AUTO_BACKUP_LAST_SESSION]?.takeIf { it.isNotBlank() },
+            driveAccount = prefs[DRIVE_ACCOUNT]?.takeIf { it.isNotBlank() },
         )
     }
 
