@@ -194,6 +194,11 @@ Done so far:
   retry screen (audit DB-2, L-3; #423). This completes R1. Before sync is
   unpaused: a reset on a signed-in phone queues default account settings
   stamped now, which would win the first push (a condition for S1).
+- **R2-1:** Home and History no longer close the app when a database read
+  fails. Home keeps its last numbers and goes on updating; History keeps
+  the workouts, says it may be behind and offers Retry (audit DB-1, AR-1,
+  UI-17; #424). Found by its reviews, not fixed: Plan still reads the
+  weigh-ins and the current block raw.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -217,8 +222,8 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner decision of 25 September, audit X6; the live order
-is the table in FRONTEND_REDESIGN.md): R2 (crash and coach), W2d-2 and
-W2d-3, the rest-alarm packet,
+is the table in FRONTEND_REDESIGN.md): the rest of R2 (crash and coach:
+R2-2 onward), W2d-2 and W2d-3, the rest-alarm packet,
 R3 (updater), then a check-only phone drop, then W3, S1, X8 and X9. X2b
 completed Wave 0.
 
