@@ -345,14 +345,22 @@ class FloorScreenWiringRenderTest {
 
     @Test
     fun theHistorysEditOpensTheSavedSetsSheet() {
-        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
+        // Both sets carry one completion time, as the seed's two back-to-back saves do on about
+        // one hosted run in fifteen. The later set is still the latest; set 1 keeps its plain label.
+        val sessionId = runBlocking {
+            seedLegExtension(deps, loggedSets = sets(2)).also { id ->
+                val dao = deps.database.workoutDao()
+                val saved = dao.setsForExercise(id, FLOOR_LIFT_ID)
+                saved.forEach { dao.updateSet(it.copy(completedAt = saved.first().completedAt)) }
+            }
+        }
+        val vm = floorViewModel(deps = deps, sessionId = sessionId).also(viewModels::add)
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
         compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed()
-        // The sheet's top can be on screen while it is still sliding up; its first row follows.
-        compose.waitUntil(timeoutMillis = WAIT_MS) { compose.isDisplayed(hasText("Working set 1 of 3")) }
         compose.onNodeWithText("Working set 1 of 3").assertIsDisplayed()
+        compose.onNodeWithText("Working set 2 of 3 · Latest").assertIsDisplayed()
     }
 
     @Test

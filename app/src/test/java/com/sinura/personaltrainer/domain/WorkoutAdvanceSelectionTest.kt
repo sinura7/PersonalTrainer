@@ -141,6 +141,20 @@ class WorkoutAdvanceSelectionTest {
         assertNull(WorkoutAdvance.latestSetId(emptyList()))
     }
 
+    @Test
+    fun twoSetsSavedInOneMillisecondMakeTheLaterSetTheLatest() {
+        // The saved-sets sheet read the first of a tie as the latest, while the Last set cell
+        // (ExerciseFloorStats) read the later set number: two sets, two "latest" answers.
+        val sets = listOf(
+            set("one", SQUAT, completedAt = STAMP, setNumber = 1),
+            set("two", SQUAT, completedAt = STAMP, setNumber = 2),
+        )
+        assertEquals("two", WorkoutAdvance.latestSetId(sets))
+        assertEquals("two", WorkoutAdvance.latestSetId(sets.reversed()))
+        // The clock still decides first: a later stamp wins over a later number.
+        assertEquals("one", WorkoutAdvance.latestSetId(listOf(sets[0].copy(completedAt = STAMP + 1), sets[1])))
+    }
+
     private fun session(sets: List<SetLog>): WorkoutSession = WorkoutSession(
         id = "s1",
         routineId = null,
@@ -176,12 +190,13 @@ class WorkoutAdvanceSelectionTest {
         exerciseId: String,
         warmup: Boolean = false,
         completedAt: Long = STAMP,
+        setNumber: Int = 1,
     ) = SetLog(
         id = id,
         sessionId = "s1",
         exerciseId = exerciseId,
         exerciseName = exerciseId,
-        setNumber = 1,
+        setNumber = setNumber,
         weightKg = 100.0,
         reps = 5,
         rpe = null,

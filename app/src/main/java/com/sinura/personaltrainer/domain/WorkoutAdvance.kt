@@ -94,9 +94,13 @@ object WorkoutAdvance {
         wantAnother = false,
     )
 
-    /** The most recently completed set, which the card rules and marks as the latest. */
+    /**
+     * The most recently completed set, which the card rules and marks as the latest. Two sets
+     * stamped in one millisecond go to the later set number, as the Last set cell reads them
+     * ([ExerciseFloorStatsCalculator]); the first of a tie would mark set 1 latest beside set 2.
+     */
     fun latestSetId(loggedSets: List<SetLog>): String? =
-        loggedSets.maxByOrNull { it.completedAt }?.id
+        loggedSets.maxWithOrNull(compareBy<SetLog> { it.completedAt }.thenBy { it.setNumber })?.id
 
     fun plannedWork(targetSets: Int, targetReps: Int): String =
         if (targetSets > 0) "$targetSets × $targetReps" else ""
