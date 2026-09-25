@@ -59,6 +59,12 @@ interface BackupPrefs {
 
     /** Turning it off forgets the passphrase too: an unopenable secret helps nobody. */
     suspend fun disarmAutoBackup()
+
+    /**
+     * Raised only while automatic backup is on: a copy that started before a Drive sign-out
+     * or a switch-off can finish after it, and its "sign in again" would then sit beside an
+     * off switch after the next sign-in, with nothing but re-arming to clear it.
+     */
     suspend fun setAutoBackupNeedsSignIn(needsSignIn: Boolean)
 
     /** Written only after an upload returns, so a failed copy is retried rather than skipped. */
@@ -131,7 +137,7 @@ internal class BackupPrefsStore(private val store: SettingsStore) : BackupPrefs 
 
     override suspend fun setAutoBackupNeedsSignIn(needsSignIn: Boolean) {
         store.data.edit { prefs ->
-            if (needsSignIn) {
+            if (needsSignIn && prefs[AUTO_BACKUP_ENABLED] == true) {
                 prefs[AUTO_BACKUP_NEEDS_SIGN_IN] = true
             } else {
                 prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)

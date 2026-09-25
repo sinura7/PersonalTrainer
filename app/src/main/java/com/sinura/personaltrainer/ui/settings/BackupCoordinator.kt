@@ -343,9 +343,16 @@ class BackupCoordinator(
 
     fun signOut(activity: Activity) {
         runBackupAction("Signing out…") {
+            val autoBackupWasOn = container.preferencesRepository.autoBackupSettings().enabled
             container.backupService.signOut(activity)
             backups.value = emptyList()
-            status.value = "Signed out. Training data on this phone is unchanged."
+            status.value = if (autoBackupWasOn) {
+                "Signed out. Automatic backup is off and its saved password is gone from this " +
+                    "phone; your Drive backups still open with that password. " +
+                    "Training data on this phone is unchanged."
+            } else {
+                "Signed out. Training data on this phone is unchanged."
+            }
         }
     }
 

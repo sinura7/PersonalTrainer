@@ -74,9 +74,13 @@ class BackupService(
         rememberAuthorizedSession(activity, launchResolution)
     }
 
+    /**
+     * The phone forgets first: the account, and automatic backup's sealed password with it,
+     * must not wait on a Play services call that can be cancelled or never answer.
+     */
     suspend fun signOut(activity: Activity) {
-        driveAuthClient.signOut(activity)
         preferencesRepository.clearDriveSession()
+        driveAuthClient.signOut(activity)
     }
 
     suspend fun createBackup(
