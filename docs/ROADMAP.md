@@ -15,6 +15,17 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Audit packet T2 (a flaky test; owner decision of 25
+> September): the Log's test that failed only on GitHub's machines, about
+> one run in fifteen, is fixed at its cause. Its two sets were saved in
+> the same millisecond, and then the saved-sets sheet called the first of
+> them "Latest" while the Last set cell called the second. The sheet now
+> takes the later set, as the cell does, and the test now gives its two
+> sets the same time on every run. Nobody taps two sets in one
+> millisecond, so nothing changes on the phone. The emulator lane's font
+> and keyboard waits go from 10 s to 30 s: each missed once in 79 runs,
+> on the same code that passed three other times. Quiet.
+>
 > 25 Sep 2026 — Audit packet X7, the release lane (audit X6, BR-1, BR-2,
 > BR-7; owner decision of 25 September): the signed gym-floor Temper
 > builds again. One shrinker rule for slf4j, which Temper Account's

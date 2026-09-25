@@ -135,7 +135,8 @@ class FrontendControlsInstrumentedTest {
         compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement("invalid")
         compose.onNodeWithText("Set").assertIsNotEnabled()
         compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement("12")
-        compose.waitUntil(10_000) {
+        // 30 s, as WorkoutEntryJourneyInstrumentedTest: the CI emulator's first keyboard can be slow.
+        compose.waitUntil("the keyboard's window is up", 30_000) {
             InstrumentationRegistry.getInstrumentation().uiAutomation.windows.any {
                 val bounds = android.graphics.Rect()
                 it.getBoundsInScreen(bounds)
