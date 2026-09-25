@@ -104,11 +104,22 @@ class WorkoutEntryJourneyInstrumentedTest {
     private fun shell(command: String): String = InstrumentationRegistry.getInstrumentation().uiAutomation
         .executeShellCommand(command).use { pipe -> FileInputStream(pipe.fileDescriptor).use { String(it.readBytes()) } }
 
+    // The shared CI emulator has taken more than 10 s, now and then, to apply a new font scale
+    // or to show the keyboard's window the first time (25 Sep: one of each in 79 runs). Both
+    // waits return as soon as the device is ready, so the longer bound costs a passing run nothing.
     private fun awaitSystemFont(expected: Float) {
         val resources = ApplicationProvider.getApplicationContext<android.app.Application>().resources
-        val deadline = SystemClock.elapsedRealtime() + 10_000
+        val deadline = SystemClock.elapsedRealtime() + DEVICE_WAIT_MS
         while (resources.configuration.fontScale != expected && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(50)
-        assertEquals(expected, resources.configuration.fontScale, 0.01f)
+        assertEquals("font_scale $expected had not reached the app after $DEVICE_WAIT_MS ms", expected, resources.configuration.fontScale, 0.01f)
+    }
+
+    private fun awaitKeyboard() = compose.waitUntil("the keyboard's window is up", DEVICE_WAIT_MS) {
+        InstrumentationRegistry.getInstrumentation().uiAutomation.windows.any {
+            val bounds = android.graphics.Rect()
+            it.getBoundsInScreen(bounds)
+            it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD && bounds.height() > 200
+        }
     }
 
     private fun mount(fontScale: Float = 1f, notifications: Boolean = true, targetSets: Int = 12, longName: Boolean = false, savedCount: Int = 0) {
@@ -216,13 +227,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         scrollContentTo(WorkoutTestTags.WEIGHT_STEPPER).performClick()
         field.performTextReplacement("-5")
         compose.onNodeWithText("Set").assertIsNotEnabled()
-        compose.waitUntil(10_000) {
-            InstrumentationRegistry.getInstrumentation().uiAutomation.windows.any {
-                val bounds = android.graphics.Rect()
-                it.getBoundsInScreen(bounds)
-                it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD && bounds.height() > 200
-            }
-        }
+        awaitKeyboard()
         captureWindow("numeric-invalid-font20")
         field.performTextReplacement("85,5")
         compose.onNodeWithText("Set").performClick()
@@ -355,13 +360,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.onNodeWithText("Custom rest").assertIsDisplayed()
         compose.onNode(hasSetTextAction()).performScrollTo().performClick()
         compose.onNode(hasSetTextAction()).performTextReplacement("180")
-        compose.waitUntil(10_000) {
-            InstrumentationRegistry.getInstrumentation().uiAutomation.windows.any {
-                val bounds = android.graphics.Rect()
-                it.getBoundsInScreen(bounds)
-                it.type == AccessibilityWindowInfo.TYPE_INPUT_METHOD && bounds.height() > 200
-            }
-        }
+        awaitKeyboard()
         compose.onNode(hasSetTextAction()).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Cancel").performScrollTo().assertIsDisplayed()
         captureWindow("custom-rest-landscape-font20")
@@ -405,5 +404,9 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.onNode(anotherInSheet).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         assertEquals(10, savedSets().size)
+    }
+
+    private companion object {
+        const val DEVICE_WAIT_MS = 30_000L
     }
 }
