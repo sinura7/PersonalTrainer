@@ -72,6 +72,13 @@ interface BackupPrefs {
     suspend fun setLastRestore(fileName: String, atMillis: Long)
     suspend fun setLastBackup(fileName: String, atMillis: Long)
     suspend fun setLastVerifiedBackup(fileName: String, atMillis: Long)
+
+    /**
+     * Drive sign-out: the account and folder, and automatic backup with them, in one write.
+     * PRIVACY.md and the threat model (§4.3.1) promise that signing out deletes the sealed
+     * password and turns the toggle off; kept, it would sit on the phone for a Drive nobody
+     * is signed in to. The last-backup lines stay: they describe files already in Drive.
+     */
     suspend fun clearDriveSession()
 }
 
@@ -186,6 +193,10 @@ internal class BackupPrefsStore(private val store: SettingsStore) : BackupPrefs 
         store.data.edit { prefs ->
             prefs.remove(DRIVE_ACCOUNT)
             prefs.remove(DRIVE_FOLDER_ID)
+            prefs.remove(AUTO_BACKUP_ENABLED)
+            prefs.remove(AUTO_BACKUP_SECRET)
+            prefs.remove(AUTO_BACKUP_NEEDS_SIGN_IN)
+            prefs.remove(AUTO_BACKUP_LAST_SESSION)
         }
     }
 }

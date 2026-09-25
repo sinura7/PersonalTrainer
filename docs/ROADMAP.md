@@ -15,6 +15,16 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Audit packet R1-1 (audit X6, BK-1; owner decision of 25
+> September): signing out of Google Drive now does what the privacy page
+> says. In the same write that forgets the account, it switches automatic
+> backup off and forgets the backup password kept on the phone for it.
+> Before, the password stayed, every finished workout asked to sign in
+> again, and backups resumed by themselves after the next sign-in. Now
+> they stay off until you turn them on again. Rides along with the next
+> drop; phone check: with automatic backup on, sign out of Drive in
+> Settings, sign back in, and the switch is off.
+>
 > 25 Sep 2026 — Audit packet T2 (a flaky test; owner decision of 25
 > September): the Log's test that failed only on GitHub's machines, about
 > one run in fifteen, is fixed at its cause. Its two sets were saved in
