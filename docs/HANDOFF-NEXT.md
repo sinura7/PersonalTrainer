@@ -3,7 +3,10 @@
 **In plain terms:** Temper works offline on the phone. Its optional cloud sync
 (Temper Account) is switched off until it is made safe. The work under way is
 the 22 September whole-app audit, done in small packets, each one tested and
-shipped to Temper Debug through Obtainium.
+shipped to Temper Debug through Obtainium. A second whole-app audit on
+25 September ([design-audit/2026-09-25/AUDIT.md](design-audit/2026-09-25/AUDIT.md))
+re-checked every finding after thirty packets and set the next order
+(owner decision of 25 September).
 
 The first thing a new session on this repository should read. Rewritten
 23 September 2026, during the whole-app audit program (packet X1). The one
@@ -43,6 +46,13 @@ The **whole-app audit** of 22 September:
 re-ordered the frontend redesign's remaining packets (F4–F11) and interleaved
 them with sync-safety packets. The live order, with progress, is the packet
 table in [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md).
+
+The **25 September whole-app audit** (packet X6,
+[design-audit/2026-09-25/AUDIT.md](design-audit/2026-09-25/AUDIT.md)) is the
+latest record: it re-verified every 22 September finding, re-ran the gate in
+its own container, drew every screen on the JVM, and proposes a new order
+with six new packets (X7, R1, R2, R3, X8, X9); the owner adopted it on
+25 September, and the table in FRONTEND_REDESIGN.md carries it.
 
 Done so far:
 - **S0a:** sync paused, delete hidden, honest Account copy.
@@ -134,13 +144,26 @@ Done so far:
   pins written on the old code pass on the new, and every part of the
   two "has anything changed" checks has a test that fails when it is
   left out (ADR-029, ADR-008; audit C-2; #414).
+- **X7:** the signed gym-floor Temper builds again. The shrinker had
+  stopped on slf4j (brought in by Temper Account's sign-in library on
+  21 September) and nobody builds the release day to day, so nobody saw;
+  one rule fixes it. `release.yml` no longer asks for the retired SDK
+  `tools` package, and a failed upload now fails the run instead of
+  saying "already present". The gate's `assembleDebug` builds the
+  release as well (unsigned, even where a release key is present), which
+  holds the slf4j rule, and `tools/check-release-lane.py` keeps the
+  workflow fixes and that gate wiring in place (audit X6, BR-1, BR-2,
+  BR-7; #416). The shrunk APK was inspected, not launched: the first
+  signed release gets a launch on the phone before anyone relies on it.
 - **W2d-1:** the floor's undo queue (the offers, their order, how long
   each shows, and the copy kept for when Android stops the app) moves
   out of the workout ViewModel into a small helper, `FloorUndoOffers`.
   Deleting, removing and undoing work exactly as before; 16 tests
   written on the old code first prove it, among them that an undone or
   expired offer stays gone after the app is stopped, which nothing
-  held until now. The ViewModel is 2,377 → 2,327 lines.
+  held until now. The ViewModel is 2,377 → 2,327 lines. Built before
+  the 25 September order landed; the owner chose to merge it ahead of
+  R1 and R2.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -163,10 +186,11 @@ Done so far:
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): W2d-2, W2d-3, the
-rest-alarm packet, then a check-only phone drop, then W3. X2b completed
-Wave 0.
+Next, in order (owner decision of 25 September, audit X6; the live order
+is the table in FRONTEND_REDESIGN.md): R1 (data safety),
+R2 (crash and coach), W2d-2 and W2d-3, the rest-alarm packet,
+R3 (updater), then a check-only phone drop, then W3, S1, X8 and X9. X2b
+completed Wave 0.
 
 ## What is verified, and how
 
@@ -177,6 +201,10 @@ PT_STATIC_ONLY=1 sh tools/preflight.sh
 sh tools/hang-watchdog.sh ./gradlew testDebugUnitTest assembleDebug
 ./gradlew lintDebug   # every packet (FOUNDATION_PROGRAM §4)
 ```
+
+`assembleDebug` also builds the unsigned release (R8, resource
+shrinking, lint-vital), since X7, so a shrinker break fails the gate the
+day it lands rather than the day a signed Temper is wanted.
 
 Then a squash merge into `trunk`. For every defect, a test that fails on
 `trunk` and passes on the branch. Two review passes per packet: one

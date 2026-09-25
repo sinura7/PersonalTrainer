@@ -22,6 +22,16 @@
 > Nothing changes on screen; tests written on the old code prove it.
 > Quiet.
 >
+> 25 Sep 2026 — Audit packet X7, the release lane (audit X6, BR-1, BR-2,
+> BR-7; owner decision of 25 September): the signed gym-floor Temper
+> builds again. One shrinker rule for slf4j, which Temper Account's
+> sign-in library brought in on 21 September; release.yml's SDK step and
+> its publish step fixed; and the push gate's `assembleDebug` now builds
+> the release too, so it cannot break unseen again, and never signs it.
+> The shrunk APK was inspected for what Android and the libraries find by
+> name; no shrunk Temper has been launched yet, so the first signed
+> release gets a launch on the phone before anyone relies on it. Quiet.
+>
 > 25 Sep 2026 — Whole-app audit packet W2c (audit C-2): the coach no
 > longer redoes its sum on every tap in the Log or every second on the
 > rest page; it is asked again only when something it reads changes.

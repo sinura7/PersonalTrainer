@@ -157,11 +157,13 @@ rehydration, the alarm and the service cannot each fire the same finish.
 
 `./gradlew testDebugUnitTest` runs the unit tests **and** the whole
 static gate: every `Test` task depends on `:app:staticChecks`, which runs
-`tools/preflight.sh` with `PT_STATIC_ONLY=1`. That is 24 checkers, 8 fixture
+`tools/preflight.sh` with `PT_STATIC_ONLY=1`. That is 25 checkers, 10 fixture
 proofs and a syntax check — domain seams, design-token ceilings, unbounded waits,
 swallowed cancellation, supply-chain ledger, version floor. Until 11 September
 2026 none of it was wired into Gradle, so the push gate could go green on a
-branch that broke all of it.
+branch that broke all of it. `./gradlew assembleDebug` builds the unsigned
+release as well (R8, resource shrinking, lint-vital), since packet X7; the
+release had silently stopped building for four days before audit X6 built it.
 
 The counts the ratchets hold live in `tools/checker-baselines.toml`. Growth
 past a number fails closed; a count that comes in under it prints a note asking

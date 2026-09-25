@@ -56,8 +56,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Default packages are `tools platform-tools`, and Google no longer ships the
+      # retired `tools` package: sdkmanager fails before any project step. That stopped
+      # debug drop live 59, and ci.yml and debug-live.yml were fixed then; this file was
+      # not, so no `v*` tag could have got past this step (audit X6, BR-2). Empty still
+      # accepts the licences and puts cmdline-tools on PATH; the hosted image already
+      # carries platform-tools and build-tools, which Verify signature needs.
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          packages: ''
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
@@ -166,16 +174,19 @@ jobs:
           echo "name=$(basename "$apk")" >> "$GITHUB_OUTPUT"
 
       # Proves the artifact really is signed by the expected key before anything tries to
-      # install it over an existing app.
+      # install it over an existing app. The path arrives through env like every other
+      # value: an expression inside run: is pasted into the script before bash reads it.
       - name: Verify signature
         if: env.HAS_KEYSTORE == 'true'
+        env:
+          APK: ${{ steps.apk.outputs.path }}
         run: |
           apksigner="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)"
           if [ -z "$apksigner" ]; then
             echo "apksigner not found under $ANDROID_HOME/build-tools" >&2
             exit 1
           fi
-          "$apksigner" verify --print-certs --verbose "${{ steps.apk.outputs.path }}"
+          "$apksigner" verify --print-certs --verbose "$APK"
 
       # Always keep the build, even on workflow_dispatch where no Release is published —
       # otherwise a manual run spends 15 minutes and throws the APK away.
@@ -207,20 +218,45 @@ jobs:
             notes="**UNSIGNED** — signing secrets are not configured, so this APK cannot update an existing install. Build locally per SETUP.md, or add the KEYSTORE_* secrets."
           fi
           mapping="app/build/outputs/mapping/release/mapping.txt"
+
           # A release may already exist because it was cut by hand (SETUP.md §5.3 documents
           # exactly that). Never clobber a human-uploaded APK: attach alongside, and if the
-          # asset name already exists, leave it and say so. Same rule for mapping.txt.
+          # asset name is already there, leave it and say so. Same rule for mapping.txt.
+          #
+          # "Already there" is asked, not inferred. This used to be `gh release upload ... ||
+          # echo "already present"`, which also swallowed a failed upload for any other
+          # reason (network, token, a renamed file) and went green having published
+          # nothing: the shape debug-live.yml removed after the 10 Sep drop that did exactly
+          # that (audit X6, BR-7). If the asset list cannot be read, the name is treated as
+          # absent and the upload itself decides; any failure now fails the job.
+          #
+          # mapping.txt decodes only the build it came from. When the APK already on the
+          # release is someone else's (a hand-cut release), this run's mapping would decode
+          # its crashes wrongly, so it goes on the release only beside this run's own APK; it
+          # is always in the `mapping` workflow artifact above.
+          attached=""
+          attach() {
+            name="$(basename "$1")"
+            if gh release view "$tag" --json assets --jq '.assets[].name' | grep -Fxq "$name"; then
+              echo "$name is already on $tag; leaving the existing one untouched."
+            else
+              gh release upload "$tag" "$1"
+              attached="$name"
+            fi
+          }
+
           if gh release view "$tag" >/dev/null 2>&1; then
-            echo "Release $tag already exists — uploading without overwriting."
-            gh release upload "$tag" "$APK" || \
-              echo "Asset already present on $tag; leaving the existing one untouched."
+            echo "Release $tag already exists — attaching without overwriting."
+            attach "$APK"
           else
             gh release create "$tag" "$APK" \
               --title "${tag#v}" \
               --notes "$notes" \
               --verify-tag
+            attached="$(basename "$APK")"
           fi
-          if [ -f "$mapping" ]; then
-            gh release upload "$tag" "$mapping" || \
-              echo "mapping.txt already present on $tag; leaving the existing one untouched."
+          if [ -f "$mapping" ] && [ -n "$attached" ]; then
+            attach "$mapping"
+          elif [ -f "$mapping" ]; then
+            echo "This run did not put the APK on $tag, so its mapping.txt is not attached there either; it is in the 'mapping' artifact."
           fi
