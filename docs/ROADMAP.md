@@ -18,10 +18,11 @@
 > 25 Sep 2026 — Audit packet R2-2 (audit X6, UI-12; owner decision of 25
 > September): finishing or discarding from the bottom bar no longer
 > closes the app when the small write after it fails (the link between
-> the workout and its planned day). The summary opens; at worst the plan
-> row stays not done. The same write after a finish on the workout
-> screen, and after starting a planned session from Home, no longer
-> undoes what just happened either. Rides along with the next drop;
+> the workout and its planned day). The summary opens; if that write
+> cannot be made, the planned day may be left not marked done, and a
+> link the app could not clear is not used again while it runs. The same
+> write after a finish on the workout screen, and after starting a
+> planned session from Home, no longer undoes what just happened either. Rides along with the next drop;
 > nothing to check on the phone (a failing write is not something to
 > make on purpose).
 >

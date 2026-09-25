@@ -11,11 +11,13 @@ import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.testutil.RefusingPlanLinkStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -190,11 +192,12 @@ class PendingOccurrenceTest {
 
     /**
      * Audit UI-12: marking the planned session done is bookkeeping after a finish that has
-     * already landed. When it failed, it threw past that finish; now it is logged, and the link
-     * stays, since nothing is lost by it and the next start replaces it.
+     * already landed. Here it fails partway, the row written and its reminders' cancel
+     * refused. It used to throw past that finish; now it is logged, and the link stays, since
+     * nothing is lost by it and the next start replaces it.
      */
     @Test
-    fun aPlanRowThatCannotBeMarkedDoneDoesNotThrowAndKeepsTheLink() = runBlocking {
+    fun aPlanRowWhoseRemindersCannotBeCancelledDoesNotThrowAndKeepsTheLink() = runBlocking {
         val reminders = FailingCancels()
         deps.close()
         deps = FakeAppDependencies(
@@ -214,6 +217,41 @@ class PendingOccurrenceTest {
         PendingOccurrence.complete(deps, "session-planned")
 
         assertEquals("${occ.id}\nsession-planned", deps.pendingOccurrenceId.value)
+    }
+
+    /**
+     * A clear whose saved copy failed must not come back from the file in the same run: the
+     * composer arm would be taken twice, and a later, unrelated strength finish would mark the
+     * planned day done.
+     */
+    @Test
+    fun aClearThatCannotBeSavedIsNotReadBackInTheSameRun() = runBlocking {
+        var store: RefusingPlanLinkStore? = null
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            prefsStoreDecorator = { real -> RefusingPlanLinkStore(real).also { store = it } },
+        )
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.MONDAY,
+            hour = 18,
+            minute = 0,
+            modality = ScheduleModality.STRENGTH,
+        )
+        val occ = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1L).single()
+        PendingOccurrence.bind(deps, occ.id)
+        val refusing = checkNotNull(store)
+        refusing.refuse = true
+
+        assertEquals(occ.id, PendingOccurrence.takeForComposer(deps))
+        assertTrue("the clear was never refused", refusing.refusals.get() > 0)
+        assertNull(PendingOccurrence.takeForComposer(deps))
+        PendingOccurrence.complete(deps, "session-unrelated")
+        assertEquals(
+            OccurrenceStatus.PLANNED,
+            deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
+                .single().status,
+        )
     }
 
     /** Reminders whose cancel throws once switched on, as WorkManager refusing one would. */

@@ -5,6 +5,9 @@ import com.sinura.personaltrainer.domain.PlannedOccurrence
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import java.util.Collections
+import java.util.WeakHashMap
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 
 /**
@@ -29,11 +32,13 @@ import kotlinx.coroutines.flow.first
  * `occurrenceId\nsessionId` once a session is attached. This object is
  * the only reader of that encoding.
  *
- * Every write here is bookkeeping that follows something already done:
- * a start that opened, a finish or a discard that landed. None of them
- * throws. A failed one is logged and the action stands; it used to throw
- * past the finish that had just been saved, closing the app from the
- * bottom bar with the summary never opened (audit UI-12).
+ * No write here throws. Most follow something already done (a start
+ * that opened, a finish or a discard that landed) and the rest hand the
+ * link to the composer; a failed one is logged and the action stands. It
+ * used to throw past the finish that had just been saved, closing the app
+ * from the bottom bar with the summary never opened (audit UI-12). Once
+ * this run has written the link, its in-memory copy is the truth: a clear
+ * whose saved copy failed is not read back from the file.
  */
 object PendingOccurrence {
     private const val SEP = '\n'
@@ -114,9 +119,21 @@ object PendingOccurrence {
         return occurrenceId
     }
 
-    private suspend fun stored(deps: AppDependencies): String? =
-        deps.pendingOccurrenceId.value
-            ?: deps.preferencesRepository.pendingOccurrenceId.first()
+    /**
+     * The link flows this run has written. Until one is written, an empty in-memory value may
+     * only mean [restore] has not run yet, so the file is read; after it, empty means none.
+     * Reading the file then would bring back a clear that failed to save: the composer arm
+     * taken twice, or a later, unrelated finish marking that planned day done.
+     */
+    private val written: MutableSet<MutableStateFlow<String?>> =
+        Collections.synchronizedSet(Collections.newSetFromMap(WeakHashMap()))
+
+    private suspend fun stored(deps: AppDependencies): String? {
+        val link = deps.pendingOccurrenceId
+        link.value?.let { return it }
+        if (link in written) return null
+        return deps.preferencesRepository.pendingOccurrenceId.first()
+    }
 
     private fun decode(stored: String): Pair<String, String?> {
         val cut = stored.indexOf(SEP)
@@ -128,11 +145,13 @@ object PendingOccurrence {
     }
 
     /**
-     * The in-memory value is set first, so this run follows the binding even when the saved
-     * copy cannot be written; only a restart would find the older one.
+     * The in-memory value is set first and is what this run reads from then on, so it follows
+     * the link even when the saved copy cannot be written; only a restart would find the older
+     * one.
      */
     private suspend fun write(deps: AppDependencies, value: String?) {
         deps.pendingOccurrenceId.value = value
+        written += deps.pendingOccurrenceId
         runCatchingCancellable { deps.preferencesRepository.setPendingOccurrenceId(value) }
             .onFailure { thrown -> AppLog.e(TAG, "Saving the planned-session link failed", thrown) }
     }
