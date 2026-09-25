@@ -92,7 +92,9 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEmpty
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -296,7 +298,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val draftDirty = MutableStateFlow(false)
     private var prefillGeneration = 0
     private val wantAnotherSet = MutableStateFlow(false)
-    private var cachedWeightUnit = WeightUnit.KG
+
+    /** The unit the undo offer and the log receipt name. It rode on [microRec] until W2c. */
+    private val weightUnit: StateFlow<WeightUnit> = container.preferencesRepository.weightUnit
+        .stateIn(viewModelScope, SharingStarted.Eagerly, WeightUnit.KG)
 
     /**
      * Packet G: cheap destructives form a short LIFO queue, newest last.
@@ -538,7 +543,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     /**
      * In-set next load. Recomputed on log, RPE, warmup, lift switch, delete/undo, and edit.
-     * Stepper ticks do not change it unless draft RPE is set (preview).
+     * Stepper ticks do not change it unless draft RPE is set (preview): the coach is asked again
+     * only when what it reads changes ([CoachKey]), so a step, a note or a set of another lift
+     * leaves this call as it was (W2c, audit C-2). Plain `map`, no dispatch: [applyMicroRec] and
+     * the rest after a log read `.value` at once.
      * Eager: [applyMicroRec] reads this value, not a rendered snapshot.
      */
     val microRec: StateFlow<SetMicroRec?> = combine(
@@ -557,7 +565,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             MicroRecExtras(editingSetId = editing, lighterWeek = lighter, unit = unit, coachPrefs = coach)
         },
     ) { core, extras ->
-        cachedWeightUnit = extras.unit
         // The rest page asks the same question from what this screen leaves in the draft
         // cache (W2b-4); every input is named, so neither side can drop one.
         NextSetInputs(
@@ -572,12 +579,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             unit = extras.unit,
             // The goal set in Settings reaches the floor's coach (audit C-1); it was DEFAULT.
             coachPrefs = extras.coachPrefs,
-        ).rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Eagerly,
-        initialValue = null,
-    )
+        ).coachKey()
+    }.distinctUntilChanged()
+        .map { key -> key.rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay()) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null,
+        )
 
     /**
      * The coach's first named lift, as an (exercise, reason) pair, or null when it has nothing
@@ -587,28 +596,49 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * flow to `combine` as a direct argument, and a property initializer cannot read a property
      * that has not run yet: `variable 'suggestedLift' must be initialized`. Being inside a
      * lambda would have made the forward reference legal; being an argument to one does not.
+     *
+     * The insights recompute on every logged set, nearly always with the same card on top, so
+     * the lift is looked up only when the card's lift or reason changes (W2c). The lift is then
+     * watched, not read once: one edited while the Log is open, in the library or by sync from
+     * another device, is suggested by its new name and added with its new load's sets, reps and
+     * rest; a lift read once kept its old name and load until the card moved (W2c review). The
+     * watch asks Room again only when the exercise or muscle-credit tables are written, never
+     * on a logged set.
      */
     private val suggestedLift: Flow<Pair<Exercise, String>?> =
         container.trainingInsights.observeShared(includeWeekPlan = false)
             .map { insights ->
-                val card = insights.recommendations.firstOrNull { it.actionExerciseId != null }
-                    ?: return@map null
-                val exercise = container.exerciseRepository.getById(card.actionExerciseId!!)
-                    ?: return@map null
-                exercise to card.title
+                insights.recommendations.firstOrNull { it.actionExerciseId != null }
+                    ?.let { card -> card.actionExerciseId!! to card.title }
             }
+            .distinctUntilChanged()
+            .flatMapLatest { card ->
+                val (exerciseId, title) = card ?: return@flatMapLatest flowOf(null)
+                container.exerciseRepository.observeById(exerciseId)
+                    .map { exercise -> exercise?.let { it to title } }
+                    // A first read that fails ends the watch with no value, and uiState's
+                    // combine would wait for one forever; the one-shot read gave null. A read
+                    // that fails later ends the watch on the lift last read (observeHealth), so
+                    // that lift stays suggested but no longer follows edits; the one-shot read's
+                    // failure hid the suggestion for the rest of the Log instead. The next card
+                    // starts a new watch either way.
+                    .onEmpty { emit(null) }
+            }
+            .distinctUntilChanged()
             .catch { thrown ->
                 AppLog.w(TAG, "Reading the suggested lift failed", thrown)
                 emit(null)
             }
 
     val uiState: StateFlow<ActiveWorkoutUiState> = combine(
-        session,
+        // The read, not [session]: one Room emission reached this chain twice, once through
+        // each, and the first pass could pair the new read with the old session (W2c).
+        sessionReader.observations,
         selectedExerciseId,
         draft,
         hint,
-    ) { current, selected, currentDraft, currentHint ->
-        WorkoutCore(current, selected, currentDraft, currentHint)
+    ) { read, selected, currentDraft, currentHint ->
+        WorkoutCore(read, selected, currentDraft, currentHint)
     }.combine(lastPerformance) { core, last ->
         core.copy(lastPerformance = last)
     }.combine(
@@ -632,10 +662,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         },
     ) { core, extras ->
         ActiveWorkoutUiState(
-            // The coherent read outcome and graph are supplied below.
-            loadState = SessionLoadState.LOADING,
-            session = core.session,
-            selectedExerciseId = core.session?.resolveSelectedExerciseId(core.selected) ?: core.selected,
+            loadState = core.read.loadState,
+            session = core.read.session,
+            selectedExerciseId = core.read.session?.resolveSelectedExerciseId(core.selected) ?: core.selected,
             draft = core.draft,
             hint = core.hint,
             lastPerformance = core.lastPerformance,
@@ -647,13 +676,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             finished = extras.finished,
             editingSetId = extras.editingSetId,
         )
-    }.combine(sessionReader.observations) { state, read ->
-        state.copy(
-            loadState = read.loadState,
-            session = read.session,
-            selectedExerciseId = read.session?.resolveSelectedExerciseId(state.selectedExerciseId)
-                ?: state.selectedExerciseId,
-        )
     }.combine(
         combine(
             searchQuery.flatMapLatest { container.exerciseRepository.search(it) },
@@ -662,11 +684,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     ) { state, (results, lastLogged) ->
         // With an empty query the picker leads with what you have actually been training.
         // A search has already expressed an intent, and re-ranking it by recency would fight
-        // what was typed.
-        val ordered = if (state.searchQuery.isBlank()) {
-            ExerciseOrdering.pickerOrder(results, lastLogged)
-        } else {
-            results
+        // what was typed. A closed picker gets no list and no sort: the recency order moves
+        // with every logged set. The catalogue itself stays read, so the picker opens on its
+        // list and never on an empty "Search the library" (W2c).
+        val ordered = when {
+            !state.showExercisePicker -> emptyList()
+            state.searchQuery.isBlank() -> ExerciseOrdering.pickerOrder(results, lastLogged)
+            else -> results
         }
         state.copy(searchResults = ordered)
     }.combine(
@@ -2006,7 +2030,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private fun pushUndo(token: FloorUndo) {
         val offer = token.toOffer(
             sequence = undoSequence++,
-            unit = cachedWeightUnit,
+            unit = weightUnit.value,
             loadTypeOf = ::liftLoadType,
         )
         _undoEntries.value = UndoQueue.push(_undoEntries.value, UndoEntry(token, offer))
@@ -2219,7 +2243,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             weightKg = weightKg,
             reps = reps,
             loadClass = loadClass,
-            unit = cachedWeightUnit,
+            unit = weightUnit.value,
             rpe = rpe,
             durationSeconds = durationSeconds,
         )
@@ -2304,7 +2328,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     private data class WorkoutCore(
-        val session: WorkoutSession?,
+        val read: WorkoutSessionRead,
         val selected: String?,
         val draft: ActiveExerciseDraft,
         val hint: ProgressionHint?,

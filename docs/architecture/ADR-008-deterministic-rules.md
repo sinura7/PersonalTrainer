@@ -2,6 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 24 August 2026
+- **Amended:** 25 September 2026 — W2c: a trace's generated time is not a
+  reason to make it again (see Consequences)
 - **Supersedes:** Nothing. Reaffirms the historical LLM cut and DESIGN_AUDIT §15.
 - **Related:** FND-047; P8.4; Phase 11 / 12
 
@@ -43,6 +45,10 @@ A later lightweight API is useful only if it cannot silently change records.
 - Phase 8 ships traces before any network explanation client.
 - Commercial copy may not call the product an AI trainer.
 - FND-047 is enforced by a concrete contract, not a slogan.
+- The generated time says when a trace was made; it is not a reason to make
+  it again (*amended 25 September 2026, W2c*). The in-workout coach is asked
+  again only when a rule input changes, so an unchanged call keeps the time
+  its inputs last changed ([ADR-029](ADR-029-coach-engine.md)).
 
 ## Review questions
 

@@ -2,6 +2,8 @@
 
 - **Status:** Accepted
 - **Date:** 21 September 2026
+- **Amended:** 25 September 2026 — W2c: a call's trace time does not make
+  the coach run again (see Consequences)
 - **Related:** [ADR-004](ADR-004-offline-core-and-entitlements.md),
   [ADR-008](ADR-008-deterministic-rules.md), [ADR-020](ADR-020-warmup-extras.md),
   [ADR-025](ADR-025-goal-thresholds.md), [ADR-027](ADR-027-workout-logging-redesign.md)
@@ -66,6 +68,20 @@ trace; it must not gate Home, Plan, History, or the logger.
   cardio coach, session-level macro pacing, commercial gate, multi-user learning.
 - Privacy: the evidence library is static assets; no new telemetry is required
   ([`docs/PRIVACY.md`](../PRIVACY.md)).
+- The clock is not a rule input (*amended 25 September 2026, W2c, audit C-2*).
+  `nowMs` and `todayEpochDay` reach only the `RuleTrace` (`generatedAtMs` and
+  the evidence day), so two asks that differ only in the clock get the same
+  call. The Log's Next card keys its ask on the inputs with the clock at zero
+  plus `CoachPreferences` (`CoachKey`); the rest page's Next line on that key
+  and the rest of what its floor is drawn from (the session, the lift it
+  shows, the entry's warm-up flag, a save the Log holds, the unit). Neither
+  asks again on a weight step without RPE or on a second of rest. The ask
+  itself uses the clock as it is then, so the trace still carries a real time
+  ([ADR-008](ADR-008-deterministic-rules.md) decision 2): the time the inputs
+  last changed. Held by `CoachRecomputeTest`. `LogNextCardInputsTest` changes
+  the coach goal, a lighter week, the hint, the unit and the lift's targets
+  one at a time, and `RestFloorInputsTest` the session, the lift, a warm-up,
+  a held save and the unit; each holds its screen to the change.
 
 ## Review questions
 
