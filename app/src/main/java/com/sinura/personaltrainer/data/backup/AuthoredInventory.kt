@@ -18,6 +18,11 @@ data class AuthoredInventory(
     val bodyweightEntries: Int,
     val blocks: Int,
     val activities: Int = 0,
+    /** Saved cardio sessions the weekly plan can point at. */
+    val activityTemplates: Int = 0,
+    /** The weekly plan: one row per planned session a week; its dated days hang off these. */
+    val planRules: Int = 0,
+    val goals: Int = 0,
 ) {
     val isEmpty: Boolean
         get() = sessions == 0 &&
@@ -27,7 +32,10 @@ data class AuthoredInventory(
             scheduleSlots == 0 &&
             bodyweightEntries == 0 &&
             blocks == 0 &&
-            activities == 0
+            activities == 0 &&
+            activityTemplates == 0 &&
+            planRules == 0 &&
+            goals == 0
 
     fun describe(): String =
         "$sessions session${plural(sessions)}, $setLogs set${plural(setLogs)}, " +
@@ -35,7 +43,10 @@ data class AuthoredInventory(
             "$scheduleSlots scheduled day${plural(scheduleSlots)}, " +
             "$bodyweightEntries weigh-in${plural(bodyweightEntries)}, " +
             "$blocks block${plural(blocks)}, " +
-            "$activities activit${if (activities == 1) "y" else "ies"}"
+            "$activities activit${if (activities == 1) "y" else "ies"}, " +
+            "$goals goal${plural(goals)}, " +
+            "$activityTemplates cardio template${plural(activityTemplates)}, " +
+            "$planRules planned weekly session${plural(planRules)}"
 
     companion object {
         val EMPTY = AuthoredInventory(0, 0, 0, 0, 0, 0, 0)
@@ -69,6 +80,9 @@ data class AuthoredInventory(
                 bodyweightEntries = bodyweight,
                 blocks = current + past.size,
                 activities = document.activities.size,
+                activityTemplates = document.activityTemplates.size,
+                planRules = document.scheduleRules.size,
+                goals = document.measurableGoals.size,
             )
         }
 
@@ -83,9 +97,9 @@ data class AuthoredInventory(
                 "A verified copy of this phone is saved first. You can restore that copy from Settings."
 
         const val EMPTY_INCOMING_REFUSED =
-            "This file has no sessions, sets, routines, custom exercises, " +
-                "schedule, weigh-ins, blocks, or activities. Restoring it would erase the " +
-                "training data on this phone, so it was refused."
+            "This file has no sessions, sets, routines, custom exercises, schedule, " +
+                "weekly plan, weigh-ins, blocks, activities, cardio templates, or goals. " +
+                "Restoring it would erase the training data on this phone, so it was refused."
     }
 }
 

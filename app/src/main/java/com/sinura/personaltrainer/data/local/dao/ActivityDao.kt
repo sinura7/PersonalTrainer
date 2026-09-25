@@ -208,6 +208,9 @@ interface ActivityDao {
     @Query("SELECT * FROM activity_templates WHERE id = :id")
     suspend fun getTemplateRow(id: String): ActivityTemplateEntity?
 
+    @Query("SELECT COUNT(*) FROM activity_templates")
+    suspend fun templateCount(): Int
+
     @Transaction
     @Query("SELECT * FROM activity_templates ORDER BY title")
     suspend fun getAllTemplateGraphs(): List<ActivityTemplateGraph>

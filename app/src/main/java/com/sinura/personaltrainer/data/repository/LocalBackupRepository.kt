@@ -301,6 +301,9 @@ class LocalBackupRepository(
                 customExercises = database.exerciseDao().getAll().count { it.isCustom },
                 scheduleSlots = database.scheduleDao().count(),
                 activities = activityDao?.sessionCount() ?: 0,
+                activityTemplates = activityDao?.templateCount() ?: 0,
+                planRules = plannerDao?.ruleCount() ?: 0,
+                goals = goalDao?.count() ?: 0,
             )
         }
         val log = preferencesRepository.bodyweightLog.first()
@@ -319,6 +322,9 @@ class LocalBackupRepository(
             customExercises = room.customExercises,
             scheduleSlots = room.scheduleSlots,
             activities = room.activities,
+            activityTemplates = room.activityTemplates,
+            planRules = room.planRules,
+            goals = room.goals,
             bodyweightEntries = bodyweight,
             blocks = pastBlocks.size + if (currentBlock != null) 1 else 0,
         )
@@ -795,6 +801,9 @@ private data class RoomAuthored(
     val customExercises: Int,
     val scheduleSlots: Int,
     val activities: Int,
+    val activityTemplates: Int,
+    val planRules: Int,
+    val goals: Int,
 )
 
 data class RestoreOutcome(
