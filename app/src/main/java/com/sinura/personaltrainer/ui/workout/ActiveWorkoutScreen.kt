@@ -55,7 +55,6 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.SetWork
-import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WarmupRamp
 import com.sinura.personaltrainer.domain.WeightDraftSource
 import com.sinura.personaltrainer.domain.WorkoutAdvance
@@ -741,7 +740,8 @@ private fun ActiveWorkoutContent(
                                         onRpe = viewModel::setRpe,
                                     )
                                 }
-                                val rec = microRec?.takeIf { entryEnabled && !state.draft.isWarmup && SetMicroRecCopy.visibleOnEntry(it) }
+                                // The rest page follows the same rule (W2b-4); the entry lock is this screen's own.
+                                val rec = shownNextSet(microRec, draftIsWarmup = state.draft.isWarmup)?.takeIf { entryEnabled }
                                 if (rec != null) {
                                     item(key = "next-set") {
                                         val applied = rec.isApplied(

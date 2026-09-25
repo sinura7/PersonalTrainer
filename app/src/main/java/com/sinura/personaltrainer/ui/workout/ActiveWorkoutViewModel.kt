@@ -362,7 +362,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /** The read outcome remains distinct from a successful query with no row. */
     private val sessionReader = WorkoutSessionReader(container.workoutRepository, sessionId, viewModelScope)
 
-    /** The rest commands and the progression read this screen shares with the rest page. */
+    /** The rest commands and the history reads this screen shares with the rest page. */
     private val restCommands = RestCommands(container, viewModelScope, sessionId)
     private val hintLoader = ProgressionHintLoader(container, sessionId)
 
@@ -558,21 +558,21 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         },
     ) { core, extras ->
         cachedWeightUnit = extras.unit
-        workoutMicroRec(
+        // The rest page asks the same question from what this screen leaves in the draft
+        // cache (W2b-4); every input is named, so neither side can drop one.
+        NextSetInputs(
             session = core.session,
             selectedExerciseId = core.selected,
             draft = core.draft,
             hint = core.hint,
             editingSetId = extras.editingSetId,
+            wantAnotherSet = core.wantAnother,
+            historySets = core.lastPerformance?.sets.orEmpty(),
             lighterWeek = extras.lighterWeek,
             unit = extras.unit,
-            wantAnotherSet = core.wantAnother,
-            nowMs = time.nowMillis(),
-            todayEpochDay = todayEpochDay(),
-            historySets = core.lastPerformance?.sets.orEmpty(),
             // The goal set in Settings reaches the floor's coach (audit C-1); it was DEFAULT.
             coachPrefs = extras.coachPrefs,
-        )
+        ).rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.Eagerly,
@@ -763,7 +763,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             val progression = hintLoader.progression(exerciseId, planned, lighter)
             if (!isCurrentPrefill(exerciseId, generation)) return
             hint.value = progression
-            lastPerformance.value = container.workoutRepository.lastPerformance(exerciseId, sessionId)
+            lastPerformance.value = hintLoader.lastPerformance(exerciseId)
             if (!isCurrentPrefill(exerciseId, generation)) return
             priorHistory.value = container.workoutRepository
                 .historyBefore(sessionId, listOf(exerciseId))[exerciseId].orEmpty()
@@ -882,17 +882,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         )
 
     private fun applyRecoveredDraft(cached: WorkoutDraft) {
-        draft.value = ActiveExerciseDraft(
-            weightKg = cached.weightKg,
-            reps = if (cached.durationSeconds != null) {
-                cached.reps.coerceAtLeast(0)
-            } else {
-                cached.reps.coerceAtLeast(1)
-            },
-            rpe = cached.rpe,
-            isWarmup = cached.isWarmup,
-            durationSeconds = cached.durationSeconds,
-        )
+        // The rest page reads the cached entry through the same conversion (W2b-4 review).
+        draft.value = cached.entryDraft()
         draftDirty.value = cached.dirty
         wantAnotherSet.value = cached.extraSetRequested
     }

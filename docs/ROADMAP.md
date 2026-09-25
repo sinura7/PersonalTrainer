@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Whole-app audit packet W2b-4 (owner decision of 24
+> September): the rest page's "Next" line now says exactly what the Log's
+> Next card says: after Another set it names the extra set, on a lift's
+> first set it keeps last time's effort, and it goes quiet where the Log
+> does (after the lift's last set, on a warm-up, while a set is being
+> corrected, while a failed save waits). The rest length it plans is
+> unchanged. ADR-012. Quiet; on the drop 105 phone checklist.
+>
 > 24 Sep 2026 — Whole-app audit packet W2b-3 (owner decision of 24
 > September): Skip on the lock screen and on the rest page now ends only
 > the rest the screen shows, as the notification's Skip already did. A

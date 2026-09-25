@@ -118,7 +118,14 @@ Done so far:
   as the rest runs out keeps "rest done" instead of wiping it, and a tap
   on a screen that has not caught up with a newer rest leaves that rest
   running. The dock's Skip is unchanged; naming it too is a separate
-  owner decision (ADR-012).
+  owner decision (ADR-012; #412).
+- **W2b-4:** the rest page's next-set line is the Log's: one shared coach
+  question (`NextSetInputs`) with the Log's inputs (Another set, last
+  session's effort, the set being corrected), read for the lift the page
+  shows, and shown only where the Log shows its card. Its planned rest
+  length is unchanged. Whether the page and the dock should both plan the
+  extra set's shorter rest after Another set is an owner decision still
+  owed (ADR-012).
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -142,7 +149,7 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner go-ahead of 23 September, amended 24 September; the
-live order is the table in FRONTEND_REDESIGN.md): W2b-4, W2c, W2d, the
+live order is the table in FRONTEND_REDESIGN.md): W2c, W2d, the
 rest-alarm packet, then a check-only phone drop, then W3. X2b completed
 Wave 0.
 
