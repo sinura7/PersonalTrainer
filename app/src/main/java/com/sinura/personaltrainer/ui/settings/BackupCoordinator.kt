@@ -348,7 +348,7 @@ class BackupCoordinator(
             backups.value = emptyList()
             status.value = if (autoBackupWasOn) {
                 "Signed out. Automatic backup is off and its saved password is gone from this " +
-                    "phone; your Drive backups still open with that password. " +
+                    "phone; the backups it made still open with that password. " +
                     "Training data on this phone is unchanged."
             } else {
                 "Signed out. Training data on this phone is unchanged."

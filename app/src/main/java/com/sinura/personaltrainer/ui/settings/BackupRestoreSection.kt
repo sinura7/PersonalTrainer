@@ -223,7 +223,7 @@ internal fun BackupRestoreSection(
                     // backup it wrote opens only with that password, so it asks first.
                     onClick = when {
                         state.isBusy -> null
-                        state.autoBackupEnabled -> { { confirmSignOut = true } }
+                        state.autoBackupEnabled -> ({ confirmSignOut = true })
                         else -> onSignOut
                     },
                     trailing = { DangerAction("Sign out", enabled = !state.isBusy) },
@@ -325,8 +325,8 @@ internal fun BackupRestoreSection(
 internal object DriveSignOutCopy {
     const val TITLE = "Sign out of Google Drive?"
     const val BODY = "Automatic backup turns off, and the backup password saved on this phone " +
-        "is deleted. Your Drive backups still open only with that password: if you might not " +
-        "remember it, cancel and use Show backup password first."
+        "is deleted. The backups it already made to Drive open only with that password: if you " +
+        "might not remember it, cancel and use Show backup password first."
     const val CONFIRM = "Sign out"
 }
 
