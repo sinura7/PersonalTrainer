@@ -1,5 +1,0 @@
-total 12
-drwxr-xr-x 2 root root 4096 Sep 25 02:05 .
-drwxr-xr-x 3 root root 4096 Sep 25 02:05 ..
--rw-r--r-- 1 root root  191 Sep 25 02:05 missing_rules.txt
--rw-r--r-- 1 root root    0 Sep 25 02:05 resources.txt

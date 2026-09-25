@@ -1,0 +1,305 @@
+package com.sinura.personaltrainer.audit
+
+import android.app.Application
+import android.database.sqlite.SQLiteException
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.backup.BackupDocument
+import com.sinura.personaltrainer.data.backup.BackupExercise
+import com.sinura.personaltrainer.data.backup.BackupJson
+import com.sinura.personaltrainer.data.backup.BackupPreferences
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
+import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
+import com.sinura.personaltrainer.data.local.entity.SyncOutboxEntity
+import com.sinura.personaltrainer.data.repository.DeleteExerciseResult
+import com.sinura.personaltrainer.data.repository.PreferencesRepository
+import com.sinura.personaltrainer.data.repository.SaveExerciseResult
+import com.sinura.personaltrainer.domain.ActivityDraft
+import com.sinura.personaltrainer.domain.ActivityOrigin
+import com.sinura.personaltrainer.domain.ActivityWrite
+import com.sinura.personaltrainer.domain.DataHealth
+import com.sinura.personaltrainer.domain.EquipmentType
+import com.sinura.personaltrainer.domain.GoalKind
+import com.sinura.personaltrainer.domain.GoalPeriod
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.SavePosture
+import com.sinura.personaltrainer.domain.ScheduleModality
+import com.sinura.personaltrainer.domain.StrengthBlock
+import com.sinura.personaltrainer.domain.StrengthSet
+import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.insights.TrainingInsightsSource
+import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.ui.settings.SettingsViewModel
+import com.sinura.personaltrainer.util.JvmTime
+import java.io.File
+import java.io.IOException
+import java.time.LocalDate
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * Audit X6, verifier V2 (data, repositories, backup, restore).
+ *
+ * Every probe asserts the defect as the pass described it: a green probe means the
+ * claim is confirmed on trunk. The "a fix flips this" line above each method says
+ * what a fix changes.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
+class AuditProbeDataTest {
+    private val context: Application get() = ApplicationProvider.getApplicationContext()
+
+    // a fix flips this by guarding the four raw upstreams with observeHealth (or catching in
+    // assemble()), so no exception reaches the compute thread's uncaught handler.
+    @Test
+    fun claim_DB_1_B4b_holds() = runBlocking {
+        val uncaught = CopyOnWriteArrayList<Throwable>()
+        val executor = Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "probe-compute").apply {
+                uncaughtExceptionHandler = Thread.UncaughtExceptionHandler { _, thrown -> uncaught += thrown }
+            }
+        }
+        val deps = FakeAppDependencies(context, workoutDaoDecorator = { real -> ThrowingSummariesDao(real) })
+        try {
+            executor.asCoroutineDispatcher().use { compute ->
+                val source = TrainingInsightsSource(
+                    workoutRepository = deps.workoutRepository,
+                    routineRepository = deps.routineRepository,
+                    exerciseRepository = deps.exerciseRepository,
+                    preferencesRepository = deps.preferencesRepository,
+                    scheduleRepository = deps.scheduleRepository,
+                    activityRepository = deps.activityRepository,
+                    computeDispatcher = compute,
+                    loadHints = { _, _, _ -> emptyList() },
+                )
+                val collector = launch { source.observeShared(includeWeekPlan = false).collect { } }
+                val deadline = System.currentTimeMillis() + 5_000
+                while (uncaught.isEmpty() && System.currentTimeMillis() < deadline) delay(20)
+                collector.cancel()
+                assertTrue(
+                    "the thrown Room read should escape sharedScope as uncaught; saw $uncaught",
+                    uncaught.any { it is SQLiteException },
+                )
+            }
+        } finally {
+            deps.close()
+        }
+    }
+
+    // a fix flips this by giving user_settings a corruptionHandler (or guarding every edit):
+    // the two writes succeed and the gate stops reading Unavailable.
+    @Test
+    fun claim_DB_2_B4b_holds() = runBlocking {
+        val file = File(context.cacheDir, "probe-${System.nanoTime()}/datastore/user_settings.preferences_pb")
+        file.parentFile!!.mkdirs()
+        file.writeBytes(ByteArray(16) { 0xFF.toByte() }) // never a valid protobuf: an unterminated varint
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val store = PreferenceDataStoreFactory.create(scope = scope, produceFile = { file })
+        try {
+            val repository = PreferencesRepository(context, store)
+            // Gate side (B9a L-3's root): the raw read is Unavailable, so the retry screen is drawn ...
+            assertTrue(repository.onboardingCompleteHealth.first() is DataHealth.Unavailable)
+            // ... while the chooser's read degrades to "not chosen", so the chooser is drawn over it.
+            assertFalse(repository.savePostureState.first().chosen)
+            // Every edit rethrows the corruption and nothing replaces the file, so Retry cannot succeed.
+            val writes = listOf<suspend () -> Unit>(
+                { repository.setWeightUnit(WeightUnit.KG) },
+                { repository.setSavePosture(SavePosture.LOCAL) },
+            )
+            writes.forEach { write ->
+                try {
+                    write()
+                    fail("a write on a corrupt user_settings should throw on trunk")
+                } catch (thrown: IOException) {
+                    // CorruptionException is an IOException; no handler ever replaces the file.
+                }
+            }
+            assertTrue(repository.onboardingCompleteHealth.first() is DataHealth.Unavailable)
+        } finally {
+            scope.cancel()
+        }
+    }
+
+    // a fix flips this by having BackupService.signOut (or clearDriveSession itself) also
+    // disarm automatic backup: enabled becomes false and the sealed passphrase null.
+    @Test
+    fun claim_BK_1_B5_holds() = runBlocking {
+        val deps = FakeAppDependencies(context)
+        try {
+            deps.preferencesRepository.armAutoBackup(sealedPassphrase = "sealed-probe")
+            // BackupService.signOut(activity) is driveAuthClient.signOut(activity) followed by
+            // exactly this call (BackupService.kt:77-80); nothing else runs on sign-out.
+            deps.preferencesRepository.clearDriveSession()
+            val after = deps.preferencesRepository.autoBackupSettings()
+            assertTrue(after.enabled)
+            assertEquals("sealed-probe", after.sealedPassphrase)
+        } finally {
+            deps.close()
+        }
+    }
+
+    // a fix flips this by clearing sync_outbox inside replaceRoom's wipe and by carrying (or
+    // re-stamping) updatedAtMs on restored custom lifts, so neither assertion holds.
+    @Test
+    fun claim_BK_2_B5_holds() = runBlocking {
+        val deps = FakeAppDependencies(context)
+        try {
+            val saved = (deps.exerciseRepository.createCustom(name = "Probe lift", muscleGroup = "Chest")
+                as SaveExerciseResult.Saved).exercise
+            assertTrue(deps.database.exerciseDao().getById(saved.id)!!.updatedAtMs > 0L)
+            deps.database.syncDao().insertOutbox(
+                SyncOutboxEntity(
+                    id = "outbox-probe", entityType = "EXERCISE", entityId = saved.id, operation = "UPSERT",
+                    payloadJson = "{}", createdAtMs = 1L, attempts = 0, lastError = null,
+                ),
+            )
+            val document = BackupJson.decode(deps.backupService.exportJson())
+            deps.localBackupRepository.replaceRoom(document)
+            // Restored custom lift is stamped "changed at time zero" ...
+            assertEquals(0L, deps.database.exerciseDao().getById(saved.id)!!.updatedAtMs)
+            // ... and the pre-restore upload survives the wipe untouched.
+            assertEquals(1, deps.database.syncDao().pendingCount())
+        } finally {
+            deps.close()
+        }
+    }
+
+    // a fix flips this by counting goals, templates and planner rules in AuthoredInventory:
+    // prepareRestore then throws EMPTY_INCOMING_REFUSED and nothing is wiped.
+    @Test
+    fun claim_BK_3_B5_holds() = runBlocking {
+        val deps = FakeAppDependencies(context)
+        try {
+            deps.goalRepository.add(kind = GoalKind.SESSION_COUNT, targetValue = 3.0, period = GoalPeriod.WEEK)
+            deps.plannerRepository.addTimedRule(
+                weekday = Weekday.MONDAY, hour = 18, minute = 0, modality = ScheduleModality.STRENGTH,
+            )
+            assertEquals(1, deps.goalRepository.all().size)
+            assertEquals(1, deps.plannerRepository.rules().size)
+            val plan = deps.backupService.prepareRestore(catalogOnlyJson(), sourceName = "catalog.json")
+            assertTrue("the guard reads a goals-and-rules phone as empty", plan.local.isEmpty)
+            deps.backupService.commitRestore(plan)
+            assertTrue(deps.goalRepository.all().isEmpty())
+            assertTrue(deps.plannerRepository.rules().isEmpty())
+        } finally {
+            deps.close()
+        }
+    }
+
+    // a fix flips this by asking first (as "Add a new block" does) or by leaving an unfinished
+    // block alone: the seeded block survives, or is archived rather than deleted.
+    @Test
+    fun claim_UI_3_B10b_holds() = runBlocking {
+        val dispatcher = UnconfinedTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        val deps = FakeAppDependencies(context, scheduler = dispatcher)
+        var viewModel: SettingsViewModel? = null
+        try {
+            deps.dbMaintenance.seedCatalog()
+            val today = LocalDate.now().toEpochDay()
+            val threeWeeksIn = TrainingBlock(startEpochDay = today - 21, weeks = 12)
+            deps.preferencesRepository.beginBlock(next = threeWeeksIn, todayEpochDay = today)
+            assertEquals(threeWeeksIn, deps.preferencesRepository.trainingBlock.first())
+            val vm = SettingsViewModel(context, deps)
+            viewModel = vm
+            vm.generateWeek()
+            val notice = withTimeout(TestWaits.FLOW_MS) { vm.generateNotice.first { it != null } }
+            assertEquals("Week generated", notice)
+            val current = deps.preferencesRepository.trainingBlock.first()
+            assertNotEquals(threeWeeksIn.startEpochDay, current?.startEpochDay) // block in progress is gone ...
+            assertTrue(deps.preferencesRepository.pastBlocks.first().isEmpty()) // ... deleted, not archived
+            assertTrue(deps.routineRepository.count() > 0)
+        } finally {
+            viewModel?.clearAndJoinForTest()
+            dispatcher.scheduler.advanceUntilIdle()
+            deps.close()
+            Dispatchers.resetMain()
+        }
+    }
+
+    // a fix flips this by counting activity_blocks in usageFor: deleteCustom returns InUse and
+    // the block keeps pointing at a lift that still exists.
+    @Test
+    fun claim_DB_1_B7_holds() = runBlocking {
+        val deps = FakeAppDependencies(context)
+        try {
+            val lift = (deps.exerciseRepository.createCustom(name = "Probe row", muscleGroup = "Back")
+                as SaveExerciseResult.Saved).exercise
+            val now = JvmTime.captureNow()
+            val block = StrengthBlock(
+                id = "blk-probe", sortOrder = 0, exerciseId = lift.id, exerciseName = lift.name,
+                loadType = LoadType.EXTERNAL, equipment = EquipmentType.BARBELL, muscles = emptyList(),
+                sets = listOf(StrengthSet("set-probe", 1, 60.0, 8, null, false, 1L)),
+            )
+            val write = deps.confirmActivity(
+                ActivityDraft(origin = ActivityOrigin.BACKDATED, title = "Gym", performedStart = now, performedEnd = now, blocks = listOf(block)),
+                now,
+            )
+            assertTrue("$write", write is ActivityWrite.Accepted)
+            assertEquals(DeleteExerciseResult.Deleted, deps.exerciseRepository.deleteCustom(lift.id))
+            assertEquals(lift.id, deps.database.activityDao().getBlock("blk-probe")!!.exerciseId)
+            assertNull(deps.database.exerciseDao().getById(lift.id))
+        } finally {
+            deps.close()
+        }
+    }
+}
+
+/** The workout DAO with the summaries read made to throw, every other call delegated. */
+private class ThrowingSummariesDao(private val delegate: WorkoutDao) : WorkoutDao by delegate {
+    override suspend fun sessionSummaries(): List<SessionSummaryRow> =
+        throw SQLiteException("disk I/O error (audit probe)")
+}
+
+/** The same catalog-only document RestorePrepareTest uses: one built-in lift, no authored rows. */
+private fun catalogOnlyJson(): String = BackupJson.encode(
+    BackupDocument(
+        exportedAt = "2026-08-24T10:00:00Z",
+        preferences = BackupPreferences(weightUnit = "kg"),
+        exercises = listOf(
+            BackupExercise(
+                id = "ex-squat",
+                name = "Barbell Back Squat",
+                muscleGroup = "Quads",
+                notes = "",
+                isCustom = false,
+                equipment = "BARBELL",
+                loadType = "EXTERNAL",
+            ),
+        ),
+        routines = emptyList(),
+        routineExercises = emptyList(),
+        sessions = emptyList(),
+        sessionExercises = emptyList(),
+        setLogs = emptyList(),
+    ),
+)

@@ -1,0 +1,373 @@
+package com.sinura.personaltrainer.audit
+
+import android.app.Application
+import android.os.Looper
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.FakeAccountAuth
+import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
+import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
+import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
+import com.sinura.personaltrainer.domain.AccountSession
+import com.sinura.personaltrainer.domain.ActivityWrite
+import com.sinura.personaltrainer.domain.AnalyticsHorizon
+import com.sinura.personaltrainer.domain.CardioBlock
+import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.DefaultExercises
+import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.OnboardingAnswers
+import com.sinura.personaltrainer.domain.OnboardingPreviewCopy
+import com.sinura.personaltrainer.domain.ReminderDeliveryStatus
+import com.sinura.personaltrainer.domain.RoutineGenerator
+import com.sinura.personaltrainer.domain.SavePosture
+import com.sinura.personaltrainer.domain.TrainingFocus
+import com.sinura.personaltrainer.domain.TrainingGoal
+import com.sinura.personaltrainer.domain.Weekday
+import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.FrozenTime
+import com.sinura.personaltrainer.testutil.TestSetInput
+import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
+import com.sinura.personaltrainer.testutil.insertTestExercise
+import com.sinura.personaltrainer.testutil.seedTestWorkout
+import com.sinura.personaltrainer.ui.activity.LiveCardioViewModel
+import com.sinura.personaltrainer.ui.history.HistoryViewModel
+import com.sinura.personaltrainer.ui.home.HomeViewModel
+import com.sinura.personaltrainer.ui.onboarding.OnboardingScreen
+import com.sinura.personaltrainer.ui.onboarding.OnboardingStep
+import com.sinura.personaltrainer.ui.onboarding.OnboardingViewModel
+import com.sinura.personaltrainer.ui.routines.CustomWeekViewModel
+import com.sinura.personaltrainer.ui.settings.SettingsSubpage
+import com.sinura.personaltrainer.ui.settings.SettingsViewModel
+import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.workout.showFloor
+import com.sinura.personaltrainer.util.JvmTime
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/**
+ * Audit X6, verifier V5 (screens). Every probe asserts the defect as the pass filed it: a
+ * green probe means the claim is confirmed on trunk. The comment above each method says
+ * what a fix flips. ViewModel-level probes over [FakeAppDependencies]; no probe touches
+ * the repository.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
+class AuditProbeScreensTest {
+    private val dispatcher = UnconfinedTestDispatcher()
+    private lateinit var deps: FakeAppDependencies
+    private val viewModels = mutableListOf<ViewModel>()
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(dispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        runBlocking { viewModels.forEach { it.clearAndJoinForTest() } }
+        viewModels.clear()
+        dispatcher.scheduler.advanceUntilIdle()
+        if (::deps.isInitialized) deps.close()
+        Dispatchers.resetMain()
+    }
+
+    private fun app(): Application = ApplicationProvider.getApplicationContext()
+
+    private fun <T : ViewModel> T.track(): T = also { viewModels.add(it) }
+
+    // a fix flips this by re-arming the delivery (PENDING + reschedule) when the start comes back
+    // Blocked; a fix that instead defers MainActivity's STARTED mark until the start succeeds is
+    // outside this probe's reach (that mark is simulated below, as MainActivity makes it first).
+    @Test
+    fun claim_UI_1_B9a_holds() = runBlocking {
+        val zone = ZoneId.systemDefault()
+        val morning = ZonedDateTime.now(zone).toLocalDate().atTime(10, 0).atZone(zone)
+        deps = FakeAppDependencies(
+            app(),
+            scheduler = dispatcher,
+            time = FrozenTime(morning.toInstant().toEpochMilli(), zone.id),
+        )
+        val today = LocalDate.now(zone).toEpochDay()
+        val weekStart = CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY)
+        val routine = deps.routineRepository.create("Push")
+        val squat = insertTestExercise(deps, "ex-audit-reminder", "Squat")
+        deps.routineRepository.addExercise(routine.id, squat, 3, 5, 100.0, 90)
+        deps.scheduleRepository.pin(routine.id, null, Weekday.fromEpochDay(today))
+        deps.plannerRepository.importSlotsIfNeeded(1_700_000_000_000L)
+        deps.plannerRepository.ensureWeek(weekStart)
+        val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
+        // What MainActivity.consumeStartedDelivery has already done before Home runs.
+        deps.database.plannerDao().upsertDelivery(
+            ReminderDeliveryEntity(
+                id = "rem-audit", occurrenceId = occurrence.id, scheduledAtMs = 0L,
+                status = ReminderDeliveryStatus.PENDING.name, createdAtMs = 0L, updatedAtMs = 0L,
+            ),
+        )
+        deps.plannerRepository.markDeliveryStatus("rem-audit", ReminderDeliveryStatus.STARTED)
+        seedTestWorkout(deps) // another session is live, so the start is Blocked
+        val vm = HomeViewModel(app(), deps).track()
+        vm.uiState.awaitFirst { !it.isLoading }
+        vm.startOccurrence(occurrence.id)
+        assertNotNull(vm.blockedByInProgress.awaitFirst { it != null })
+        // The delivery still says STARTED for a session that never started; the plan row is untouched.
+        assertEquals(ReminderDeliveryStatus.STARTED, deps.plannerRepository.getDelivery("rem-audit")!!.status)
+        assertEquals(OccurrenceStatus.PLANNED, deps.plannerRepository.getOccurrence(occurrence.id)!!.status)
+    }
+
+    // a fix flips this by stamping HorizonProgress with the range it was computed for and having
+    // uiState drop a progress whose range is not the selected horizon's (a leading null alone may
+    // not, because combine still pairs the new horizon with the last progress once).
+    @Test
+    fun claim_UI_2_B10a_holds() = runBlocking {
+        var gate: CompletableDeferred<Unit>? = null
+        deps = FakeAppDependencies(app(), scheduler = dispatcher, workoutDaoDecorator = { real ->
+            object : WorkoutDao by real {
+                override suspend fun getFinishedSessionsBetween(minDateMs: Long, maxDateMs: Long): List<SessionWithDetails> {
+                    gate?.await()
+                    return real.getFinishedSessionsBetween(minDateMs, maxDateMs)
+                }
+            }
+        })
+        seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)), finish = true)
+        val vm = HistoryViewModel(app(), deps).track()
+        val month = vm.uiState.awaitFirst { it.horizon == AnalyticsHorizon.MONTH && it.horizonProgress != null }
+        // The year's full-log re-read is held open, as a long log holds it on the phone.
+        gate = CompletableDeferred()
+        try {
+            vm.setHorizon(AnalyticsHorizon.YEAR)
+            val year = vm.uiState.awaitFirst { it.horizon == AnalyticsHorizon.YEAR }
+            // The new title is up while the card still carries the previous period's PRs and mover.
+            assertNotNull(year.horizonProgress)
+            assertEquals(month.horizonProgress, year.horizonProgress)
+        } finally {
+            gate?.complete(Unit)
+        }
+    }
+
+    // a fix flips this by signing the Temper Account out (or stopping the outbox) when LOCAL is chosen.
+    @Test
+    fun claim_UI_4_B10b_holds() = runBlocking {
+        val auth = FakeAccountAuth(initialSession = AccountSession(email = "owner@example.com", userId = "user-1"))
+        deps = FakeAppDependencies(app(), accountAuth = auth, scheduler = dispatcher)
+        val vm = SettingsViewModel(app(), deps).track()
+        vm.chooseSavePosture(SavePosture.LOCAL)
+        val state = deps.preferencesRepository.savePostureState.awaitFirst { it.chosen && it.posture == SavePosture.LOCAL }
+        assertEquals(SavePosture.LOCAL, state.posture)
+        // "Save on this phone" is written, and the account session is exactly as it was.
+        assertEquals(0, auth.signOutCalls)
+        assertNotNull(auth.session.first())
+    }
+
+    // a fix flips this by persisting the guided launch (answers + unit) in CustomWeek's own
+    // SavedStateHandle so a fresh ViewModel confirms with them (B10c UI-3 folds into this claim).
+    @Test
+    fun claim_UI_3_B9b_holds() = runBlocking {
+        deps = FakeAppDependencies(app(), scheduler = dispatcher)
+        val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val handle = SavedStateHandle()
+        val first = CustomWeekViewModel(app(), handle, deps).track()
+        val keepFirst = CoroutineScope(dispatcher).launch { first.uiState.collect { } }
+        first.uiState.awaitFirst { it.catalog.any { exercise -> exercise.id == squat.id } }
+        first.seedFromGuided(
+            setOf(Weekday.TUESDAY),
+            OnboardingAnswers(goal = TrainingGoal.ATHLETIC, bodyweightKg = 80.0),
+            WeightUnit.LBS,
+        )
+        first.selectDay(Weekday.TUESDAY)
+        first.setPickerVisible(true)
+        first.togglePicked(squat)
+        first.uiState.awaitFirst { it.canConfirm }
+        keepFirst.cancel()
+        first.clearAndJoinForTest()
+        // Process death: a fresh ViewModel on the same handle; the screen's LaunchedEffect re-seeds from a null launch.
+        val restored = CustomWeekViewModel(app(), handle, deps).track()
+        val keepRestored = CoroutineScope(dispatcher).launch { restored.uiState.collect { } }
+        restored.uiState.awaitFirst { it.canConfirm && it.selectedLifts.isNotEmpty() }
+        restored.seedFromGuided(emptySet(), null, null)
+        restored.confirm()
+        restored.finished.awaitFirst { it }
+        keepRestored.cancel()
+        // The week is saved; the questionnaire that came with it is gone.
+        assertEquals(TrainingGoal.GENERAL, deps.preferencesRepository.coachPreferences.first().goal)
+        assertNull(deps.preferencesRepository.bodyweightKg.first())
+        assertNotEquals(WeightUnit.LBS, deps.preferencesRepository.weightUnit.first())
+    }
+
+    // a fix flips this by carrying type / indoor / distance across "Leave running" (a store keyed by
+    // session id, or a Room draft column) so the next entry reads them back.
+    @Test
+    fun claim_UI_2_B10c_holds() = runBlocking {
+        deps = FakeAppDependencies(app())
+        val now = JvmTime.captureNow()
+        val started = deps.startLiveActivity("Easy run", listOf(runBlock()), now)
+        val live = (started as ActivityWrite.Accepted).session
+        val first = cardioViewModel(SavedStateHandle(mapOf("sessionId" to live.id)))
+        withTimeout(TestWaits.FLOW_MS) { first.uiState.first { it.session != null } }
+        first.setType(CardioType.WALK)
+        first.setDistanceKm("2.5")
+        first.clearAndJoinForTest()
+        // "Leave running" pops the entry; Resume from the bar navigates to a NEW entry with a fresh handle.
+        val again = cardioViewModel(SavedStateHandle(mapOf("sessionId" to live.id)))
+        val state = withTimeout(TestWaits.FLOW_MS) { again.uiState.first { it.session != null } }
+        assertEquals(CardioType.RUN, state.type)
+        assertEquals("", state.distanceKm)
+    }
+
+    private fun cardioViewModel(handle: SavedStateHandle): LiveCardioViewModel = LiveCardioViewModel(
+        application = app(),
+        savedStateHandle = handle,
+        container = deps,
+        elapsedRealtime = { 0L },
+        wallClock = { 0L },
+    ).track()
+
+    private fun runBlock() = CardioBlock(
+        id = "blk-live", sortOrder = 0, type = CardioType.RUN, indoor = false,
+        elapsedSeconds = 0L, movingSeconds = 0L, distanceMeters = null, elevationMeters = null,
+        heartRateBpm = null, energyKj = null, rpe = null, routeRef = null,
+    )
+}
+
+/**
+ * Rendered probes, on the real main looper (pattern: ui/exercise/ExerciseDetailThisWorkoutRenderTest).
+ */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(application = Application::class, qualifiers = "w360dp-h640dp-xhdpi")
+class AuditProbeScreensRenderTest {
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    private lateinit var deps: FakeAppDependencies
+    private val viewModels = mutableListOf<ViewModel>()
+
+    @Before
+    fun setUp() {
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+    }
+
+    @After
+    fun tearDown() {
+        viewModels.forEach { it.viewModelScope.cancel() }
+        Shadows.shadowOf(Looper.getMainLooper()).idle()
+        viewModels.clear()
+        deps.close()
+    }
+
+    // a fix flips this by giving the Place step (or the setup root) a verticalScroll / LazyColumn,
+    // which puts a scroll action in the tree, or by fitting Continue inside 640 dp.
+    @Test
+    fun claim_UI_1_B10c_holds() {
+        val vm = OnboardingViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
+            .also(viewModels::add)
+        vm.setFocus(TrainingFocus.STRENGTH)
+        repeat(3) { vm.next() }
+        compose.showFloor(fontScale = 1f) {
+            Box(modifier = Modifier.width(360.dp).height(640.dp).background(Pit)) {
+                OnboardingScreen(onFinished = {}, onBuildMyOwn = { _, _ -> }, viewModel = vm)
+            }
+        }
+        compose.waitUntil(WAIT_MS) { vm.uiState.value.step == OnboardingStep.PLACE }
+        compose.waitForIdle()
+        compose.onNodeWithText("Where will you train?").assertIsDisplayed()
+        // Continue is composed, sits below the 640 dp fold, and nothing on the page can scroll to it.
+        compose.onNodeWithText("Continue").assertExists().assertIsNotDisplayed()
+        compose.onAllNodes(hasScrollAction()).assertCountEquals(0)
+    }
+
+    // a fix flips this by marking the sub-page title heading() (and/or the page paneTitle), which is
+    // what TalkBack announces on arrival.
+    @Test
+    fun claim_UI_2_B10b_holds() {
+        compose.showFloor(fontScale = 1f) { SettingsSubpage(title = "Backup", onBack = {}) { } }
+        compose.waitForIdle()
+        compose.onNodeWithText("Backup").assertIsDisplayed()
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading), useUnmergedTree = true)
+            .assertCountEquals(0)
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.PaneTitle), useUnmergedTree = true)
+            .assertCountEquals(0)
+    }
+
+    private companion object {
+        const val WAIT_MS = 20_000L
+    }
+}
+
+/** Pure-domain probe; no Robolectric. */
+class AuditProbeScreensDomainTest {
+    private val catalog: List<Exercise> = DefaultExercises.catalog().map { seed ->
+        Exercise(
+            id = seed.id, name = seed.name, muscleGroup = seed.muscleGroup, notes = "",
+            isCustom = false, equipment = seed.equipment, loadType = seed.loadType,
+            movementKey = seed.movementKey, muscles = seed.credits,
+        )
+    }
+
+    // a fix flips this by generating something cardio-shaped for BOTH (a day that differs from
+    // STRENGTH's), by dropping the days / which-days / place questions from the CARDIO path, or by
+    // ending the cardio headline without the full stop the preview screen re-adds.
+    @Test
+    fun claim_UI_5_B10c_holds() {
+        val base = OnboardingAnswers(daysPerWeek = 3)
+        val strength = RoutineGenerator.generate(base.copy(focus = TrainingFocus.STRENGTH), catalog)
+        val both = RoutineGenerator.generate(base.copy(focus = TrainingFocus.BOTH), catalog)
+        assertEquals(strength.days, both.days)
+        assertEquals(strength.routines.map { it.key }, both.routines.map { it.key })
+        val cardio = RoutineGenerator.generate(base.copy(focus = TrainingFocus.CARDIO), catalog)
+        assertTrue(cardio.days.all { it.isRest })
+        assertTrue(
+            OnboardingStep.questionsFor(TrainingFocus.CARDIO)
+                .containsAll(listOf(OnboardingStep.DAYS_PER_WEEK, OnboardingStep.WHICH_DAYS, OnboardingStep.PLACE)),
+        )
+        // "...not generated." + ". " on the screen = "...not generated.. 12 weeks of ..."
+        assertTrue(OnboardingPreviewCopy.headline(base.copy(focus = TrainingFocus.CARDIO), cardio).endsWith("."))
+    }
+}

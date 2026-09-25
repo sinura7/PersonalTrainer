@@ -63,6 +63,13 @@ their original scope for reference. **V** = visible, gets its own Obtainium
 drop and phone check; **Q** = quiet, rides along with the next V drop. Visual
 evidence is the JVM render set ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)).
 
+The [25 September whole-app audit](design-audit/2026-09-25/AUDIT.md) (packet
+X6) re-checked this order after thirty packets and, under its "Proposed
+order", slots six new packets between the rows below (X7 release lane, R1
+data safety, R2 crash and coach, R3 updater, X8 test lanes, X9 docs truth)
+with scope notes on the existing ones. That is a proposal; this table stays
+the live order until the owner decides.
+
 | # | Packet | Scope | Kind | Status |
 |---|---|---|---|---|
 | 1 | S0a | Sync pause switch; Delete account hidden; honest Account copy; R8 keep rule | V | Done — #380, drop 99 |

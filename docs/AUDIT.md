@@ -1,9 +1,12 @@
 # Audits
 
-> **Banner (23 Sep 2026).** The 1 September full-tree audit below is no longer current; the latest audit is
-> [design-audit/2026-09-22/AUDIT.md](design-audit/2026-09-22/AUDIT.md). The active order is the packet table in
+> **Banner (25 Sep 2026).** The 1 September full-tree audit below is no longer current; the latest audit is
+> [design-audit/2026-09-25/AUDIT.md](design-audit/2026-09-25/AUDIT.md) (packet X6, with its
+> [baseline](design-audit/2026-09-25/baseline.md) and [verification](design-audit/2026-09-25/verification.md)).
+> The active order is still the packet table in
 > [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md), set by the
-> [whole-app audit](design-audit/2026-09-22/AUDIT.md); decisions live in
+> [22 September audit](design-audit/2026-09-22/AUDIT.md); the 25 September record
+> proposes a new order the owner has not decided on yet. Decisions live in
 > [architecture/](architecture/README.md). Items still open here are not tracked
 > here any more; check the code before acting on one.
 

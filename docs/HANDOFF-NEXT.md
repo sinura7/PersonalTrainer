@@ -3,7 +3,10 @@
 **In plain terms:** Temper works offline on the phone. Its optional cloud sync
 (Temper Account) is switched off until it is made safe. The work under way is
 the 22 September whole-app audit, done in small packets, each one tested and
-shipped to Temper Debug through Obtainium.
+shipped to Temper Debug through Obtainium. A second whole-app audit on
+25 September ([design-audit/2026-09-25/AUDIT.md](design-audit/2026-09-25/AUDIT.md))
+re-checked every finding after thirty packets and proposes the next order;
+the owner has not decided on it yet.
 
 The first thing a new session on this repository should read. Rewritten
 23 September 2026, during the whole-app audit program (packet X1). The one
@@ -43,6 +46,13 @@ The **whole-app audit** of 22 September:
 re-ordered the frontend redesign's remaining packets (F4–F11) and interleaved
 them with sync-safety packets. The live order, with progress, is the packet
 table in [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md).
+
+The **25 September whole-app audit** (packet X6,
+[design-audit/2026-09-25/AUDIT.md](design-audit/2026-09-25/AUDIT.md)) is the
+latest record: it re-verified every 22 September finding, re-ran the gate in
+its own container, drew every screen on the JVM, and proposes a new order
+with six new packets (X7, R1, R2, R3, X8, X9). Until the owner adopts that
+order, the table in FRONTEND_REDESIGN.md stays the live one.
 
 Done so far:
 - **S0a:** sync paused, delete hidden, honest Account copy.

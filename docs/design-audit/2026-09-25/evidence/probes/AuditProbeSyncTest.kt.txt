@@ -1,0 +1,303 @@
+package com.sinura.personaltrainer.audit
+
+import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.FakeAccountAuth
+import com.sinura.personaltrainer.data.auth.toAccountAuthError
+import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
+import com.sinura.personaltrainer.data.local.entity.SyncTableCursorEntity
+import com.sinura.personaltrainer.data.repository.prefs.SettingsStore
+import com.sinura.personaltrainer.data.sync.FakeSyncRemote
+import com.sinura.personaltrainer.data.sync.RemoteActivityBlockRow
+import com.sinura.personaltrainer.data.sync.RemoteActivitySessionRow
+import com.sinura.personaltrainer.data.sync.RemoteDisplayPrefsRow
+import com.sinura.personaltrainer.data.sync.RemoteRoutineExerciseRow
+import com.sinura.personaltrainer.data.sync.SupabaseRestClient
+import com.sinura.personaltrainer.data.sync.SyncAuthoring
+import com.sinura.personaltrainer.data.sync.SyncCoordinator
+import com.sinura.personaltrainer.data.sync.SyncEngine
+import com.sinura.personaltrainer.data.sync.SyncOutboxWriter
+import com.sinura.personaltrainer.data.sync.SyncScheduler
+import com.sinura.personaltrainer.data.sync.encodeSync
+import com.sinura.personaltrainer.data.sync.toRemote
+import com.sinura.personaltrainer.diagnostics.DiagnosticCanaries
+import com.sinura.personaltrainer.domain.AccountAuthError
+import com.sinura.personaltrainer.domain.AccountSession
+import com.sinura.personaltrainer.domain.SyncEntityType
+import com.sinura.personaltrainer.logging.AppLog
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
+import java.io.File
+import java.net.InetAddress
+import java.net.ServerSocket
+
+/**
+ * Audit X6, verifier V1 (sync, auth, server). Each probe's assertion states the defect:
+ * a green probe confirms the claim. Built the way SyncEngineTest and SyncPauseTest build
+ * the engine: Room in memory over Robolectric, FakeSyncRemote, a throwaway DataStore.
+ */
+@RunWith(RobolectricTestRunner::class)
+class AuditProbeSyncTest {
+    private lateinit var database: TemperDatabase
+    private lateinit var remote: FakeSyncRemote
+    private lateinit var engine: SyncEngine
+    private lateinit var settingsStore: SettingsStore
+    private var localServer: ServerSocket? = null
+
+    @Before
+    fun setUp() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        database = Room.inMemoryDatabaseBuilder(context, TemperDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        remote = FakeSyncRemote()
+        val prefsFile = File(context.filesDir, "audit-probe-sync-${System.nanoTime()}.preferences_pb")
+        settingsStore = SettingsStore(PreferenceDataStoreFactory.create { prefsFile })
+        engine = SyncEngine(
+            syncDao = database.syncDao(),
+            activityDao = database.activityDao(),
+            plannerDao = database.plannerDao(),
+            routineDao = database.routineDao(),
+            exerciseDao = database.exerciseDao(),
+            catalogDao = database.catalogDao(),
+            bodyweightDao = database.bodyweightDao(),
+            goalDao = database.goalDao(),
+            settingsStore = settingsStore,
+            remote = remote,
+            nowMillis = { 5_000L },
+        )
+    }
+
+    @After
+    fun tearDown() {
+        localServer?.close()
+        database.close()
+    }
+
+    // ----- B1 -----------------------------------------------------------------------------
+
+    // a fix flips this by not advancing a table's cursor past a row it skipped for a missing
+    // parent (or by pulling skipped children again once the parent arrives)
+    @Test
+    fun claim_S_11_B1_holds() = runTest {
+        remote.seed(SyncEntityType.ACTIVITY_BLOCK, encodeSync(block("block-early", sessionId = "sess-late", updatedAtMs = 300L)))
+        assertTrue(engine.run(USER).isSuccess)
+        assertNull(database.activityDao().getBlock("block-early"))
+        assertEquals(300L, database.syncDao().getCursor(SyncEntityType.ACTIVITY_BLOCK.remoteTable)!!.lastPulledUpdatedAtMs)
+
+        // The parent arrives on the server a moment later, with the same change time.
+        remote.seed(SyncEntityType.ACTIVITY_SESSION, encodeSync(session("sess-late", updatedAtMs = 300L)))
+        assertTrue(engine.run(USER).isSuccess)
+        assertNotNull(database.activityDao().getSessionRow("sess-late"))
+
+        // Defect: the block is below the cursor now and is never pulled again.
+        assertNull(database.activityDao().getBlock("block-early"))
+    }
+
+    // a fix flips this by isolating each pulled row (skip and log a row that cannot be decoded
+    // or applied) so the table's cursor still moves and the tables after it still pull
+    @Test
+    fun claim_S_12_B1_holds() = runTest {
+        val withoutNotes = encodeSync(session("sess-bad", updatedAtMs = 300L)).replace("\"notes\":\"\",", "")
+        assertFalse(withoutNotes.contains("\"notes\""))
+        remote.seed(SyncEntityType.ACTIVITY_SESSION, withoutNotes)
+        remote.seed(SyncEntityType.SCHEDULE_RULE, encodeSync(rule("rule-behind", updatedAtMs = 2L).toRemote(userId = USER)))
+
+        // Defect: the whole pass fails, the rule behind the bad row never lands, the cursor
+        // does not move, and the next pass fails the same way.
+        assertTrue(engine.run(USER).isFailure)
+        assertNull(database.plannerDao().getRule("rule-behind"))
+        assertNull(database.syncDao().getCursor(SyncEntityType.ACTIVITY_SESSION.remoteTable))
+        assertTrue(engine.run(USER).isFailure)
+        assertNull(database.plannerDao().getRule("rule-behind"))
+    }
+
+    // a fix flips this by refusing to re-queue rows the phone holds for a different enrolled
+    // account (or by clearing local rows and the pull cursors when the account changes)
+    @Test
+    fun claim_S_14_B1_holds() = runTest {
+        val auth = FakeAccountAuth(initialSession = AccountSession(email = "a@example.com", userId = "user-a"))
+        val syncDao = database.syncDao()
+        // Account A's phone: a custom lift on the phone and A's pull watermark for that table.
+        database.exerciseDao().insert(
+            ExerciseEntity(id = "ex-custom-a", name = "A's lift", muscleGroup = "Quads", notes = "", isCustom = true, nameKey = "a-lift", updatedAtMs = 100L),
+        )
+        syncDao.upsertCursor(SyncTableCursorEntity(tableName = SyncEntityType.CUSTOM_EXERCISE.remoteTable, lastPulledUpdatedAtMs = 900L))
+        val coordinator = SyncCoordinator(auth = auth, syncDao = syncDao, engine = engine, scheduler = SyncScheduler { })
+
+        // A signs out (rows stay, ADR-004), B signs in, the sign-in bootstrap runs.
+        coordinator.abandonOutboxOnSignOut()
+        auth.setSession(AccountSession(email = "b@example.com", userId = "user-b"))
+        val authoring = SyncAuthoring(
+            auth = auth, outbox = SyncOutboxWriter(syncDao = syncDao, nowMillis = { 1L }),
+            activityDao = database.activityDao(), plannerDao = database.plannerDao(), routineDao = database.routineDao(),
+            exerciseDao = database.exerciseDao(), catalogDao = database.catalogDao(), bodyweightDao = database.bodyweightDao(),
+            goalDao = database.goalDao(), settingsStore = settingsStore, requestSync = {},
+        )
+        authoring.bootstrapLocalSnapshot()
+
+        // Defect: A's lift is queued for upload under B's user id, and B's pull starts at A's watermark.
+        val queued = syncDao.peekOutbox(50).filter { it.entityType == SyncEntityType.CUSTOM_EXERCISE.name }
+        assertEquals(listOf("ex-custom-a"), queued.map { it.entityId })
+        assertTrue(queued.single().payloadJson!!.contains("\"user_id\":\"user-b\""))
+        assertEquals(900L, syncDao.getCursor(SyncEntityType.CUSTOM_EXERCISE.remoteTable)!!.lastPulledUpdatedAtMs)
+    }
+
+    // ----- B2 -----------------------------------------------------------------------------
+
+    // a fix flips this by giving the connection connect/read timeouts (as DriveHttp.kt:44-45 does),
+    // so the call throws instead of blocking: with any read timeout the worker thread below is dead
+    // before the assertion. The call runs on a daemon thread because a blocking socket read cannot be
+    // interrupted: a first version used @Test(timeout) and wedged the whole run (which is the defect).
+    @Test
+    fun claim_S_11_B2_holds() {
+        val silent = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
+        localServer = silent
+        // Never accepted: the handshake completes in the kernel backlog, the request is sent,
+        // and the reply never comes. Without timeouts, getUpdatedSince blocks here for ever.
+        var outcome: String? = null
+        val caller = Thread {
+            outcome = try {
+                SupabaseRestClient("http://127.0.0.1:${silent.localPort}", "anon-key")
+                    .getUpdatedSince("schedule_rules", "updated_at_ms", 0L, "access-token")
+                "returned"
+            } catch (t: Throwable) {
+                t.javaClass.simpleName
+            }
+        }.apply { isDaemon = true; start() }
+        caller.join(3_000)
+
+        // Defect: three seconds later the pull is still blocked on the read; no timeout ever fires.
+        assertTrue(caller.isAlive)
+        assertEquals(null, outcome)
+        // Closing the listening socket resets the queued connection, which releases the thread.
+        silent.close()
+        caller.join(5_000)
+    }
+
+    // a fix flips this by mapping library RestExceptions to fixed copy before display and by
+    // stripping or bounding throwable messages in AppLog's Android sink
+    @Test
+    fun claim_PV_2_B2_holds() {
+        // The shape supabase-kt 2.6.1 gives a response-built RestException (bytecode:
+        // RestException(String, HttpResponse, String) appends "URL:", "Headers:", "Http Method:").
+        val headerBearing = RuntimeException(
+            "Bad Request (400)\n        URL: https://example.invalid/auth/v1/logout\n" +
+                "        Headers: Headers [Authorization=[Bearer ${DiagnosticCanaries.TOKEN}]]\n        Http Method: POST",
+        )
+        // Screen half: it falls through to Message(text), which AccountAuthCopy shows verbatim.
+        val shown = headerBearing.toAccountAuthError(configured = true)
+        assertTrue(shown is AccountAuthError.Message && shown.text.contains(DiagnosticCanaries.TOKEN))
+
+        // Logcat half: the default sink redacts the message but prints the throwable's stack
+        // trace string, which carries its message.
+        ShadowLog.clear()
+        AppLog.e("PT/AuditProbe", "signOut failed", headerBearing)
+        assertTrue(ShadowLog.getLogs().any { it.msg.contains(DiagnosticCanaries.TOKEN) })
+    }
+
+    // a fix flips this by scoping the filter to the signed-in user (user_id=eq.<uid>) or by
+    // replacing the method with the server-side delete function (then this probe stops
+    // compiling, which is the same signal). Also covers B3 S-14 (folded).
+    @Test(timeout = 10_000)
+    fun claim_S_12_B2_holds() {
+        val server = ServerSocket(0, 1, InetAddress.getLoopbackAddress())
+        localServer = server
+        var requestLine: String? = null
+        val recorder = Thread {
+            server.accept().use { socket ->
+                val reader = socket.getInputStream().bufferedReader()
+                requestLine = reader.readLine()
+                while (!reader.readLine().isNullOrEmpty()) { /* drain the request headers */ }
+                socket.getOutputStream().write("HTTP/1.1 204 No Content\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".toByteArray())
+                socket.getOutputStream().flush()
+            }
+        }.apply { isDaemon = true; start() }
+
+        SupabaseRestClient("http://127.0.0.1:${server.localPort}", "anon-key").deleteAllRows("custom_exercises", "access-token")
+        recorder.join(5_000)
+
+        // Defect: the filter matches every user's rows; only RLS on the server narrows it.
+        assertEquals("DELETE /rest/v1/custom_exercises?user_id=not.is.null HTTP/1.1", requestLine)
+    }
+
+    // ----- B3 -----------------------------------------------------------------------------
+
+    // a fix flips this by building syncGson with serializeNulls() (and, from S2a, a server write
+    // that reads explicit nulls). Also covers B1 S-13 (folded).
+    @Test
+    fun claim_S_12_B3_holds() {
+        val prefs = encodeSync(
+            RemoteDisplayPrefsRow(userId = USER, weightUnit = "KG", clockFormat = "H24", bodyweightCheckInWeekday = null, updatedAtMs = 1L),
+        )
+        assertFalse(prefs.contains("bodyweight_check_in_weekday"))
+
+        val lift = encodeSync(
+            RemoteRoutineExerciseRow(
+                id = "re-1", userId = USER, routineId = "r-1", exerciseId = "ex-1", sortOrder = 0, targetSets = 3, targetReps = 5,
+                targetWeightKg = null, restSeconds = 90, targetSeconds = null, targetSecondsMax = null, updatedAtMs = 1L,
+            ),
+        )
+        // Defect: a cleared value is not on the wire, so merge-duplicates keeps the old one;
+        // and deleted_at_ms is never sent as null, so a tombstone can never be cleared.
+        assertFalse(lift.contains("target_weight_kg"))
+        assertFalse(lift.contains("target_seconds"))
+        assertFalse(lift.contains("deleted_at_ms"))
+    }
+
+    // a fix flips this by clamping the cursor to the phone's clock (or taking a server-assigned
+    // change time, S2a) so one future-stamped row cannot hide every later edit
+    @Test
+    fun claim_S_13_B3_holds() = runTest {
+        remote.seed(SyncEntityType.SCHEDULE_RULE, encodeSync(rule("rule-future", updatedAtMs = Long.MAX_VALUE - 1).toRemote(userId = USER)))
+        assertTrue(engine.run(USER).isSuccess)
+        assertNotNull(database.plannerDao().getRule("rule-future"))
+
+        remote.seed(SyncEntityType.SCHEDULE_RULE, encodeSync(rule("rule-later", updatedAtMs = 6_000L).toRemote(userId = USER)))
+        assertTrue(engine.run(USER).isSuccess)
+
+        // Defect: the pass reports success while the later rule is never pulled.
+        assertNull(database.plannerDao().getRule("rule-later"))
+        assertEquals(Long.MAX_VALUE - 1, database.syncDao().getCursor(SyncEntityType.SCHEDULE_RULE.remoteTable)!!.lastPulledUpdatedAtMs)
+    }
+
+    // ----- helpers (copied shapes from SyncEngineTest / SyncPauseTest) ---------------------
+
+    private fun session(id: String, updatedAtMs: Long) = RemoteActivitySessionRow(
+        id = id, userId = USER, status = "COMPLETED", origin = "LIVE", source = "STRENGTH", title = "Lift", notes = "",
+        performedStartInstantMs = 100L, performedStartZoneId = "UTC", performedStartOffsetSeconds = 0, performedStartLocalEpochDay = 0L,
+        performedEndInstantMs = 200L, performedEndZoneId = "UTC", performedEndOffsetSeconds = 0, performedEndLocalEpochDay = 0L,
+        templateId = null, occurrenceId = null, createdAtMs = 100L, updatedAtMs = updatedAtMs, revision = 1L,
+    )
+
+    private fun block(id: String, sessionId: String, updatedAtMs: Long) = RemoteActivityBlockRow(
+        id = id, userId = USER, sessionId = sessionId, templateId = null, sortOrder = 0, kind = "STRENGTH", exerciseId = "ex-1",
+        exerciseName = "Bench", loadType = "BARBELL", equipment = null, musclesEncoded = null, cardioType = null, indoor = null,
+        elapsedSeconds = null, movingSeconds = null, distanceMeters = null, elevationMeters = null, heartRateBpm = null,
+        energyKj = null, rpe = null, routeRef = null, updatedAtMs = updatedAtMs,
+    )
+
+    private fun rule(id: String, updatedAtMs: Long) = ScheduleRuleEntity(
+        id = id, weekday = 2, hour = 7, minute = 0, modality = "STRENGTH", zonePolicy = "DEVICE", fixedZoneId = null,
+        routineId = null, templateId = null, focusKind = null, reminderOffsetMinutes = 0, enabled = 1, createdAtMs = 1L,
+        updatedAtMs = updatedAtMs,
+    )
+
+    private companion object {
+        const val USER = "user-1"
+    }
+}
