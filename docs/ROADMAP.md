@@ -15,6 +15,20 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Audit packet R1-1 (audit X6, BK-1; owner decision of 25
+> September): signing out of Google Drive now does what the privacy page
+> says. In the same write that forgets the account, it switches automatic
+> backup off and forgets the backup password kept on the phone for it.
+> Before, the password stayed on the phone and automatic backup carried
+> on as if you had never signed out. Now it stays off until you turn it
+> on again. With automatic backup on, Sign out now asks first: the
+> backups it wrote open only with that password, so the question points
+> to Show backup password. Rides along with the next drop; phone check:
+> note your backup password, then with automatic backup on tap Sign out
+> in Settings → Backup; the question appears; sign out, sign back in, and
+> the switch is off. (Signing back in should show no Google consent
+> sheet: sign-out has never withdrawn Drive access, a separate fix.)
+>
 > 25 Sep 2026 — Audit packet T2 (a flaky test; owner decision of 25
 > September): the Log's test that failed only on GitHub's machines, about
 > one run in fifteen, is fixed at its cause. Its two sets were saved in
