@@ -96,8 +96,11 @@ class PlanLinkFollowUpTest {
         val marked = checkNotNull(deps.plannerRepository.getOccurrence(planned.id))
         assertEquals(OccurrenceStatus.DONE, marked.status)
         assertEquals(fixture.session.id, marked.completedActivityId)
-        // The clear that could not be saved is not read back from the file in this run.
-        assertNull(PendingOccurrence.takeForComposer(deps))
+        // The clear that could not be saved is not read back from the file in this run: a
+        // later forget finds nothing, so it does not try the refused write again.
+        val refusedSoFar = store.refusals.get()
+        PendingOccurrence.forgetIfSession(deps, fixture.session.id)
+        assertEquals(refusedSoFar, store.refusals.get())
         assertNull(deps.pendingOccurrenceId.value)
     }
 

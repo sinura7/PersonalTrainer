@@ -66,8 +66,16 @@ object PendingOccurrence {
         return PlannedOccurrence.matching(day, items)?.occurrence?.id
     }
 
+    /**
+     * Loads the saved link at startup, unless this run has already written one. Restore runs
+     * late, on another thread; a start or a finish that got in first is newer than the file,
+     * and the file may hold a clear that failed to save.
+     */
     suspend fun restore(deps: AppDependencies) {
-        deps.pendingOccurrenceId.value = deps.preferencesRepository.pendingOccurrenceId.first()
+        val saved = deps.preferencesRepository.pendingOccurrenceId.first()
+        synchronized(written) {
+            if (deps.pendingOccurrenceId !in written) deps.pendingOccurrenceId.value = saved
+        }
     }
 
     /**
@@ -130,8 +138,9 @@ object PendingOccurrence {
 
     private suspend fun stored(deps: AppDependencies): String? {
         val link = deps.pendingOccurrenceId
-        link.value?.let { return it }
-        if (link in written) return null
+        val (inMemory, known) = synchronized(written) { link.value to (link in written) }
+        if (inMemory != null) return inMemory
+        if (known) return null
         return deps.preferencesRepository.pendingOccurrenceId.first()
     }
 
@@ -150,8 +159,10 @@ object PendingOccurrence {
      * one.
      */
     private suspend fun write(deps: AppDependencies, value: String?) {
-        deps.pendingOccurrenceId.value = value
-        written += deps.pendingOccurrenceId
+        synchronized(written) {
+            deps.pendingOccurrenceId.value = value
+            written += deps.pendingOccurrenceId
+        }
         runCatchingCancellable { deps.preferencesRepository.setPendingOccurrenceId(value) }
             .onFailure { thrown -> AppLog.e(TAG, "Saving the planned-session link failed", thrown) }
     }

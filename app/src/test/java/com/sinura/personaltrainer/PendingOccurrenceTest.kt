@@ -178,8 +178,8 @@ class PendingOccurrenceTest {
             modality = ScheduleModality.STRENGTH,
         )
         val occ = deps.plannerRepository.ensureWeek(weekStart, "UTC", 1L).single()
-        PendingOccurrence.bind(deps, occ.id)
-        deps.pendingOccurrenceId.value = null
+        // A new process: the link is in the file only, and nothing this run has written yet.
+        deps.preferencesRepository.setPendingOccurrenceId(occ.id)
         PendingOccurrence.restore(deps)
         assertEquals(occ.id, deps.pendingOccurrenceId.value)
         PendingOccurrence.complete(deps, "session-1")
@@ -252,6 +252,27 @@ class PendingOccurrenceTest {
             deps.plannerRepository.occurrencesBetween(weekStart.epochDay, weekStart.epochDay)
                 .single().status,
         )
+    }
+
+    /**
+     * Restore runs late at startup, on another thread. A link written before it lands is
+     * newer than the file, here one whose save was refused, and must not be replaced by it.
+     */
+    @Test
+    fun aRestoreThatLandsAfterALinkWasWrittenDoesNotReplaceIt() = runBlocking {
+        var store: RefusingPlanLinkStore? = null
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            prefsStoreDecorator = { real -> RefusingPlanLinkStore(real).also { store = it } },
+        )
+        deps.preferencesRepository.setPendingOccurrenceId("occ-older")
+        checkNotNull(store).refuse = true
+        PendingOccurrence.bindForSession(deps, "occ-newer", "session-live")
+
+        PendingOccurrence.restore(deps)
+
+        assertEquals("occ-newer\nsession-live", deps.pendingOccurrenceId.value)
     }
 
     /** Reminders whose cancel throws once switched on, as WorkManager refusing one would. */
