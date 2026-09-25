@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.backup.BackupEnvelope
 import com.sinura.personaltrainer.domain.ClockFormat
 import com.sinura.personaltrainer.domain.CoachPreferences
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.ReminderPreferences
@@ -172,11 +173,13 @@ class SettingsViewModel @JvmOverloads constructor(
     val savePostureUi: StateFlow<SavePostureUiState> = combine(
         _savePostureReady,
         savePostureState,
-    ) { ready, posture ->
+        container.preferencesRepository.onboardingCompleteHealth,
+    ) { ready, posture, settings ->
         SavePostureUiState(
             loaded = ready,
             chosen = posture.chosen,
             posture = posture.posture,
+            settingsReadable = settings !is DataHealth.Unavailable,
         )
     }.stateIn(
         scope = viewModelScope,
@@ -202,15 +205,20 @@ class SettingsViewModel @JvmOverloads constructor(
 
     fun ensureSavePostureReady() {
         viewModelScope.launch {
-            val signedIn = container.accountAuth.session.first() != null
-            container.preferencesRepository.ensureSavePostureMigrated(signedIn)
+            // The legacy migration writes; on a settings file that cannot be written it threw
+            // uncaught at launch. Ready either way: the chooser also waits on a readable file.
+            runCatchingCancellable {
+                val signedIn = container.accountAuth.session.first() != null
+                container.preferencesRepository.ensureSavePostureMigrated(signedIn)
+            }.onFailure { AppLog.e(TAG, "Save posture migration failed", it) }
             _savePostureReady.value = true
         }
     }
 
     fun chooseSavePosture(posture: SavePosture) {
         viewModelScope.launch {
-            container.preferencesRepository.setSavePosture(posture)
+            runCatchingCancellable { container.preferencesRepository.setSavePosture(posture) }
+                .onFailure { AppLog.e(TAG, "Saving the save posture failed", it) }
         }
     }
 
@@ -507,6 +515,12 @@ data class SavePostureUiState(
     val loaded: Boolean = false,
     val chosen: Boolean = false,
     val posture: SavePosture = SavePosture.LOCAL,
+    /**
+     * False while the settings file cannot be read. Its defaults then say "not chosen", which is
+     * not the owner's answer: the front door is showing "Settings unavailable" with Retry, and
+     * the chooser drawn over it hid Retry and crashed on the first tap (audit L-3).
+     */
+    val settingsReadable: Boolean = true,
 ) {
-    val needsChooser: Boolean get() = loaded && !chosen
+    val needsChooser: Boolean get() = loaded && !chosen && settingsReadable
 }

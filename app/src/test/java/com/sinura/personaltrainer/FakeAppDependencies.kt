@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import com.sinura.personaltrainer.data.repository.AfterWorkoutBackup
 import com.sinura.personaltrainer.data.repository.AfterWorkoutUpload
+import com.sinura.personaltrainer.data.repository.prefs.userSettingsCorruptionHandler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -119,6 +120,11 @@ class FakeAppDependencies(
      */
     prefsStoreDecorator: (DataStore<Preferences>) -> DataStore<Preferences> = { it },
     /**
+     * Runs on the settings file before its store first opens. Corruption tests write bytes
+     * that are not a preferences file there, as a damaged phone would have.
+     */
+    prefsFileBeforeOpen: (File) -> Unit = {},
+    /**
      * Wraps the activity DAO before the repository sees it. Read-fault tests hand in a
      * delegate whose one read throws on demand, the same seam the routine editor's
      * hydration tests use, so a screen can be shown a Room failure without one.
@@ -189,8 +195,13 @@ class FakeAppDependencies(
     private val prefsScope = CoroutineScope(SupervisorJob() + prefsDispatcher)
     private val prefsStore = prefsStoreDecorator(
         PreferenceDataStoreFactory.create(
+            // The app's own handler, so a corruption test exercises what the phone runs.
+            corruptionHandler = userSettingsCorruptionHandler(),
             scope = prefsScope,
-            produceFile = { File(prefsContext.filesDir, "datastore/user_settings.preferences_pb") },
+            produceFile = {
+                File(prefsContext.filesDir, "datastore/user_settings.preferences_pb")
+                    .also(prefsFileBeforeOpen)
+            },
         ),
     )
     override val preferencesRepository: PreferencesRepository =

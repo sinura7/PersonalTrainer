@@ -56,6 +56,7 @@ import com.sinura.personaltrainer.data.repository.prefs.TRAINING_GOAL
 import com.sinura.personaltrainer.data.repository.prefs.TRAINING_PLACE
 import com.sinura.personaltrainer.data.repository.prefs.WEEK_START
 import com.sinura.personaltrainer.data.repository.prefs.WEIGHT_UNIT
+import com.sinura.personaltrainer.data.repository.prefs.userSettingsCorruptionHandler
 import com.sinura.personaltrainer.domain.BlockArchive
 import com.sinura.personaltrainer.domain.BodyweightEntry
 import com.sinura.personaltrainer.domain.BodyweightLog
@@ -84,6 +85,7 @@ import kotlinx.coroutines.flow.map
 
 private val Context.userSettingsDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "user_settings",
+    corruptionHandler = userSettingsCorruptionHandler(),
 )
 
 /**
