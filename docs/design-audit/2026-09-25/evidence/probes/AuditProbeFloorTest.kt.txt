@@ -1,0 +1,246 @@
+package com.sinura.personaltrainer.audit
+
+import android.app.Application
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.AnalyticsHorizon
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
+import com.sinura.personaltrainer.domain.HistoryCopy
+import com.sinura.personaltrainer.domain.ReminderCopy
+import com.sinura.personaltrainer.domain.SetWork
+import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.EndWorkoutTags
+import com.sinura.personaltrainer.ui.components.SessionLogRow
+import com.sinura.personaltrainer.ui.components.SessionLogTags
+import com.sinura.personaltrainer.ui.history.HistoryScreen
+import com.sinura.personaltrainer.ui.history.HistoryTags
+import com.sinura.personaltrainer.ui.history.HistoryViewModel
+import com.sinura.personaltrainer.ui.reminders.REMINDER_TIME_HOUR
+import com.sinura.personaltrainer.ui.reminders.REMINDER_TIME_WHEEL
+import com.sinura.personaltrainer.ui.reminders.ReminderTimeWheel
+import com.sinura.personaltrainer.ui.routines.CustomWeekScreen
+import com.sinura.personaltrainer.ui.routines.CustomWeekViewModel
+import com.sinura.personaltrainer.ui.workout.ActiveWorkoutViewModel
+import com.sinura.personaltrainer.ui.workout.FLOOR_KG70
+import com.sinura.personaltrainer.ui.workout.FLOOR_WAIT_MS
+import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
+import com.sinura.personaltrainer.ui.workout.floorSets
+import com.sinura.personaltrainer.ui.workout.openLegExtension
+import com.sinura.personaltrainer.ui.workout.showFloor
+import com.sinura.personaltrainer.ui.workout.showWorkoutScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestCoroutineScheduler
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/**
+ * Audit X6, verifier V6 (live floor, design system, accessibility). Every assertion states the
+ * defect the pass claimed: a green probe confirms the claim; a fix turns it red.
+ *
+ * Harness copied from `DockCommitRenderTest` (Main dispatcher, `FakeAppDependencies`, the
+ * 360 x 800 dp phone) and `FloorTestKit` (`openLegExtension`, `showWorkoutScreen`, `showFloor`).
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
+class AuditProbeFloorTest {
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    private lateinit var deps: FakeAppDependencies
+    private val viewModels = mutableListOf<ActiveWorkoutViewModel>()
+    private val otherViewModels = mutableListOf<ViewModel>()
+    private var density: Density? = null
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher(scheduler = TestCoroutineScheduler()))
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        runBlocking { deps.preferencesRepository.setWeightUnit(WeightUnit.LBS) }
+    }
+
+    @After
+    fun tearDown() {
+        runBlocking {
+            viewModels.forEach { it.clearAndJoinForTest() }
+            otherViewModels.forEach { it.clearAndJoinForTest() }
+        }
+        viewModels.clear()
+        otherViewModels.clear()
+        deps.restTimerController.stop()
+        deps.close()
+        Dispatchers.resetMain()
+    }
+
+    // a fix flips this by making the header's Finish wait while a saved set is being edited
+    // (canFinish honouring editingSetId, as the dock already does), or by finishWorkout refusing
+    // with an open edit, or by the End-workout dialog naming the edit before Save.
+    @Test
+    fun claim_UI_2_B11_holds() {
+        val vm = openLegExtension(deps, viewModels, loggedSets = floorSets(1))
+        compose.showWorkoutScreen(vm)
+        val sessionId = checkNotNull(vm.uiState.value.session?.id)
+        val setId = checkNotNull(vm.uiState.value.session?.sets?.single()?.id)
+        vm.editSet(setId)
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {
+            vm.uiState.value.editingSetId == setId && !vm.uiState.value.entryLocked
+        }
+        val corrected = FLOOR_KG70 + 10.0
+        vm.setWeight(corrected)
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.draft.weightKg == corrected }
+        compose.waitForIdle()
+        // The header's Finish takes the tap with the edit open; the dialog says nothing about it.
+        compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled().performClick()
+        compose.onNodeWithText(EndWorkoutCopy.TITLE).assertIsDisplayed()
+        compose.onNodeWithText(EndWorkoutCopy.body(1)).assertIsDisplayed()
+        compose.onNodeWithTag(EndWorkoutTags.SAVE).assertIsEnabled().performClick()
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.exitRequested.value != null }
+        val stored = runBlocking { deps.workoutRepository.getSession(sessionId) }
+        assertTrue("the workout finished with the edit still open", stored?.isFinished == true)
+        assertEquals(
+            "the typed correction never reached the saved set",
+            FLOOR_KG70, stored?.sets?.single()?.weightKg ?: -1.0, 1e-6,
+        )
+    }
+
+    // a fix flips this by giving each column a role, a stateDescription and Next/Previous custom
+    // actions, or by adding a Role.Button typed path into NumberEntryDialog as BodyweightWheel has.
+    @Test
+    fun claim_AX_15_holds() {
+        compose.showFloor { ReminderTimeWheel(hour = 7, minute = 30, onTime = { _, _ -> }) }
+        compose.waitForIdle()
+        val hour = compose.onNodeWithTag(REMINDER_TIME_HOUR)
+        hour.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Role))
+        hour.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+        hour.assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
+        val underTheWheel = hasAnyAncestor(hasTestTag(REMINDER_TIME_WHEEL))
+        compose.onAllNodes(underTheWheel and SemanticsMatcher.keyIsDefined(SemanticsProperties.Role)).assertCountEquals(0)
+        compose.onAllNodes(underTheWheel and SemanticsMatcher.keyIsDefined(SemanticsProperties.StateDescription)).assertCountEquals(0)
+        compose.onAllNodes(underTheWheel and hasClickAction()).assertCountEquals(0)
+        // No typed path: not one button anywhere in the wheel.
+        compose.onAllNodes(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button)).assertCountEquals(0)
+        // The row speaks the time once, on a node that does not merge its three columns.
+        val row = compose.onNodeWithTag(REMINDER_TIME_WHEEL).fetchSemanticsNode()
+        assertEquals(listOf(ReminderCopy.timeLabel(7, 30)), row.config.getOrNull(SemanticsProperties.ContentDescription))
+        assertTrue("the columns stay separate nodes under the row", row.children.isNotEmpty())
+    }
+
+    // a fix flips this by building the card's spoken form from all six values as StatTile does,
+    // or by dropping the contentDescription so the merged text speaks.
+    @Test
+    fun claim_AX_14_holds() {
+        val vm = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps).also(otherViewModels::add)
+        compose.showFloor {
+            // Tall enough that the lazy list composes the horizon item wherever it sits.
+            Box(modifier = Modifier.width(360.dp).height(2400.dp)) {
+                HistoryScreen(onOpenSession = {}, onOpenExercise = {}, onOpenActiveSession = {}, viewModel = vm)
+            }
+        }
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) {
+            compose.onAllNodesWithTag(HistoryTags.READOUT).fetchSemanticsNodes().isNotEmpty()
+        }
+        val readout = compose.onNodeWithTag(HistoryTags.READOUT).fetchSemanticsNode()
+        val spoken = readout.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty()
+        val shown = readout.config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text }
+        // The four clusters are drawn (their labels are kickers, so uppercase)...
+        assertTrue("the card shows days/sets/min/PRs: $shown", listOf("DAYS", "SETS", "MIN", "PRS").all { it in shown })
+        // ...and the merged node's description is the title and the session count alone.
+        assertTrue("the card merges its descendants", readout.config.isMergingSemanticsOfDescendants)
+        assertEquals(
+            listOf("${HistoryCopy.windowTitle(AnalyticsHorizon.MONTH)}, 0 ${HistoryCopy.sessionsLabel(0)}"),
+            spoken,
+        )
+    }
+
+    // a fix flips this by one clickable(role = Role.Button) on the whole row carrying the spoken
+    // form (the metrics Row losing its own click) and a 48 dp floor on the identity target.
+    @Test
+    fun claim_AX_1_holds() {
+        compose.showFloor {
+            density = LocalDensity.current
+            SessionLogRow(
+                title = "Upper strength", dateLabel = "Mon 2 Jan", workingSets = 3,
+                work = SetWork(volumeKg = 1240.0, bodyweightReps = 0), durationMinutes = 42, onClick = {},
+            )
+        }
+        compose.waitForIdle()
+        // Two clickables for one workout, neither a button.
+        compose.onAllNodes(hasClickAction()).assertCountEquals(2)
+        compose.onAllNodes(hasClickAction() and SemanticsMatcher.keyIsDefined(SemanticsProperties.Role)).assertCountEquals(0)
+        // The identity speaks the numbers, then the metrics row reads its own text: heard twice.
+        val identity = compose.onNodeWithTag(SessionLogTags.ROW)
+        val spoken = identity.fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription).orEmpty().joinToString()
+        assertTrue("identity says the sets: $spoken", "3 sets" in spoken)
+        compose.onNodeWithTag(SessionLogTags.METRICS)
+            .assert(hasClickAction() and hasText("SETS") and SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+        // With no stills the identity target sits under the 48 dp floor.
+        val height = with(checkNotNull(density)) { identity.fetchSemanticsNode().size.height.toDp() }
+        assertTrue("identity target is $height, under 48 dp", height < 48.dp)
+    }
+
+    // a fix flips this by selectable(selected, role = Role.Tab) in a selectableGroup with a spoken
+    // form naming filled and preferred days, and a width floor (scroll when seven 48 dp cells cannot fit).
+    @Test
+    fun claim_AX_2_holds() {
+        val vm = CustomWeekViewModel(ApplicationProvider.getApplicationContext<Application>(), SavedStateHandle(), deps)
+            .also(otherViewModels::add)
+        compose.showFloor {
+            density = LocalDensity.current
+            CustomWeekScreen(onFinished = {}, onBack = {}, viewModel = vm)
+        }
+        compose.waitForIdle()
+        val label = vm.uiState.value.selectedDay.shortLabel().take(2)
+        val selectedCell = compose.onAllNodesWithText(label).onFirst()
+        selectedCell.assert(hasClickAction())
+        selectedCell.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Role))
+        selectedCell.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Selected))
+        selectedCell.assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.ContentDescription))
+        // Its whole spoken content is the two-letter label.
+        assertEquals(listOf(label), selectedCell.fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text)?.map { it.text })
+        val width = with(checkNotNull(density)) { selectedCell.fetchSemanticsNode().size.width.toDp() }
+        assertTrue("a day cell is $width wide at 360 dp, under 48 dp", width < 48.dp)
+    }
+}

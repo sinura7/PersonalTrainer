@@ -1,0 +1,142 @@
+package com.sinura.personaltrainer.audit
+
+import android.Manifest
+import android.app.Application
+import android.app.Notification
+import android.content.pm.PackageManager
+import android.graphics.Color
+import android.widget.FrameLayout
+import android.widget.RemoteViews
+import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
+import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.R
+import com.sinura.personaltrainer.domain.LaunchPermissionStep
+import com.sinura.personaltrainer.domain.LaunchPermissions
+import com.sinura.personaltrainer.domain.RestNotificationCopy
+import com.sinura.personaltrainer.domain.RestTimerSnapshot
+import com.sinura.personaltrainer.timer.RestTimerNotifications
+import com.sinura.personaltrainer.ui.workout.rememberRestNotificationsEnabled
+import com.sinura.personaltrainer.ui.workout.showFloor
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * Audit X6, verifier V3 (rest timer, reminders, updater). Each assertion states the defect:
+ * a green method confirms the claim it is named for. Verdicts and reads: scratchpad/verify/V3.md.
+ *
+ * Harness copied from RestPageSkipTest (plain Application, phone qualifiers, compose rule on a
+ * bare ComponentActivity) and RestTimerNotificationsTest (channel + running card).
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
+class AuditProbeTimerTest {
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    private val app: Application = ApplicationProvider.getApplicationContext()
+
+    // a fix flips this by giving the two colours a light-theme twin (a values/values-night split, or
+    // ?android:attr/textColorPrimary) or by painting the card's own background (android:background
+    // on both layouts, or setColorized(true) + setColor(dark) on the builder).
+    @Test
+    @Config(qualifiers = "+notnight")
+    fun claim_RT_1_holds() {
+        // The compact card as SystemUI inflates it, on a phone whose system theme is light.
+        val card = RemoteViews(app.packageName, R.layout.notification_rest_running)
+            .apply(app, FrameLayout(app))
+        val clock = card.findViewById<TextView>(R.id.rest_chrono).currentTextColor
+        val kicker = card.findViewById<TextView>(R.id.rest_kicker).currentTextColor
+        val clockContrast = ColorUtils.calculateContrast(clock, Color.WHITE)
+        val kickerContrast = ColorUtils.calculateContrast(kicker, Color.WHITE)
+        // 3.0:1 is the large-text floor, 4.5:1 the body floor; both fall well under the lower one.
+        assertTrue("countdown on a light shade surface: $clockContrast:1", clockContrast < 3.0)
+        assertTrue("kicker on a light shade surface: $kickerContrast:1", kickerContrast < 3.0)
+
+        // And the card never asks the shade to paint its own background under that text.
+        RestTimerNotifications.ensureChannels(app)
+        val notification = RestTimerNotifications.runningNotification(
+            context = app,
+            state = RestTimerSnapshot(
+                running = true,
+                endsAtElapsedRealtime = 90_000L,
+                totalSeconds = 90,
+                sessionId = "session-1",
+                timerId = "timer-1",
+            ),
+            nowElapsedRealtime = 0L,
+            nowWallClockMillis = 1_000L,
+        )
+        assertFalse("setColorized is never called", notification.extras.getBoolean(Notification.EXTRA_COLORIZED))
+        assertEquals("setColor is never called", Notification.COLOR_DEFAULT, notification.color)
+    }
+
+    // a fix flips this by recording the "asked" decision outside the composable instance (a
+    // preference the gate reads before opening the dialog), so a new screen instance stays quiet.
+    @Test
+    fun claim_RT_2_holds() {
+        assertEquals(
+            "probe precondition: POST_NOTIFICATIONS is not granted on this JVM (Robolectric default)",
+            PackageManager.PERMISSION_DENIED,
+            ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS),
+        )
+        // key(entry): a new value is a fresh composable instance, which is what every navigate to
+        // the rest page (AppNav.kt:624-628) and every workout open (a new back-stack entry) gives
+        // the gate; both screens call it unconditionally (RestTimerScreen.kt:84, ActiveWorkoutScreen.kt:221-222).
+        var entry by mutableIntStateOf(0)
+        compose.showFloor { key(entry) { rememberRestNotificationsEnabled() } }
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertIsDisplayed()
+
+        compose.onNodeWithText(RestNotificationCopy.NOT_NOW).performClick()
+        compose.onAllNodesWithText(RestNotificationCopy.SENTENCE).assertCountEquals(0)
+
+        compose.runOnIdle { entry = 1 }
+
+        // The same "why" sentence is back on the very next screen instance.
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertIsDisplayed()
+    }
+
+    // a fix flips this by giving the walk a "rest used or reminder configured" input (ADR-012
+    // decisions 4 and 13): this call then no longer compiles, or returns no step until it is true.
+    @Test
+    fun claim_RT_3_holds() {
+        // Straight after the save-posture chooser, on any tab but Settings, nothing else is asked.
+        val mayShow = LaunchPermissions.walkMayShow(
+            postureChosen = true,
+            onTabAwayFromSettings = true,
+            settingsPageOpening = false,
+            alreadyShowing = false,
+        )
+        assertTrue("the walk opens with no rest-used or reminder-configured input at all", mayShow)
+        // Its first steps are exactly the two requests ADR-012 §4/§13 and PRIVACY.md:117 rule out.
+        assertEquals(
+            LaunchPermissionStep.NOTIFICATIONS,
+            LaunchPermissions.nextStep(
+                notificationsGranted = false, exactAlarmsGranted = false, batteryUnrestricted = true, sdkInt = 33,
+            ),
+        )
+        assertEquals(
+            LaunchPermissionStep.EXACT_ALARM,
+            LaunchPermissions.nextStep(
+                notificationsGranted = true, exactAlarmsGranted = false, batteryUnrestricted = true, sdkInt = 31,
+            ),
+        )
+    }
+}

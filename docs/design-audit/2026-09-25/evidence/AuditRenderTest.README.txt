@@ -1,0 +1,178 @@
+# Audit X6 render harness (temporary; not to be committed under `app/`)
+
+`AuditRenderTest.kt` draws every user-facing screen with the real composables and the real
+ViewModels over `FakeAppDependencies` (an in-memory Room graph) at the ADR-032 matrix and
+writes one PNG per frame to
+
+    app/build/screen-renders/audit-2026-09-25/<screen>/<state>-<w>x<h>-font<s>.png
+
+(`build/...` relative to the `app` module directory, exactly as `FirstLaunchRenderTest`
+writes `build/screen-renders/q1/`). Sizes are `w360dp-h640dp-mdpi`, `w412dp-h915dp-mdpi`,
+`w800dp-h360dp-land-mdpi`, `w600dp-h960dp-mdpi` (per-method `@Config(qualifiers)`), font
+scales 1.0 / 1.6 / 2.0 via `LocalDensity provides Density(density, fontScale)` looped inside
+each method. Every frame waits up to 8 s for its ViewModel to leave its loading state,
+idling the main looper on every poll (see *Run 1 → run 2* below); a frame that never does is
+still written (so the picture shows what happened) and its path is appended to
+`never-ready.txt` beside the screen directories. No method fails for it: the only assertion
+is that each PNG exists and is non-empty. Every frame written is one row of `manifest.csv`
+(`file,screen,state,width,height,font,bytes`; the header is written once, rows appended).
+
+## Running it
+
+Copy the file to
+`app/src/test/java/com/sinura/personaltrainer/ui/AuditRenderTest.kt` (package
+`com.sinura.personaltrainer.ui`), then:
+
+    ./gradlew :app:testDebugUnitTest --tests 'com.sinura.personaltrainer.ui.AuditRenderTest' \
+                                     --tests 'com.sinura.personaltrainer.ui.AuditFloorRenderTest' \
+                                     --tests 'com.sinura.personaltrainer.ui.AuditShellRenderTest'
+
+Run 2 goes **without** `tools/hang-watchdog.sh` (CHECKPOINT.md): the watchdog samples the
+worker's CPU ticks and reads a quiet wait as a wedged worker; it killed run 1 mid-method.
+`JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew -PskipStaticChecks testDebugUnitTest
+--tests 'com.sinura.personaltrainer.ui.Audit*'` is the checkpoint's form of the same command.
+Delete `app/build/screen-renders/audit-2026-09-25/` first, or run 1's 54 frames and the
+sidecar files are appended to rather than replaced (`manifest.csv` and `never-ready.txt`
+are append-only by design, so a re-run keeps earlier rows).
+
+Three classes live in the one file because the templates they copy differ in one setting each:
+
+| Class | Precedent | Why separate |
+| --- | --- | --- |
+| `AuditRenderTest` | `ExerciseDetailThisWorkoutRenderTest` | real main looper, no `Dispatchers.setMain`; ViewModel scopes cancelled on the looper |
+| `AuditFloorRenderTest` | `WorkoutFloorRenderTest`, `RestPageSkipTest` | `Dispatchers.setMain(UnconfinedTestDispatcher())` + `clearAndJoinForTest`, as the floor's VM tests need |
+| `AuditShellRenderTest` | `RestLockSkipTest` | `@Config(application = PersonalTrainerApp::class)` because `AppNav.kt:293` casts the application |
+
+Test names are `<screen>_<w>x<h>()`. Each screen's states come from a `<screen>States()`
+function; the shared loop is `renderAuditMatrix` (top-level, `internal`).
+
+## What renders
+
+| Screen dir | Entry composable / ViewModel | States | Seed (copied from) |
+| --- | --- | --- | --- |
+| `home` | `HomeScreen` / `HomeViewModel` | empty, populated | setup complete + finished leg-extension session + two timed rules on today and the week generated (`HomeViewModelTest.agendaListsIndependentOccurrences`) |
+| `progress` | `ProgressScreen` / `ProgressViewModel` | empty, populated | insights flow with a `BodyHeatSnapshot` holding one trained muscle (CHEST) |
+| `plan` | `PlanScreen` / `PlanViewModel` | empty, populated | two routines pinned Mon/Wed/Fri + timed rules (`PlanViewModelTest.aFullyPinnedWeekYieldsNoProposals`) |
+| `planDay` | `PlanDayScreen(epochDay = today)` / `PlanDayViewModel` | empty, populated | same planner seed |
+| `history` | `HistoryScreen` / `HistoryViewModel` | empty, populated, **error** | finished session + backdated activity; error = `FailingObserveCompletedSummariesDao` |
+| `sessionDetail` | `SessionDetailScreen` / `SessionDetailViewModel` | empty (= missing id), populated, **error** | finished session; error = `FailingObserveSessionDao`, gate flipped after seeding |
+| `library` | `ExerciseLibraryScreen` / `ExerciseLibraryViewModel` | empty, populated | four lifts + one routine |
+| `exerciseDetail` | `ExerciseDetailScreen` / `ExerciseDetailViewModel` | empty (= missing lift), populated, **error** | finished + in-progress leg extension (the template's seed); error = `observeInProgressSession` throwing (the only Details decorator precedent; the screen loads without its session card) |
+| `routineEditor` | `RoutineEditorScreen` / `RoutineEditorViewModel` | empty (`routineId = "new"`), populated (`lower-b`) | `seedTestWorkout` routine |
+| `customWeek` | `CustomWeekScreen` / `CustomWeekViewModel` | empty, populated | four lifts in the catalog |
+| `settings` | `SettingsScreen` / `SettingsViewModel` | home, backup, account, reminders | sub-page via `requestSettingsSubpage`, re-requested before every frame because the screen consumes it |
+| `onboarding` | `OnboardingScreen` / `OnboardingViewModel` | empty (first step) | — |
+| `intro` | `ColdStartIntro(reduceMotion = false)` | empty | stateless |
+| `chooser` | `SavePostureChooser` | empty | stateless; **412×915 only** (q1 already has 360/412/800) |
+| `activityComposer` | `ActivityComposerScreen` / `ActivityComposerViewModel` | empty (strength), cardio | `mode` saved-state key |
+| `liveCardio` | `LiveCardioScreen` / `LiveCardioViewModel` | empty (= missing id), populated | `startLiveActivity("Easy run", …)` (`LiveCardioViewModelTest`) |
+| `activityDetail` | `ActivityDetailScreen` / `ActivityDetailViewModel` | empty (= missing id), populated, **error** | `confirmActivity` backdated 200 lb × 5; error = `FailingGetGraphDao`, gate flipped after seeding |
+| `workoutSummary` | `WorkoutSummaryScreen` / `WorkoutSummaryViewModel` | empty (= missing id), populated | finished session with one set |
+| `activeWorkout` | `ActiveWorkoutScreen` / `ActiveWorkoutViewModel` | populated | **600×960 only** (the floor lane has the other three); `openLegExtension` + `floorSets(2)` from `FloorTestKit` |
+| `restTimer` | `RestTimerScreen` / `RestTimerViewModel` | empty (idle page), running (90 s rest) | `RestPageSkipTest.openThePageOnARunningRest` |
+| `shell` | `PersonalTrainerNav()` | first-run, home | real `AppContainer`; `home` = `setOnboardingComplete(true)` on the same container |
+
+"empty" for a detail screen is what a fresh database can show: the screen's own
+missing-row answer. Error states exist only where `FakeAppDependencies` offers a DAO
+decorator (`activityDaoDecorator`, `workoutDaoDecorator`).
+
+## Run 1 → run 2: what changed and why
+
+Run 1 (`run-1.log`) compiled the file unchanged and wrote 54 correct frames from the first
+10 methods; then four methods failed — `planDay_600x960`, `workoutSummary_412x915`,
+`progress_800x360`, `progress_360x640` — each naming only its **font 1.0** frames as "never
+left their loading state", and `tools/hang-watchdog.sh` killed the worker (exit 137) after
+90 s of a quiet `waitUntil`, during `customWeek_800x360`.
+
+**Cause.** Under Robolectric the test thread *is* the main thread (the dumps call it
+"SDK 35 Main Thread"), and `compose.waitUntil { … }` only `Thread.sleep`s between polls
+(thread dumps 1–3 in `run-1.log` show it at `ComposeUiTest.android.kt:884`). Those
+ViewModels' states arrive on the main looper from Room's threads, and nothing drains the
+looper while the test sleeps, so the first poll of a fresh state never sees it land. The 1.6
+and 2.0 frames of the same states were ready because the `waitForIdle()` after the stuck 1.0
+frame drained the looper, and the ViewModel was already loaded when the next frame composed.
+The rule's own `setContent` hides this by calling `waitForIdle()` first; the harness composes
+through `activity.setContent` and went straight into `waitUntil`.
+
+**Fix — the readiness wait (`awaitAuditReady`, called from `renderAuditMatrix`).** A loop
+that idles the looper on every poll, capped at `AUDIT_WAIT_MS = 8_000L`:
+
+    val giveUpAt = System.nanoTime() + AUDIT_WAIT_MS * 1_000_000L
+    while (!ready() && System.nanoTime() < giveUpAt) {
+        waitForIdle()                                    // FloorTestKit.kt:377, ExerciseDetailThisWorkoutRenderTest.kt:494
+        Shadows.shadowOf(Looper.getMainLooper()).idle()  // ExerciseDetailThisWorkoutRenderTest.kt:114, RestTimerRecoveryTest.kt:96
+        Thread.sleep(AUDIT_POLL_MS)                      // 50 ms; RestTimerRecoveryTest.kt:95 sleeps 10 ms in the same loop
+    }
+    return ready()
+
+The deadline is `System.nanoTime()` (RestTimerRecoveryTest.kt:93, RestTimerServiceTest.kt:490),
+not `SystemClock.uptimeMillis()`: under Robolectric `SystemClock` is a fake clock that only
+moves when the looper is idled *by a duration*, so a deadline on it could never pass and the
+harness would hang again. `idle()` was used rather than FloorTestKit's
+`idleFor(Duration.ofMillis(FRAME_MS))` (FloorTestKit.kt:692) because idling by a duration
+advances that fake clock, which the running rest timer reads. No import was added: `Looper`,
+`Shadows` and `File` were already imported.
+
+**Never fail a method for a stuck frame.** The end-of-method
+`assertTrue("… never left their loading state …")` is gone. The frame is still captured, and
+its path `<screen>/<state>-<w>x<h>-font<s>.png` is appended to `never-ready.txt` (directory
+and file created if missing; append mode). The only assertion left is `captureAuditFrame`'s
+"file exists and is non-empty".
+
+**Manifest.** After each successful write, `captureAuditFrame` appends
+`file,screen,state,width,height,font,bytes` to `manifest.csv`, writing the header line once
+when the file does not exist. `file` is `<screen>/<name>.png`, `font` is the scale as the
+file name spells it (`1.0`, `1.6`, `2.0`).
+
+**The "1 skipped".** There is no `Assume`, `assumeTrue`, `assumeFalse` or `@Ignore` anywhere
+in the file, nor in the shared test utilities it calls, so nothing was removed. The skipped
+test is `AuditRenderTest.customWeek_800x360`: JUnit's default method order (by name hash)
+runs `planDay_600x960, workoutSummary_412x915, progress_800x360, progress_360x640,
+customWeek_800x360, …` — exactly the order of the four failures in the log — and thread
+dumps 2 and 3 show `customWeek_800x360` inside `waitUntil` (its three `empty` frames were on
+disk; its `populated` state, `catalog.isNotEmpty()`, was stuck the same way) when the
+watchdog sent `kill -9`. Gradle then closes every still-running test as SKIPPED
+(`StateTrackingTestResultProcessor.ensureChildrenCompleted` builds
+`TestCompleteEvent(endTime, ResultType.SKIPPED)`; read out of
+`gradle-testing-base-8.11.1.jar` with `javap`). Five floor passes + four failures + that one
+in-flight test = "10 tests completed, 4 failed, 1 skipped". It is an artefact of the kill,
+not a skip in the harness; run 2 runs it normally.
+
+Nothing else changed: sizes, qualifiers, the density override, the seeds and the three
+classes are as in run 1.
+
+## Expected frame count
+
+- `AuditRenderTest`: 38 states × 4 sizes × 3 font scales = 456, plus the chooser 3 → **459**
+- `AuditFloorRenderTest`: floor 1 × 1 × 3 = 3, rest 2 × 4 × 3 = 24 → **27**
+- `AuditShellRenderTest`: 2 × 4 × 3 → **24**
+
+Total **510** PNGs, in 21 screen directories; `manifest.csv` then holds 510 rows plus its
+header, and `never-ready.txt` exists only if some frame was drawn still loading (each such
+frame is one line; the PNG is still there, and still counted in the manifest).
+
+## Skipped or thin, and why
+
+- **Save-posture chooser** at 360/412(other fonts)/800: already in `q1/`; one frame set here.
+- **Active workout** at 360/412/800: already in `build/floor-renders/` from `WorkoutFloorRenderTest`.
+- **Exercise detail "error"** is degraded, not failed: the only decorator precedent for Details
+  makes the in-progress read fail, and the screen is designed to load anyway. No decorator
+  reaches its history read.
+- **Sheets and dialogs in their own window** (Home's get-started sheet, the start sheet, keypads)
+  are not in a `decorView.draw` capture; the frame shows the screen beneath. This is the same
+  limit every existing render test has.
+- **Shell risk**: the production `PreferencesRepository` DataStore is a `preferencesDataStore`
+  delegate (a process singleton). The four shell methods each boot `PersonalTrainerApp` in a
+  fresh Robolectric temp dir; from the second method on, the singleton still points at the
+  first method's file. DataStore recreates parent directories on write, so this is expected
+  to work, but if the second-to-fourth shell frames show the settings-unavailable retry state,
+  that is the cause and the shell should be run one method at a time (`--tests '…AuditShellRenderTest.shell_412x915'`).
+- **ColdStartIntro** composes with `reduceMotion = false`; its `delay(AUTO_ADVANCE_MS)` is
+  driven by the test clock and `onFinished` is a no-op, so the frame is the intro as first drawn.
+- **RestTimer** and the **floor** share `FloorTestKit`'s `internal` helpers; if the lead copies
+  the file to a different module than `app`'s test source set they will not resolve.
+
+## Nothing here modifies the repository
+
+The file is written to the scratchpad only; the lead copies it in, runs it, and deletes it.
+It does not `./gradlew` anything itself.

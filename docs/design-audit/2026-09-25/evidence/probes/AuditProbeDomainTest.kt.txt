@@ -1,0 +1,114 @@
+package com.sinura.personaltrainer.audit
+
+import com.sinura.personaltrainer.domain.LoadClass
+import com.sinura.personaltrainer.domain.LoadType
+import com.sinura.personaltrainer.domain.LoggedSetView
+import com.sinura.personaltrainer.domain.ProgressionCalculator
+import com.sinura.personaltrainer.domain.ProgressionCopy
+import com.sinura.personaltrainer.domain.SetMicroRecCalculator
+import com.sinura.personaltrainer.domain.SetMicroRecCopy
+import com.sinura.personaltrainer.domain.SetMicroRecInputs
+import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutSession
+import com.sinura.personaltrainer.domain.toSummary
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.util.JvmTime
+import java.io.File
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * Audit X6, verifier V4 (domain / architecture). Pure JVM, no Robolectric.
+ * Each assertion states the defect: a green probe means the claim is confirmed.
+ */
+class AuditProbeDomainTest {
+
+    // a fix flips this by gating hold lifts out of progressionFor / workoutCoachSuggestion (rec becomes
+    // null or a seconds-based rung), or by teaching the coach copy that a 0-rep hold is time, not "0 reps".
+    @Test
+    fun claim_DM_1_holds() {
+        // Next-session hint as WorkoutRepository.progressionFor builds it (:1078-1100) for a plank whose one
+        // logged working set was stored with reps = 0 (ActiveWorkoutViewModel.kt:806, WorkoutRepository.kt:654)
+        // and whose routine row carries HoldWork.HOLD_REPS_PLACEHOLDER = 1 as targetReps (RoutineRepository.kt:102).
+        val hint = ProgressionCalculator.adjusted(
+            exerciseId = "ex-plank", exerciseName = "Plank",
+            lastWeightKg = 0.0, lastWorkingReps = 0, targetReps = 1,
+            loadType = LoadType.BODYWEIGHT, unit = WeightUnit.KG,
+            rpeEvidenceNewestFirst = emptyList(), lighterWeek = false,
+        )
+        assertEquals("Keep 0 reps.", ProgressionCopy.stripReason(hint, WeightUnit.KG))
+        // In-session, after the first hold: the Next-set numbers and the trace's call line.
+        val inputs = SetMicroRecInputs(
+            editing = false, loadType = LoadType.BODYWEIGHT, unit = WeightUnit.KG,
+            targetSets = 3, targetReps = 1, targetWeightKg = null, workingLogged = 1,
+            thisSessionWorking = listOf(LoggedSetView(weightKg = 0.0, reps = 0, rpe = 8, isWarmup = false)),
+            lastAnySetWasWarmup = false, hint = hint, lighterWeek = false,
+            draftWeightKg = 0.0, draftReps = 0, draftRpe = null, nowMs = 1L, todayEpochDay = 10L,
+        )
+        val rec = checkNotNull(SetMicroRecCalculator.suggest(inputs))
+        assertEquals(SetMicroRecCalculator.BW_HOLD, rec.reasonCode)
+        assertEquals(0, rec.nextReps)
+        assertTrue(rec.showApply)
+        assertEquals("0 reps", SetMicroRecCopy.numbers(rec, LoadClass.BODYWEIGHT, WeightUnit.KG))
+        assertEquals(
+            "Hold 0 reps",
+            SetMicroRecCopy.callLine(rec.reasonCode, rec.nextWeightKg, rec.nextReps, LoadClass.BODYWEIGHT, WeightUnit.KG),
+        )
+        // Before any set: "1 rep" with Apply.
+        val first = checkNotNull(SetMicroRecCalculator.suggest(inputs.copy(workingLogged = 0, thisSessionWorking = emptyList())))
+        assertEquals(1, first.nextReps)
+        assertTrue(first.showApply)
+        assertEquals("1 rep", SetMicroRecCopy.numbers(first, LoadClass.BODYWEIGHT, WeightUnit.KG))
+    }
+
+    // a fix flips this by attributing the day from a zone / local day captured at write on workout_sessions
+    // (the ADR-011 four-tuple), so localEpochDay stops depending on the zone passed at read.
+    @Test
+    fun claim_DM_2_holds() {
+        // 2026-09-26 00:30 in London (BST) = 2026-09-25 23:30 UTC = 2026-09-25 18:30 in Chicago (CDT).
+        val loggedAtMs = 1_790_379_000_000L
+        val session = WorkoutSession(
+            id = "s-london", routineId = null, routineName = "Push", date = loggedAtMs, notes = "",
+            durationMinutes = 45, startedAt = loggedAtMs - 45L * 60_000L, finishedAt = loggedAtMs,
+            exercises = emptyList(), sets = emptyList(),
+        )
+        val london = session.toSummary(JvmTime, "Europe/London").localEpochDay
+        val chicago = session.toSummary(JvmTime, "America/Chicago").localEpochDay
+        assertEquals(20_722L, london) // 26 September 2026
+        assertEquals(20_721L, chicago) // 25 September 2026
+        assertNotEquals("ADR-011 review question: log in London, open in Chicago — the session moves a day", london, chicago)
+    }
+
+    // a fix flips the first assert by calling installDiagnosticCapture() before PreMigrationSnapshot.ensure(this);
+    // the second flips only if AppLog.w ever routes to onError (today only AppLog.e does, AppLog.kt:52-57).
+    @Test
+    fun claim_AR_2_holds() {
+        val onCreate = appSource().substringAfter("override fun onCreate()")
+        val copy = onCreate.indexOf("PreMigrationSnapshot.ensure(this)")
+        val capture = onCreate.indexOf("installDiagnosticCapture()")
+        assertTrue("both calls must be in onCreate", copy >= 0 && capture >= 0)
+        assertTrue("the pre-migration copy runs before AppLog.onError is installed", copy < capture)
+        val previousSink = AppLog.sink
+        val previousOnError = AppLog.onError
+        try {
+            val routed = mutableListOf<String>()
+            AppLog.sink = { _, _, _, _ -> }
+            AppLog.onError = { tag, _ -> routed += tag }
+            AppLog.w("PT/Probe", "Too little free space to copy", IllegalStateException("copy"))
+            assertEquals("AppLog.w never reaches the ring", emptyList<String>(), routed)
+            AppLog.onError = null // the state before installDiagnosticCapture() runs
+            AppLog.e("PT/Probe", "Pre-migration copy failed; migrating without it", IllegalStateException("copy"))
+            assertEquals("AppLog.e reaches nothing until the hook exists", emptyList<String>(), routed)
+        } finally {
+            AppLog.sink = previousSink
+            AppLog.onError = previousOnError
+        }
+    }
+
+    private fun appSource(): String = listOf(
+        File("app/src/main/java/com/sinura/personaltrainer/PersonalTrainerApp.kt"),
+        File("../app/src/main/java/com/sinura/personaltrainer/PersonalTrainerApp.kt"),
+    ).first { it.isFile }.readText()
+}

@@ -11,7 +11,8 @@
 It retains this program's data and product guarantees and refines UI behavior.
 Since 22 September its packets run in the order the
 [whole-app audit](design-audit/2026-09-22/AUDIT.md) set, interleaved with the
-sync-safety packets.
+sync-safety packets; the [25 September audit](design-audit/2026-09-25/AUDIT.md)
+re-set that order on the owner's decision of the same day.
 
 This file is the executable program. Accepted ADRs are the decisions it
 may not violate. Historical [ROADMAP.md](ROADMAP.md), Jobs 1–6, and
@@ -832,7 +833,7 @@ does not accept, reject, or defer a finding without naming a packet.
 | Need | Open |
 |---|---|
 | Where things stand, start here | [HANDOFF-NEXT.md](HANDOFF-NEXT.md) |
-| What to build next | the packet order in [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md), set by the [whole-app audit](design-audit/2026-09-22/AUDIT.md); this file, §6, for the phases |
+| What to build next | the packet order in [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md), set by the [25 September audit](design-audit/2026-09-25/AUDIT.md) over the [22 September one](design-audit/2026-09-22/AUDIT.md); this file, §6, for the phases |
 | Why a decision is binding | [architecture/](architecture/README.md) |
 | What the app does today | [architecture/CURRENT_STRUCTURE.md](architecture/CURRENT_STRUCTURE.md); the dated [foundation-audit/](foundation-audit/README.md) for how it started |
 | How to build and test | [DEVELOPMENT.md](DEVELOPMENT.md) |
