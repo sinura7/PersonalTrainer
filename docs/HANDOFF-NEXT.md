@@ -199,6 +199,11 @@ Done so far:
   the workouts, says it may be behind and offers Retry (audit DB-1, AR-1,
   UI-17; #424). Found by its reviews, not fixed: Plan still reads the
   weigh-ins and the current block raw.
+- **R2-2:** a finish, discard or planned start stands when the small
+  write after it fails (the link to its planned day): the bar opens the
+  summary instead of crashing (audit UI-12; #425). Found by its reviews,
+  not fixed: after a restart, a link whose clear had failed comes back,
+  and an untagged one completes any later finish.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -223,7 +228,7 @@ Done so far:
 
 Next, in order (owner decision of 25 September, audit X6; the live order
 is the table in FRONTEND_REDESIGN.md): the rest of R2 (crash and coach:
-R2-2 onward), W2d-2 and W2d-3, the rest-alarm packet,
+R2-3 onward), W2d-2 and W2d-3, the rest-alarm packet,
 R3 (updater), then a check-only phone drop, then W3, S1, X8 and X9. X2b
 completed Wave 0.
 
