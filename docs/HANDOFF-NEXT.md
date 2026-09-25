@@ -143,7 +143,7 @@ Done so far:
   it suggests follows edits to that lift. Nothing a lifter sees changes:
   pins written on the old code pass on the new, and every part of the
   two "has anything changed" checks has a test that fails when it is
-  left out (ADR-029, ADR-008; audit C-2).
+  left out (ADR-029, ADR-008; audit C-2; #414).
 - **X7:** the signed gym-floor Temper builds again. The shrinker had
   stopped on slf4j (brought in by Temper Account's sign-in library on
   21 September) and nobody builds the release day to day, so nobody saw;
@@ -155,6 +155,15 @@ Done so far:
   workflow fixes and that gate wiring in place (audit X6, BR-1, BR-2,
   BR-7; #416). The shrunk APK was inspected, not launched: the first
   signed release gets a launch on the phone before anyone relies on it.
+- **W2d-1:** the floor's undo queue (the offers, their order, how long
+  each shows, and the copy kept for when Android stops the app) moves
+  out of the workout ViewModel into a small helper, `FloorUndoOffers`.
+  Deleting, removing and undoing work exactly as before; 16 tests
+  written on the old code first prove it, among them that an undone or
+  expired offer stays gone after the app is stopped, which nothing
+  held until now. The ViewModel is 2,377 → 2,327 lines. Built before
+  the 25 September order landed; the owner chose to merge it ahead of
+  R1 and R2.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -179,8 +188,9 @@ Done so far:
 
 Next, in order (owner decision of 25 September, audit X6; the live order
 is the table in FRONTEND_REDESIGN.md): R1 (data safety),
-R2 (crash and coach), W2d, the rest-alarm packet, R3 (updater), then a
-check-only phone drop, then W3, S1, X8 and X9. X2b completed Wave 0.
+R2 (crash and coach), W2d-2 and W2d-3, the rest-alarm packet,
+R3 (updater), then a check-only phone drop, then W3, S1, X8 and X9. X2b
+completed Wave 0.
 
 ## What is verified, and how
 

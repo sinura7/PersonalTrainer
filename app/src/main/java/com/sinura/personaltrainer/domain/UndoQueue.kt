@@ -7,8 +7,8 @@ package com.sinura.personaltrainer.domain
  * so only the latest delete could ever come back. Tokens now stack: undoing the latest
  * reveals the next offer underneath.
  *
- * Pure list ops so the ordering and cap are unit-testable without a database. The ViewModel
- * owns the actual snapshots and the SavedState mirror.
+ * Pure list ops so the ordering and cap are unit-testable without a database. The workout
+ * floor's `FloorUndoOffers` holds the actual snapshots and the SavedState mirror.
  */
 object UndoQueue {
     /** How many undo tokens survive. Oldest drops silently when a newer destructive lands. */
