@@ -10,8 +10,8 @@ import org.junit.Test
  *
  * `AppContainer`'s constructor builds [TemperDatabase], and Room migrates on the first open, so a
  * copy taken after `AppContainer(this)` could be a copy of the already-migrated file.
- * `PersonalTrainerApp` cannot be started in a JVM test — its `onCreate` wires services, alarms
- * and sync — so its order is held here, as a static guard. It is a tripwire, not a proof: it
+ * `PersonalTrainerApp` can be started under Robolectric, but not made to fail its copy inside
+ * `onCreate`, which is the case that matters, so its order is held here, as a static guard. It is a tripwire, not a proof: it
  * catches the two calls being reordered or the copy call being dropped, not every way the
  * database could be opened earlier.
  */
@@ -30,19 +30,23 @@ class PreMigrationStartupOrderTest {
     }
 
     /**
-     * Audit AR-2: the copy's failures are logged with [com.sinura.personaltrainer.logging.AppLog.e],
-     * and an error reaches the diagnostic ring only once `installDiagnosticCapture()` has set
-     * `AppLog.onError`. It ran a line after the copy, so the failure the copy exists to warn
-     * about reached logcat only, which needs a computer to read.
+     * Audit AR-2: a copy that fails while being written is logged with
+     * [com.sinura.personaltrainer.logging.AppLog.e] and its exception, and an error reaches the
+     * diagnostic ring only once `installDiagnosticCapture()` has set `AppLog.onError`. It ran a
+     * line after the copy, so that failure reached logcat only, which needs a computer to read.
      */
     @Test
     fun diagnosticsAreCapturedBeforeTheCopiesRun() {
-        val onCreate = appSource().substringAfter("override fun onCreate()")
-        val capture = onCreate.indexOf("installDiagnosticCapture()")
+        val onCreate = appSource()
+            .substringAfter("override fun onCreate()")
+            .substringBefore("private fun installDiagnosticCapture")
+        val calls = Regex("""^\s*installDiagnosticCapture\(\)\s*$""", RegexOption.MULTILINE)
+            .findAll(onCreate)
+            .toList()
         val copies = onCreate.indexOf("PreMigrationSnapshot.ensure(this)")
 
-        assertTrue("onCreate must install the diagnostic capture", capture >= 0)
-        assertTrue("the capture must be installed before the copies run", capture < copies)
+        assertEquals("onCreate installs the diagnostic capture once, on its own line", 1, calls.size)
+        assertTrue("the capture must be installed before the copies run", calls.single().range.first < copies)
     }
 
     private fun appSource(): String {

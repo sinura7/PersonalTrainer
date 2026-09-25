@@ -94,10 +94,11 @@ class PersonalTrainerApp : Application() {
         // user-authored titles and internal file paths. Temper Debug is the daily
         // install, so this is always on — not a release-only switch.
         AppLog.redactMessages = true
-        // Before the copy below: the one failure that copy exists to warn about, a copy that
-        // could not be taken before a database upgrade, is logged as an error, and only an
-        // error recorded after this line reaches the diagnostics the owner can send (audit
-        // AR-2). It needs only the Context and opens no database.
+        // Before the copy below: a copy that fails while being written is logged as an error
+        // with its exception, and only an error recorded after this line reaches the
+        // diagnostics the owner can send (audit AR-2). A copy skipped with a warning (too
+        // little space, an unreadable version) still does not. This needs only the Context
+        // and opens no database.
         installDiagnosticCapture()
         // FIRST among the heavy steps, before anything can open the database: AppContainer's
         // constructor builds the Room instance and Room migrates on open, so a copy taken any
