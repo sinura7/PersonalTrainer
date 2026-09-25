@@ -19,6 +19,9 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  * X / back is go-Home with the session still live. This dialog is the
  * explicit end. Discard still routes through a named confirm so destroy
  * is never one tap (G-07).
+ *
+ * With [editOpen], a logged set is open for correction and the change is not saved yet: the
+ * dialog says so first and offers the way back to it (audit UI-2).
  */
 @Composable
 fun EndWorkoutDialog(
@@ -30,6 +33,7 @@ fun EndWorkoutDialog(
     notesExpanded: Boolean = false,
     onToggleNotes: () -> Unit = {},
     onNotesChange: (String) -> Unit = {},
+    editOpen: Boolean = false,
 ) {
     val canSave = EndWorkoutCopy.canSave(loggedSets)
     AlertDialog(
@@ -37,6 +41,13 @@ fun EndWorkoutDialog(
         title = { Text(EndWorkoutCopy.TITLE, style = InstrumentType.title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                if (editOpen) {
+                    Text(
+                        EndWorkoutCopy.EDIT_OPEN,
+                        style = InstrumentType.body,
+                        modifier = Modifier.testTag(EndWorkoutTags.EDIT_OPEN),
+                    )
+                }
                 Text(
                     EndWorkoutCopy.body(loggedSets),
                     style = InstrumentType.body,
@@ -55,6 +66,13 @@ fun EndWorkoutDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
+                if (editOpen) {
+                    SecondaryGymButton(
+                        text = EndWorkoutCopy.BACK_TO_EDIT,
+                        onClick = onDismiss,
+                        modifier = Modifier.testTag(EndWorkoutTags.BACK_TO_EDIT),
+                    )
+                }
                 PrimaryGymButton(
                     text = EndWorkoutCopy.SAVE,
                     onClick = onSave,
@@ -74,4 +92,6 @@ fun EndWorkoutDialog(
 object EndWorkoutTags {
     const val SAVE = "workout-end-save"
     const val DISCARD = "workout-end-discard"
+    const val EDIT_OPEN = "workout-end-edit-open"
+    const val BACK_TO_EDIT = "workout-end-back-to-edit"
 }

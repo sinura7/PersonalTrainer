@@ -13,6 +13,15 @@ object EndWorkoutCopy {
     const val HEADER_FINISH = "Finish"
     const val HEADER_DISCARD = "Discard"
 
+    /**
+     * Said first while a logged set is open for correction. Finish used to end the workout and
+     * drop the change without a word; the set kept its saved values (audit UI-2).
+     */
+    const val EDIT_OPEN =
+        "You are still changing a set you logged. Save as is keeps that set as it was saved. " +
+            "To keep your change, go back and tap Save changes."
+    const val BACK_TO_EDIT = "Back to my change"
+
     fun body(loggedSets: Int): String =
         if (loggedSets > 0) {
             "Save keeps the ${setWord(loggedSets)} you logged as a finished session. " +
