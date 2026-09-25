@@ -17,13 +17,15 @@
 >
 > 25 Sep 2026 — Audit packet R1-2 (audit X6, BK-3; owner decision of 25
 > September): the check that stops an empty backup from wiping the phone
-> now knows about goals, saved cardio templates and the weekly plan. A
+> now knows about goals, saved activity templates and the weekly plan. A
 > phone holding only those refuses a file with nothing of yours in it; a
 > backup holding only those is no longer refused as empty; and the
-> restore question counts them on both sides ("This file: … 2 goals,
-> 1 cardio template, 4 planned weekly sessions"). The safety copy taken
-> before a restore is checked against the same counts. Rides along with
-> the next drop; nothing to check on the phone unless you restore.
+> restore question counts them on both sides ("This file: … 4 planned
+> weekly sessions, … 2 goals"), naming the plan once rather than as days
+> and again as plan entries, and leaving out goals and templates when
+> there are none. The safety copy taken before a restore is checked
+> against the same counts. Rides along with the next drop; nothing to
+> check on the phone unless you restore.
 >
 > 25 Sep 2026 — Audit packet R1-1 (audit X6, BK-1; owner decision of 25
 > September): signing out of Google Drive now does what the privacy page

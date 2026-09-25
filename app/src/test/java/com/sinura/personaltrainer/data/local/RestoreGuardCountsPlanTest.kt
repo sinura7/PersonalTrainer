@@ -29,7 +29,7 @@ import org.robolectric.annotation.Config
 /**
  * The restore guard (ADR-009 §11) refuses a file with no authored data when the phone has
  * some. It counted sessions, sets, routines, custom lifts, the legacy schedule, weigh-ins,
- * blocks and activities, but not goals, cardio templates or the weekly plan: a phone holding
+ * blocks and activities, but not goals, activity templates or the weekly plan: a phone holding
  * only those read as empty, so a catalog-only file wiped them without the refusal, a backup
  * holding only those was refused as "no data", and the confirm box left them out.
  */
@@ -56,7 +56,7 @@ class RestoreGuardCountsPlanTest {
     }
 
     @Test
-    fun aPhoneHoldingOnlyACardioTemplateRefusesACatalogOnlyFile() = runBlocking {
+    fun aPhoneHoldingOnlyAnActivityTemplateRefusesACatalogOnlyFile() = runBlocking {
         deps.database.activityDao().upsertTemplate(template())
         assertCatalogOnlyRefused()
         assertEquals(1, deps.backupService.authoredInventory().activityTemplates)
@@ -85,9 +85,8 @@ class RestoreGuardCountsPlanTest {
         assertEquals(1, plan.incoming.activityTemplates)
         assertEquals(1, plan.incoming.planRules)
         val body = AuthoredInventory.confirmBody("plan.json", plan.incoming, plan.local)
-        assertTrue(body, body.contains("1 goal,"))
-        assertTrue(body, body.contains("1 cardio template,"))
-        assertTrue(body, body.contains("1 planned weekly session"))
+        assertTrue(body, body.contains("This file: 0 sessions, 0 sets, 0 routines, 0 custom exercises, " +
+            "1 planned weekly session, 0 weigh-ins, 0 blocks, 0 activities, 1 goal, 1 activity template."))
     }
 
     @Test
@@ -104,6 +103,10 @@ class RestoreGuardCountsPlanTest {
         val result = deps.backupService.commitRestore(plan)
 
         assertNotNull(result.safetySnapshotId)
+        val copy = deps.backupService.listSafetySnapshots().single { it.id == result.safetySnapshotId }
+        assertEquals(1, copy.authored.goals)
+        assertEquals(1, copy.authored.activityTemplates)
+        assertEquals(1, copy.authored.planRules)
         val after = deps.backupService.authoredInventory()
         assertEquals(1, after.goals)
         assertEquals(1, after.activityTemplates)

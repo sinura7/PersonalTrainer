@@ -18,7 +18,7 @@ data class AuthoredInventory(
     val bodyweightEntries: Int,
     val blocks: Int,
     val activities: Int = 0,
-    /** Saved cardio sessions the weekly plan can point at. */
+    /** Saved activity templates. They arrive by sync or restore; no screen reads them yet. */
     val activityTemplates: Int = 0,
     /** The weekly plan: one row per planned session a week; its dated days hang off these. */
     val planRules: Int = 0,
@@ -37,16 +37,27 @@ data class AuthoredInventory(
             planRules == 0 &&
             goals == 0
 
-    fun describe(): String =
-        "$sessions session${plural(sessions)}, $setLogs set${plural(setLogs)}, " +
-            "$routines routine${plural(routines)}, $customExercises custom exercise${plural(customExercises)}, " +
-            "$scheduleSlots scheduled day${plural(scheduleSlots)}, " +
-            "$bodyweightEntries weigh-in${plural(bodyweightEntries)}, " +
-            "$blocks block${plural(blocks)}, " +
-            "$activities activit${if (activities == 1) "y" else "ies"}, " +
-            "$goals goal${plural(goals)}, " +
-            "$activityTemplates cardio template${plural(activityTemplates)}, " +
+    /**
+     * The weekly plan mirrors every pinned day as a rule, so a side that has rules names them
+     * once, in place of its days; only a file from before the plan shows days alone. Goals and
+     * activity templates have no screen of their own yet, so they are named only when present.
+     */
+    fun describe(): String = listOfNotNull(
+        "$sessions session${plural(sessions)}",
+        "$setLogs set${plural(setLogs)}",
+        "$routines routine${plural(routines)}",
+        "$customExercises custom exercise${plural(customExercises)}",
+        if (planRules > 0) {
             "$planRules planned weekly session${plural(planRules)}"
+        } else {
+            "$scheduleSlots scheduled day${plural(scheduleSlots)}"
+        },
+        "$bodyweightEntries weigh-in${plural(bodyweightEntries)}",
+        "$blocks block${plural(blocks)}",
+        "$activities activit${if (activities == 1) "y" else "ies"}",
+        "$goals goal${plural(goals)}".takeIf { goals > 0 },
+        "$activityTemplates activity template${plural(activityTemplates)}".takeIf { activityTemplates > 0 },
+    ).joinToString(", ")
 
     companion object {
         val EMPTY = AuthoredInventory(0, 0, 0, 0, 0, 0, 0)
@@ -97,9 +108,9 @@ data class AuthoredInventory(
                 "A verified copy of this phone is saved first. You can restore that copy from Settings."
 
         const val EMPTY_INCOMING_REFUSED =
-            "This file has no sessions, sets, routines, custom exercises, schedule, " +
-                "weekly plan, weigh-ins, blocks, activities, cardio templates, or goals. " +
-                "Restoring it would erase the training data on this phone, so it was refused."
+            "This file has no sessions, sets, routines, custom exercises, " +
+                "schedule, weigh-ins, blocks, or activities. Restoring it would erase the " +
+                "training data on this phone, so it was refused."
     }
 }
 
