@@ -159,7 +159,7 @@ class ActivityRepositoryTest {
             ids(),
             JvmTime,
         )
-        val summaries = repository.observeCompletedSummaries().first()
+        val summaries = repository.observeCompletedSummariesHealth().presentValues().first()
         assertEquals(1, summaries.size)
         assertEquals(500.0, summaries.single().volumeKg, 0.0001)
         assertEquals(1, summaries.single().workingSets)

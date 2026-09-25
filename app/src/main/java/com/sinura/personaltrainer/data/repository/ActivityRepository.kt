@@ -117,12 +117,13 @@ class ActivityRepository(
         dao.getAllGraphs().map { it.toDomain() }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun observeCompletedSummaries(): Flow<List<SessionSummary>> =
+    private fun observeCompletedSummaries(): Flow<List<SessionSummary>> =
         dao.observeCompletedSummaries().mapLatest { rows ->
             val stills = dao.completedSessionStills().toHistoryStills()
             rows.map { row -> row.toSummary(stills[row.id].orEmpty()) }
         }
 
+    /** The only way out of the summaries read, as for the workout summaries (audit DB-1). */
     fun observeCompletedSummariesHealth(): Flow<DataHealth<List<SessionSummary>>> =
         observeCompletedSummaries().observeHealth("activity history")
 

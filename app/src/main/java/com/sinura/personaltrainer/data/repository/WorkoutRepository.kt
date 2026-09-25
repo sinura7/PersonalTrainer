@@ -145,7 +145,7 @@ class WorkoutRepository(
      * finished session.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun observeSessionSummaries(): Flow<List<SessionSummary>> =
+    private fun observeSessionSummaries(): Flow<List<SessionSummary>> =
         workoutDao.observeFinishedWorkGeneration()
             .distinctUntilChanged()
             .mapLatest {
@@ -155,6 +155,11 @@ class WorkoutRepository(
                 }
             }
 
+    /**
+     * The only way out of the summaries read. The raw flow throws whatever Room throws, and a
+     * collector with nowhere to put that closes the app (audit DB-1); Home takes
+     * `presentValues()` of this, History reads its health.
+     */
     fun observeSessionSummariesHealth(): Flow<DataHealth<List<SessionSummary>>> =
         observeSessionSummaries().observeHealth("workout history")
 
@@ -175,6 +180,8 @@ class WorkoutRepository(
                 workoutDao.finishedLastLogged().associate { it.exerciseId to it.lastLoggedAt }
             }
             .distinctUntilChanged()
+            .observeHealth("when each lift was last logged")
+            .presentValues()
 
     fun observeBestWorkingWeights(): Flow<Map<String, Double>> =
         workoutDao.observeBestWorkingWeights().map { rows ->
@@ -188,6 +195,8 @@ class WorkoutRepository(
             .mapLatest {
                 workoutDao.getFinishedSessionsSince(minDateMs).map { it.toDomain() }
             }
+            .observeHealth("recent finished workouts")
+            .presentValues()
 
     suspend fun sessionsBetween(minDateMs: Long, maxDateMs: Long): List<WorkoutSession> =
         workoutDao.getFinishedSessionsBetween(minDateMs, maxDateMs).map { it.toDomain() }

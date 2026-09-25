@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.data.repository.presentValues
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.windowedInsightHistory
 import com.sinura.personaltrainer.domain.Exercise
@@ -28,6 +29,7 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -35,6 +37,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
@@ -109,7 +112,17 @@ class TrainingInsightsSource(
     override fun observeShared(includeWeekPlan: Boolean): Flow<TrainingInsights> =
         assembled(includeWeekPlan).map { retarget(it, HeatWindow.CURRENT_WEEK) }
 
-    private val sharedScope = CoroutineScope(SupervisorJob() + computeDispatcher)
+    /**
+     * Logs, as the application scope does. Without a handler a throw that escaped the
+     * pipeline ended the process, and Home subscribes on its first frame, so it closed again
+     * on every open (audit AR-1). The inputs degrade and [shareAssembled] catches first; this
+     * is the backstop.
+     */
+    private val sharedScope = CoroutineScope(
+        SupervisorJob() + computeDispatcher + CoroutineExceptionHandler { _, thrown ->
+            AppLog.e(TAG, "The shared training summary stopped", thrown)
+        },
+    )
     private val coreNudge = MutableStateFlow(0L)
     private val hintLock = Any()
     private var hintCache: Pair<HintCacheKey, List<ProgressionHint>?>? = null
@@ -120,8 +133,14 @@ class TrainingInsightsSource(
     private fun assembled(includeWeekPlan: Boolean): Flow<Assembled> =
         if (includeWeekPlan) assembledWithPlan else assembledWithoutPlan
 
+    /**
+     * A throw ends this pass quietly: screens keep the last summary they had, and the next
+     * subscription after the grace period assembles again, where an uncaught one used to
+     * close the app and leave nothing to restart (audit DB-1, AR-1).
+     */
     private fun shareAssembled(includeWeekPlan: Boolean): Flow<Assembled> =
         assemble(includeWeekPlan)
+            .catch { thrown -> AppLog.e(TAG, "Assembling the training summary failed", thrown) }
             .shareIn(
                 scope = sharedScope,
                 started = SharingStarted.WhileSubscribed(shareGraceMs),
@@ -156,7 +175,9 @@ class TrainingInsightsSource(
     }
 
     private fun assemble(includeWeekPlan: Boolean): Flow<Assembled> {
-        val activitySummaries = activityRepository?.observeCompletedSummaries()
+        // Every input is a guarded read: a failed one holds what it last had instead of
+        // throwing through the combine (audit DB-1).
+        val activitySummaries = activityRepository?.observeCompletedSummariesHealth()?.presentValues()
             ?: flowOf(emptyList())
         val windowStart = nowMs() - WINDOW_MS
         // Slot flow and retry nudge sit outside the five-way combine: typed overloads stop at five.
@@ -164,7 +185,7 @@ class TrainingInsightsSource(
             combine(
                 combine(
                     combine(
-                        workoutRepository.observeSessionSummaries(),
+                        workoutRepository.observeSessionSummariesHealth().presentValues(),
                         activitySummaries,
                     ) { summaries, activities ->
                         summaries + activities

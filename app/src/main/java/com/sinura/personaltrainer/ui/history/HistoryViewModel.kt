@@ -120,22 +120,32 @@ class HistoryViewModel @JvmOverloads constructor(
         .distinctUntilChanged()
         .flatMapLatest { inputs ->
             flow {
-                val items = container.completedTrainingRepository.all()
-                val reviews = inputs.blocks
-                    .asReversed()
-                    .map { block ->
-                        FinishedBlock(
-                            block = block,
-                            review = BlockReviewBuilder.build(
+                // A full-log read that fails marks the page behind. It used to throw through
+                // the catalog and close the app (audit UI-17).
+                val reviews = runCatchingCancellable {
+                    val items = container.completedTrainingRepository.all()
+                    inputs.blocks
+                        .asReversed()
+                        .map { block ->
+                            FinishedBlock(
                                 block = block,
-                                items = items,
-                                unit = inputs.unit,
-                                bodyweightLog = inputs.bodyweightLog,
-                            ),
-                        )
-                    }
-                    .filterNot { it.review.isEmpty }
-                emit(reviews)
+                                review = BlockReviewBuilder.build(
+                                    block = block,
+                                    items = items,
+                                    unit = inputs.unit,
+                                    bodyweightLog = inputs.bodyweightLog,
+                                ),
+                            )
+                        }
+                        .filterNot { it.review.isEmpty }
+                }
+                reviews.onFailure { thrown -> AppLog.e(TAG, "Reading past blocks failed", thrown) }
+                emit(
+                    HistorySidecar(
+                        value = reviews.getOrDefault(emptyList()),
+                        stale = reviews.isFailure,
+                    ),
+                )
             }
         }
 
@@ -164,14 +174,16 @@ class HistoryViewModel @JvmOverloads constructor(
             val activityRecords = sidecarFromHealth(recordReads.activities)
             val allSummaries = list.summaries + activities.value
             val preferences = settings.first
+            val pastBlocks = settings.second
             HistoryCatalog(
                 unavailable = false,
-                stale = list.stale || activities.stale || workoutRecords.stale || activityRecords.stale,
+                stale = list.stale || activities.stale || workoutRecords.stale ||
+                    activityRecords.stale || pastBlocks.stale,
                 summaries = allSummaries,
                 monthGroups = groupHistoryByMonth(allSummaries.map { it.toHistoryEntry() }),
                 records = RecordsCalculator.standing(workoutRecords.value + activityRecords.value),
                 weekStart = preferences.weekStart,
-                pastBlocks = settings.second,
+                pastBlocks = pastBlocks.value,
                 projections = DailyProjectionBuilder.project(allSummaries),
                 today = civilToday(),
                 revision = reads.revision,
@@ -189,7 +201,8 @@ class HistoryViewModel @JvmOverloads constructor(
         catalog,
         horizon,
         container.preferencesRepository.weightUnit,
-    ) { cat, selectedHorizon, unit ->
+        historyRetry,
+    ) { cat, selectedHorizon, unit, attempt ->
         if (cat.unavailable) {
             null
         } else {
@@ -205,6 +218,7 @@ class HistoryViewModel @JvmOverloads constructor(
                 endEpochDay = end,
                 unit = unit,
                 revision = cat.revision,
+                attempt = attempt,
             )
         }
     }
@@ -212,18 +226,21 @@ class HistoryViewModel @JvmOverloads constructor(
         .flatMapLatest { key ->
             flow {
                 if (key == null) {
-                    emit(null)
+                    emit(HorizonRead(progress = null, failed = false))
                     return@flow
                 }
-                val items = container.completedTrainingRepository.all()
-                emit(
+                // As for past blocks: a failed read hides the readout and marks the page
+                // behind instead of closing the app (audit UI-17).
+                val progress = runCatchingCancellable {
                     BlockReviewBuilder.overRange(
                         startEpochDay = key.startEpochDay,
                         endExclusiveEpochDay = key.endEpochDay + 1,
-                        items = items,
+                        items = container.completedTrainingRepository.all(),
                         unit = key.unit,
-                    ),
-                )
+                    )
+                }
+                progress.onFailure { thrown -> AppLog.e(TAG, "Reading the period's history failed", thrown) }
+                emit(HorizonRead(progress = progress.getOrNull(), failed = progress.isFailure))
             }
         }
         .flowOn(container.computeDispatcher)
@@ -239,7 +256,7 @@ class HistoryViewModel @JvmOverloads constructor(
         }
         HistoryUiState(
             isLoading = false,
-            stale = cat.stale,
+            stale = cat.stale || progress.failed,
             summaries = cat.summaries,
             monthGroups = cat.monthGroups,
             records = cat.records,
@@ -257,7 +274,7 @@ class HistoryViewModel @JvmOverloads constructor(
                 today = cat.today,
                 weekStart = cat.weekStart,
             ),
-            horizonProgress = progress,
+            horizonProgress = progress.progress,
             today = cat.today,
         )
     }
@@ -349,12 +366,20 @@ class HistoryViewModel @JvmOverloads constructor(
         val endEpochDay: Long,
         val unit: WeightUnit,
         val revision: String,
+        /** Retry reads the period again, even when nothing it keys on moved. */
+        val attempt: Int,
     )
 
     private data class HistoryReads(
         val health: DataHealth<List<SessionSummary>>,
         val activitySummaries: DataHealth<List<SessionSummary>>,
         val revision: String,
+    )
+
+    /** The period readout, and whether the read behind it failed. */
+    private data class HorizonRead(
+        val progress: HorizonProgress?,
+        val failed: Boolean,
     )
 
     private data class RecordReads(

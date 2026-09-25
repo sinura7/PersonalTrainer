@@ -1,8 +1,11 @@
 package com.sinura.personaltrainer.insights
 
 import android.app.Application
+import android.database.sqlite.SQLiteException
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
+import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.ProgressionHint
@@ -13,9 +16,11 @@ import com.sinura.personaltrainer.domain.TrainingInsightsInput
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.catchingUncaught
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import java.time.ZoneOffset
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -32,11 +37,13 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -324,6 +331,82 @@ class TrainingInsightsSourceTest {
         shareGraceMs = shareGraceMs,
     )
 
+    /**
+     * Audit DB-1: four of the pipeline's inputs skipped the read guard the others use, and
+     * its scope had no handler, so one failed history read closed the app, and Home, which
+     * subscribes on its first frame, closed it again on every open. Now the read holds what
+     * it last had and the summary keeps updating from everything else.
+     */
+    @Test
+    fun aHistoryReadThatFailsKeepsHomeUpdatingInsteadOfClosingTheApp() = runBlocking {
+        var summaries: FailingSummariesDao? = null
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            workoutDaoDecorator = { dao -> FailingSummariesDao(dao).also { summaries = it } },
+        )
+        val failing = checkNotNull(summaries)
+        seedTestWorkout(deps, finish = true)
+        val src = source()
+        var recomputedInKg = false
+        val crash = catchingUncaught {
+            val job = launch { src.observeShared(includeWeekPlan = false).collect { } }
+            awaitComputes(1)
+            failing.shouldFail = true
+            val another = deps.workoutRepository.startFreeWorkout("Push")
+            deps.workoutRepository.finishSession(another.id, notes = "")
+            awaitUntil { failing.refusals.get() > 0 }
+            deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+            recomputedInKg = withTimeoutOrNull(TestWaits.FLOW_MS) {
+                while (inputs.none { it.unit == WeightUnit.KG }) {
+                    dispatcher.scheduler.runCurrent()
+                    delay(10)
+                }
+                true
+            } ?: false
+            job.cancel()
+        }
+        assertNull("a failed history read closed the app", crash)
+        assertTrue("Home stopped updating after one failed read", recomputedInKg)
+    }
+
+    /**
+     * Audit AR-1: a pass that throws while assembling used to end the process and leave the
+     * shared summary with nothing to restart it. It now ends that pass; the next visit after
+     * the grace period assembles again.
+     */
+    @Test
+    fun aSummaryThatFailsToAssembleDoesNotCloseTheAppAndTheNextVisitTriesAgain() = runBlocking {
+        val attempts = AtomicInteger()
+        val src = source(
+            shareGraceMs = 0L,
+            compute = { input ->
+                if (attempts.getAndIncrement() == 0) error("boom: the summary could not be computed")
+                inputs += input
+                TrainingInsightsCalculator.compute(input)
+            },
+        )
+        var nextVisit: TrainingInsights? = null
+        val crash = catchingUncaught {
+            val firstVisit = launch { src.observeShared(includeWeekPlan = false).collect { } }
+            awaitUntil { attempts.get() > 0 }
+            settle()
+            firstVisit.cancel()
+            settle()
+            nextVisit = withTimeoutOrNull(TestWaits.FLOW_MS) {
+                src.observeShared(includeWeekPlan = false).first()
+            }
+        }
+        assertNull("a failed pass closed the app", crash)
+        assertNotNull("the next visit never assembled the summary again", nextVisit)
+    }
+
+    private suspend fun settle() = repeat(5) {
+        dispatcher.scheduler.runCurrent()
+        delay(10)
+    }
+
+
     private suspend fun awaitComputes(count: Int) = awaitUntil { inputs.size >= count }
 
     private suspend fun awaitUntil(predicate: () -> Boolean) {
@@ -340,3 +423,18 @@ class TrainingInsightsSourceTest {
         val ZONE = ZoneOffset.UTC
     }
 }
+
+/** The finished-summaries read made to refuse on demand, as a Room fault would. */
+private class FailingSummariesDao(private val delegate: WorkoutDao) : WorkoutDao by delegate {
+    @Volatile var shouldFail = false
+    val refusals = AtomicInteger()
+
+    override suspend fun sessionSummaries(): List<SessionSummaryRow> {
+        if (shouldFail) {
+            refusals.incrementAndGet()
+            throw SQLiteException("boom: Room could not read the workout history")
+        }
+        return delegate.sessionSummaries()
+    }
+}
+
