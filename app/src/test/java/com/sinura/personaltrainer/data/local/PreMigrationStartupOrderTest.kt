@@ -29,6 +29,22 @@ class PreMigrationStartupOrderTest {
         assertEquals("one entry point, called once", 1, Regex("PreMigrationSnapshot\\.ensure\\(").findAll(onCreate).count())
     }
 
+    /**
+     * Audit AR-2: the copy's failures are logged with [com.sinura.personaltrainer.logging.AppLog.e],
+     * and an error reaches the diagnostic ring only once `installDiagnosticCapture()` has set
+     * `AppLog.onError`. It ran a line after the copy, so the failure the copy exists to warn
+     * about reached logcat only, which needs a computer to read.
+     */
+    @Test
+    fun diagnosticsAreCapturedBeforeTheCopiesRun() {
+        val onCreate = appSource().substringAfter("override fun onCreate()")
+        val capture = onCreate.indexOf("installDiagnosticCapture()")
+        val copies = onCreate.indexOf("PreMigrationSnapshot.ensure(this)")
+
+        assertTrue("onCreate must install the diagnostic capture", capture >= 0)
+        assertTrue("the capture must be installed before the copies run", capture < copies)
+    }
+
     private fun appSource(): String {
         val roots = listOf(
             File("app/src/main/java/com/sinura/personaltrainer"),

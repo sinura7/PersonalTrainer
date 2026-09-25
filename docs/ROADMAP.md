@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 25 Sep 2026 — Audit packet R2-3 (audit X6, AR-2; owner decision of 25
+> September): the diagnostics you can send from Settings now start
+> before the safety copy the app takes ahead of a database upgrade. A
+> copy that fails is now recorded there, where before it reached only
+> the developer log, which needs a computer to read. Rides along with
+> the next drop; nothing to check on the phone.
+>
 > 25 Sep 2026 — Audit packet R2-2 (audit X6, UI-12; owner decision of 25
 > September): finishing or discarding from the bottom bar no longer
 > closes the app when the small write after it fails (the link between

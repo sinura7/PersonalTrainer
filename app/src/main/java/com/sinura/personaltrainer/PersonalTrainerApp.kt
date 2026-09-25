@@ -94,12 +94,16 @@ class PersonalTrainerApp : Application() {
         // user-authored titles and internal file paths. Temper Debug is the daily
         // install, so this is always on — not a release-only switch.
         AppLog.redactMessages = true
+        // Before the copy below: the one failure that copy exists to warn about, a copy that
+        // could not be taken before a database upgrade, is logged as an error, and only an
+        // error recorded after this line reaches the diagnostics the owner can send (audit
+        // AR-2). It needs only the Context and opens no database.
+        installDiagnosticCapture()
         // FIRST among the heavy steps, before anything can open the database: AppContainer's
         // constructor builds the Room instance and Room migrates on open, so a copy taken any
         // later is a copy of the already-migrated file — and that copy is the only rollback
         // path the v2 migration has.
         PreMigrationSnapshot.ensure(this)
-        installDiagnosticCapture()
         container = AppContainer(this)
         // Created up front (not lazily on first rest) so the channels exist for the user to
         // configure, and so the legacy sounding "rest complete" channel is deleted even if
