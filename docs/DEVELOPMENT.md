@@ -17,10 +17,10 @@ test counts are what ran *then*, not what runs now.
 
 | Lane | What it proves | Where it runs | Gate for |
 |---|---|---|---|
-| Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | 24 source checkers (counted 23 September 2026), 9 fixture proofs, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.11+ (`tomllib`) and Java 17. The syntax check needs the Kotlin compiler jar, which the gate fetches through Gradle when it is missing; where Gradle cannot run (no SDK), set `PT_ALLOW_NO_COMPILER=1` and the check is skipped with a warning instead of failing the gate | every commit |
+| Static gate: `PT_STATIC_ONLY=1 tools/preflight.sh` | 25 source checkers (counted 25 September 2026), 10 fixture proofs, ratchets in `tools/checker-baselines.toml`, syntax check | Any machine with Python 3.11+ (`tomllib`) and Java 17. The syntax check needs the Kotlin compiler jar, which the gate fetches through Gradle when it is missing; where Gradle cannot run (no SDK), set `PT_ALLOW_NO_COMPILER=1` and the check is skipped with a warning instead of failing the gate | every commit |
 | JVM lane: `tools/run-domain-tests.sh <jars>` | `domain/`, `util/`, `logging/`, the named workout/timer/diagnostics files and the backup codec, compiled with `kotlinc` against stubs | same | every commit |
 | Gradle unit: `./gradlew testDebugUnitTest` | The whole JVM suite including Robolectric (Room in memory, ViewModels, JVM migration tests, and the screen renders written under `app/build/` — the visual evidence, [ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) — **and the static gate above**, via `:app:staticChecks`, which every `Test` task depends on | SDK machine, or `ci.yml` on a push | merge into `trunk` |
-| Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
+| Build + lint: `./gradlew assembleDebug lintDebug` | The APK compiles; so does the release, because `assembleDebug` depends on `assembleRelease` (R8, resource shrinking, lint-vital — what `release.yml` runs; unsigned there, since only a release task named in full is signed); no new lint issues past `app/lint-baseline.xml` | same | merge into `trunk` |
 | Instrumented sources: `./gradlew compileDebugAndroidTestKotlin` | The device tests still compile — a test-only change never reaches a device from here, and a broken one would sit unnoticed until an emulator run | same | merge into `trunk` (`ci.yml` runs it) |
 | Hosted `ci.yml`: *Tests, lint, debug build* | The same static gate, unit suite, lint and debug build the local gate runs, on every push and pull request | GitHub-hosted runner | may be a required check on `trunk` ([ADR-024](architecture/ADR-024-hosted-jvm-check.md)); the owner enables it |
 | Hosted emulator: `instrumented-smoke` in `ci.yml` | The instrumented tests on API 29 (Nexus 5X profile), printing their own failure bodies and logcat | GitHub-hosted runner | **nothing** — read the job, not the check (ADR-002 §6, ADR-024) |
@@ -42,8 +42,10 @@ and the version floor were all wired into `preflight.sh` and into
 `ci.yml` — and into nothing that the push gate touched. Running
 `tools/preflight.sh` directly is still the faster loop and the only way to
 get the `run-domain-tests.sh` lane; `-PskipStaticChecks` skips the Gradle
-copy while tightening an inner loop in the IDE, and is not a way through
-the gate.
+copy, and the release build `assembleDebug` now carries (X7), while
+tightening an inner loop in the IDE, and is not a way through the gate.
+Android Studio's Run builds through `assembleDebug`, so it pays for the
+release build too unless that flag is set.
 
 Distribution is Obtainium:
 Temper Debug from `debug-live-*` pre-releases signed by the stable
@@ -308,10 +310,10 @@ If you add a file to `data/backup/` that has no Android imports, add it to the l
 
 ## Continuous integration
 
-Three workflows exist and are maintained: `ci.yml` (the static gate —
-twenty checkers today; its comment still says 17 — unit tests, blocking
-lint, a debug APK artifact, the instrumented-sources compile, and the
-non-blocking hosted emulator lane),
+Three workflows exist and are maintained: `ci.yml` (the static gate
+preflight runs, unit tests, blocking lint, a debug APK artifact and the
+unsigned release build behind it, the instrumented-sources compile, and
+the non-blocking hosted emulator lane),
 `release.yml` (tag `v*`, with `tools/check-version-code.py --tag-release`
 against the previous `v*` tag — first `v*` may equal 1; there is no `v*`
 tag yet so the file floor stays 1), and `debug-live.yml` (tag
@@ -510,7 +512,12 @@ first, but test restores on the emulator, not on the phone holding your real his
 
 **Release builds are not what you run day to day.** `assembleRelease` needs
 `keystore.properties`; without it the APK is unsigned and cannot update your install. See
-[SETUP.md](../SETUP.md).
+[SETUP.md](../SETUP.md). The gate builds one anyway (`assembleDebug` depends on it), only to
+prove the release still builds. It is unsigned even where `keystore.properties` exists, because
+the build signs a release only when a release task is asked for by name; nobody installs it. When R8 stops on a missing
+class it writes the rule it wants to `app/build/outputs/mapping/release/missing_rules.txt`.
+Read why before copying it into `app/proguard-rules.pro`: a `-dontwarn` is right only when
+the code that names the class survives its absence, as slf4j's binder lookup does.
 
 ## Useful adb
 

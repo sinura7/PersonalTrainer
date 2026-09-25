@@ -144,6 +144,17 @@ Done so far:
   pins written on the old code pass on the new, and every part of the
   two "has anything changed" checks has a test that fails when it is
   left out (ADR-029, ADR-008; audit C-2).
+- **X7:** the signed gym-floor Temper builds again. The shrinker had
+  stopped on slf4j (brought in by Temper Account's sign-in library on
+  21 September) and nobody builds the release day to day, so nobody saw;
+  one rule fixes it. `release.yml` no longer asks for the retired SDK
+  `tools` package, and a failed upload now fails the run instead of
+  saying "already present". The gate's `assembleDebug` builds the
+  release as well (unsigned, even where a release key is present), which
+  holds the slf4j rule, and `tools/check-release-lane.py` keeps the
+  workflow fixes and that gate wiring in place (audit X6, BR-1, BR-2,
+  BR-7). The shrunk APK was inspected, not launched: the first signed
+  release gets a launch on the phone before anyone relies on it.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -167,7 +178,7 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner decision of 25 September, audit X6; the live order
-is the table in FRONTEND_REDESIGN.md): X7 (release lane), R1 (data safety),
+is the table in FRONTEND_REDESIGN.md): R1 (data safety),
 R2 (crash and coach), W2d, the rest-alarm packet, R3 (updater), then a
 check-only phone drop, then W3, S1, X8 and X9. X2b completed Wave 0.
 
@@ -180,6 +191,10 @@ PT_STATIC_ONLY=1 sh tools/preflight.sh
 sh tools/hang-watchdog.sh ./gradlew testDebugUnitTest assembleDebug
 ./gradlew lintDebug   # every packet (FOUNDATION_PROGRAM §4)
 ```
+
+`assembleDebug` also builds the unsigned release (R8, resource
+shrinking, lint-vital), since X7, so a shrinker break fails the gate the
+day it lands rather than the day a signed Temper is wanted.
 
 Then a squash merge into `trunk`. For every defect, a test that fails on
 `trunk` and passes on the branch. Two review passes per packet: one

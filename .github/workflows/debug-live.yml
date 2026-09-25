@@ -138,8 +138,12 @@ jobs:
             printf 'SUPABASE_ANON_KEY=%s\n' "$(esc "$SUPABASE_ANON_KEY")"
           } > supabase.properties
 
+      # assembleDebug would also build the unsigned release (app/build.gradle.kts, packet
+      # X7). A drop ships the debug APK; the gate proved the release at merge, so a
+      # release-only failure must not stop the phone's drop, and the drop is three minutes
+      # shorter without it.
       - name: Debug build
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug -x assembleRelease --stacktrace
 
       - name: Locate APK
         id: apk

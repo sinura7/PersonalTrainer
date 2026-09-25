@@ -11,6 +11,16 @@
 -dontwarn kotlin.**
 -dontwarn kotlinx.coroutines.**
 
+# slf4j without a binding. Temper Account's sign-in library (supabase gotrue-kt 2.6.1)
+# brings Ktor 2.3.12, and Ktor brings slf4j-api 1.7.36 with no logging backend.
+# slf4j's LoggerFactory.bind() names org.slf4j.impl.StaticLoggerBinder, a class only a
+# backend supplies; when it is absent, bind() catches the NoClassDefFoundError and
+# falls back to its no-op logger, which is what the unshrunk debug build does too.
+# R8 refuses a program that names a class it cannot see, so without this line the
+# release build stopped at minifyReleaseWithR8 from 21 September until audit X6
+# found it (BR-1). The line is AGP's own suggestion (missing_rules.txt).
+-dontwarn org.slf4j.impl.StaticLoggerBinder
+
 # kotlinx.serialization — generated serializers and annotated models.
 -keep,includedescriptorclasses class com.sinura.personaltrainer.**$$serializer { *; }
 -keepclassmembers class com.sinura.personaltrainer.** {

@@ -160,6 +160,7 @@ for c in "check-internal-imports.py" \
          "check-commercial-boundary.py" \
          "check-version-code.py" \
          "check-play-rehearsal.py" \
+         "check-release-lane.py" \
          "check-still-pack.py" \
          "check-unbounded-waits.py" \
          "check-cancellation.py" \
@@ -170,7 +171,8 @@ for c in "check-internal-imports.py" \
          "test_cancellation.py" \
          "test_debug_drop.py" \
          "test_kotlin_source.py" \
-         "test_version_ratchet.py"; do
+         "test_version_ratchet.py" \
+         "test_release_lane.py"; do
     step "$c"
     # shellcheck disable=SC2086
     python3 tools/$c || fail "$c"
