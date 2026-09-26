@@ -15,6 +15,13 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Sep 2026 — Whole-app audit packet W2d-2: the workout floor's set
+> save (the one set being written, the copies kept of it for when Android
+> stops the app, what a failed or refused save says, and the check that
+> settles a save whose outcome is unknown) moves out of the workout
+> ViewModel into its own small helper. Nothing changes on screen; tests
+> written on the old code prove it. Quiet.
+>
 > 26 Sep 2026 — Audit packet R2-6 (audit X6, UI-1 on Home and the app
 > shell; owner decision of 25 September): tapping a workout reminder while
 > you are already in a workout used to switch to Home, which put Home in
