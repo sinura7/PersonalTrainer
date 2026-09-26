@@ -16,8 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * The workout floor's set save ([ActiveWorkoutViewModel]): the one frozen set being written, its
  * two copies (the draft cache for this run, the saved state for when Android stops the app), its
- * phase and words, whether a write or a check is in flight, and the check that settles a save
- * whose outcome is not known.
+ * phase and words, whether a write or a Retry or Edit check is in flight, and the check that
+ * settles a save whose outcome is not known.
  *
  * A set is frozen before anything suspends ([freeze]): its id, time and values are fixed then,
  * and Retry writes exactly those, never today's draft or timer. A save whose outcome is unknown
@@ -26,8 +26,8 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * What a saved or released set does next is the ViewModel's: the draft, the selection, the edit,
  * the timers, the rest, the receipt, the feedback and the error slot. So this class takes the two
- * repository calls and three callbacks, owns no scope and launches nothing, like
- * [FloorUndoOffers].
+ * repository calls, a "workout loaded" check and three callbacks, owns no scope and launches
+ * nothing, like [FloorUndoOffers].
  *
  * The frozen set is read back from the cache, then the saved state, when this is built; the
  * ViewModel writes it back to both at the point of its `init` where it always has
@@ -39,11 +39,14 @@ internal class FloorSetSaves(
     private val saved: SavedStateWorkoutSave,
     private val write: suspend (WorkoutSetSave) -> WorkoutRepository.SavedWorkoutSet,
     private val inspect: suspend (WorkoutSetSave) -> WorkoutSetSaveResolution,
-    /** Whether the workout is loaded and open; a restored set is written again only then. */
+    /** Whether the workout has loaded; a Retry writes an unsaved set again only then. */
     private val sessionFound: () -> Boolean,
     /** The set is in the database: [result] when this save wrote it, null when a check found it. */
     private val onSaved: (command: WorkoutSetSave, result: WorkoutRepository.SavedWorkoutSet?, recovered: Boolean) -> Unit,
-    /** Edit let go of a set the database does not hold as it; [conflict] when another row is there. */
+    /**
+     * Edit let go of a set the database does not hold as it: [conflict] when the check found a
+     * conflict (another row there, a corrected set gone, the workout or the lift gone).
+     */
     private val onReleased: (command: WorkoutSetSave, conflict: Boolean) -> Unit,
     /** A write was refused. */
     private val onRejected: () -> Unit,
@@ -61,7 +64,10 @@ internal class FloorSetSaves(
 
     private val _inFlight = MutableStateFlow(false)
 
-    /** A write or a check is running. The floor calls it logging. */
+    /**
+     * A write, or a Retry or Edit check, is running. The floor calls it logging. The check a
+     * restored set gets at start runs with it down, the set pending all the same.
+     */
     val inFlight: StateFlow<Boolean> = _inFlight.asStateFlow()
 
     /** A set is frozen, in whatever phase. Entry and selection stay locked while it is. */
@@ -89,10 +95,10 @@ internal class FloorSetSaves(
      * to [reconcile] with a write, or null when there is none, one is running, or it conflicts.
      */
     fun beginRetry(): WorkoutSetSave? {
-        val operation = _state.value
-        val command = operation.command ?: return null
-        if (operation.busy || operation.phase == WorkoutSavePhase.CONFLICT) return null
-        _state.value = operation.copy(phase = WorkoutSavePhase.CHECKING, message = null)
+        val current = _state.value
+        val command = current.command ?: return null
+        if (current.busy || current.phase == WorkoutSavePhase.CONFLICT) return null
+        _state.value = current.copy(phase = WorkoutSavePhase.CHECKING, message = null)
         _inFlight.value = true
         return command
     }
@@ -102,10 +108,10 @@ internal class FloorSetSaves(
      * The command to [reconcile] with a release, or null when there is none or one is running.
      */
     fun beginEdit(): WorkoutSetSave? {
-        val operation = _state.value
-        val command = operation.command ?: return null
-        if (operation.busy) return null
-        _state.value = operation.copy(phase = WorkoutSavePhase.CHECKING, message = null)
+        val current = _state.value
+        val command = current.command ?: return null
+        if (current.busy) return null
+        _state.value = current.copy(phase = WorkoutSavePhase.CHECKING, message = null)
         _inFlight.value = true
         return command
     }
@@ -113,7 +119,10 @@ internal class FloorSetSaves(
     /** Whether [command] is still the frozen set. */
     fun owns(command: WorkoutSetSave): Boolean = _state.value.command == command
 
-    /** Lets go of [command]: the cache's copy always, the saved state and the phase if it is still the frozen set. */
+    /**
+     * Lets go of [command]: the cache's copy if it is this command, and the saved copy and the
+     * phase if it is still the frozen set.
+     */
     fun clear(command: WorkoutSetSave) {
         cache.clearPendingSave(command)
         if (_state.value.command == command) {
@@ -124,8 +133,8 @@ internal class FloorSetSaves(
 
     /**
      * Settles [command] against the database. Found: it was saved ([onSaved], recovered). Not
-     * there: released for editing, written again ([retryWrite]) while the workout is open, or
-     * offered for Retry. Another row there: released without replay, or shown as a conflict.
+     * there: released for editing, written again ([retryWrite]) once the workout has loaded, or
+     * offered for Retry. A conflict: released without replay, or shown as a conflict.
      */
     suspend fun reconcile(
         command: WorkoutSetSave,
@@ -174,7 +183,7 @@ internal class FloorSetSaves(
         }
     }
 
-    /** Writes [command]. Refused: says why and keeps it for Retry. Written: [onSaved]. */
+    /** Writes [command]. Refused: says why and keeps it (for Retry, unless it conflicts). Written: [onSaved]. */
     suspend fun persist(command: WorkoutSetSave) {
         val result = try {
             write(command)

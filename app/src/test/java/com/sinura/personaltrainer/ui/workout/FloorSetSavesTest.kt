@@ -94,7 +94,7 @@ class FloorSetSavesTest {
         assertTrue(saves.inFlight.value)
     }
 
-    /** A write the database already held is acknowledged as recovered: no receipt, no rest. */
+    /** A write the database already held is passed on as recovered (the floor then shows no receipt, starts no rest). */
     @Test
     fun aWriteTheDatabaseAlreadyHeldIsRecovered() = runBlocking {
         writeResult = { savedResult(it, alreadySaved = true) }

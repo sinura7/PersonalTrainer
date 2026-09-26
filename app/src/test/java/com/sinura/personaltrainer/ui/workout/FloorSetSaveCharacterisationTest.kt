@@ -44,7 +44,8 @@ import org.robolectric.annotation.Config
  * [ActiveWorkoutViewModel]: what each outcome says, what it signals, which copies of the frozen
  * set it keeps or clears, and what Edit releases. [WorkoutSaveRecoveryTest] holds the frozen
  * values, the lock and the recovery paths; these are the details it leaves open. Written and
- * passed on the code before the move.
+ * passed on the code before the move; the last Edit case was added after the move's mutation run
+ * found that gap, and was run on the old code too.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -285,8 +286,11 @@ class FloorSetSaveCharacterisationTest {
 
         vm.editFailedSave()
 
-        val released = vm.uiState.awaitFirst { !it.save.pending && !it.logging }
-        assertNull(released.error)
+        // The release clears the frozen set a moment before the refusal, and the screen's state
+        // can show the first without the second (as it could before the move): wait for the
+        // settled state. With the refusal kept, it never comes.
+        val settled = vm.uiState.awaitFirst { !it.save.pending && !it.logging && it.error == null }
+        assertNull(settled.error)
     }
 
     /** Edit on a correction whose set is gone: the edit and its original are let go too. */

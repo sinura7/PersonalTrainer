@@ -250,7 +250,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private var editingOriginal = draftCache.editingOriginal(sessionId) ?: savedEdit.read(sessionId)
     private val mutating = MutableStateFlow(false)
 
-    /** The set being saved, its copies and its outcome (audit W2d-2); what a save does next is here. */
+    /**
+     * The set being saved, its copies and its outcome (audit W2d-2). What a saved or released set
+     * does next stays here, in [acknowledgeSave] and [releaseSave].
+     */
     private val saves = FloorSetSaves(
         sessionId = sessionId,
         cache = draftCache,
@@ -259,7 +262,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         inspect = { command -> container.workoutRepository.inspectSetSave(command) },
         sessionFound = { sessionReader.observations.value.loadState == SessionLoadState.FOUND },
         onSaved = { command, result, recovered -> acknowledgeSave(command, result, recovered) },
-        onReleased = { command, conflict -> releaseSave(command, conflict) },
+        onReleased = { _, conflict -> releaseSave(conflict) },
         onRejected = { _logFeedback.tryEmit(LogCommitFeedback.REJECT) },
     )
 
@@ -1661,10 +1664,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     /**
-     * Edit let go of [command], which the database does not hold as it ([FloorSetSaves]): its
-     * copies are already cleared. A conflicting correction also lets go of its edit.
+     * Edit let go of a set the database does not hold as it ([FloorSetSaves]); its copies are
+     * already cleared. After a conflict the edit is let go too; after an unwritten set, Log's
+     * earlier refusal is cleared.
      */
-    private fun releaseSave(command: WorkoutSetSave, conflict: Boolean) {
+    private fun releaseSave(conflict: Boolean) {
         if (conflict) {
             editingSetId.value = null
             clearEditingOriginal()
