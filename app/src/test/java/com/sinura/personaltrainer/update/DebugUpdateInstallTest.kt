@@ -167,13 +167,17 @@ class DebugUpdateInstallTest {
     }
 
     @Test
-    fun aSheetTheMainScreenCannotOpenShowsFailed() = runTest {
-        val monitor = monitor(RecordingFetcher(), FakeInstaller(dir = tmp.root, canInstall = true))
+    fun aSheetTheMainScreenCannotOpenShowsFailedAndLeavesNoDownload() = runTest {
+        val installer = FakeInstaller(dir = tmp.root, canInstall = true)
+        val monitor = monitor(RecordingFetcher(), installer)
         monitor.onInstallAnswer(DebugInstallAnswer.Confirm(Intent("android.content.pm.action.CONFIRM_INSTALL")))
 
         monitor.onInstallSheetShown(opened = false)
         assertNull(monitor.installSheet.value)
         assertEquals(DebugUpdateInstall.Failed, monitor.ui.value.install)
+        // Try again downloads afresh: the kept file would serve nothing.
+        runCurrent()
+        assertEquals(1, installer.cleared)
     }
 
     /**

@@ -24,15 +24,18 @@
 > it. It now goes to a Temper Debug-only receiver that no other app can
 > reach, and the app opens Android's sheet while it is in front: at once,
 > or when the owner comes back if they left during the download (Android
-> lets an app open a screen only then). A build Android refuses shows
+> lets an app open a screen only then; if Android closed Temper
+> meanwhile, the banner offers Update again). A build Android refuses shows
 > "The update didn't finish. Try again.", and cancelling the sheet
 > leaves Update to tap again. Each download used to stay in the app's
 > cache (up to 96 MB); now one is kept, and none once the install ends
 > or the newer build is running. On the next phone checklist: when a
 > newer drop is out, tap Update on the banner (Android's install sheet
 > opens; install it); once, tap Update, leave the app during the
-> download and come back (the sheet opens then). Obtainium is
-> unchanged. Quiet (Temper Debug only).
+> download and come back (the sheet opens then, or when the download
+> ends: Android may pause a download while the app is away; if the
+> banner says the update didn't finish, tap Try again and stay in the
+> app). Obtainium is unchanged. Quiet (Temper Debug only).
 >
 > 26 Sep 2026 — Rest-alarm packet, part 3 (audit X6, RT-4 and RT-5): the
 > two rare rest-alarm quirks. The rest timer keeps a bookmark of the

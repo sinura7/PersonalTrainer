@@ -263,7 +263,7 @@ notes. Adopted the day the record was written (decision 7);
 | 5 | *W2c* | done while this audit ran (#414): `generatedAtMs` out of equality and one coach call per real change (C-2); the eager `stateIn` on the floor (AR-4) and the invalidation fan-out per logged set (AR-3) move to W2d-1–3 | Q |
 | 6 | *W2d-1–3* | as planned, plus AR-4 and AR-3 from W2c | Q |
 | 7 | *rest-alarm packet* | the two quirks (RT-4, RT-5), the rest-alerts gate that asks once (RT-2), the light-theme notification colours (RT-1) | V |
-| 8 | **R3** Temper Debug updater | `MainActivity` handles `STATUS_PENDING_USER_ACTION` (RM-1); staged APKs deleted from cache (RM-6) | Q |
+| 8 | **R3** Temper Debug updater (done 26 September, #436, through a Temper Debug-only receiver rather than `MainActivity`) | `MainActivity` handles `STATUS_PENDING_USER_ACTION` (RM-1); staged APKs deleted from cache (RM-6) | Q |
 | 9 | *check-only drop* | as planned | V |
 | 10 | *W3* | as planned; start from the audit's harness (`evidence/AuditRenderTest.kt.txt`) and make it the permanent render matrix; every tab drawn at least once on the gate (TS-3) | V |
 | 11 | *S1* | as planned, plus: a skipped child re-pulled when its parent lands (S-11 B1); per-row isolation on pull (S-12 B1); cursors, metadata and "last synced" reset on sign-out and account switch (S-14); `NetworkError` as signed-in-offline (PV-3); timeouts, `disconnect()` and the IO dispatcher on the REST client, moved forward from S4 (S-11 B2, S-11 B7); restore resets the sync tables and re-queues what it rewrote (BK-2); the outbox hook inventory made uniform (S-3); error text redacted before the screen and the log (PV-2) | V |

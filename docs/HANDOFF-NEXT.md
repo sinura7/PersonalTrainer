@@ -281,7 +281,8 @@ Done so far:
   with the sheet to open) went to the main screen, which never read it.
   The answer now goes to a Temper Debug-only receiver that no other app
   can reach; the app opens Android's sheet while it is in front, at once
-  or when the owner comes back to it, and a build Android refuses shows
+  or when the owner comes back to it (if Android closed Temper meanwhile,
+  the banner offers Update again), and a build Android refuses shows
   "The update didn't finish. Try again." Only one download is kept, and
   none once the install ends or a newer build is running (#436).
   Obtainium is unchanged.

@@ -39,7 +39,8 @@ import org.robolectric.shadows.ShadowAlarmManager
  *
  * Each case sends its answer through the very status the session was committed with, as Android
  * does: the status must exist, reach a component the manifest declares, and carry what Android
- * writes into it. Robolectric's installer answers nothing itself.
+ * writes into it. Robolectric's installer sends an empty status on commit, which the receiver
+ * ignores: it carries no answer.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = PersonalTrainerApp::class, qualifiers = "w360dp-h800dp-xhdpi")

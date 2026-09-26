@@ -95,8 +95,10 @@ internal class DebugUpdateMonitor(
 
     /**
      * Android's sheet waits for the main screen ([installSheet]). Once the install ends, the
-     * download goes: Android works from its own copy from the hand-over on, and Try again downloads
-     * afresh. A refusal says the update did not finish; a cancel leaves Update to tap again.
+     * download goes: a session holds Android's own copy from the hand-over on, and Try again
+     * downloads afresh. A refusal says the update did not finish; a cancel leaves Update to tap
+     * again. (Only the rare fallback, Android's installer opening Temper's file itself, still
+     * reads the download after the hand-over; a clear then would cut that install short.)
      */
     override fun onInstallAnswer(answer: DebugInstallAnswer) {
         when (answer) {
@@ -112,7 +114,10 @@ internal class DebugUpdateMonitor(
 
     override fun onInstallSheetShown(opened: Boolean) {
         sheet.value = null
-        if (!opened) publishInstall(DebugUpdateInstall.Failed)
+        if (opened) return
+        // The install cannot go on from here: Try again downloads afresh.
+        publishInstall(DebugUpdateInstall.Failed)
+        scope.launch { clearStaging() }
     }
 
     /**
