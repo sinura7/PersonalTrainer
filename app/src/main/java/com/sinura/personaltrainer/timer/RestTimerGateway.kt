@@ -25,11 +25,13 @@ interface RestTimerGateway {
     val lastCompletedTimerId: StateFlow<String?>
 
     /**
-     * False once a rest row failed to reach disk (a save or a clear whose
-     * commit came back false, or threw); true again after the next commit
-     * that landed. While false, the wakeup is not armed and the rest only
-     * lives as long as the process does. Fakes have no disk, so the default
-     * is always healthy.
+     * False once the running rest has no row on disk (its save came back
+     * false, or threw, and no earlier row of that same rest stands, saved or
+     * read back by a recovery) or a
+     * clear failed; true again after the next commit that landed. A rewrite
+     * that fails while the rest's earlier row stands keeps it true. While
+     * false, the wakeup is not armed and the rest only lives as long as the
+     * process does. Fakes have no disk, so the default is always healthy.
      */
     val persistenceHealthy: StateFlow<Boolean>
         get() = ALWAYS_HEALTHY

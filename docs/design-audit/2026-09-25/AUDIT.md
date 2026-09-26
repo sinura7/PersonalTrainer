@@ -124,7 +124,7 @@ worse than recorded), 1 narrowed, 1 refuted item stands.**
 | No test ran `MIGRATION_TEMPER_6_7` | **Closed** (X2a); X2b's pre-migration copy also holds. |
 | Container gate skipped `lintDebug` | Closed by process, not by mechanism: nothing in Gradle ties lint to the push gate (BR-8). |
 | `SyncWorker` casts the Application | Open (S4); the same cast in 12 other files. |
-| The two rest-alarm quirks (HANDOFF) | Open, scheduled; located at `RestTimerController.kt:296-310`. |
+| The two rest-alarm quirks (HANDOFF) | Closed 26 September (#435): every re-arm writes the row first, and a save arms only the rest it wrote (RT-4, RT-5). |
 | Dock Skip (ADR-012) | Open, owner decision pending: it still ends whatever runs and clears "rest done". |
 | Refuted item (History bodyweight zero) | Stands refuted: the column prints "—". |
 

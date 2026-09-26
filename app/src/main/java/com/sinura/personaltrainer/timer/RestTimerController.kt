@@ -69,6 +69,14 @@ class RestTimerController(
     private val syncOwed = AtomicBoolean(false)
 
     /**
+     * The rest whose row is on disk, as far as this process knows: set when its save lands or a
+     * recovery reads it back, cleared when a clear lands. A refused save leaves the row as it was,
+     * so when a rewrite of the same rest fails (a resume, an exact-alarm grant or an early
+     * delivery rewrites the running rest's row), that rest still has its row and its wakeup.
+     */
+    @Volatile private var rowOnDisk: String? = null
+
+    /**
      * Test seams: run on the calling thread just before and just after a persist call takes its
      * number, the points where a call on another thread can overtake it (ADR-012 decision 1).
      * Null in production.
@@ -260,6 +268,8 @@ class RestTimerController(
         }
         return when (outcome) {
             is RestTimerRehydration.Running -> {
+                // Read back from disk: that row is this rest's, whatever becomes of the rewrite.
+                rowOnDisk = outcome.timerId
                 store.restore(
                     endsAtElapsedRealtime = outcome.endsAtElapsedRealtime,
                     totalSeconds = outcome.totalSeconds,
@@ -293,27 +303,34 @@ class RestTimerController(
         }
     }
 
+    /**
+     * An early delivery re-arms through the same queue as every write: the row first, then the
+     * wakeup. Arming straight from the store could set a wakeup for a rest whose row is not on
+     * disk yet, or never landed; after a process kill that wakeup found no row, or the rest
+     * before's, so the rest ended in silence or the one before was announced (audit RT-4, RT-5).
+     */
     override fun rescheduleCurrent() {
-        scheduleAlarmForCurrent()
+        if (!store.current().running) return
+        persistThenArm(syncService = false)
     }
 
+    /**
+     * A resume, or a change to the exact-alarm grant, re-arms the running rest the same way,
+     * row first. Arming at once while a start's job was still queued set the wakeup before the
+     * row (audit RT-4); a row that never landed gets another try before anything is armed.
+     */
     override fun refreshAlarmCapability() {
         _exactAlarmAttempt.value = alarms.currentAttempt()
         if (!store.current().running) return
-        if (_persistenceHealthy.value) {
-            scheduleAlarmForCurrent()
-        } else {
-            // The row never landed, so arming alone would recreate the
-            // alarm-without-a-row case. Give the disk another try first.
-            persistThenArm(syncService = false)
-        }
+        persistThenArm(syncService = false)
     }
 
     /**
      * Publish already happened on the caller. Persist the row, then arm.
      * The receiver treats a missing disk row as already completed, so the
      * alarm must not be scheduled first — and is not scheduled at all when
-     * the row did not commit. Any later call bumps [persistSeq] so an
+     * the rest has no row on disk: this save did not commit and no earlier
+     * row of that same rest stands ([rowOnDisk]). Any later call bumps [persistSeq] so an
      * in-flight start skips the whole persist, not just the alarm.
      *
      * No call cancels another's job (ADR-012 decision 1). Calls come from more than one thread
@@ -338,7 +355,7 @@ class RestTimerController(
                     val saved = saveRow(snap)
                     if (seq != persistSeq.get()) return@withLock
                     if (saved) {
-                        scheduleAlarmForCurrent()
+                        armIfLive(snap)
                     } else {
                         // An alarm whose row is missing fires into "already
                         // completed" after a process kill: worse than no
@@ -364,10 +381,14 @@ class RestTimerController(
         return persistSeq.incrementAndGet().also { afterPersistNumberTaken?.invoke() }
     }
 
-    /** True when the row is on disk, or there is no disk to write. */
+    /**
+     * True when this rest's row is on disk: this save landed, or an earlier save of the same rest
+     * did (or a recovery read that row back) and this one left it as it was. Also true when there
+     * is no disk to write.
+     */
     private fun saveRow(snap: RestTimerSnapshot): Boolean {
         val target = persistence ?: return true
-        val saved = recoverWith(TAG, "Rest row save", false) {
+        val wrote = recoverWith(TAG, "Rest row save", false) {
             target.save(
                 RestTimerRehydrator.toPersisted(
                     endsAtElapsedRealtime = snap.endsAtElapsedRealtime,
@@ -377,8 +398,11 @@ class RestTimerController(
                 ),
             )
         }
-        _persistenceHealthy.value = saved
-        return saved
+        if (wrote) rowOnDisk = snap.timerId
+        val onDisk = wrote || rowOnDisk == snap.timerId
+        if (!wrote && onDisk) AppLog.w(TAG, "Rest row rewrite did not commit; this rest's earlier row stands")
+        _persistenceHealthy.value = onDisk
+        return onDisk
     }
 
     /**
@@ -396,17 +420,28 @@ class RestTimerController(
         if (!cleared) {
             AppLog.w(TAG, "Rest row still on disk; a stale rest may rehydrate after process death")
         }
+        if (cleared) rowOnDisk = null
         _persistenceHealthy.value = cleared
     }
 
-    private fun scheduleAlarmForCurrent() {
-        val state = store.current()
-        if (!state.running) return
+    /**
+     * Arms the rest whose row this job just wrote, and only while it is still the running rest
+     * (every start and every ±15 publishes a new id). Reading the store again instead armed
+     * whatever ran now: a rest published after this job's number was taken, but before its own
+     * was, got a wakeup over the older rest's row, and a kill then left a wakeup that did not
+     * match the row on disk (audit RT-4). A wakeup now always matches a row a job wrote; a kill
+     * before a rest's row lands still loses that rest, which no order can prevent. That newer
+     * rest's own job, which comes next, writes its row and arms it. A rest ended before this
+     * check is not armed at all: its halt has already dropped the wakeup.
+     */
+    private fun armIfLive(saved: RestTimerSnapshot) {
+        val live = store.current()
+        if (!live.running || live.timerId != saved.timerId) return
         _exactAlarmAttempt.value = alarms.currentAttempt()
         _lastAlarmSchedule.value = alarms.schedule(
-            endsAtElapsedRealtime = state.endsAtElapsedRealtime,
-            sessionId = state.sessionId,
-            timerId = state.timerId,
+            endsAtElapsedRealtime = saved.endsAtElapsedRealtime,
+            sessionId = saved.sessionId,
+            timerId = saved.timerId,
         )
     }
 

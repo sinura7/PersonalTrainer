@@ -19,7 +19,9 @@
   Consequences); W2b-2: decision 18 says what the dock and the rest
   page show, which the code already did; W2b-3: the lock glance's and
   the rest page's Skip name their rest too; and W2b-4: the rest page's
-  Next line is the Log's (see Consequences)
+  Next line is the Log's (see Consequences); 26 September 2026 — the
+  rest-alarm packet: every re-arm writes the row first, and a job arms
+  only the rest it wrote (audit RT-4, RT-5; see Consequences)
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -191,6 +193,25 @@ day. The agreed product asks once, then adapts only if the user says so.
   number); a save overtaken by a +15 inside it (the older job arms
   nothing); and jobs run newest first (the older job writes nothing). A
   race on real threads stays as a smoke test.
+- Every re-arm writes the row first, and a job arms only the rest it wrote
+  (the rest-alarm packet, 26 September 2026, audit RT-4 and RT-5). A
+  resume, an exact-alarm grant and an early delivery used to arm straight
+  from the store: before the row of a start still queued, or with no row
+  at all after a failed write. A job armed whatever ran when it finished,
+  so a rest published after its number got a wakeup over the older rest's
+  row. Now all three re-arms queue a job like every other change, and a
+  job arms the rest whose row it wrote, only while that rest still runs;
+  the newer rest's own job arms it. A wakeup therefore always matches a
+  row on disk. Since every re-arm now rewrites the row, a rewrite that
+  fails while that rest's earlier row stands (a refused commit leaves it
+  as it was; a recovery that read it back counts too) still arms, and the
+  rest is not reported unsaved; a rest with no row of its own is never
+  armed. Tests hold a refresh and an early delivery with a start's
+  job still queued, an early delivery with the row missing, an older job
+  and a newer rest, and a job whose rest a Skip ended first. Left as it
+  was: a Skip landing between that check and the arm can still leave a
+  wakeup for the skipped rest. The Skip's own job then clears the row, so
+  the wakeup finds nothing, unless the process dies before that clear.
 - The rest page's Next line is the Log's (*amended 24 September 2026, W2b-4,
   owner decision*). The page asks the coach the Log's question
   (`NextSetInputs`): the Log's entry for the lift the page shows, Another

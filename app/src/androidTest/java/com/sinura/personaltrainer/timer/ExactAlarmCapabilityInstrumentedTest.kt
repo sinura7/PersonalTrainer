@@ -41,12 +41,21 @@ class ExactAlarmCapabilityInstrumentedTest {
             awaitTrue("rest row for $timerId reached disk") {
                 app.container.restTimerStatePersistence.load()?.timerId == timerId
             }
-            // This is a platform-capability check. Reschedule this persisted,
-            // current timer synchronously so a prior outcome cannot satisfy it.
-            // Controller persist-then-arm sequencing has separate unit coverage.
-            timer.rescheduleCurrent()
-            assertEquals(AlarmScheduleResult.EXACT, timer.lastAlarmSchedule.value)
-            assertEquals(ExactAlarmAttempt.EXACT, timer.exactAlarmAttempt.value)
+            // This is a platform-capability check, so it asks the scheduler itself, for this
+            // persisted, current rest: a prior outcome cannot satisfy it. The controller re-arms
+            // through its write queue (row first, audit RT-4), so its own outcome lands later;
+            // that sequencing has its unit coverage in RestTimerControllerTest.
+            val rest = app.container.restTimerStore.current()
+            val scheduler = RestTimerAlarmScheduler(context.applicationContext)
+            assertEquals(
+                AlarmScheduleResult.EXACT,
+                scheduler.schedule(
+                    endsAtElapsedRealtime = rest.endsAtElapsedRealtime,
+                    sessionId = rest.sessionId,
+                    timerId = rest.timerId,
+                ),
+            )
+            assertEquals(ExactAlarmAttempt.EXACT, scheduler.currentAttempt())
         } finally {
             timer.stop()
         }
