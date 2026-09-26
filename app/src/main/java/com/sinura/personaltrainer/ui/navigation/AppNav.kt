@@ -117,6 +117,8 @@ import com.sinura.personaltrainer.ui.activity.ActivityComposerScreen
 import com.sinura.personaltrainer.ui.activity.ActivityDetailScreen
 import com.sinura.personaltrainer.ui.activity.LiveCardioScreen
 import com.sinura.personaltrainer.ui.workout.ActiveWorkoutScreen
+import com.sinura.personaltrainer.ui.workout.LocalRestAlertsAsk
+import com.sinura.personaltrainer.ui.workout.RestAlertsAsk
 import com.sinura.personaltrainer.ui.workout.RestTimerScreen
 import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
 
@@ -312,6 +314,10 @@ fun PersonalTrainerNav(
         settingsViewModel.ensureSavePostureReady()
     }
     val launchAsked by settingsViewModel.launchPermissionsAsked.collectAsStateWithLifecycle()
+    val restAlertsAsked by settingsViewModel.restAlertsAsked.collectAsStateWithLifecycle()
+    val restAlertsAsk = remember(restAlertsAsked) {
+        RestAlertsAsk(asked = restAlertsAsked, markAsked = settingsViewModel::markRestAlertsAsked)
+    }
     val pendingSettingsSubpage by settingsViewModel.pendingSettingsSubpage.collectAsStateWithLifecycle()
 
     val reduceMotion = LocalReducedMotion.current
@@ -450,6 +456,7 @@ fun PersonalTrainerNav(
         LocalWeightUnit provides weightUnit,
         LocalClockFormat provides clockFormat,
         LocalTodayEpochDay provides todayEpochDay,
+        LocalRestAlertsAsk provides restAlertsAsk,
     ) {
         Scaffold(
             bottomBar = {

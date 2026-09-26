@@ -337,6 +337,56 @@ class SettingsViewModelTest {
         assertTrue(deps.preferencesRepository.restAlarmEligible.first())
     }
 
+    /**
+     * The "Rest alerts" answer (audit RT-2): unknown until the saved one is read, so the sentence
+     * never goes up on a guess, and kept once given.
+     */
+    @Test
+    fun theRestAlertsAnswerIsReadBeforeItIsUsedAndKeptOnceGiven() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        assertNull("nothing is known before the settings file is read", viewModel!!.restAlertsAsked.value)
+        assertEquals(false, viewModel!!.restAlertsAsked.awaitFirst { it != null })
+        viewModel!!.markRestAlertsAsked()
+        viewModel!!.restAlertsAsked.awaitFirst { it == true }
+        assertTrue(deps.preferencesRepository.restAlertsAsked.first())
+    }
+
+    /** Given, the answer counts at once, before it is saved and even when it cannot be. */
+    @Test
+    fun theRestAlertsAnswerCountsBeforeItIsSaved() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            prefsStoreDecorator = { UnreadableSettings },
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        assertEquals(false, viewModel!!.restAlertsAsked.awaitFirst { it != null })
+
+        viewModel!!.markRestAlertsAsked()
+        assertEquals(true, viewModel!!.restAlertsAsked.awaitFirst { it == true })
+        assertFalse("nothing could be saved", deps.preferencesRepository.restAlertsAsked.first())
+    }
+
+    @Test
+    fun aSettingsFileThatCannotBeWrittenDoesNotCrashOnTheRestAlertsAnswer() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            prefsStoreDecorator = { UnreadableSettings },
+        )
+        val uncaught = catchingUncaught {
+            viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            viewModel!!.markRestAlertsAsked()
+            dispatcher.scheduler.advanceUntilIdle()
+        }
+        assertNull(uncaught)
+    }
+
     @Test
     fun playCompleteCueHandsLivePrefsToThePreview() = runBlocking {
         deps = FakeAppDependencies(

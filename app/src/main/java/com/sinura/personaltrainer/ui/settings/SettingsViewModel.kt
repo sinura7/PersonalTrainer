@@ -35,14 +35,17 @@ import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent as buildExactAl
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.util.toLocalDate
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG = "PT/SettingsVM"
 
@@ -196,6 +199,41 @@ class SettingsViewModel @JvmOverloads constructor(
     /** "Generate a week" asks first: it adds a set of routines to the week (audit UI-3). */
     private val _generateConfirm = MutableStateFlow(false)
     val generateConfirm: StateFlow<Boolean> = _generateConfirm.asStateFlow()
+
+    /** The "Rest alerts" sentence was answered in this run, whether or not the answer is saved yet. */
+    private val restAlertsAnswered = MutableStateFlow(false)
+
+    /**
+     * Whether the "Rest alerts" sentence has been answered on this phone; null until the saved
+     * answer has been read, and the sentence waits for it ([markRestAlertsAsked]). A settings
+     * file that cannot be read reads as "not asked". An answer given in this run counts at once:
+     * the rest page opened a moment after Not now must not ask while the answer is still being
+     * written.
+     */
+    val restAlertsAsked: StateFlow<Boolean?> =
+        combine(container.preferencesRepository.restAlertsAsked, restAlertsAnswered) { saved, answered ->
+            saved || answered
+        }.map<Boolean, Boolean?> { it }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    /**
+     * The "Rest alerts" sentence was answered. The write finishes even if the screen closes
+     * first; otherwise closing the app at that moment lost the answer, and it was asked again. A
+     * write that fails is logged, not thrown: the sentence may then come back after the app is
+     * next opened, which is better than a crash.
+     */
+    fun markRestAlertsAsked() {
+        restAlertsAnswered.value = true
+        viewModelScope.launch {
+            withContext(NonCancellable) {
+                runCatchingCancellable { container.preferencesRepository.markRestAlertsAsked() }
+                    .onFailure { AppLog.w(TAG, "Saving that rest alerts were asked about failed", it) }
+            }
+        }
+    }
 
     fun markLaunchPermissionsAsked() {
         viewModelScope.launch {

@@ -9,7 +9,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +28,19 @@ import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 
 /**
+ * Whether the "Rest alerts" sentence has been answered on this phone ([asked]; null while the
+ * saved answer is still being read), and how to record that it has ([markAsked]).
+ */
+@Immutable
+internal class RestAlertsAsk(val asked: Boolean?, val markAsked: () -> Unit)
+
+/**
+ * The app shell provides the saved answer (`AppNav`, from Settings). Anywhere it does not — a
+ * screen drawn alone in a test or a preview — the sentence counts as answered and stays down.
+ */
+internal val LocalRestAlertsAsk = compositionLocalOf { RestAlertsAsk(asked = true, markAsked = {}) }
+
+/**
  * Asks for POST_NOTIFICATIONS once, then reports whether rest notifications can actually
  * be shown.
  *
@@ -36,11 +51,18 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
  * the permission prompt; Not now leaves the compact recovery row as the way back.
  * The returned flag drives that row (deep link to app notification settings) and
  * re-checks on every resume so it disappears the moment the user grants.
+ *
+ * Once means once on this phone ([LocalRestAlertsAsk]): Continue, Not now, or closing the
+ * sentence with Back or a tap outside it are all an answer. The answer used to live in this
+ * composable alone, so every workout opened and every rest page put the sentence up again
+ * while notifications stayed off, and after two refusals its Continue brought up nothing
+ * (audit RT-2). A sentence still up when an answer arrives from elsewhere goes down.
  */
 @Composable
 internal fun rememberRestNotificationsEnabled(): Boolean {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val ask = LocalRestAlertsAsk.current
     var enabled by remember {
         mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
     }
@@ -52,8 +74,8 @@ internal fun rememberRestNotificationsEnabled(): Boolean {
         enabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 
-    LaunchedEffect(Unit) {
-        if (Build.VERSION.SDK_INT >= 33 && !decided) {
+    LaunchedEffect(ask.asked) {
+        if (Build.VERSION.SDK_INT >= 33 && ask.asked == false && !decided) {
             val granted = ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.POST_NOTIFICATIONS,
@@ -64,7 +86,7 @@ internal fun rememberRestNotificationsEnabled(): Boolean {
         }
     }
 
-    if (showWhy) {
+    if (showWhy && ask.asked != true) {
         ConfirmActionDialog(
             title = RestNotificationCopy.TITLE,
             body = RestNotificationCopy.SENTENCE,
@@ -73,6 +95,7 @@ internal fun rememberRestNotificationsEnabled(): Boolean {
             onConfirm = {
                 decided = true
                 showWhy = false
+                ask.markAsked()
                 if (Build.VERSION.SDK_INT >= 33) {
                     launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
@@ -80,6 +103,7 @@ internal fun rememberRestNotificationsEnabled(): Boolean {
             onDismiss = {
                 decided = true
                 showWhy = false
+                ask.markAsked()
             },
         )
     }
