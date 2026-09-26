@@ -251,6 +251,17 @@ Done so far:
   adding it back) leaves it loading; an undone lift comes back at 0 kg;
   Finish from the workout bar can drop the last words typed; the rest
   page can name another lift while the one picked is loading.
+- **Rest alarm, RT-2:** with notifications off, the "Rest alerts" sentence
+  asked again on every workout opened and every rest page, and after two
+  refusals its Continue brought up nothing. It is now answered once on the
+  phone, Continue or Not now, and stays down; the compact row on the
+  workout and the rest page is the way back. The answer is this phone's:
+  restore leaves it alone (#433).
+- **Owner decision, 26 September:** two sessions split the order so that
+  no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
+  (the workout floor), the other the rest-alarm packet, R3 and R4 (the
+  rest timer, the updater and reminders). R4 goes after R3, before the
+  check-only drop.
 - **Owner decisions, 25 September (later):** this session's packets run
   T3, then N1 (a workout reopened while its lift was still loading
   brought back an older note, then saved it over the newer one, and
@@ -284,9 +295,11 @@ Done so far:
 
 Next, in order (owner decisions of 25 September, and of 26 September for
 R4; the live order is the table in FRONTEND_REDESIGN.md): W2d-3a and
-W2d-3b, W2e, the rest-alarm packet, R3 (updater), R4 (reminder
-follow-ups), then a check-only phone drop, then W3, S1, X8 and X9. X2b
-completed Wave 0.
+W2d-3b, W2e, the rest-alarm packet (RT-2 done; RT-1, then the two
+quirks), R3 (updater), R4 (reminder follow-ups), then a check-only phone
+drop, then W3, S1, X8 and X9. Two sessions run them side by side: W2d-3a
+to W2e in one, the rest-alarm packet to R4 in the other. X2b completed
+Wave 0.
 
 ## What is verified, and how
 

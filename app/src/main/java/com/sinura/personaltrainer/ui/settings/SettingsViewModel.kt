@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -196,6 +197,28 @@ class SettingsViewModel @JvmOverloads constructor(
     /** "Generate a week" asks first: it adds a set of routines to the week (audit UI-3). */
     private val _generateConfirm = MutableStateFlow(false)
     val generateConfirm: StateFlow<Boolean> = _generateConfirm.asStateFlow()
+
+    /**
+     * Whether the "Rest alerts" sentence has been answered on this phone; null until the saved
+     * answer has been read, so the sentence is never put up on a guess ([markRestAlertsAsked]).
+     */
+    val restAlertsAsked: StateFlow<Boolean?> =
+        container.preferencesRepository.restAlertsAsked.map<Boolean, Boolean?> { it }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    /**
+     * The "Rest alerts" sentence was answered. A write that fails is logged, not thrown: the
+     * sentence may then come back on a later workout or rest page, which is better than a crash.
+     */
+    fun markRestAlertsAsked() {
+        viewModelScope.launch {
+            runCatchingCancellable { container.preferencesRepository.markRestAlertsAsked() }
+                .onFailure { AppLog.w(TAG, "Saving that rest alerts were asked about failed", it) }
+        }
+    }
 
     fun markLaunchPermissionsAsked() {
         viewModelScope.launch {

@@ -21,8 +21,16 @@ interface RestPrefs {
      */
     val restBatteryHintShown: Flow<Boolean>
 
+    /**
+     * The "Rest alerts" sentence before Android's notification prompt has been answered on this
+     * phone, Continue or Not now, and is not put up again (audit RT-2). Device-local, like
+     * [restBatteryHintShown]: restore and [setRestTimerPreferences] leave it alone.
+     */
+    val restAlertsAsked: Flow<Boolean>
+
     suspend fun markRestAlarmEligible()
     suspend fun markRestBatteryHintShown()
+    suspend fun markRestAlertsAsked()
     suspend fun setRestSoundEnabled(enabled: Boolean)
     suspend fun setRestVibrationEnabled(enabled: Boolean)
 
@@ -54,12 +62,19 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
     override val restBatteryHintShown: Flow<Boolean> =
         store.pref { prefs -> prefs[REST_BATTERY_HINT] ?: false }
 
+    override val restAlertsAsked: Flow<Boolean> =
+        store.pref { prefs -> prefs[REST_ALERTS_ASKED] ?: false }
+
     override suspend fun markRestAlarmEligible() {
         store.data.edit { prefs -> prefs[REST_ALARM_ELIGIBLE] = true }
     }
 
     override suspend fun markRestBatteryHintShown() {
         store.data.edit { prefs -> prefs[REST_BATTERY_HINT] = true }
+    }
+
+    override suspend fun markRestAlertsAsked() {
+        store.data.edit { prefs -> prefs[REST_ALERTS_ASKED] = true }
     }
 
     override suspend fun setRestSoundEnabled(enabled: Boolean) {

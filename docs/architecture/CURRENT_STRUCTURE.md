@@ -76,7 +76,7 @@ flowchart TB
     PTA["PersonalTrainerApp<br/>(manifest android:name)"]
     AC["AppContainer(context) : AppDependencies<br/>39 typed ports"]
     DB[("TemperDatabase v7<br/>24 entities · 11 DAOs")]
-    PREFS[("user_settings DataStore<br/>56 keys · 6 prefs stores")]
+    PREFS[("user_settings DataStore<br/>57 keys · 6 prefs stores")]
     REPOS["10 repositories<br/>+ stores, BackupService, sync"]
     UC["workout/ + activity/ use cases"]
     VMS["21 ViewModels<br/>AppViewModel : AndroidViewModel"]
@@ -139,7 +139,7 @@ PostgREST, and a WorkManager `SyncWorker`. It is paused
 pass runs, and edits made while signed in, with the session loaded, still
 queue.
 
-**Preferences** are one DataStore named `user_settings` holding 56 keys
+**Preferences** are one DataStore named `user_settings` holding 57 keys
 (Temper Debug's update check keeps a separate small `debug_update` store). The
 keys are package-level in `data/repository/prefs/`, and six areas —
 `DisplayPrefs`, `CoachingPrefs`, `PlanningPrefs`, `RestPrefs`, `ReminderPrefs`,

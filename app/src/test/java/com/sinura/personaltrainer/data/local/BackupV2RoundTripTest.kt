@@ -330,6 +330,23 @@ class BackupV2RoundTripTest {
         assertFalse(preferences.restTimerPreferences.first().tickEnabled)
     }
 
+    /**
+     * The "Rest alerts" answer is this phone's (audit RT-2): Android's notification permission is
+     * per install, so a restore neither clears nor brings an answer.
+     */
+    @Test
+    fun aRestoreLeavesTheRestAlertsAnswerAlone() = runBlocking {
+        preferences.markRestAlertsAsked()
+        maintenance.seedCatalog()
+        seedUserData()
+        val json = BackupJson.encode(local.createSnapshot())
+        restore(json)
+        assertTrue(preferences.restAlertsAsked.first())
+        restore(V1_FIXTURE)
+        assertTrue(preferences.restAlertsAsked.first())
+        assertFalse("the backup document has no field for it", json.contains("rest_alerts"))
+    }
+
     @Test
     fun hasLocalDataCountsScheduleSlots() = runBlocking {
         assertEquals(0, local.authoredInventory().scheduleSlots)

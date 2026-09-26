@@ -337,6 +337,40 @@ class SettingsViewModelTest {
         assertTrue(deps.preferencesRepository.restAlarmEligible.first())
     }
 
+    /**
+     * The "Rest alerts" answer (audit RT-2): unknown until the saved one is read, so the sentence
+     * never goes up on a guess, and kept once given.
+     */
+    @Test
+    fun theRestAlertsAnswerIsReadBeforeItIsUsedAndKeptOnceGiven() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+
+        assertNull("nothing is known before the settings file is read", viewModel!!.restAlertsAsked.value)
+        assertEquals(false, viewModel!!.restAlertsAsked.awaitFirst { it != null })
+        viewModel!!.markRestAlertsAsked()
+        viewModel!!.restAlertsAsked.awaitFirst { it == true }
+        assertTrue(deps.preferencesRepository.restAlertsAsked.first())
+    }
+
+    @Test
+    fun aSettingsFileThatCannotBeWrittenDoesNotCrashOnTheRestAlertsAnswer() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            prefsStoreDecorator = { UnreadableSettings },
+        )
+        val uncaught = catchingUncaught {
+            viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            viewModel!!.markRestAlertsAsked()
+            dispatcher.scheduler.advanceUntilIdle()
+        }
+        assertNull(uncaught)
+    }
+
     @Test
     fun playCompleteCueHandsLivePrefsToThePreview() = runBlocking {
         deps = FakeAppDependencies(
