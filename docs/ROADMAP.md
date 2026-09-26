@@ -22,6 +22,21 @@
 > ViewModel into its own small helper. Nothing changes on screen; tests
 > written on the old code prove it. Quiet.
 >
+> 26 Sep 2026 — Packet T3 (a flaky test; owner decisions of 25
+> September, later): the Log's notes test that failed once in seven
+> runs of its class, and never since, now waits for what it reads. It
+> typed before the lift had finished loading, and in the test a copy of
+> the notes saved on a database thread could land a moment after the
+> last words; on the phone every one of those saves happens on one
+> thread, so the newest words always win. New tests hold, on every run,
+> what the old one only met by luck: notes typed while a lift is still
+> loading, then Back, then a restart after Android stops the app, keep
+> the last words. Four more hold the notes' saves where nothing held
+> them: a pause saves into a workout with no notes yet, Back leaves the
+> last words ready at once, a phone killed while a lift loads brings the
+> typed words back over the older ones, and nothing is saved before the
+> typing pause. Tests only; nothing changes on the phone. Quiet.
+>
 > 26 Sep 2026 — Audit packet R2-6 (audit X6, UI-1 on Home and the app
 > shell; owner decision of 25 September): tapping a workout reminder while
 > you are already in a workout used to switch to Home, which put Home in
