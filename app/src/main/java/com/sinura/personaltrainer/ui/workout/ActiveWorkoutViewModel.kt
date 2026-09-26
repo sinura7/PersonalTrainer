@@ -67,10 +67,8 @@ import com.sinura.personaltrainer.workout.WorkoutDraftRecovery
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -107,9 +105,6 @@ private const val ERR_UNDO_REMOVE = "undoRemove"
 private const val ERR_FINISH = "finish"
 private const val ERR_DISCARD = "discard"
 private const val ERR_SKIP = "skip"
-
-/** A typing pause, not a keystroke, is what commits notes to the database. */
-private const val NOTES_WRITE_DEBOUNCE_MS = 400L
 
 data class ActiveExerciseDraft(
     val weightKg: Double = 0.0,
@@ -287,7 +282,16 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * lift" surface; what happens to the choice is this class's business.
      */
     private val swapTargetItemId = MutableStateFlow<String?>(null)
-    private val notes = MutableStateFlow("")
+
+    /**
+     * The session's notes, the one-time fill from the row and the two writes, at a typing pause and
+     * at Back (audit W2d-3b). Built before `init` restores the words; the draft that carries them,
+     * and Finish, stay here.
+     */
+    private val sessionNotes = FloorSessionNotes(
+        sessionId = sessionId,
+        write = { notes -> container.workoutRepository.updateSessionNotes(sessionId, notes) },
+    )
     private val error = ErrorSlot()
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
@@ -325,9 +329,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     )
     val deleteFeedback: SharedFlow<DeleteFeedback> = _deleteFeedback.asSharedFlow()
 
-    /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
-    private var lastPersistedNotes: String? = null
-    private var notesHydrated = false
     private var pendingResumeDraft: WorkoutDraft? = null
     /** Blocks a late Room emission from recreating a draft after finish/discard cleared it. */
     private var terminalExit = false
@@ -424,7 +425,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // lives; saved state's single key is what survives its death, and is read when the
         // cache has none, or an empty copy.
         val restoredNotes = draftCache.sessionNotes(sessionId).orEmpty().ifEmpty { savedDraft.sessionNotes() }
-        if (restoredNotes.isNotEmpty()) notes.value = restoredNotes
+        if (restoredNotes.isNotEmpty()) sessionNotes.edit(restoredNotes)
         // After a process death the cache is rebuilt above from saved state's entries, which
         // carry no session notes. Staged here, the words saved state brought back outlive this
         // screen even if it is left before it saves anything, as Back while loading leaves it.
@@ -457,16 +458,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                             applySelection(resolved)
                         }
                     }
-                    lastPersistedNotes = current.notes
-                    // Hydrate once. "Field is empty" cannot tell not-yet-seeded from
-                    // deliberately-cleared, and re-seeding on a later emission restored
-                    // notes the user had just deleted mid-debounce.
-                    if (!notesHydrated) {
-                        notesHydrated = true
-                        if (notes.value.isEmpty() && current.notes.isNotEmpty()) {
-                            notes.value = current.notes
-                        }
-                    }
+                    sessionNotes.sessionRead(current.notes)
                     persistDraft()
                 }
             }.onFailure { AppLog.e(TAG, "Observing the active session failed", it) }
@@ -487,21 +479,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         .onFailure { AppLog.w(TAG, "Prefilling the next set failed", it) }
                 }
         }
-        // Notes used to launch an independent write per keystroke. Room's writes are not
-        // ordered against each other, so a shorter earlier string could land after a longer
-        // later one and the user's last characters would silently disappear on the next read
-        // — while a paragraph of notes cost a database write per character.
-        //
-        // collectLatest cancels the pending delay on every keystroke, so only a typing pause
-        // writes; and because it awaits the previous block's cancellation before starting the
-        // next, the writes it does perform are strictly ordered. NonCancellable means a write
-        // that has already begun finishes rather than being torn in half by the next keystroke.
-        viewModelScope.launch {
-            notes.collectLatest { value ->
-                delay(NOTES_WRITE_DEBOUNCE_MS)
-                writeNotes(value)
-            }
-        }
+        // The typing-pause writer (FloorSessionNotes.writeOnTypingPause), launched after the
+        // notes are restored above, so the first words it sees are the restored ones.
+        viewModelScope.launch { sessionNotes.writeOnTypingPause() }
         viewModelScope.launch {
             restCommands.presetEchoes.collect { last ->
                 // A pick on the dock comes back here as an echo, and it can land after the
@@ -516,24 +496,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         PlannedRest(seconds = last, chosenFor = selectedExerciseId.value)
                     }
                 }
-            }
-        }
-    }
-
-    private suspend fun writeNotes(value: String) {
-        if (sessionId.isBlank()) return
-        // Null means the session row has not been read yet, so what is on disk is unknown.
-        // Writing here would push the empty initial value over real notes whenever the first
-        // query took longer than the debounce — exactly the case on a cold start.
-        val known = lastPersistedNotes ?: return
-        if (value == known) return
-        withContext(NonCancellable) {
-            runCatchingCancellable {
-                container.workoutRepository.updateSessionNotes(sessionId, value)
-                lastPersistedNotes = value
-            }.onFailure { thrown ->
-                AppLog.w(TAG, "Writing the session notes failed", thrown)
-                // Notes stay in the draft cache, and the next keystroke retries.
             }
         }
     }
@@ -651,8 +613,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             combine(restTotal, searchQuery, showPicker) { total, query, picker ->
                 Triple(total, query, picker)
             },
-            combine(notes, error.messages, finished, editingSetId) { sessionNotes, err, done, editing ->
-                EditorMeta(sessionNotes, err, done, editing)
+            combine(sessionNotes.text, error.messages, finished, editingSetId) { notes, err, done, editing ->
+                EditorMeta(notes, err, done, editing)
             },
         ) { first, second ->
             WorkoutExtras(
@@ -897,7 +859,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         savedDraft.writeSelection(
             sessionId = sessionId,
             exerciseId = exerciseId,
-            notes = notes.value,
+            notes = sessionNotes.text.value,
             editingSetId = editingSetId.value,
         )
         clocks.restoreStopwatchFor(exerciseId, resumeRunning = false)
@@ -1094,9 +1056,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun setNotes(value: String) {
-        notes.value = value
+        sessionNotes.edit(value)
         persistDraft()
-        // The database write is not launched here. See the debounce collector in init.
+        // The database write is not launched here. See FloorSessionNotes.writeOnTypingPause, launched in init.
     }
 
     fun setPickerVisible(visible: Boolean) {
@@ -1827,7 +1789,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         cancelPendingRest()
         val started = error.mark()
         launchEntryMutation(source = ERR_FINISH) {
-            when (val outcome = container.finishWorkout(sessionId, notes.value)) {
+            when (val outcome = container.finishWorkout(sessionId, sessionNotes.text.value)) {
                 is FinishOutcome.Finished -> {
                     PendingOccurrence.complete(container, outcome.sessionId)
                     error.clearFrom(source = ERR_FINISH, before = started)
@@ -1964,7 +1926,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /** Flushes the debounce tail: leaving must not drop the words typed in the last 400 ms. */
     fun persistDraftForExit() {
         persistDraft()
-        viewModelScope.launch { writeNotes(notes.value) }
+        viewModelScope.launch { sessionNotes.writeNow() }
     }
 
     private fun persistDraft() {
@@ -1979,11 +1941,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             // loading, or no lift selected at all, must not lose what was typed to an exit that
             // does not flush.
             draftCache.select(sessionId, exerciseId)
-            draftCache.putSessionNotes(sessionId, notes.value)
+            draftCache.putSessionNotes(sessionId, sessionNotes.text.value)
             savedDraft.writeSelection(
                 sessionId = sessionId,
                 exerciseId = exerciseId,
-                notes = notes.value,
+                notes = sessionNotes.text.value,
                 editingSetId = editingSetId.value,
             )
             return
@@ -1995,7 +1957,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             reps = draft.value.reps,
             rpe = draft.value.rpe,
             isWarmup = draft.value.isWarmup,
-            notes = notes.value,
+            notes = sessionNotes.text.value,
             durationSeconds = draft.value.durationSeconds,
             dirty = draftDirty.value,
             extraSetRequested = wantAnotherSet.value,

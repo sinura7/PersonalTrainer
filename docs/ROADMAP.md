@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Sep 2026 — Whole-app audit packet W2d-3b: the workout's notes box
+> (the words as typed, how they first fill from the saved workout, and
+> what it saves after you stop typing and when you leave) moves out of the
+> workout ViewModel into its own small helper. Nothing changes on screen; 15
+> tests written on the old code prove it. Quiet.
+>
 > 26 Sep 2026 — Whole-app audit packet W2d-3a: the workout floor's two
 > clocks, the countdown for a hold such as a plank or a dead hang and the
 > set clock for a timed set, move out of the workout ViewModel into their
