@@ -8,12 +8,14 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.FileProvider
-import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import java.io.File
 
 private const val TAG = "PT/DebugUpdateInstall"
+
+/** `src/debug`'s DebugInstallStatusReceiver, named because gym-floor has no such class. */
+internal const val DEBUG_INSTALL_STATUS_RECEIVER = "com.sinura.personaltrainer.update.DebugInstallStatusReceiver"
 
 /**
  * Hands a downloaded Temper Debug APK to Android's installer. Gym-floor never
@@ -23,7 +25,12 @@ internal interface DebugApkInstaller {
     fun canInstall(): Boolean
     fun openInstallPermissionSettings()
     fun install(apk: File)
+
+    /** Where [versionCode]'s download goes. Any other build downloaded before is deleted. */
     fun stagingFile(versionCode: Int): File
+
+    /** Deletes every downloaded build (audit RM-6). */
+    fun clearStaging() {}
 }
 
 internal class AndroidDebugApkInstaller(
@@ -61,9 +68,20 @@ internal class AndroidDebugApkInstaller(
     }
 
     override fun stagingFile(versionCode: Int): File {
-        val dir = File(context.cacheDir, "debug-update").apply { mkdirs() }
-        return File(dir, "PersonalTrainer-$versionCode-debug.apk")
+        val dir = stagingDir().apply { mkdirs() }
+        val file = File(dir, "PersonalTrainer-$versionCode-debug.apk")
+        // Each build was kept until Android trimmed the cache, up to 96 MB apiece (audit RM-6).
+        dir.listFiles()?.filter { it != file }?.forEach { stale ->
+            if (!stale.delete()) AppLog.w(TAG, "An older download could not be deleted")
+        }
+        return file
     }
+
+    override fun clearStaging() {
+        if (!stagingDir().deleteRecursively()) AppLog.w(TAG, "The downloaded builds could not all be deleted")
+    }
+
+    private fun stagingDir() = File(context.cacheDir, "debug-update")
 
     private fun commitSession(apk: File) {
         val installer = context.packageManager.packageInstaller
@@ -79,11 +97,14 @@ internal class AndroidDebugApkInstaller(
                 apk.inputStream().use { input -> input.copyTo(out) }
                 session.fsync(out)
             }
-            val status = Intent(context, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            // Android answers here: first, for an app that is not the phone's installer, that the
+            // owner must confirm, with its install sheet to open (audit RM-1). A Temper Debug-only
+            // receiver that is not exported, so no other app can hand it a screen to open.
+            // Mutable: Android writes its answer into it.
+            val status = Intent().setClassName(context, DEBUG_INSTALL_STATUS_RECEIVER)
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                 if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0
-            val pending = PendingIntent.getActivity(context, sessionId, status, flags)
+            val pending = PendingIntent.getBroadcast(context, sessionId, status, flags)
             session.commit(pending.intentSender)
         } catch (error: Throwable) {
             runCatchingCancellable { session.abandon() }

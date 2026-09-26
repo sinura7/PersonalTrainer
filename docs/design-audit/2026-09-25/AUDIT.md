@@ -175,7 +175,7 @@ means the person training with the app.
 | RT-1 (B6) | On a phone set to the light system theme the rest countdown in the shade and on the lock screen is near-white on white. | rest-alarm packet: fixed 26 September (#434): the countdown takes the phone's notification colours (this also closes AX-16, the same two fixed colours); still to see on the phone |
 | RT-3 (B6) | A brand-new user is asked for alarms, notifications and battery access right after choosing how to save, before any rest, which ADR-012 and the privacy page say never happens. Decision 2. | X9 |
 | DM-2 (B8) | Train in one time zone and open the app in another, and a strength workout can file under a different day; the body-heat map and "this week" shift with it. The activity model already stores the zone; strength sessions do not. | S3a |
-| RM-1 (B7) | Temper Debug's "Update" button downloads the build and brings the app forward, but the install screen Android hands back is never opened, so the phone stays on the old build. Obtainium is unaffected. | R3 |
+| RM-1 (B7) | Temper Debug's "Update" button downloads the build and brings the app forward, but the install screen Android hands back is never opened, so the phone stays on the old build. Obtainium is unaffected. | R3: fixed 26 September (#436): the answer goes to a Temper Debug-only receiver, and the app opens Android's sheet while it is in front; still to see on the phone |
 
 ### Sync, when it resumes
 
@@ -263,7 +263,7 @@ notes. Adopted the day the record was written (decision 7);
 | 5 | *W2c* | done while this audit ran (#414): `generatedAtMs` out of equality and one coach call per real change (C-2); the eager `stateIn` on the floor (AR-4) and the invalidation fan-out per logged set (AR-3) move to W2d-1–3 | Q |
 | 6 | *W2d-1–3* | as planned, plus AR-4 and AR-3 from W2c | Q |
 | 7 | *rest-alarm packet* | the two quirks (RT-4, RT-5), the rest-alerts gate that asks once (RT-2), the light-theme notification colours (RT-1) | V |
-| 8 | **R3** Temper Debug updater | `MainActivity` handles `STATUS_PENDING_USER_ACTION` (RM-1); staged APKs deleted from cache (RM-6) | Q |
+| 8 | **R3** Temper Debug updater (done 26 September, #436, through a Temper Debug-only receiver rather than `MainActivity`) | `MainActivity` handles `STATUS_PENDING_USER_ACTION` (RM-1); staged APKs deleted from cache (RM-6) | Q |
 | 9 | *check-only drop* | as planned | V |
 | 10 | *W3* | as planned; start from the audit's harness (`evidence/AuditRenderTest.kt.txt`) and make it the permanent render matrix; every tab drawn at least once on the gate (TS-3) | V |
 | 11 | *S1* | as planned, plus: a skipped child re-pulled when its parent lands (S-11 B1); per-row isolation on pull (S-12 B1); cursors, metadata and "last synced" reset on sign-out and account switch (S-14); `NetworkError` as signed-in-offline (PV-3); timeouts, `disconnect()` and the IO dispatcher on the REST client, moved forward from S4 (S-11 B2, S-11 B7); restore resets the sync tables and re-queues what it rewrote (BK-2); the outbox hook inventory made uniform (S-3); error text redacted before the screen and the log (PV-2) | V |

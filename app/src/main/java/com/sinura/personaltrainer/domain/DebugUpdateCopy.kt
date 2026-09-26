@@ -19,7 +19,8 @@ object DebugUpdateCopy {
     const val INSTALLING = "Android will ask you to install this update."
     const val NEEDS_PERMISSION =
         "Android needs permission for Temper Debug to install this update."
-    const val FAILED = "The download didn’t finish. Try again."
+    /** A download that stopped, or an install Android refused. */
+    const val FAILED = "The update didn’t finish. Try again."
     const val SETTINGS_SUMMARY = "A newer Temper Debug is ready"
 
     fun settingsSummary(versionCode: Int): String = "Live $versionCode is ready"
