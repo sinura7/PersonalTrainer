@@ -7,12 +7,9 @@
     <application>
         <!-- Where Android answers an install session (audit RM-1). Not exported: only the
              session's own status reaches it, so no other app can hand it a screen to open. -->
-        <activity
-            android:name="com.sinura.personaltrainer.update.DebugInstallStatusActivity"
-            android:excludeFromRecents="true"
-            android:exported="false"
-            android:noHistory="true"
-            android:theme="@android:style/Theme.NoDisplay" />
+        <receiver
+            android:name="com.sinura.personaltrainer.update.DebugInstallStatusReceiver"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

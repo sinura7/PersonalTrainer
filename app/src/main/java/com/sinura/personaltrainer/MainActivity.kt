@@ -14,6 +14,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.ui.intro.ColdStartIntro
 import com.sinura.personaltrainer.ui.saveposture.SavePostureHost
@@ -23,6 +27,8 @@ import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.navigation.PersonalTrainerNav
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.theme.systemReduceMotion
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private var openSessionId by mutableStateOf<String?>(null)
@@ -103,6 +109,31 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        openInstallSheetWhenInFront()
+    }
+
+    /**
+     * Temper Debug: Android answers an install session with its install sheet, for the app to
+     * open, and an app may open a screen only while it is in front (audit RM-1). The sheet waits
+     * with the update's monitor; this opens it once the app is in front, at once or when the owner
+     * comes back. Gym-floor never has one.
+     */
+    private fun openInstallSheetWhenInFront() {
+        val port = (application as? PersonalTrainerApp)?.container?.debugUpdate ?: return
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                port.installSheet.filterNotNull().collect { sheet ->
+                    val opened = try {
+                        startActivity(sheet)
+                        true
+                    } catch (error: RuntimeException) {
+                        AppLog.w(TAG, "Android's install sheet could not be opened", error)
+                        false
+                    }
+                    port.onInstallSheetShown(opened)
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -139,3 +170,5 @@ class MainActivity : ComponentActivity() {
         return id.takeIf { it.isNotBlank() }
     }
 }
+
+private const val TAG = "PT/MainActivity"

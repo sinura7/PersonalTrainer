@@ -2,7 +2,7 @@ package com.sinura.personaltrainer.update
 
 import android.content.Intent
 import android.content.pm.PackageInstaller
-import android.os.Build
+import androidx.core.content.IntentCompat
 
 /**
  * Android's answer to a Temper Debug install session, read from the status the session was
@@ -14,7 +14,7 @@ sealed interface DebugInstallAnswer {
 
     data object Installed : DebugInstallAnswer
 
-    /** The owner cancelled Android's sheet, or left it. */
+    /** The owner cancelled Android's sheet. */
     data object Cancelled : DebugInstallAnswer
 
     /** Android refused the build ([status], with its [message] when it gave one). */
@@ -36,11 +36,6 @@ sealed interface DebugInstallAnswer {
         }
 
         private fun sheet(intent: Intent): Intent? =
-            if (Build.VERSION.SDK_INT >= 33) {
-                intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
-            } else {
-                @Suppress("DEPRECATION")
-                intent.getParcelableExtra(Intent.EXTRA_INTENT)
-            }
+            IntentCompat.getParcelableExtra(intent, Intent.EXTRA_INTENT, Intent::class.java)
     }
 }

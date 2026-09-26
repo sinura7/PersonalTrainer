@@ -14,8 +14,8 @@ import java.io.File
 
 private const val TAG = "PT/DebugUpdateInstall"
 
-/** `src/debug`'s DebugInstallStatusActivity, named because gym-floor has no such class. */
-private const val STATUS_SCREEN = "com.sinura.personaltrainer.update.DebugInstallStatusActivity"
+/** `src/debug`'s DebugInstallStatusReceiver, named because gym-floor has no such class. */
+internal const val DEBUG_INSTALL_STATUS_RECEIVER = "com.sinura.personaltrainer.update.DebugInstallStatusReceiver"
 
 /**
  * Hands a downloaded Temper Debug APK to Android's installer. Gym-floor never
@@ -99,13 +99,12 @@ internal class AndroidDebugApkInstaller(
             }
             // Android answers here: first, for an app that is not the phone's installer, that the
             // owner must confirm, with its install sheet to open (audit RM-1). A Temper Debug-only
-            // screen that is not exported, so no other app can hand it a screen to open.
-            val status = Intent()
-                .setClassName(context, STATUS_SCREEN)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            // receiver that is not exported, so no other app can hand it a screen to open.
+            // Mutable: Android writes its answer into it.
+            val status = Intent().setClassName(context, DEBUG_INSTALL_STATUS_RECEIVER)
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                 if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0
-            val pending = PendingIntent.getActivity(context, sessionId, status, flags)
+            val pending = PendingIntent.getBroadcast(context, sessionId, status, flags)
             session.commit(pending.intentSender)
         } catch (error: Throwable) {
             runCatchingCancellable { session.abandon() }

@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.update
 
+import android.content.Intent
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.CoroutineDispatcher
@@ -7,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -24,9 +26,22 @@ interface DebugUpdatePort {
     fun dismissBanner()
     fun install()
 
+    /**
+     * Android's install sheet, waiting for the app's main screen to be in front to open it; null
+     * when none waits. Android answers a session in the background, where the app may not open a
+     * screen (audit RM-1).
+     */
+    val installSheet: StateFlow<Intent?>
+        get() = NO_SHEET
+
     /** Android's answer to the install session the banner started. */
     fun onInstallAnswer(answer: DebugInstallAnswer) {}
+
+    /** The main screen opened [installSheet]'s sheet, or could not ([opened] false). */
+    fun onInstallSheetShown(opened: Boolean) {}
 }
+
+private val NO_SHEET: StateFlow<Intent?> = MutableStateFlow(null)
 
 object DisabledDebugUpdate : DebugUpdatePort {
     override val ui: StateFlow<DebugUpdateUi> = MutableStateFlow(DebugUpdateUi())
@@ -48,6 +63,8 @@ internal class DebugUpdateMonitor(
     private val installMutex = Mutex()
     private val held = MutableStateFlow(DebugUpdateUi())
     override val ui: StateFlow<DebugUpdateUi> = held.asStateFlow()
+    private val sheet = MutableStateFlow<Intent?>(null)
+    override val installSheet: StateFlow<Intent?> = sheet.asStateFlow()
 
     override fun onForeground() {
         scope.launch {
@@ -65,7 +82,7 @@ internal class DebugUpdateMonitor(
 
     override fun dismissBanner() {
         val offer = held.value.offer ?: return
-        held.value = held.value.copy(showBanner = false)
+        held.update { it.copy(showBanner = false) }
         scope.launch {
             runCatchingCancellable { cache.dismiss(offer.versionCode) }
                 .onFailure { error -> AppLog.w(TAG, "Dismissing the update banner failed", error) }
@@ -77,25 +94,37 @@ internal class DebugUpdateMonitor(
     }
 
     /**
-     * Android's sheet is the app's to open ([DebugInstallAnswer.Confirm]); a cancelled sheet
-     * leaves the update to tap again. A refusal says the update did not finish, and an install
-     * that went through leaves no download behind.
+     * Android's sheet waits for the main screen ([installSheet]). Once the install ends, the
+     * download goes: Android works from its own copy from the hand-over on, and Try again downloads
+     * afresh. A refusal says the update did not finish; a cancel leaves Update to tap again.
      */
     override fun onInstallAnswer(answer: DebugInstallAnswer) {
         when (answer) {
-            is DebugInstallAnswer.Confirm, DebugInstallAnswer.Cancelled -> Unit
+            is DebugInstallAnswer.Confirm -> sheet.value = answer.sheet
             is DebugInstallAnswer.Failed -> {
                 AppLog.w(TAG, "Android did not install the update (status ${answer.status}): ${answer.message}")
                 publishInstall(DebugUpdateInstall.Failed)
+                scope.launch { clearStaging() }
             }
-            DebugInstallAnswer.Installed -> scope.launch { clearStaging() }
+            DebugInstallAnswer.Cancelled, DebugInstallAnswer.Installed -> scope.launch { clearStaging() }
         }
     }
 
+    override fun onInstallSheetShown(opened: Boolean) {
+        sheet.value = null
+        if (!opened) publishInstall(DebugUpdateInstall.Failed)
+    }
+
+    /**
+     * Deletes the downloads, after any download or hand-over running now: that one's file is in
+     * use until Android has its copy.
+     */
     private suspend fun clearStaging() {
-        withContext(ioDispatcher) {
-            runCatchingCancellable { installer.clearStaging() }
-                .onFailure { error -> AppLog.w(TAG, "Deleting the downloaded builds failed", error) }
+        installMutex.withLock {
+            withContext(ioDispatcher) {
+                runCatchingCancellable { installer.clearStaging() }
+                    .onFailure { error -> AppLog.w(TAG, "Deleting the downloaded builds failed", error) }
+            }
         }
     }
 
@@ -148,11 +177,12 @@ internal class DebugUpdateMonitor(
     }
 
     private fun publishInstall(install: DebugUpdateInstall, percent: Int? = null) {
-        val current = held.value
-        held.value = current.copy(
-            install = install,
-            downloadPercent = if (install == DebugUpdateInstall.Downloading) percent else null,
-        )
+        held.update { current ->
+            current.copy(
+                install = install,
+                downloadPercent = if (install == DebugUpdateInstall.Downloading) percent else null,
+            )
+        }
     }
 
     internal suspend fun refresh(minIntervalMs: Long) {
@@ -170,13 +200,14 @@ internal class DebugUpdateMonitor(
             }
             // No newer build: whatever was downloaded is installed, or will not be (audit RM-6).
             if (offer == null) clearStaging()
-            val previous = held.value
-            held.value = DebugUpdateUi(
-                offer = offer,
-                showBanner = offer != null && offer.versionCode > dismissed,
-                install = if (offer == null) DebugUpdateInstall.Idle else previous.install,
-                downloadPercent = null,
-            )
+            held.update { previous ->
+                DebugUpdateUi(
+                    offer = offer,
+                    showBanner = offer != null && offer.versionCode > dismissed,
+                    install = if (offer == null) DebugUpdateInstall.Idle else previous.install,
+                    downloadPercent = null,
+                )
+            }
         }
     }
 }

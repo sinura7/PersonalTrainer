@@ -279,10 +279,12 @@ Done so far:
 - **R3:** Temper Debug's Update downloaded the build, then Android's
   install sheet never opened: Android's answer ("the owner must confirm",
   with the sheet to open) went to the main screen, which never read it.
-  The answer now goes to a small Temper Debug-only screen that no other
-  app can open; it opens Android's sheet, and a build Android refuses
-  shows "The update didn't finish. Try again." Only one download is kept,
-  and none once a newer build is running (#436). Obtainium is unchanged.
+  The answer now goes to a Temper Debug-only receiver that no other app
+  can reach; the app opens Android's sheet while it is in front, at once
+  or when the owner comes back to it, and a build Android refuses shows
+  "The update didn't finish. Try again." Only one download is kept, and
+  none once the install ends or a newer build is running (#436).
+  Obtainium is unchanged.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the

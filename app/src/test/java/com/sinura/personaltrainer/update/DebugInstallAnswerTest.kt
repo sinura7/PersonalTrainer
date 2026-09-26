@@ -1,11 +1,14 @@
 package com.sinura.personaltrainer.update
 
 import android.Manifest
-import android.app.Activity
+import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageInstaller
+import android.os.Looper
 import android.os.PowerManager
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.testutil.forgetFirstApplication
 import java.io.File
@@ -14,6 +17,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -33,15 +37,15 @@ import org.robolectric.shadows.ShadowAlarmManager
  * never read it: the sheet never opened and the phone stayed on the old build. Each downloaded
  * build also stayed in the app's cache.
  *
- * The installer and the answer's target are the app's own. What Android would send is stood in
- * for: Robolectric's installer reports a failed session through the status, which shows where the
- * status goes, and each case sends that same target the answer it tests.
+ * Each case sends its answer through the very status the session was committed with, as Android
+ * does: the status must exist, reach a component the manifest declares, and carry what Android
+ * writes into it. Robolectric's installer answers nothing itself.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(application = PersonalTrainerApp::class, qualifiers = "w360dp-h800dp-xhdpi")
 class DebugInstallAnswerTest {
     private lateinit var app: PersonalTrainerApp
-    private val opened = mutableListOf<ActivityController<out Activity>>()
+    private var screen: ActivityController<MainActivity>? = null
 
     @Before
     fun setUp() {
@@ -60,37 +64,74 @@ class DebugInstallAnswerTest {
 
     @After
     fun tearDown() {
-        opened.forEach { it.pause().stop().destroy() }
+        screen?.pause()?.stop()?.destroy()
         forgetFirstApplication()
     }
 
     @Test
     fun theOwnerIsAskedToConfirmTheInstall() {
-        val confirm = Intent(CONFIRM_INSTALL).setPackage(SYSTEM_INSTALLER)
+        openTheApp()
+        startedActivities()
 
-        answer(PackageInstaller.STATUS_PENDING_USER_ACTION) { putExtra(Intent.EXTRA_INTENT, confirm) }
+        answer(committed(), PackageInstaller.STATUS_PENDING_USER_ACTION) { putExtra(Intent.EXTRA_INTENT, SHEET) }
 
-        val started = startedActivities()
-        assertTrue(
-            "Android's install sheet was never opened; started instead: $started",
-            started.any { it.filterEquals(confirm) },
-        )
+        assertTrue("Android's install sheet was not opened", startedActivities().any { it.filterEquals(SHEET) })
+    }
+
+    /**
+     * Android answers while the owner is in another app (the download took a while): the app may
+     * not open a screen then. The sheet opens when the owner comes back, and only once.
+     */
+    @Test
+    fun anAnswerWhileTheAppIsInTheBackgroundOpensTheSheetOnReturn() {
+        openTheApp()
+        screen!!.pause().stop()
+        idle()
+        startedActivities()
+
+        answer(committed(), PackageInstaller.STATUS_PENDING_USER_ACTION) { putExtra(Intent.EXTRA_INTENT, SHEET) }
+        assertFalse("a screen opened while the app was away", startedActivities().any { it.filterEquals(SHEET) })
+
+        screen!!.restart().resume()
+        idle()
+        assertEquals(1, startedActivities().count { it.filterEquals(SHEET) })
+
+        screen!!.pause().resume()
+        idle()
+        assertFalse("the sheet opened a second time", startedActivities().any { it.filterEquals(SHEET) })
+    }
+
+    /** The same when the main screen had closed: the sheet opens when the app is opened again. */
+    @Test
+    fun anAnswerWithNoScreenOpenOpensTheSheetWhenTheAppOpens() {
+        answer(committed(), PackageInstaller.STATUS_PENDING_USER_ACTION) { putExtra(Intent.EXTRA_INTENT, SHEET) }
+        assertFalse("a screen opened while the app was away", startedActivities().any { it.filterEquals(SHEET) })
+
+        openTheApp()
+        assertEquals(1, startedActivities().count { it.filterEquals(SHEET) })
+
+        screen!!.pause().resume()
+        idle()
+        assertFalse("the sheet opened a second time", startedActivities().any { it.filterEquals(SHEET) })
     }
 
     @Test
-    fun anInstallAndroidRefusesSaysSo() {
-        answer(PackageInstaller.STATUS_FAILURE_INCOMPATIBLE) {
+    fun anInstallAndroidRefusesSaysSoAndLeavesNoDownload() {
+        val session = committed()
+        answer(session, PackageInstaller.STATUS_FAILURE_INCOMPATIBLE) {
             putExtra(PackageInstaller.EXTRA_STATUS_MESSAGE, "INSTALL_FAILED_UPDATE_INCOMPATIBLE")
         }
 
         assertEquals(DebugUpdateInstall.Failed, app.container.debugUpdate.ui.value.install)
+        awaitNoDownloads()
     }
 
     @Test
-    fun aCancelledInstallLeavesTheUpdateToTryAgain() {
-        answer(PackageInstaller.STATUS_FAILURE_ABORTED)
+    fun aCancelledSheetLeavesTheUpdateToTryAgainAndNoDownload() {
+        answer(committed(), PackageInstaller.STATUS_FAILURE_ABORTED)
 
         assertEquals(DebugUpdateInstall.Idle, app.container.debugUpdate.ui.value.install)
+        awaitNoDownloads()
     }
 
     /** Only one downloaded build is kept: the one being installed. */
@@ -105,28 +146,54 @@ class DebugInstallAnswerTest {
         assertEquals(emptyList<String>(), newer.parentFile?.list()?.toList().orEmpty().filter { it != newer.name })
     }
 
-    /**
-     * Hands a build to the real installer and sends its status target [status], as Android
-     * would. Returns once that target has handled it.
-     */
-    private fun answer(status: Int, extras: Intent.() -> Unit = {}) {
-        val installer = AndroidDebugApkInstaller(app)
-        val apk: File = installer.stagingFile(NEWER).apply { writeBytes(byteArrayOf(0x50, 0x4b, 3, 4)) }
-        installer.install(apk)
-        val packageInstaller = app.packageManager.packageInstaller
-        val session = packageInstaller.mySessions.lastOrNull()
-        assertNotNull("the build was not handed to Android's installer", session)
-        shadowOf(packageInstaller).setSessionFails(session!!.sessionId)
-        val statusTarget = checkNotNull(shadowOf(app).nextStartedActivity) { "the session reported to nothing" }
-        startedActivities()
-
-        val answer = Intent(statusTarget)
-            .putExtra(PackageInstaller.EXTRA_SESSION_ID, session.sessionId)
-            .putExtra(PackageInstaller.EXTRA_STATUS, status)
-            .apply(extras)
-        val target = Class.forName(checkNotNull(statusTarget.component).className).asSubclass(Activity::class.java)
-        opened += Robolectric.buildActivity(target, answer).setup()
+    /** No other app can reach where Android answers, so none can hand the app a screen to open. */
+    @Test
+    fun whereAndroidAnswersIsNotExported() {
+        val info = app.packageManager.getReceiverInfo(ComponentName(app, DEBUG_INSTALL_STATUS_RECEIVER), 0)
+        assertFalse(info.exported)
     }
+
+    /** Hands a build to the real installer; the status it committed with. */
+    private fun committed(): PendingIntent {
+        val installer = AndroidDebugApkInstaller(app)
+        val apk = installer.stagingFile(NEWER).apply { writeBytes(byteArrayOf(0x50, 0x4b, 3, 4)) }
+        installer.install(apk)
+        val session = app.packageManager.packageInstaller.mySessions.lastOrNull()
+        assertNotNull("the build was not handed to Android's installer", session)
+        val status = PendingIntent.getBroadcast(
+            app,
+            session!!.sessionId,
+            Intent().setClassName(app, DEBUG_INSTALL_STATUS_RECEIVER),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_MUTABLE,
+        )
+        assertNotNull("the session was committed with no status for Android to answer", status)
+        idle()
+        return status!!
+    }
+
+    /** What Android writes into the session's status when it answers. */
+    private fun answer(status: PendingIntent, code: Int, extras: Intent.() -> Unit = {}) {
+        status.send(app, 0, Intent().putExtra(PackageInstaller.EXTRA_STATUS, code).apply(extras))
+        idle()
+    }
+
+    private fun openTheApp() {
+        screen = Robolectric.buildActivity(MainActivity::class.java, Intent(app, MainActivity::class.java)).setup()
+        idle()
+    }
+
+    /** The clear runs off the main thread, after any download or hand-over running then. */
+    private fun awaitNoDownloads() {
+        val staged = File(app.cacheDir, "debug-update")
+        val deadline = System.currentTimeMillis() + WAIT_MS
+        while (staged.list()?.any { it.endsWith(".apk") } == true && System.currentTimeMillis() < deadline) {
+            idle()
+            Thread.sleep(10)
+        }
+        assertNull("a download is still in the cache", staged.list()?.firstOrNull { it.endsWith(".apk") })
+    }
+
+    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
 
     private fun startedActivities(): List<Intent> =
         generateSequence { shadowOf(app).nextStartedActivity }.toList()
@@ -134,7 +201,7 @@ class DebugInstallAnswerTest {
     private companion object {
         const val OLDER = 105
         const val NEWER = 106
-        const val CONFIRM_INSTALL = "android.content.pm.action.CONFIRM_INSTALL"
-        const val SYSTEM_INSTALLER = "com.google.android.packageinstaller"
+        const val WAIT_MS = 10_000L
+        val SHEET: Intent = Intent("android.content.pm.action.CONFIRM_INSTALL").setPackage("com.google.android.packageinstaller")
     }
 }
