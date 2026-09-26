@@ -164,6 +164,15 @@ Done so far:
   held until now. The ViewModel is 2,377 → 2,327 lines. Built before
   the 25 September order landed; the owner chose to merge it ahead of
   R1 and R2.
+- **W2d-2:** the floor's set save (the one set being written, its two
+  copies for when Android stops the app, what each outcome says, and the
+  check that settles a save whose outcome is unknown) moves out of the
+  workout ViewModel into a small helper, `FloorSetSaves`. Saving,
+  retrying and editing a failed set work exactly as before; 13 tests
+  run on the old code first prove it, and a replay of 22 save
+  situations reads the same before and after (#431). Next in W2d are
+  W2d-3a (timed work) and W2d-3b (notes); AR-3 and AR-4 wait for a later
+  packet (owner decisions of 25 September, below).
 - **T2:** the Log test that failed on about one GitHub run in fifteen
   was a real tie, not bad luck: two sets saved in one millisecond made the
   saved-sets sheet call the first "Latest" while the Last set cell called
@@ -265,10 +274,11 @@ Done so far:
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next, in order (owner decisions of 25 September; the live order is the
-table in FRONTEND_REDESIGN.md): N1, W2d-2, W2d-3a and W2d-3b, W2e, the
-rest-alarm packet, R3 (updater), then a check-only phone drop, then W3,
-S1, X8 and X9. X2b completed Wave 0.
+Next, in order (owner decisions of 25 September, and of 26 September for
+R4; the live order is the table in FRONTEND_REDESIGN.md): N1, W2d-3a and
+W2d-3b, W2e, the rest-alarm packet, R3 (updater), R4 (reminder
+follow-ups), then a check-only phone drop, then W3, S1, X8 and X9. X2b
+completed Wave 0.
 
 ## What is verified, and how
 

@@ -18,8 +18,8 @@ yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 569 | 95,301 | — |
-| `app/src/test` | 488 | 85,844 | 3,295 |
+| `app/src/main` | 570 | 95,438 | — |
+| `app/src/test` | 490 | 86,399 | 3,316 |
 | `app/src/androidTest` | 33 | 5,918 | 112 `@Test` methods (some parameterised) |
 | `app/src/debug` | 12 | 1,618 | Compose previews and the state galleries |
 | `app/src/sharedTest` | 5 | 171 | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
@@ -178,9 +178,10 @@ gate, the emulator and the phone gate the signed release.
 Not a to-do list — a list of things a reader will notice and should not have to
 rediscover.
 
-- **`ActiveWorkoutViewModel` is 2,332 lines** with 29 `MutableStateFlow`
-  references, and still holds rule decisions that belong in `domain` — prefill,
-  lift selection, the log-set sequence.
+- **`ActiveWorkoutViewModel` is 2,259 lines** with 27 `MutableStateFlow`
+  references (W2d-1 moved its undo queue to `FloorUndoOffers`, W2d-2 its set
+  save to `FloorSetSaves`), and still holds rule decisions that belong in
+  `domain` — prefill, lift selection, the log-set sequence.
 - **`RoutineEditorViewModel` is 1,490 lines**, mostly the staged-targets
   commit and refusal logic.
 - **`BackupCoordinator` is 985 lines** (audit packet F10c splits it).
