@@ -238,7 +238,7 @@ Done so far:
   brings back an older note (and saves it over the newer one) or shows
   another lift's typed weight: a reopened workout restores only its own
   lift's numbers, and the notes are kept once for the whole workout
-  (#431). Found, not fixed: after removing the only lift, Undo (or
+  (#432). Found, not fixed: after removing the only lift, Undo (or
   adding it back) leaves it loading; an undone lift comes back at 0 kg;
   Finish from the workout bar can drop the last words typed; the rest
   page can name another lift while the one picked is loading.
