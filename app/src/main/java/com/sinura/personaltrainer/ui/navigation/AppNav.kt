@@ -283,15 +283,37 @@ private val ASKS_BEFORE_LEAVING = setOf(
  * R4). Those screens are closed now; one that asks before it is left is kept, and the tap is
  * held there instead.
  */
-private fun NavController.bringHomeForward(goToTab: (String) -> Unit): HomeReach {
+internal fun NavController.bringHomeForward(): HomeReach {
     goToTab(Route.Home.path)
-    val overHome = currentBackStack.value
-        .dropWhile { it.destination.route != Route.Home.path }
-        .drop(1)
-    if (overHome.any { it.destination.route in ASKS_BEFORE_LEAVING }) return HomeReach.BEHIND_AN_EDIT
-    if (overHome.isNotEmpty()) popBackStack(Route.Home.path, inclusive = false)
+    // Home's tab is showing: the back stack holds Home and what is over it, nothing else.
+    if (ASKS_BEFORE_LEAVING.any { hasEntry(it) }) return HomeReach.BEHIND_AN_EDIT
+    if (currentBackStackEntry?.destination?.route != Route.Home.path) {
+        popBackStack(Route.Home.path, inclusive = false)
+    }
     return HomeReach.IN_FRONT
 }
+
+/**
+ * A tab, with its own back stack: the tab left is saved, and the one reached comes back as it
+ * was left.
+ */
+internal fun NavController.goToTab(path: String) {
+    navigate(path) {
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+private fun NavController.hasEntry(route: String): Boolean =
+    try {
+        getBackStackEntry(route)
+        true
+    } catch (_: IllegalArgumentException) {
+        false
+    }
 
 @Composable
 fun PersonalTrainerNav(
@@ -430,15 +452,7 @@ fun PersonalTrainerNav(
     }
 
     val goToTab = remember(navController) {
-        { path: String ->
-            navController.navigate(path) {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
-                }
-                launchSingleTop = true
-                restoreState = true
-            }
-        }
+        { path: String -> navController.goToTab(path) }
     }
     val openLive = remember(navController) {
         { sessionId: String, cardio: Boolean ->
@@ -464,7 +478,7 @@ fun PersonalTrainerNav(
         openDeliveryId = openDeliveryId,
         openReviewId = reviewOccurrenceId,
         verdict = { occurrenceId -> ReminderHandoff.verdict(container, occurrenceId) },
-        bringHomeForward = { navController.bringHomeForward(goToTab) },
+        bringHomeForward = { navController.bringHomeForward() },
         openLive = openLive,
         useReminder = { occurrenceId, deliveryId ->
             UsedReminder.markStarted(application, container, occurrenceId, deliveryId)

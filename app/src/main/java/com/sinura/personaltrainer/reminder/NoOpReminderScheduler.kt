@@ -8,4 +8,5 @@ class NoOpReminderScheduler : ReminderScheduler {
     override fun schedule(delivery: ReminderDelivery) = Unit
     override fun cancel(deliveryId: String) = Unit
     override fun cancelForOccurrence(occurrenceId: String) = Unit
+    override fun dismissShown(occurrenceId: String) = Unit
 }

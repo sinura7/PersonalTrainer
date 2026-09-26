@@ -394,5 +394,7 @@ class PendingOccurrenceTest {
         override fun cancelForOccurrence(occurrenceId: String) {
             if (failCancels) error("boom: the reminders for $occurrenceId could not be cancelled")
         }
+
+        override fun dismissShown(occurrenceId: String) = Unit
     }
 }

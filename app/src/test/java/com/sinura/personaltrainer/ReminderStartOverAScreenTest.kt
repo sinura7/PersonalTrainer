@@ -92,7 +92,7 @@ class ReminderStartOverAScreenTest {
 
         awaitTag(WorkoutTestTags.CONTENT)
         assertEquals("the planned session opened", planned.id, followed())
-        assertFalse("its Snooze, Move and Skip must leave the shade", reminderShown(planned.id))
+        assertFalse("the reminder was used", reminderShown(planned.id))
     }
 
     /** Two screens over Home: the finished session's page, opened from its summary. */

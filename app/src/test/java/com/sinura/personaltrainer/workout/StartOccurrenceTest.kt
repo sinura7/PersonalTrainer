@@ -105,6 +105,27 @@ class StartOccurrenceTest {
         assertEquals(listOf(occurrence.id), shown.dismissed)
     }
 
+    /** A mixed day's composer opening is its start: the reminder showing goes too. */
+    @Test
+    fun aPlannedMixedDayThatOpensTakesItsReminderOffTheShade() = runBlocking {
+        val shown = RecordingDismissals()
+        deps.close()
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), reminderScheduler = shown)
+        val today = todayEpochDay()
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.fromEpochDay(today),
+            hour = 18,
+            minute = 0,
+            modality = ScheduleModality.MIXED,
+            nowMs = 1_700_000_000_000L,
+        )
+        deps.plannerRepository.ensureWeek(CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY))
+        val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
+
+        assertTrue(deps.startOccurrence(occurrence.id) is StartOccurrenceOutcome.OpenComposer)
+        assertEquals(listOf(occurrence.id), shown.dismissed)
+    }
+
     @Test
     fun aReminderThatCannotBeDismissedLeavesTheCardioOpen() = runBlocking {
         val shown = RecordingDismissals().apply { fail = true }

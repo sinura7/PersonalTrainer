@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.PendingOccurrence
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
@@ -223,6 +225,21 @@ class ReminderReceiversAndWorkerTest {
         assertTrue(shown.isEmpty())
         assertEquals(ReminderDeliveryStatus.CANCELLED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
         assertEquals(OccurrenceStatus.PLANNED, deps.plannerRepository.getOccurrence(OCCURRENCE)?.status)
+    }
+
+    /** The worker's own pass asks the app whether the day is being trained. */
+    @Test
+    fun theWorkersPassHoldsTheReminderOfADayBeingTrained() = runBlocking {
+        seed(occurrenceStatus = OccurrenceStatus.PLANNED, deliveryStatus = ReminderDeliveryStatus.PENDING)
+        val live = (deps.workoutRepository.startFreeWorkoutSafely("Legs") as StartSessionOutcome.Started).session.id
+        PendingOccurrence.bindForSession(deps, OCCURRENCE, live)
+        val shown = mutableListOf<String>()
+        val notify: (ScheduleOccurrence, String, String) -> Unit = { occurrence, _, _ -> shown.add(occurrence.id) }
+
+        ReminderWork.runFor(deps = deps, deliveryId = DELIVERY, now = NOW, notify = notify)
+
+        assertTrue(shown.isEmpty())
+        assertEquals(ReminderDeliveryStatus.CANCELLED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
     }
 
     /** Another planned day being trained is no reason to hold this one's reminder. */

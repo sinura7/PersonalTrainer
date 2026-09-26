@@ -72,7 +72,8 @@ class StartOccurrence(
                         is StartCardioOutcome.Rejected -> StartOccurrenceOutcome.Failed(cardio.reason)
                     }
                 }
-                ScheduleModality.MIXED -> StartOccurrenceOutcome.OpenComposer(occurrence.id)
+                ScheduleModality.MIXED ->
+                    StartOccurrenceOutcome.OpenComposer(occurrence.id).also { dismissShownReminder(occurrence.id) }
                 ScheduleModality.STRENGTH -> {
                     val day = plannedDay(occurrence, rule)
                     when (val outcome = startTrainingDay(day)) {
@@ -98,10 +99,10 @@ class StartOccurrence(
     }
 
     /**
-     * The planned day's cardio is live: its reminder showing goes, since its Move and Skip would
-     * act on the day being trained (audit X6, R4). Strength does this on binding
-     * ([com.sinura.personaltrainer.PendingOccurrence.bindForSession]). Best effort: the cardio is
-     * open whatever happens here.
+     * The planned day's cardio is live, or its composer opens: its reminder showing goes, since its
+     * Move and Skip would act on the day being trained (audit X6, R4). Strength does this on
+     * binding ([com.sinura.personaltrainer.PendingOccurrence.bindForSession]). Best effort: the
+     * start stands whatever happens here.
      */
     private fun dismissShownReminder(occurrenceId: String) {
         runCatchingCancellable { plannerRepository.dismissShownReminder(occurrenceId) }

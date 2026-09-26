@@ -28,7 +28,8 @@
 > Skip while that day's session ran (Move moved the day away under you
 > and left a copy for a later day), unless the session was opened from
 > the reminder. Now its reminder leaves the shade as soon as the session
-> opens, from any start; a reminder due during it is not shown; and
+> opens, from any start (a mixed day's when its composer opens); a
+> reminder due during it is not shown; and
 > Snooze, Move or Skip on one still showing do nothing to the day.
 > Reminders still ahead are kept, so a day whose session was discarded
 > is still reminded of. On the next phone checklist: finish a workout,

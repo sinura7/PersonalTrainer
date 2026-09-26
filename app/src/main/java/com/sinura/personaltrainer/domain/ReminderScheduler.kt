@@ -10,5 +10,5 @@ interface ReminderScheduler {
     fun cancelForOccurrence(occurrenceId: String)
 
     /** Takes [occurrenceId]'s reminder off the screen, leaving its deliveries as they are. */
-    fun dismissShown(occurrenceId: String) {}
+    fun dismissShown(occurrenceId: String)
 }

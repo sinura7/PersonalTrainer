@@ -49,7 +49,10 @@ class PlannedDayReminderWhileTrainingTest {
         forgetFirstApplication()
     }
 
-    /** From any screen, a planned day's session opening takes its reminder off the phone. */
+    /**
+     * A planned day's session opening takes its reminder off the phone. Every planned strength
+     * start, whatever screen it is tapped on, binds its session here.
+     */
     @Test
     fun thePlannedSessionOpeningTakesItsReminderOffThePhone() {
         val planned = plannedEarlierToday()

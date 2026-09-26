@@ -295,10 +295,12 @@ Done so far:
   starts later. And a planned day's reminder kept its Snooze, Move and
   Skip while that day's session ran, unless it was opened from the
   reminder: now the reminder leaves the shade once the session opens,
-  from any start; one due while it runs is not shown; and Snooze, Move
-  or Skip on one still showing leave the day alone. Reminders still
-  ahead are kept, so a discarded session's day is still reminded of
-  (#437). This completes this session's share of the split.
+  from any start (a mixed day's when its composer opens); one due while
+  it runs is not shown; and Snooze, Move or Skip on one still showing
+  leave the day alone. Reminders still ahead are kept, so a discarded
+  session's day is still reminded of (#437). Left: a mixed day's
+  composer is not a live session, so a reminder due while it is open
+  still shows, with its Move and Skip. This completes this session's share of the split.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
