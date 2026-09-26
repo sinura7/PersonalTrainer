@@ -236,7 +236,7 @@ Done so far:
   process; that test resets it before and after each case. Found, not
   fixed: with nothing live, a Start tapped on a screen pushed over Home
   (the workout summary) waits, and the session then starts by itself
-  when you leave that screen.
+  when you leave that screen (fixed by R4, #R4PR).
 - **T3:** the Log's notes test that failed once in seven runs of its
   class now waits for the lift to load and for the notes' copy to
   settle; new tests hold what it only met by luck (leaving while a lift
@@ -286,6 +286,19 @@ Done so far:
   "The update didn't finish. Try again." Only one download is kept, and
   none once the install ends or a newer build is running (#436).
   Obtainium is unchanged.
+- **R4:** two reminder follow-ups from R2-6. With nothing live, a
+  reminder's Start tapped on a workout's summary (or any screen left
+  open over Home) went nowhere, then started the session by itself when
+  that screen was left. It now opens the planned session at once. Over
+  an activity being logged or a routine being edited, which ask before
+  they are left, it stays and says why ("You are editing"), and nothing
+  starts later. And a planned day's reminder kept its Snooze, Move and
+  Skip while that day's session ran, unless it was opened from the
+  reminder: now the reminder leaves the shade once the session opens,
+  from any start; one due while it runs is not shown; and Snooze, Move
+  or Skip on one still showing leave the day alone. Reminders still
+  ahead are kept, so a discarded session's day is still reminded of
+  (#R4PR). This completes this session's share of the split.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
@@ -322,11 +335,11 @@ Done so far:
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next, in order (owner decisions of 25 September, and of 26 September for
-R4; the live order is the table in FRONTEND_REDESIGN.md): W2d-3a and
-W2d-3b, W2e, R4 (reminder follow-ups), then a check-only phone drop,
-then W3, S1, X8 and X9. Two sessions run them side by side: W2d-3a to
-W2e in one, R4 in the other (the rest-alarm packet and R3 are done). X2b
+Next, in order (owner decisions of 25 and 26 September; the live order
+is the table in FRONTEND_REDESIGN.md): W2d-3a and W2d-3b, W2e, then a
+check-only phone drop, then W3, S1, X8 and X9. Of the two sessions that
+split the order, the one on the rest timer, the updater and reminders
+is done (the rest-alarm packet, R3 and R4); W2d-3a to W2e remain. X2b
 completed Wave 0.
 
 ## What is verified, and how

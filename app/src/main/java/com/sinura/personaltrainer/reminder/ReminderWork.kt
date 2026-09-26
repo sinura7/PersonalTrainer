@@ -19,6 +19,8 @@ internal object ReminderWork {
         planner: PlannerRepository,
         prefs: ReminderPreferences,
         now: CapturedCivilTime,
+        /** Whether the planned day is being trained now: its reminder is then not shown. */
+        trainedNow: suspend (occurrenceId: String) -> Boolean = { false },
         notify: (occurrence: ScheduleOccurrence, deliveryId: String, title: String) -> Unit,
     ) {
         if (deliveryId == null) return
@@ -29,6 +31,7 @@ internal object ReminderWork {
             prefs = prefs,
             nowLocalMinutes = nowLocalMinutes,
             nowMs = now.instantMillis,
+            trainedNow = trainedNow,
         ) { occurrence, _ ->
             delivered = occurrence
         }

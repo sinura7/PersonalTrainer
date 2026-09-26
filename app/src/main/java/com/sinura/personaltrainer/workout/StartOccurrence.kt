@@ -67,7 +67,8 @@ class StartOccurrence(
                             occurrenceId = occurrence.id,
                         )
                     ) {
-                        is StartCardioOutcome.Open -> StartOccurrenceOutcome.OpenCardio(cardio.sessionId)
+                        is StartCardioOutcome.Open ->
+                            StartOccurrenceOutcome.OpenCardio(cardio.sessionId).also { dismissShownReminder(occurrence.id) }
                         is StartCardioOutcome.Rejected -> StartOccurrenceOutcome.Failed(cardio.reason)
                     }
                 }
@@ -94,6 +95,17 @@ class StartOccurrence(
             AppLog.w(TAG, "Starting occurrence $occurrenceId failed", thrown)
             StartOccurrenceOutcome.Failed("Could not start that session. Try again.")
         }
+    }
+
+    /**
+     * The planned day's cardio is live: its reminder showing goes, since its Move and Skip would
+     * act on the day being trained (audit X6, R4). Strength does this on binding
+     * ([com.sinura.personaltrainer.PendingOccurrence.bindForSession]). Best effort: the cardio is
+     * open whatever happens here.
+     */
+    private fun dismissShownReminder(occurrenceId: String) {
+        runCatchingCancellable { plannerRepository.dismissShownReminder(occurrenceId) }
+            .onFailure { thrown -> AppLog.w(TAG, "Dismissing the planned day's reminder failed", thrown) }
     }
 
     private suspend fun plannedDay(

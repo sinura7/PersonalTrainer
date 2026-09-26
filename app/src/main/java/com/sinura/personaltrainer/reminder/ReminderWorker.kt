@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.reminder
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.flow.first
@@ -23,6 +24,7 @@ class ReminderWorker(
             planner = app.container.plannerRepository,
             prefs = prefs,
             now = JvmTime.captureNow(),
+            trainedNow = { occurrenceId -> PendingOccurrence.isTrainedNow(app.container, occurrenceId) },
             notify = { occurrence, deliveryId, title ->
                 ReminderNotifications.show(applicationContext, occurrence, deliveryId, title)
             },

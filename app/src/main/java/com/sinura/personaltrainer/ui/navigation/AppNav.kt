@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -269,6 +270,29 @@ private val LIVE_BAR_HIDDEN_ROUTES = setOf(
     // live-session affordance, and the sheet itself shows "Go to session" rather than any start.
 )
 
+/** Screens that ask before they are left: closing one for the lifter would lose what they typed. */
+private val ASKS_BEFORE_LEAVING = setOf(
+    Route.ActivityComposer.path,
+    Route.RoutineEditor.path,
+)
+
+/**
+ * Home in front for a reminder tap with nothing live. Its tab alone is not enough: it brings back
+ * whatever was left open over Home (a workout's summary, a detail page), and Home, not drawn,
+ * took the tap only once that screen was left, starting the session by itself then (audit X6,
+ * R4). Those screens are closed now; one that asks before it is left is kept, and the tap is
+ * held there instead.
+ */
+private fun NavController.bringHomeForward(goToTab: (String) -> Unit): HomeReach {
+    goToTab(Route.Home.path)
+    val overHome = currentBackStack.value
+        .dropWhile { it.destination.route != Route.Home.path }
+        .drop(1)
+    if (overHome.any { it.destination.route in ASKS_BEFORE_LEAVING }) return HomeReach.BEHIND_AN_EDIT
+    if (overHome.isNotEmpty()) popBackStack(Route.Home.path, inclusive = false)
+    return HomeReach.IN_FRONT
+}
+
 @Composable
 fun PersonalTrainerNav(
     openSessionId: String? = null,
@@ -440,7 +464,7 @@ fun PersonalTrainerNav(
         openDeliveryId = openDeliveryId,
         openReviewId = reviewOccurrenceId,
         verdict = { occurrenceId -> ReminderHandoff.verdict(container, occurrenceId) },
-        goToTab = goToTab,
+        bringHomeForward = { navController.bringHomeForward(goToTab) },
         openLive = openLive,
         useReminder = { occurrenceId, deliveryId ->
             UsedReminder.markStarted(application, container, occurrenceId, deliveryId)

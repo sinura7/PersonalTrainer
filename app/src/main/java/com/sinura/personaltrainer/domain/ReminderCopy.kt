@@ -32,6 +32,17 @@ object ReminderCopy {
             "your notifications."
     const val LIVE_REVIEW_BODY = "Finish or discard it first, then open the planned day from Home."
     const val LIVE_OK = "OK"
+
+    /**
+     * A reminder tapped with nothing live, while a screen that asks before it is left (an activity
+     * being logged, a routine being edited) is open over Home. Home, under it, took the tap only
+     * once it was left, and then started the session by itself (audit X6, R4).
+     */
+    const val EDIT_TITLE = "You are editing"
+    const val EDIT_START_BODY =
+        "Save or leave it first, then start the planned session. The reminder stays in your " +
+            "notifications."
+    const val EDIT_REVIEW_BODY = "Save or leave it first, then open the planned day from Home."
     const val ALARM_EMPTY = "No days yet. Pick a day, then scroll the time."
     const val DAY_OFF = "Off"
     const val REST_STAYS_ON_REST = "Rest alerts live on Rest. Exact alarms when the phone allows them."

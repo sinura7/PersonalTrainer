@@ -39,6 +39,7 @@ class ReminderHandoffHostTest {
     private var review by mutableStateOf<String?>(null)
     private var verdict: suspend (String) -> TapVerdict = { TapVerdict.NothingLive }
     private var forHome: HomeTap? = null
+    private var reach = HomeReach.IN_FRONT
     private val tabs = mutableListOf<String>()
     private val opened = mutableListOf<Pair<String, Boolean>>()
     private val used = mutableListOf<Pair<String, String>>()
@@ -50,7 +51,10 @@ class ReminderHandoffHostTest {
                 openDeliveryId = delivery,
                 openReviewId = review,
                 verdict = { verdict(it) },
-                goToTab = { tabs += it },
+                bringHomeForward = {
+                    tabs += Route.Home.path
+                    reach
+                },
                 openLive = { sessionId, cardio -> opened += sessionId to cardio },
                 useReminder = { occurrenceId, deliveryId -> used += occurrenceId to deliveryId },
                 handToHome = { forHome = it },
@@ -112,6 +116,58 @@ class ReminderHandoffHostTest {
         assertEquals(HomeTap(startId = "occ-1", deliveryId = "rem-occ-1", reviewId = null), forHome)
         assertEquals("Home consumes it when it starts", "occ-1", start)
         compose.onNodeWithText(ReminderCopy.LIVE_TITLE).assertDoesNotExist()
+    }
+
+    /**
+     * Audit X6, R4: with nothing live, a screen that asks before it is left (an activity being
+     * logged, a routine edited) stays over Home. Home, under it, took the tap only once it was
+     * left, and started the session by itself then. The tap is held there instead, with a word
+     * of why, and its reminder is not used.
+     */
+    @Test
+    fun withNothingLiveBehindAnEditTheTapStaysAndSaysWhy() {
+        reach = HomeReach.BEHIND_AN_EDIT
+        host()
+
+        tapStart()
+
+        assertEquals("Home's tab was asked for once", listOf(Route.Home.path), tabs)
+        assertNull("Home is never handed it", forHome)
+        assertNull("the tap is taken here", start)
+        assertNull(delivery)
+        assertTrue("its reminder is not used", used.isEmpty())
+        compose.onNodeWithText(ReminderCopy.EDIT_TITLE).assertIsDisplayed()
+        compose.onNodeWithText(ReminderCopy.EDIT_START_BODY).assertIsDisplayed()
+
+        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).performClick()
+        compose.onNodeWithText(ReminderCopy.EDIT_TITLE).assertDoesNotExist()
+        assertNull(forHome)
+    }
+
+    @Test
+    fun aBodyTapBehindAnEditStaysAndSaysWhy() {
+        reach = HomeReach.BEHIND_AN_EDIT
+        host()
+
+        review = "occ-1"
+        compose.waitForIdle()
+
+        assertNull(forHome)
+        assertNull(review)
+        compose.onNodeWithText(ReminderCopy.EDIT_REVIEW_BODY).assertIsDisplayed()
+    }
+
+    @Test
+    fun theEditExplanationSurvivesTheActivityBeingRecreated() {
+        val restoration = StateRestorationTester(compose)
+        reach = HomeReach.BEHIND_AN_EDIT
+        host(restoration)
+        tapStart()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        compose.onNodeWithText(ReminderCopy.EDIT_TITLE).assertIsDisplayed()
+        compose.onNodeWithText(ReminderCopy.EDIT_START_BODY).assertIsDisplayed()
     }
 
     /** On a cold start the database answers late; until it does, nothing moves and Home waits. */

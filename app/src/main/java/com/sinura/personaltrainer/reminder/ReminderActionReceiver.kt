@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.reminder
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.PersonalTrainerApp
 import com.sinura.personaltrainer.logging.AppLog
 import kotlinx.coroutines.CancellationException
@@ -36,6 +37,7 @@ class ReminderActionReceiver : BroadcastReceiver() {
                     deliveryId = deliveryId,
                     planner = app.container.plannerRepository,
                     cancelNotification = { id -> ReminderNotifications.cancel(context, id) },
+                    trainedNow = { id -> PendingOccurrence.isTrainedNow(app.container, id) },
                 )
             } catch (error: CancellationException) {
                 throw error
