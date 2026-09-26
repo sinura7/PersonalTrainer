@@ -18,8 +18,8 @@ yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 571 | 95,953 | — |
-| `app/src/test` | 500 | 89,332 | 3,412 |
+| `app/src/main` | 571 | 95,958 | — |
+| `app/src/test` | 500 | 89,373 | 3,415 |
 | `app/src/androidTest` | 33 | 5,927 | 112 `@Test` methods (some parameterised) |
 | `app/src/debug` | 13 | 1,645 | Compose previews, the state galleries, and Temper Debug's install-answer receiver |
 | `app/src/sharedTest` | 5 | 171 | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
@@ -30,7 +30,7 @@ Everything is under `com.sinura.personaltrainer`.
 
 | Package | Files | Lines | What it is |
 |---|---|---|---|
-| `ui` | 176 | 47,112 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
+| `ui` | 176 | 47,117 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
 | `domain` | 206 | 23,357 | Models, rules, calculators, policies, ports, CoachEngine, and 65 `*Copy` text objects (69 app-wide) |
 | `data` | 116 | 17,327 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup`, `sync` (15 files, 2,266 lines), `auth` (4, 224) |
 | `timer` | 18 | 2,906 | Rest foreground service, alarm scheduler, notifications, persistence |
