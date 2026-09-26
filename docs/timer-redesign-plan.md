@@ -45,8 +45,8 @@ and finally looks like its own tool.
    Skip never fakes a finish.
 3. **One clock, enforced twice.** `FloorTimedMode` (`NONE | REST_IDLE | REST_RUNNING |
    REST_COMPLETE | HOLD_RUNNING | STOPWATCH_RUNNING`) plus the `timedGeneration` counter
-   in `ActiveWorkoutViewModel` (every start path calls `bumpTimedGeneration()`, which
-   cancels hold, stopwatch, and pending-rest jobs). Priority: hold beats stopwatch beats
+   in `FloorWorkClocks`, which `ActiveWorkoutViewModel` holds since W2d-3a (every start
+   path calls its `bump()`, which cancels hold, stopwatch, and pending-rest jobs). Priority: hold beats stopwatch beats
    rest (`FloorTimedModeResolver.resolve`). Starting SET or HOLD cancels a hidden rest
    alarm so nothing rings mid-set. Covered by `FloorTimedModeTest`,
    `FloorTimerSurfaceTest`, `FloorCompactRestBarTest`.
@@ -435,8 +435,8 @@ no proposal here.
 - **Hold/set:** `SetWorkDock` (`workout-hold-clock`) → `FloorInstrumentBar`; hold
   remaining via `HoldWork.liveDockSeconds`; `Stop` via `workout-stop-set-clock`
   (stopwatch only).
-- **State:** `ActiveWorkoutViewModel` — `restTimer` (service-backed) + `_holdTimer` +
-  `_setStopwatch` (local tickers) + `timedGeneration` mutex + `pendingRestJob`
+- **State:** `ActiveWorkoutViewModel` — `restTimer` (service-backed), `FloorWorkClocks`
+  (the hold and set clocks' tickers and `timedGeneration`, since W2d-3a), `pendingRestJob`
   (180 ms post-log delay); `RestTimerUiState`, `HoldTimerUiState`,
   `SetStopwatchUiState`; persistence via `SavedStateFloorTimer` + rest store.
 - **Rest page:** `RestTimerScreen` + `RestTimerViewModel` — 280 dp `RestSweepRing`,

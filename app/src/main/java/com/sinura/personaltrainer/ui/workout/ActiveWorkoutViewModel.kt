@@ -29,7 +29,6 @@ import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.PendingLiftSwitch
 import com.sinura.personaltrainer.domain.SetStopwatchUiState
-import com.sinura.personaltrainer.domain.SetStopwatchWork
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExerciseOrdering
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
@@ -95,7 +94,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val TAG = "PT/ActiveWorkoutVM"
-private const val TIMED_TICK_MS = 250L
 
 /** [ErrorSlot] families: a success may clear only its own family's refusal. */
 private const val ERR_LOAD = "load"
@@ -245,7 +243,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
     private val savedDraft = SavedStateWorkoutDraft(savedStateHandle)
-    private val savedTimer = SavedStateFloorTimer(savedStateHandle)
     private val savedEdit = SavedStateWorkoutSave(handle = savedStateHandle, storageKey = "workout.editOriginal.v1")
     private var editingOriginal = draftCache.editingOriginal(sessionId) ?: savedEdit.read(sessionId)
     private val mutating = MutableStateFlow(false)
@@ -336,22 +333,26 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private var terminalExit = false
 
     private val restTimer = container.restTimerController
-    private val _holdTimer = MutableStateFlow(HoldTimerUiState())
-    val holdTimer: StateFlow<HoldTimerUiState> = _holdTimer.asStateFlow()
-    private var holdJob: Job? = null
-    private val _setStopwatch = MutableStateFlow(SetStopwatchUiState())
-    val setStopwatch: StateFlow<SetStopwatchUiState> = _setStopwatch.asStateFlow()
-    private var setStopwatchJob: Job? = null
-    private var timedGeneration = 0
-    private val timedActionGeneration = MutableStateFlow(0)
+
+    /**
+     * The hold countdown and the set clock, their tickers, cues and saved state (audit W2d-3a).
+     * Built before `init` restores them. The gates, the rest a start stops and the lift switch a
+     * running clock holds up stay here.
+     */
+    private val clocks = FloorWorkClocks(
+        saved = SavedStateFloorTimer(savedStateHandle),
+        scope = viewModelScope,
+        elapsedNow = ::elapsedNow,
+        selectedLift = { selectedExerciseId.value },
+        holdSoundEnabled = { container.preferencesRepository.restTimerPreferences.first().soundEnabled },
+        cancelPendingRest = ::cancelPendingRest,
+    )
+    val holdTimer: StateFlow<HoldTimerUiState> = clocks.hold
+    val setStopwatch: StateFlow<SetStopwatchUiState> = clocks.stopwatch
     private val primaryActivation = MutableStateFlow(0L)
     private var lastPrimaryTap: Long? = null
     private var pendingRestJob: Job? = null
-    private val _floorTimerCue = MutableSharedFlow<FloorTimerCue>(
-        extraBufferCapacity = 8,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-    )
-    val floorTimerCue: SharedFlow<FloorTimerCue> = _floorTimerCue.asSharedFlow()
+    val floorTimerCue: SharedFlow<FloorTimerCue> = clocks.cues
     private val _pendingLiftSwitch = MutableStateFlow<PendingLiftSwitch?>(null)
     val pendingLiftSwitch: StateFlow<PendingLiftSwitch?> = _pendingLiftSwitch.asStateFlow()
 
@@ -437,7 +438,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             draftCache.putEditingOriginal(sessionId, original)
         }
         saves.keepRestored()?.let { command -> restoreSaveDraft(command) }
-        restoreTimedWork(selectedExerciseId.value)
+        clocks.restore(selectedExerciseId.value)
+        // A clock that comes back running ends a rest started while the app was stopped.
+        if (clocks.timing) {
+            restTimer.stop()
+        }
         viewModelScope.launch {
             // The flow is guarded at the repository, but the body below is not — a failure
             // here would otherwise kill the collector and freeze the screen silently.
@@ -870,10 +875,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         persistDraft()
         editingSetId.value = null
         clearEditingOriginal()
-        persistStopwatchFor(selectedExerciseId.value)
+        clocks.saveStopwatchFor(selectedExerciseId.value)
         wantAnotherSet.value = false
         _pendingLiftSwitch.value = null
-        stopHoldTimer()
+        clocks.stopHold()
         suggestionUnavailable.value = false
         val stored = liftDraft(exerciseId)
         if (stored != null) {
@@ -895,7 +900,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             notes = notes.value,
             editingSetId = editingSetId.value,
         )
-        restoreStopwatchFor(exerciseId, resumeRunning = false)
+        clocks.restoreStopwatchFor(exerciseId, resumeRunning = false)
     }
 
     private fun liftDraft(exerciseId: String): WorkoutDraft? =
@@ -913,10 +918,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     private fun clearLiftSelection() {
-        persistStopwatchFor(selectedExerciseId.value)
-        stopHoldTimer()
-        bumpTimedGeneration()
-        _setStopwatch.value = SetStopwatchUiState()
+        clocks.saveStopwatchFor(selectedExerciseId.value)
+        clocks.stopHold()
+        clocks.bump()
+        clocks.resetStopwatchView()
         draftDirty.value = false
         suggestionUnavailable.value = false
         liftReadiness.value = LiftEntryReadiness.NONE
@@ -936,7 +941,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     private fun selectExerciseInternal(exerciseId: String) {
         if (selectedExerciseId.value == exerciseId) return
-        if (_setStopwatch.value.running || _holdTimer.value.running) {
+        if (clocks.timing) {
             _pendingLiftSwitch.value = PendingLiftSwitch(exerciseId)
             return
         }
@@ -1008,74 +1013,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val selected = session.value?.exercises?.firstOrNull { it.exercise.id == exerciseId }
             ?: return
         if (!HoldWork.isHold(selected.exercise)) return
-        if (_holdTimer.value.running) return
+        if (clocks.hold.value.running) return
         val total = HoldWork.countdownSeconds(
             draft.value.durationSeconds ?: selected.targetSeconds,
         )
         restTimer.stop()
-        persistStopwatchFor(exerciseId)
-        clearSetStopwatch()
-        bumpTimedGeneration()
-        val gen = timedGeneration
-        val now = elapsedNow()
-        val deadline = HoldWork.deadlineElapsedRealtime(now, total)
-        _holdTimer.value = HoldTimerUiState(
-            running = true,
-            remainingSeconds = total,
-            totalSeconds = total,
-            elapsedSeconds = 0,
-            startElapsedRealtime = now,
-            deadlineElapsedRealtime = deadline,
-            targetReached = false,
-        )
-        persistHold()
-        _floorTimerCue.tryEmit(FloorTimerCue.HoldStarted)
-        holdJob = viewModelScope.launch { runHoldTicker(gen) }
-    }
-
-    private suspend fun runHoldTicker(generation: Int) {
-        while (generation == timedGeneration) {
-            val hold = _holdTimer.value
-            if (!hold.running) return
-            val now = elapsedNow()
-            if (now < hold.startElapsedRealtime) {
-                stopHoldTimer()
-                return
-            }
-            val remaining = HoldWork.remainingFromDeadline(
-                deadlineElapsedRealtime = hold.deadlineElapsedRealtime,
-                nowElapsedRealtime = now,
-                totalSeconds = hold.totalSeconds,
-            )
-            val elapsed = HoldWork.elapsedFromRealtime(
-                startElapsedRealtime = hold.startElapsedRealtime,
-                nowElapsedRealtime = now,
-                totalSeconds = hold.totalSeconds,
-            )
-            if (remaining <= 0) {
-                _holdTimer.value = hold.copy(
-                    running = false,
-                    remainingSeconds = 0,
-                    elapsedSeconds = hold.totalSeconds,
-                    targetReached = true,
-                )
-                persistHold()
-                val sound = container.preferencesRepository.restTimerPreferences.first().soundEnabled
-                _floorTimerCue.tryEmit(FloorTimerCue.HoldTarget(soundEnabled = sound))
-                return
-            }
-            _holdTimer.value = hold.copy(
-                remainingSeconds = remaining,
-                elapsedSeconds = elapsed,
-            )
-            delay(TIMED_TICK_MS)
-        }
-    }
-
-    private fun stopHoldTimer() {
-        bumpHoldJob()
-        _holdTimer.value = HoldTimerUiState()
-        savedTimer.clearHold()
+        clocks.startHold(exerciseId = exerciseId, totalSeconds = total)
     }
 
     /**
@@ -1088,187 +1031,20 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val selected = session.value?.exercises?.firstOrNull { it.exercise.id == exerciseId }
             ?: return
         if (HoldWork.isHold(selected.exercise)) return
-        if (_setStopwatch.value.running) return
+        if (clocks.stopwatch.value.running) return
         restTimer.stop()
-        stopHoldTimer()
-        bumpTimedGeneration()
-        val gen = timedGeneration
-        val already = _setStopwatch.value.elapsedSeconds.coerceAtLeast(0)
-        val now = elapsedNow()
-        _setStopwatch.value = SetStopwatchUiState(
-            running = true,
-            elapsedSeconds = already,
-            used = true,
-            startElapsedRealtime = now,
-            frozenElapsedSeconds = already,
-            exerciseId = exerciseId,
-        )
-        persistStopwatchFor(exerciseId)
-        _floorTimerCue.tryEmit(FloorTimerCue.StopwatchStarted)
-        setStopwatchJob = viewModelScope.launch { runStopwatchTicker(gen) }
-    }
-
-    private suspend fun runStopwatchTicker(generation: Int) {
-        while (generation == timedGeneration) {
-            val watch = _setStopwatch.value
-            if (!watch.running) return
-            val now = elapsedNow()
-            val elapsed = SetStopwatchWork.elapsedFromRealtime(
-                startElapsedRealtime = watch.startElapsedRealtime,
-                frozenElapsedSeconds = watch.frozenElapsedSeconds,
-                nowElapsedRealtime = now,
-            )
-            _setStopwatch.value = watch.copy(elapsedSeconds = elapsed)
-            if (elapsed >= HoldWork.MAX_SECONDS) {
-                stopSetStopwatch()
-                return
-            }
-            delay(TIMED_TICK_MS)
-        }
+        clocks.startStopwatch(exerciseId = exerciseId)
     }
 
     fun stopSetStopwatch() {
-        val current = _setStopwatch.value
-        if (!current.used && !current.running) return
-        bumpStopwatchJob()
-        val now = elapsedNow()
-        val elapsed = if (current.running) {
-            SetStopwatchWork.elapsedFromRealtime(
-                startElapsedRealtime = current.startElapsedRealtime,
-                frozenElapsedSeconds = current.frozenElapsedSeconds,
-                nowElapsedRealtime = now,
-            )
-        } else {
-            current.elapsedSeconds
-        }
-        _setStopwatch.value = current.copy(
-            running = false,
-            elapsedSeconds = elapsed,
-            frozenElapsedSeconds = elapsed,
-            startElapsedRealtime = 0L,
-        )
-        persistStopwatchFor(selectedExerciseId.value)
-        if (current.running) {
-            _floorTimerCue.tryEmit(FloorTimerCue.StopwatchStopped)
-        }
-    }
-
-    private fun clearSetStopwatch() {
-        bumpStopwatchJob()
-        val id = _setStopwatch.value.exerciseId ?: selectedExerciseId.value
-        _setStopwatch.value = SetStopwatchUiState()
-        id?.let { savedTimer.clearStopwatch(it) }
+        clocks.stopStopwatch()
     }
 
     private fun elapsedNow(): Long = time.elapsedRealtimeMillis()
 
-    private fun bumpTimedGeneration() {
-        timedGeneration++
-        timedActionGeneration.value = timedGeneration
-        holdJob?.cancel()
-        holdJob = null
-        setStopwatchJob?.cancel()
-        setStopwatchJob = null
-        cancelPendingRest()
-    }
-
     private fun cancelPendingRest() {
         pendingRestJob?.cancel()
         pendingRestJob = null
-    }
-
-    private fun bumpHoldJob() {
-        holdJob?.cancel()
-        holdJob = null
-    }
-
-    private fun bumpStopwatchJob() {
-        setStopwatchJob?.cancel()
-        setStopwatchJob = null
-    }
-
-    private fun persistHold() {
-        savedTimer.writeHold(selectedExerciseId.value, _holdTimer.value)
-    }
-
-    private fun persistStopwatchFor(exerciseId: String?) {
-        if (exerciseId.isNullOrBlank()) return
-        val watch = _setStopwatch.value
-        if (!watch.used && !watch.running) {
-            savedTimer.clearStopwatch(exerciseId)
-            return
-        }
-        savedTimer.writeStopwatch(exerciseId, watch.copy(exerciseId = exerciseId))
-    }
-
-    private fun restoreTimedWork(exerciseId: String?) {
-        val now = elapsedNow()
-        val hold = savedTimer.readHold(exerciseId, now)
-        if (hold != null) {
-            val remaining = HoldWork.remainingFromDeadline(
-                deadlineElapsedRealtime = hold.deadlineElapsedRealtime,
-                nowElapsedRealtime = now,
-                totalSeconds = hold.totalSeconds,
-            )
-            val elapsed = HoldWork.elapsedFromRealtime(
-                startElapsedRealtime = hold.startElapsedRealtime,
-                nowElapsedRealtime = now,
-                totalSeconds = hold.totalSeconds,
-            )
-            val reached = hold.targetReached || remaining <= 0
-            _holdTimer.value = hold.copy(
-                running = hold.running && !reached,
-                remainingSeconds = if (reached) 0 else remaining,
-                elapsedSeconds = if (reached) hold.totalSeconds else elapsed,
-                targetReached = reached,
-            )
-            if (_holdTimer.value.running) {
-                bumpTimedGeneration()
-                val gen = timedGeneration
-                holdJob = viewModelScope.launch { runHoldTicker(gen) }
-            }
-        }
-        if (exerciseId != null) {
-            restoreStopwatchFor(
-                exerciseId = exerciseId,
-                resumeRunning = !_holdTimer.value.running,
-            )
-        }
-        if (_holdTimer.value.running || _setStopwatch.value.running) {
-            restTimer.stop()
-        }
-    }
-
-    private fun restoreStopwatchFor(exerciseId: String, resumeRunning: Boolean) {
-        bumpStopwatchJob()
-        val now = elapsedNow()
-        val stored = savedTimer.readStopwatch(exerciseId, now)
-        if (stored == null || !stored.used) {
-            _setStopwatch.value = SetStopwatchUiState(exerciseId = exerciseId)
-            return
-        }
-        val live = if (stored.running && resumeRunning) {
-            SetStopwatchWork.elapsedFromRealtime(
-                startElapsedRealtime = stored.startElapsedRealtime,
-                frozenElapsedSeconds = stored.frozenElapsedSeconds,
-                nowElapsedRealtime = now,
-            )
-        } else {
-            stored.elapsedSeconds.coerceAtLeast(stored.frozenElapsedSeconds)
-        }
-        val running = stored.running && resumeRunning && live < HoldWork.MAX_SECONDS
-        _setStopwatch.value = stored.copy(
-            running = running,
-            elapsedSeconds = live,
-            frozenElapsedSeconds = if (running) stored.frozenElapsedSeconds else live,
-            startElapsedRealtime = if (running) stored.startElapsedRealtime else 0L,
-            exerciseId = exerciseId,
-        )
-        if (running) {
-            bumpTimedGeneration()
-            val gen = timedGeneration
-            setStopwatchJob = viewModelScope.launch { runStopwatchTicker(gen) }
-        }
     }
 
     /**
@@ -1563,7 +1339,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     val primaryAction: StateFlow<WorkoutPrimaryAction> = combine(
         uiState,
         wantAnotherSet,
-        combine(_holdTimer, _setStopwatch, timedActionGeneration) { hold, stopwatch, generation ->
+        combine(clocks.hold, clocks.stopwatch, clocks.generation) { hold, stopwatch, generation ->
             Triple(hold, stopwatch, generation)
         },
         primaryActivation,
@@ -1581,8 +1357,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 mutating = mutating.value, save = saves.operation.value,
                 liftReadiness = liftReadiness.value, draftDirty = draftDirty.value,
             ),
-            extraSet = wantAnotherSet.value, hold = _holdTimer.value, stopwatch = _setStopwatch.value,
-            timedGeneration = timedActionGeneration.value, activation = primaryActivation.value,
+            extraSet = wantAnotherSet.value, hold = clocks.hold.value, stopwatch = clocks.stopwatch.value,
+            timedGeneration = clocks.generation.value, activation = primaryActivation.value,
         )
     }
 
@@ -1621,7 +1397,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val current = draft.value
         val selectedLift = session.value?.exercises?.firstOrNull { it.exercise.id == exerciseId } ?: return
         val hold = HoldWork.isHold(selectedLift.exercise)
-        val holdState = _holdTimer.value
+        val holdState = clocks.hold.value
         val editingId = editingSetId.value
         if (hold && editingId == null && holdState.totalSeconds == 0 && !holdState.running) {
             startHoldSet()
@@ -1638,7 +1414,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             holdTotalSeconds = holdState.totalSeconds,
             holdRemainingSeconds = holdState.remainingSeconds,
             holdDraftSeconds = current.durationSeconds ?: selectedLift.targetSeconds,
-            stopwatch = _setStopwatch.value,
+            stopwatch = clocks.stopwatch.value,
             existingDurationSeconds = current.durationSeconds.takeUnless { hold },
         )
         val values = WorkoutSetValues(
@@ -1733,8 +1509,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             draft.value = draft.value.copy(isWarmup = false, rpe = null)
             error.clearFrom(source = ERR_LOG_SET, before = error.mark())
             persistDraft()
-            stopHoldTimer()
-            clearSetStopwatch()
+            clocks.stopHold()
+            clocks.discardStopwatch()
             reconcileSelectionAfterSave()
             if (recovered || result == null) return
             val values = command.values
@@ -1808,8 +1584,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 savedEdit.write(saved)
                 draftCache.putEditingOriginal(sessionId, saved)
             }
-            stopHoldTimer()
-            clearSetStopwatch()
+            clocks.stopHold()
+            clocks.discardStopwatch()
             selectedExerciseId.value = original.exerciseId
             val hold = session.value?.exercises
                 ?.firstOrNull { it.exercise.id == original.exerciseId }
@@ -1981,9 +1757,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     fun startSelectedRest() {
         if (!canChangeEntry()) return
-        bumpTimedGeneration()
-        stopHoldTimer()
-        clearSetStopwatch()
+        clocks.bump()
+        clocks.stopHold()
+        clocks.discardStopwatch()
         restCommands.startPlanned(restTotal.value.seconds)
     }
 

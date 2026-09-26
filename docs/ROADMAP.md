@@ -15,6 +15,14 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Sep 2026 — Whole-app audit packet W2d-3a: the workout floor's two
+> clocks, the countdown for a hold such as a plank or a dead hang and the
+> set clock for a timed set, move out of the workout ViewModel into their
+> own small helper, with what they save for when Android stops the app
+> and the sounds they cue. Nothing changes on screen; 25 tests
+> written on the old code prove it, and a replay of the real screen reads
+> the same before and after. Quiet.
+>
 > 26 Sep 2026 — Audit packet R4 (audit X6's follow-ups from R2-6;
 > reminders): with nothing live, tapping Start on a plan reminder while a
 > workout's summary was showing did nothing, then started the session by

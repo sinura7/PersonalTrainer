@@ -302,6 +302,12 @@ Done so far:
   composer is not a live session, so a reminder due while it is open
   still shows, with its Move and Skip. This completes this session's
   share of the split.
+- **W2d-3a:** the floor's hold countdown and set clock (their tickers,
+  the sounds they cue, what they save for when Android stops the app, and
+  their restore) move out of the workout ViewModel into a small helper,
+  `FloorWorkClocks`. Timing a hold or a set works exactly as before;
+  25 tests run on the old code first prove it (#438). The ViewModel
+  is 2,282 → 2,058 lines.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
@@ -339,10 +345,11 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner decisions of 25 and 26 September; the live order
-is the table in FRONTEND_REDESIGN.md): W2d-3a and W2d-3b, W2e, then a
+is the table in FRONTEND_REDESIGN.md): W2d-3b and W2e, then a
 check-only phone drop, then W3, S1, X8 and X9. Of the two sessions that
 split the order, the one on the rest timer, the updater and reminders
-is done (the rest-alarm packet, R3 and R4); W2d-3a to W2e remain. X2b
+is done (the rest-alarm packet, R3 and R4); W2d-3a is done too (above),
+and W2d-3b and W2e remain. X2b
 completed Wave 0.
 
 ## What is verified, and how
