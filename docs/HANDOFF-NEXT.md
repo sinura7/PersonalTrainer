@@ -276,6 +276,13 @@ Done so far:
   it wrote, so a wakeup always matches a row on disk (#435); a kill
   before a row lands still loses that rest, which no order can prevent.
   This completes the rest-alarm packet.
+- **R3:** Temper Debug's Update downloaded the build, then Android's
+  install sheet never opened: Android's answer ("the owner must confirm",
+  with the sheet to open) went to the main screen, which never read it.
+  The answer now goes to a small Temper Debug-only screen that no other
+  app can open; it opens Android's sheet, and a build Android refuses
+  shows "The update didn't finish. Try again." Only one download is kept,
+  and none once a newer build is running (#436). Obtainium is unchanged.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
@@ -314,10 +321,10 @@ Done so far:
 
 Next, in order (owner decisions of 25 September, and of 26 September for
 R4; the live order is the table in FRONTEND_REDESIGN.md): W2d-3a and
-W2d-3b, W2e, R3 (updater), R4 (reminder follow-ups), then a check-only
-phone drop, then W3, S1, X8 and X9. Two sessions run them side by side:
-W2d-3a to W2e in one, R3 and R4 in the other (the rest-alarm packet is
-done). X2b completed Wave 0.
+W2d-3b, W2e, R4 (reminder follow-ups), then a check-only phone drop,
+then W3, S1, X8 and X9. Two sessions run them side by side: W2d-3a to
+W2e in one, R4 in the other (the rest-alarm packet and R3 are done). X2b
+completed Wave 0.
 
 ## What is verified, and how
 

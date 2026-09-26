@@ -23,6 +23,9 @@ interface DebugUpdatePort {
     fun onSettingsOpened()
     fun dismissBanner()
     fun install()
+
+    /** Android's answer to the install session the banner started. */
+    fun onInstallAnswer(answer: DebugInstallAnswer) {}
 }
 
 object DisabledDebugUpdate : DebugUpdatePort {
@@ -71,6 +74,29 @@ internal class DebugUpdateMonitor(
 
     override fun install() {
         scope.launch { runInstall() }
+    }
+
+    /**
+     * Android's sheet is the app's to open ([DebugInstallAnswer.Confirm]); a cancelled sheet
+     * leaves the update to tap again. A refusal says the update did not finish, and an install
+     * that went through leaves no download behind.
+     */
+    override fun onInstallAnswer(answer: DebugInstallAnswer) {
+        when (answer) {
+            is DebugInstallAnswer.Confirm, DebugInstallAnswer.Cancelled -> Unit
+            is DebugInstallAnswer.Failed -> {
+                AppLog.w(TAG, "Android did not install the update (status ${answer.status}): ${answer.message}")
+                publishInstall(DebugUpdateInstall.Failed)
+            }
+            DebugInstallAnswer.Installed -> scope.launch { clearStaging() }
+        }
+    }
+
+    private suspend fun clearStaging() {
+        withContext(ioDispatcher) {
+            runCatchingCancellable { installer.clearStaging() }
+                .onFailure { error -> AppLog.w(TAG, "Deleting the downloaded builds failed", error) }
+        }
     }
 
     /** JVM tests call this so they do not race the fire-and-forget tap. */
@@ -142,6 +168,8 @@ internal class DebugUpdateMonitor(
             val dismissed = withContext(ioDispatcher) {
                 runCatchingCancellable { cache.dismissedVersionCode() }.getOrDefault(0)
             }
+            // No newer build: whatever was downloaded is installed, or will not be (audit RM-6).
+            if (offer == null) clearStaging()
             val previous = held.value
             held.value = DebugUpdateUi(
                 offer = offer,

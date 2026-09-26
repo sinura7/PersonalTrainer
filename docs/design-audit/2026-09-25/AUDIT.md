@@ -175,7 +175,7 @@ means the person training with the app.
 | RT-1 (B6) | On a phone set to the light system theme the rest countdown in the shade and on the lock screen is near-white on white. | rest-alarm packet: fixed 26 September (#434): the countdown takes the phone's notification colours (this also closes AX-16, the same two fixed colours); still to see on the phone |
 | RT-3 (B6) | A brand-new user is asked for alarms, notifications and battery access right after choosing how to save, before any rest, which ADR-012 and the privacy page say never happens. Decision 2. | X9 |
 | DM-2 (B8) | Train in one time zone and open the app in another, and a strength workout can file under a different day; the body-heat map and "this week" shift with it. The activity model already stores the zone; strength sessions do not. | S3a |
-| RM-1 (B7) | Temper Debug's "Update" button downloads the build and brings the app forward, but the install screen Android hands back is never opened, so the phone stays on the old build. Obtainium is unaffected. | R3 |
+| RM-1 (B7) | Temper Debug's "Update" button downloads the build and brings the app forward, but the install screen Android hands back is never opened, so the phone stays on the old build. Obtainium is unaffected. | R3: fixed 26 September (#436): the answer goes to a Temper Debug-only screen that opens Android's sheet; still to see on the phone |
 
 ### Sync, when it resumes
 

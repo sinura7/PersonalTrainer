@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -113,6 +114,60 @@ class DebugUpdateInstallTest {
         assertEquals(DebugUpdateInstall.NeedsPermission, monitor.ui.value.install)
     }
 
+    /** Audit RM-1: Android refused the build. The banner says the update did not finish. */
+    @Test
+    fun anInstallAndroidRefusesShowsFailed() = runTest {
+        val installer = FakeInstaller(dir = tmp.root, canInstall = true)
+        val monitor = monitor(RecordingFetcher(), installer)
+        monitor.refresh(minIntervalMs = 0)
+        monitor.installNow()
+        assertEquals(DebugUpdateInstall.Idle, monitor.ui.value.install)
+
+        monitor.onInstallAnswer(DebugInstallAnswer.Failed(status = 7, message = "INSTALL_FAILED_UPDATE_INCOMPATIBLE"))
+        assertEquals(DebugUpdateInstall.Failed, monitor.ui.value.install)
+        assertEquals("a refusal keeps what was downloaded, for Try again", 0, installer.cleared)
+    }
+
+    /** The owner cancelled Android's sheet: the update is still there to tap. */
+    @Test
+    fun aCancelledSheetLeavesTheUpdateToTap() = runTest {
+        val installer = FakeInstaller(dir = tmp.root, canInstall = true)
+        val monitor = monitor(RecordingFetcher(), installer)
+        monitor.refresh(minIntervalMs = 0)
+        monitor.installNow()
+
+        monitor.onInstallAnswer(DebugInstallAnswer.Cancelled)
+        assertEquals(DebugUpdateInstall.Idle, monitor.ui.value.install)
+        assertNotNull(monitor.ui.value.offer)
+        assertEquals(0, installer.cleared)
+    }
+
+    /** Audit RM-6: an install Android reports done leaves no download behind. */
+    @Test
+    fun anInstallThatWentThroughClearsTheDownloads() = runTest {
+        val installer = FakeInstaller(dir = tmp.root, canInstall = true)
+        val monitor = monitor(RecordingFetcher(), installer)
+
+        monitor.onInstallAnswer(DebugInstallAnswer.Installed)
+        // The clear runs on the monitor's scope (the test's background scope).
+        runCurrent()
+        assertEquals(1, installer.cleared)
+    }
+
+    /**
+     * Audit RM-6: a self-update replaces the app before Android can answer it, so the new build
+     * finds no newer one and clears what the old one downloaded.
+     */
+    @Test
+    fun noNewerBuildClearsTheDownloads() = runTest {
+        val installer = FakeInstaller(dir = tmp.root, canInstall = true)
+        val monitor = monitor(RecordingFetcher(), installer, installedVersionCode = 51)
+
+        monitor.refresh(minIntervalMs = 0)
+        assertNull(monitor.ui.value.offer)
+        assertEquals(1, installer.cleared)
+    }
+
     @Test
     fun gymFloorInstallIsANoOp() = runTest {
         DisabledDebugUpdate.install()
@@ -123,6 +178,7 @@ class DebugUpdateInstallTest {
     private fun TestScope.monitor(
         fetcher: RecordingFetcher,
         installer: FakeInstaller,
+        installedVersionCode: Int = 50,
     ): DebugUpdateMonitor {
         val cache = MemoryDebugUpdateCache()
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
@@ -148,7 +204,7 @@ class DebugUpdateInstallTest {
                 },
                 cache = cache,
                 enabled = true,
-                installedVersionCode = 50,
+                installedVersionCode = installedVersionCode,
                 nowMillis = { 0L },
                 isOnline = { true },
             ),
@@ -201,6 +257,12 @@ class DebugUpdateInstallTest {
 
         override fun stagingFile(versionCode: Int): File =
             File(dir, "PersonalTrainer-$versionCode-debug.apk")
+
+        var cleared = 0
+
+        override fun clearStaging() {
+            cleared++
+        }
     }
 
     companion object {

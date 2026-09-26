@@ -15,6 +15,21 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Sep 2026 — Audit packet R3 (audit X6, RM-1 and RM-6; Temper Debug
+> only): tapping Update on Temper Debug's banner downloaded the new build
+> and brought the app forward, but Android's install sheet never
+> appeared, so the phone stayed on the old build. Android answers an
+> install from an ordinary app with "the owner must confirm" and the
+> sheet to open; that answer went to the main screen, which never read
+> it. It now goes to a small Temper Debug-only screen that no other app
+> can open, which opens Android's sheet; a build Android refuses shows
+> "The update didn't finish. Try again.", and cancelling the sheet
+> leaves Update to tap again. Each download used to stay in the app's
+> cache (up to 96 MB); now one is kept, and none once the newer build is
+> running. On the next phone checklist: when a newer drop is out, tap
+> Update on the banner (Android's install sheet opens; install it).
+> Obtainium is unchanged. Quiet (Temper Debug only).
+>
 > 26 Sep 2026 — Rest-alarm packet, part 3 (audit X6, RT-4 and RT-5): the
 > two rare rest-alarm quirks. The rest timer keeps a bookmark of the
 > running rest on disk and sets a wake-up for its end; after Android
