@@ -755,6 +755,72 @@ class RestTimerControllerTest {
     }
 
     /**
+     * A resume rewrites the running rest's row before it re-arms. A rewrite that fails leaves that
+     * rest's earlier row as it was, so the rest keeps its wakeup and nothing says it may not
+     * survive leaving the app.
+     */
+    @Test
+    fun aRewriteThatFailsKeepsTheRestsEarlierRowAndItsWakeup() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val controller = RestTimerController(
+            context = context,
+            store = RestTimerStore(),
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            controller.start(90, "session-1")
+            assertTrue(controller.persistenceHealthy.value)
+
+            persistence.saveResult = false
+            events.clear()
+            controller.refreshAlarmCapability()
+            assertEquals(listOf("save", "arm"), events.filter { it == "save" || it == "arm" })
+            assertTrue("its earlier row stands", controller.persistenceHealthy.value)
+            assertEquals(AlarmScheduleResult.EXACT, controller.lastAlarmSchedule.value)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    /** A rest brought back from its row keeps its wakeup when the rewrite after it fails. */
+    @Test
+    fun aRestoredRestKeepsItsWakeupWhenItsRewriteFails() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val capability = EventCapability(events, alarmManager)
+        val io = StandardTestDispatcher()
+        val controller = RestTimerController(
+            context = context,
+            store = RestTimerStore(),
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, capability),
+            ioDispatcher = io,
+        )
+        try {
+            val endsAt = SystemClock.elapsedRealtime() + 60_000L
+            persistence.saved = RestTimerRehydrator.toPersisted(
+                endsAtElapsedRealtime = endsAt,
+                totalSeconds = 90,
+                sessionId = "session-1",
+                timerId = "from-disk",
+            )
+            persistence.saveResult = false
+
+            assertTrue(controller.rehydrate())
+            controller.refreshAlarmCapability()
+            io.scheduler.advanceUntilIdle()
+
+            assertEquals(listOf(endsAt), capability.armedFor)
+            assertTrue(controller.persistenceHealthy.value)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    /**
      * The other side of RT-4. A job that runs after a Skip has ended its rest (the Skip's own job
      * not yet numbered) does not arm that rest.
      */

@@ -69,6 +69,14 @@ class RestTimerController(
     private val syncOwed = AtomicBoolean(false)
 
     /**
+     * The rest whose row is on disk, as far as this process knows: set when its save lands or a
+     * recovery reads it back, cleared when a clear lands. A refused save leaves the row as it was,
+     * so when a rewrite of the same rest fails (a resume, an exact-alarm grant or an early
+     * delivery rewrites the running rest's row), that rest still has its row and its wakeup.
+     */
+    @Volatile private var rowOnDisk: String? = null
+
+    /**
      * Test seams: run on the calling thread just before and just after a persist call takes its
      * number, the points where a call on another thread can overtake it (ADR-012 decision 1).
      * Null in production.
@@ -260,6 +268,8 @@ class RestTimerController(
         }
         return when (outcome) {
             is RestTimerRehydration.Running -> {
+                // Read back from disk: that row is this rest's, whatever becomes of the rewrite.
+                rowOnDisk = outcome.timerId
                 store.restore(
                     endsAtElapsedRealtime = outcome.endsAtElapsedRealtime,
                     totalSeconds = outcome.totalSeconds,
@@ -370,10 +380,13 @@ class RestTimerController(
         return persistSeq.incrementAndGet().also { afterPersistNumberTaken?.invoke() }
     }
 
-    /** True when the row is on disk, or there is no disk to write. */
+    /**
+     * True when this rest's row is on disk: this save landed, or an earlier save of the same rest
+     * did and this one left it as it was. Also true when there is no disk to write.
+     */
     private fun saveRow(snap: RestTimerSnapshot): Boolean {
         val target = persistence ?: return true
-        val saved = recoverWith(TAG, "Rest row save", false) {
+        val wrote = recoverWith(TAG, "Rest row save", false) {
             target.save(
                 RestTimerRehydrator.toPersisted(
                     endsAtElapsedRealtime = snap.endsAtElapsedRealtime,
@@ -383,8 +396,11 @@ class RestTimerController(
                 ),
             )
         }
-        _persistenceHealthy.value = saved
-        return saved
+        if (wrote) rowOnDisk = snap.timerId
+        val onDisk = wrote || rowOnDisk == snap.timerId
+        if (!wrote && onDisk) AppLog.w(TAG, "Rest row rewrite did not commit; this rest's earlier row stands")
+        _persistenceHealthy.value = onDisk
+        return onDisk
     }
 
     /**
@@ -402,6 +418,7 @@ class RestTimerController(
         if (!cleared) {
             AppLog.w(TAG, "Rest row still on disk; a stale rest may rehydrate after process death")
         }
+        if (cleared) rowOnDisk = null
         _persistenceHealthy.value = cleared
     }
 

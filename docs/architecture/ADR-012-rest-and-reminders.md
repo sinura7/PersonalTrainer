@@ -202,7 +202,11 @@ day. The agreed product asks once, then adapts only if the user says so.
   row. Now all three re-arms queue a job like every other change, and a
   job arms the rest whose row it wrote, only while that rest still runs;
   the newer rest's own job arms it. A wakeup therefore always matches a
-  row on disk. Tests hold a refresh and an early delivery with a start's
+  row on disk. Since every re-arm now rewrites the row, a rewrite that
+  fails while that rest's earlier row stands (a refused commit leaves it
+  as it was; a recovery that read it back counts too) still arms, and the
+  rest is not reported unsaved; a rest with no row of its own is never
+  armed. Tests hold a refresh and an early delivery with a start's
   job still queued, an early delivery with the row missing, an older job
   and a newer rest, and a job whose rest a Skip ended first. Left as it
   was: a Skip landing between that check and the arm can still leave a
