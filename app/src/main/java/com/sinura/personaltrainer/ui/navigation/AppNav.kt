@@ -428,7 +428,8 @@ fun PersonalTrainerNav(
         { live: LiveSessionBarUiState -> openLive(live.sessionId, live.kind == LiveBarKind.ACTIVITY) }
     }
 
-    val homeTap = ReminderHandoffHost(
+    var homeTap by remember { mutableStateOf<HomeTap?>(null) }
+    ReminderHandoffHost(
         openStartId = openOccurrenceId,
         openDeliveryId = openDeliveryId,
         openReviewId = reviewOccurrenceId,
@@ -438,6 +439,7 @@ fun PersonalTrainerNav(
         useReminder = { occurrenceId, deliveryId ->
             UsedReminder.markStarted(application, container, occurrenceId, deliveryId)
         },
+        handToHome = { homeTap = it },
         onStartConsumed = onOpenOccurrenceConsumed,
         onReviewConsumed = onReviewOccurrenceConsumed,
     )

@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.data.repository
 
 import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.local.TemperDatabase
+import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.domain.CivilDate
@@ -38,8 +39,9 @@ class PlannerRepository(
     private val scheduler: ReminderScheduler,
     private val time: TimePort = JvmTime,
     private val syncAuthoring: SyncAuthoring? = null,
+    /** The database's own; a test hands in one that fails, as it does for the other DAOs. */
+    private val dao: PlannerDao = database.plannerDao(),
 ) {
-    private val dao = database.plannerDao()
 
     private suspend fun notifyScheduleSync() {
         syncAuthoring?.onScheduleChanged()

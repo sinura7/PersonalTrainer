@@ -19,6 +19,7 @@ object ReminderCopy {
         "This phone has not allowed notifications. Reminders stay silent until you turn them on."
     const val PERMISSION_ACTION = "Turn on"
     const val GONE = "That session is no longer on the plan."
+    const val START_FAILED = "Could not start that session. Try again."
 
     /**
      * A reminder tapped while a session is live. It used to throw the lifter out to Home and,

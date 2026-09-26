@@ -36,7 +36,9 @@ import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.data.repository.presentValues
+import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.reminder.ReminderNotifications
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartCardioOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
@@ -420,28 +422,14 @@ class HomeViewModel @JvmOverloads constructor(
     fun startOccurrence(occurrenceId: String, deliveryId: String? = null) {
         val reminder = deliveryId?.let { ReminderTap(occurrenceId = occurrenceId, deliveryId = it) }
         viewModelScope.launch {
-            val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
-            if (occurrence == null) {
-                reminderGone(reminder)
-                return@launch
-            }
-            val today = todayEpochDay()
-            val startId = if (MoveToToday.isLeftover(occurrence, today)) {
-                when (val moved = container.plannerRepository.moveOccurrenceToDay(occurrenceId, today)) {
-                    is MoveToToday.Outcome.Relocate -> moved.created.id
-                    is MoveToToday.Outcome.AlreadyThere -> moved.occurrence.id
-                    is MoveToToday.Outcome.Blocked -> {
-                        actionError.value = moved.message
-                        return@launch
-                    }
-                    null -> {
-                        reminderGone(reminder)
-                        return@launch
-                    }
-                }
-            } else {
-                occurrenceId
-            }
+            // Its reads used to be unguarded, so a failed one closed the app (audit UI-12's
+            // follow-up); the start itself already fails closed.
+            val startId = runCatchingCancellable { plannedStartId(occurrenceId, reminder) }
+                .getOrElse { thrown ->
+                    AppLog.w(TAG, "Reading the planned session to start failed", thrown)
+                    actionError.value = ReminderCopy.START_FAILED
+                    return@launch
+                } ?: return@launch
             when (val outcome = container.startOccurrence(startId)) {
                 is StartOccurrenceOutcome.OpenWorkout -> {
                     PendingOccurrence.bindForSession(
@@ -473,6 +461,32 @@ class HomeViewModel @JvmOverloads constructor(
                     )
                 is StartOccurrenceOutcome.Failed -> actionError.value = outcome.message
                 StartOccurrenceOutcome.Missing -> reminderGone(reminder)
+            }
+        }
+    }
+
+    /**
+     * The occurrence to start: [occurrenceId], or today's copy of a leftover from an earlier day.
+     * Null when there is nothing to start, already said.
+     */
+    private suspend fun plannedStartId(occurrenceId: String, reminder: ReminderTap?): String? {
+        val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
+        if (occurrence == null) {
+            reminderGone(reminder)
+            return null
+        }
+        val today = todayEpochDay()
+        if (!MoveToToday.isLeftover(occurrence, today)) return occurrenceId
+        return when (val moved = container.plannerRepository.moveOccurrenceToDay(occurrenceId, today)) {
+            is MoveToToday.Outcome.Relocate -> moved.created.id
+            is MoveToToday.Outcome.AlreadyThere -> moved.occurrence.id
+            is MoveToToday.Outcome.Blocked -> {
+                actionError.value = moved.message
+                null
+            }
+            null -> {
+                reminderGone(reminder)
+                null
             }
         }
     }
@@ -718,3 +732,4 @@ sealed class HomeDayAdd {
     data class Aux(val packId: String) : HomeDayAdd()
 }
 
+private const val TAG = "PT/HomeViewModel"

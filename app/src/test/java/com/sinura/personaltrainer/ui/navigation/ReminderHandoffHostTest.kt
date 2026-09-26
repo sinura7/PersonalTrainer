@@ -45,7 +45,7 @@ class ReminderHandoffHostTest {
 
     private fun host(restoration: StateRestorationTester? = null) {
         val content: @Composable () -> Unit = {
-            forHome = ReminderHandoffHost(
+            ReminderHandoffHost(
                 openStartId = start,
                 openDeliveryId = delivery,
                 openReviewId = review,
@@ -53,6 +53,7 @@ class ReminderHandoffHostTest {
                 goToTab = { tabs += it },
                 openLive = { sessionId, cardio -> opened += sessionId to cardio },
                 useReminder = { occurrenceId, deliveryId -> used += occurrenceId to deliveryId },
+                handToHome = { forHome = it },
                 onStartConsumed = {
                     start = null
                     delivery = null

@@ -9,7 +9,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
+import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
+import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.domain.CivilDate
@@ -91,6 +93,7 @@ class HomeViewModelTest {
         insights: MutableStateFlow<TrainingInsights> = MutableStateFlow(TrainingInsights()),
         bodyweightDaoDecorator: (BodyweightDao) -> BodyweightDao = { it },
         prefsStoreDecorator: (DataStore<Preferences>) -> DataStore<Preferences> = { it },
+        plannerDaoDecorator: (PlannerDao) -> PlannerDao = { it },
     ): FakeAppDependencies {
         val zone = ZoneId.systemDefault()
         val morning = ZonedDateTime.now(zone).toLocalDate().atTime(10, 0).atZone(zone)
@@ -101,6 +104,7 @@ class HomeViewModelTest {
             time = FrozenTime(morning.toInstant().toEpochMilli(), zone.id),
             bodyweightDaoDecorator = bodyweightDaoDecorator,
             prefsStoreDecorator = prefsStoreDecorator,
+            plannerDaoDecorator = plannerDaoDecorator,
         )
     }
 
@@ -440,6 +444,29 @@ class HomeViewModelTest {
         assertNull(viewModel!!.navigateToSession.value)
     }
 
+    /**
+     * The planned day could not be read. That read was unguarded and closed the app; the tap
+     * now says so and the reminder waits.
+     */
+    @Test
+    fun aPlannedStartWhoseDayCannotBeReadSaysSoInsteadOfClosingTheApp() = runBlocking {
+        var failing: UnreadableOccurrences? = null
+        val occurrence = seedTodayStrength(
+            graph(plannerDaoDecorator = { real -> UnreadableOccurrences(real).also { failing = it } }),
+        )
+        checkNotNull(failing).fail = true
+
+        var state: HomeUiState? = null
+        val crash = catchingUncaught {
+            viewModel!!.startOccurrence(occurrence.id, deliveryId = "rem-${occurrence.id}")
+            state = withTimeoutOrNull(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.error != null } }
+        }
+
+        assertNull("a failed read closed the app", crash)
+        assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.START_FAILED, state?.error)
+        assertNull(viewModel!!.navigateToSession.value)
+    }
+
     /** A plan reminder in the shade for [occurrence], its delivery row waiting, as the worker posts it. */
     private suspend fun postReminder(occurrence: com.sinura.personaltrainer.domain.ScheduleOccurrence): String {
         val app = ApplicationProvider.getApplicationContext<Application>()
@@ -458,6 +485,17 @@ class HomeViewModelTest {
         ReminderNotifications.show(app, occurrence, deliveryId, "Push")
         check(reminderShown(occurrence.id)) { "the reminder was not posted" }
         return deliveryId
+    }
+
+    /** The planner DAO with its occurrence read made to throw once [fail] is set. */
+    private class UnreadableOccurrences(delegate: PlannerDao) : PlannerDao by delegate {
+        var fail = false
+        private val real = delegate
+
+        override suspend fun getOccurrence(id: String): ScheduleOccurrenceEntity? {
+            if (fail) error("boom: Room could not read occurrence $id")
+            return real.getOccurrence(id)
+        }
     }
 
     private fun reminderShown(occurrenceId: String): Boolean =

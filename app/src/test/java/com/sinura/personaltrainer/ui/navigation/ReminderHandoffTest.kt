@@ -34,7 +34,7 @@ class ReminderHandoffTest {
 
     private fun graph(workoutDaoDecorator: (WorkoutDao) -> WorkoutDao = { it }): FakeAppDependencies =
         FakeAppDependencies(
-            ApplicationProvider.getApplicationContext(),
+            context = ApplicationProvider.getApplicationContext(),
             workoutDaoDecorator = workoutDaoDecorator,
         ).also { deps = it }
 

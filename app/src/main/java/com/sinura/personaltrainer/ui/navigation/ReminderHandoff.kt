@@ -5,7 +5,6 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.sinura.personaltrainer.AppDependencies
@@ -76,7 +75,7 @@ internal object ReminderHandoff {
 
 /**
  * Where a reminder tap goes, decided by [verdict] before anything moves:
- * - nothing live: to Home, which is handed the tap (the returned [HomeTap]) and consumes it;
+ * - nothing live: to Home, which is handed the tap through [handToHome] and consumes it;
  * - another session live: nothing moves, the tap is consumed here and a dialog says why. A
  *   Start held this way never reaches Home, so its reminder is not used up and stays in the shade;
  * - the tapped day's own session live: it opens, and a Start's reminder is used.
@@ -90,13 +89,13 @@ internal fun ReminderHandoffHost(
     goToTab: (String) -> Unit,
     openLive: (sessionId: String, cardio: Boolean) -> Unit,
     useReminder: suspend (occurrenceId: String, deliveryId: String) -> Unit,
+    handToHome: (HomeTap?) -> Unit,
     onStartConsumed: () -> Unit,
     onReviewConsumed: () -> Unit,
-): HomeTap? {
+) {
     var held by rememberSaveable { mutableStateOf<String?>(null) }
-    var forHome by remember { mutableStateOf<HomeTap?>(null) }
     LaunchedEffect(openStartId, openDeliveryId, openReviewId) {
-        forHome = null
+        handToHome(null)
         val tapped = openStartId ?: openReviewId ?: return@LaunchedEffect
         val found = verdict(tapped)
         // Navigation is main-thread only. An effect resumes where the composition's dispatcher
@@ -104,7 +103,7 @@ internal fun ReminderHandoffHost(
         withContext(Dispatchers.Main.immediate) {
             when (found) {
                 TapVerdict.NothingLive -> {
-                    forHome = HomeTap(startId = openStartId, deliveryId = openDeliveryId, reviewId = openReviewId)
+                    handToHome(HomeTap(startId = openStartId, deliveryId = openDeliveryId, reviewId = openReviewId))
                     goToTab(Route.Home.path)
                 }
                 TapVerdict.OtherSessionLive -> {
@@ -131,5 +130,4 @@ internal fun ReminderHandoffHost(
             dismissLabel = null,
         )
     }
-    return forHome
 }
