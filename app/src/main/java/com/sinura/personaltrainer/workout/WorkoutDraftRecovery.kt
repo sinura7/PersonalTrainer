@@ -16,6 +16,14 @@ import com.sinura.personaltrainer.domain.HoldWork
  * moment, so in-process they agree; preferring the in-memory copy simply avoids depending on
  * the saved-state write having landed.
  *
+ * The screen restores the selected lift's own draft and nothing else: a lift with no draft of
+ * its own is prefilled afresh, never given another lift's numbers (N1). The session-wide
+ * copies ([WorkoutDraftCache.get], [SavedStateWorkoutDraft.read]) are resolved only for a
+ * restore with no lift selected, where what is left belongs to no lift. Notes are not restored
+ * from any draft: a draft's notes are a copy taken when its lift was last written, so the
+ * session's own are read instead ([WorkoutDraftCache.sessionNotes], then
+ * [SavedStateWorkoutDraft.sessionNotes]).
+ *
  * Pure so the recovery rules are unit-testable without Android.
  */
 object WorkoutDraftRecovery {

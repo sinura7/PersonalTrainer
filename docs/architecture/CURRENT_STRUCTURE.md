@@ -1,7 +1,7 @@
 # Current structure
 
 What the code is, as of 26 September 2026 (counts re-measured in whole-app
-audit packets X1 and X3, in W2a, and again in T3; the prose was first written on 11 September). Read this before
+audit packets X1 and X3, in W2a, in T3, and again in N1; the prose was first written on 11 September). Read this before
 changing anything structural.
 
 This is a description, not a decision. The decisions are the ADRs beside it,
@@ -18,8 +18,8 @@ yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 569 | 95,301 | — |
-| `app/src/test` | 488 | 85,844 | 3,295 |
+| `app/src/main` | 569 | 95,351 | — |
+| `app/src/test` | 490 | 86,547 | 3,309 |
 | `app/src/androidTest` | 33 | 5,918 | 112 `@Test` methods (some parameterised) |
 | `app/src/debug` | 12 | 1,618 | Compose previews and the state galleries |
 | `app/src/sharedTest` | 5 | 171 | `FakeClock`, `SequentialIds`, `ControllableElapsedRealtime`, `TestWaits`, compiled into both test sets |
@@ -30,11 +30,11 @@ Everything is under `com.sinura.personaltrainer`.
 
 | Package | Files | Lines | What it is |
 |---|---|---|---|
-| `ui` | 175 | 46,815 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
+| `ui` | 175 | 46,838 | 18 screens, 21 ViewModels on an abstract `AppViewModel`, `ui/components`, `ui/theme`, `ui/navigation`, `ui/saveposture` |
 | `domain` | 206 | 23,342 | Models, rules, calculators, policies, ports, CoachEngine, and 65 `*Copy` text objects (69 app-wide) |
 | `data` | 116 | 17,292 | `local/{dao,entity,relation}`, `mapper`, `repository`, `repository/prefs`, `backup`, `sync` (15 files, 2,266 lines), `auth` (4, 224) |
 | `timer` | 18 | 2,867 | Rest foreground service, alarm scheduler, notifications, persistence |
-| `workout` | 13 | 1,367 | Use cases: start, finish, discard, `CompleteTraining` façade, draft cache and recovery |
+| `workout` | 13 | 1,394 | Use cases: start, finish, discard, `CompleteTraining` façade, draft cache and recovery |
 | `update` | 9 | 764 | Temper Debug's in-app update check and banner |
 | `reminder` | 11 | 681 | WorkManager scheduling, receivers, worker |
 | (root) | 7 | 1,038 | `PersonalTrainerApp`, `MainActivity`, `AppContainer`, `AppDependencies`, `AppViewModel`, `PendingOccurrence`, `UsedReminder` |
@@ -178,7 +178,7 @@ gate, the emulator and the phone gate the signed release.
 Not a to-do list — a list of things a reader will notice and should not have to
 rediscover.
 
-- **`ActiveWorkoutViewModel` is 2,332 lines** with 29 `MutableStateFlow`
+- **`ActiveWorkoutViewModel` is 2,355 lines** with 29 `MutableStateFlow`
   references, and still holds rule decisions that belong in `domain` — prefill,
   lift selection, the log-set sequence.
 - **`RoutineEditorViewModel` is 1,490 lines**, mostly the staged-targets
