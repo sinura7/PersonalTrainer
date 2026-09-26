@@ -263,8 +263,8 @@ Done so far:
 - **Rest alarm, RT-1:** on a phone in the light theme, the rest countdown
   in the shade and on the lock screen was near-white on the white card.
   It now takes the phone's own notification text colours, dark on a
-  light card and light on a dark one, and keeps its size and face
-  (#434). A test draws the card's three views in each theme and measures
+  light card and (from Android 10) light on a dark one, and keeps its
+  size and face (#434). A test draws the card's three views in each theme and measures
   them.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e

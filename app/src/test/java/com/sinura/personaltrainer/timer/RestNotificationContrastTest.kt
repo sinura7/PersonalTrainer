@@ -2,6 +2,8 @@ package com.sinura.personaltrainer.timer
 
 import android.app.Application
 import android.graphics.Color
+import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.RemoteViews
 import android.widget.TextView
@@ -9,6 +11,8 @@ import androidx.core.graphics.ColorUtils
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,9 +26,11 @@ import org.robolectric.annotation.Config
  * screen was near-white on white (about 1.1 to 1). The text now takes the system's notification
  * colours, which follow the phone's theme.
  *
- * Each case draws the card's three views (collapsed, expanded, heads-up) as the shade would,
- * in the phone's theme, and measures the countdown and its "Rest" line against that theme's
- * notification surface.
+ * Each case draws the views the card sets (collapsed, expanded, and heads-up, which is the
+ * expanded one) as the shade would, with the phone's day or night setting, and measures every
+ * line of text against that setting's card at its least favourable: the greyest light card, a
+ * light dark one. The layout must not paint a background of its own or fade, since the text is
+ * chosen for the system's card.
  */
 @RunWith(RobolectricTestRunner::class)
 class RestNotificationContrastTest {
@@ -33,13 +39,13 @@ class RestNotificationContrastTest {
     @Test
     @Config(qualifiers = "notnight")
     fun theCountdownReadsOnALightShade() {
-        assertReadable(surface = Color.WHITE, theme = "light")
+        assertReadable(surface = LIGHT_CARD, theme = "light")
     }
 
     @Test
     @Config(qualifiers = "night")
     fun theCountdownReadsOnADarkShade() {
-        assertReadable(surface = DARK_SURFACE, theme = "dark")
+        assertReadable(surface = DARK_CARD, theme = "dark")
     }
 
     private fun assertReadable(surface: Int, theme: String) {
@@ -62,10 +68,17 @@ class RestNotificationContrastTest {
         )
         for ((name, remote) in views) {
             val drawn = drawn(checkNotNull(remote) { "the $name view is missing" })
-            for (id in listOf(R.id.rest_chrono, R.id.rest_kicker)) {
-                val text = drawn.findViewById<TextView>(id)
+            val all = everyView(drawn)
+            for (view in all) {
+                val label = if (view.id == View.NO_ID) view.javaClass.simpleName else context.resources.getResourceEntryName(view.id)
+                assertNull("$label in the $name view paints its own background", view.background)
+                assertEquals("$label in the $name view is faded", 1f, view.alpha)
+            }
+            val lines = all.filterIsInstance<TextView>()
+            assertTrue("the $name view has its countdown and its \"Rest\" line", lines.map { it.id }.containsAll(listOf(R.id.rest_chrono, R.id.rest_kicker)))
+            for (text in lines) {
                 val contrast = ColorUtils.calculateContrast(opaqueOn(text.currentTextColor, surface), surface)
-                val label = context.resources.getResourceEntryName(id)
+                val label = context.resources.getResourceEntryName(text.id)
                 assertTrue(
                     "$label in the $name view on a $theme shade: contrast %.2f, needs %.1f".format(contrast, MIN_CONTRAST),
                     contrast >= MIN_CONTRAST,
@@ -74,8 +87,11 @@ class RestNotificationContrastTest {
         }
     }
 
-    /** The views as the shade inflates them: the app's layout, the phone's theme and resources. */
+    /** The views as the shade inflates them: the app's layout and resources, day or night. */
     private fun drawn(remote: RemoteViews) = remote.apply(context, FrameLayout(context))
+
+    private fun everyView(root: View): List<View> =
+        listOf(root) + if (root is ViewGroup) (0 until root.childCount).flatMap { everyView(root.getChildAt(it)) } else emptyList()
 
     /** A translucent text colour as it lands on [surface]. */
     private fun opaqueOn(color: Int, surface: Int): Int = ColorUtils.compositeColors(color, surface)
@@ -84,7 +100,10 @@ class RestNotificationContrastTest {
         /** Normal text, WCAG AA. */
         const val MIN_CONTRAST = 4.5
 
-        /** The darkest a dark shade's card is drawn lighter than: Material's dark surface. */
-        val DARK_SURFACE = Color.parseColor("#303030")
+        /** A light card at its greyest (Android 12 and later tint it; before, it is white). */
+        val LIGHT_CARD = Color.parseColor("#E8E7EF")
+
+        /** A dark card on the light side of the dark themes'. */
+        val DARK_CARD = Color.parseColor("#303030")
     }
 }

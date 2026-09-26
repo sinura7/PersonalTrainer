@@ -21,10 +21,12 @@
 > Android draws that card itself, in the phone's theme; the countdown's
 > text had one fixed colour, chosen for the app's dark screens. It now
 > uses Android's own notification text colours, so it is dark on a light
-> card and light on a dark one, with the same size and figures. On the
-> next phone checklist: set the phone to the light theme, start a rest,
-> pull down the shade and lock the phone (the countdown reads in both);
-> then the same in the dark theme. Visible.
+> card and, from Android 10, light on a dark one, with the same size and
+> figures. On the next phone checklist: set the phone to the light theme,
+> start a rest, pull down the shade and lock the phone on your usual
+> wallpaper (the countdown reads in both; on a Samsung, also with the
+> lock screen's see-through cards); then the same in the dark theme.
+> Visible.
 >
 > 26 Sep 2026 — Rest-alarm packet, part 1 (audit X6, RT-2): with
 > notifications off, the "Rest alerts" box came back every time a
