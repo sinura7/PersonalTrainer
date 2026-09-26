@@ -296,8 +296,8 @@ class RestTimerController(
     /**
      * An early delivery re-arms through the same queue as every write: the row first, then the
      * wakeup. Arming straight from the store could set a wakeup for a rest whose row is not on
-     * disk yet, or never landed; after a process kill that wakeup finds no row and ends the rest
-     * in silence (audit RT-4, RT-5).
+     * disk yet, or never landed; after a process kill that wakeup found no row, or the rest
+     * before's, so the rest ended in silence or the one before was announced (audit RT-4, RT-5).
      */
     override fun rescheduleCurrent() {
         if (!store.current().running) return
@@ -409,10 +409,11 @@ class RestTimerController(
      * Arms the rest whose row this job just wrote, and only while it is still the running rest
      * (every start and every ±15 publishes a new id). Reading the store again instead armed
      * whatever ran now: a rest published after this job's number was taken, but before its own
-     * was, got a wakeup over the older rest's row, and a kill then left a wakeup that finds
-     * another rest's row and stays silent (audit RT-4). That newer rest's own job, which comes
-     * next, writes its row and arms it. A rest ended in that moment is not armed at all: its
-     * halt has already dropped the wakeup.
+     * was, got a wakeup over the older rest's row, and a kill then left a wakeup that did not
+     * match the row on disk (audit RT-4). A wakeup now always matches a row a job wrote; a kill
+     * before a rest's row lands still loses that rest, which no order can prevent. That newer
+     * rest's own job, which comes next, writes its row and arms it. A rest ended before this
+     * check is not armed at all: its halt has already dropped the wakeup.
      */
     private fun armIfLive(saved: RestTimerSnapshot) {
         val live = store.current()

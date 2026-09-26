@@ -707,7 +707,8 @@ class RestTimerControllerTest {
     /**
      * Audit RT-4. A job armed whatever rest ran when it finished, not the one whose row it wrote:
      * a rest started after that job's number, but before its own, got a wakeup over the older
-     * rest's row. The older job now arms nothing, and the newer rest's own job arms it.
+     * rest's row. The older job now arms nothing (its rest no longer runs), and the newer rest's
+     * own job arms it.
      */
     @Test
     fun anOlderJobNeverArmsANewerRestOverItsOwnRow() {
@@ -737,9 +738,10 @@ class RestTimerControllerTest {
             controller.start(60, "session-1")
 
             val olderRow = checkNotNull(rowAfterOlderJob) { "the older job wrote its row" }
-            assertTrue(
-                "a wakeup armed for another rest than the row on disk: $armedByOlderJob vs ${olderRow.endsAtElapsedRealtime}",
-                armedByOlderJob.all { it == olderRow.endsAtElapsedRealtime },
+            assertEquals(
+                "the older job armed a wakeup though its rest (${olderRow.endsAtElapsedRealtime}) no longer runs",
+                emptyList<Long>(),
+                armedByOlderJob,
             )
 
             io.scheduler.advanceUntilIdle()
@@ -753,11 +755,11 @@ class RestTimerControllerTest {
     }
 
     /**
-     * The other side of RT-4. A job that wrote its rest's row just before a Skip ended that rest
-     * must not arm it after the Skip dropped the wakeup.
+     * The other side of RT-4. A job that runs after a Skip has ended its rest (the Skip's own job
+     * not yet numbered) does not arm that rest.
      */
     @Test
-    fun aJobNeverArmsARestSkippedWhileItsRowWasWritten() {
+    fun aJobDoesNotArmARestSkippedBeforeItRuns() {
         val events = mutableListOf<String>()
         val persistence = EventPersistence(events)
         val io = StandardTestDispatcher()

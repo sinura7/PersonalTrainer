@@ -270,10 +270,12 @@ Done so far:
   exact-alarm grant or an early alarm delivery armed the wakeup straight
   from the store, so it could be set before the rest's row was on disk
   (or when it never landed); and a save could arm a newer rest over the
-  older rest's row. After a kill in that moment, the rest ended in
-  silence. Every re-arm now goes through the same queue as the writes,
-  row first, and a save arms only the rest it wrote (#435). This
-  completes the rest-alarm packet.
+  older rest's row. After a kill in that moment, the rest could end in
+  silence or the one before be announced. Every re-arm now goes through
+  the same queue as the writes, row first, and a save arms only the rest
+  it wrote, so a wakeup always matches a row on disk (#435); a kill
+  before a row lands still loses that rest, which no order can prevent.
+  This completes the rest-alarm packet.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the

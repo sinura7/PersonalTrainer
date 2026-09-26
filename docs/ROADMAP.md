@@ -21,9 +21,11 @@
 > stops the app, the wake-up reads the bookmark to know the rest is
 > done. In a few timing windows the wake-up could be set before the
 > bookmark was saved, or for a newer rest than the one saved, and a kill
-> in that moment ended the rest in silence. Now the bookmark is always
-> saved first, and the wake-up is set only for the rest that was saved.
-> This completes the rest-alarm packet. Quiet.
+> in that moment could end the rest in silence or announce the rest
+> before it. Now the bookmark is always saved first, and the wake-up is
+> set only for the rest that was saved. A kill before a bookmark is saved
+> still loses that rest; nothing can prevent that. This completes the
+> rest-alarm packet. Quiet.
 >
 > 26 Sep 2026 — Rest-alarm packet, part 2 (audit X6, RT-1): on a phone
 > set to the light theme, the rest countdown in the notification shade
