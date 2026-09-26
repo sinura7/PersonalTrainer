@@ -615,6 +615,179 @@ class RestTimerControllerTest {
         }
     }
 
+    /**
+     * Audit RT-4. A resume (or an exact-alarm grant) while a start's job is still queued armed
+     * the wakeup from the store at once, before the row: a kill then left a wakeup with no row.
+     */
+    @Test
+    fun aRefreshWhileTheStartsJobWaitsArmsNothingBeforeTheRow() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val io = StandardTestDispatcher()
+        val controller = RestTimerController(
+            context = context,
+            store = RestTimerStore(),
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = io,
+        )
+        try {
+            controller.start(90, "session-1")
+            controller.refreshAlarmCapability()
+            assertEquals("nothing armed before the row", emptyList<String>(), events.filter { it == "save" || it == "arm" })
+
+            io.scheduler.advanceUntilIdle()
+            assertEquals(listOf("save", "arm"), events.filter { it == "save" || it == "arm" })
+        } finally {
+            controller.stop()
+        }
+    }
+
+    /** Audit RT-4. An early delivery re-arms the same way: never before the row. */
+    @Test
+    fun anEarlyDeliveryWhileTheStartsJobWaitsArmsNothingBeforeTheRow() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val io = StandardTestDispatcher()
+        val controller = RestTimerController(
+            context = context,
+            store = RestTimerStore(),
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = io,
+        )
+        try {
+            controller.start(90, "session-1")
+            controller.rescheduleCurrent()
+            assertEquals("nothing armed before the row", emptyList<String>(), events.filter { it == "save" || it == "arm" })
+
+            io.scheduler.advanceUntilIdle()
+            assertEquals(listOf("save", "arm"), events.filter { it == "save" || it == "arm" })
+        } finally {
+            controller.stop()
+        }
+    }
+
+    /**
+     * Audit RT-5. An early delivery re-armed even when the row had not been written, so after a
+     * kill the wakeup found no row and the rest ended in silence. It now tries the row again and
+     * arms only once it lands.
+     */
+    @Test
+    fun anEarlyDeliveryWhileTheRowIsMissingArmsOnlyOnceTheRowLands() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val controller = RestTimerController(
+            context = context,
+            store = RestTimerStore(),
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
+        try {
+            persistence.saveResult = false
+            controller.start(90, "session-1")
+            assertFalse(controller.persistenceHealthy.value)
+
+            events.clear()
+            controller.rescheduleCurrent()
+            assertEquals("the row is tried again, nothing armed", listOf("save"), events.filter { it == "save" || it == "arm" })
+            assertFalse(controller.persistenceHealthy.value)
+
+            persistence.saveResult = true
+            events.clear()
+            controller.rescheduleCurrent()
+            assertEquals(listOf("save", "arm"), events.filter { it == "save" || it == "arm" })
+            assertTrue(controller.persistenceHealthy.value)
+        } finally {
+            controller.stop()
+        }
+    }
+
+    /**
+     * Audit RT-4. A job armed whatever rest ran when it finished, not the one whose row it wrote:
+     * a rest started after that job's number, but before its own, got a wakeup over the older
+     * rest's row. The older job now arms nothing, and the newer rest's own job arms it.
+     */
+    @Test
+    fun anOlderJobNeverArmsANewerRestOverItsOwnRow() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val capability = EventCapability(events, alarmManager)
+        val io = StandardTestDispatcher()
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, capability),
+            ioDispatcher = io,
+        )
+        try {
+            controller.start(90, "session-1")
+            var rowAfterOlderJob: PersistedRestTimer? = null
+            var armedByOlderJob: List<Long> = emptyList()
+            controller.beforePersistNumberTaken = {
+                controller.beforePersistNumberTaken = null
+                // The newer rest is published and has no number yet: the older job runs now.
+                io.scheduler.advanceUntilIdle()
+                rowAfterOlderJob = persistence.saved
+                armedByOlderJob = capability.armedFor.toList()
+            }
+            controller.start(60, "session-1")
+
+            val olderRow = checkNotNull(rowAfterOlderJob) { "the older job wrote its row" }
+            assertTrue(
+                "a wakeup armed for another rest than the row on disk: $armedByOlderJob vs ${olderRow.endsAtElapsedRealtime}",
+                armedByOlderJob.all { it == olderRow.endsAtElapsedRealtime },
+            )
+
+            io.scheduler.advanceUntilIdle()
+            val newer = store.current()
+            assertEquals("the newer rest's row landed", newer.timerId, persistence.saved?.timerId)
+            assertEquals("and its wakeup is armed", newer.endsAtElapsedRealtime, capability.armedFor.last())
+        } finally {
+            controller.beforePersistNumberTaken = null
+            controller.stop()
+        }
+    }
+
+    /**
+     * The other side of RT-4. A job that wrote its rest's row just before a Skip ended that rest
+     * must not arm it after the Skip dropped the wakeup.
+     */
+    @Test
+    fun aJobNeverArmsARestSkippedWhileItsRowWasWritten() {
+        val events = mutableListOf<String>()
+        val persistence = EventPersistence(events)
+        val io = StandardTestDispatcher()
+        val store = RestTimerStore()
+        val controller = RestTimerController(
+            context = context,
+            store = store,
+            persistence = persistence,
+            alarms = RestTimerAlarmScheduler(context, EventCapability(events, alarmManager)),
+            ioDispatcher = io,
+        )
+        try {
+            controller.start(90, "session-1")
+            val rest = store.current().timerId
+            controller.beforePersistNumberTaken = {
+                controller.beforePersistNumberTaken = null
+                // The Skip has emptied the store and dropped the wakeup; the rest's own job runs now.
+                io.scheduler.advanceUntilIdle()
+            }
+            assertTrue(controller.stopIfCurrent(rest, fromService = true))
+            io.scheduler.advanceUntilIdle()
+
+            assertEquals("no wakeup armed for the skipped rest", emptyList<String>(), events.filter { it == "arm" })
+            assertNull("and the row is cleared", persistence.saved)
+        } finally {
+            controller.beforePersistNumberTaken = null
+            controller.stop()
+        }
+    }
+
     @Test
     fun aClearThatDoesNotCommitIsRetriedOnceAndLogged() {
         val events = mutableListOf<String>()
@@ -1118,11 +1291,15 @@ class RestTimerControllerTest {
         override fun nowElapsedRealtime(): Long = 1_000L
         override fun alarmManagerOrNull(): AlarmManager? = alarmManager
         override fun canScheduleExactAlarms(): Boolean = true
+        /** The deadline each wakeup was armed for, in order. */
+        val armedFor = mutableListOf<Long>()
         override fun setExactElapsed(triggerAtElapsed: Long, operation: PendingIntent) {
             events += "arm"
+            armedFor += triggerAtElapsed
         }
         override fun setInexactElapsed(triggerAtElapsed: Long, operation: PendingIntent) {
             events += "arm"
+            armedFor += triggerAtElapsed
         }
         override fun cancel(operation: PendingIntent) {
             events += "cancel"

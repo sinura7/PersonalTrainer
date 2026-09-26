@@ -293,20 +293,26 @@ class RestTimerController(
         }
     }
 
+    /**
+     * An early delivery re-arms through the same queue as every write: the row first, then the
+     * wakeup. Arming straight from the store could set a wakeup for a rest whose row is not on
+     * disk yet, or never landed; after a process kill that wakeup finds no row and ends the rest
+     * in silence (audit RT-4, RT-5).
+     */
     override fun rescheduleCurrent() {
-        scheduleAlarmForCurrent()
+        if (!store.current().running) return
+        persistThenArm(syncService = false)
     }
 
+    /**
+     * A resume, or a change to the exact-alarm grant, re-arms the running rest the same way,
+     * row first. Arming at once while a start's job was still queued set the wakeup before the
+     * row (audit RT-4); a row that never landed gets another try before anything is armed.
+     */
     override fun refreshAlarmCapability() {
         _exactAlarmAttempt.value = alarms.currentAttempt()
         if (!store.current().running) return
-        if (_persistenceHealthy.value) {
-            scheduleAlarmForCurrent()
-        } else {
-            // The row never landed, so arming alone would recreate the
-            // alarm-without-a-row case. Give the disk another try first.
-            persistThenArm(syncService = false)
-        }
+        persistThenArm(syncService = false)
     }
 
     /**
@@ -338,7 +344,7 @@ class RestTimerController(
                     val saved = saveRow(snap)
                     if (seq != persistSeq.get()) return@withLock
                     if (saved) {
-                        scheduleAlarmForCurrent()
+                        armIfLive(snap)
                     } else {
                         // An alarm whose row is missing fires into "already
                         // completed" after a process kill: worse than no
@@ -399,14 +405,23 @@ class RestTimerController(
         _persistenceHealthy.value = cleared
     }
 
-    private fun scheduleAlarmForCurrent() {
-        val state = store.current()
-        if (!state.running) return
+    /**
+     * Arms the rest whose row this job just wrote, and only while it is still the running rest
+     * (every start and every ±15 publishes a new id). Reading the store again instead armed
+     * whatever ran now: a rest published after this job's number was taken, but before its own
+     * was, got a wakeup over the older rest's row, and a kill then left a wakeup that finds
+     * another rest's row and stays silent (audit RT-4). That newer rest's own job, which comes
+     * next, writes its row and arms it. A rest ended in that moment is not armed at all: its
+     * halt has already dropped the wakeup.
+     */
+    private fun armIfLive(saved: RestTimerSnapshot) {
+        val live = store.current()
+        if (!live.running || live.timerId != saved.timerId) return
         _exactAlarmAttempt.value = alarms.currentAttempt()
         _lastAlarmSchedule.value = alarms.schedule(
-            endsAtElapsedRealtime = state.endsAtElapsedRealtime,
-            sessionId = state.sessionId,
-            timerId = state.timerId,
+            endsAtElapsedRealtime = saved.endsAtElapsedRealtime,
+            sessionId = saved.sessionId,
+            timerId = saved.timerId,
         )
     }
 
