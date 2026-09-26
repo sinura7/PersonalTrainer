@@ -100,7 +100,7 @@ fun HomeScreen(
         onOpenRoutine(id)
         viewModel.onEditorNavigationHandled()
     }
-    LaunchedEffect(pendingOccurrenceStartId) {
+    LaunchedEffect(pendingOccurrenceStartId, pendingOccurrenceDeliveryId) {
         val id = pendingOccurrenceStartId ?: return@LaunchedEffect
         viewModel.startOccurrence(id, deliveryId = pendingOccurrenceDeliveryId)
         onPendingOccurrenceConsumed()

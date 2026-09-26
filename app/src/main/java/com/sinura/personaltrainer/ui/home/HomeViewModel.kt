@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
+import com.sinura.personaltrainer.UsedReminder
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
@@ -25,7 +26,6 @@ import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ReminderCopy
-import com.sinura.personaltrainer.domain.ReminderDeliveryStatus
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
@@ -36,9 +36,7 @@ import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.data.repository.presentValues
-import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.reminder.ReminderNotifications
-import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartCardioOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
@@ -416,8 +414,8 @@ class HomeViewModel @JvmOverloads constructor(
      * A planned session from a reminder's Start ([deliveryId] set) or from Home. The reminder is
      * marked started, and its notification dismissed, only once the start opens: they used to
      * be at the tap, so a start refused because another session was live used the reminder up
-     * (audit UI-1). A Start action never dismisses its own notification, so this does. A
-     * refused or failed start leaves the reminder as it was.
+     * (audit UI-1). A refused or failed start leaves the reminder as it was, except for a
+     * leftover from an earlier day: moving it to today already cancels its reminders.
      */
     fun startOccurrence(occurrenceId: String, deliveryId: String? = null) {
         val reminder = deliveryId?.let { ReminderTap(occurrenceId = occurrenceId, deliveryId = it) }
@@ -520,17 +518,10 @@ class HomeViewModel @JvmOverloads constructor(
         }
     }
 
-    /**
-     * The reminder behind a start that has opened: its delivery marked started and its
-     * notification dismissed, so its Snooze, Move and Skip cannot act on the session now running.
-     * A failed mark is logged; the session is already open.
-     */
+    /** The reminder behind a start that has opened, used up ([UsedReminder]). */
     private suspend fun markReminderStarted(reminder: ReminderTap?) {
         reminder ?: return
-        ReminderNotifications.cancel(getApplication(), reminder.occurrenceId)
-        runCatchingCancellable {
-            container.plannerRepository.markDeliveryStatus(reminder.deliveryId, ReminderDeliveryStatus.STARTED)
-        }.onFailure { thrown -> AppLog.w(TAG, "Marking a reminder delivery started failed", thrown) }
+        UsedReminder.markStarted(getApplication(), container, reminder.occurrenceId, reminder.deliveryId)
     }
 
     fun resumeBlocked() {
@@ -727,4 +718,3 @@ sealed class HomeDayAdd {
     data class Aux(val packId: String) : HomeDayAdd()
 }
 
-private const val TAG = "PT/HomeViewModel"

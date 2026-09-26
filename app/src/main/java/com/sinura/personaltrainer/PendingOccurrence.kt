@@ -99,6 +99,16 @@ object PendingOccurrence {
         write(deps, null)
     }
 
+    /**
+     * The planned day the live session [sessionId] is following, or null. A composer arm and a
+     * link armed for another session follow nothing here.
+     */
+    suspend fun followedBy(deps: AppDependencies, sessionId: String): String? {
+        val stored = stored(deps) ?: return null
+        val (occurrenceId, bound) = decode(stored)
+        return occurrenceId.takeIf { bound == sessionId }
+    }
+
     suspend fun forget(deps: AppDependencies) {
         write(deps, null)
     }

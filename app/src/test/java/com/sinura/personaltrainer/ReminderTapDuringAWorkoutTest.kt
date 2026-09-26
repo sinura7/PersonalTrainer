@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.PowerManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -72,6 +73,8 @@ class ReminderTapDuringAWorkoutTest {
     @After
     fun tearDown() {
         controller?.pause()?.stop()?.destroy()
+        // So a later class in this process does not build its ViewModels over this app either.
+        forgetFirstApplication()
     }
 
     @Test
@@ -86,7 +89,7 @@ class ReminderTapDuringAWorkoutTest {
 
         tapStart(planned)
 
-        compose.onNodeWithText(ReminderCopy.LIVE_TITLE).assertIsDisplayed()
+        awaitText(ReminderCopy.LIVE_TITLE)
         closeTheExplanation()
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).assertIsDisplayed()
         assertTrue("the reminder stays in the shade, unused", reminderShown(planned.id))
@@ -101,7 +104,7 @@ class ReminderTapDuringAWorkoutTest {
 
         tapStart(planned)
 
-        compose.onNodeWithText(ReminderCopy.LIVE_START_BODY).assertIsDisplayed()
+        awaitText(ReminderCopy.LIVE_START_BODY)
         assertTrue("the reminder stays in the shade, unused", reminderShown(planned.id))
         closeTheExplanation()
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).assertIsDisplayed()
@@ -109,21 +112,63 @@ class ReminderTapDuringAWorkoutTest {
 
     /**
      * On the Home tab Home would take the tap too, and its own start would answer over the held
-     * one: here, for a planned day it cannot find, by dismissing the reminder.
+     * one with "A workout is already in progress". Home starts off the main thread, so one idle
+     * is not enough to see it: this waits for it, and it must not come.
      */
     @Test
     fun aStartTappedOnHomeDuringAWorkoutIsAnsweredOnce() {
         startAWorkout()
-        val planned = remindOfAPlannedSession()
+        val planned = plannedEarlierToday()
+        ReminderNotifications.show(app, planned, DELIVERY, "Push")
         launch(Intent(app, MainActivity::class.java))
         awaitTag(LiveSessionBarTestTags.ROOT)
 
         tapStart(planned)
 
-        compose.onNodeWithText(ReminderCopy.LIVE_START_BODY).assertIsDisplayed()
-        compose.onNodeWithText(ReminderCopy.GONE).assertDoesNotExist()
+        awaitText(ReminderCopy.LIVE_START_BODY)
+        assertNeverShown(HOME_IN_PROGRESS)
         assertTrue("the reminder stays in the shade, unused", reminderShown(planned.id))
         closeTheExplanation()
+    }
+
+    /**
+     * The app closed with a workout live, then opened by the Start itself. The live state reads
+     * "nothing live" until the database answers, and Home, drawn first, took the tap.
+     */
+    @Test
+    fun aStartThatOpensTheAppDuringAWorkoutIsHeldTheSameWay() {
+        startAWorkout()
+        val planned = plannedEarlierToday()
+        ReminderNotifications.show(app, planned, DELIVERY, "Push")
+
+        launch(ReminderNotifications.startLaunchIntent(app, planned.id, DELIVERY))
+
+        awaitText(ReminderCopy.LIVE_START_BODY)
+        assertNeverShown(HOME_IN_PROGRESS)
+        assertTrue("the reminder stays in the shade, unused", reminderShown(planned.id))
+        closeTheExplanation()
+    }
+
+    /**
+     * The planned day started early, from Home or Plan: its own reminder can come in mid-session.
+     * Its Start opens that session and uses the reminder, so its Move and Skip leave the shade.
+     */
+    @Test
+    fun aStartForTheSessionYouAreInOpensItAndUsesTheReminder() {
+        val live = startAWorkout()
+        val planned = plannedEarlierToday()
+        runBlocking { PendingOccurrence.bindForSession(app.container, planned.id, live) }
+        ReminderNotifications.show(app, planned, DELIVERY, "Push")
+        launch(Intent(app, MainActivity::class.java))
+        awaitTag(PLAN_TAB)
+        compose.onNodeWithTag(PLAN_TAB).performClick()
+        compose.waitForIdle()
+
+        tapStart(planned)
+
+        awaitTag(WorkoutTestTags.CONTENT)
+        compose.onNodeWithText(ReminderCopy.LIVE_TITLE).assertDoesNotExist()
+        assertFalse("its Snooze, Move and Skip must leave the shade", reminderShown(planned.id))
     }
 
     /**
@@ -138,6 +183,19 @@ class ReminderTapDuringAWorkoutTest {
         awaitTag(PLAN_TAB)
 
         tapStart(planned)
+        awaitTag(WorkoutTestTags.CONTENT)
+
+        assertNotNull("the planned session opened", runBlocking { app.container.workoutRepository.getInProgress() })
+        assertFalse("its Snooze, Move and Skip must leave the shade", reminderShown(planned.id))
+    }
+
+    /** The same through the intent that opens the app, which hands the delivery over in onCreate. */
+    @Test
+    fun aStartThatOpensTheAppWithNothingLiveOpensTheSessionAndThenClearsTheReminder() {
+        val planned = plannedEarlierToday()
+        ReminderNotifications.show(app, planned, DELIVERY, "Push")
+
+        launch(ReminderNotifications.startLaunchIntent(app, planned.id, DELIVERY))
         awaitTag(WorkoutTestTags.CONTENT)
 
         assertNotNull("the planned session opened", runBlocking { app.container.workoutRepository.getInProgress() })
@@ -206,7 +264,10 @@ class ReminderTapDuringAWorkoutTest {
         awaitTag(WorkoutTestTags.CONTENT)
     }
 
-    /** The reminder's Start, delivered to the running activity as Android delivers it. */
+    /**
+     * The reminder's Start, delivered to the running activity as Android delivers it. Where it
+     * goes is read from the database first, off the main thread: wait on what it shows.
+     */
     private fun tapStart(planned: ScheduleOccurrence) {
         controller!!.newIntent(ReminderNotifications.startLaunchIntent(app, planned.id, DELIVERY))
         compose.waitForIdle()
@@ -218,6 +279,22 @@ class ReminderTapDuringAWorkoutTest {
         }
     }
 
+    private fun awaitText(text: String) {
+        compose.waitUntil(timeoutMillis = WAIT_MS) {
+            compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /** [text] must not come within [NEVER_MS]: what would show it runs off the main thread. */
+    private fun assertNeverShown(text: String) {
+        val came = runCatching {
+            compose.waitUntil(timeoutMillis = NEVER_MS) {
+                compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
+            }
+        }.isSuccess
+        assertFalse("\"$text\" came up", came)
+    }
+
     private fun reminderShown(occurrenceId: String): Boolean =
         app.getSystemService(NotificationManager::class.java)
             .activeNotifications.any { it.id == occurrenceId.hashCode() }
@@ -225,6 +302,10 @@ class ReminderTapDuringAWorkoutTest {
     private companion object {
         const val DELIVERY = "rem-occ-reminder-tap"
         const val WAIT_MS = 20_000L
+        const val NEVER_MS = 2_000L
+
+        /** Home's own answer to a start while a workout is live (ResumeOrDiscardDialog). */
+        const val HOME_IN_PROGRESS = "A workout is already in progress"
         val PLAN_TAB = "navigation-${Route.Routines.path}"
     }
 }

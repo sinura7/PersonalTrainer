@@ -70,6 +70,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.sinura.personaltrainer.UsedReminder
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.CanonicalMuscle
@@ -409,26 +410,34 @@ fun PersonalTrainerNav(
             }
         }
     }
-    val resumeLive = remember(navController) {
-        { live: LiveSessionBarUiState ->
-            if (live.kind == LiveBarKind.ACTIVITY) {
-                navController.navigate(Route.LiveCardio.create(live.sessionId)) {
+    val openLive = remember(navController) {
+        { sessionId: String, cardio: Boolean ->
+            if (cardio) {
+                navController.navigate(Route.LiveCardio.create(sessionId)) {
                     launchSingleTop = true
                 }
             } else {
-                navController.navigate(Route.ActiveWorkout.create(live.sessionId)) {
+                navController.navigate(Route.ActiveWorkout.create(sessionId)) {
                     popUpTo(Route.ActiveWorkout.path) { inclusive = false }
                     launchSingleTop = true
                 }
             }
         }
     }
+    val resumeLive = remember(openLive) {
+        { live: LiveSessionBarUiState -> openLive(live.sessionId, live.kind == LiveBarKind.ACTIVITY) }
+    }
 
-    ReminderHandoffHost(
+    val homeTap = ReminderHandoffHost(
         openStartId = openOccurrenceId,
+        openDeliveryId = openDeliveryId,
         openReviewId = reviewOccurrenceId,
-        sessionLive = hasLiveSession,
+        verdict = { occurrenceId -> ReminderHandoff.verdict(container, occurrenceId) },
         goToTab = goToTab,
+        openLive = openLive,
+        useReminder = { occurrenceId, deliveryId ->
+            UsedReminder.markStarted(application, container, occurrenceId, deliveryId)
+        },
         onStartConsumed = onOpenOccurrenceConsumed,
         onReviewConsumed = onReviewOccurrenceConsumed,
     )
@@ -489,10 +498,10 @@ fun PersonalTrainerNav(
             ) {
                 composable(Route.Home.path) {
                     HomeScreen(
-                        pendingOccurrenceStartId = ReminderHandoff.forHome(openOccurrenceId, hasLiveSession),
-                        pendingOccurrenceDeliveryId = openDeliveryId,
+                        pendingOccurrenceStartId = homeTap?.startId,
+                        pendingOccurrenceDeliveryId = homeTap?.deliveryId,
                         onPendingOccurrenceConsumed = onOpenOccurrenceConsumed,
-                        pendingOccurrenceReviewId = ReminderHandoff.forHome(reviewOccurrenceId, hasLiveSession),
+                        pendingOccurrenceReviewId = homeTap?.reviewId,
                         onPendingOccurrenceReviewConsumed = onReviewOccurrenceConsumed,
                         onResumeWorkout = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {

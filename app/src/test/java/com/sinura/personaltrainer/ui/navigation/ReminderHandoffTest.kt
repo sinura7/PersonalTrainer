@@ -1,48 +1,112 @@
 package com.sinura.personaltrainer.ui.navigation
 
+import android.app.Application
+import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.PendingOccurrence
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
+import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
+import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.workout.StartCardioOutcome
+import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
- * A reminder tap received off-Home still switches to Home before
- * Start starts or a body tap opens the confirm.
+ * What a reminder tap meets, read from the database as it arrives (audit UI-1). The live bar's
+ * state read "nothing live" until the database answered, so a tap into a new activity, or into
+ * one Android had restored, went to Home over the workout or was taken by Home first.
  */
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class ReminderHandoffTest {
+    private var deps: FakeAppDependencies? = null
+
+    @After
+    fun tearDown() {
+        deps?.close()
+    }
+
+    private fun graph(workoutDaoDecorator: (WorkoutDao) -> WorkoutDao = { it }): FakeAppDependencies =
+        FakeAppDependencies(
+            ApplicationProvider.getApplicationContext(),
+            workoutDaoDecorator = workoutDaoDecorator,
+        ).also { deps = it }
+
     @Test
-    fun startWhileAnotherTabIsForegroundLandsOnHome() {
-        assertEquals(Route.Home.path, ReminderHandoff.homeTab("occ-1", null, sessionLive = false))
-        assertEquals(Route.Home.path, ReminderHandoff.homeTab("occ-1", "occ-1", sessionLive = false))
-        assertFalse(ReminderHandoff.heldForLiveSession("occ-1", null, sessionLive = false))
+    fun withNothingLiveTheTapGoesToHome() = runBlocking {
+        val graph = graph()
+
+        assertEquals(TapVerdict.NothingLive, ReminderHandoff.verdict(graph, TAPPED))
     }
 
     @Test
-    fun bodyTapLandsOnHomeWithoutAStartId() {
-        assertEquals(Route.Home.path, ReminderHandoff.homeTab(null, "occ-1", sessionLive = false))
-        assertNull(ReminderHandoff.homeTab(null, null, sessionLive = false))
-    }
+    fun aWorkoutFollowingAnotherPlannedDayHoldsTheTap() = runBlocking {
+        val graph = graph()
+        val live = startWorkout(graph)
+        PendingOccurrence.bindForSession(graph, "occ-other", live)
 
-    /** Audit UI-1: going to Home popped the live workout, for a start that would be refused. */
-    @Test
-    fun aTapWhileASessionIsLiveGoesNowhereAndIsHeld() {
-        assertNull(ReminderHandoff.homeTab("occ-1", null, sessionLive = true))
-        assertNull(ReminderHandoff.homeTab(null, "occ-1", sessionLive = true))
-        assertTrue(ReminderHandoff.heldForLiveSession("occ-1", null, sessionLive = true))
-        assertTrue(ReminderHandoff.heldForLiveSession(null, "occ-1", sessionLive = true))
+        assertEquals(TapVerdict.OtherSessionLive, ReminderHandoff.verdict(graph, TAPPED))
     }
 
     @Test
-    fun noTapIsNeverHeld() {
-        assertFalse(ReminderHandoff.heldForLiveSession(null, null, sessionLive = true))
-        assertNull(ReminderHandoff.homeTab(null, null, sessionLive = true))
+    fun aFreeWorkoutHoldsTheTap() = runBlocking {
+        val graph = graph()
+        startWorkout(graph)
+
+        assertEquals(TapVerdict.OtherSessionLive, ReminderHandoff.verdict(graph, TAPPED))
     }
 
-    /** On the Home tab, Home would start a held tap as well and draw its own dialog over it. */
+    /** The planned day started early, or from Home or Plan: its own reminder opens it. */
     @Test
-    fun homeIsHandedATapOnlyWhenNoSessionIsLive() {
-        assertEquals("occ-1", ReminderHandoff.forHome("occ-1", sessionLive = false))
-        assertNull(ReminderHandoff.forHome("occ-1", sessionLive = true))
+    fun aWorkoutFollowingTheTappedDayIsThatSession() = runBlocking {
+        val graph = graph()
+        val live = startWorkout(graph)
+        PendingOccurrence.bindForSession(graph, TAPPED, live)
+
+        assertEquals(
+            TapVerdict.ThisSessionLive(sessionId = live, cardio = false),
+            ReminderHandoff.verdict(graph, TAPPED),
+        )
+    }
+
+    @Test
+    fun liveCardioHoldsATapForAnotherDayAndOpensForItsOwn() = runBlocking {
+        val graph = graph()
+        val open = graph.startLiveCardio(
+            type = CardioType.RUN,
+            now = graph.time.captureNow(),
+            occurrenceId = TAPPED,
+        ) as StartCardioOutcome.Open
+
+        assertEquals(TapVerdict.OtherSessionLive, ReminderHandoff.verdict(graph, "occ-other"))
+        assertEquals(
+            TapVerdict.ThisSessionLive(sessionId = open.sessionId, cardio = true),
+            ReminderHandoff.verdict(graph, TAPPED),
+        )
+    }
+
+    /** Home then tries the start as it always did, and says what went wrong. */
+    @Test
+    fun aFailedReadCountsAsNothingLive() = runBlocking {
+        val graph = graph(workoutDaoDecorator = { real -> UnreadableInProgress(real) })
+
+        assertEquals(TapVerdict.NothingLive, ReminderHandoff.verdict(graph, TAPPED))
+    }
+
+    private suspend fun startWorkout(graph: FakeAppDependencies): String =
+        (graph.workoutRepository.startFreeWorkoutSafely("Legs") as StartSessionOutcome.Started).session.id
+
+    private class UnreadableInProgress(delegate: WorkoutDao) : WorkoutDao by delegate {
+        override suspend fun getInProgressSession(): WorkoutSessionEntity? = error("boom: Room could not read")
+    }
+
+    private companion object {
+        const val TAPPED = "occ-tapped"
     }
 }
