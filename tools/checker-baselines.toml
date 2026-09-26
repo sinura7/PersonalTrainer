@@ -57,5 +57,7 @@ stock_icons = 9
 shadow = 0
 defaults_elevation = 1
 stock_component = 1
-xml_hex = 12
+# 12 -> 10 in RT-1: the rest notification's two fixed text colours went; the layouts take the
+# system's notification text styles.
+xml_hex = 10
 xml_monospace = 2

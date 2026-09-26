@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The system draws this on its own notification surface, light or dark with the phone's
+     theme, so the text takes the system's notification colours (audit RT-1). A fixed colour
+     was near-white on the light theme's white card. Size, weight and face stay the app's. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -14,7 +17,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/rest_notification_kicker"
-        android:textColor="@color/rest_notification_kicker"
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Info"
         android:textSize="12sp" />
 
     <Chronometer
@@ -23,7 +26,7 @@
         android:layout_height="wrap_content"
         android:countDown="true"
         android:fontFamily="monospace"
-        android:textColor="@color/rest_notification_text"
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
         android:textSize="36sp"
         android:textStyle="bold" />
 </LinearLayout>
