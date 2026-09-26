@@ -454,17 +454,41 @@ class HomeViewModelTest {
         val occurrence = seedTodayStrength(
             graph(plannerDaoDecorator = { real -> UnreadableOccurrences(real).also { failing = it } }),
         )
+        val reminder = postReminder(occurrence)
         checkNotNull(failing).fail = true
 
         var state: HomeUiState? = null
         val crash = catchingUncaught {
-            viewModel!!.startOccurrence(occurrence.id, deliveryId = "rem-${occurrence.id}")
+            viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
             state = withTimeoutOrNull(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.error != null } }
         }
 
         assertNull("a failed read closed the app", crash)
         assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.START_FAILED, state?.error)
         assertNull(viewModel!!.navigateToSession.value)
+        checkNotNull(failing).fail = false
+        assertEquals("the reminder waits", ReminderDeliveryStatus.PENDING.name, deliveryStatus(reminder))
+        assertTrue("and stays in the shade", reminderShown(occurrence.id))
+    }
+
+    /** The same for a body tap, which only reviews the day. */
+    @Test
+    fun aReviewWhoseDayCannotBeReadSaysSoInsteadOfClosingTheApp() = runBlocking {
+        var failing: UnreadableOccurrences? = null
+        val occurrence = seedTodayStrength(
+            graph(plannerDaoDecorator = { real -> UnreadableOccurrences(real).also { failing = it } }),
+        )
+        checkNotNull(failing).fail = true
+
+        var state: HomeUiState? = null
+        val crash = catchingUncaught {
+            viewModel!!.reviewOccurrence(occurrence.id)
+            state = withTimeoutOrNull(TestWaits.FLOW_MS) { viewModel!!.uiState.first { it.error != null } }
+        }
+
+        assertNull("a failed read closed the app", crash)
+        assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.REVIEW_FAILED, state?.error)
+        assertNull(viewModel!!.reviewOccurrenceId.value)
     }
 
     /** A plan reminder in the shade for [occurrence], its delivery row waiting, as the worker posts it. */

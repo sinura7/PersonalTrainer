@@ -219,8 +219,9 @@ Done so far:
 - **R2-6:** a workout reminder tapped while you are in a workout (or
   cardio) leaves you where you are and says why, and a Start's reminder
   stays in your notifications; a reminder for the session you are in
-  opens it; a reminder is marked used only once its Start goes through
-  (audit UI-1 on Home; #PRNUM). This completes R2. Its whole-app test
+  opens it; a reminder is marked used only once its Start goes through,
+  and one whose planned day cannot be read says so instead of closing
+  the app (audit UI-1 on Home; #PRNUM). This completes R2. Its whole-app test
   found why JVM tests of the full app never loaded: androidx keeps the
   first test's app for every later one in the process; that test resets
   it before and after each case. Found, not fixed: with nothing live, a

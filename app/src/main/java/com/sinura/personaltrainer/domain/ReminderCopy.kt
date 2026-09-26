@@ -20,6 +20,7 @@ object ReminderCopy {
     const val PERMISSION_ACTION = "Turn on"
     const val GONE = "That session is no longer on the plan."
     const val START_FAILED = "Could not start that session. Try again."
+    const val REVIEW_FAILED = "Could not open that session. Try again."
 
     /**
      * A reminder tapped while a session is live. It used to throw the lifter out to Home and,

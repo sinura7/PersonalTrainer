@@ -28,12 +28,12 @@
 > and is cleared. A reminder is marked used, and taken out of the shade,
 > only once its Start goes through (the session, or a mixed day's
 > composer, opens), including after "Discard and start"; a reminder whose
-> session is no longer planned is simply dismissed, and a planned start
-> whose day cannot be read says so instead of closing the app. Rides along
+> session is no longer planned is simply dismissed, and a reminder whose
+> planned day cannot be read says so instead of closing the app. Rides along
 > with the next drop; phone check: start a free workout, then tap Start on
 > a workout reminder (you stay, the app says why, the reminder stays); and
-> start today's planned session early, then tap its reminder's Start (that
-> workout opens and the reminder goes).
+> start today's planned session early, then, when its reminder comes, tap
+> Start (that workout opens and the reminder goes).
 >
 > 25 Sep 2026 — Audit packet R2-5 (audit X6, UI-2 on the workout floor;
 > owner decision of 25 September, "Finish blocked or warned"; warned was

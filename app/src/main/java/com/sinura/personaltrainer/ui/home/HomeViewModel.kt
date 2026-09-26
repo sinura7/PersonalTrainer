@@ -262,7 +262,12 @@ class HomeViewModel @JvmOverloads constructor(
      */
     fun reviewOccurrence(occurrenceId: String) {
         viewModelScope.launch {
-            val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
+            val occurrence = runCatchingCancellable { container.plannerRepository.getOccurrence(occurrenceId) }
+                .getOrElse { thrown ->
+                    AppLog.w(TAG, "Reading the planned session to review failed", thrown)
+                    actionError.value = ReminderCopy.REVIEW_FAILED
+                    return@launch
+                }
             if (occurrence == null) {
                 actionError.value = ReminderCopy.GONE
                 return@launch
