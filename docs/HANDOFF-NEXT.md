@@ -264,8 +264,16 @@ Done so far:
   in the shade and on the lock screen was near-white on the white card.
   It now takes the phone's own notification text colours, dark on a
   light card and (from Android 10) light on a dark one, and keeps its
-  size and face (#434). A test draws the card's three views in each theme and measures
-  them.
+  size and face (#434). A test draws the card's views in each theme and
+  measures every line against the least favourable card.
+- **Rest alarm, RT-4 and RT-5:** the two rest-alarm quirks. A resume, an
+  exact-alarm grant or an early alarm delivery armed the wakeup straight
+  from the store, so it could be set before the rest's row was on disk
+  (or when it never landed); and a save could arm a newer rest over the
+  older rest's row. After a kill in that moment, the rest ended in
+  silence. Every re-arm now goes through the same queue as the writes,
+  row first, and a save arms only the rest it wrote (#435). This
+  completes the rest-alarm packet.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
@@ -304,11 +312,10 @@ Done so far:
 
 Next, in order (owner decisions of 25 September, and of 26 September for
 R4; the live order is the table in FRONTEND_REDESIGN.md): W2d-3a and
-W2d-3b, W2e, the rest-alarm packet (RT-2 and RT-1 done; the two quirks
-next), R3 (updater), R4 (reminder follow-ups), then a check-only phone
-drop, then W3, S1, X8 and X9. Two sessions run them side by side: W2d-3a
-to W2e in one, the rest-alarm packet to R4 in the other. X2b completed
-Wave 0.
+W2d-3b, W2e, R3 (updater), R4 (reminder follow-ups), then a check-only
+phone drop, then W3, S1, X8 and X9. Two sessions run them side by side:
+W2d-3a to W2e in one, R3 and R4 in the other (the rest-alarm packet is
+done). X2b completed Wave 0.
 
 ## What is verified, and how
 
