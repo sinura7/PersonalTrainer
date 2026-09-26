@@ -329,7 +329,8 @@ class RestTimerController(
      * Publish already happened on the caller. Persist the row, then arm.
      * The receiver treats a missing disk row as already completed, so the
      * alarm must not be scheduled first — and is not scheduled at all when
-     * the row did not commit. Any later call bumps [persistSeq] so an
+     * the rest has no row on disk: this save did not commit and no earlier
+     * row of that same rest stands ([rowOnDisk]). Any later call bumps [persistSeq] so an
      * in-flight start skips the whole persist, not just the alarm.
      *
      * No call cancels another's job (ADR-012 decision 1). Calls come from more than one thread
@@ -382,7 +383,8 @@ class RestTimerController(
 
     /**
      * True when this rest's row is on disk: this save landed, or an earlier save of the same rest
-     * did and this one left it as it was. Also true when there is no disk to write.
+     * did (or a recovery read that row back) and this one left it as it was. Also true when there
+     * is no disk to write.
      */
     private fun saveRow(snap: RestTimerSnapshot): Boolean {
         val target = persistence ?: return true

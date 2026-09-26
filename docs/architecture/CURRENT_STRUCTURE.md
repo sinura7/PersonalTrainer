@@ -18,7 +18,7 @@ yet. The Files columns below count Kotlin files.
 
 | Source set | Files | Lines | Tests |
 |---|---|---|---|
-| `app/src/main` | 570 | 95,607 | — |
+| `app/src/main` | 570 | 95,612 | — |
 | `app/src/test` | 495 | 88,042 | 3,360 |
 | `app/src/androidTest` | 33 | 5,927 | 112 `@Test` methods (some parameterised) |
 | `app/src/debug` | 12 | 1,618 | Compose previews and the state galleries |

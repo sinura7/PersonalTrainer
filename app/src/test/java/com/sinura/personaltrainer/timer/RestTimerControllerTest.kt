@@ -36,8 +36,8 @@ import org.robolectric.Shadows.shadowOf
  * The gold flash and lock glance key on a completion id, not on running
  * going false. Skip must not look finished. Persist and arm are one
  * ordered IO job: the snapshot is live before disk, and the alarm is
- * never scheduled before the row is durable — nor at all when the row
- * did not commit, because the receiver reads a missing row as done.
+ * never scheduled before the row is durable — nor at all when the rest
+ * has no row on disk, because the receiver reads a missing row as done.
  */
 @RunWith(RobolectricTestRunner::class)
 class RestTimerControllerTest {

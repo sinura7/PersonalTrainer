@@ -26,7 +26,8 @@ interface RestTimerGateway {
 
     /**
      * False once the running rest has no row on disk (its save came back
-     * false, or threw, and no earlier save of that same rest landed) or a
+     * false, or threw, and no earlier row of that same rest stands, saved or
+     * read back by a recovery) or a
      * clear failed; true again after the next commit that landed. A rewrite
      * that fails while the rest's earlier row stands keeps it true. While
      * false, the wakeup is not armed and the rest only lives as long as the

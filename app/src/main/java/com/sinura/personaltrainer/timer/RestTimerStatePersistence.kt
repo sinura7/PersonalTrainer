@@ -37,9 +37,11 @@ data class PersistedRestTimer(
 
 /**
  * [save] and [clear] report whether the row reached disk. The controller arms
- * the wakeup only on a true [save]: an alarm whose row never landed is one the
- * receiver reads as already completed, so the rest ends in silence after a
- * process kill. Dropping the Boolean was how that path stayed invisible.
+ * the wakeup only when the rest's row is on disk: a true [save], or a false one
+ * that left an earlier row of the same rest as it was. An alarm whose row never
+ * landed is one the receiver reads as already completed, so the rest ends in
+ * silence after a process kill. Dropping the Boolean was how that path stayed
+ * invisible.
  */
 interface RestTimerStatePersistence {
     fun save(state: PersistedRestTimer): Boolean
