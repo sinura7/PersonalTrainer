@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.PendingOccurrence
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleOccurrenceEntity
 import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
@@ -210,6 +212,134 @@ class ReminderReceiversAndWorkerTest {
         )
         assertEquals(listOf(OCCURRENCE to DELIVERY), shown)
         assertEquals(ReminderDeliveryStatus.DELIVERED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
+    }
+
+    /**
+     * Audit X6, R4: a reminder whose day is being trained is not shown. Its Move and Skip would
+     * move or skip the day under the lifter. It is cancelled, not left to come later.
+     */
+    @Test
+    fun workerDoesNotNotifyADayBeingTrained() = runBlocking {
+        seed(occurrenceStatus = OccurrenceStatus.PLANNED, deliveryStatus = ReminderDeliveryStatus.PENDING)
+        val shown = runWorkerWhileTraining(day = OCCURRENCE)
+        assertTrue(shown.isEmpty())
+        assertEquals(ReminderDeliveryStatus.CANCELLED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
+        assertEquals(OccurrenceStatus.PLANNED, deps.plannerRepository.getOccurrence(OCCURRENCE)?.status)
+    }
+
+    /** The worker's own pass asks the app whether the day is being trained. */
+    @Test
+    fun theWorkersPassHoldsTheReminderOfADayBeingTrained() = runBlocking {
+        seed(occurrenceStatus = OccurrenceStatus.PLANNED, deliveryStatus = ReminderDeliveryStatus.PENDING)
+        val live = (deps.workoutRepository.startFreeWorkoutSafely("Legs") as StartSessionOutcome.Started).session.id
+        PendingOccurrence.bindForSession(deps, OCCURRENCE, live)
+        val shown = mutableListOf<String>()
+        val notify: (ScheduleOccurrence, String, String) -> Unit = { occurrence, _, _ -> shown.add(occurrence.id) }
+
+        ReminderWork.runFor(deps = deps, deliveryId = DELIVERY, now = NOW, notify = notify)
+
+        assertTrue(shown.isEmpty())
+        assertEquals(ReminderDeliveryStatus.CANCELLED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
+    }
+
+    /** Another planned day being trained is no reason to hold this one's reminder. */
+    @Test
+    fun workerNotifiesWhileAnotherDayIsTrained() = runBlocking {
+        seed(occurrenceStatus = OccurrenceStatus.PLANNED, deliveryStatus = ReminderDeliveryStatus.PENDING)
+        val shown = runWorkerWhileTraining(day = "occ-other")
+        assertEquals(listOf(OCCURRENCE), shown)
+        assertEquals(ReminderDeliveryStatus.DELIVERED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
+    }
+
+    /** A reminder not yet due is left to its time, whatever is being trained now. */
+    @Test
+    fun workerLeavesAReminderNotYetDueWhileItsDayIsTrained() = runBlocking {
+        seed(
+            occurrenceStatus = OccurrenceStatus.PLANNED,
+            deliveryStatus = ReminderDeliveryStatus.PENDING,
+            scheduledAtMs = NOW.instantMillis + 60 * 60_000L,
+        )
+        val shown = runWorkerWhileTraining(day = OCCURRENCE)
+        assertTrue("not due yet", shown.isEmpty())
+        assertEquals(ReminderDeliveryStatus.PENDING, deps.plannerRepository.getDelivery(DELIVERY)?.status)
+    }
+
+    /**
+     * Audit X6, R4: Move on the reminder of a day being trained moved that day away and left a
+     * copy on a later day; finishing then marked it done over MOVED, and the copy stayed.
+     */
+    @Test
+    fun moveOnADayBeingTrainedLeavesTheDayAndTakesTheReminderDown() = runBlocking {
+        seed(occurrenceStatus = OccurrenceStatus.PLANNED, deliveryStatus = ReminderDeliveryStatus.DELIVERED)
+        applyWhileTrained(ReminderNotifications.ACTION_MOVE)
+
+        assertEquals(OccurrenceStatus.PLANNED, deps.plannerRepository.getOccurrence(OCCURRENCE)?.status)
+        assertEquals(listOf(OCCURRENCE), deps.database.plannerDao().getOccurrencesForRule(RULE).map { it.id })
+        assertEquals(ReminderDeliveryStatus.DELIVERED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
+        assertEquals(listOf(OCCURRENCE), cancelled)
+    }
+
+    @Test
+    fun skipOnADayBeingTrainedLeavesTheDayAndTakesTheReminderDown() = runBlocking {
+        seed(occurrenceStatus = OccurrenceStatus.PLANNED, deliveryStatus = ReminderDeliveryStatus.DELIVERED)
+        applyWhileTrained(ReminderNotifications.ACTION_SKIP)
+
+        assertEquals(OccurrenceStatus.PLANNED, deps.plannerRepository.getOccurrence(OCCURRENCE)?.status)
+        assertEquals(ReminderDeliveryStatus.DELIVERED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
+        assertEquals(listOf(OCCURRENCE), cancelled)
+    }
+
+    /** Snooze on a day being trained would bring the reminder back mid-session. */
+    @Test
+    fun snoozeOnADayBeingTrainedBringsNothingBack() = runBlocking {
+        seed(occurrenceStatus = OccurrenceStatus.PLANNED, deliveryStatus = ReminderDeliveryStatus.DELIVERED)
+        applyWhileTrained(ReminderNotifications.ACTION_SNOOZE)
+
+        assertEquals(
+            listOf(DELIVERY),
+            deps.database.plannerDao().getDeliveriesForOccurrence(OCCURRENCE).map { it.id },
+        )
+        assertEquals(ReminderDeliveryStatus.DELIVERED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
+        assertEquals(listOf(OCCURRENCE), cancelled)
+    }
+
+    /** Start still records itself: the lifter is opening the very day being trained. */
+    @Test
+    fun startOnADayBeingTrainedStillRecordsTheStart() = runBlocking {
+        seed(occurrenceStatus = OccurrenceStatus.PLANNED, deliveryStatus = ReminderDeliveryStatus.DELIVERED)
+        applyWhileTrained(ReminderNotifications.ACTION_START)
+
+        assertEquals(ReminderDeliveryStatus.STARTED, deps.plannerRepository.getDelivery(DELIVERY)?.status)
+        assertEquals(listOf(OCCURRENCE), cancelled)
+    }
+
+    /** The worker's pass while the planned day [day] is being trained; what it showed. */
+    private suspend fun runWorkerWhileTraining(day: String): List<String> {
+        val shown = mutableListOf<String>()
+        val trainedNow: suspend (String) -> Boolean = { it == day }
+        val notify: (ScheduleOccurrence, String, String) -> Unit = { occurrence, _, _ -> shown.add(occurrence.id) }
+        ReminderWork.run(
+            deliveryId = DELIVERY,
+            planner = deps.plannerRepository,
+            prefs = ReminderPreferences.DEFAULT,
+            now = NOW,
+            trainedNow = trainedNow,
+            notify = notify,
+        )
+        return shown
+    }
+
+    private suspend fun applyWhileTrained(action: String) {
+        val cancel: (String) -> Unit = { cancelled.add(it) }
+        val trainedNow: suspend (String) -> Boolean = { it == OCCURRENCE }
+        ReminderActionApply.apply(
+            action = action,
+            occurrenceId = OCCURRENCE,
+            deliveryId = DELIVERY,
+            planner = deps.plannerRepository,
+            cancelNotification = cancel,
+            trainedNow = trainedNow,
+        )
     }
 
     @Test

@@ -45,6 +45,10 @@ class WorkManagerReminderScheduler(
         ReminderNotifications.cancel(appContext, occurrenceId)
     }
 
+    override fun dismissShown(occurrenceId: String) {
+        ReminderNotifications.cancel(appContext, occurrenceId)
+    }
+
     companion object {
         /** Unique work id. Two schedules for the same delivery replace, they do not stack. */
         internal fun uniqueWorkName(deliveryId: String): String = "reminder-$deliveryId"

@@ -49,9 +49,15 @@ object PendingOccurrence {
         write(deps, occurrenceId)
     }
 
-    /** [occurrenceId] is being followed by the live session [sessionId]. */
+    /**
+     * [occurrenceId] is being followed by the live session [sessionId]. Its reminder showing goes
+     * too: its Move and Skip would act on the day being trained (audit X6, R4). Every planned
+     * strength start comes through here, whichever screen it was tapped on.
+     */
     suspend fun bindForSession(deps: AppDependencies, occurrenceId: String, sessionId: String) {
         write(deps, "$occurrenceId$SEP$sessionId")
+        runCatchingCancellable { deps.plannerRepository.dismissShownReminder(occurrenceId) }
+            .onFailure { thrown -> AppLog.w(TAG, "Dismissing the planned day's reminder failed", thrown) }
     }
 
     /**
@@ -108,6 +114,21 @@ object PendingOccurrence {
         val (occurrenceId, bound) = decode(stored)
         return occurrenceId.takeIf { bound == sessionId }
     }
+
+    /**
+     * Whether the planned day [occurrenceId] is being trained now: the live workout follows it, or
+     * live cardio carries it. A reminder for it is not shown then, and its Snooze, Move and Skip do
+     * nothing to it (audit X6, R4). A failed read says no, and the reminder behaves as before.
+     */
+    suspend fun isTrainedNow(deps: AppDependencies, occurrenceId: String): Boolean =
+        runCatchingCancellable {
+            val workout = deps.workoutRepository.getInProgress()
+            if (workout != null && followedBy(deps, workout.id) == occurrenceId) return@runCatchingCancellable true
+            deps.activityRepository.getLive()?.occurrenceId == occurrenceId
+        }.getOrElse { thrown ->
+            AppLog.w(TAG, "Reading whether a planned day is being trained failed", thrown)
+            false
+        }
 
     suspend fun forget(deps: AppDependencies) {
         write(deps, null)

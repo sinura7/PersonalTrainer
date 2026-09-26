@@ -1,11 +1,14 @@
 package com.sinura.personaltrainer.reminder
 
+import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.data.repository.PlannerRepository
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
 import com.sinura.personaltrainer.util.JvmTime
+import kotlinx.coroutines.flow.first
 
 /**
  * One due-reminder pass. The worker is a thin WorkManager wrapper around this.
@@ -19,6 +22,8 @@ internal object ReminderWork {
         planner: PlannerRepository,
         prefs: ReminderPreferences,
         now: CapturedCivilTime,
+        /** Whether the planned day is being trained now: its reminder is then not shown. */
+        trainedNow: suspend (occurrenceId: String) -> Boolean = { false },
         notify: (occurrence: ScheduleOccurrence, deliveryId: String, title: String) -> Unit,
     ) {
         if (deliveryId == null) return
@@ -29,12 +34,36 @@ internal object ReminderWork {
             prefs = prefs,
             nowLocalMinutes = nowLocalMinutes,
             nowMs = now.instantMillis,
+            trainedNow = trainedNow,
         ) { occurrence, _ ->
             delivered = occurrence
         }
         val occurrence = delivered ?: return
         val rule = planner.getRule(occurrence.ruleId)
         notify(occurrence, deliveryId, AgendaItem(occurrence, rule).title)
+    }
+
+    /**
+     * The worker's pass, wired to the app: a reminder whose planned day is being trained is not
+     * shown (audit X6, R4). The worker itself only unpacks WorkManager's input.
+     */
+    suspend fun runFor(
+        deps: AppDependencies,
+        deliveryId: String?,
+        now: CapturedCivilTime,
+        notify: (occurrence: ScheduleOccurrence, deliveryId: String, title: String) -> Unit,
+    ) {
+        val trainedNow: suspend (String) -> Boolean = { occurrenceId ->
+            PendingOccurrence.isTrainedNow(deps, occurrenceId)
+        }
+        run(
+            deliveryId = deliveryId,
+            planner = deps.plannerRepository,
+            prefs = deps.preferencesRepository.reminderPreferences.first(),
+            now = now,
+            trainedNow = trainedNow,
+            notify = notify,
+        )
     }
 
     internal fun localMinutesOf(now: CapturedCivilTime): Int {

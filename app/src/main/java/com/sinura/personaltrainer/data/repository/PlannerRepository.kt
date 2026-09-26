@@ -418,6 +418,14 @@ class PlannerRepository(
     /** Reminders belong to one occurrence; a caller that settles it elsewhere clears them here. */
     suspend fun cancelRemindersFor(occurrenceId: String) = cancelReminders(occurrenceId)
 
+    /**
+     * [occurrenceId]'s session has opened, or its mixed day's composer: the reminder showing for
+     * it goes, so its Snooze, Move and Skip leave the shade (audit X6, R4). Its deliveries stay. One due while the session
+     * runs is not shown ([processDueDelivery]); one still ahead after a discard is, since the day
+     * is still to train.
+     */
+    fun dismissShownReminder(occurrenceId: String) = scheduler.dismissShown(occurrenceId)
+
     suspend fun getDelivery(id: String): ReminderDelivery? = dao.getDelivery(id)?.toDomain()
 
     suspend fun processDueDelivery(
@@ -425,6 +433,8 @@ class PlannerRepository(
         prefs: ReminderPreferences,
         nowLocalMinutes: Int,
         nowMs: Long = time.nowMillis(),
+        /** Whether the planned day is being trained now: nothing to remind of then. */
+        trainedNow: suspend (occurrenceId: String) -> Boolean = { false },
         onDeliver: (ScheduleOccurrence, ReminderDelivery) -> Unit,
     ) {
         val delivery = dao.getDelivery(deliveryId)?.toDomain() ?: return
@@ -439,7 +449,16 @@ class PlannerRepository(
             )
         ) {
             ReminderDecision.DELIVER -> {
-                if (occurrence != null) {
+                if (occurrence != null && trainedNow(occurrence.id)) {
+                    // Its session is running: its Move and Skip would act on the day being
+                    // trained (audit X6, R4).
+                    dao.upsertDelivery(
+                        delivery.toEntity().copy(
+                            status = ReminderDeliveryStatus.CANCELLED.name,
+                            updatedAtMs = nowMs,
+                        ),
+                    )
+                } else if (occurrence != null) {
                     dao.upsertDelivery(
                         delivery.toEntity().copy(
                             status = ReminderDeliveryStatus.DELIVERED.name,

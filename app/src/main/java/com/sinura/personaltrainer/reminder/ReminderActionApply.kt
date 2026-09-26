@@ -20,7 +20,14 @@ internal object ReminderActionApply {
         deliveryId: String,
         planner: PlannerRepository,
         cancelNotification: (occurrenceId: String) -> Unit,
+        trainedNow: suspend (occurrenceId: String) -> Boolean = { false },
     ) {
+        if (action in DAY_ACTIONS && trainedNow(occurrenceId)) {
+            // The day is being trained: Move or Skip would move or skip it under the lifter, and
+            // Snooze would bring its reminder back mid-session (audit X6, R4). The reminder goes.
+            cancelNotification(occurrenceId)
+            return
+        }
         when (action) {
             ReminderNotifications.ACTION_START -> {
                 planner.markDeliveryStatus(deliveryId, ReminderDeliveryStatus.STARTED)
@@ -43,4 +50,10 @@ internal object ReminderActionApply {
             else -> Unit
         }
     }
+
+    private val DAY_ACTIONS = setOf(
+        ReminderNotifications.ACTION_SNOOZE,
+        ReminderNotifications.ACTION_MOVE,
+        ReminderNotifications.ACTION_SKIP,
+    )
 }

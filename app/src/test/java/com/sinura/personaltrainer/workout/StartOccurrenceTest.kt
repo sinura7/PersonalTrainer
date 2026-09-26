@@ -5,6 +5,9 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
+import com.sinura.personaltrainer.domain.ReminderDelivery
+import com.sinura.personaltrainer.domain.ReminderScheduler
+import com.sinura.personaltrainer.domain.ScheduleOccurrence
 import com.sinura.personaltrainer.domain.ScheduleKind
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.todayEpochDay
@@ -84,6 +87,85 @@ class StartOccurrenceTest {
         assertEquals(CardioType.RIDE, session.cardioBlocks.single().type)
         assertEquals("Ride", session.title)
         assertEquals(open.sessionId, deps.cardioTimerPersistence.load()?.sessionId)
+    }
+
+    /**
+     * Audit X6, R4: a planned day's reminder kept its Move and Skip while its cardio ran. The
+     * reminder showing goes once the cardio is live; one that cannot be taken down leaves the
+     * cardio open.
+     */
+    @Test
+    fun aPlannedCardioThatOpensTakesItsReminderOffTheShade() = runBlocking {
+        val shown = RecordingDismissals()
+        deps.close()
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), reminderScheduler = shown)
+        val occurrence = plannedCardioToday()
+
+        assertTrue(deps.startOccurrence(occurrence.id) is StartOccurrenceOutcome.OpenCardio)
+        assertEquals(listOf(occurrence.id), shown.dismissed)
+    }
+
+    /** A mixed day's composer opening is its start: the reminder showing goes too. */
+    @Test
+    fun aPlannedMixedDayThatOpensTakesItsReminderOffTheShade() = runBlocking {
+        val shown = RecordingDismissals()
+        deps.close()
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), reminderScheduler = shown)
+        val today = todayEpochDay()
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.fromEpochDay(today),
+            hour = 18,
+            minute = 0,
+            modality = ScheduleModality.MIXED,
+            nowMs = 1_700_000_000_000L,
+        )
+        deps.plannerRepository.ensureWeek(CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY))
+        val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
+
+        assertTrue(deps.startOccurrence(occurrence.id) is StartOccurrenceOutcome.OpenComposer)
+        assertEquals(listOf(occurrence.id), shown.dismissed)
+    }
+
+    @Test
+    fun aReminderThatCannotBeDismissedLeavesTheCardioOpen() = runBlocking {
+        val shown = RecordingDismissals().apply { fail = true }
+        deps.close()
+        deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), reminderScheduler = shown)
+        val occurrence = plannedCardioToday()
+
+        val open = deps.startOccurrence(occurrence.id) as StartOccurrenceOutcome.OpenCardio
+        assertEquals(open.sessionId, deps.activityRepository.getLive()?.id)
+    }
+
+    private suspend fun plannedCardioToday(): ScheduleOccurrence {
+        val today = todayEpochDay()
+        deps.plannerRepository.addTimedRule(
+            weekday = Weekday.fromEpochDay(today),
+            hour = 7,
+            minute = 0,
+            modality = ScheduleModality.CARDIO,
+            templateId = ScheduleKind.cardio(CardioType.RUN),
+            nowMs = 1_700_000_000_000L,
+        )
+        deps.plannerRepository.ensureWeek(CivilDate.fromEpochDay(today).previousOrSame(Weekday.MONDAY))
+        return deps.plannerRepository.occurrencesBetween(today, today).single()
+    }
+
+    /** Records which planned days' reminders were taken off the screen; can refuse to. */
+    private class RecordingDismissals : ReminderScheduler {
+        val dismissed = mutableListOf<String>()
+        @Volatile var fail = false
+
+        override fun schedule(delivery: ReminderDelivery) = Unit
+
+        override fun cancel(deliveryId: String) = Unit
+
+        override fun cancelForOccurrence(occurrenceId: String) = Unit
+
+        override fun dismissShown(occurrenceId: String) {
+            if (fail) error("boom: the reminder for $occurrenceId could not be dismissed")
+            dismissed += occurrenceId
+        }
     }
 
     @Test

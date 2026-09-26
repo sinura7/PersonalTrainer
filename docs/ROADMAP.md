@@ -15,6 +15,32 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Sep 2026 — Audit packet R4 (audit X6's follow-ups from R2-6;
+> reminders): with nothing live, tapping Start on a plan reminder while a
+> workout's summary was showing did nothing, then started the session by
+> itself when the summary was closed. The Start reaches Home, and Home
+> only acts while it is on screen; switching to Home's tab brought the
+> summary back over it. Now the screens left over Home are closed and
+> the planned session opens at once. An activity being logged or a
+> routine being edited is not closed, since it asks before it is left:
+> the Start stays there, says "You are editing", and the reminder stays
+> in the shade. Also, a planned day's reminder kept its Snooze, Move and
+> Skip while that day's session ran (Move moved the day away under you
+> and left a copy for a later day), unless the session was opened from
+> the reminder. Now its reminder leaves the shade as soon as the session
+> opens, from any start (a mixed day's when its composer opens); a
+> reminder due during it is not shown (a mixed day's composer is not a
+> session: one due while it is open still shows, Move and Skip
+> included); and Snooze, Move or Skip on one still showing do nothing
+> to the day.
+> Reminders still ahead are kept, so a day whose session was discarded
+> is still reminded of. On the next phone checklist: finish a workout,
+> then tap Start on a plan reminder while its summary shows (the planned
+> session opens at once); start a planned day from Home while its
+> reminder is in the shade (the reminder goes); while logging an
+> activity or editing a routine, tap Start on a plan reminder (it says
+> "You are editing", and nothing typed is lost). Visible.
+>
 > 26 Sep 2026 — Audit packet R3 (audit X6, RM-1 and RM-6; Temper Debug
 > only): tapping Update on Temper Debug's banner downloaded the new build
 > and brought the app forward, but Android's install sheet never

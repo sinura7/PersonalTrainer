@@ -366,6 +366,7 @@ class PlannerRepositoryTest {
             override fun cancelForOccurrence(occurrenceId: String) {
                 error("work-manager failed")
             }
+            override fun dismissShown(occurrenceId: String) = Unit
         }
         val planner = PlannerRepository(deps.database, throwing, deps.time)
         val thrown = runCatching { planner.moveOccurrenceForward(occurrence.id) }.exceptionOrNull()

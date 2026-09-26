@@ -62,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -269,6 +270,56 @@ private val LIVE_BAR_HIDDEN_ROUTES = setOf(
     // live-session affordance, and the sheet itself shows "Go to session" rather than any start.
 )
 
+/** Screens that ask before they are left: closing one for the lifter would lose what they typed. */
+private val ASKS_BEFORE_LEAVING = setOf(
+    Route.ActivityComposer.path,
+    Route.RoutineEditor.path,
+)
+
+/**
+ * Home in front for a reminder tap with nothing live. Its tab alone is not enough: it brings back
+ * whatever was left open over Home (a workout's summary, a detail page), and Home, not drawn,
+ * took the tap only once that screen was left, starting the session by itself then (audit X6,
+ * R4). Those screens are closed now; one that asks before it is left is kept, and the tap is
+ * held there instead.
+ */
+internal fun NavController.bringHomeForward(): HomeReach {
+    // Already on Home's own screens: look before switching. Back from another tab to Home keeps
+    // that tab's saved picture of Home, and switching would put the old picture in front and
+    // file the screen being edited away where nothing brings it back.
+    val onHomesTab = shippingTabs.none { it.route != Route.Home && hasEntry(it.route.path) }
+    if (onHomesTab && ASKS_BEFORE_LEAVING.any { hasEntry(it) }) return HomeReach.BEHIND_AN_EDIT
+    goToTab(Route.Home.path)
+    // Home's tab is showing, as it was left: its back stack holds Home and what is over it.
+    if (ASKS_BEFORE_LEAVING.any { hasEntry(it) }) return HomeReach.BEHIND_AN_EDIT
+    if (currentBackStackEntry?.destination?.route != Route.Home.path) {
+        popBackStack(Route.Home.path, inclusive = false)
+    }
+    return HomeReach.IN_FRONT
+}
+
+/**
+ * A tab, with its own back stack: the tab left is saved, and the one reached comes back as it
+ * was left.
+ */
+internal fun NavController.goToTab(path: String) {
+    navigate(path) {
+        popUpTo(graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+private fun NavController.hasEntry(route: String): Boolean =
+    try {
+        getBackStackEntry(route)
+        true
+    } catch (_: IllegalArgumentException) {
+        false
+    }
+
 @Composable
 fun PersonalTrainerNav(
     openSessionId: String? = null,
@@ -406,15 +457,7 @@ fun PersonalTrainerNav(
     }
 
     val goToTab = remember(navController) {
-        { path: String ->
-            navController.navigate(path) {
-                popUpTo(navController.graph.findStartDestination().id) {
-                    saveState = true
-                }
-                launchSingleTop = true
-                restoreState = true
-            }
-        }
+        { path: String -> navController.goToTab(path) }
     }
     val openLive = remember(navController) {
         { sessionId: String, cardio: Boolean ->
@@ -440,7 +483,7 @@ fun PersonalTrainerNav(
         openDeliveryId = openDeliveryId,
         openReviewId = reviewOccurrenceId,
         verdict = { occurrenceId -> ReminderHandoff.verdict(container, occurrenceId) },
-        goToTab = goToTab,
+        bringHomeForward = { navController.bringHomeForward() },
         openLive = openLive,
         useReminder = { occurrenceId, deliveryId ->
             UsedReminder.markStarted(application, container, occurrenceId, deliveryId)

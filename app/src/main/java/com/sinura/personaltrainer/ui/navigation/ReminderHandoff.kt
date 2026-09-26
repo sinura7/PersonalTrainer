@@ -31,6 +31,23 @@ internal sealed interface TapVerdict {
 @Immutable
 internal data class HomeTap(val startId: String?, val deliveryId: String?, val reviewId: String?)
 
+/** Where Home stands once a tap with nothing live has asked for it. */
+internal enum class HomeReach {
+    /** Home is on screen, or is on the next frame. */
+    IN_FRONT,
+
+    /** A screen over Home asks before it is left (an activity being logged, a routine edited). */
+    BEHIND_AN_EDIT,
+}
+
+/** Why a tap was held where the lifter is. Kept across the activity being recreated. */
+internal enum class HeldTap(val title: String, val body: String) {
+    LIVE_START(ReminderCopy.LIVE_TITLE, ReminderCopy.LIVE_START_BODY),
+    LIVE_REVIEW(ReminderCopy.LIVE_TITLE, ReminderCopy.LIVE_REVIEW_BODY),
+    EDIT_START(ReminderCopy.EDIT_TITLE, ReminderCopy.EDIT_START_BODY),
+    EDIT_REVIEW(ReminderCopy.EDIT_TITLE, ReminderCopy.EDIT_REVIEW_BODY),
+}
+
 /**
  * Reminder taps land on Home, which starts the session for Start and reviews the day for a body
  * tap. Settings (or any other tab) must not swallow the id.
@@ -75,7 +92,11 @@ internal object ReminderHandoff {
 
 /**
  * Where a reminder tap goes, decided by [verdict] before anything moves:
- * - nothing live: to Home, which is handed the tap through [handToHome] and consumes it;
+ * - nothing live: Home is brought in front ([bringHomeForward]) and handed the tap through
+ *   [handToHome], and consumes it. Home only consumes it while drawn: switching to its tab
+ *   brought back a screen left open over it, and the tap waited under that screen, then started
+ *   the session by itself when it was left (audit X6, R4). Only a screen that asks before it is
+ *   left is kept, and then the tap is held as below;
  * - another session live: nothing moves, the tap is consumed here and a dialog says why. A
  *   Start held this way never reaches Home, so its reminder is not used up and stays in the shade;
  * - the tapped day's own session live: it opens, and a Start's reminder is used.
@@ -86,14 +107,14 @@ internal fun ReminderHandoffHost(
     openDeliveryId: String?,
     openReviewId: String?,
     verdict: suspend (occurrenceId: String) -> TapVerdict,
-    goToTab: (String) -> Unit,
+    bringHomeForward: () -> HomeReach,
     openLive: (sessionId: String, cardio: Boolean) -> Unit,
     useReminder: suspend (occurrenceId: String, deliveryId: String) -> Unit,
     handToHome: (HomeTap?) -> Unit,
     onStartConsumed: () -> Unit,
     onReviewConsumed: () -> Unit,
 ) {
-    var held by rememberSaveable { mutableStateOf<String?>(null) }
+    var held by rememberSaveable { mutableStateOf<HeldTap?>(null) }
     LaunchedEffect(openStartId, openDeliveryId, openReviewId) {
         handToHome(null)
         val tapped = openStartId ?: openReviewId ?: return@LaunchedEffect
@@ -103,11 +124,17 @@ internal fun ReminderHandoffHost(
         withContext(Dispatchers.Main.immediate) {
             when (found) {
                 TapVerdict.NothingLive -> {
-                    handToHome(HomeTap(startId = openStartId, deliveryId = openDeliveryId, reviewId = openReviewId))
-                    goToTab(Route.Home.path)
+                    val reach = bringHomeForward()
+                    if (reach == HomeReach.IN_FRONT) {
+                        handToHome(HomeTap(startId = openStartId, deliveryId = openDeliveryId, reviewId = openReviewId))
+                    } else {
+                        held = if (openStartId != null) HeldTap.EDIT_START else HeldTap.EDIT_REVIEW
+                        if (openStartId != null) onStartConsumed()
+                        if (openReviewId != null) onReviewConsumed()
+                    }
                 }
                 TapVerdict.OtherSessionLive -> {
-                    held = if (openStartId != null) ReminderCopy.LIVE_START_BODY else ReminderCopy.LIVE_REVIEW_BODY
+                    held = if (openStartId != null) HeldTap.LIVE_START else HeldTap.LIVE_REVIEW
                     if (openStartId != null) onStartConsumed()
                     if (openReviewId != null) onReviewConsumed()
                 }
@@ -120,10 +147,10 @@ internal fun ReminderHandoffHost(
             }
         }
     }
-    held?.let { body ->
+    held?.let { tap ->
         ConfirmActionDialog(
-            title = ReminderCopy.LIVE_TITLE,
-            body = body,
+            title = tap.title,
+            body = tap.body,
             confirmLabel = ReminderCopy.LIVE_OK,
             onConfirm = { held = null },
             onDismiss = { held = null },
