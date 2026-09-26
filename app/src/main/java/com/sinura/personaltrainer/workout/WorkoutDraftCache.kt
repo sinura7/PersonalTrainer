@@ -20,6 +20,11 @@ data class WorkoutDraft(
  * Process-scoped staged entry. Packet C keeps one draft per lift so
  * switching never resets the other lift's numbers. Survives rotation;
  * process death is [SavedStateWorkoutDraft].
+ *
+ * Notes belong to the session, and are kept once per session here as [SavedStateWorkoutDraft]
+ * keeps them: [sessionNotes]. A lift's [WorkoutDraft.notes] is a copy taken when that lift was
+ * last written, so a lift that was not selected while the notes grew keeps older words. A
+ * restore reads [sessionNotes], never a lift's copy (N1).
  */
 class WorkoutDraftCache {
     private val lock = Any()
@@ -68,12 +73,24 @@ class WorkoutDraftCache {
         sessions[sessionId]?.selectedExerciseId
     }
 
+    /** The session's notes as last staged in this process, or null when none were. */
+    fun sessionNotes(sessionId: String): String? = synchronized(lock) {
+        sessions[sessionId]?.notes
+    }
+
+    /** Stages the session's notes with no lift's entry: a lift still loading, or none selected. */
+    fun putSessionNotes(sessionId: String, notes: String) {
+        synchronized(lock) { sessions.getOrPut(sessionId) { SessionDrafts() }.notes = notes }
+    }
+
+    /** Stages a lift's entry, selects it, and takes its notes as the session's. */
     fun put(value: WorkoutDraft) {
         synchronized(lock) {
             val session = sessions.getOrPut(value.sessionId) { SessionDrafts() }
             val key = value.exerciseId.orEmpty()
             session.lifts[key] = value
             session.selectedExerciseId = value.exerciseId
+            session.notes = value.notes
         }
     }
 
@@ -86,6 +103,7 @@ class WorkoutDraftCache {
             val session = SessionDrafts()
             session.pendingSave = sessions[sessionId]?.pendingSave
             session.editingOriginal = sessions[sessionId]?.editingOriginal
+            session.notes = sessions[sessionId]?.notes
             session.selectedExerciseId = selectedExerciseId
             lifts.forEach { (id, draft) ->
                 if (id.isNotEmpty()) session.lifts[id] = draft.copy(sessionId = sessionId)
@@ -138,6 +156,7 @@ class WorkoutDraftCache {
     private class SessionDrafts {
         var pendingSave: WorkoutSetSave? = null
         var editingOriginal: WorkoutSetSave? = null
+        var notes: String? = null
         var selectedExerciseId: String? = null
         val lifts: MutableMap<String, WorkoutDraft> = mutableMapOf()
     }

@@ -397,20 +397,38 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             draftCache.replaceAll(sessionId, recovered, selectedId)
         }
         selectedId?.let { selectedExerciseId.value = it }
-        val selectedDraft = selectedId?.let { recovered[it] }
-            ?: WorkoutDraftRecovery.resolve(
+        // A selected lift restores its own entry or nothing. It has none when it was picked and
+        // the screen was left before its reads finished, and the cache's any-lift fallback then
+        // hands back another lift's entry: that lift's numbers, marked as typed when they were
+        // typed on it, would show on this one, and its notes are a copy that stopped when that
+        // lift was last written (N1).
+        // With no lift selected, what either store can still hand back belongs to no lift.
+        val selectedDraft = if (selectedId != null) {
+            recovered[selectedId]
+        } else {
+            WorkoutDraftRecovery.resolve(
                 sessionId = sessionId,
                 inMemory = draftCache.get(sessionId),
                 persisted = savedDraft.read(sessionId),
             )
+        }
         selectedDraft?.let { cached ->
             pendingResumeDraft = cached
             applyRecoveredDraft(cached)
-            notes.value = cached.notes.ifEmpty { savedDraft.sessionNotes() }
             liftReadiness.value = LiftEntryReadiness.READY
-        } ?: run {
-            val savedNotes = savedDraft.sessionNotes()
-            if (savedNotes.isNotEmpty()) notes.value = savedNotes
+        }
+        // Notes are the session's, never a lift's copy: a lift's entry keeps the words from when
+        // it was last written, and one left behind by a swap is restored as the selected lift
+        // once the workout has no lifts (N1). The cache's are the freshest while the process
+        // lives; saved state's single key is what survives its death, and is read when the
+        // cache has none, or an empty copy.
+        val restoredNotes = draftCache.sessionNotes(sessionId).orEmpty().ifEmpty { savedDraft.sessionNotes() }
+        if (restoredNotes.isNotEmpty()) notes.value = restoredNotes
+        // After a process death the cache is rebuilt above from saved state's entries, which
+        // carry no session notes. Staged here, the words saved state brought back outlive this
+        // screen even if it is left before it saves anything, as Back while loading leaves it.
+        if (restoredNotes.isNotEmpty() && draftCache.sessionNotes(sessionId) == null) {
+            draftCache.putSessionNotes(sessionId, restoredNotes)
         }
         savedDraft.editingSetId()?.let { editingSetId.value = it }
         editingOriginal?.let { original ->
@@ -2181,7 +2199,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             editingSetId.value != null ||
             (exerciseId != null && draftCache.getLift(sessionId, exerciseId) != null)
         if (!canSeed) {
+            // No entry to carry the notes yet, so they are staged on their own: a lift still
+            // loading, or no lift selected at all, must not lose what was typed to an exit that
+            // does not flush.
             draftCache.select(sessionId, exerciseId)
+            draftCache.putSessionNotes(sessionId, notes.value)
             savedDraft.writeSelection(
                 sessionId = sessionId,
                 exerciseId = exerciseId,
@@ -2202,6 +2224,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             dirty = draftDirty.value,
             extraSetRequested = wantAnotherSet.value,
         )
+        // The entry, and with it the session's notes (WorkoutDraftCache.sessionNotes).
         draftCache.put(current)
         // Written through to saved state so the numbers dialed in before a rest survive the
         // process being killed while the phone sits in a pocket. Packet C upserts this

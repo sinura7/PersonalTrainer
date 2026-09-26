@@ -15,6 +15,25 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Sep 2026 — Packet N1 (a data-loss bug found while preparing W2d-3;
+> owner decisions of 25 September, later): a workout reopened while its
+> lift was still loading could bring back an older note and, half a
+> second later, save it over the newer one; it could also show another
+> lift's typed weight on the lift you had just picked. It took a note
+> typed on one lift, added to on a second, then a third lift tapped and
+> the workout left at once and reopened from Home; or, with no timing at
+> all, a lift swapped and the workout then emptied. Now a reopened
+> workout restores only the lift you were on, with its own numbers, and
+> the notes are kept once for the whole workout, so the newest words come
+> back: notes you cleared stay cleared, and words typed while a lift was
+> loading, or with no lift chosen, are kept. On the drop 105 phone
+> checklist: type a note on your first lift, add to it on a second, tap
+> a third and press Back at once, then reopen the workout from Home (the
+> whole note shows, and the third lift shows its own numbers); and in a
+> one-lift free workout, type a note, swap the lift, add to the note,
+> wait a second, remove the lift, press Back and reopen (the whole note
+> shows).
+>
 > 26 Sep 2026 — Whole-app audit packet W2d-2: the workout floor's set
 > save (the one set being written, the copies kept of it for when Android
 > stops the app, what a failed or refused save says, and the check that

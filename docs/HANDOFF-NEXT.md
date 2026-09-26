@@ -243,6 +243,14 @@ Done so far:
   loads, then a restart) and the notes' saves nothing held (a pause into
   a workout with no notes, a phone killed mid-load). Tests only
   (#430).
+- **N1:** a workout reopened while its lift was still loading no longer
+  brings back an older note (and saves it over the newer one) or shows
+  another lift's typed weight: a reopened workout restores only its own
+  lift's numbers, and the notes are kept once for the whole workout
+  (#432). Found, not fixed: after removing the only lift, Undo (or
+  adding it back) leaves it loading; an undone lift comes back at 0 kg;
+  Finish from the workout bar can drop the last words typed; the rest
+  page can name another lift while the one picked is loading.
 - **Owner decisions, 25 September (later):** this session's packets run
   T3, then N1 (a workout reopened while its lift was still loading
   brought back an older note, then saved it over the newer one, and
@@ -275,7 +283,7 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner decisions of 25 September, and of 26 September for
-R4; the live order is the table in FRONTEND_REDESIGN.md): N1, W2d-3a and
+R4; the live order is the table in FRONTEND_REDESIGN.md): W2d-3a and
 W2d-3b, W2e, the rest-alarm packet, R3 (updater), R4 (reminder
 follow-ups), then a check-only phone drop, then W3, S1, X8 and X9. X2b
 completed Wave 0.
