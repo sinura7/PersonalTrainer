@@ -198,7 +198,7 @@ All dormant while `SYNC_PAUSED` holds; all inputs to S1 and S2a.
 
 | ID | What it means for you | Where it goes |
 |---|---|---|
-| UI-1 (B9a) | Tapping a reminder while you are already in a workout throws you out to Home, and the reminder is used up even when the start is then refused. | R2-6: fixed 26 September (#PRNUM): during a workout the tap leaves you where you are and says why; a reminder is used only once its session opens |
+| UI-1 (B9a) | Tapping a reminder while you are already in a workout throws you out to Home, and the reminder is used up even when the start is then refused. | R2-6: fixed 26 September (#429): during a workout the tap leaves you where you are and says why; a reminder is used only once its session opens |
 | UI-1 (B9b) | On a Wednesday, tap Monday and press Add session: you land on a page that says the day is a record and lets you add nothing. | F7a |
 | UI-3 (B9b) | If Android closes the app while you build your first week, the week still saves but your goal, kit, bodyweight, kg/lb and any plank time are quietly dropped. | F8c |
 | UI-1 (B10c) | On a short phone, at large text, or held sideways, the "Where will you train?" step's Continue is below the fold and the page will not scroll. Guided setup is a re-run from Settings, not the forced first run. | F8c |
