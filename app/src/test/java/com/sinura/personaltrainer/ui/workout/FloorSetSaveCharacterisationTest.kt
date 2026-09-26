@@ -264,6 +264,31 @@ class FloorSetSaveCharacterisationTest {
         assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty())
     }
 
+    /**
+     * A refusal from before the set was frozen (here, a working set at 0) is still held, under the
+     * failed save's words, when its fixed set fails to save; Edit lets go of both.
+     */
+    @Test
+    fun editingAnUnwrittenSetClearsAnEarlierLogRefusalToo() = runBlocking {
+        val fixture = seedTestWorkout(deps)
+        val vm = active(handle(fixture.session.id))
+        vm.uiState.awaitFirst { it.canLog }
+        vm.setWeight(0.0)
+        vm.logSet()
+        vm.uiState.awaitFirst { it.error == SetLogRules.ZERO_WORKING_WEIGHT }
+        vm.setWeight(72.5)
+        writeFailure = { IllegalStateException("Injected write failure") }
+        vm.logSet()
+        val failed = vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.FAILED && !it.logging }
+        assertEquals("the failed save speaks over it", LogCommitCopy.WRITE_FAILED, failed.error)
+        writeFailure = null
+
+        vm.editFailedSave()
+
+        val released = vm.uiState.awaitFirst { !it.save.pending && !it.logging }
+        assertNull(released.error)
+    }
+
     /** Edit on a correction whose set is gone: the edit and its original are let go too. */
     @Test
     fun editingAConflictedCorrectionForgetsTheEditAndItsOriginal() = runBlocking {
