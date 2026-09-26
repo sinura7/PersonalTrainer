@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -19,6 +20,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.shadows.ShadowDialog
 
 /**
  * The "Rest alerts" sentence reads its answer from the app shell ([LocalRestAlertsAsk]), not
@@ -73,6 +75,29 @@ class RestNotificationGateTest {
         compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertDoesNotExist()
     }
 
+    /** Back, like Not now, is an answer. */
+    @Test
+    fun backIsTheAnswerToo() {
+        showScreens()
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertExists()
+        ShadowDialog.getLatestDialog().onBackPressed()
+        compose.waitForIdle()
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertDoesNotExist()
+        assertEquals(1, marks)
+    }
+
+    /** A screen left with the sentence up has not been answered: the next one asks. */
+    @Test
+    fun leavingWithTheSentenceUpIsNotAnAnswer() {
+        showScreens()
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertExists()
+
+        screen++
+        compose.waitForIdle()
+        assertEquals(0, marks)
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertExists()
+    }
+
     /** Until the saved answer is read the sentence waits; it goes up once it reads "not asked". */
     @Test
     fun theSentenceWaitsForTheSavedAnswer() {
@@ -83,6 +108,40 @@ class RestNotificationGateTest {
         asked = false
         compose.waitForIdle()
         compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertExists()
+    }
+
+    /** Answered on another screen while this one had the sentence up: it goes down. */
+    @Test
+    fun aSentenceStillUpGoesDownWhenTheAnswerArrives() {
+        showScreens()
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertExists()
+
+        asked = true
+        compose.waitForIdle()
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertDoesNotExist()
+        assertEquals(0, marks)
+    }
+
+    /** A screen kept on the back stack with the sentence up does not bring it back once answered. */
+    @Test
+    fun aKeptScreenDoesNotBringTheSentenceBackOnceAnswered() {
+        compose.setContent {
+            val kept = rememberSaveableStateHolder()
+            val ask = RestAlertsAsk(asked = asked, markAsked = { marks++; asked = true })
+            CompositionLocalProvider(LocalRestAlertsAsk provides ask) {
+                kept.SaveableStateProvider(screen) { rememberRestNotificationsEnabled() }
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertExists()
+        screen = 1
+        compose.waitForIdle()
+        compose.onNodeWithText(RestNotificationCopy.NOT_NOW).performClick()
+
+        screen = 0
+        compose.waitForIdle()
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertDoesNotExist()
+        assertEquals(1, marks)
     }
 
     @Test

@@ -356,6 +356,22 @@ class SettingsViewModelTest {
         assertTrue(deps.preferencesRepository.restAlertsAsked.first())
     }
 
+    /** Given, the answer counts at once, before it is saved and even when it cannot be. */
+    @Test
+    fun theRestAlertsAnswerCountsBeforeItIsSaved() = runBlocking {
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            prefsStoreDecorator = { UnreadableSettings },
+        )
+        viewModel = SettingsViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        assertEquals(false, viewModel!!.restAlertsAsked.awaitFirst { it != null })
+
+        viewModel!!.markRestAlertsAsked()
+        assertEquals(true, viewModel!!.restAlertsAsked.awaitFirst { it == true })
+        assertFalse("nothing could be saved", deps.preferencesRepository.restAlertsAsked.first())
+    }
+
     @Test
     fun aSettingsFileThatCannotBeWrittenDoesNotCrashOnTheRestAlertsAnswer() = runBlocking {
         deps = FakeAppDependencies(

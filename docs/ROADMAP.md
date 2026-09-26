@@ -20,8 +20,8 @@
 > workout or the rest page opened, for as long as notifications stayed
 > off, and after two refusals its Continue brought up nothing. It said it
 > asked once, but it remembered the answer only while that one screen
-> was open. Now the answer, Continue or Not now, is kept on the phone and
-> the box stays down; the compact "Rest alerts off" row on the workout
+> was open. Now the answer (Continue, Not now, or closing the box) is kept
+> on the phone and the box stays down; the compact "Rest alerts off" row on the workout
 > and the rest page is the way back. A restore leaves the answer alone,
 > since notification permission belongs to the phone. On the next phone
 > checklist: turn Temper Debug's notifications off, open a workout, tap

@@ -25,6 +25,9 @@ import com.sinura.personaltrainer.ui.workout.RestFloorTags
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
 import kotlinx.coroutines.flow.first
 import java.time.Duration
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertFalse
@@ -133,6 +136,49 @@ class RestAlertsAskedOnceTest {
         assertNeverShown(RestNotificationCopy.SENTENCE)
     }
 
+    /**
+     * The rest page opened a moment after Not now, while the answer is still being written (the
+     * settings file busy with another write): it does not ask, then or once the write lands.
+     */
+    @Test
+    fun theRestPageDoesNotAskWhileTheAnswerIsStillBeingSaved() {
+        val live = startAWorkout()
+        launch(floorTap(live))
+        awaitText(RestNotificationCopy.SENTENCE)
+        holdTheSettingsFile()
+        try {
+            compose.onNodeWithText(RestNotificationCopy.NOT_NOW).performClick()
+            app.container.restTimerController.start(90, live)
+            openTheRestPage()
+            assertNeverShown(RestNotificationCopy.SENTENCE)
+        } finally {
+            letTheSettingsFileGo()
+        }
+        awaitAsked()
+        compose.waitForIdle()
+        compose.onNodeWithText(RestNotificationCopy.SENTENCE).assertDoesNotExist()
+    }
+
+    /** The app closed while the answer is still being written: the answer is kept all the same. */
+    @Test
+    fun anAnswerStillBeingSavedWhenTheAppClosesIsKept() {
+        val live = startAWorkout()
+        launch(floorTap(live))
+        awaitText(RestNotificationCopy.SENTENCE)
+        holdTheSettingsFile()
+        try {
+            compose.onNodeWithText(RestNotificationCopy.NOT_NOW).performClick()
+            closeTheApp()
+        } finally {
+            letTheSettingsFileGo()
+        }
+        awaitAsked()
+
+        launch(floorTap(live))
+        awaitTag(WorkoutTestTags.CONTENT)
+        assertNeverShown(RestNotificationCopy.SENTENCE)
+    }
+
     /** Leaving without answering is not an answer: the next workout asks. */
     @Test
     fun aSentenceLeftUnansweredIsAskedAgain() {
@@ -159,6 +205,32 @@ class RestAlertsAskedOnceTest {
             "notifications turned off later still get the one sentence",
             runBlocking { app.container.preferencesRepository.restAlertsAsked.first() },
         )
+    }
+
+    private var release: CountDownLatch? = null
+    private var holder: Thread? = null
+
+    /** Another write holds the settings file (a slow disk): writes queue behind it. */
+    private fun holdTheSettingsFile() {
+        val holding = CountDownLatch(1)
+        val gate = CountDownLatch(1)
+        release = gate
+        holder = thread(name = "settings-holder") {
+            runBlocking {
+                app.container.preferencesRepository.accountSyncSettingsStore.data.edit {
+                    holding.countDown()
+                    gate.await(WAIT_MS, TimeUnit.MILLISECONDS)
+                }
+            }
+        }
+        check(holding.await(WAIT_MS, TimeUnit.MILLISECONDS)) { "the holder never got the settings file" }
+    }
+
+    private fun letTheSettingsFileGo() {
+        release?.countDown()
+        holder?.join(WAIT_MS)
+        release = null
+        holder = null
     }
 
     /** As a phone reports them: off when the permission is refused, on when it is given. */

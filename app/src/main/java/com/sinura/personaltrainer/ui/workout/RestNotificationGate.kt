@@ -52,10 +52,11 @@ internal val LocalRestAlertsAsk = compositionLocalOf { RestAlertsAsk(asked = tru
  * The returned flag drives that row (deep link to app notification settings) and
  * re-checks on every resume so it disappears the moment the user grants.
  *
- * Once means once on this phone ([LocalRestAlertsAsk]). The answer used to live in this
+ * Once means once on this phone ([LocalRestAlertsAsk]): Continue, Not now, or closing the
+ * sentence with Back or a tap outside it are all an answer. The answer used to live in this
  * composable alone, so every workout opened and every rest page put the sentence up again
  * while notifications stayed off, and after two refusals its Continue brought up nothing
- * (audit RT-2).
+ * (audit RT-2). A sentence still up when an answer arrives from elsewhere goes down.
  */
 @Composable
 internal fun rememberRestNotificationsEnabled(): Boolean {
@@ -85,7 +86,7 @@ internal fun rememberRestNotificationsEnabled(): Boolean {
         }
     }
 
-    if (showWhy) {
+    if (showWhy && ask.asked != true) {
         ConfirmActionDialog(
             title = RestNotificationCopy.TITLE,
             body = RestNotificationCopy.SENTENCE,

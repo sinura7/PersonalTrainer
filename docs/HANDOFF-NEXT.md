@@ -254,9 +254,12 @@ Done so far:
 - **Rest alarm, RT-2:** with notifications off, the "Rest alerts" sentence
   asked again on every workout opened and every rest page, and after two
   refusals its Continue brought up nothing. It is now answered once on the
-  phone, Continue or Not now, and stays down; the compact row on the
+  phone (Continue, Not now, or closing it) and stays down; the compact row on the
   workout and the rest page is the way back. The answer is this phone's:
-  restore leaves it alone (#433).
+  restore leaves it alone (#433). Android shows its own prompt twice at
+  most, and the first-open walk can spend one of those before the
+  sentence is ever seen; after a second refusal the row is the only way
+  back.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the

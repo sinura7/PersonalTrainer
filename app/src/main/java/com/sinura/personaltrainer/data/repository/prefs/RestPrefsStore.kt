@@ -23,7 +23,7 @@ interface RestPrefs {
 
     /**
      * The "Rest alerts" sentence before Android's notification prompt has been answered on this
-     * phone, Continue or Not now, and is not put up again (audit RT-2). Device-local, like
+     * phone (Continue, Not now, or closed) and is not put up again (audit RT-2). Device-local, like
      * [restBatteryHintShown]: restore and [setRestTimerPreferences] leave it alone.
      */
     val restAlertsAsked: Flow<Boolean>
