@@ -29,13 +29,17 @@
 > and left a copy for a later day), unless the session was opened from
 > the reminder. Now its reminder leaves the shade as soon as the session
 > opens, from any start (a mixed day's when its composer opens); a
-> reminder due during it is not shown; and
-> Snooze, Move or Skip on one still showing do nothing to the day.
+> reminder due during it is not shown (a mixed day's composer is not a
+> session: one due while it is open still shows, Move and Skip
+> included); and Snooze, Move or Skip on one still showing do nothing
+> to the day.
 > Reminders still ahead are kept, so a day whose session was discarded
 > is still reminded of. On the next phone checklist: finish a workout,
 > then tap Start on a plan reminder while its summary shows (the planned
 > session opens at once); start a planned day from Home while its
-> reminder is in the shade (the reminder goes). Visible.
+> reminder is in the shade (the reminder goes); while logging an
+> activity or editing a routine, tap Start on a plan reminder (it says
+> "You are editing", and nothing typed is lost). Visible.
 >
 > 26 Sep 2026 — Audit packet R3 (audit X6, RM-1 and RM-6; Temper Debug
 > only): tapping Update on Temper Debug's banner downloaded the new build

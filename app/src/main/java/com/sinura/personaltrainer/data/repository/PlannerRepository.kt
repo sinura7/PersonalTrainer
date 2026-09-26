@@ -419,8 +419,8 @@ class PlannerRepository(
     suspend fun cancelRemindersFor(occurrenceId: String) = cancelReminders(occurrenceId)
 
     /**
-     * [occurrenceId]'s session has opened: the reminder showing for it goes, so its Snooze, Move
-     * and Skip leave the shade (audit X6, R4). Its deliveries stay. One due while the session
+     * [occurrenceId]'s session has opened, or its mixed day's composer: the reminder showing for
+     * it goes, so its Snooze, Move and Skip leave the shade (audit X6, R4). Its deliveries stay. One due while the session
      * runs is not shown ([processDueDelivery]); one still ahead after a discard is, since the day
      * is still to train.
      */

@@ -284,8 +284,13 @@ private val ASKS_BEFORE_LEAVING = setOf(
  * held there instead.
  */
 internal fun NavController.bringHomeForward(): HomeReach {
+    // Already on Home's own screens: look before switching. Back from another tab to Home keeps
+    // that tab's saved picture of Home, and switching would put the old picture in front and
+    // file the screen being edited away where nothing brings it back.
+    val onHomesTab = shippingTabs.none { it.route != Route.Home && hasEntry(it.route.path) }
+    if (onHomesTab && ASKS_BEFORE_LEAVING.any { hasEntry(it) }) return HomeReach.BEHIND_AN_EDIT
     goToTab(Route.Home.path)
-    // Home's tab is showing: the back stack holds Home and what is over it, nothing else.
+    // Home's tab is showing, as it was left: its back stack holds Home and what is over it.
     if (ASKS_BEFORE_LEAVING.any { hasEntry(it) }) return HomeReach.BEHIND_AN_EDIT
     if (currentBackStackEntry?.destination?.route != Route.Home.path) {
         popBackStack(Route.Home.path, inclusive = false)

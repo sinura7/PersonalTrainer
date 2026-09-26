@@ -54,7 +54,7 @@ class BringHomeForwardTest {
         assertEquals(HomeReach.IN_FRONT, bring())
         assertEquals(Route.Home.path, current())
         assertNull("nothing is left under Home", nav.previousBackStackEntry)
-        assertFalse("the summary is gone, not saved to come back", has(Route.WorkoutSummary.path))
+        assertFalse("the summary is not on the back stack", has(Route.WorkoutSummary.path))
     }
 
     @Test
@@ -96,6 +96,41 @@ class BringHomeForwardTest {
         assertEquals(Route.RoutineEditor.path, current())
     }
 
+    /**
+     * Back from another tab leaves Home's tab with a saved picture from before. Switching to the
+     * tab put that picture in front and filed the edit away, never to come back, and the tap
+     * then went ahead over it.
+     */
+    @Test
+    fun anEditOpenedAfterBackFromAnotherTabIsKept() {
+        tab(Route.Routines.path)
+        back()
+        go(Route.ActivityComposer.create("mixed"))
+
+        assertEquals(HomeReach.BEHIND_AN_EDIT, bring())
+        assertEquals(Route.ActivityComposer.path, current())
+    }
+
+    @Test
+    fun aRoutineEditedAfterBackFromAnotherTabIsKept() {
+        tab(Route.Routines.path)
+        back()
+        go(Route.RoutineEditor.create("r1"))
+
+        assertEquals(HomeReach.BEHIND_AN_EDIT, bring())
+        assertEquals(Route.RoutineEditor.path, current())
+    }
+
+    @Test
+    fun aSummaryOpenedAfterBackFromAnotherTabIsClosed() {
+        tab(Route.Routines.path)
+        back()
+        go(Route.WorkoutSummary.create("s1"))
+
+        assertEquals(HomeReach.IN_FRONT, bring())
+        assertEquals(Route.Home.path, current())
+    }
+
     @Test
     fun homeAlreadyInFrontStaysAsItIs() {
         assertEquals(HomeReach.IN_FRONT, bring())
@@ -105,6 +140,12 @@ class BringHomeForwardTest {
 
     private fun go(route: String) {
         compose.runOnUiThread { nav.navigate(route) }
+        compose.waitForIdle()
+    }
+
+    /** The phone's Back, as the NavHost answers it. */
+    private fun back() {
+        compose.runOnUiThread { nav.popBackStack() }
         compose.waitForIdle()
     }
 
