@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.PendingOccurrence
+import com.sinura.personaltrainer.UsedReminder
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
@@ -35,6 +36,9 @@ import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.data.repository.presentValues
+import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.reminder.ReminderNotifications
+import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.workout.DiscardOutcome
 import com.sinura.personaltrainer.workout.StartCardioOutcome
 import com.sinura.personaltrainer.workout.StartDayOutcome
@@ -258,7 +262,12 @@ class HomeViewModel @JvmOverloads constructor(
      */
     fun reviewOccurrence(occurrenceId: String) {
         viewModelScope.launch {
-            val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
+            val occurrence = runCatchingCancellable { container.plannerRepository.getOccurrence(occurrenceId) }
+                .getOrElse { thrown ->
+                    AppLog.w(TAG, "Reading the planned session to review failed", thrown)
+                    actionError.value = ReminderCopy.REVIEW_FAILED
+                    return@launch
+                }
             if (occurrence == null) {
                 actionError.value = ReminderCopy.GONE
                 return@launch
@@ -408,30 +417,24 @@ class HomeViewModel @JvmOverloads constructor(
         }
     }
 
-    fun startOccurrence(occurrenceId: String) {
+    /**
+     * A planned session from a reminder's Start ([deliveryId] set) or from Home. The reminder is
+     * marked started, and its notification dismissed, only once the start opens: they used to
+     * be at the tap, so a start refused because another session was live used the reminder up
+     * (audit UI-1). A refused or failed start leaves the reminder as it was, except for a
+     * leftover from an earlier day: moving it to today already cancels its reminders.
+     */
+    fun startOccurrence(occurrenceId: String, deliveryId: String? = null) {
+        val reminder = deliveryId?.let { ReminderTap(occurrenceId = occurrenceId, deliveryId = it) }
         viewModelScope.launch {
-            val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
-            if (occurrence == null) {
-                actionError.value = ReminderCopy.GONE
-                return@launch
-            }
-            val today = todayEpochDay()
-            val startId = if (MoveToToday.isLeftover(occurrence, today)) {
-                when (val moved = container.plannerRepository.moveOccurrenceToDay(occurrenceId, today)) {
-                    is MoveToToday.Outcome.Relocate -> moved.created.id
-                    is MoveToToday.Outcome.AlreadyThere -> moved.occurrence.id
-                    is MoveToToday.Outcome.Blocked -> {
-                        actionError.value = moved.message
-                        return@launch
-                    }
-                    null -> {
-                        actionError.value = ReminderCopy.GONE
-                        return@launch
-                    }
-                }
-            } else {
-                occurrenceId
-            }
+            // Its reads used to be unguarded, so a failed one closed the app (audit UI-12's
+            // follow-up); the start itself already fails closed.
+            val startId = runCatchingCancellable { plannedStartId(occurrenceId, reminder) }
+                .getOrElse { thrown ->
+                    AppLog.w(TAG, "Reading the planned session to start failed", thrown)
+                    actionError.value = ReminderCopy.START_FAILED
+                    return@launch
+                } ?: return@launch
             when (val outcome = container.startOccurrence(startId)) {
                 is StartOccurrenceOutcome.OpenWorkout -> {
                     PendingOccurrence.bindForSession(
@@ -439,16 +442,19 @@ class HomeViewModel @JvmOverloads constructor(
                         outcome.occurrenceId,
                         outcome.sessionId,
                     )
+                    markReminderStarted(reminder)
                     actionError.value = null
                     _navigateToSession.value = outcome.sessionId
                 }
                 is StartOccurrenceOutcome.OpenCardio -> {
                     PendingOccurrence.forget(container)
+                    markReminderStarted(reminder)
                     actionError.value = null
                     _navigateToCardio.value = outcome.sessionId
                 }
                 is StartOccurrenceOutcome.OpenComposer -> {
                     PendingOccurrence.bind(container, outcome.occurrenceId)
+                    markReminderStarted(reminder)
                     _navigateToComposer.value = "mixed"
                 }
                 is StartOccurrenceOutcome.Blocked ->
@@ -456,14 +462,55 @@ class HomeViewModel @JvmOverloads constructor(
                         day = outcome.day,
                         sessionId = outcome.inProgressSessionId,
                         occurrenceId = outcome.occurrenceId,
+                        reminder = reminder,
                     )
                 is StartOccurrenceOutcome.Failed -> actionError.value = outcome.message
-                StartOccurrenceOutcome.Missing -> actionError.value = ReminderCopy.GONE
+                StartOccurrenceOutcome.Missing -> reminderGone(reminder)
             }
         }
     }
 
-    private suspend fun start(day: SuggestedTrainingDay, occurrenceId: String? = null) {
+    /**
+     * The occurrence to start: [occurrenceId], or today's copy of a leftover from an earlier day.
+     * Null when there is nothing to start, already said.
+     */
+    private suspend fun plannedStartId(occurrenceId: String, reminder: ReminderTap?): String? {
+        val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
+        if (occurrence == null) {
+            reminderGone(reminder)
+            return null
+        }
+        val today = todayEpochDay()
+        if (!MoveToToday.isLeftover(occurrence, today)) return occurrenceId
+        return when (val moved = container.plannerRepository.moveOccurrenceToDay(occurrenceId, today)) {
+            is MoveToToday.Outcome.Relocate -> moved.created.id
+            is MoveToToday.Outcome.AlreadyThere -> moved.occurrence.id
+            is MoveToToday.Outcome.Blocked -> {
+                actionError.value = moved.message
+                null
+            }
+            null -> {
+                reminderGone(reminder)
+                null
+            }
+        }
+    }
+
+    /**
+     * The planned session is no longer there. Its reminder is dismissed, since its Start can
+     * never open anything, but not marked started.
+     */
+    private fun reminderGone(reminder: ReminderTap?) {
+        reminder?.let { ReminderNotifications.cancel(getApplication(), it.occurrenceId) }
+        actionError.value = ReminderCopy.GONE
+    }
+
+    /** Starts [day]. The [reminder] that asked for it is used up only if the session opens. */
+    private suspend fun start(
+        day: SuggestedTrainingDay,
+        occurrenceId: String? = null,
+        reminder: ReminderTap? = null,
+    ) {
         when (val outcome = container.startTrainingDay(day)) {
             is StartDayOutcome.Open -> {
                 // The binding is armed only now, for exactly this session. Arming
@@ -474,6 +521,7 @@ class HomeViewModel @JvmOverloads constructor(
                 } else {
                     PendingOccurrence.forget(container)
                 }
+                markReminderStarted(reminder)
                 actionError.value = null
                 _navigateToSession.value = outcome.sessionId
             }
@@ -482,10 +530,17 @@ class HomeViewModel @JvmOverloads constructor(
                     day = day,
                     sessionId = outcome.inProgressSessionId,
                     occurrenceId = occurrenceId,
+                    reminder = reminder,
                 )
             is StartDayOutcome.Failed -> actionError.value = outcome.message
             StartDayOutcome.Ignored -> Unit
         }
+    }
+
+    /** The reminder behind a start that has opened, used up ([UsedReminder]). */
+    private suspend fun markReminderStarted(reminder: ReminderTap?) {
+        reminder ?: return
+        UsedReminder.markStarted(getApplication(), container, reminder.occurrenceId, reminder.deliveryId)
     }
 
     fun resumeBlocked() {
@@ -501,7 +556,7 @@ class HomeViewModel @JvmOverloads constructor(
             when (val result = container.discardWorkout(blocked.sessionId)) {
                 DiscardOutcome.Discarded -> {
                     PendingOccurrence.forgetIfSession(container, blocked.sessionId)
-                    start(blocked.day, blocked.occurrenceId)
+                    start(blocked.day, blocked.occurrenceId, blocked.reminder)
                 }
                 is DiscardOutcome.Failed -> actionError.value = result.message
             }
@@ -652,7 +707,12 @@ class HomeViewModel @JvmOverloads constructor(
         val day: SuggestedTrainingDay,
         val sessionId: String,
         val occurrenceId: String? = null,
+        /** The reminder whose Start was refused, still unused; used once this start opens. */
+        val reminder: ReminderTap? = null,
     )
+
+    /** A reminder's Start: the occurrence it named, and its delivery. */
+    data class ReminderTap(val occurrenceId: String, val deliveryId: String)
 
     fun recordBodyweight(kg: Double) {
         viewModelScope.launch {
@@ -676,3 +736,5 @@ sealed class HomeDayAdd {
     data class Cardio(val type: CardioType) : HomeDayAdd()
     data class Aux(val packId: String) : HomeDayAdd()
 }
+
+private const val TAG = "PT/HomeViewModel"

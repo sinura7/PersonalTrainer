@@ -68,25 +68,6 @@ class PersonalTrainerApp : Application() {
         container.plannerRepository.ensureWeek(todayDate.previousOrSame(weekStart))
     }
 
-    /**
-     * Marks a reminder delivery STARTED on the app scope, so the write
-     * survives the activity that consumed the notification tap.
-     */
-    fun markReminderStarted(deliveryId: String) {
-        applicationScope.launch {
-            try {
-                container.plannerRepository.markDeliveryStatus(
-                    deliveryId,
-                    com.sinura.personaltrainer.domain.ReminderDeliveryStatus.STARTED,
-                )
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                AppLog.w(TAG, "Marking a reminder delivery started failed", error)
-            }
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
         // Before anything that can log: the snapshot and container construction below

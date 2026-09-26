@@ -70,6 +70,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.sinura.personaltrainer.UsedReminder
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.domain.CanonicalMuscle
@@ -233,15 +234,6 @@ internal object StartOptionsNav {
 }
 
 /**
- * Reminder taps always land on Home first. Start then starts; a body
- * tap only reviews. Settings (or any other tab) must not swallow the id.
- */
-internal object ReminderHandoff {
-    fun homeTab(openStartId: String?, openReviewId: String?): String? =
-        if (openStartId != null || openReviewId != null) Route.Home.path else null
-}
-
-/**
  * One fade-through for every destination change.
  *
  * The host declared no transitions at all, so a lateral tab switch and a hierarchical
@@ -280,6 +272,8 @@ fun PersonalTrainerNav(
     openSessionId: String? = null,
     onOpenSessionConsumed: () -> Unit = {},
     openOccurrenceId: String? = null,
+    /** The delivery behind a reminder's Start, handed to Home with [openOccurrenceId]. */
+    openDeliveryId: String? = null,
     onOpenOccurrenceConsumed: () -> Unit = {},
     reviewOccurrenceId: String? = null,
     onReviewOccurrenceConsumed: () -> Unit = {},
@@ -416,26 +410,39 @@ fun PersonalTrainerNav(
             }
         }
     }
-    val resumeLive = remember(navController) {
-        { live: LiveSessionBarUiState ->
-            if (live.kind == LiveBarKind.ACTIVITY) {
-                navController.navigate(Route.LiveCardio.create(live.sessionId)) {
+    val openLive = remember(navController) {
+        { sessionId: String, cardio: Boolean ->
+            if (cardio) {
+                navController.navigate(Route.LiveCardio.create(sessionId)) {
                     launchSingleTop = true
                 }
             } else {
-                navController.navigate(Route.ActiveWorkout.create(live.sessionId)) {
+                navController.navigate(Route.ActiveWorkout.create(sessionId)) {
                     popUpTo(Route.ActiveWorkout.path) { inclusive = false }
                     launchSingleTop = true
                 }
             }
         }
     }
-
-    LaunchedEffect(openOccurrenceId, reviewOccurrenceId) {
-        val tab = ReminderHandoff.homeTab(openOccurrenceId, reviewOccurrenceId)
-            ?: return@LaunchedEffect
-        goToTab(tab)
+    val resumeLive = remember(openLive) {
+        { live: LiveSessionBarUiState -> openLive(live.sessionId, live.kind == LiveBarKind.ACTIVITY) }
     }
+
+    var homeTap by remember { mutableStateOf<HomeTap?>(null) }
+    ReminderHandoffHost(
+        openStartId = openOccurrenceId,
+        openDeliveryId = openDeliveryId,
+        openReviewId = reviewOccurrenceId,
+        verdict = { occurrenceId -> ReminderHandoff.verdict(container, occurrenceId) },
+        goToTab = goToTab,
+        openLive = openLive,
+        useReminder = { occurrenceId, deliveryId ->
+            UsedReminder.markStarted(application, container, occurrenceId, deliveryId)
+        },
+        handToHome = { homeTap = it },
+        onStartConsumed = onOpenOccurrenceConsumed,
+        onReviewConsumed = onReviewOccurrenceConsumed,
+    )
 
     val todayEpochDay = rememberTodayEpochDay(container.time)
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
@@ -493,9 +500,10 @@ fun PersonalTrainerNav(
             ) {
                 composable(Route.Home.path) {
                     HomeScreen(
-                        pendingOccurrenceStartId = openOccurrenceId,
+                        pendingOccurrenceStartId = homeTap?.startId,
+                        pendingOccurrenceDeliveryId = homeTap?.deliveryId,
                         onPendingOccurrenceConsumed = onOpenOccurrenceConsumed,
-                        pendingOccurrenceReviewId = reviewOccurrenceId,
+                        pendingOccurrenceReviewId = homeTap?.reviewId,
                         onPendingOccurrenceReviewConsumed = onReviewOccurrenceConsumed,
                         onResumeWorkout = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
