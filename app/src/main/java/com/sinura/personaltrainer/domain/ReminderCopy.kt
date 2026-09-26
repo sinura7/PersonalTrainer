@@ -19,6 +19,17 @@ object ReminderCopy {
         "This phone has not allowed notifications. Reminders stay silent until you turn them on."
     const val PERMISSION_ACTION = "Turn on"
     const val GONE = "That session is no longer on the plan."
+
+    /**
+     * A reminder tapped while a session is live. It used to throw the lifter out to Home and,
+     * for Start, use the reminder up although the start was refused (audit UI-1).
+     */
+    const val LIVE_TITLE = "You are in a workout"
+    const val LIVE_START_BODY =
+        "Finish or discard it first, then start the planned session. The reminder stays in " +
+            "your notifications."
+    const val LIVE_REVIEW_BODY = "Finish or discard it first, then open the planned day from Home."
+    const val LIVE_OK = "OK"
     const val ALARM_EMPTY = "No days yet. Pick a day, then scroll the time."
     const val DAY_OFF = "Off"
     const val REST_STAYS_ON_REST = "Rest alerts live on Rest. Exact alarms when the phone allows them."

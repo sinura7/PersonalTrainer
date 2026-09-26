@@ -15,6 +15,19 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Sep 2026 — Audit packet R2-6 (audit X6, UI-1 on Home and the app
+> shell; owner decision of 25 September): tapping a workout reminder while
+> you are already in a workout used to switch to Home, which put Home in
+> place of a workout you had opened from another tab, and it used the
+> reminder up at the tap, although the start was then refused. Now, with a
+> workout or cardio live, the tap leaves you where you are and says "You
+> are in a workout: finish or discard it first", and a Start's reminder
+> stays in your notifications for later. A reminder is marked used, and
+> taken out of the shade, only once its session actually opens. That
+> includes after "Discard and start", and a reminder whose session is no
+> longer planned is simply dismissed. Rides along with the next drop;
+> phone check: start a workout, then tap Start on a workout reminder.
+>
 > 25 Sep 2026 — Audit packet R2-5 (audit X6, UI-2 on the workout floor;
 > owner decision of 25 September, "Finish blocked or warned"; warned was
 > taken): tapping Finish while you are correcting a set you already

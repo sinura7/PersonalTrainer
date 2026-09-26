@@ -68,6 +68,8 @@ fun HomeScreen(
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
     pendingOccurrenceStartId: String? = null,
+    /** The delivery behind a reminder's Start, marked used only once the start opens. */
+    pendingOccurrenceDeliveryId: String? = null,
     onPendingOccurrenceConsumed: () -> Unit = {},
     pendingOccurrenceReviewId: String? = null,
     onPendingOccurrenceReviewConsumed: () -> Unit = {},
@@ -100,7 +102,7 @@ fun HomeScreen(
     }
     LaunchedEffect(pendingOccurrenceStartId) {
         val id = pendingOccurrenceStartId ?: return@LaunchedEffect
-        viewModel.startOccurrence(id)
+        viewModel.startOccurrence(id, deliveryId = pendingOccurrenceDeliveryId)
         onPendingOccurrenceConsumed()
     }
     LaunchedEffect(pendingOccurrenceReviewId) {

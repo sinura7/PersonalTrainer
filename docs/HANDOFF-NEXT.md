@@ -216,6 +216,13 @@ Done so far:
 - **R2-5:** Finish warns while a logged set is open for changes and
   offers "Back to my change"; the bottom bar's Finish waits for it and
   says why (audit UI-2 on the floor; #428).
+- **R2-6:** a workout reminder tapped while you are in a workout (or
+  cardio) leaves you where you are and says why, and a Start's reminder
+  stays in your notifications; a reminder is marked used only once its
+  session opens (audit UI-1 on Home; #PRNUM). This completes R2. Its
+  whole-app test found why JVM tests of the full app never loaded:
+  androidx keeps the first test's app for every later one; tests now
+  reset it.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -239,10 +246,9 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner decision of 25 September, audit X6; the live order
-is the table in FRONTEND_REDESIGN.md): the rest of R2 (crash and coach:
-R2-6, the reminder tap), W2d-2 and W2d-3, the rest-alarm packet,
-R3 (updater), then a check-only phone drop, then W3, S1, X8 and X9. X2b
-completed Wave 0.
+is the table in FRONTEND_REDESIGN.md): W2d-2 and W2d-3, the rest-alarm
+packet, R3 (updater), then a check-only phone drop, then W3, S1, X8 and
+X9. X2b completed Wave 0.
 
 ## What is verified, and how
 

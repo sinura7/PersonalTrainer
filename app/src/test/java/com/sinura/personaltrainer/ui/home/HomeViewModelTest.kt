@@ -1,12 +1,16 @@
 package com.sinura.personaltrainer.ui.home
 
+import android.Manifest
 import android.app.Application
+import android.app.NotificationManager
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.BodyweightDao
+import com.sinura.personaltrainer.data.local.entity.ReminderDeliveryEntity
+import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.PendingOccurrence
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.LoadType
@@ -14,6 +18,7 @@ import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RecommendationPriority
+import com.sinura.personaltrainer.domain.ReminderDeliveryStatus
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
@@ -21,6 +26,7 @@ import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.todayEpochDay
+import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.testutil.FailingWeighInsDao
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.ReadGate
@@ -52,6 +58,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -367,6 +374,101 @@ class HomeViewModelTest {
         assertNull(viewModel!!.reviewOccurrenceId.value)
         assertNull(viewModel!!.navigateToSession.value)
     }
+
+    /**
+     * Audit UI-1: a reminder's Start marked its delivery started, and dismissed it, at the tap,
+     * before the start could be refused. Now only a start that opens uses the reminder up.
+     */
+    @Test
+    fun aReminderStartThatOpensUsesTheReminderUp() = runBlocking {
+        val occurrence = seedTodayStrength()
+        val reminder = postReminder(occurrence)
+
+        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
+        viewModel!!.navigateToSession.awaitFirst { it != null }
+
+        assertEquals(ReminderDeliveryStatus.STARTED.name, deliveryStatus(reminder))
+        assertFalse("its Snooze, Move and Skip must leave the shade", reminderShown(occurrence.id))
+    }
+
+    @Test
+    fun aReminderStartRefusedByALiveSessionLeavesTheReminderForLater() = runBlocking {
+        val occurrence = seedTodayStrength()
+        val reminder = postReminder(occurrence)
+        val live = startAnotherSession()
+
+        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
+        val blocked = checkNotNull(viewModel!!.blockedByInProgress.awaitFirst { it != null })
+        assertEquals(live, blocked.sessionId)
+        assertEquals(ReminderDeliveryStatus.PENDING.name, deliveryStatus(reminder))
+        assertTrue("the reminder stays in the shade", reminderShown(occurrence.id))
+
+        viewModel!!.resumeBlocked()
+        assertEquals(live, viewModel!!.navigateToSession.value)
+        assertEquals(ReminderDeliveryStatus.PENDING.name, deliveryStatus(reminder))
+        assertTrue(reminderShown(occurrence.id))
+    }
+
+    @Test
+    fun discardingTheLiveSessionForAReminderUsesItUpOnceTheStartOpens() = runBlocking {
+        val occurrence = seedTodayStrength()
+        val reminder = postReminder(occurrence)
+        val live = startAnotherSession()
+        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
+        viewModel!!.blockedByInProgress.awaitFirst { it != null }
+
+        viewModel!!.discardBlockedAndStart()
+        val opened = checkNotNull(viewModel!!.navigateToSession.awaitFirst { it != null })
+
+        assertTrue("a new session opened", opened != live)
+        assertEquals(ReminderDeliveryStatus.STARTED.name, deliveryStatus(reminder))
+        assertFalse(reminderShown(occurrence.id))
+    }
+
+    /** Nothing left to start: the reminder is dismissed, since its Start can never open anything. */
+    @Test
+    fun aReminderForASessionNoLongerPlannedIsDismissed() = runBlocking {
+        val occurrence = seedTodayStrength()
+        val reminder = postReminder(occurrence)
+        deps.database.plannerDao().deleteOccurrence(occurrence.id)
+
+        viewModel!!.startOccurrence(occurrence.id, deliveryId = reminder)
+        val state = viewModel!!.uiState.awaitFirst { it.error != null }
+
+        assertEquals(com.sinura.personaltrainer.domain.ReminderCopy.GONE, state.error)
+        assertFalse(reminderShown(occurrence.id))
+        assertNull(viewModel!!.navigateToSession.value)
+    }
+
+    /** A plan reminder in the shade for [occurrence], its delivery row waiting, as the worker posts it. */
+    private suspend fun postReminder(occurrence: com.sinura.personaltrainer.domain.ScheduleOccurrence): String {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        val deliveryId = "rem-${occurrence.id}"
+        deps.database.plannerDao().upsertDelivery(
+            ReminderDeliveryEntity(
+                id = deliveryId,
+                occurrenceId = occurrence.id,
+                scheduledAtMs = 1L,
+                status = ReminderDeliveryStatus.PENDING.name,
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+        )
+        ReminderNotifications.show(app, occurrence, deliveryId, "Push")
+        check(reminderShown(occurrence.id)) { "the reminder was not posted" }
+        return deliveryId
+    }
+
+    private fun reminderShown(occurrenceId: String): Boolean =
+        ApplicationProvider.getApplicationContext<Application>()
+            .getSystemService(NotificationManager::class.java)
+            .activeNotifications.any { it.id == occurrenceId.hashCode() }
+
+    private suspend fun deliveryStatus(id: String): String? = deps.database.plannerDao().getDelivery(id)?.status
+
+    private suspend fun startAnotherSession(): String =
+        (deps.workoutRepository.startFreeWorkoutSafely("Already going") as StartSessionOutcome.Started).session.id
 
     private suspend fun seedTodayStrength(
         built: FakeAppDependencies = graph(),

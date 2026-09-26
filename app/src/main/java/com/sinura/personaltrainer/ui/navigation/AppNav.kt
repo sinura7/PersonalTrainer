@@ -233,15 +233,6 @@ internal object StartOptionsNav {
 }
 
 /**
- * Reminder taps always land on Home first. Start then starts; a body
- * tap only reviews. Settings (or any other tab) must not swallow the id.
- */
-internal object ReminderHandoff {
-    fun homeTab(openStartId: String?, openReviewId: String?): String? =
-        if (openStartId != null || openReviewId != null) Route.Home.path else null
-}
-
-/**
  * One fade-through for every destination change.
  *
  * The host declared no transitions at all, so a lateral tab switch and a hierarchical
@@ -280,6 +271,8 @@ fun PersonalTrainerNav(
     openSessionId: String? = null,
     onOpenSessionConsumed: () -> Unit = {},
     openOccurrenceId: String? = null,
+    /** The delivery behind a reminder's Start, handed to Home with [openOccurrenceId]. */
+    openDeliveryId: String? = null,
     onOpenOccurrenceConsumed: () -> Unit = {},
     reviewOccurrenceId: String? = null,
     onReviewOccurrenceConsumed: () -> Unit = {},
@@ -431,11 +424,14 @@ fun PersonalTrainerNav(
         }
     }
 
-    LaunchedEffect(openOccurrenceId, reviewOccurrenceId) {
-        val tab = ReminderHandoff.homeTab(openOccurrenceId, reviewOccurrenceId)
-            ?: return@LaunchedEffect
-        goToTab(tab)
-    }
+    ReminderHandoffHost(
+        openStartId = openOccurrenceId,
+        openReviewId = reviewOccurrenceId,
+        sessionLive = hasLiveSession,
+        goToTab = goToTab,
+        onStartConsumed = onOpenOccurrenceConsumed,
+        onReviewConsumed = onReviewOccurrenceConsumed,
+    )
 
     val todayEpochDay = rememberTodayEpochDay(container.time)
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
@@ -493,9 +489,10 @@ fun PersonalTrainerNav(
             ) {
                 composable(Route.Home.path) {
                     HomeScreen(
-                        pendingOccurrenceStartId = openOccurrenceId,
+                        pendingOccurrenceStartId = ReminderHandoff.forHome(openOccurrenceId, hasLiveSession),
+                        pendingOccurrenceDeliveryId = openDeliveryId,
                         onPendingOccurrenceConsumed = onOpenOccurrenceConsumed,
-                        pendingOccurrenceReviewId = reviewOccurrenceId,
+                        pendingOccurrenceReviewId = ReminderHandoff.forHome(reviewOccurrenceId, hasLiveSession),
                         onPendingOccurrenceReviewConsumed = onReviewOccurrenceConsumed,
                         onResumeWorkout = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {

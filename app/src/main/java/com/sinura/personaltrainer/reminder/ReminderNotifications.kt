@@ -135,8 +135,8 @@ object ReminderNotifications {
      * receiver: since API 31 a receiver cannot launch an activity from a
      * notification action — the system silently drops it, so the old
      * trampoline consumed the tap, dismissed the notification, and opened
-     * nothing. MainActivity marks the delivery STARTED when it consumes
-     * the extras.
+     * nothing. MainActivity hands the delivery to Home, which marks it
+     * STARTED and dismisses the notification only once the session opens.
      */
     internal fun startLaunchIntent(
         context: Context,
