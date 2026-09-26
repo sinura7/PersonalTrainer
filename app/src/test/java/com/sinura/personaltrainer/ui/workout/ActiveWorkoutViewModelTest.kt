@@ -1584,12 +1584,17 @@ class ActiveWorkoutViewModelTest {
     @Test
     fun notesWaitForTypingPauseAndExitFlushesImmediately() = runBlocking {
         val fixture = seedWorkout()
+        deps.workoutRepository.updateSessionNotes(fixture.session.id, "already saved")
         val vm = createViewModel(fixture.session.id)
-        vm.awaitFound()
+        // The prefill ends in a draft save of its own, so wait it out, not just FOUND. And the
+        // typing-pause write skips while the notes on disk are unknown; the session read that
+        // learns them also shows them, so once they show, a pause writes.
+        vm.awaitPrefilled()
+        vm.awaitState { it.notes == "already saved" }
 
         vm.setNotes("first")
         dispatcher.scheduler.advanceTimeBy(399)
-        assertEquals("", deps.workoutRepository.getSession(fixture.session.id)!!.notes)
+        assertEquals("already saved", deps.workoutRepository.getSession(fixture.session.id)!!.notes)
         vm.setNotes("final note")
         dispatcher.scheduler.advanceTimeBy(401)
         dispatcher.scheduler.runCurrent()
@@ -1600,7 +1605,13 @@ class ActiveWorkoutViewModelTest {
         vm.persistDraftForExit()
         val flushed = awaitSession(fixture.session.id) { it.notes == "leave now" }
         assertEquals("leave now", flushed.notes)
-        assertEquals("leave now", deps.workoutDraftCache.get(fixture.session.id)?.notes)
+        // Polled, not read once. Here Room's threads run ViewModel code, so a draft save that
+        // read "final note" there can land after the one above; on a phone every save runs on
+        // the main thread and reads and writes in one go. The cache converges: the flush's row
+        // comes back through the session collector, whose save reads "leave now". A copy left
+        // older for good still fails here. NotesExitDuringPrefillTest holds, strictly, a draft
+        // save landing after the exit.
+        awaitCachedNotes(fixture.session.id, "leave now")
     }
 
     @Test
@@ -2667,6 +2678,20 @@ class ActiveWorkoutViewModelTest {
             }
         } catch (timedOut: TimeoutCancellationException) {
             throw AssertionError("The rest is still running; snapshot=${deps.restTimerStore.current()}", timedOut)
+        }
+    }
+
+    /** Until the draft cache's notes for [sessionId] read [expected], bounded. */
+    private suspend fun awaitCachedNotes(sessionId: String, expected: String) {
+        try {
+            withTimeout(TestWaits.FLOW_MS) {
+                while (deps.workoutDraftCache.get(sessionId)?.notes != expected) delay(10)
+            }
+        } catch (timedOut: TimeoutCancellationException) {
+            throw AssertionError(
+                "the draft cache never converged on \"$expected\": ${deps.workoutDraftCache.get(sessionId)?.notes}",
+                timedOut,
+            )
         }
     }
 

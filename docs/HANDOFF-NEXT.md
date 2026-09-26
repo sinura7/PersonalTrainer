@@ -228,6 +228,21 @@ Done so far:
   fixed: with nothing live, a Start tapped on a screen pushed over Home
   (the workout summary) waits, and the session then starts by itself
   when you leave that screen.
+- **T3:** the Log's notes test that failed once in seven runs of its
+  class now waits for the lift to load and for the notes' copy to
+  settle; new tests hold what it only met by luck (leaving while a lift
+  loads, then a restart) and the notes' saves nothing held (a pause into
+  a workout with no notes, a phone killed mid-load). Tests only
+  (#430).
+- **Owner decisions, 25 September (later):** this session's packets run
+  T3, then N1 (a workout reopened while its lift was still loading
+  brought back an older note, then saved it over the newer one, and
+  could show another lift's typed numbers; a visible fix), then W2d-2,
+  W2d-3a (timed work) and W2d-3b (notes), then W2e: a lighter week or a
+  unit switch made while a lift is open reaches its pre-filled numbers
+  at once, while numbers you have typed stay. Audit X6's AR-3 and AR-4
+  (the invalidation fan-out per logged set, the eager `stateIn` on the
+  floor) leave W2d for a later packet that needs owner decisions.
 - **Owner decision, 23 September:** the rest a logged set starts is the
   coach's suggested length, not one picked on the dock (ADR-012 decision
   18; already the behaviour, now written down and held by a test).
@@ -250,10 +265,10 @@ Done so far:
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next, in order (owner decision of 25 September, audit X6; the live order
-is the table in FRONTEND_REDESIGN.md): W2d-2 and W2d-3, the rest-alarm
-packet, R3 (updater), then a check-only phone drop, then W3, S1, X8 and
-X9. X2b completed Wave 0.
+Next, in order (owner decisions of 25 September; the live order is the
+table in FRONTEND_REDESIGN.md): N1, W2d-2, W2d-3a and W2d-3b, W2e, the
+rest-alarm packet, R3 (updater), then a check-only phone drop, then W3,
+S1, X8 and X9. X2b completed Wave 0.
 
 ## What is verified, and how
 
