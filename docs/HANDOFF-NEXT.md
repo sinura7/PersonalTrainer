@@ -236,7 +236,7 @@ Done so far:
   process; that test resets it before and after each case. Found, not
   fixed: with nothing live, a Start tapped on a screen pushed over Home
   (the workout summary) waits, and the session then starts by itself
-  when you leave that screen (fixed by R4, #R4PR).
+  when you leave that screen (fixed by R4, #437).
 - **T3:** the Log's notes test that failed once in seven runs of its
   class now waits for the lift to load and for the notes' copy to
   settle; new tests hold what it only met by luck (leaving while a lift
@@ -298,7 +298,7 @@ Done so far:
   from any start; one due while it runs is not shown; and Snooze, Move
   or Skip on one still showing leave the day alone. Reminders still
   ahead are kept, so a discarded session's day is still reminded of
-  (#R4PR). This completes this session's share of the split.
+  (#437). This completes this session's share of the split.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
