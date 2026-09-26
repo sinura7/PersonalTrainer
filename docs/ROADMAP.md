@@ -34,6 +34,13 @@
 > wait a second, remove the lift, press Back and reopen (the whole note
 > shows).
 >
+> 26 Sep 2026 — Whole-app audit packet W2d-2: the workout floor's set
+> save (the one set being written, the copies kept of it for when Android
+> stops the app, what a failed or refused save says, and the check that
+> settles a save whose outcome is unknown) moves out of the workout
+> ViewModel into its own small helper. Nothing changes on screen; tests
+> written on the old code prove it. Quiet.
+>
 > 26 Sep 2026 — Packet T3 (a flaky test; owner decisions of 25
 > September, later): the Log's notes test that failed once in seven
 > runs of its class, and never since, now waits for what it reads. It

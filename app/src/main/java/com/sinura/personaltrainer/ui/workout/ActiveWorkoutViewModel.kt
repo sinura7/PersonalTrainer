@@ -8,7 +8,6 @@ import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
-import com.sinura.personaltrainer.domain.WorkoutSetSaveResolution
 import com.sinura.personaltrainer.workout.SavedStateWorkoutSave
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -38,7 +37,6 @@ import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.LibraryGrouping
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
-import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
 import com.sinura.personaltrainer.domain.LogReceipt
 import com.sinura.personaltrainer.domain.LogReceiptCopy
@@ -248,15 +246,25 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val draftCache = container.workoutDraftCache
     private val savedDraft = SavedStateWorkoutDraft(savedStateHandle)
     private val savedTimer = SavedStateFloorTimer(savedStateHandle)
-    private val savedSave = SavedStateWorkoutSave(savedStateHandle)
     private val savedEdit = SavedStateWorkoutSave(handle = savedStateHandle, storageKey = "workout.editOriginal.v1")
     private var editingOriginal = draftCache.editingOriginal(sessionId) ?: savedEdit.read(sessionId)
     private val mutating = MutableStateFlow(false)
-    private val restoredSave = draftCache.pendingSave(sessionId) ?: savedSave.read(sessionId)
-    private val saveOperation = MutableStateFlow(WorkoutSaveState(
-        phase = if (restoredSave == null) WorkoutSavePhase.IDLE else WorkoutSavePhase.CHECKING,
-        command = restoredSave,
-    ))
+
+    /**
+     * The set being saved, its copies and its outcome (audit W2d-2). What a saved or released set
+     * does next stays here, in [acknowledgeSave] and [releaseSave].
+     */
+    private val saves = FloorSetSaves(
+        sessionId = sessionId,
+        cache = draftCache,
+        saved = SavedStateWorkoutSave(savedStateHandle),
+        write = { command -> container.workoutRepository.saveSet(command) },
+        inspect = { command -> container.workoutRepository.inspectSetSave(command) },
+        sessionFound = { sessionReader.observations.value.loadState == SessionLoadState.FOUND },
+        onSaved = { command, result, recovered -> acknowledgeSave(command, result, recovered) },
+        onReleased = { _, conflict -> releaseSave(conflict) },
+        onRejected = { _logFeedback.tryEmit(LogCommitFeedback.REJECT) },
+    )
 
     private val selectedExerciseId = MutableStateFlow<String?>(null)
     private val draft = MutableStateFlow(ActiveExerciseDraft())
@@ -286,7 +294,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val error = ErrorSlot()
     private val finished = MutableStateFlow(false)
     private val editingSetId = MutableStateFlow<String?>(null)
-    private val logging = MutableStateFlow(false)
     private val liftReadiness = MutableStateFlow(LiftEntryReadiness.NONE)
     private val suggestionUnavailable = MutableStateFlow(false)
     private val draftDirty = MutableStateFlow(false)
@@ -429,11 +436,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             savedEdit.write(original)
             draftCache.putEditingOriginal(sessionId, original)
         }
-        restoredSave?.let { command ->
-            draftCache.putPendingSave(command)
-            savedSave.write(command)
-            restoreSaveDraft(command)
-        }
+        saves.keepRestored()?.let { command -> restoreSaveDraft(command) }
         restoreTimedWork(selectedExerciseId.value)
         viewModelScope.launch {
             // The flow is guarded at the repository, but the body below is not — a failure
@@ -442,7 +445,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 session.collect { current ->
                     if (current == null) return@collect
                     val resolved = current.resolveSelectedExerciseId(selectedExerciseId.value)
-                    if (!saveOperation.value.pending && resolved != selectedExerciseId.value) {
+                    if (!saves.pending && resolved != selectedExerciseId.value) {
                         if (resolved == null) {
                             clearLiftSelection()
                         } else {
@@ -718,12 +721,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         )
     }.combine(mutating) { state, busy ->
         state.copy(mutating = busy)
-    }.combine(saveOperation) { state, operation ->
+    }.combine(saves.operation) { state, operation ->
         state.copy(
             save = operation, error = operation.message ?: state.error,
             selectedExerciseId = operation.command?.exerciseId ?: state.selectedExerciseId,
         )
-    }.combine(logging) { state, busy ->
+    }.combine(saves.inFlight) { state, busy ->
         state.copy(logging = busy)
     }.combine(liftReadiness) { state, readiness ->
         state.copy(liftReadiness = readiness)
@@ -756,7 +759,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             pendingResumeDraft = null
             resume.exerciseId == null || resume.exerciseId == exerciseId
         }
-        val keepDraft = resumingThisLift || editingSetId.value != null || saveOperation.value.pending
+        val keepDraft = resumingThisLift || editingSetId.value != null || saves.pending
         if (!keepDraft) {
             liftReadiness.value = LiftEntryReadiness.RESOLVING
             suggestionUnavailable.value = false
@@ -813,7 +816,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             restTotal.update { plan ->
                 if (plan.chosenFor == exerciseId) plan else PlannedRest(seconds = seededRest, chosenFor = null)
             }
-            if (keepDraft || draftDirty.value || saveOperation.value.pending) {
+            if (keepDraft || draftDirty.value || saves.pending) {
                 liftReadiness.value = LiftEntryReadiness.READY
                 suggestionUnavailable.value = false
                 persistDraft()
@@ -840,7 +843,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             val livePlanned = session.value?.exercises
                 ?.firstOrNull { it.exercise.id == exerciseId }
                 ?: planned
-            if (!saveOperation.value.pending && !draftDirty.value && (!keepDraft || draft.value.weightKg <= 0.0)) {
+            if (!saves.pending && !draftDirty.value && (!keepDraft || draft.value.weightKg <= 0.0)) {
                 draft.value = ActiveExerciseDraft(
                     weightKg = livePlanned?.targetWeightKg ?: 0.0,
                     reps = if (hold) 0 else targetReps.coerceAtLeast(1),
@@ -1521,16 +1524,16 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     init {
-        restoredSave?.let { command ->
+        saves.restored?.let { command ->
             viewModelScope.launch {
                 sessionReader.observations.first { it.loadState != SessionLoadState.LOADING }
-                reconcileSave(command, retryWrite = false)
+                saves.reconcile(command, retryWrite = false)
             }
         }
     }
 
     private fun canChangeEntry(): Boolean =
-        !terminalExit && !logging.value && !mutating.value && !saveOperation.value.pending &&
+        !terminalExit && !saves.inFlight.value && !mutating.value && !saves.pending &&
             sessionReader.observations.value.loadState == SessionLoadState.FOUND &&
             sessionReader.observations.value.session?.isFinished == false
 
@@ -1574,8 +1577,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             state = ActiveWorkoutUiState(
                 loadState = read.loadState, session = read.session,
                 selectedExerciseId = selectedExerciseId.value, draft = draft.value,
-                editingSetId = editingSetId.value, logging = logging.value,
-                mutating = mutating.value, save = saveOperation.value,
+                editingSetId = editingSetId.value, logging = saves.inFlight.value,
+                mutating = mutating.value, save = saves.operation.value,
                 liftReadiness = liftReadiness.value, draftDirty = draftDirty.value,
             ),
             extraSet = wantAnotherSet.value, hold = _holdTimer.value, stopwatch = _setStopwatch.value,
@@ -1662,105 +1665,37 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             completedAt = original?.completedAt ?: time.nowMillis(),
             values = values, original = original?.values,
         )
-        // Freeze identity and payload synchronously, before Room or any coroutine suspension.
-        draftCache.putPendingSave(command)
-        savedSave.write(command)
-        saveOperation.value = WorkoutSaveState(WorkoutSavePhase.SAVING, command)
-        logging.value = true
-        viewModelScope.launch { persistSet(command) }
+        saves.freeze(command)
+        viewModelScope.launch { saves.persist(command) }
     }
 
     /** Retry belongs to the frozen command, never to today's editable draft or timer. */
     fun retrySave() {
-        val operation = saveOperation.value
-        val command = operation.command ?: return
-        if (operation.busy || operation.phase == WorkoutSavePhase.CONFLICT) return
-        saveOperation.value = operation.copy(phase = WorkoutSavePhase.CHECKING, message = null)
-        logging.value = true
-        viewModelScope.launch { reconcileSave(command, retryWrite = true) }
+        val command = saves.beginRetry() ?: return
+        viewModelScope.launch { saves.reconcile(command, retryWrite = true) }
     }
 
     /** Inspect before releasing a failed operation for editing; an unknown outcome stays owned. */
     fun editFailedSave() {
-        val operation = saveOperation.value
-        val command = operation.command ?: return
-        if (operation.busy) return
-        saveOperation.value = operation.copy(phase = WorkoutSavePhase.CHECKING, message = null)
-        logging.value = true
-        viewModelScope.launch { reconcileSave(command, retryWrite = false, releaseUnwritten = true) }
+        val command = saves.beginEdit() ?: return
+        viewModelScope.launch { saves.reconcile(command, retryWrite = false, releaseUnwritten = true) }
     }
 
-    private suspend fun reconcileSave(
-        command: WorkoutSetSave,
-        retryWrite: Boolean,
-        releaseUnwritten: Boolean = false,
-    ) {
-        try {
-            when (container.workoutRepository.inspectSetSave(command)) {
-                WorkoutSetSaveResolution.SAVED -> acknowledgeSave(command, result = null, recovered = true)
-                WorkoutSetSaveResolution.UNSAVED -> {
-                    if (releaseUnwritten) {
-                        clearSave(command)
-                        error.clearFrom(source = ERR_LOG_SET, before = error.mark())
-                        reconcileSelectionAfterSave()
-                    } else if (retryWrite && sessionReader.observations.value.loadState == SessionLoadState.FOUND) {
-                        saveOperation.value = WorkoutSaveState(WorkoutSavePhase.SAVING, command)
-                        persistSet(command)
-                    } else {
-                        saveOperation.value = WorkoutSaveState(
-                            WorkoutSavePhase.FAILED, command,
-                            "This set has not been saved. Retry to save these values.",
-                        )
-                    }
-                }
-                WorkoutSetSaveResolution.CONFLICT -> {
-                    if (releaseUnwritten) {
-                        // Inspection proved this command is not the stored row. Never replay it.
-                        clearSave(command)
-                        editingSetId.value = null
-                        clearEditingOriginal()
-                        reconcileSelectionAfterSave()
-                        persistDraft()
-                    } else {
-                        saveOperation.value = WorkoutSaveState(
-                            WorkoutSavePhase.CONFLICT, command, WorkoutRepository.SetSaveConflict().message,
-                        )
-                    }
-                }
-            }
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (failure: Exception) {
-            AppLog.w(TAG, "Could not establish the saved set outcome", failure)
-            saveOperation.value = WorkoutSaveState(
-                WorkoutSavePhase.FAILED, command,
-                "Could not confirm whether this set was saved. Retry will check before saving again.",
-            )
-        } finally {
-            logging.value = false
+    /**
+     * Edit let go of a set the database does not hold as it ([FloorSetSaves]); its copies are
+     * already cleared. After a conflict the edit is let go too; after an unwritten set, Log's
+     * earlier refusal is cleared.
+     */
+    private fun releaseSave(conflict: Boolean) {
+        if (conflict) {
+            editingSetId.value = null
+            clearEditingOriginal()
+            reconcileSelectionAfterSave()
+            persistDraft()
+        } else {
+            error.clearFrom(source = ERR_LOG_SET, before = error.mark())
+            reconcileSelectionAfterSave()
         }
-    }
-
-    private suspend fun persistSet(command: WorkoutSetSave) {
-        val result = try {
-            container.workoutRepository.saveSet(command)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (failure: Exception) {
-            AppLog.w(TAG, "Set save did not acknowledge completion", failure)
-            saveOperation.value = WorkoutSaveState(
-                phase = if (failure is WorkoutRepository.SetSaveConflict) WorkoutSavePhase.CONFLICT else WorkoutSavePhase.FAILED,
-                command = command,
-                message = failure.message?.takeIf { SetLogRules.isFieldMessage(it) }
-                    ?: if (failure is WorkoutRepository.SetSaveConflict) failure.message else LogCommitCopy.WRITE_FAILED,
-            )
-            _logFeedback.tryEmit(LogCommitFeedback.REJECT)
-            logging.value = false
-            return
-        }
-        // A receipt, timer, or feedback failure after this point cannot create Retry save.
-        acknowledgeSave(command, result, recovered = result.alreadySaved)
-        logging.value = false
     }
 
     private fun restoreSaveDraft(command: WorkoutSetSave) {
@@ -1773,14 +1708,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         )
         draftDirty.value = true
         liftReadiness.value = LiftEntryReadiness.READY
-    }
-
-    private fun clearSave(command: WorkoutSetSave) {
-        draftCache.clearPendingSave(command)
-        if (saveOperation.value.command == command) {
-            savedSave.clear()
-            saveOperation.value = WorkoutSaveState()
-        }
     }
 
     private fun reconcileSelectionAfterSave() {
@@ -1796,9 +1723,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         result: WorkoutRepository.SavedWorkoutSet?,
         recovered: Boolean,
     ) {
-        if (saveOperation.value.command != command) return
+        if (!saves.owns(command)) return
         // Entry/selection were locked while this command was outstanding.
-        clearSave(command)
+        saves.clear(command)
         try {
             editingSetId.value = null
             clearEditingOriginal()
@@ -2120,7 +2047,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      */
     fun finishWorkout() {
         if (!canChangeEntry()) return
-        if (logging.value) return
+        if (saves.inFlight.value) return
         cancelPendingRest()
         val started = error.mark()
         launchEntryMutation(source = ERR_FINISH) {
