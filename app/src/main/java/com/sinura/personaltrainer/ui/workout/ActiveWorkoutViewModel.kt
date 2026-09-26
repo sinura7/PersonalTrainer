@@ -700,7 +700,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         )
     }.combine(mutating) { state, busy ->
         state.copy(mutating = busy)
-    }.combine(saves.state) { state, operation ->
+    }.combine(saves.operation) { state, operation ->
         state.copy(
             save = operation, error = operation.message ?: state.error,
             selectedExerciseId = operation.command?.exerciseId ?: state.selectedExerciseId,
@@ -1557,7 +1557,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 loadState = read.loadState, session = read.session,
                 selectedExerciseId = selectedExerciseId.value, draft = draft.value,
                 editingSetId = editingSetId.value, logging = saves.inFlight.value,
-                mutating = mutating.value, save = saves.state.value,
+                mutating = mutating.value, save = saves.operation.value,
                 liftReadiness = liftReadiness.value, draftDirty = draftDirty.value,
             ),
             extraSet = wantAnotherSet.value, hold = _holdTimer.value, stopwatch = _setStopwatch.value,

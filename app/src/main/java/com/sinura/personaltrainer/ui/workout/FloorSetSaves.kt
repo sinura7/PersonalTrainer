@@ -57,7 +57,7 @@ internal class FloorSetSaves(
     ))
 
     /** The frozen set, its phase and its words. */
-    val state: StateFlow<WorkoutSaveState> = _state.asStateFlow()
+    val operation: StateFlow<WorkoutSaveState> = _state.asStateFlow()
 
     private val _inFlight = MutableStateFlow(false)
 

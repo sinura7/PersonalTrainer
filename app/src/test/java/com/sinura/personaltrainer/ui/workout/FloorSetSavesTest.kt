@@ -57,7 +57,7 @@ class FloorSetSavesTest {
 
         assertNull(saves.restored)
         assertNull(saves.keepRestored())
-        assertEquals(WorkoutSaveState(), saves.state.value)
+        assertEquals(WorkoutSaveState(), saves.operation.value)
         assertFalse(saves.pending)
         assertFalse(saves.inFlight.value)
     }
@@ -73,7 +73,7 @@ class FloorSetSavesTest {
         assertTrue(saves.owns(COMMAND))
         assertEquals(COMMAND, cache.pendingSave(SESSION))
         assertEquals(COMMAND, saved.read(SESSION))
-        assertEquals(WorkoutSavePhase.SAVING, saves.state.value.phase)
+        assertEquals(WorkoutSavePhase.SAVING, saves.operation.value.phase)
     }
 
     @Test
@@ -86,11 +86,11 @@ class FloorSetSavesTest {
         writeResult = { throw WorkoutRepository.SetSaveConflict() }
         runBlocking { saves.persist(COMMAND) }
 
-        assertEquals(WorkoutSavePhase.CONFLICT, saves.state.value.phase)
+        assertEquals(WorkoutSavePhase.CONFLICT, saves.operation.value.phase)
         assertNull("a conflict is not retried", saves.beginRetry())
         assertEquals(COMMAND, saves.beginEdit())
-        assertEquals(WorkoutSavePhase.CHECKING, saves.state.value.phase)
-        assertNull(saves.state.value.message)
+        assertEquals(WorkoutSavePhase.CHECKING, saves.operation.value.phase)
+        assertNull(saves.operation.value.message)
         assertTrue(saves.inFlight.value)
     }
 
@@ -121,8 +121,8 @@ class FloorSetSavesTest {
         saves.reconcile(command, retryWrite = true)
 
         assertTrue(writes.isEmpty())
-        assertEquals(WorkoutSavePhase.FAILED, saves.state.value.phase)
-        assertEquals("This set has not been saved. Retry to save these values.", saves.state.value.message)
+        assertEquals(WorkoutSavePhase.FAILED, saves.operation.value.phase)
+        assertEquals("This set has not been saved. Retry to save these values.", saves.operation.value.message)
         assertFalse(saves.inFlight.value)
         assertTrue(savedCalls.isEmpty())
     }
@@ -164,7 +164,7 @@ class FloorSetSavesTest {
         assertEquals(listOf(COMMAND to false), released)
         assertNull(cache.pendingSave(SESSION))
         assertNull(saved.read(SESSION))
-        assertEquals(WorkoutSaveState(), saves.state.value)
+        assertEquals(WorkoutSaveState(), saves.operation.value)
 
         cache.putPendingSave(OTHER)
         resolution = WorkoutSetSaveResolution.CONFLICT
