@@ -15,6 +15,17 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 26 Sep 2026 — Rest-alarm packet, part 2 (audit X6, RT-1): on a phone
+> set to the light theme, the rest countdown in the notification shade
+> and on the lock screen was near-white text on a white card, unreadable.
+> Android draws that card itself, in the phone's theme; the countdown's
+> text had one fixed colour, chosen for the app's dark screens. It now
+> uses Android's own notification text colours, so it is dark on a light
+> card and light on a dark one, with the same size and figures. On the
+> next phone checklist: set the phone to the light theme, start a rest,
+> pull down the shade and lock the phone (the countdown reads in both);
+> then the same in the dark theme. Visible.
+>
 > 26 Sep 2026 — Rest-alarm packet, part 1 (audit X6, RT-2): with
 > notifications off, the "Rest alerts" box came back every time a
 > workout or the rest page opened, for as long as notifications stayed

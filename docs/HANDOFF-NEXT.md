@@ -260,6 +260,12 @@ Done so far:
   most, and the first-open walk can spend one of those before the
   sentence is ever seen; after a second refusal the row is the only way
   back.
+- **Rest alarm, RT-1:** on a phone in the light theme, the rest countdown
+  in the shade and on the lock screen was near-white on the white card.
+  It now takes the phone's own notification text colours, dark on a
+  light card and light on a dark one, and keeps its size and face
+  (#434). A test draws the card's three views in each theme and measures
+  them.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
@@ -298,8 +304,8 @@ Done so far:
 
 Next, in order (owner decisions of 25 September, and of 26 September for
 R4; the live order is the table in FRONTEND_REDESIGN.md): W2d-3a and
-W2d-3b, W2e, the rest-alarm packet (RT-2 done; RT-1, then the two
-quirks), R3 (updater), R4 (reminder follow-ups), then a check-only phone
+W2d-3b, W2e, the rest-alarm packet (RT-2 and RT-1 done; the two quirks
+next), R3 (updater), R4 (reminder follow-ups), then a check-only phone
 drop, then W3, S1, X8 and X9. Two sessions run them side by side: W2d-3a
 to W2e in one, the rest-alarm packet to R4 in the other. X2b completed
 Wave 0.
