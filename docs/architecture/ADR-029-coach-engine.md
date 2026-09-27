@@ -3,7 +3,10 @@
 - **Status:** Accepted
 - **Date:** 21 September 2026
 - **Amended:** 25 September 2026 — W2c: a call's trace time does not make
-  the coach run again (see Consequences)
+  the coach run again (see Consequences); 27 September 2026 — W2e: the
+  coach follows the unit and a week marked lighter while a lift is open,
+  and an entry nobody touched follows it (owner decision of 25 September;
+  see Consequences)
 - **Related:** [ADR-004](ADR-004-offline-core-and-entitlements.md),
   [ADR-008](ADR-008-deterministic-rules.md), [ADR-020](ADR-020-warmup-extras.md),
   [ADR-025](ADR-025-goal-thresholds.md), [ADR-027](ADR-027-workout-logging-redesign.md)
@@ -82,6 +85,46 @@ trace; it must not gate Home, Plan, History, or the logger.
   the coach goal, a lighter week, the hint, the unit and the lift's targets
   one at a time, and `RestFloorInputsTest` the session, the lift, a warm-up,
   a held save and the unit; each holds its screen to the change.
+- The unit and the week's mark reach the coach while a lift is open
+  (*amended 27 September 2026, W2e, owner decision of 25 September 2026*).
+  A lift's hint, its first-set suggestion from last session
+  (`WorkoutRepository.progressionFor`, still the only path to a suggested
+  weight), is read under a unit and a lighter-week flag. The Log and the
+  rest page read both once, when a lift was opened, so a unit pulled in by
+  sync or a week marked lighter reached a lift's first set only when the
+  lift was opened again, and its in-set call only through the Log's next
+  load. Both screens now watch the two (`ProgressionHintLoader.settings`)
+  and, when either changes, read the open lift's hint again: one history
+  read, and nothing else. The lighter flag reaches the in-set call at once.
+  An answer for a lift the screen has left is dropped (the Log's per-lift
+  check; the rest page's `readsFor`). A failed re-read keeps the old hint
+  and is logged. Last session, history, the planned rest of the dock and of
+  the rest page (seeded once, [ADR-012](ADR-012-rest-and-reminders.md)), a
+  set open for correction, a held save, a warm-up, a running set clock and a
+  set just saved stay as they were.
+  The entry follows too, only while nobody has touched it: "untouched
+  pre-filled numbers follow the new suggestion; typed numbers stay".
+  Untouched means: not changed by hand (`draftDirty`: a typed or stepped
+  number, reps, an effort, Warm-up, a ramp chip, Last time, Use and a
+  correction saved all count), no working set of that lift logged in the
+  session (a set just saved counts before the workout shows its row), not a
+  warm-up, no set open for correction, no save in flight or waiting for
+  Retry, no set clock running (the numbers on the bar), and not a hold (a
+  hold's hint counts reps, which the coach does not coach, audit DM-1). A
+  follow refused at that moment waits for the next change or the next time
+  the lift is opened. Such an entry holds what the load filled in, the hint or,
+  with none, the routine's weight, so it takes the hint's weight whenever a
+  new one is read: in a live Log when the unit or the mark changes, and
+  whenever the Log opens a lift whose entry it recovered (Back and the live
+  bar, a lift switched back to, a process death), whatever changed the
+  suggestion meanwhile. Only the weight moves, and only to a new number: a
+  lift with no history keeps its routine weight exactly, and a stored
+  weight is never re-rounded for the new unit. Held by
+  `LogFollowsSettingsTest`, `ReopenFollowsSettingsTest`,
+  `RestPageFollowsSettingsTest` and
+  `LogNextCardInputsTest.aWeekMarkedLighterReachesTheLogsCallWithoutOpeningItsLiftAgain`.
+  The week turning over while a lift is open is the clock, not a write, and
+  is not watched.
 
 ## Review questions
 

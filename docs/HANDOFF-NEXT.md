@@ -315,6 +315,15 @@ Done so far:
   the app stays in the ViewModel. Notes work exactly as before;
   15 tests run on the old code first prove it (#439). The ViewModel
   is 2,058 → 2,020 lines.
+- **W2e:** a unit switched, or a week marked lighter on Body, while a lift
+  is open now reaches that lift's Next card and the rest page's Next line
+  at once, and numbers the app filled in that nobody touched, on a lift
+  with no set logged yet, take the new suggestion, in the open workout and
+  when it is reopened through the live bar. Typed numbers, logged sets,
+  warm-ups, corrections, a save waiting for Retry, holds and the planned
+  rest stay (#440). 45 new tests; the W2c test that pinned the old
+  "only when the lift is opened again" is replaced. Visible, on the drop
+  105 checklist.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
@@ -326,7 +335,9 @@ Done so far:
   could show another lift's typed numbers; a visible fix), then W2d-2,
   W2d-3a (timed work) and W2d-3b (notes), then W2e: a lighter week or a
   unit switch made while a lift is open reaches its pre-filled numbers
-  at once, while numbers you have typed stay. Audit X6's AR-3 and AR-4
+  at once, while numbers you have typed stay (the owner's rule:
+  untouched pre-filled numbers follow the new suggestion, typed numbers
+  stay). Audit X6's AR-3 and AR-4
   (the invalidation fan-out per logged set, the eager `stateIn` on the
   floor) leave W2d for a later packet that needs owner decisions.
 - **Owner decision, 23 September:** the rest a logged set starts is the
@@ -352,12 +363,12 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner decisions of 25 and 26 September; the live order
-is the table in FRONTEND_REDESIGN.md): W2e, then a
-check-only phone drop, then W3, S1, X8 and X9. Of the two sessions that
-split the order, the one on the rest timer, the updater and reminders
-is done (the rest-alarm packet, R3 and R4); W2d-3a and W2d-3b are done
-too (above), and W2e remains. X2b
-completed Wave 0.
+is the table in FRONTEND_REDESIGN.md): a check-only phone drop (drop
+105; its checklist carries N1's and W2e's lines), then W3, S1, X8 and
+X9. Of the two sessions that split the order, the one on the rest
+timer, the updater and reminders is done (the rest-alarm packet, R3 and
+R4), and so is the one on the workout floor (W2d-3a, W2d-3b and W2e,
+above). X2b completed Wave 0.
 
 ## What is verified, and how
 

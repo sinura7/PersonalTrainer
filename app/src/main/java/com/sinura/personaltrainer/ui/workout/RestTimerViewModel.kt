@@ -53,6 +53,9 @@ data class RestTimerScreenState(
  * The page redraws each second while a rest runs, and each redraw still reads what the Log last
  * left in the draft cache. The coach is asked again only when that, or anything else the Next
  * line is made from, has changed ([FloorKey]); it was asked twice a second (W2c, audit C-2).
+ *
+ * The unit and the week's mark are watched: a change reads the drawn lift's hint again and
+ * nothing else; the planned length is not seeded again (W2e).
  */
 class RestTimerViewModel @JvmOverloads constructor(
     application: Application,
@@ -62,7 +65,6 @@ class RestTimerViewModel @JvmOverloads constructor(
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val restTimer = container.restTimerController
     private val restTotal = MutableStateFlow(PlannedRest(seconds = RestTimerPreferences.DEFAULT_SECONDS, chosen = false))
-    private val lighterWeek = MutableStateFlow(false)
 
     /** What was read for one lift, its hint and then its last session. Used only for that lift. */
     private val liftReads = MutableStateFlow<LiftReads?>(null)
@@ -75,6 +77,10 @@ class RestTimerViewModel @JvmOverloads constructor(
     private val sessionReader = WorkoutSessionReader(container.workoutRepository, sessionId, viewModelScope)
     private val restCommands = RestCommands(container, viewModelScope, sessionId)
     private val hintLoader = ProgressionHintLoader(container, sessionId)
+
+    /** The unit and the week's mark, as they change. The hint is read under them (W2e). */
+    private val hintSettings: StateFlow<HintSettings?> =
+        hintLoader.settings().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** The floor last drawn and what it was drawn from; [uiState]'s one collector reads it. */
     private var lastFloor: Pair<FloorKey, RestFloorContext>? = null
@@ -91,14 +97,15 @@ class RestTimerViewModel @JvmOverloads constructor(
                 val reading = exerciseId?.takeIf { current != null && !current.isFinished }
                 val opening = if (current != null && reading != null) {
                     readsFor.value = reading
-                    LiftReads(exerciseId = reading, hint = loadHint(current, reading)).also(::publish)
+                    loadHint(current, reading).also(::publish)
                 } else {
                     null
                 }
+                val settings = opening?.settings ?: hintSettings.filterNotNull().first()
                 val loaded = RestFloorInputs(
                     reads = opening,
-                    lighterWeek = lighterWeek.value,
-                    unit = container.preferencesRepository.weightUnit.first(),
+                    lighterWeek = settings.lighterWeek,
+                    unit = settings.unit,
                     coachPrefs = container.preferencesRepository.coachPreferences.first(),
                 )
                 val question = nextSetInputs(current = current, exerciseId = exerciseId, loaded = loaded)
@@ -130,6 +137,17 @@ class RestTimerViewModel @JvmOverloads constructor(
                     .onFailure { AppLog.w(TAG, "Reading the drawn lift's history failed", it) }
             }
         }
+        // W2e: a unit or a week's mark that changes while the page is open reaches the drawn
+        // lift's hint. The reads carry the settings they were read under.
+        viewModelScope.launch {
+            combine(liftReads.filterNotNull(), hintSettings.filterNotNull()) { reads, now -> reads to now }
+                .collectLatest { (reads, now) ->
+                    // Checked here, as on the Log: a change undone before its read returns cancels it.
+                    if (reads.settings == now) return@collectLatest
+                    runCatchingCancellable { rereadHint(reads.exerciseId, now) }
+                        .onFailure { AppLog.w(TAG, "Reading the drawn lift's hint again failed", it) }
+                }
+        }
     }
 
     val uiState: StateFlow<RestTimerScreenState> = combine(
@@ -137,11 +155,11 @@ class RestTimerViewModel @JvmOverloads constructor(
         restCommands.restState(restTotal) { it.seconds },
         combine(
             liftReads,
-            lighterWeek,
+            hintSettings,
             container.preferencesRepository.weightUnit,
             container.preferencesRepository.coachPreferences,
-        ) { reads, lighter, unit, coach ->
-            RestFloorInputs(reads = reads, lighterWeek = lighter, unit = unit, coachPrefs = coach)
+        ) { reads, settings, unit, coach ->
+            RestFloorInputs(reads = reads, lighterWeek = settings?.lighterWeek == true, unit = unit, coachPrefs = coach)
         },
     ) { read, rest, extras ->
         val current = read.session
@@ -294,7 +312,7 @@ class RestTimerViewModel @JvmOverloads constructor(
     private suspend fun readLift(exerciseId: String) {
         val current = sessionReader.observations.value.session ?: return
         if (current.isFinished) return
-        publish(LiftReads(exerciseId = exerciseId, hint = loadHint(current, exerciseId)))
+        publish(loadHint(current, exerciseId))
         readLastSession(exerciseId)
     }
 
@@ -308,11 +326,29 @@ class RestTimerViewModel @JvmOverloads constructor(
         if (readsFor.value == reads.exerciseId) liftReads.value = reads
     }
 
-    private suspend fun loadHint(current: WorkoutSession, exerciseId: String): ProgressionHint? {
+    private suspend fun loadHint(current: WorkoutSession, exerciseId: String): LiftReads {
         val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
-        val lighter = hintLoader.isLighterWeek(hintLoader.thisWeekStart())
-        lighterWeek.value = lighter
-        return hintLoader.progression(exerciseId, planned, lighter)
+        val settings = hintSettings.filterNotNull().first()
+        return LiftReads(
+            exerciseId = exerciseId,
+            hint = hintLoader.progression(exerciseId, planned, settings),
+            settings = settings,
+        )
+    }
+
+    /**
+     * Reads [exerciseId]'s hint again under [now] (W2e), merged into what was read for that lift so
+     * last session's sets stay, and only while the page still reads for it.
+     */
+    private suspend fun rereadHint(exerciseId: String, now: HintSettings) {
+        if (readsFor.value != exerciseId) return
+        val current = sessionReader.observations.value.session ?: return
+        if (current.isFinished) return
+        val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }
+        val hint = hintLoader.progression(exerciseId, planned, now)
+        liftReads.update { reads ->
+            if (reads?.exerciseId == exerciseId && readsFor.value == exerciseId) reads.copy(hint = hint, settings = now) else reads
+        }
     }
 }
 
@@ -357,9 +393,10 @@ private data class RestFloorInputs(
     val coachPrefs: CoachPreferences,
 )
 
-/** What the page read for [exerciseId]: its hint, then its last session's sets. */
+/** What the page read for [exerciseId]: its hint and the settings it was read under, then its last session's sets. */
 private data class LiftReads(
     val exerciseId: String,
     val hint: ProgressionHint?,
+    val settings: HintSettings,
     val lastSessionSets: List<ExerciseSetRecord> = emptyList(),
 )

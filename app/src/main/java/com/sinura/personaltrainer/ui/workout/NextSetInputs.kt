@@ -24,7 +24,8 @@ import com.sinura.personaltrainer.workout.WorkoutDraft
  *
  * Where each input comes from stays with the page. The Log holds them; the rest page reads what
  * the Log last left in the draft cache, and loads the history the way the Log does
- * ([ProgressionHintLoader]).
+ * ([ProgressionHintLoader]); both read the hint again when the unit or the week's mark changes
+ * (W2e).
  */
 internal data class NextSetInputs(
     val session: WorkoutSession?,

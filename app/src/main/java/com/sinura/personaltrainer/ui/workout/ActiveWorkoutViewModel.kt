@@ -261,6 +261,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val selectedExerciseId = MutableStateFlow<String?>(null)
     private val draft = MutableStateFlow(ActiveExerciseDraft())
     private val hint = MutableStateFlow<ProgressionHint?>(null)
+
+    /**
+     * The load the hint on screen came from, and the settings it was read under (W2e). Null while a
+     * lift loads, and after a load that degraded: a lift whose suggestion could not be read is not
+     * read again in a live Log; a reopen reads it again.
+     */
+    private val hintStamp = MutableStateFlow<HintStamp?>(null)
     private val lastPerformance = MutableStateFlow<ExerciseSessionSummary?>(null)
 
     /**
@@ -270,7 +277,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      */
     private val priorHistory = MutableStateFlow<List<ExerciseSetRecord>>(emptyList())
     val exerciseHistory: StateFlow<List<ExerciseSetRecord>> = priorHistory.asStateFlow()
-    private val lighterWeek = MutableStateFlow(false)
     private val restTotal = MutableStateFlow(PlannedRest(seconds = 90, chosenFor = null))
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
@@ -330,6 +336,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     val deleteFeedback: SharedFlow<DeleteFeedback> = _deleteFeedback.asSharedFlow()
 
     private var pendingResumeDraft: WorkoutDraft? = null
+
+    /**
+     * A set saved and acknowledged whose row the session has not carried yet (W2e). Until it does,
+     * its lift's entry is the set just done and does not follow a new suggestion.
+     */
+    private var savedSetAwaitingRow: String? = null
     /** Blocks a late Room emission from recreating a draft after finish/discard cleared it. */
     private var terminalExit = false
 
@@ -363,6 +375,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /** The rest commands and the history reads this screen shares with the rest page. */
     private val restCommands = RestCommands(container, viewModelScope, sessionId)
     private val hintLoader = ProgressionHintLoader(container, sessionId)
+
+    /** The unit and the week's mark, as they change. The hint is read under them (W2e). */
+    private val hintSettings: StateFlow<HintSettings?> =
+        hintLoader.settings().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /**
      * The session row, hot for this ViewModel's whole life.
@@ -450,6 +466,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             runCatchingCancellable {
                 session.collect { current ->
                     if (current == null) return@collect
+                    savedSetAwaitingRow?.let { id -> if (current.sets.any { it.id == id }) savedSetAwaitingRow = null }
                     val resolved = current.resolveSelectedExerciseId(selectedExerciseId.value)
                     if (!saves.pending && resolved != selectedExerciseId.value) {
                         if (resolved == null) {
@@ -477,6 +494,20 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 .collectLatest { exerciseId ->
                     runCatchingCancellable { prefill(exerciseId) }
                         .onFailure { AppLog.w(TAG, "Prefilling the next set failed", it) }
+                }
+        }
+        // W2e: a unit or a week's mark that changes while a lift is open reaches its hint, and an
+        // entry nobody touched follows it. The stamp names the load the hint came from and what it
+        // was read under, so a change that lands while that load is still reading is caught when
+        // it ends.
+        viewModelScope.launch {
+            combine(hintStamp.filterNotNull(), hintSettings.filterNotNull()) { stamp, now -> stamp to now }
+                .collectLatest { (stamp, now) ->
+                    // Checked here, not by a filter ahead: a change undone before its read returns
+                    // cancels that read instead of letting it land and be read back.
+                    if (stamp.settings == now) return@collectLatest
+                    runCatchingCancellable { refreshHint(stamp, now) }
+                        .onFailure { AppLog.w(TAG, "Reading the hint again failed", it) }
                 }
         }
         // The typing-pause writer (FloorSessionNotes.writeOnTypingPause), launched after the
@@ -512,7 +543,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * In-set next load. Recomputed on log, RPE, warmup, lift switch, delete/undo, and edit.
      * Stepper ticks do not change it unless draft RPE is set (preview): the coach is asked again
      * only when what it reads changes ([CoachKey]), so a step, a note or a set of another lift
-     * leaves this call as it was (W2c, audit C-2). Plain `map`, no dispatch: [applyMicroRec] and
+     * leaves this call as it was (W2c, audit C-2), and when the unit or the week's mark changes
+     * (W2e). Plain `map`, no dispatch: [applyMicroRec] and
      * the rest after a log read `.value` at once.
      * Eager: [applyMicroRec] reads this value, not a rendered snapshot.
      */
@@ -525,7 +557,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         },
         combine(
             editingSetId,
-            lighterWeek,
+            hintSettings.map { it?.lighterWeek == true },
             container.preferencesRepository.weightUnit,
             container.preferencesRepository.coachPreferences,
         ) { editing, lighter, unit, coach ->
@@ -736,6 +768,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         lastPerformance.value = null
         priorHistory.value = emptyList()
         hint.value = null
+        hintStamp.value = null
         val current = sessionReader.observations.first {
             it.loadState == SessionLoadState.FOUND || it.loadState == SessionLoadState.MISSING
         }.session ?: return
@@ -746,14 +779,15 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         try {
             val restPrefs = container.preferencesRepository.restTimerPreferences.first()
             if (!isCurrentPrefill(exerciseId, generation)) return
-            val thisWeek = hintLoader.thisWeekStart()
+            val settings = hintSettings.filterNotNull().first()
             if (!isCurrentPrefill(exerciseId, generation)) return
-            val lighter = hintLoader.isLighterWeek(thisWeek)
-            if (!isCurrentPrefill(exerciseId, generation)) return
-            lighterWeek.value = lighter
-            val progression = hintLoader.progression(exerciseId, planned, lighter)
+            val progression = hintLoader.progression(exerciseId, planned, settings)
             if (!isCurrentPrefill(exerciseId, generation)) return
             hint.value = progression
+            // A lift whose entry was recovered (Back and the live bar, a lift switched back to, a
+            // process death): an entry nobody touched takes the suggestion just read (W2e, owner
+            // decision of 25 September 2026).
+            if (keepDraft) followSuggestion(exerciseId)
             lastPerformance.value = hintLoader.lastPerformance(exerciseId)
             if (!isCurrentPrefill(exerciseId, generation)) return
             priorHistory.value = container.workoutRepository
@@ -768,8 +802,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     draft = draft.value,
                     hint = progression,
                     editingSetId = editingSetId.value,
-                    lighterWeek = lighter,
-                    unit = container.preferencesRepository.weightUnit.first(),
+                    lighterWeek = settings.lighterWeek,
+                    unit = settings.unit,
                     nowMs = time.nowMillis(),
                     todayEpochDay = todayEpochDay(),
                     historySets = lastPerformance.value?.sets.orEmpty(),
@@ -787,6 +821,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 liftReadiness.value = LiftEntryReadiness.READY
                 suggestionUnavailable.value = false
                 persistDraft()
+                hintStamp.value = HintStamp(exerciseId = exerciseId, generation = generation, settings = settings)
                 return
             }
             val lastWeight = progression?.suggestedWeightKg
@@ -802,6 +837,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             liftReadiness.value = LiftEntryReadiness.READY
             suggestionUnavailable.value = false
             persistDraft()
+            // Stamped at the end of the load, not at the hint: a re-read that ran while this load
+            // still read would follow into an entry this load then overwrites with the older hint.
+            hintStamp.value = HintStamp(exerciseId = exerciseId, generation = generation, settings = settings)
         } catch (thrown: CancellationException) {
             throw thrown
         } catch (thrown: Exception) {
@@ -831,6 +869,58 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     private fun isCurrentPrefill(exerciseId: String, generation: Int): Boolean =
         selectedExerciseId.value == exerciseId && prefillGeneration == generation
+
+    /**
+     * Reads the open lift's hint again under [now], the one read a change of the unit or the
+     * week's mark makes (W2e); last session, history and the planned rest stay. Dropped when the
+     * lift, or its load, is no longer the one [stamp] names. A failure keeps the old hint.
+     */
+    private suspend fun refreshHint(stamp: HintStamp, now: HintSettings) {
+        if (!isCurrentPrefill(stamp.exerciseId, stamp.generation)) return
+        val planned = session.value?.exercises?.firstOrNull { it.exercise.id == stamp.exerciseId }
+        val progression = hintLoader.progression(stamp.exerciseId, planned, now)
+        if (!isCurrentPrefill(stamp.exerciseId, stamp.generation)) return
+        hint.value = progression
+        hintStamp.value = stamp.copy(settings = now)
+        followSuggestion(stamp.exerciseId)
+    }
+
+    /**
+     * The entry takes the hint's weight when nobody has touched it ([entryFollowsSuggestion]). A
+     * follow refused at that moment (a set clock running, a save in flight) is not tried again
+     * until the next read of the hint: the next change, or the lift opened again.
+     */
+    private fun followSuggestion(exerciseId: String) {
+        val suggested = hint.value?.suggestedWeightKg ?: return
+        if (!entryFollowsSuggestion(exerciseId)) return
+        if (draft.value.weightKg == suggested) return
+        draft.value = draft.value.copy(weightKg = suggested)
+        persistDraft()
+    }
+
+    /**
+     * Whether [exerciseId]'s entry is one nobody touched, which follows a new suggestion (owner
+     * decision of 25 September 2026: "untouched pre-filled numbers follow the new suggestion;
+     * typed numbers stay"). Not typed or chosen ([draftDirty]: a typed or stepped number, reps, an
+     * effort, Warm-up, a ramp chip, Last time and Use); no working set of the lift logged in this
+     * session (after one the entry is the set just done, and dirty is not cleared by a log); not
+     * a warm-up (a logged warm-up opened for correction and cancelled leaves its values, untyped);
+     * no set open for correction, and none saved as a correction (it counts as typed); no save in
+     * flight or held for Retry, which the entry must still show, and no set just saved whose row the
+     * session does not carry yet; no set clock running (the numbers on the bar); and not a hold,
+     * whose hint counts reps the coach does not coach (audit DM-1). Such an entry holds only what a
+     * load filled in.
+     */
+    private fun entryFollowsSuggestion(exerciseId: String): Boolean {
+        if (!canChangeEntry() || clocks.timing) return false
+        if (selectedExerciseId.value != exerciseId) return false
+        if (draftDirty.value || draft.value.isWarmup || editingSetId.value != null) return false
+        val current = session.value ?: return false
+        if (savedSetAwaitingRow?.let { id -> current.sets.none { it.id == id } } == true) return false
+        val lift = current.exercises.firstOrNull { it.exercise.id == exerciseId } ?: return false
+        if (HoldWork.isHold(lift.exercise)) return false
+        return current.setsFor(exerciseId).none { !it.isWarmup }
+    }
 
     private fun applySelection(exerciseId: String) {
         if (selectedExerciseId.value == exerciseId) return
@@ -1464,10 +1554,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         if (!saves.owns(command)) return
         // Entry/selection were locked while this command was outstanding.
         saves.clear(command)
+        if (session.value?.sets?.none { it.id == command.setId } != false) savedSetAwaitingRow = command.setId
         try {
             editingSetId.value = null
             clearEditingOriginal()
             wantAnotherSet.value = false
+            // A correction saved is the lifter's number (W2e): a warm-up's, saved unchanged, would
+            // otherwise read as an untouched entry once Warm-up is cleared here.
+            if (command.editing) draftDirty.value = true
             draft.value = draft.value.copy(isWarmup = false, rpe = null)
             error.clearFrom(source = ERR_LOG_SET, before = error.mark())
             persistDraft()
@@ -1993,6 +2087,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val unit: WeightUnit,
         val coachPrefs: CoachPreferences,
     )
+
+    /** Which load the hint on screen came from, by [prefillGeneration], and what it was read under (W2e). */
+    private data class HintStamp(val exerciseId: String, val generation: Int, val settings: HintSettings)
 
     /**
      * The rest the dock will start. [chosenFor] is the lift someone picked it on — on the dock,
