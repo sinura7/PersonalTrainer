@@ -21,7 +21,10 @@
   the rest page's Skip name their rest too; and W2b-4: the rest page's
   Next line is the Log's (see Consequences); 26 September 2026 — the
   rest-alarm packet: every re-arm writes the row first, and a job arms
-  only the rest it wrote (audit RT-4, RT-5; see Consequences)
+  only the rest it wrote (audit RT-4, RT-5; see Consequences); 27 September
+  2026 — W2e: the rest page reads its lift's hint again when the unit or
+  the week's mark changes; its planned length does not move (see
+  Consequences)
 - **Related:** FND-001, FND-007, FND-017; P2.1–P2.3, P7.3–P7.5
 
 ## Context
@@ -235,13 +238,27 @@ day. The agreed product asks once, then adapts only if the user says so.
   `afterAnotherSetTheRestPageStillPlansTheLengthTheDockShows`,
   `whileLastSessionIsStillBeingReadTheRestPagePlansTheCoachsLength` and
   `whenLastSessionCannotBeReadTheRestPageStillPlansTheCoachsLength`,
-  `aTimedHoldWithAnRpeGetsTheLogsCallOnTheRestPage` and
+  `aTimedHoldGetsNoRepLineOnTheRestPageAsTheLogShowsNone` and
   `withAStrengthGoalAndALighterWeekTheRestPagesNextLineIsTheLogs`; by
   `RestPageNextLineTest.afterTheLiftsLastPlannedSetThePageDrawsNoNextLine`;
   by `NextSetInputsTest.theSharedQuestionHasNoDefaults` (a page cannot
   leave an input out, including the coach's goal, which changes only
   wording the page does not show); and, for the Log's own rule, by
   `FloorRestAndCoachWiringRenderTest.whileASaveIsUnderwayTheCoachsCardStandsDown`.
+- The rest page follows a unit or a week's mark changed while it is open
+  (*amended 27 September 2026, W2e*). It watches the two as the Log does
+  and reads the drawn lift's hint again, only that, merged into what it
+  read for that lift so last session's RPE stays, and only while it still
+  reads for that lift. The week's mark reaches its Next line at once. Its
+  planned length is not seeded again, as the dock's is not. Held by
+  `RestPageFollowsSettingsTest`:
+  `aWeekMarkedLighterWhileTheRestPageIsOpenHoldsItsFirstSetLine`,
+  `aWeekMarkedLighterWhileTheRestPageIsOpenReachesItsInSetLine`,
+  `aUnitSwitchedWhileTheRestPageIsOpenMovesItsFirstSetLineToThePoundStep`,
+  `theRestPagesPlannedLengthDoesNotMoveWhenTheWeekTurnsLighter`,
+  `aReReadHintKeepsLastSessionsRpeOnTheRestPage`,
+  `aLiftTheLogMovesToWhileThePageReReadsGetsItsOwnLine` and
+  `aSaveTheLogHoldsStillHidesTheRestPagesLineAfterAUnitChange`.
 
 ## Review questions
 

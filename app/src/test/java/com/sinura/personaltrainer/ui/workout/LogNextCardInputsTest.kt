@@ -1,8 +1,6 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
@@ -25,9 +23,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -49,11 +45,12 @@ import org.robolectric.annotation.Config
  * lift's hint, the unit, and the lift's own targets. The last test holds the unit the Log's
  * receipt and undo offer name to the setting too.
  *
- * Two inputs reach the Log only when it opens a lift, in its load of that lift: the week, and
- * the hint. The load reads the week, then the hint, then last session; last session's sets are
- * themselves an input, so they would carry any change before them onto the card. Those two tests
- * hold a read so the one change lands on a card already drawn: the week's read until the lift is
- * drawn, and last session's read while the hint lands, as a slow phone would.
+ * The hint is read when the Log opens a lift, and again, for the lift that is open, when the unit
+ * or the week's mark changes (W2e); the week's mark reaches the call at once. The load reads the
+ * hint, then last session, and last session's sets are themselves an input, so they would carry a
+ * change of the hint onto the card: the hint's test holds last session's read while the hint
+ * lands, as a slow phone would. What a change of the unit or the week's mark does to a lift's
+ * first set and to its entry is `LogFollowsSettingsTest`'s.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -62,9 +59,6 @@ class LogNextCardInputsTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private lateinit var deps: FakeAppDependencies
     private val logs = mutableListOf<ActiveWorkoutViewModel>()
-
-    /** Armed by a test to hold every settings read, the Log's read of the week among them. */
-    @Volatile private var settingsReadGate: CompletableDeferred<Unit>? = null
 
     /** Armed by a test to hold the read of a lift's hint; null is a pass-through. */
     @Volatile private var hintReadGate: CompletableDeferred<Unit>? = null
@@ -85,11 +79,6 @@ class LogNextCardInputsTest {
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
-            prefsStoreDecorator = { real ->
-                object : DataStore<Preferences> by real {
-                    override val data: Flow<Preferences> = real.data.onEach { settingsReadGate?.await() }
-                }
-            },
             workoutDaoDecorator = { real ->
                 object : WorkoutDao by real {
                     override suspend fun finishedWorkingSetsForExercises(
@@ -113,7 +102,6 @@ class LogNextCardInputsTest {
 
     @After
     fun tearDown() {
-        settingsReadGate?.complete(Unit)
         hintReadGate?.complete(Unit)
         lastSessionReadGate?.complete(Unit)
         runBlocking { logs.forEach { it.clearAndJoinForTest() } }
@@ -149,41 +137,26 @@ class LogNextCardInputsTest {
     }
 
     @Test
-    fun aWeekMarkedLighterReachesTheLogsCallWhenItsLiftIsOpenedAgain() = runBlocking {
-        val fixture = seedWorkout(SQUAT_3X5, BENCH_3X5)
+    fun aWeekMarkedLighterReachesTheLogsCallWithoutOpeningItsLiftAgain() = runBlocking {
+        val fixture = seedWorkout(SQUAT_3X5)
         val log = createLog(fixture.session.id)
         log.logOneSet(SQUAT, weightKg = 100.0, rpe = 7)
         log.awaitCall("the Log's call after 100 kg × 5 at RPE 7: add weight") {
             it?.reasonCode == SetMicroRecCalculator.IN_TANK
         }
-        log.selectExercise(BENCH)
-        log.awaitReady(BENCH, weightKg = 60.0)
-        val thisWeek = ProgressionHintLoader(deps, fixture.session.id).thisWeekStart()
-
-        // The week is marked lighter; the Log reads it when it opens Squat again. That read
-        // waits until Squat is drawn, so the lighter week is the one thing that changes after.
-        val weekRead = CompletableDeferred<Unit>().also { settingsReadGate = it }
-        deps.preferencesRepository.setLighterWeekStartEpochDay(thisWeek)
-        log.selectExercise(SQUAT)
-        log.awaitCall("the Log's Squat call, drawn before it reads the week") {
-            it?.reasonCode == SetMicroRecCalculator.IN_TANK
-        }
         assertEquals(
-            "Squat drawn again, the week not yet read: add weight",
+            "before the week is marked",
             "Next: 102.5 kg × 5 · RPE 7",
-            log.shownNextLine(log.awaitState { it.selectedExerciseId == SQUAT && !it.entryLocked }),
+            log.shownNextLine(log.awaitState { !it.entryLocked }),
         )
 
-        settingsReadGate = null
-        weekRead.complete(Unit)
-        log.awaitCall("the Log's lighter-week call: hold where it would add weight") {
+        // Marked on Body while the Squat stays open: nothing on the Log is opened again.
+        deps.preferencesRepository.setLighterWeekStartEpochDay(ProgressionHintLoader(deps, fixture.session.id).thisWeekStart())
+        log.awaitCall("the Log's lighter-week call, the lift never left: hold where it would add weight") {
             it?.reasonCode == SetMicroRecCalculator.LIGHTER_HOLD
         }
-        assertEquals(
-            "in a lighter week the Log's Next card holds the weight",
-            "Next: 100 kg × 5 · RPE 7",
-            log.shownNextLine(log.awaitReady(SQUAT, weightKg = null)),
-        )
+        val held = log.awaitState { it.selectedExerciseId == SQUAT && !it.entryLocked }
+        assertEquals("in a lighter week the Log's Next card holds the weight", "Next: 100 kg × 5 · RPE 7", log.shownNextLine(held))
     }
 
     @Test
@@ -399,7 +372,6 @@ class LogNextCardInputsTest {
         const val ROUTINE = "routine-full"
         const val STAMP = 1_700_000_000_000L
         val SQUAT_3X5 = PlannedLift(id = SQUAT, name = "Squat", reps = 5, weightKg = 100.0)
-        val BENCH_3X5 = PlannedLift(id = BENCH, name = "Bench", reps = 5, weightKg = 60.0)
         val BENCH_3X8 = PlannedLift(id = BENCH, name = "Bench", reps = 8, weightKg = 60.0)
     }
 }

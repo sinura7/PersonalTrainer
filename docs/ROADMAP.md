@@ -15,6 +15,25 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 27 Sep 2026 — Audit packet W2e (owner decision of 25 September: "untouched
+> pre-filled numbers follow the new suggestion; typed numbers stay"):
+> switching to pounds, or marking the week lighter on Body, while a lift
+> was open left that lift's suggestion as it was until the lift was opened
+> again, and left the numbers already in it as they were even then. Coming
+> back to the workout through the bar after switching to pounds, a squat
+> last done at 100 kg × 5 showed 226 lb in its numbers beside a Next card
+> of 225.5 lb; after marking the week lighter, 102.5 kg beside 100 kg. Now
+> the workout and the rest page read the suggestion again as soon as the
+> unit or the week's mark changes, and numbers the app filled in that you
+> have not touched, on a lift with no set logged yet today, take the new
+> suggestion: 225.5 lb, or 100 kg in a lighter week. Numbers you typed or
+> stepped, a set you logged, a warm-up, a set being corrected, a save
+> waiting for Retry and a timed hold stay as they were, and a rest length
+> already planned does not move. On the drop 105 phone checklist: switch
+> to pounds with a lift's numbers untouched and come back through the bar
+> (225.5 lb, as the Next card says); type a number first, and it stays.
+> Visible.
+>
 > 26 Sep 2026 — Whole-app audit packet W2d-3b: the workout's notes box
 > (the words as typed, how they first fill from the saved workout, and
 > what it saves after you stop typing and when you leave) moves out of the
