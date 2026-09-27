@@ -321,7 +321,7 @@ Done so far:
   with no set logged yet, take the new suggestion, in the open workout and
   when it is reopened through the live bar. Typed numbers, logged sets,
   warm-ups, corrections, a save waiting for Retry, holds and the planned
-  rest stay (#440). 45 new tests; the W2c test that pinned the old
+  rest stay (#440). 46 new tests; the W2c test that pinned the old
   "only when the lift is opened again" is replaced. Visible, on the drop
   105 checklist.
 - **Owner decision, 26 September:** two sessions split the order so that

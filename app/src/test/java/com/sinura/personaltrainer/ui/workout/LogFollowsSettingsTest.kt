@@ -37,6 +37,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
@@ -114,6 +115,9 @@ class LogFollowsSettingsTest {
      */
     @Volatile private var rowGate: CompletableDeferred<Unit>? = null
 
+    /** While set, every session row the workout's flow delivers is dropped, as a skipped emission is. */
+    @Volatile private var dropRows = false
+
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
@@ -154,7 +158,7 @@ class LogFollowsSettingsTest {
                     }
 
                     override fun observeSession(id: String): Flow<SessionWithDetails?> =
-                        real.observeSession(id).onEach { rowGate?.await() }
+                        real.observeSession(id).onEach { rowGate?.await() }.filter { !dropRows }
                 }
             },
         )
@@ -539,7 +543,7 @@ class LogFollowsSettingsTest {
     // --- The review round (W2e): a set clock, a set just saved, a saved correction, a failed re-read
 
     @Test
-    fun aRunningSetClockKeepsTheNumbersWhenTheUnitChanges() = runBlocking {
+    fun aSetClockKeepsTheNumbersUntilItsTimeIsLoggedOrCleared() = runBlocking {
         val fixture = seedWorkout(SQUAT_3X5, priorSquatKg = 100.0)
         val log = createLog(fixture.session.id)
         log.awaitReady(SQUAT, weightKg = 102.5)
@@ -557,15 +561,71 @@ class LogFollowsSettingsTest {
         assertEquals("the entry stays 102.5 kg while the set clock runs", 102.5, during.draft.weightKg, 0.0)
         assertFalse("the entry is still untouched", during.draftDirty)
 
-        // The follow refused during the set is not tried again when the clock stops...
+        // Stopped, the clock still holds the time of a set not yet logged: the numbers just lifted
+        // stay, when the clock stops and through the next change.
         log.stopSetStopwatch()
+        assertNotNull(
+            "precondition: the stopped clock keeps its time for Log",
+            withTimeoutOrNull(TestWaits.FLOW_MS) { log.setStopwatch.first { !it.running && it.used } },
+        )
         log.neverShows("the refused follow was tried again when the clock stopped") { it.draft.weightKg != 102.5 }
-        // ...and the next change follows, the entry still untouched.
         markThisWeekLighter(fixture.session.id)
+        awaitReadsDone(3, "the lighter week never read the Squat's hint again")
+        log.awaitLog("the lighter week's hint on screen, the clock stopped") { it.hint?.lighterHold == true && !it.entryLocked }
+        log.neverShows("a change after Stop moved the numbers of the set not yet logged") { it.draft.weightKg != 102.5 }
+
+        // Start rest on the dock clears the clock (as Log would); the next change follows again.
+        log.startSelectedRest()
+        assertNotNull(
+            "precondition: Start rest never cleared the set clock",
+            withTimeoutOrNull(TestWaits.FLOW_MS) { log.setStopwatch.first { !it.used } },
+        )
+        switchToKilograms()
         val next = log.awaitLog("the untouched entry following the next change, the lighter week's 100 kg") {
             it.draft.weightKg == 100.0 && it.hint?.lighterHold == true && !it.entryLocked
         }
         assertFalse("a number the app moved is still untouched", next.draftDirty)
+    }
+
+    @Test
+    fun aSetDeletedBeforeTheWorkoutShowedItDoesNotHoldBackTheNextFollow() = runBlocking {
+        val fixture = seedWorkout(SQUAT_3X5, priorSquatKg = 100.0)
+        val sessionId = fixture.session.id
+        val log = createLog(sessionId)
+        log.awaitReady(SQUAT, weightKg = 102.5)
+        // The workout's rows stop reaching the Log, as a flow that skips a row can: the set is
+        // saved, acknowledged and deleted before the Log ever shows it.
+        dropRows = true
+        log.logSet()
+        val setId = withTimeoutOrNull(TestWaits.FLOW_MS) {
+            var id: String? = null
+            while (id == null) {
+                id = deps.workoutRepository.getSession(sessionId)?.sets?.firstOrNull()?.id
+                if (id == null) delay(10)
+            }
+            id
+        } ?: throw AssertionError("the set was never stored; the Log showed ${describe(log.uiState.value)}")
+        log.awaitLog("the save acknowledged, the workout not showing its row") {
+            !it.entryLocked && it.save.phase == WorkoutSavePhase.IDLE && it.session?.sets.isNullOrEmpty()
+        }
+        log.deleteSet(setId)
+        withTimeoutOrNull(TestWaits.FLOW_MS) {
+            while (deps.workoutRepository.getSession(sessionId)?.sets?.isNotEmpty() == true) delay(10)
+        } ?: throw AssertionError("the set was never deleted; the Log showed ${describe(log.uiState.value)}")
+        log.awaitLog("the delete finished") { !it.entryLocked }
+        dropRows = false
+        deps.workoutRepository.updateSessionNotes(sessionId, "rows reach the Log again")
+        val back = log.awaitLog("the workout's row reaching the Log again, with no set") {
+            it.session?.notes == "rows reach the Log again" && it.session.sets.isEmpty() && !it.entryLocked
+        }
+        assertEquals("precondition: the entry is the set that was deleted", 102.5, back.draft.weightKg, 0.0)
+        assertFalse("precondition: the entry was never touched", back.draftDirty)
+
+        switchToPounds()
+        val followed = log.awaitLog("the untouched entry following, nothing logged holding it back") {
+            it.draft.weightKg == 102.3 && it.hint?.suggestedWeightKg == 102.3 && !it.entryLocked
+        }
+        assertFalse("a number the app moved is still untouched", followed.draftDirty)
     }
 
     @Test
@@ -613,7 +673,7 @@ class LogFollowsSettingsTest {
         assertFalse("precondition: saving clears the entry's Warm-up", saved.draft.isWarmup)
 
         switchToPounds()
-        log.optionalReread { it.hint?.suggestedWeightKg == 102.3 }
+        log.awaitLog("the Squat's pound hint read again") { it.hint?.suggestedWeightKg == 102.3 }
         log.neverShows("the saved correction's 60 kg moved") { it.draft.weightKg != 60.0 }
         val after = log.awaitState { !it.entryLocked }
         assertEquals("the correction's 60 kg stays in the entry", 60.0, after.draft.weightKg, 0.0)
@@ -628,6 +688,8 @@ class LogFollowsSettingsTest {
         failHintReads = true
         switchToPounds()
         withTimeoutOrNull(TestWaits.FLOW_MS) { while (hintReadsFailed.get() < 1) delay(10) }
+            ?: throw AssertionError("the switch to pounds never read the hint again; ${hintReads.get()} reads")
+        awaitNoReadInFlight()
         log.neverShows("the failed re-read changed the Log") {
             it.loadState != SessionLoadState.FOUND || it.hint?.suggestedWeightKg != 102.5 ||
                 it.liftReadiness != LiftEntryReadiness.READY || it.suggestionUnavailable || it.draft.weightKg != 102.5
@@ -738,7 +800,11 @@ class LogFollowsSettingsTest {
         switchToPounds()
         // The load is still reading: a hint read now, before the load ends, is what this test is
         // about. Give one the time to happen (with W2e nothing reads until the load has ended).
-        withTimeoutOrNull(NEVER_MS) { while (hintReadsDone.get() < 2) delay(10) }
+        withTimeoutOrNull(NEVER_MS) { while (hintReads.get() < 2) delay(10) }
+        if (hintReads.get() >= 2) {
+            withTimeoutOrNull(TestWaits.FLOW_MS) { while (hintReadsDone.get() < hintReads.get()) delay(10) }
+                ?: throw AssertionError("a hint read during the load never ended: ${hintReadsDone.get()} of ${hintReads.get()}")
+        }
         lastSessionGate = null
         gate.complete(Unit)
         log.awaitLog("the Squat loaded on the pound step, its entry 102.3 kg") {

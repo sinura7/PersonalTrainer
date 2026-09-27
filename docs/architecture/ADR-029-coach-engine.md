@@ -107,12 +107,15 @@ trace; it must not gate Home, Plan, History, or the logger.
   Untouched means: not changed by hand (`draftDirty`: a typed or stepped
   number, reps, an effort, Warm-up, a ramp chip, Last time, Use and a
   correction saved all count), no working set of that lift logged in the
-  session (a set just saved counts before the workout shows its row), not a
-  warm-up, no set open for correction, no save in flight or waiting for
-  Retry, no set clock running (the numbers on the bar), and not a hold (a
-  hold's hint counts reps, which the coach does not coach, audit DM-1). A
-  follow refused at that moment waits for the next change or the next time
-  the lift is opened. Such an entry holds what the load filled in, the hint or,
+  session (a set just saved, of any lift and a warm-up too, holds every
+  follow back until the workout shows its row), not a warm-up, no set open
+  for correction, no save in flight or waiting for Retry, no set clock
+  running or stopped with its time not yet logged (the numbers just lifted),
+  and not a hold (a hold's hint counts reps, which the coach does not coach,
+  audit DM-1). A follow refused at that moment waits for the next change or
+  the next time the lift is opened. A lift whose suggestion could not be read
+  when it was opened is not read again in a live Log; the next reopen reads
+  it. Such an entry holds what the load filled in, the hint or,
   with none, the routine's weight, so it takes the hint's weight whenever a
   new one is read: in a live Log when the unit or the mark changes, and
   whenever the Log opens a lift whose entry it recovered (Back and the live

@@ -339,7 +339,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     /**
      * A set saved and acknowledged whose row the session has not carried yet (W2e). Until it does,
-     * its lift's entry is the set just done and does not follow a new suggestion.
+     * no entry follows a new suggestion, whichever lift the set is on and warm-up or not. Cleared
+     * when the row arrives, when that set is deleted, and when no lift is selected any more (a
+     * removed lift), so a set that leaves before its row never holds a follow back.
      */
     private var savedSetAwaitingRow: String? = null
     /** Blocks a late Room emission from recreating a draft after finish/discard cleared it. */
@@ -907,12 +909,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * a warm-up (a logged warm-up opened for correction and cancelled leaves its values, untyped);
      * no set open for correction, and none saved as a correction (it counts as typed); no save in
      * flight or held for Retry, which the entry must still show, and no set just saved whose row the
-     * session does not carry yet; no set clock running (the numbers on the bar); and not a hold,
+     * session does not carry yet; no set clock running, or stopped with its time not yet logged
+     * (the numbers just lifted: Log, Start rest or a correction clears it); and not a hold,
      * whose hint counts reps the coach does not coach (audit DM-1). Such an entry holds only what a
      * load filled in.
      */
     private fun entryFollowsSuggestion(exerciseId: String): Boolean {
-        if (!canChangeEntry() || clocks.timing) return false
+        if (!canChangeEntry() || clocks.timing || clocks.stopwatch.value.used) return false
         if (selectedExerciseId.value != exerciseId) return false
         if (draftDirty.value || draft.value.isWarmup || editingSetId.value != null) return false
         val current = session.value ?: return false
@@ -976,6 +979,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         clocks.resetStopwatchView()
         draftDirty.value = false
         suggestionUnavailable.value = false
+        savedSetAwaitingRow = null
         liftReadiness.value = LiftEntryReadiness.NONE
         prefillGeneration++
         selectedExerciseId.value = null
@@ -1700,6 +1704,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                     }
                     snapshot
                 }
+                if (savedSetAwaitingRow == setId) savedSetAwaitingRow = null
                 if (removed != null) _deleteFeedback.tryEmit(DeleteFeedback.DELETED)
                 error.clearFrom(source = ERR_DELETE_SET, before = started)
             } catch (thrown: CancellationException) {
