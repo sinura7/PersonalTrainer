@@ -22,7 +22,9 @@ import com.sinura.personaltrainer.domain.HoldWork
  * restore with no lift selected, where what is left belongs to no lift. Notes are not restored
  * from any draft: a draft's notes are a copy taken when its lift was last written, so the
  * session's own are read instead ([WorkoutDraftCache.sessionNotes], then
- * [SavedStateWorkoutDraft.sessionNotes]).
+ * [SavedStateWorkoutDraft.sessionNotesIfSaved]). In saved state an empty note is one deleted and
+ * is restored as one; a missing key means nothing was saved, and the session row fills the field
+ * (N2).
  *
  * Pure so the recovery rules are unit-testable without Android.
  */

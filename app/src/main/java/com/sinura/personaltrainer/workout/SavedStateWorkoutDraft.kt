@@ -34,6 +34,12 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
 
     fun sessionNotes(): String = handle.get<String>(KEY_NOTES).orEmpty()
 
+    /**
+     * The session's notes as saved, or null when none were. An empty note is one deleted, which
+     * [sessionNotes] reads the same as nothing saved (N2).
+     */
+    fun sessionNotesIfSaved(): String? = handle.get<String>(KEY_NOTES)
+
     fun readAll(sessionId: String): Map<String, WorkoutDraft> {
         if (sessionId.isBlank()) return emptyMap()
         val savedSessionId = handle.get<String>(KEY_SESSION_ID) ?: return emptyMap()

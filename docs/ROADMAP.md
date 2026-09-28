@@ -15,6 +15,18 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 27 Sep 2026 — Packet N2 (owner decision of 27 September): removing
+> your only lift and then tapping Undo, or adding it back from the
+> picker, left it loading for good, so Log stayed off; and a lift brought
+> back by Undo, a swap or the picker could come back at 0 kg with the
+> default reps. It now loads again every time, and waits until the
+> workout holds the lift before reading its numbers. A note deleted just
+> before Android closed the app came back when the app was restored; a
+> deletion now stays. On the drop 106 phone checklist: remove your only
+> lift and tap Undo (it comes back ready, with its numbers); remove it
+> and add it back (ready at once); with several lifts, remove one and
+> tap Undo (its weight, not 0 kg). Visible.
+>
 > 27 Sep 2026 — Audit packet W2e (owner decision of 25 September: "untouched
 > pre-filled numbers follow the new suggestion; typed numbers stay"):
 > switching to pounds, or marking the week lighter on Body, while a lift
