@@ -441,13 +441,17 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // it was last written, and one left behind by a swap is restored as the selected lift
         // once the workout has no lifts (N1). The cache's are the freshest while the process
         // lives; saved state's single key is what survives its death, and is read when the
-        // cache has none, or an empty copy.
-        val restoredNotes = draftCache.sessionNotes(sessionId).orEmpty().ifEmpty { savedDraft.sessionNotes() }
-        if (restoredNotes.isNotEmpty()) sessionNotes.edit(restoredNotes)
+        // cache has none, or an empty copy. An empty note in the cache is not trusted: it can be
+        // the unfilled field Back stages while the row is still loading, or a real deletion, and
+        // the two look alike. In saved state an empty note is one deleted, restored as such so
+        // the row does not fill it again; a missing key means nothing was saved, and the row
+        // fills the field (N2).
+        val restoredNotes = draftCache.sessionNotes(sessionId)?.ifEmpty { null } ?: savedDraft.sessionNotesIfSaved()
+        if (restoredNotes != null) sessionNotes.restore(restoredNotes)
         // After a process death the cache is rebuilt above from saved state's entries, which
         // carry no session notes. Staged here, the words saved state brought back outlive this
         // screen even if it is left before it saves anything, as Back while loading leaves it.
-        if (restoredNotes.isNotEmpty() && draftCache.sessionNotes(sessionId) == null) {
+        if (!restoredNotes.isNullOrEmpty() && draftCache.sessionNotes(sessionId) == null) {
             draftCache.putSessionNotes(sessionId, restoredNotes)
         }
         savedDraft.editingSetId()?.let { editingSetId.value = it }
@@ -468,6 +472,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             runCatchingCancellable {
                 session.collect { current ->
                     if (current == null) return@collect
+                    // Read before a selection saves the notes. applySelection writes the field to
+                    // saved state, and on a workout finished elsewhere the save below returns early,
+                    // so an unfilled field saved there would come back after a process death as a
+                    // deleted note and be written over the finished one (N2).
+                    sessionNotes.sessionRead(current.notes)
                     savedSetAwaitingRow?.let { id -> if (current.sets.any { it.id == id }) savedSetAwaitingRow = null }
                     val resolved = current.resolveSelectedExerciseId(selectedExerciseId.value)
                     if (!saves.pending && resolved != selectedExerciseId.value) {
@@ -477,7 +486,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                             applySelection(resolved)
                         }
                     }
-                    sessionNotes.sessionRead(current.notes)
                     persistDraft()
                 }
             }.onFailure { AppLog.e(TAG, "Observing the active session failed", it) }
@@ -491,12 +499,18 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // leave the weight at 0 instead of the suggestion.
         //
         // It is now driven by the selection alone, which is what it actually depends on.
+        //
+        // Every selection, with no filter ahead: the selection is a StateFlow, so it is already
+        // distinct. `filterNotNull().distinctUntilChanged()` read the only lift removed and brought
+        // back, by Undo or from the picker (it, then none, then it), as the same lift twice and
+        // dropped the second, which left it loading for good with Log off (N2). None cancels the
+        // lift's read still running, which isCurrentPrefill would have dropped anyway.
         viewModelScope.launch {
-            selectedExerciseId.filterNotNull().distinctUntilChanged()
-                .collectLatest { exerciseId ->
-                    runCatchingCancellable { prefill(exerciseId) }
-                        .onFailure { AppLog.w(TAG, "Prefilling the next set failed", it) }
-                }
+            selectedExerciseId.collectLatest { exerciseId ->
+                if (exerciseId == null) return@collectLatest
+                runCatchingCancellable { prefill(exerciseId) }
+                    .onFailure { AppLog.w(TAG, "Prefilling the next set failed", it) }
+            }
         }
         // W2e: a unit or a week's mark that changes while a lift is open reaches its hint, and an
         // entry nobody touched follows it. The stamp names the load the hint came from and what it
@@ -750,6 +764,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * workout or editing a logged set wants to see. The draft half overwrites what they typed,
      * so it is skipped when they already edited, recovered a draft, or are revising a row.
      * Stale answers for a previous lift or an older generation are discarded.
+     *
+     * It reads the lift's plan from a session row that holds the lift. An Undo, an add or a swap
+     * selects the lift before its row arrives, and the row on hand then has no plan for it: the
+     * entry was filled with 0 kg and 5 reps (N2). A row found without the lift makes the session
+     * collector select another, which cancels this, unless a save is pending; its settling
+     * re-selects ([reconcileSelectionAfterSave]).
      */
     private suspend fun prefill(exerciseId: String) {
         val generation = prefillGeneration
@@ -772,7 +792,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         hint.value = null
         hintStamp.value = null
         val current = sessionReader.observations.first {
-            it.loadState == SessionLoadState.FOUND || it.loadState == SessionLoadState.MISSING
+            it.loadState == SessionLoadState.MISSING ||
+                (it.loadState == SessionLoadState.FOUND && it.session?.hasLift(exerciseId) == true)
         }.session ?: return
         if (!isCurrentPrefill(exerciseId, generation)) return
         val planned = current.exercises.firstOrNull { it.exercise.id == exerciseId }

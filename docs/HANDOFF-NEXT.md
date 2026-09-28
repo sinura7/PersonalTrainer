@@ -248,9 +248,10 @@ Done so far:
   another lift's typed weight: a reopened workout restores only its own
   lift's numbers, and the notes are kept once for the whole workout
   (#432). Found, not fixed: after removing the only lift, Undo (or
-  adding it back) leaves it loading; an undone lift comes back at 0 kg;
-  Finish from the workout bar can drop the last words typed; the rest
-  page can name another lift while the one picked is loading.
+  adding it back) leaves it loading, and an undone lift comes back at
+  0 kg (both fixed by N2, #442); Finish from the workout bar can drop
+  the last words typed; the rest page can name another lift while the
+  one picked is loading.
 - **Rest alarm, RT-2:** with notifications off, the "Rest alerts" sentence
   asked again on every workout opened and every rest page, and after two
   refusals its Continue brought up nothing. It is now answered once on the
@@ -324,6 +325,22 @@ Done so far:
   rest stay (#440). 46 new tests; the W2c test that pinned the old
   "only when the lift is opened again" is replaced. Visible, on the drop
   105 checklist.
+- **N2 (owner decision, 27 September):** after removing your only lift,
+  Undo or adding it back from the picker left it loading for good, and
+  a lift brought back by Undo, a swap or the picker could come back at
+  0 kg with the default reps. The lift now loads again every time it is
+  picked, and waits until the workout holds it before reading its
+  numbers. A note deleted just before Android closed the app came back
+  on restore; an empty saved note now counts as a deletion (#442).
+  17 new tests. Found, not fixed: the same note cleared and the app
+  swiped away from Recents within 0.4 s still comes back; and words
+  typed and deleted before the saved note has loaded, followed by
+  Android closing the app, clear that note. Both close if an empty field
+  is never saved before the note loads. The lift's new wait could hang
+  only if another device removed the lift again before it arrived, or
+  finished the workout inside the Undo; neither can happen until sync
+  resumes, and a time limit with a re-pick should land before it does.
+  Visible, on the drop 106 checklist.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
@@ -363,12 +380,12 @@ Done so far:
   later save wins), before sync resumes.
 
 Next, in order (owner decisions of 25 and 26 September; the live order
-is the table in FRONTEND_REDESIGN.md): a check-only phone drop (drop
-105; its checklist carries N1's and W2e's lines), then W3, S1, X8 and
-X9. Of the two sessions that split the order, the one on the rest
-timer, the updater and reminders is done (the rest-alarm packet, R3 and
-R4), and so is the one on the workout floor (W2d-3a, W2d-3b and W2e,
-above). X2b completed Wave 0.
+is the table in FRONTEND_REDESIGN.md): drop 106, a phone check of N2
+(drop 105, with N1's and W2e's lines, is out as debug-live-2026-09-27),
+then W3, S1, X8 and X9. Of the two sessions that split the order, the
+one on the rest timer, the updater and reminders is done (the
+rest-alarm packet, R3 and R4), and so is the one on the workout floor
+(W2d-3a, W2d-3b and W2e, above). X2b completed Wave 0.
 
 ## What is verified, and how
 

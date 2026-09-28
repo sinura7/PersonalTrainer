@@ -20,7 +20,8 @@ private const val NOTES_WRITE_DEBOUNCE_MS = 400L
  *
  * A write waits until the row has been read, so the empty field a screen opens with never goes
  * over notes it has not seen, and it happens only when the words differ from what the database
- * holds. The row fills the field once, and only an empty one.
+ * holds. The row fills the field once, and only an empty one that the draft did not restore: an
+ * empty note restored is one the owner deleted, and stays deleted (N2).
  *
  * What the notes are to the rest of the floor is the ViewModel's: every keystroke is saved with its
  * draft (the cache for this run, the saved state for when Android stops the app), the draft brings
@@ -43,15 +44,25 @@ internal class FloorSessionNotes(
     private var lastPersisted: String? = null
     private var hydrated = false
 
-    /** The words typed, or restored from the draft. Nothing is written until a pause or Back. */
+    /** The words typed. Nothing is written until a pause or Back. */
     fun edit(value: String) {
         _text.value = value
     }
 
     /**
+     * The words the draft kept, brought back when the screen is rebuilt, an empty note included:
+     * that is one deleted. They stand for the field's fill, so the row does not fill it again. What
+     * the database holds stays unknown, so nothing is written until the row has been read.
+     */
+    fun restore(value: String) {
+        _text.value = value
+        hydrated = true
+    }
+
+    /**
      * The session row was read, holding [stored]: what the database has now and, the first time
-     * only, what fills an empty field. The ViewModel calls this on every row, before it saves its
-     * draft, so the draft carries what the row filled in.
+     * only, what fills an empty field the draft did not [restore]. The ViewModel calls this on
+     * every row, before it selects a lift or saves its draft, so both carry what the row filled in.
      */
     fun sessionRead(stored: String) {
         lastPersisted = stored

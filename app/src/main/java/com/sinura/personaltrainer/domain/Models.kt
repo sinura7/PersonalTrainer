@@ -211,11 +211,6 @@ data class WorkoutSession(
     }
 
     /**
-     * Resume must never treat a stale selected id as an empty workout.
-     * Prefer the last selected lift when it is still in the session, otherwise
-     * the first lift that already has sets, otherwise the first lift.
-     */
-    /**
      * Working sets logged against one lift. Warm-ups do not count toward a target.
      */
     fun workingSetsFor(exerciseId: String): Int =
@@ -245,6 +240,12 @@ data class WorkoutSession(
     fun nextUnfinishedExerciseAfter(exerciseId: String): String? =
         WorkoutAdvance.nextUnfinishedExerciseId(this, exerciseId)
 
+    /**
+     * Resume must never treat a stale selected id as an empty workout.
+     * Prefer the last selected lift when it is still in the session, otherwise
+     * the first lift that already has sets, otherwise the first lift, otherwise
+     * the lift of the latest logged set.
+     */
     fun resolveSelectedExerciseId(preferredId: String?): String? {
         val exerciseIds = exercises.map { it.exercise.id }
         if (preferredId != null && preferredId in exerciseIds) return preferredId
@@ -255,6 +256,14 @@ data class WorkoutSession(
         exerciseIds.firstOrNull()?.let { return it }
         return sets.maxByOrNull { it.completedAt }?.exerciseId
     }
+
+    /**
+     * Whether [exerciseId] is in this session: planned, or logged. A lift can be selected from its
+     * sets alone ([resolveSelectedExerciseId]), so the workout screen's wait for a row that holds the
+     * selected lift accepts both, or it would never end for such a lift.
+     */
+    fun hasLift(exerciseId: String): Boolean =
+        exercises.any { it.exercise.id == exerciseId } || sets.any { it.exerciseId == exerciseId }
 }
 
 /**
