@@ -374,6 +374,8 @@ class FirstWorkingSetRenderTest {
 
     /** Saves the draft through the dock's Log, as a thumb does, and waits for the row to land. */
     private fun logAndWait(vm: ActiveWorkoutViewModel, sets: Int) {
+        vm.pickEffortIfNeeded()
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.session?.sets?.size == sets }
         compose.waitForIdle()

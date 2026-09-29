@@ -85,7 +85,7 @@ class ManualRestStartTest {
         val vm = ActiveWorkoutViewModel(ApplicationProvider.getApplicationContext(), SavedStateHandle(mapOf("sessionId" to session.id)), deps)
         models += vm
         vm.uiState.awaitFirst { it.canLog }
-        vm.logSet()
+        vm.logWorkingSet()
         vm.uiState.awaitFirst { it.session?.sets?.size == 1 && !it.logging && !it.save.pending }
         terminalGate = CompletableDeferred()
         if (discard) vm.discardWorkout() else vm.finishWorkout()

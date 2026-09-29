@@ -149,6 +149,8 @@ class FloorFeedbackRenderTest {
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.draft.weightKg == FLOOR_KG70 && vm.uiState.value.draft.reps == 10 }
         compose.waitForIdle()
         felt.haptics.clear()
+        vm.pickEffortIfNeeded()
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
     }
 

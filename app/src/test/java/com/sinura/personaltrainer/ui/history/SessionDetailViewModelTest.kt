@@ -230,7 +230,7 @@ class SessionDetailViewModelTest {
 
         // A warm-up still goes in without one.
         vm.addSet(TEST_EXERCISE, 40.0, 8, rpe = null, isWarmup = true)
-        awaitSession(fixture.id) { it.sets.size == 2 }
+        assertTrue(awaitSession(fixture.id) { it.sets.size == 2 }.sets.any { it.isWarmup })
     }
 
     @Test

@@ -114,7 +114,7 @@ class WorkoutSaveRecoveryTest {
         dispatcher.scheduler.advanceTimeBy(250)
         dispatcher.scheduler.runCurrent()
         failWrites = true
-        vm.logSet()
+        vm.logWorkingSet()
         val failed = vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.FAILED && !it.logging }
         val command = checkNotNull(failed.save.command)
         assertEquals(12, command.values.durationSeconds)
@@ -126,7 +126,7 @@ class WorkoutSaveRecoveryTest {
         vm.requestExtraSet()
         vm.finishWorkout()
         vm.discardWorkout()
-        vm.logSet()
+        vm.logWorkingSet()
         assertEquals(command, deps.workoutDraftCache.pendingSave(fixture.session.id))
         assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty())
         clock.advance(40_000)
@@ -148,9 +148,9 @@ class WorkoutSaveRecoveryTest {
         val vm = active(handle(fixture.session.id))
         vm.uiState.awaitFirst { it.canLog }
         insertGate = CompletableDeferred()
-        vm.logSet()
+        vm.logWorkingSet()
         val busy = vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.SAVING }
-        vm.logSet()
+        vm.logWorkingSet()
         vm.retrySave()
         vm.selectExercise("another")
         vm.setWeight(10.0)
@@ -184,7 +184,7 @@ class WorkoutSaveRecoveryTest {
         val original = active(handle)
         original.uiState.awaitFirst { it.canLog }
         recordGate = CompletableDeferred()
-        original.logSet()
+        original.logWorkingSet()
         original.uiState.awaitFirst { it.logging && it.session?.sets?.size == 1 }
         val command = checkNotNull(SavedStateWorkoutSave(handle).read(fixture.session.id))
         original.removeSelectedLift()
@@ -265,7 +265,7 @@ class WorkoutSaveRecoveryTest {
         deps.workoutRepository.updateSet(command.setId, 80.0, 7, rpe = 8, isWarmup = false)
         val restored = active(handle)
         restored.uiState.awaitFirst { it.canLog && it.editingSetId == command.setId }
-        restored.logSet()
+        restored.logWorkingSet()
         restored.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.CONFLICT }
         assertEquals(80.0, deps.workoutRepository.getSession(command.sessionId)!!.sets.single().weightKg, 0.0)
     }
@@ -278,7 +278,7 @@ class WorkoutSaveRecoveryTest {
         removeGate = CompletableDeferred()
         vm.removeSelectedLift()
         vm.uiState.awaitFirst { it.mutating && it.entryLocked }
-        vm.logSet()
+        vm.logWorkingSet()
         assertNull(deps.workoutDraftCache.pendingSave(fixture.session.id))
         removeGate!!.complete(Unit)
         vm.uiState.awaitFirst { !it.mutating && it.session?.exercises?.isEmpty() == true }
@@ -301,7 +301,7 @@ class WorkoutSaveRecoveryTest {
         restoreGate = CompletableDeferred()
         vm.undoRemoveLift()
         vm.uiState.awaitFirst { it.mutating && it.entryLocked }
-        vm.logSet()
+        vm.logWorkingSet()
         assertNull(deps.workoutDraftCache.pendingSave(fixture.session.id))
         restoreGate!!.complete(Unit)
         vm.uiState.awaitFirst { !it.mutating && it.selectedExerciseId == fixture.exercise.id }
@@ -386,7 +386,7 @@ class WorkoutSaveRecoveryTest {
         deps.workoutDraftCache.clear(command.sessionId)
         val final = active(freshHandle)
         final.uiState.awaitFirst { it.canLog && it.editingSetId == command.setId && it.draft.weightKg == 65.0 }
-        final.logSet()
+        final.logWorkingSet()
         final.uiState.awaitFirst { !it.logging && it.editingSetId == null && !it.save.pending }
         val row = deps.workoutRepository.getSession(command.sessionId)!!.sets.single()
         assertEquals(command.setId, row.id)
@@ -399,7 +399,7 @@ class WorkoutSaveRecoveryTest {
         val handle = handle(fixture.session.id)
         val first = active(handle)
         first.uiState.awaitFirst { it.canLog }
-        first.logSet()
+        first.logWorkingSet()
         first.uiState.awaitFirst { !it.logging && it.session?.sets?.size == 1 }
         first.requestExtraSet()
         assertTrue(first.extraSetRequested.value)

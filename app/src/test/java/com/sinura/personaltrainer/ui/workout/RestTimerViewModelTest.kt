@@ -157,7 +157,7 @@ class RestTimerViewModelTest {
         val fixture = seedWorkout(targetSets = 3, restSeconds = 90)
         val workout = createWorkoutViewModel(fixture.session.id)
         workout.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
-        workout.logSet()
+        workout.logWorkingSet()
         workout.awaitState { !it.logging }
         dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
         dispatcher.scheduler.runCurrent()

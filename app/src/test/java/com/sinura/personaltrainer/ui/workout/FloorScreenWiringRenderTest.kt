@@ -443,6 +443,8 @@ class FloorScreenWiringRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm)
         val before = entryTop()
+        vm.pickEffortIfNeeded()
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.session?.sets?.size == 3 }
         compose.waitForIdle()
@@ -457,6 +459,8 @@ class FloorScreenWiringRenderTest {
     fun theJustSavedSetIsTheSavedChip() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm, heightDp = 1600)
+        vm.pickEffortIfNeeded()
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         val saved = "Saved · ${SetOrdinalCopy.working(3, 3)}"
         compose.waitUntil(timeoutMillis = WAIT_MS) {
@@ -475,6 +479,8 @@ class FloorScreenWiringRenderTest {
         // receipt and its dwell on the screen, the settle and rest in the ViewModel. A loop
         // that jumped to the next lift once any of them ended would put the lifter on the
         // wrong card with a bar in their hands.
+        vm.pickEffortIfNeeded()
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.logReceipt.value != null }
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }

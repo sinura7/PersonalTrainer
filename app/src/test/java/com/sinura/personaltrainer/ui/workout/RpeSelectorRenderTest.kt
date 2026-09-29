@@ -175,7 +175,7 @@ class RpeSelectorRenderTest {
         compose.onAllNodesWithText("Max effort").assertCountEquals(0)
         // In the ends' row, so choosing costs no height on every set; the heading stays put.
         assertEquals(height, compose.onNodeWithTag(HOST).getBoundsInRoot().height)
-        compose.onNode(hasText("EFFORT · OPTIONAL"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(hasText("EFFORT"), useUnmergedTree = true).assertIsDisplayed()
         // The chosen chip already says this aloud; the line is not a second stop for TalkBack.
         meaning.assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.HideFromAccessibility))
         rpe = 10

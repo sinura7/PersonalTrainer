@@ -103,7 +103,7 @@ class FloorSetSaveCharacterisationTest {
         vm.uiState.awaitFirst { it.canLog }
         writeFailure = { IllegalStateException("Injected write failure") }
 
-        vm.logSet()
+        vm.logWorkingSet()
 
         val failed = vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.FAILED && !it.logging }
         assertEquals(LogCommitCopy.WRITE_FAILED, failed.save.message)
@@ -123,7 +123,7 @@ class FloorSetSaveCharacterisationTest {
         vm.uiState.awaitFirst { it.canLog }
         writeFailure = { IllegalStateException(SetLogRules.INVALID_REPS) }
 
-        vm.logSet()
+        vm.logWorkingSet()
 
         val failed = vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.FAILED && !it.logging }
         assertEquals(SetLogRules.INVALID_REPS, failed.save.message)
@@ -137,7 +137,7 @@ class FloorSetSaveCharacterisationTest {
         vm.uiState.awaitFirst { it.canLog }
         writeFailure = { WorkoutRepository.SetSaveConflict() }
 
-        vm.logSet()
+        vm.logWorkingSet()
 
         val refused = vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.CONFLICT && !it.logging }
         assertEquals(WorkoutRepository.SetSaveConflict().message, refused.save.message)
@@ -151,7 +151,7 @@ class FloorSetSaveCharacterisationTest {
         val vm = active(handle)
         vm.uiState.awaitFirst { it.canLog }
 
-        vm.logSet()
+        vm.logWorkingSet()
 
         val saved = vm.uiState.awaitFirst { !it.logging && !it.save.pending && it.session?.sets?.size == 1 }
         assertEquals(WorkoutSavePhase.IDLE, saved.save.phase)
@@ -169,7 +169,7 @@ class FloorSetSaveCharacterisationTest {
         val vm = active(handle(fixture.session.id))
         vm.uiState.awaitFirst { it.canLog }
         insertGate = CompletableDeferred()
-        vm.logSet()
+        vm.logWorkingSet()
         vm.uiState.awaitFirst { it.logging && it.save.phase == WorkoutSavePhase.SAVING }
 
         vm.finishWorkout()
@@ -249,7 +249,7 @@ class FloorSetSaveCharacterisationTest {
         vm.uiState.awaitFirst { it.canLog }
         vm.setWeight(72.5)
         writeFailure = { IllegalStateException("Injected write failure") }
-        vm.logSet()
+        vm.logWorkingSet()
         vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.FAILED && !it.logging }
         writeFailure = null
 
@@ -275,11 +275,11 @@ class FloorSetSaveCharacterisationTest {
         val vm = active(handle(fixture.session.id))
         vm.uiState.awaitFirst { it.canLog }
         vm.setWeight(0.0)
-        vm.logSet()
+        vm.logWorkingSet()
         vm.uiState.awaitFirst { it.error == SetLogRules.ZERO_WORKING_WEIGHT }
         vm.setWeight(72.5)
         writeFailure = { IllegalStateException("Injected write failure") }
-        vm.logSet()
+        vm.logWorkingSet()
         val failed = vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.FAILED && !it.logging }
         assertEquals("the failed save speaks over it", LogCommitCopy.WRITE_FAILED, failed.error)
         writeFailure = null
@@ -323,7 +323,7 @@ class FloorSetSaveCharacterisationTest {
         val vm = active(handle(fixture.session.id))
         vm.uiState.awaitFirst { it.canLog }
         writeFailure = { WorkoutRepository.SetSaveConflict() }
-        vm.logSet()
+        vm.logWorkingSet()
         val refused = vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.CONFLICT && !it.logging }
         writeFailure = null
 
