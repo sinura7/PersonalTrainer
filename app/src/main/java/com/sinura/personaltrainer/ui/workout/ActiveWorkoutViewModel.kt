@@ -374,6 +374,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         holdSoundEnabled = { container.preferencesRepository.restTimerPreferences.first().soundEnabled },
         cancelPendingRest = ::cancelPendingRest,
     )
+    /** The rest preferences as they are now: the hold's GET READY length is read at the tap (P2b). */
+    private val restPrefsNow: StateFlow<RestTimerPreferences> = container.preferencesRepository.restTimerPreferences
+        .stateIn(viewModelScope, SharingStarted.Eagerly, RestTimerPreferences.DEFAULT)
     val holdTimer: StateFlow<HoldTimerUiState> = clocks.hold
     val setStopwatch: StateFlow<SetStopwatchUiState> = clocks.stopwatch
     private val primaryActivation = MutableStateFlow(0L)
@@ -1108,7 +1111,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             draft.value.durationSeconds ?: selected.targetSeconds,
         )
         restTimer.stop()
-        clocks.startHold(exerciseId = exerciseId, totalSeconds = total)
+        clocks.startHold(exerciseId = exerciseId, totalSeconds = total, leadInSeconds = restPrefsNow.value.leadInSeconds)
+    }
+
+    /** Ends GET READY before the hold clock runs; no hold starts and nothing is logged (P2b). */
+    fun cancelLeadIn() {
+        if (!clocks.hold.value.gettingReady) return
+        clocks.stopHold()
     }
 
     /**
@@ -1474,7 +1483,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             WorkoutPrimaryKind.NEXT_EXERCISE -> action.identity.nextExerciseId?.let(::selectExercise)
             WorkoutPrimaryKind.RETRY_SAVE -> retrySave()
             WorkoutPrimaryKind.FINISH, WorkoutPrimaryKind.REVIEW_SAVE -> Unit // The screen opens its confirmation/details.
-            WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING, WorkoutPrimaryKind.UPDATING -> return false
+            WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING, WorkoutPrimaryKind.UPDATING,
+            WorkoutPrimaryKind.GET_READY -> return false
         }
         return true
     }
@@ -1496,6 +1506,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             startHoldSet()
             return
         }
+        // GET READY: the hold has not been held yet, so there is nothing to log (P2b). Cancel is
+        // the bar's; the commit is disabled.
+        if (hold && editingId == null && holdState.gettingReady) return
         val original = editingOriginal?.takeIf { it.setId == editingId && it.exerciseId == exerciseId }
         if (editingId != null && original == null) {
             error.fail(source = ERR_LOG_SET, message = "That saved set is no longer available. Cancel editing to continue.")
@@ -1509,6 +1522,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             holdDraftSeconds = current.durationSeconds ?: selectedLift.targetSeconds,
             stopwatch = clocks.stopwatch.value,
             existingDurationSeconds = current.durationSeconds.takeUnless { hold },
+            holdGettingReady = holdState.gettingReady,
         )
         val values = WorkoutSetValues(
             weightKg = current.weightKg,

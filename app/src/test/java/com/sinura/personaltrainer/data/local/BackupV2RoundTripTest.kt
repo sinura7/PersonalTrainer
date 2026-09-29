@@ -314,6 +314,19 @@ class BackupV2RoundTripTest {
         assertTrue(preferences.onboardingComplete.first())
     }
 
+    /** GET READY before a hold (P2b) is this phone's, like the tick: a restore leaves it alone. */
+    @Test
+    fun aRestoreLeavesTheHoldLeadInAlone() = runBlocking {
+        preferences.setHoldLeadInSeconds(10)
+        maintenance.seedCatalog()
+        seedUserData()
+        val json = BackupJson.encode(local.createSnapshot())
+        restore(json)
+        assertEquals(10, preferences.restTimerPreferences.first().leadInSeconds)
+        restore(V1_FIXTURE)
+        assertEquals(10, preferences.restTimerPreferences.first().leadInSeconds)
+    }
+
     /**
      * The tick toggle is this phone's, like the last preset: a document from
      * another phone, which has no field for it, must not switch it back on.

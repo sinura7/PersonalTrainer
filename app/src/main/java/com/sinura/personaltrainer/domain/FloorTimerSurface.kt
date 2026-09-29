@@ -23,12 +23,14 @@ object FloorTimerSurface {
         restRunning: Boolean = false,
         restComplete: Boolean = false,
         holdActive: Boolean = holdRunning,
+        holdGettingReady: Boolean = false,
     ): FloorTimedMode = FloorTimedModeResolver.resolve(
         hasLifts = hasLifts,
         holdActive = holdActive || holdRunning,
         stopwatchRunning = stopwatchRunning,
         restRunning = restRunning,
         restComplete = restComplete,
+        holdGettingReady = holdGettingReady,
     )
 
     /**
@@ -84,7 +86,8 @@ object FloorTimerSurface {
     }
 
     /**
-     * Seconds to persist on a logged set. Holds always write time.
+     * Seconds to persist on a logged set. Holds always write time, except during GET READY,
+     * when there is nothing held yet and nothing may be logged (P2b).
      * A strength set writes time only when the manual clock was used.
      */
     fun durationToLog(
@@ -95,8 +98,10 @@ object FloorTimerSurface {
         holdDraftSeconds: Int?,
         stopwatch: SetStopwatchUiState,
         existingDurationSeconds: Int? = null,
+        holdGettingReady: Boolean = false,
     ): Int? {
         if (hold) {
+            if (holdGettingReady) return null
             return if (holdTotalSeconds > 0) {
                 HoldWork.elapsedSeconds(holdTotalSeconds, holdRemainingSeconds)
             } else {
@@ -148,6 +153,8 @@ object SetStopwatchCopy {
     const val START = "Time set"
     const val START_SPOKEN = "Time this set"
     const val STOP = "Stop"
+    /** The bar's control during GET READY: ends the countdown, starts no hold (P2b). */
+    const val CANCEL_LEAD_IN = "Cancel"
     const val SWITCH_TITLE = "Stop timing and switch?"
     const val SWITCH_BODY =
         "Timing is still running. Stop it to switch exercises. This does not save a set."

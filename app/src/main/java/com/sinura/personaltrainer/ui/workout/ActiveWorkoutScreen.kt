@@ -346,6 +346,9 @@ private fun ActiveWorkoutContent(
         viewModel.floorTimerCue.collect { cue ->
             when (cue) {
                 FloorTimerCue.HoldStarted -> Haptics.warn(view)
+                // GET READY (P2b): a light tick each second, a firmer one when the hold begins.
+                is FloorTimerCue.LeadInTick -> Haptics.tickLight(view)
+                FloorTimerCue.LeadInDone -> Haptics.warn(view)
                 is FloorTimerCue.HoldTarget -> {
                     Haptics.holdDone(view)
                     RestTimerAlerts.holdTargetTone(context, cue.soundEnabled)
@@ -518,6 +521,8 @@ private fun ActiveWorkoutContent(
                                     holdRemainingSeconds = holdTimer.remainingSeconds,
                                     holdTotalSeconds = holdTimer.totalSeconds,
                                     holdTargetReached = holdTimer.targetReached,
+                                    holdGettingReady = holdTimer.gettingReady,
+                                    holdLeadInRemainingSeconds = holdTimer.leadInRemainingSeconds,
                                     stopwatchRunning = setStopwatch.running,
                                     stopwatchElapsedSeconds = setStopwatch.elapsedSeconds,
                                     offerSetClock = offerSetClock,
@@ -548,6 +553,7 @@ private fun ActiveWorkoutContent(
                                 onCustomRest = viewModel::selectCustomRest,
                                 onStartSetClock = viewModel::startSetStopwatch,
                                 onStopSetClock = viewModel::stopSetStopwatch,
+                                onCancelLeadIn = viewModel::cancelLeadIn,
                                 onDismissRestBatteryHint = viewModel::acknowledgeRestBatteryHint,
                                 onOpenRest = { session?.id?.let(onOpenRest) },
                                 onOpenNotifications = { openRestNotificationSettings(context) },

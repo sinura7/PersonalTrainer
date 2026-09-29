@@ -20,6 +20,7 @@ class SavedStateFloorTimer(private val handle: SavedStateHandle) {
         handle[KEY_HOLD_DEADLINE] = hold.deadlineElapsedRealtime
         handle[KEY_HOLD_TOTAL] = hold.totalSeconds
         handle[KEY_HOLD_TARGET] = hold.targetReached
+        handle[KEY_HOLD_LEAD_IN_START] = hold.leadInStartElapsedRealtime
     }
 
     fun readHold(sessionExerciseId: String?, nowElapsedRealtime: Long): HoldTimerUiState? {
@@ -29,7 +30,11 @@ class SavedStateFloorTimer(private val handle: SavedStateHandle) {
         val deadline = handle.get<Long>(KEY_HOLD_DEADLINE) ?: return null
         val total = handle.get<Int>(KEY_HOLD_TOTAL) ?: return null
         if (total <= 0) return null
-        if (nowElapsedRealtime < start) {
+        // The tap that armed the hold, or the hold's start for a row written before GET READY
+        // existed. A clock before either is a reboot: the hold is gone (a row's start may lie
+        // ahead of now during GET READY, which is not a reboot).
+        val leadInStart = handle.get<Long>(KEY_HOLD_LEAD_IN_START) ?: start
+        if (nowElapsedRealtime < leadInStart) {
             clearHold()
             return null
         }
@@ -43,6 +48,7 @@ class SavedStateFloorTimer(private val handle: SavedStateHandle) {
             startElapsedRealtime = start,
             deadlineElapsedRealtime = deadline,
             targetReached = target,
+            leadInStartElapsedRealtime = leadInStart,
         )
     }
 
@@ -93,6 +99,7 @@ class SavedStateFloorTimer(private val handle: SavedStateHandle) {
             KEY_HOLD_DEADLINE,
             KEY_HOLD_TOTAL,
             KEY_HOLD_TARGET,
+            KEY_HOLD_LEAD_IN_START,
         ).forEach { handle.remove<Any>(it) }
     }
 
@@ -120,6 +127,7 @@ class SavedStateFloorTimer(private val handle: SavedStateHandle) {
         const val KEY_HOLD_DEADLINE = "timer.hold.deadlineMs"
         const val KEY_HOLD_TOTAL = "timer.hold.total"
         const val KEY_HOLD_TARGET = "timer.hold.targetReached"
+        const val KEY_HOLD_LEAD_IN_START = "timer.hold.leadInStartMs"
         const val KEY_SW_IDS = "timer.sw.ids"
         const val FIELD_RUNNING = "running"
         const val FIELD_START = "startMs"

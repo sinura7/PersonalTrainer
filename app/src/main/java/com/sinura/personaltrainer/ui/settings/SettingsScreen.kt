@@ -285,6 +285,7 @@ fun SettingsScreen(
                     onTick = viewModel::setRestTickEnabled,
                     onDefaultRest = viewModel::setDefaultRestSeconds,
                     onCustomDefault = viewModel::setDefaultRestCustom,
+                    onLeadIn = viewModel::setHoldLeadInSeconds,
                 )
             }
             SettingsPage.BODYWEIGHT -> SettingsSubpage(
@@ -595,6 +596,8 @@ private fun SettingsBackupPane(
 
 object SettingsTags {
     const val EXPORT_FILE = "settings-export-file"
+    /** One GET READY length on the Rest timer page (P2b). */
+    fun leadInChoice(seconds: Int): String = "settings-lead-in-$seconds"
     const val SHARE_DIAGNOSTICS = "settings-share-diagnostics"
     const val CLEAR_DIAGNOSTICS = "settings-clear-diagnostics"
     const val DISPLAY = "settings-display"

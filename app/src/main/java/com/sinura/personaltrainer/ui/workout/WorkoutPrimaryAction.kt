@@ -4,6 +4,7 @@ import com.sinura.personaltrainer.domain.FloorTimerSurface
 import com.sinura.personaltrainer.domain.HoldTimerUiState
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.LoadClass
+import com.sinura.personaltrainer.domain.LogBarCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.SetStopwatchUiState
@@ -13,7 +14,10 @@ import com.sinura.personaltrainer.domain.WorkoutSetSave
 
 enum class WorkoutPrimaryKind {
     UNAVAILABLE, ADD_EXERCISE, LOG_SET, LOG_WARMUP, SAVE_CHANGES,
-    START_HOLD, LOG_HOLD, NEXT_EXERCISE, FINISH, CHECKING, SAVING, UPDATING, RETRY_SAVE, REVIEW_SAVE,
+    START_HOLD,
+    /** GET READY is counting before a hold (P2b): disabled, so a tap cannot log a one-second hold. */
+    GET_READY,
+    LOG_HOLD, NEXT_EXERCISE, FINISH, CHECKING, SAVING, UPDATING, RETRY_SAVE, REVIEW_SAVE,
 }
 
 /** Identity of the action actually rendered. Clock ticks do not invalidate a press. */
@@ -50,6 +54,7 @@ data class WorkoutPrimaryAction(
         WorkoutPrimaryKind.LOG_WARMUP -> "Log warm-up"
         WorkoutPrimaryKind.SAVE_CHANGES -> "Save changes"
         WorkoutPrimaryKind.START_HOLD -> "Start hold"
+        WorkoutPrimaryKind.GET_READY -> LogBarCopy.GET_READY
         WorkoutPrimaryKind.LOG_HOLD -> "Log hold"
         WorkoutPrimaryKind.NEXT_EXERCISE -> if (includeNextName) "Next exercise · ${nextName.orEmpty()}" else "Next exercise"
         WorkoutPrimaryKind.FINISH -> "Finish workout"
@@ -71,6 +76,7 @@ data class WorkoutPrimaryAction(
             WorkoutPrimaryKind.LOG_HOLD,
             WorkoutPrimaryKind.SAVE_CHANGES,
             WorkoutPrimaryKind.START_HOLD,
+            WorkoutPrimaryKind.GET_READY,
             WorkoutPrimaryKind.SAVING,
             WorkoutPrimaryKind.RETRY_SAVE,
             WorkoutPrimaryKind.REVIEW_SAVE,
@@ -110,6 +116,7 @@ data class WorkoutPrimaryAction(
             WorkoutPrimaryKind.LOG_WARMUP -> "Log warm-up · $payload"
             WorkoutPrimaryKind.SAVE_CHANGES -> "Save changes"
             WorkoutPrimaryKind.START_HOLD -> "Start hold"
+            WorkoutPrimaryKind.GET_READY -> LogBarCopy.GET_READY
             WorkoutPrimaryKind.LOG_HOLD -> "Log hold · $payload"
             WorkoutPrimaryKind.NEXT_EXERCISE -> if (includeNextName) "Next exercise · ${nextName.orEmpty()}" else "Next exercise"
             WorkoutPrimaryKind.FINISH -> "Finish workout"
@@ -151,6 +158,7 @@ object WorkoutPrimaryActions {
             state.save.phase == WorkoutSavePhase.CONFLICT -> WorkoutPrimaryKind.REVIEW_SAVE
             session?.exercises?.isEmpty() == true -> WorkoutPrimaryKind.ADD_EXERCISE
             state.editingSetId != null -> WorkoutPrimaryKind.SAVE_CHANGES
+            isHold && hold.gettingReady -> WorkoutPrimaryKind.GET_READY
             state.draft.isWarmup -> if (isHold && !holdArmed) WorkoutPrimaryKind.START_HOLD else WorkoutPrimaryKind.LOG_WARMUP
             holdArmed && isHold -> WorkoutPrimaryKind.LOG_HOLD
             stopwatch.used -> WorkoutPrimaryKind.LOG_SET
@@ -161,7 +169,7 @@ object WorkoutPrimaryActions {
         }
         val enabled = available && when (kind) {
             WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING,
-            WorkoutPrimaryKind.UPDATING -> false
+            WorkoutPrimaryKind.UPDATING, WorkoutPrimaryKind.GET_READY -> false
             WorkoutPrimaryKind.LOG_SET, WorkoutPrimaryKind.SAVE_CHANGES -> state.logCommitReady
             WorkoutPrimaryKind.LOG_WARMUP, WorkoutPrimaryKind.START_HOLD, WorkoutPrimaryKind.LOG_HOLD -> state.canLog
             else -> true
@@ -180,6 +188,7 @@ object WorkoutPrimaryActions {
                 holdTotalSeconds = hold.totalSeconds, holdRemainingSeconds = hold.remainingSeconds,
                 holdDraftSeconds = state.draft.durationSeconds ?: selected?.targetSeconds,
                 stopwatch = stopwatch, existingDurationSeconds = state.draft.durationSeconds.takeUnless { isHold },
+                holdGettingReady = hold.gettingReady,
             ),
         )
     }

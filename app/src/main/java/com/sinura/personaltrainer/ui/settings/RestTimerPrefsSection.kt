@@ -4,6 +4,10 @@ package com.sinura.personaltrainer.ui.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Text
+import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.TextSecondary
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,12 +16,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.RestCompleteCue
+import com.sinura.personaltrainer.domain.HoldWork
+import com.sinura.personaltrainer.domain.HoldLeadInCopy
 import com.sinura.personaltrainer.domain.RestTick
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.ui.components.CustomRestDialog
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymNoticeBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.InstrumentSwitch
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -35,6 +42,7 @@ internal fun RestTimerPrefsSection(
     onTick: (Boolean) -> Unit,
     onDefaultRest: (Int) -> Unit,
     onCustomDefault: (String) -> Boolean,
+    onLeadIn: (Int) -> Unit = {},
 ) {
     var showCustom by rememberSaveable { mutableStateOf(false) }
     SettingsGroup(
@@ -81,6 +89,29 @@ internal fun RestTimerPrefsSection(
                 onCheckedChange = onTick,
                 trailing = { InstrumentSwitch(checked = preferences.tickEnabled, onCheckedChange = null) },
             )
+            HairlineDivider()
+            Column(
+                modifier = Modifier.padding(
+                    start = Metrics.space4,
+                    end = Metrics.space4,
+                    top = Metrics.space3,
+                    bottom = Metrics.space3,
+                ),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                Kicker(HoldLeadInCopy.TITLE)
+                Text(HoldLeadInCopy.CAPTION, style = InstrumentType.caption, color = TextSecondary)
+                Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    HoldWork.LEAD_IN_CHOICES.forEach { seconds ->
+                        InstrumentChip(
+                            label = HoldLeadInCopy.choice(seconds),
+                            selected = preferences.leadInSeconds == seconds,
+                            onClick = { onLeadIn(seconds) },
+                            modifier = Modifier.testTag(SettingsTags.leadInChoice(seconds)),
+                        )
+                    }
+                }
+            }
             HairlineDivider()
             Column(
                 modifier = Modifier.padding(

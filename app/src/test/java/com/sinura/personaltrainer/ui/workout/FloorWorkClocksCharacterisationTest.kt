@@ -150,6 +150,7 @@ class FloorWorkClocksCharacterisationTest {
         val original = viewModel(handle)
         original.readyHold()
         original.startHoldSet()
+        tick(LEAD_IN_MS)
         tick(31_000)
         assertTrue("the hold reaches its target", original.holdTimer.value.targetReached)
         val kept = SavedStateFloorTimer(handle).readHold(HANG, clock.elapsedRealtimeMillis())
@@ -203,6 +204,7 @@ class FloorWorkClocksCharacterisationTest {
         val original = viewModel(handle)
         original.readyHold()
         original.startHoldSet()
+        tick(LEAD_IN_MS)
         tick(5_000)
         stopTheProcess(original)
         deps.restTimerController.start(90, sessionId)
@@ -241,12 +243,14 @@ class FloorWorkClocksCharacterisationTest {
         val vm = viewModel(handleFor(seed(HANG_LIFT)))
         vm.readyHold()
         vm.startHoldSet()
+        tick(LEAD_IN_MS)
         vm.logWorkingSet()
         vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
         assertFalse("the saved hold stopped", vm.holdTimer.value.running)
         assertFalse("the receipt's rest has not started yet", deps.restTimerStore.current().running)
 
         vm.startHoldSet()
+        tick(LEAD_IN_MS)
         assertTrue("the next hold runs", vm.holdTimer.value.running)
         dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS + 1L)
         dispatcher.scheduler.runCurrent()
@@ -262,6 +266,7 @@ class FloorWorkClocksCharacterisationTest {
         val seen = cuesOf(vm)
         vm.readyHold()
         vm.startHoldSet()
+        tick(LEAD_IN_MS)
         tick(5_000)
         assertEquals("the hold counts", 5, vm.holdTimer.value.elapsedSeconds)
 
@@ -288,6 +293,7 @@ class FloorWorkClocksCharacterisationTest {
         val seen = cuesOf(vm)
         vm.readyHold()
         vm.startHoldSet()
+        tick(LEAD_IN_MS)
         tick(31_000)
         awaitCues(seen, 2)
 
@@ -418,6 +424,7 @@ class FloorWorkClocksCharacterisationTest {
         val seen = cuesOf(vm)
         vm.readyHold()
         vm.startHoldSet()
+        tick(LEAD_IN_MS)
         tick(5_000)
 
         vm.removeSelectedLift()
@@ -675,6 +682,7 @@ class FloorWorkClocksCharacterisationTest {
         vm.selectExercise(HANG)
         vm.awaitState { it.selectedExerciseId == HANG && it.canLog && it.draft.durationSeconds == 30 }
         vm.startHoldSet()
+        tick(LEAD_IN_MS)
         assertTrue("the hold runs", vm.holdTimer.value.running)
 
         assertEquals(
@@ -706,10 +714,91 @@ class FloorWorkClocksCharacterisationTest {
         awaitCommit(vm) { it.enabled && it.kind == WorkoutPrimaryKind.START_HOLD }
 
         vm.startHoldSet()
+        tick(LEAD_IN_MS)
 
         awaitCommit(vm) { it.kind == WorkoutPrimaryKind.LOG_HOLD }
         assertTrue("the hold runs", vm.holdTimer.value.running)
     }
+
+    // --- GET READY before a hold (P2b, owner decision of 29 September 2026) ----------------------
+
+    @Test
+    fun aHoldCountsGetReadyDownBeforeItsClockRuns() = runBlocking {
+        val vm = viewModel(handleFor(seed(HANG_LIFT)))
+        val seen = cuesOf(vm)
+        vm.readyHold()
+        vm.startHoldSet()
+        val armed = vm.holdTimer.value
+        assertTrue("the hold is running from the tap", armed.running)
+        assertTrue("and getting ready", armed.gettingReady)
+        assertEquals("five seconds of GET READY", HoldWork.LEAD_IN_DEFAULT_SECONDS, armed.leadInRemainingSeconds)
+        assertEquals("nothing held yet", 0, armed.elapsedSeconds)
+        awaitCommit(vm) { it.kind == WorkoutPrimaryKind.GET_READY && !it.enabled }
+
+        tick(2_000)
+        assertEquals("two seconds in, three left", 3, vm.holdTimer.value.leadInRemainingSeconds)
+        assertEquals("the hold clock has not moved", 0, vm.holdTimer.value.elapsedSeconds)
+        assertTrue("each passed second was a tick", seen.count { it is FloorTimerCue.LeadInTick } >= 2)
+
+        tick(3_000)
+        val started = vm.holdTimer.value
+        assertFalse("GET READY is over", started.gettingReady)
+        assertTrue("the hold runs", started.running)
+        assertTrue("the start was cued", seen.any { it == FloorTimerCue.LeadInDone })
+        awaitCommit(vm) { it.kind == WorkoutPrimaryKind.LOG_HOLD }
+
+        tick(5_000)
+        assertEquals("the hold counts from its own start", 5, vm.holdTimer.value.elapsedSeconds)
+    }
+
+    @Test
+    fun cancelDuringGetReadyStartsNoHoldAndATapLogsNothing() = runBlocking {
+        val sessionId = seed(HANG_LIFT)
+        val vm = viewModel(handleFor(sessionId))
+        vm.readyHold()
+        vm.startHoldSet()
+        tick(1_000)
+        // The commit is disabled; the test seam's plain log meets the same wall.
+        vm.logSet()
+        dispatcher.scheduler.advanceUntilIdle()
+        assertTrue("nothing was logged during GET READY", deps.workoutRepository.getSession(sessionId)!!.sets.isEmpty())
+        assertTrue("the hold still gets ready", vm.holdTimer.value.gettingReady)
+
+        vm.cancelLeadIn()
+        assertFalse("no hold runs", vm.holdTimer.value.running)
+        assertEquals("nothing armed", 0, vm.holdTimer.value.totalSeconds)
+        awaitCommit(vm) { it.kind == WorkoutPrimaryKind.START_HOLD }
+        tick(10_000)
+        assertTrue("and nothing was logged", deps.workoutRepository.getSession(sessionId)!!.sets.isEmpty())
+    }
+
+    @Test
+    fun aHoldRestoredDuringGetReadyPicksTheCountdownUp() = runBlocking {
+        val sessionId = seed(HANG_LIFT)
+        val handle = handleFor(sessionId)
+        val original = viewModel(handle)
+        original.readyHold()
+        original.startHoldSet()
+        tick(2_000)
+        stopTheProcess(original)
+
+        val restored = viewModel(handle)
+        restored.readyHold()
+        val back = restored.holdTimer.value
+        assertTrue("the hold is still getting ready", back.gettingReady)
+        assertEquals("with the seconds it had left", 3, back.leadInRemainingSeconds)
+        tick(3_000)
+        assertFalse("then the hold clock runs", restored.holdTimer.value.gettingReady)
+        assertTrue(restored.holdTimer.value.running)
+        tick(30_000)
+        assertTrue("to its target", restored.holdTimer.value.targetReached)
+    }
+
+    /**
+     * GET READY runs before every hold clock (P2b): the hold's own seconds start after it, so
+     * a test about the hold ticks through it first. The lead-in has its own tests below.
+     */
+    private val LEAD_IN_MS = HoldWork.LEAD_IN_DEFAULT_SECONDS * 1_000L
 
     private fun tick(elapsedMs: Long) {
         clock.advance(elapsedMs)

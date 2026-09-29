@@ -11,10 +11,16 @@ data class RestTimerPreferences(
     val tickEnabled: Boolean = true,
     val defaultRestSeconds: Int = DEFAULT_SECONDS,
     val lastPresetSeconds: Int? = null,
+    /**
+     * GET READY before a hold's clock runs, one of [HoldWork.LEAD_IN_CHOICES] (P2b). Device-local
+     * like [tickEnabled]: a cue's timing belongs to the phone in the gym, not the archive.
+     */
+    val leadInSeconds: Int = HoldWork.LEAD_IN_DEFAULT_SECONDS,
 ) {
     fun sanitized(): RestTimerPreferences = copy(
         defaultRestSeconds = defaultRestSeconds.coerceIn(MIN_SECONDS, MAX_SECONDS),
         lastPresetSeconds = lastPresetSeconds?.coerceIn(MIN_SECONDS, MAX_SECONDS),
+        leadInSeconds = HoldWork.leadInSeconds(leadInSeconds),
     )
 
     companion object {
