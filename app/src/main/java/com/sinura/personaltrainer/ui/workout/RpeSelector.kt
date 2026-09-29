@@ -44,7 +44,8 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 
 /**
- * Optional effort for a working set: five equal choices, 6–10, with the ends named.
+ * Effort for a working set, needed before it logs (P2a): five equal choices, 6–10, with the
+ * ends named.
  *
  * Selected is a Volt outline on a dim Volt tint; a history recommendation is an outline
  * with the word "recommended" for TalkBack, never a selection. Tapping the selected

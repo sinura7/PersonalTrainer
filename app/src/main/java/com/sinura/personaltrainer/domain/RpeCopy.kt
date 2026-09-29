@@ -3,24 +3,26 @@ package com.sinura.personaltrainer.domain
 /**
  * What the RPE chips mean, in gym English.
  *
- * Five equal values, 6–10. Optional. Warm-up is not an RPE value — that
- * chip lives outside this track. A recommendation may outline a chip; it
- * never selects one.
+ * Five equal values, 6–10. Required on a working set since P2a (owner decision of
+ * 29 September 2026; W1b had it optional); warm-ups and holds log without one. Warm-up is
+ * not an RPE value — that chip lives outside this track. A recommendation may outline a
+ * chip; it never selects one.
  */
 object RpeCopy {
-    const val OPTIONAL = "Optional."
+    /** Under the track before a value is chosen: why the set is waiting. */
+    const val NEEDED = "Needed for a working set."
     /**
      * The track's heading. "RPE" alone was unfamiliar (design audit D12); effort is the word
-     * a lifter uses, and "optional" says the set logs without it. The help keeps the term.
+     * a lifter uses. It said "· optional" until P2a made a working set wait for it.
      */
-    const val LABEL = "Effort · optional"
+    const val LABEL = "Effort"
 
     /**
      * The heading where [LABEL] would not fit beside the help mark and Clear: large text or a
      * small phone. TalkBack still hears [LABEL_SPOKEN].
      */
     const val SHORT_LABEL = "Effort"
-    const val LABEL_SPOKEN = "Effort, optional"
+    const val LABEL_SPOKEN = "Effort, needed for a working set"
     const val HELP_SPOKEN = "Effort help"
     const val CLEAR = "Clear"
     const val HELPER = "6 = four reps left · 10 = max"
@@ -31,7 +33,7 @@ object RpeCopy {
     const val MAX_END = "Max effort"
     const val HELP_TITLE = "Effort (RPE)"
     const val HELP_INTRO =
-        "Optional. Choose how hard your working set felt. Tap the selected value again or Clear to remove it."
+        "How hard did that working set feel? A working set needs an effort before it can be logged; warm-ups and holds don't. Tap the selected value again or Clear to remove it."
     val VALUES: IntRange = 6..10
 
     /** The help sheet body: one line per value, in gym English. */
@@ -39,7 +41,7 @@ object RpeCopy {
 
     fun blurb(lastRpe: Int?): String {
         val history = lastRpe?.let { "Last time RPE $it. " }.orEmpty()
-        return history + OPTIONAL
+        return history + NEEDED
     }
 
     fun recommended(lastRpe: Int?): Int? = lastRpe?.takeIf { it in VALUES }

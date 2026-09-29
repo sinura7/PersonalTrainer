@@ -162,7 +162,7 @@ class SessionDetailViewModelTest {
         val vm = createViewModel(fixture.id)
         vm.uiState.awaitFirst { !it.isLoading }
 
-        vm.updateSet(original.id, 0.0, 5, rpe = null, isWarmup = false)
+        vm.updateSet(original.id, 0.0, 5, rpe = 8, isWarmup = false)
 
         assertEquals(
             SetLogRules.ZERO_WORKING_WEIGHT,
@@ -206,13 +206,40 @@ class SessionDetailViewModelTest {
         assertEquals(live.id, vm.navigateToSession.value)
     }
 
+    /**
+     * P2a (owner decision of 29 September 2026): a corrected or added working set needs its
+     * effort as a fresh one does; a warm-up and a hold (no reps) do not. Nothing is written
+     * on a refusal.
+     */
+    @Test
+    fun aWorkingSetCorrectionOrAdditionWithoutAnEffortIsRefusedAndWritesNothing() = runBlocking {
+        val fixture = seedFinished()
+        val original = fixture.sets.single()
+        val vm = createViewModel(fixture.id)
+        vm.uiState.awaitFirst { !it.isLoading }
+
+        vm.updateSet(original.id, 105.0, 6, rpe = null, isWarmup = false)
+        assertEquals(SetLogRules.EFFORT_MISSING, vm.error.awaitFirst { it == SetLogRules.EFFORT_MISSING })
+        vm.onErrorShown()
+        assertEquals(100.0, deps.workoutRepository.getSession(fixture.id)!!.sets.single().weightKg, 0.0001)
+
+        vm.addSet(TEST_EXERCISE, 90.0, 8, rpe = null, isWarmup = false)
+        assertEquals(SetLogRules.EFFORT_MISSING, vm.error.awaitFirst { it == SetLogRules.EFFORT_MISSING })
+        vm.onErrorShown()
+        assertEquals(1, deps.workoutRepository.getSession(fixture.id)!!.sets.size)
+
+        // A warm-up still goes in without one.
+        vm.addSet(TEST_EXERCISE, 40.0, 8, rpe = null, isWarmup = true)
+        awaitSession(fixture.id) { it.sets.size == 2 }
+    }
+
     @Test
     fun addSetValidationErrorIsUserFacingAndWritesNothing() = runBlocking {
         val fixture = seedFinished()
         val vm = createViewModel(fixture.id)
         vm.uiState.awaitFirst { !it.isLoading }
 
-        vm.addSet(TEST_EXERCISE, 0.0, 5, rpe = null, isWarmup = false)
+        vm.addSet(TEST_EXERCISE, 0.0, 5, rpe = 8, isWarmup = false)
 
         assertEquals(
             SetLogRules.ZERO_WORKING_WEIGHT,

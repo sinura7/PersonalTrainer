@@ -49,7 +49,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The effort track under the numerals, composed on its own: headed "Effort · optional", five
+ * The effort track under the numerals, composed on its own: headed "Effort", five
  * equal radio choices, 6 to 10, with the ends named until one is chosen and then what the
  * chosen one means; a coach recommendation that is spoken but never selected; one tap to the
  * help; and, for a warm-up, the reason in place of the track.
@@ -97,12 +97,12 @@ class RpeSelectorRenderTest {
     @Test
     fun effortIsFiveEqualRadioChoicesWithTheirMeaningSpoken() {
         showTrack()
-        // "RPE" alone was unfamiliar (D12): the heading names effort and says it can be left,
-        // aloud without the dot.
-        val heading = compose.onNode(hasText("EFFORT · OPTIONAL"), useUnmergedTree = true)
+        // "RPE" alone was unfamiliar (D12): the heading names effort; since P2a it is needed on
+        // a working set, and TalkBack says so.
+        val heading = compose.onNode(hasText("EFFORT"), useUnmergedTree = true)
             .assertIsDisplayed()
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
-        assertEquals(listOf("Effort, optional"), heading.spokenDescriptions())
+        assertEquals(listOf("Effort, needed for a working set"), heading.spokenDescriptions())
         compose.onAllNodesWithText("RPE", useUnmergedTree = true).assertCountEquals(0)
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK)
             .assertIsDisplayed()
@@ -203,8 +203,8 @@ class RpeSelectorRenderTest {
     }
 
     /**
-     * Where "EFFORT · OPTIONAL" would not fit beside the help mark and Clear, the heading reads
-     * "EFFORT" (still spoken "Effort, optional") whether or not a value is chosen: choosing
+     * The heading reads "EFFORT" at every size (spoken "Effort, needed for a working set")
+     * whether or not a value is chosen: choosing
      * then leaves Clear a whole 48 dp button on one line, and the track does not grow. With the
      * long heading Clear was squeezed to 25 dp across five lines at font 2.0.
      */
@@ -212,7 +212,7 @@ class RpeSelectorRenderTest {
         showTrack(fontScale = fontScale)
         val height = compose.onNodeWithTag(HOST).getBoundsInRoot().height
         val heading = compose.onNode(hasText("EFFORT"), useUnmergedTree = true).assertIsDisplayed()
-        assertEquals(listOf("Effort, optional"), heading.spokenDescriptions())
+        assertEquals(listOf("Effort, needed for a working set"), heading.spokenDescriptions())
         rpe = 8
         compose.waitForIdle()
         compose.onNode(hasText("EFFORT"), useUnmergedTree = true).assertIsDisplayed()

@@ -1512,6 +1512,15 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             _logFeedback.tryEmit(LogCommitFeedback.REJECT)
             return
         }
+        // A working set logs only with its effort (P2a, owner decision of 29 September 2026).
+        // Here, on the one path every Log, warm-up log, hold log and Save changes takes, so
+        // the floor and the test seam refuse alike; History's corrections check the same rule.
+        val effortMissing = SetLogRules.validateEffort(rpe = values.rpe, isWarmup = values.isWarmup, isHold = hold)
+        if (effortMissing != null) {
+            error.fail(source = ERR_LOG_SET, message = effortMissing)
+            _logFeedback.tryEmit(LogCommitFeedback.REJECT)
+            return
+        }
         val command = WorkoutSetSave(
             sessionId = sessionId, exerciseId = exerciseId,
             setId = original?.setId ?: IdFactory.Uuid.newId(),

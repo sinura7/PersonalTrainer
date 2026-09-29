@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
+import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.UndoKind
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -2448,6 +2449,38 @@ class ActiveWorkoutViewModelTest {
             assertEquals(100.0, state.draft.weightKg, 0.0001)
             assertEquals(listOf(LogCommitFeedback.REJECT), seen.toList())
             assertFalse(deps.restTimerStore.current().running)
+        } finally {
+            job.cancel()
+        }
+    }
+
+    /**
+     * P2a (owner decision of 29 September 2026): a working set logs only with its effort. The
+     * refusal is the same field message and reject haptic a zero weight gets, and writes
+     * nothing; a warm-up logs without one; with an effort the set goes in.
+     */
+    @Test
+    fun aWorkingSetWithoutAnEffortIsRefusedAndAWarmupIsNot() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitPrefilled()
+        val seen = mutableListOf<LogCommitFeedback>()
+        val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
+        try {
+            vm.logSet()
+            val refused = vm.awaitState { it.error != null }
+            assertEquals(SetLogRules.EFFORT_MISSING, refused.error)
+            assertEquals(listOf(LogCommitFeedback.REJECT), seen.toList())
+            assertEquals(0, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
+
+            vm.setWarmup(true)
+            vm.logSetAndSettle()
+            awaitSession(fixture.session.id) { it.sets.size == 1 }
+
+            vm.setRpe(8)
+            vm.logSetAndSettle()
+            awaitSession(fixture.session.id) { it.sets.count { set -> !set.isWarmup } == 1 }
+            assertEquals(8, deps.workoutRepository.getSession(fixture.session.id)!!.sets.first { !it.isWarmup }.rpe)
         } finally {
             job.cancel()
         }

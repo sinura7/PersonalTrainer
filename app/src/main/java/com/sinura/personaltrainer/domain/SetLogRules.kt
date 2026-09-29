@@ -6,6 +6,7 @@ object SetLogRules {
     const val INVALID_WEIGHT = "Weight must be zero or greater."
     const val INVALID_REPS = "Reps must be at least 1."
     const val INVALID_HOLD = "Hold at least 1 second."
+    const val EFFORT_MISSING = "Pick your effort first. A working set needs one; warm-ups and holds don't."
 
     /**
      * @param loadType how the lift is loaded. Null — a custom, or a row from a backup this
@@ -58,11 +59,31 @@ object SetLogRules {
         movementKey: String? = null,
     ): Boolean = !UnloadedLoad.allowsZeroWorkingWeight(loadType, equipment, movementKey)
 
+    /**
+     * Whether a set must carry an effort (RPE) before it is saved.
+     *
+     * Working sets do (owner decision of 29 September 2026, P2a: "force the user to input
+     * the rpe so it can force an accurate history for the personal trainer to recommend").
+     * Warm-ups and timed holds do not: the coach never reads effort on either, so asking
+     * would add taps without adding evidence. Supersedes W1b's "Effort · optional"
+     * (ADR-026 decision 3, amended).
+     */
+    fun requiresEffort(isWarmup: Boolean, isHold: Boolean): Boolean = !isWarmup && !isHold
+
+    /**
+     * [EFFORT_MISSING] when a set that [requiresEffort] has none, else null. Separate from
+     * [validate] so that callers which never see the effort (the routine editor's targets,
+     * a backup's rows) are not asked for it by a defaulted parameter.
+     */
+    fun validateEffort(rpe: Int?, isWarmup: Boolean, isHold: Boolean): String? =
+        if (rpe == null && requiresEffort(isWarmup, isHold)) EFFORT_MISSING else null
+
     fun isFieldMessage(message: String): Boolean =
         message == ZERO_WORKING_WEIGHT ||
             message == INVALID_WEIGHT ||
             message == INVALID_REPS ||
-            message == INVALID_HOLD
+            message == INVALID_HOLD ||
+            message == EFFORT_MISSING
 
     fun isUserMessage(message: String): Boolean =
         isFieldMessage(message) ||
