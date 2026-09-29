@@ -184,9 +184,10 @@ class CoachRecomputeTest {
 
         // The call still carries the time it was made (ADR-008): a change the coach reads is
         // asked about with the clock as it is now, not as it was when the key last changed.
-        log.setRpe(8)
+        // RPE 9, not 8: the logged set was an 8, so choosing 8 again asks the same question.
+        log.setRpe(9)
         val asked = checkNotNull(
-            log.awaitCall("the Log's call once RPE 8 is chosen") { it != null && it.content() != hold.content() },
+            log.awaitCall("the Log's call once RPE 9 is chosen") { it != null && it.content() != hold.content() },
         )
         assertEquals("the new call is stamped with the clock at the ask", clock.nowMillis(), asked.trace.generatedAtMs)
     }
