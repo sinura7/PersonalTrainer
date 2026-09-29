@@ -788,6 +788,9 @@ class FloorWorkClocksCharacterisationTest {
         val handle = handleFor(sessionId)
         val original = viewModel(handle)
         original.readyHold()
+        // A phone's clock is never zero at a tap; the saved state reads a zero tap time as a row
+        // from before GET READY existed, so the test's clock moves off zero first.
+        tick(1_000)
         original.startHoldSet()
         tick(2_000)
         stopTheProcess(original)
