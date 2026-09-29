@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.ui.components.RestDurationSheet
@@ -174,8 +175,15 @@ class RestCardDrawingRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.holdTimer.value.running }
         compose.waitForIdle()
-        // Just started, nearly all of the target is left: the bar is nearly full.
+        // The tap starts GET READY first (P2b): the bar counts the lead-in down before the hold's
+        // own clock runs. Walk both clocks the hold reads through the lead-in, then measure the hold.
         val target = vm.holdTimer.value.totalSeconds
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(HoldWork.LEAD_IN_DEFAULT_SECONDS.toLong()))
+        viewModelClock.advanceTimeBy(ONE_SECOND_MS)
+        viewModelClock.runCurrent()
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { !vm.holdTimer.value.gettingReady }
+        compose.waitForIdle()
+        // Just started, nearly all of the target is left: the bar is nearly full.
         assertTrue(target > 0)
         val bar = compose.onNodeWithTag(WorkoutTestTags.HOLD_CLOCK)
         assertTrue("the hold's bar is filled", fillShare(bar, toFraction = 0.25f) >= 0.9f)
