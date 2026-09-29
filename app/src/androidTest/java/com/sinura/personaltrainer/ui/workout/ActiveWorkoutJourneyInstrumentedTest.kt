@@ -108,6 +108,9 @@ class ActiveWorkoutJourneyInstrumentedTest {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.LOG_SET) and isEnabled())
                 .fetchSemanticsNodes().isNotEmpty()
         }
+        // A working set logs only with its effort (P2a): the 8 chip, scrolled into view and tapped.
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.rpeChoice(8)))
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitCondition("logged working set") {
             runBlocking(Dispatchers.IO) {
