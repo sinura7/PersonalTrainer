@@ -352,9 +352,16 @@ Done so far:
   text inside the frame; all three fixed before the drop, and the compact
   Next line now stacks at large text rather than cutting its numbers. One
   new render suite reads the panels' stroke and fill off the window. Visible,
-  on PR #444 for Allen's phone check (Obtainium 108 after merge; trunk already
-  at `debugLiveCode` 107 with P3). The plan (P2 to P6, with the owner's answers
-  of 29 September) is the next queue.
+  merged to `trunk` 2 Oct 2026 (Obtainium 108). The plan (P2 to P6, with the
+  owner's answers of 29 September) is the next queue.
+- **P2a (owner decision of 29 September, the eight-asks plan):** a working set
+  logs only with its effort; warm-ups and holds do not; History's
+  corrections follow the same rule. The rule is `SetLogRules.requiresEffort`
+  in domain; Log stays disabled with "Pick your effort first" until one is
+  chosen. Picking an effort no longer counts as typing, so W2e's follows
+  still work after a logged set. Every test that logged a working set now
+  picks an effort first (`FloorTestKit.logWorkingSet`, `pickEffortIfNeeded`).
+  Visible, on PR #445 for the next Obtainium checklist (109 after merge).
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
