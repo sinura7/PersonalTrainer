@@ -283,7 +283,7 @@ class FloorWorkClocksCharacterisationTest {
         tick(60_000)
         tick(60_000)
         assertEquals("no late tick brings it back", HoldTimerUiState(), vm.holdTimer.value)
-        assertEquals("and its target never cues", listOf<FloorTimerCue>(FloorTimerCue.HoldStarted), seen.toList())
+        assertEquals("and its target never cues", listOf<FloorTimerCue>(FloorTimerCue.HoldStarted, FloorTimerCue.LeadInDone), seen.toList())
     }
 
     @Test
@@ -295,7 +295,7 @@ class FloorWorkClocksCharacterisationTest {
         vm.startHoldSet()
         tick(LEAD_IN_MS)
         tick(31_000)
-        awaitCues(seen, 2)
+        awaitCues(seen, 3)
 
         vm.selectExercise(SQUAT)
         vm.awaitState { it.selectedExerciseId == SQUAT && it.canLog && it.draft.weightKg == 100.0 }
@@ -307,6 +307,7 @@ class FloorWorkClocksCharacterisationTest {
             "one cue per start, target and stop; the target carries the sound setting; a second stop is silent",
             listOf(
                 FloorTimerCue.HoldStarted,
+                FloorTimerCue.LeadInDone,
                 FloorTimerCue.HoldTarget(soundEnabled = false),
                 FloorTimerCue.StopwatchStarted,
                 FloorTimerCue.StopwatchStopped,
@@ -439,7 +440,7 @@ class FloorWorkClocksCharacterisationTest {
         )
         tick(60_000)
         assertEquals("no late tick brings it back", HoldTimerUiState(), vm.holdTimer.value)
-        assertEquals("and its target never cues", listOf<FloorTimerCue>(FloorTimerCue.HoldStarted), seen.toList())
+        assertEquals("and its target never cues", listOf<FloorTimerCue>(FloorTimerCue.HoldStarted, FloorTimerCue.LeadInDone), seen.toList())
     }
 
     @Test
@@ -694,6 +695,8 @@ class FloorWorkClocksCharacterisationTest {
                 "timer.hold.deadlineMs",
                 "timer.hold.total",
                 "timer.hold.targetReached",
+                // GET READY armed this hold (P2b): the tap time rides beside the hold's start.
+                "timer.hold.leadInStartMs",
                 "timer.sw.ids",
                 "timer.sw.$SQUAT.running",
                 "timer.sw.$SQUAT.startMs",
@@ -735,10 +738,15 @@ class FloorWorkClocksCharacterisationTest {
         assertEquals("nothing held yet", 0, armed.elapsedSeconds)
         awaitCommit(vm) { it.kind == WorkoutPrimaryKind.GET_READY && !it.enabled }
 
-        tick(2_000)
+        tick(1_000)
+        tick(1_000)
         assertEquals("two seconds in, three left", 3, vm.holdTimer.value.leadInRemainingSeconds)
         assertEquals("the hold clock has not moved", 0, vm.holdTimer.value.elapsedSeconds)
-        assertTrue("each passed second was a tick", seen.count { it is FloorTimerCue.LeadInTick } >= 2)
+        assertEquals(
+            "each passed second was a tick, naming the seconds left",
+            listOf(FloorTimerCue.LeadInTick(4), FloorTimerCue.LeadInTick(3)),
+            seen.filterIsInstance<FloorTimerCue.LeadInTick>(),
+        )
 
         tick(3_000)
         val started = vm.holdTimer.value

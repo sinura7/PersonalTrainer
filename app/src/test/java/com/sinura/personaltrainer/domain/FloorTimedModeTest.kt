@@ -100,6 +100,7 @@ class FloorTimedModeTest {
         FloorTimedMode.entries.forEach { mode ->
             val active = FloorTimedModeResolver.isActive(mode)
             if (mode == FloorTimedMode.REST_RUNNING ||
+                mode == FloorTimedMode.HOLD_LEAD_IN ||
                 mode == FloorTimedMode.HOLD_RUNNING ||
                 mode == FloorTimedMode.STOPWATCH_RUNNING
             ) {

@@ -20,7 +20,13 @@ class SavedStateFloorTimer(private val handle: SavedStateHandle) {
         handle[KEY_HOLD_DEADLINE] = hold.deadlineElapsedRealtime
         handle[KEY_HOLD_TOTAL] = hold.totalSeconds
         handle[KEY_HOLD_TARGET] = hold.targetReached
-        handle[KEY_HOLD_LEAD_IN_START] = hold.leadInStartElapsedRealtime
+        // Written only when GET READY armed this hold; a hold with none reads its start as the
+        // tap, as rows from before the lead-in existed do.
+        if (hold.leadInStartElapsedRealtime > 0L) {
+            handle[KEY_HOLD_LEAD_IN_START] = hold.leadInStartElapsedRealtime
+        } else {
+            handle.remove<Any>(KEY_HOLD_LEAD_IN_START)
+        }
     }
 
     fun readHold(sessionExerciseId: String?, nowElapsedRealtime: Long): HoldTimerUiState? {
