@@ -327,7 +327,11 @@ class WorkoutSaveRecoveryTest {
                 it.identity.draft.weightKg == 100.0 && it.identity.draft.reps == 5
         }
         assertTrue(vm.performPrimary(log))
-        val next = vm.primaryAction.awaitFirst { it.enabled && it.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
+        // The save's tail resets the draft's effort after the row lands; a Next captured before
+        // that reset carries a different draft and is refused as stale. Wait for the reset.
+        val next = vm.primaryAction.awaitFirst {
+            it.enabled && it.kind == WorkoutPrimaryKind.NEXT_EXERCISE && it.identity.draft.rpe == null
+        }
         assertFalse(vm.performPrimary(log))
         assertFalse(vm.performPrimary(next))
         clock.advance(android.view.ViewConfiguration.getDoubleTapTimeout().toLong())
