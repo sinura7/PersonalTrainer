@@ -317,7 +317,9 @@ class WorkoutSaveRecoveryTest {
             targetWeightKg = 40.0, restSeconds = 90,
         )
         val vm = active(handle(fixture.session.id))
-        vm.uiState.awaitFirst { it.canLog }
+        // The prefill writes the draft when its read lands, over anything picked before then
+        // (FLOOR_LIFT_READY); so the effort is picked once the numbers are in.
+        vm.uiState.awaitFirst { it.canLog && !it.entryLocked && it.draft.weightKg == 100.0 && it.draft.reps == 5 }
         vm.pickEffortIfNeeded()
         val log = vm.primaryAction.awaitFirst {
             it.enabled && it.kind == WorkoutPrimaryKind.LOG_SET &&
@@ -330,7 +332,12 @@ class WorkoutSaveRecoveryTest {
         assertFalse(vm.performPrimary(next))
         clock.advance(android.view.ViewConfiguration.getDoubleTapTimeout().toLong())
         assertTrue(vm.performPrimary(next))
-        vm.uiState.awaitFirst { it.selectedExerciseId == other.id && it.canLog }
+        // The other lift's prefill must have landed (40 kg × 8) before the effort is picked, or
+        // the prefill's write takes it back; CI showed that race once.
+        vm.uiState.awaitFirst {
+            it.selectedExerciseId == other.id && it.canLog && !it.entryLocked &&
+                it.draft.weightKg == 40.0 && it.draft.reps == 8
+        }
         vm.pickEffortIfNeeded()
         val secondLog = vm.primaryAction.awaitFirst {
             it.enabled && it.kind == WorkoutPrimaryKind.LOG_SET && it.identity.exerciseId == other.id &&
@@ -348,7 +355,7 @@ class WorkoutSaveRecoveryTest {
     fun timerTickDoesNotInvalidatePressAndCommitUsesTheDisplayedDuration() = runBlocking {
         val fixture = seedTestWorkout(deps)
         val vm = active(handle(fixture.session.id))
-        vm.uiState.awaitFirst { it.canLog }
+        vm.uiState.awaitFirst { it.canLog && !it.entryLocked && it.draft.weightKg == 100.0 }
         vm.pickEffortIfNeeded()
         vm.startSetStopwatch()
         clock.advance(12_000)
