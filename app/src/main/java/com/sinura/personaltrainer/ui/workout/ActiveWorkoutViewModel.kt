@@ -1483,8 +1483,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             WorkoutPrimaryKind.NEXT_EXERCISE -> action.identity.nextExerciseId?.let(::selectExercise)
             WorkoutPrimaryKind.RETRY_SAVE -> retrySave()
             WorkoutPrimaryKind.FINISH, WorkoutPrimaryKind.REVIEW_SAVE -> Unit // The screen opens its confirmation/details.
-            WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING, WorkoutPrimaryKind.UPDATING,
-            WorkoutPrimaryKind.GET_READY -> return false
+            WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING, WorkoutPrimaryKind.UPDATING, WorkoutPrimaryKind.GET_READY -> return false
         }
         return true
     }

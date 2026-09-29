@@ -395,9 +395,10 @@ class ActiveWorkoutViewModelTest {
 
     @Test
     fun loggingAHangWritesSecondsNotAFakeOneRepAndThenRestStarts() = runBlocking {
+        val clock = ControllableTimePort()
         val fixture = seedHangWorkout()
         assertEquals(30, fixture.session.exercises.single().targetSeconds)
-        val vm = createViewModel(fixture.session.id)
+        val vm = createViewModel(fixture.session.id, container = withClock(clock))
         vm.awaitState {
             it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
         }
