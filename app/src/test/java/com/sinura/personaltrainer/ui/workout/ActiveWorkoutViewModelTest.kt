@@ -1387,16 +1387,18 @@ class ActiveWorkoutViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
         vm.skipRest()
+        // The logged set carried RPE 8 (every working set does since P2a); the next set has none
+        // chosen yet, and a weight step without one leaves the coach's call as it was.
         val rec = checkNotNull(
             withTimeout(TestWaits.FLOW_MS) {
-                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
+                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.QUALITY }
             },
         )
         vm.setWeight(102.5)
         dispatcher.scheduler.advanceUntilIdle()
         val after = checkNotNull(
             withTimeout(TestWaits.FLOW_MS) {
-                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
+                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.QUALITY }
             },
         )
         assertEquals(rec.nextWeightKg, after.nextWeightKg, 0.0001)

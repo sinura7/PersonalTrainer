@@ -317,6 +317,8 @@ class WorkoutSaveRecoveryTest {
             targetWeightKg = 40.0, restSeconds = 90,
         )
         val vm = active(handle(fixture.session.id))
+        vm.uiState.awaitFirst { it.canLog }
+        vm.pickEffortIfNeeded()
         val log = vm.primaryAction.awaitFirst {
             it.enabled && it.kind == WorkoutPrimaryKind.LOG_SET &&
                 it.identity.exerciseId == fixture.exercise.id &&
@@ -328,6 +330,8 @@ class WorkoutSaveRecoveryTest {
         assertFalse(vm.performPrimary(next))
         clock.advance(android.view.ViewConfiguration.getDoubleTapTimeout().toLong())
         assertTrue(vm.performPrimary(next))
+        vm.uiState.awaitFirst { it.selectedExerciseId == other.id && it.canLog }
+        vm.pickEffortIfNeeded()
         val secondLog = vm.primaryAction.awaitFirst {
             it.enabled && it.kind == WorkoutPrimaryKind.LOG_SET && it.identity.exerciseId == other.id &&
                 it.identity.draft.weightKg == 40.0 && it.identity.draft.reps == 8
@@ -345,6 +349,7 @@ class WorkoutSaveRecoveryTest {
         val fixture = seedTestWorkout(deps)
         val vm = active(handle(fixture.session.id))
         vm.uiState.awaitFirst { it.canLog }
+        vm.pickEffortIfNeeded()
         vm.startSetStopwatch()
         clock.advance(12_000)
         dispatcher.scheduler.advanceTimeBy(250)

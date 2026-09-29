@@ -350,6 +350,7 @@ class FloorWorkClocksCharacterisationTest {
         val sessionId = seed(SQUAT_LIFT)
         val vm = viewModel(handleFor(sessionId))
         vm.ready()
+        vm.pickEffortIfNeeded()
         val before = vm.primaryAction.awaitFirst {
             it.enabled && it.kind == WorkoutPrimaryKind.LOG_SET && it.identity.draft.weightKg == 100.0
         }
@@ -603,6 +604,7 @@ class FloorWorkClocksCharacterisationTest {
         val sessionId = seed(SQUAT_LIFT)
         val vm = viewModel(handleFor(sessionId))
         vm.ready()
+        vm.pickEffortIfNeeded()
         vm.startSetStopwatch()
         tick(5_000)
         val drawn = vm.primaryAction.awaitFirst {

@@ -105,8 +105,9 @@ trace; it must not gate Home, Plan, History, or the logger.
   The entry follows too, only while nobody has touched it: "untouched
   pre-filled numbers follow the new suggestion; typed numbers stay".
   Untouched means: not changed by hand (`draftDirty`: a typed or stepped
-  number, reps, an effort, Warm-up, a ramp chip, Last time, Use and a
-  correction saved all count), no working set of that lift logged in the
+  number, reps, Warm-up, a ramp chip, Last time, Use and a
+  correction saved all count; an effort does not, since 29 September 2026,
+  P2a: every working set carries one, and a follow moves only the weight), no working set of that lift logged in the
   session (a set just saved, of any lift and a warm-up too, holds every
   follow back until the workout shows its row), not a warm-up, no set open
   for correction, no save in flight or waiting for Retry, no set clock
