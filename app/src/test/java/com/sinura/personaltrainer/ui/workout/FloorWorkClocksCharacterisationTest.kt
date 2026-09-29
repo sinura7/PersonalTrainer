@@ -758,9 +758,11 @@ class FloorWorkClocksCharacterisationTest {
         vm.readyHold()
         vm.startHoldSet()
         tick(1_000)
-        // The commit is disabled; the test seam's plain log meets the same wall.
+        // The commit is disabled; the test seam's plain log meets the same wall. (No
+        // advanceUntilIdle here: the GET READY ticker re-arms every 250 ms, so virtual time
+        // never goes idle while it runs; tick() moves the clock the way the floor does.)
         vm.logSet()
-        dispatcher.scheduler.advanceUntilIdle()
+        tick(500)
         assertTrue("nothing was logged during GET READY", deps.workoutRepository.getSession(sessionId)!!.sets.isEmpty())
         assertTrue("the hold still gets ready", vm.holdTimer.value.gettingReady)
 
