@@ -158,9 +158,13 @@ class WorkoutEntryJourneyInstrumentedTest {
         hasTestTag(WorkoutTestTags.setOptions(setId)) and hasAnyAncestor(hasTestTag(WorkoutTestTags.SAVED_SETS_SHEET))
 
     /** The floor is a lazy list: an item below the fold is not composed until scrolled to. */
-    /** The effort a working set needs before Log takes it (P2a): the 8 chip, scrolled into view and tapped. */
+    /**
+     * The effort a working set needs before Log takes it (P2a), set through the ViewModel: a
+     * scroll to the chip would move the list, and the eight-saves journey measures that the
+     * entry does not move. The chip itself is tapped in [warmupPresetOnlyChangesDraftAndSavingReturnsToWorkingWithClearEffort].
+     */
     private fun pickEffort() {
-        scrollContentTo(WorkoutTestTags.rpeChoice(8)).performClick()
+        compose.runOnIdle { fixture.vm.setRpe(8) }
         compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.rpe == 8 }
     }
 
