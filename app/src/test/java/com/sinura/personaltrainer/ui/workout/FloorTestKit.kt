@@ -313,6 +313,12 @@ internal suspend fun seedLegExtension(
     return seeded.session.id
 }
 
+/** Two working sets of the leg extension at 70 lb × 10, the second harder: the floor's usual "mid-lift" state. */
+internal fun twoWorkingSetsLogged(): List<TestSetInput> = listOf(
+    TestSetInput(weightKg = FLOOR_KG70, reps = 10, rpe = 8),
+    TestSetInput(weightKg = FLOOR_KG70, reps = 10, rpe = 9),
+)
+
 /** [seedLegExtension], then its ViewModel, kept in [viewModels] for the test's tear-down to clear. */
 internal fun openLegExtension(
     deps: FakeAppDependencies,

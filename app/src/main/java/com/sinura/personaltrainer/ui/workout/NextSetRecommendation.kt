@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -88,17 +89,10 @@ internal fun NextSetRecommendation(
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         if (compact) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(WorkoutTestTags.NEXT_SET_COMPACT),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
+            val numbersLine: @Composable (Modifier) -> Unit = { numbersModifier ->
                 Text(
                     numbers,
-                    modifier = Modifier
-                        .weight(1f)
+                    modifier = numbersModifier
                         .testTag(WorkoutTestTags.MICRO_REC)
                         .semantics { contentDescription = "Next set, $numbers" },
                     style = InstrumentType.bodyStrong,
@@ -106,6 +100,8 @@ internal fun NextSetRecommendation(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+            val acts: @Composable RowScope.() -> Unit = {
                 TextButton(
                     onClick = { showWhy = true },
                     modifier = Modifier
@@ -124,6 +120,36 @@ internal fun NextSetRecommendation(
                         accent = applied,
                         spoken = if (applied) "Suggestion applied, $numbers" else "Apply suggestion, $numbers",
                     )
+                }
+            }
+            // At large text the numbers take their own line above Why? and Apply, as the tall
+            // card's do below: on one row at font 2.0 inside a 360 dp frame they would be cut
+            // to `70 lb × 1…`, and a number is never cut (ADR-030).
+            if (LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(WorkoutTestTags.NEXT_SET_COMPACT),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                ) {
+                    numbersLine(Modifier.fillMaxWidth())
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                        content = acts,
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(WorkoutTestTags.NEXT_SET_COMPACT),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    numbersLine(Modifier.weight(1f))
+                    acts()
                 }
             }
         } else {

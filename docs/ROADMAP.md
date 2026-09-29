@@ -21,19 +21,28 @@
 > the rest. TalkBack still hears the words once; icons are decorative.
 > Phone: open a live workout, tap ⋮, confirm a mark beside each row.
 >
-> 29 Sep 2026 — Packet P1 (the first of the owner's eight asks of 29
-> September, [owner-eight-plan-2026-09-29.md](owner-eight-plan-2026-09-29.md)):
-> the workout floor's blocks (last set, the numbers, effort, the coach's
-> Next card, the set history) each sit in their own frame, and every card
-> on Home, Settings and History takes the same brighter edge, so a section
-> reads as a section on a bright gym floor. The frames cost height, so the
-> gap between blocks came down from 12 to 8 points and the frame keeps 4
-> inside; the entry loop measures 852 dp at 360 wide, down from 868, and
-> the budget is lowered to 852. Phone checklist on PR #444 (Obtainium
-> after merge: `debugLiveCode` 108 per `tools/debug-drop-plan.py`, not
-> bumped in the P1 PR). Open a workout (each block has an edge, dark and
-> light); at the largest text nothing clips; Home's cards have the same
-> edge. Visible.
+> 29 Sep 2026 — Packet P1, the first packet of the owner's 29 September
+> plan ([the eight asks](owner-eight-plan-2026-09-29.md)): each block of the
+> workout floor (last set, the numbers, effort, the coach's Next card, the
+> set history) now sits in its own panel, one step lighter than the floor
+> with a brighter edge, and every card and grouped list on Home, History,
+> Settings and the pickers takes the same edge, so a section reads as a
+> section on a bright gym floor. The frames cost height and width: the gap
+> between blocks came down from 12 to 8 points, a frame keeps 4 points
+> above and below its block and 8 at the sides (4 where the block needs the
+> width), the effort track's five chips still share one row at the largest
+> text, and the coach's compact Next line stacks its numbers above Why? and
+> Apply at large text instead of cutting them. The entry loop measures
+> 852 dp at 360 wide against a ceiling that stood at 868; the ceiling is
+> now 852. Found by the audit of the first cut and fixed before the drop:
+> `Last set · RPE 9` and the warm-up ramp's `40% · Suggested` had wrapped
+> onto two lines. Phone checklist on PR #444 (Obtainium after merge:
+> `debugLiveCode` 108 per `tools/debug-drop-plan.py`, not bumped in the P1
+> PR): open a workout under bright light with the screen at about half
+> brightness (each block reads as its own panel; the last-set label and the
+> warm-up captions are one line); at the largest text nothing clips and the
+> five effort chips are one row; Home's cards and Settings' lists have the
+> same edge. Visible.
 >
 > 27 Sep 2026 — Packet N2 (owner decision of 27 September): removing
 > your only lift and then tapping Undo, or adding it back from the

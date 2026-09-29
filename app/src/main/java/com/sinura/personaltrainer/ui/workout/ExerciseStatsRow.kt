@@ -63,8 +63,9 @@ import kotlin.math.roundToInt
  * Last set · Best set · Volume, in three equal cells split by hairlines.
  *
  * Everything here is read from the same saved rows the history screens read, so the
- * three numbers cannot disagree with the sets under them. No card around it: the
- * hairlines and the alignment are the grouping.
+ * three numbers cannot disagree with the sets under them. On the floor it sits in a
+ * `FloorSection` frame (P1, 29 September 2026); inside it the hairlines and the alignment are
+ * the grouping, and a cell is about 106 dp wide on a 360 dp phone.
  *
  * [visibility] picks the cells. The floor shows Last alone before the first working set of
  * the lift, and at large text always (ADR-030); the lift's Details shows the other two.
@@ -244,11 +245,11 @@ private fun StatCell(
     ) {
         // The qualifier rides the label rather than a third line of its own. `Warm-up`,
         // `RPE 9`, `Last time` and `Today` all still appear, and under the same rules; they
-        // simply sit next to the word they qualify instead of under the number. A 110 dp
+        // simply sit next to the word they qualify instead of under the number. A 106 dp
         // cell could not hold three stacked lines without the labels folding back anyway.
         Text(
             stat.detail?.let { detail -> stat.label + FloorStatCopy.DETAIL_JOIN + detail } ?: stat.label,
-            // `Best set · Est. 1RM` does not fit a 110 dp cell on one line and
+            // `Best set · Est. 1RM` does not fit a 106 dp cell on one line and
             // `Last set · RPE 9` does, and a label that is sometimes one line and sometimes
             // two drops that cell's number below its neighbours' — three numbers meant to be
             // read across stop being a row at all. So the floor's side-by-side label always

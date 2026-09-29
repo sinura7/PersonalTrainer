@@ -6,7 +6,9 @@ the 22 September whole-app audit, done in small packets, each one tested and
 shipped to Temper Debug through Obtainium. A second whole-app audit on
 25 September ([design-audit/2026-09-25/AUDIT.md](design-audit/2026-09-25/AUDIT.md))
 re-checked every finding after thirty packets and set the next order
-(owner decision of 25 September).
+(owner decision of 25 September). On 29 September the owner asked for eight
+things at once; [their plan](owner-eight-plan-2026-09-29.md) now leads the
+queue, and its first packet (P1, section frames) is built.
 
 The first thing a new session on this repository should read. Rewritten
 23 September 2026, during the whole-app audit program (packet X1). The one
@@ -341,6 +343,17 @@ Done so far:
   finished the workout inside the Undo; neither can happen until sync
   resumes, and a time limit with a re-pick should land before it does.
   Visible, on the drop 106 checklist.
+- **P1 (owner ask of 29 September, [the eight-asks plan](owner-eight-plan-2026-09-29.md)):**
+  each block of the workout floor sits in its own filled, edged panel in
+  place of hairline rules, and every card and grouped list app-wide takes
+  the brighter `SectionEdge`; the block gap is 8 dp, the loop ceiling 852.
+  An audit of the first cut found the stats label and the warm-up ramp
+  captions wrapping and the five effort chips splitting at the largest
+  text inside the frame; all three fixed before the drop, and the compact
+  Next line now stacks at large text rather than cutting its numbers. One
+  new render suite reads the panels' stroke and fill off the window. Visible,
+  on the drop 107 checklist. The plan (P2 to P6, with the owner's answers
+  of 29 September) is the next queue.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
@@ -379,10 +392,12 @@ Done so far:
 - **Owner confirmation still owed:** ADR-031 decision 4's conflict rule (the
   later save wins), before sync resumes.
 
-Next, in order (owner decisions of 25 and 26 September; the live order
-is the table in FRONTEND_REDESIGN.md): drop 106, a phone check of N2
-(drop 105, with N1's and W2e's lines, is out as debug-live-2026-09-27),
-then W3, S1, X8 and X9. Of the two sessions that split the order, the
+Next, in order (owner decision of 29 September; the plan is
+[owner-eight-plan-2026-09-29.md](owner-eight-plan-2026-09-29.md), the live
+order is the table in FRONTEND_REDESIGN.md): drop 107 with P1, a phone
+check of P1 (drop 106, with N2's lines, went out as
+debug-live-2026-09-28), then P2a, P2b, P3, P4a, P4b, P5 and P6 as the plan
+orders them; W3, S1, X8 and X9 follow. Of the two sessions that split the order, the
 one on the rest timer, the updater and reminders is done (the
 rest-alarm packet, R3 and R4), and so is the one on the workout floor
 (W2d-3a, W2d-3b and W2e, above). X2b completed Wave 0.

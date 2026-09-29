@@ -667,7 +667,13 @@ private fun ActiveWorkoutContent(
                                             unit = unit,
                                         )
                                     }
-                                    FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_STATS)) {
+                                    FloorSection(
+                                        modifier = Modifier.testTag(WorkoutTestTags.SECTION_STATS),
+                                        // The cells inset their own ink by space2; space1 here keeps the
+                                        // ink 12 dp in like every other frame and keeps `Last set · RPE 9`
+                                        // on one line at 360 dp.
+                                        horizontalPadding = Metrics.space1,
+                                    ) {
                                         ExerciseStatsRow(
                                             stats = stats,
                                             unit = unit,
@@ -681,6 +687,9 @@ private fun ActiveWorkoutContent(
                                     val lastKg = state.hint?.lastWeightKg ?: state.lastPerformance?.topSet?.weightKg
                                     FloorSection(
                                         modifier = Modifier.testTag(WorkoutTestTags.SECTION_ENTRY),
+                                        // The warm-up ramp's three presets need the width for
+                                        // `40% · Suggested` to stay on one line at 360 dp.
+                                        horizontalPadding = Metrics.space1,
                                         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
                                     ) {
                                         WeightRepsEditor(
