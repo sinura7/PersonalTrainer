@@ -1,247 +1,424 @@
-# Plan — the owner's eight asks of 29 September 2026
+# Action plan — the owner's eight asks of 29 September 2026
 
-> Status: **proposed**, not yet adopted. Written 29 September 2026 from a
-> read of the code and the ADRs; no code changed. Once the owner says yes,
-> the packet rows below go into the table in
-> [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md) and this file becomes their
-> record. Decisions live in [architecture/](architecture/README.md).
+> Status: **adopted 29 September 2026** (owner: "Please proceed"). The
+> defaults in *Decision log* stand until the owner says otherwise. Each
+> packet row goes into the table in [FRONTEND_REDESIGN.md](FRONTEND_REDESIGN.md)
+> as it is cut; this file is the plan and its record. Signed decisions live
+> in [architecture/](architecture/README.md). Written from a read of the code
+> and the ADRs; the digest of what exists today is in §3.
 
-## What was asked, in the owner's words
+## 1. Goal
 
-1. Images on the toolbar drop-down items.
-2. The app asks for every permission it needs, and they sit under a
-   **Permissions** tab in Settings.
-3. A **Notifications** page in Settings: what to be told about, alarm type,
-   countdown haptic, when it starts, loudness, whether it pauses music, with
-   the required permissions listed at the foot of the page.
-4. The coach adjusts weight, reps and RPE from **all** previous workouts,
-   above all the last 12 weeks of that lift, grounded in research.
-5. Rest timers between finished sets.
-6. Borders around sections.
-7. A countdown before a timed exercise starts.
-8. RPE is required on every logged set.
-9. A name for the in-house coach.
+**Temper's coach becomes a trainer you can trust set to set, and the floor
+and Settings make that trust visible.** Concretely, when this plan is done:
 
-## What the code already does (the digest)
+1. The Next set card's weight, reps and RPE come from the last twelve weeks
+   of that lift, not the last workout alone, and *Why?* shows the window and
+   the papers behind the call.
+2. Every working set has an effort recorded, so that history is worth
+   reading.
+3. A timed set gives you a moment to get into position before the clock
+   runs; a finished set starts your rest by itself (already true).
+4. Settings has one page for Permissions and one for Notifications, so
+   nothing the phone needs is a surprise and every alert is yours to shape.
+5. Menus show a picture beside every action; sections have edges.
+6. The coach has a name.
+
+### Success criteria
+
+| # | Criterion | How it is proved |
+|---|---|---|
+| G1 | On a lift with 9+ sessions in 84 days, *Why?* names the window, the trend and a DOI | `LongWindowTest`, phone check |
+| G2 | A lift with fewer than 3 sessions falls back to today's rule and says "Not much history yet" | `LongWindowTest`, phone check |
+| G3 | Every one of today's coach tests gives the same answer when the window holds one session | replay test in `CoachRulesTest` |
+| G4 | A working set cannot be logged without an RPE; warm-ups and holds still can | `ActiveWorkoutViewModelTest` |
+| G5 | A hold shows GET READY 5 → 1, then HOLD, and survives the screen locking | `FloorWorkClocksCharacterisationTest`, phone check |
+| G6 | Settings → Permissions shows each capability's live state with one fix each; nothing opens on its own | render test, phone check |
+| G7 | Settings → Notifications ends with the permissions list; music ducks, pauses or is left alone as chosen | `RestTimerAlertsTest`, phone check with music playing |
+| G8 | Every menu item has an icon and TalkBack reads its text once | per-menu render tests |
+| G9 | Every floor block and every Home block has a visible edge at font 1.0 and 2.0 | render tests, phone check |
+| G10 | One `CoachIdentity.NAME` constant; "Personal Trainer" gone from user copy | grep in `tools/preflight.sh` |
+| G11 | The JVM gate is green on every PR; each visible packet ships as a Temper Debug drop | CI, Obtainium |
+
+## 2. Rules this plan obeys
+
+- One packet, one branch off `trunk`, one PR, JVM gate green
+  (`./gradlew testDebugUnitTest` + `assembleDebug`), squash-merge, branch
+  deleted (`owner-loop.mdc`). `tools/preflight.sh` first for the fast loop.
+- Before a drop: `python3 tools/debug-drop-plan.py` names the code and tag.
+  Today it says 107 and `debug-live-2026-09-29`.
+- Settings is the fifth tab; new pages are `SettingsPage` values, never a
+  sixth tab (ADR-014).
+- Special-access permissions are asked after rest is used or configured,
+  never as onboarding (ADR-012 decision 4); notification permission and
+  exact-alarm access are separate capabilities (decision 5).
+- Every coach decision is local, deterministic, carries a `RuleTrace`
+  (ADR-008); every rule cites a real DOI or is `heuristic: true` (ADR-029);
+  the clock is not a rule input (W2c). No LLM authors gym math.
+- Copy lives in `domain/*Copy.kt`; `domain` imports nothing outside itself
+  (`tools/check-domain-seams.py`); colour is never the only signal (ADR-023);
+  token ceilings in `tools/checker-baselines.toml` hold.
+- Room stays v7 unless a packet needs a column or index, and then v8 with
+  schema export, debug asset copy and migration test (ADR-032, ADR-010).
+
+## 3. What exists today (digest)
 
 | Ask | Today | Gap |
 |---|---|---|
-| Menu images | Every menu is `InstrumentMenu` (`ui/components/InstrumentMenu.kt`). No item anywhere has a `leadingIcon`. `ForeignControlsTest` forbids raw `DropdownMenu`, so the change lands once, in the wrapper. | Add an icon slot and use it. |
-| Permissions | Manifest: POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, USE_FULL_SCREEN_INTENT, VIBRATE, FOREGROUND_SERVICE(+SPECIAL_USE), WAKE_LOCK, RECEIVE_BOOT_COMPLETED, INTERNET, ACCESS_NETWORK_STATE. Asked in four scattered places: `LaunchPermissionsHost` (first launch), `RestNotificationGate` (floor and rest page), `ReminderPrefsSection` banner, `RestTimerPrefsSection` banner. Full-screen intent is checked, never requested. | One page that shows every capability's state and offers the fix. |
-| Notifications settings | `RestPrefsStore`: sound, vibration, tick, default rest. `ReminderPrefsStore`: on/off, per-day times, quiet hours. Hard-coded: cue file, vibration pattern, tone volume 80, channel names, notification text, haptics. No audio focus code, so music is never paused or ducked. | A page over both stores plus new prefs (see packet P4). |
-| Coach history | `WorkoutRepository.progressionFor` reads the top set of the **last one** finished session; RPE from the **last two** (`RpeModifier.RPE_HOLD_SESSIONS = 2`). Double progression in `ProgressionCalculator`; in-set codes in `SetMicroRec.kt`. Epley e1RM in `PersonalRecords.kt`, used for records and stalls only. `DeloadSignal` 14 days, `StallSignal` 3 sessions. Evidence catalog: 5 papers, 3 heuristics. | A 12-week window, a trend model, an RPE table, and an ADR. |
-| Rest between sets | Done. `logSet` → `RestTimer.shouldStartAfterLog` → `startRestAfterSet`, coach length first (ADR-012 decision 18). | Nothing to build; verify on the phone. |
-| Borders | Tokens exist: `Hairline` (white 8%), `HairlineStrong`, `OutlineSolid`, `Metrics.hairline` 1 dp, `emphasisBorder` 2 dp, `GymCard` with hairline border. Home separates by a 28 dp gap; the floor is unboxed rows with rules. | Stronger token, and box the floor's sections. |
-| Timed-exercise countdown | `startHoldSet` starts the hold clock on the first tap. No lead-in. `FloorWorkClocks` owns the ticker and cues. | A lead-in phase in the clocks helper. |
-| Forced RPE | `rpe: Int?` nullable end to end; `RpeSelector` 6–10 plus Clear; W1b labelled it "Effort · optional" (owner decision then). Missing RPE reads as "no evidence" in the coach. | A gate on Log; no schema change. |
-| Name | None. Copy says "coach". Backup text still says "Personal Trainer". ADR-008: never "AI trainer". | Pick one, sweep the copy objects. |
+| Menu images | Every menu is `InstrumentMenu` (`ui/components/InstrumentMenu.kt`). No item has a `leadingIcon`. `ForeignControlsTest` forbids raw `DropdownMenu`, so the change lands once in the wrapper. | Item slot with icon. |
+| Permissions | Manifest: POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, USE_FULL_SCREEN_INTENT, VIBRATE, FOREGROUND_SERVICE(+SPECIAL_USE), WAKE_LOCK, RECEIVE_BOOT_COMPLETED, INTERNET, ACCESS_NETWORK_STATE. Asked in four places: `LaunchPermissionsHost` (first launch), `RestNotificationGate` (floor, rest page), `ReminderPrefsSection` banner, `RestTimerPrefsSection` banner. Full-screen intent checked, never requested. | One page. |
+| Notifications | `RestPrefsStore`: sound, vibration, tick, default rest. `ReminderPrefsStore`: on/off, per-day times, quiet hours. Hard-coded: cue file, vibration pattern, tone volume 80, channel names, text, haptics. No audio focus. | One page, new prefs, audio focus. |
+| Coach history | `WorkoutRepository.progressionFor` reads the top set of the **last one** session; RPE from the **last two** (`RpeModifier.RPE_HOLD_SESSIONS = 2`). Double progression (`ProgressionCalculator`), in-set codes (`SetMicroRec.kt`). Epley e1RM in `PersonalRecords.kt` for records and stalls only. `DeloadSignal` 14 days; `StallSignal` 3 sessions. Catalog: 5 papers, 3 heuristics. | Window, trend, RPE table, ADR. |
+| Rest between sets | Done: `logSet` → `RestTimer.shouldStartAfterLog` → `startRestAfterSet`, coach length first (ADR-012 d.18). | Phone check only. |
+| Borders | `Hairline` (white 8%), `HairlineStrong` (14%), `OutlineSolid`, `Metrics.hairline` 1 dp, `emphasisBorder` 2 dp, `GymCard` bordered. Home separates by 28 dp gap; the floor is unboxed rows with rules at `ActiveWorkoutScreen.kt` 665, 672, 762, 790. | Stronger edge; box the floor. |
+| Countdown | `startHoldSet` starts the hold clock at once. `FloorWorkClocks` owns ticker and cues. | Lead-in phase. |
+| Forced RPE | `rpe: Int?` nullable; `RpeSelector` 6–10 plus Clear; W1b labelled "Effort · optional". | Gate on Log. |
+| Name | None; copy says "coach"; backup text says "Personal Trainer". | Pick, sweep. |
 
-## Rules this plan must obey
+## 4. Milestones and drops
 
-- One packet, one throwaway branch off `trunk`, one PR, JVM gate green
-  (`./gradlew testDebugUnitTest` + `assembleDebug`), squash-merge, branch
-  deleted (`owner-loop.mdc`).
-- Settings is the fifth tab; new surfaces are sub-pages of it, never a sixth
-  tab (ADR-014).
-- Special-access permissions are asked after rest is used or configured,
-  never as onboarding (ADR-012 decision 4). Notification permission and
-  exact-alarm access stay separate capabilities (decision 5).
-- Every coach decision is local, deterministic, and carries a `RuleTrace`
-  (ADR-008). Every rule cites a real paper with a DOI or is marked
-  `heuristic: true` (ADR-029). No LLM authors gym math.
-- Copy lives in `domain/*Copy.kt` objects, not literals.
-- Colour is never the only signal (ADR-023).
+| Milestone | Packets | Drop | What the owner checks |
+|---|---|---|---|
+| **M1 Floor feel** | P1, P2 | 107, `debug-live-2026-09-29` (or the next free) | Edges on every block; Log refused without effort; GET READY before a plank |
+| **M2 Menus** | P3 | 108 | Icons in every ⋮ menu |
+| **M3 Settings** | P4a, P4b | 109, 110 | Permissions page; Notifications page; music ducks |
+| **M4 Coach** | P5 (ADR, then 4 PRs) | 111 | *Why?* shows window, trend, DOI |
+| **M5 Name** | P6 | rides M4's drop or the next | The name in copy |
 
-## The packets, in order
+Order of work: P1 → P2 → P3 → P4a → P4b → P5 → P6. The P5 ADR is drafted
+during M1–M3 and shown to the owner before M4 starts. Packets share no
+files with open PRs against `trunk` as of 29 September (last merged: #443).
 
-Visible packets ship to Temper Debug through Obtainium; the next drop is
-`debug-live-2026-09-29` at live code 107 (`tools/debug-drop-plan.py`; re-run
-before each drop, another packet may take it first).
+## 5. The packets
 
-### P1 — Section borders (Visible, small)
+Each packet lists: branch and PR, files, steps, tests, gate, drop, phone
+checklist, done-when. Steps are in the order they are done.
 
-- New token `Metrics.sectionBorder` (1 dp) and colour `SectionEdge`, brighter
-  than `Hairline` but under `OutlineSolid` so fields still read as fields.
-  `ForeignControlsTest` and the token ceilings in
-  `tools/checker-baselines.toml` must still pass.
-- `GymCard` takes the new edge. Home's `DayBlock` and week board follow for
-  free.
-- The floor: wrap the identity block, the stats row, the entry panel, the
-  set history and the rest dock in `GymCard`s (or a lighter `FloorSection`
-  built on it), replacing the bare `HairlineDivider` rules at
-  `ActiveWorkoutScreen.kt` lines 665, 672, 762, 790.
-- Tests: `WorkoutFloorRenderTest` reachability unchanged; a new render check
-  that each floor section has a bordered parent; W1d's large-text cases still
-  hold (font 1.6 and 2.0).
-- Phone checklist: open a workout; each block has an edge in dark and light;
-  nothing clips at font 2.0.
+### P1 — Section borders (Visible, small, half a day)
 
-### P2 — RPE required, and a lead-in before a timed set (Visible, small)
+**Why.** Blocks on the floor are separated by 1 dp lines at 8% white; on a
+gym floor in daylight they vanish. The owner wants each section to read as
+its own panel.
 
-Two owner decisions are needed first (see *Decisions owed*).
+**Files.** `ui/theme/Color.kt`, `ui/theme/Metrics.kt`,
+`ui/components/GymSurfaces.kt`, `ui/workout/ActiveWorkoutScreen.kt`,
+`ui/workout/ExerciseStatsRow.kt`, `ui/home/HomeScreen.kt` (verify only),
+tests under `ui/workout/`, `ui/theme/`.
 
-- **RPE gate.** `ActiveWorkoutViewModel.logSet` refuses a working set with
-  `rpe == null` and shows a one-line reason on the primary action ("Pick
-  your effort first"). Warm-ups stay exempt (they never coached). Holds stay
-  exempt unless the owner says otherwise (R2-4 took holds out of rep
-  coaching). Rename W1b's "Effort · optional" to "Effort" in
-  `SetRowCopy`/`RpeSelector` copy. The history editor `SetEditSheet` keeps
-  Clear for old rows; a correction of a *working* set also requires one.
-- **Lead-in.** A `LEAD_IN` phase in `FloorWorkClocks.startHold`: a short
-  countdown (owner picks 3, 5 or 10 s; default 5) with a tick each second
-  and a distinct cue at zero, then the hold clock runs as today. New
-  `FloorTimerCue.LeadInTick` and `LeadInDone`; `FloorTimedMode` gains
-  `HOLD_LEAD_IN` so the instrument bar shows "GET READY 3" in the kicker
-  slot. Cancel on any tap. Saved across process death like the hold itself
-  (`SavedStateFloorTimer`).
-- Tests: `FloorWorkClocksCharacterisationTest` gains lead-in cases;
-  `ActiveWorkoutViewModelTest` gains the refusal and the warm-up exemption;
-  `RpeSelectorRenderTest` the new label.
-- Phone checklist: log a set without effort (refused, reason shown); a
-  plank shows GET READY then HOLD; the lead-in survives locking the phone.
+**Steps.**
+1. Add `SectionEdge = Color(0x33FFFFFF)` (white at 20%) in `Color.kt`
+   between `HairlineStrong` and `OutlineSolid`, with a doc line saying what it
+   is for. Keep `Hairline` for dividers and ring tracks.
+2. `GymCard` takes `BorderStroke(Metrics.hairline, SectionEdge)`. Home's
+   `DayBlock`, week board and Settings cards follow at once.
+3. Add `FloorSection(title: String?, content)` in `GymSurfaces.kt`: a
+   `GymCard` with `Metrics.space3` padding (tighter than `cardPadding`) and an
+   optional `Kicker`. Wrap the floor's identity block, stats row, entry panel,
+   set history and rest dock; delete the four full-bleed `HairlineDivider`
+   rules that separated them. `ExerciseStatsRow`'s inner cell rules stay.
+4. Run `tools/check-design-tokens.py`; if the new colour trips a ceiling,
+   raise it by exactly the new uses and say so in the PR.
+5. Check `ForeignControlsTest` still passes (it enforces 3:1 on `OutlineSolid`
+   only; `SectionEdge` is decorative and needs no ratio, say so in its doc).
 
-### P3 — Menu icons (Visible, small)
+**Tests.** New `FloorSectionEdgesRenderTest`: each of the five floor blocks
+has a bordered ancestor at font 1.0, 1.6 and 2.0 in 360 dp and 600 dp
+widths. Existing `WorkoutFloorRenderTest`, W1d large-text cases and
+`FloorScreenWiringRenderTest` unchanged.
 
-- `InstrumentMenuItem(text, icon: ImageVector?, …)` inside
-  `InstrumentMenu.kt`; icons from `TemperIcons`/`OutlinedMarks` at 20 dp in
-  `TextSecondary`, Danger items in Danger.
-- Sweep the eight menus: `WorkoutOverflowMenu`, `SessionDetailScreen`,
-  `ActivityDetailScreen`, `LiveSessionBar`, `GymSurfaces` session card,
-  `BackupRestoreSection`, `SetHistoryStrip`, `WorkoutSavedSets`.
-- Tests: a render test per menu that the icon and the text are both present;
-  TalkBack reads the text once (no double announcement, W1a's rule).
+**Gate.** `tools/preflight.sh`, then `./gradlew testDebugUnitTest assembleDebug`.
 
-### P4 — Settings → Permissions, then Settings → Notifications (Visible, medium, two PRs)
+**Phone checklist.** Open a workout in dark and light; each block has an
+edge; at font 2.0 nothing clips; Home cards have the same edge.
 
-**P4a Permissions page.** New `SettingsPage.PERMISSIONS`, row in
-`SettingsHome` under "training" ("Permissions — what Temper may do on this
-phone"). One `PermissionsSection` listing each capability with a live state
-and one action:
+**Done when** G9 holds and the drop is on the phone.
 
-| Capability | Check | Action |
+### P2 — RPE required, and a lead-in before a timed set (Visible, small, one day)
+
+**Why.** The coach reads RPE as evidence; a missing one is a hole in the
+twelve weeks P5 will read. A hold that starts on the tap gives no time to
+get into position.
+
+**Files.** `ui/workout/ActiveWorkoutViewModel.kt` (`logSet`, ~1468),
+`ui/workout/RpeSelector.kt`, `domain/SetRowCopy.kt` (or wherever "Effort ·
+optional" lives; W1b), `ui/workout/FloorWorkClocks.kt`,
+`domain/FloorTimedMode.kt`, `domain/HoldWork.kt`,
+`workout/SavedStateFloorTimer.kt`, `ui/components/RestTimerUi.kt`
+(`FloorInstrumentBar` kicker), `data/repository/prefs/RestPrefsStore.kt`
+(`leadInSeconds`).
+
+**Steps, RPE.**
+1. `LogRefusal.EFFORT_MISSING` in `domain`; `logSet` returns it for a working
+   set with `rpe == null` on a non-hold lift. Warm-ups and holds exempt
+   (decision D2).
+2. The primary action shows the refusal as its caption ("Pick your effort
+   first") and pulses the RPE track once (reduced motion: no pulse, ADR-023).
+   Haptic REJECT.
+3. Copy: "Effort · optional" → "Effort". `SetEditSheet` keeps Clear for old
+   rows; saving a correction of a working set with no effort is refused the
+   same way.
+
+**Steps, lead-in.**
+4. `FloorTimedMode.HOLD_LEAD_IN`; `FloorTimerCue.LeadInTick(secondsLeft)`
+   and `LeadInDone`. `FloorWorkClocks.startHold` runs `leadInSeconds` first
+   (default 5, D3), one tick per second, then the hold clock as today. Any
+   tap cancels the lead-in and the hold. `timedGeneration.bump()` on start.
+5. The instrument bar's kicker shows `GET READY` and the numeral counts
+   down; `Warn` colour is not used (it means last ten seconds of rest).
+6. Persist the lead-in start in `SavedStateFloorTimer` beside the hold so a
+   process death mid-lead-in resumes correctly.
+7. Pref `leadInSeconds` in `RestPrefsStore` (3, 5, 10; default 5); the
+   Rest timer settings page gets a row for it until P4b moves it.
+
+**Tests.** `ActiveWorkoutViewModelTest`: refusal, warm-up exempt, hold
+exempt, correction refusal. `FloorWorkClocksCharacterisationTest`: lead-in
+ticks, cancel, resume after death, zero lead-in skips the phase.
+`RpeSelectorRenderTest`: label. `FloorTimedModeTest`: resolver priority with
+the new mode.
+
+**Phone checklist.** Log a set without effort (refused, reason shown, track
+pulses); warm-up logs without one; a plank shows GET READY 5…1 then HOLD;
+lock the phone mid-lead-in and unlock (still correct); set lead-in to 3 s.
+
+**Done when** G4 and G5 hold.
+
+### P3 — Menu icons (Visible, small, half a day)
+
+**Files.** `ui/components/InstrumentMenu.kt`, the eight menu sites:
+`ui/workout/WorkoutOverflowMenu.kt`, `ui/history/SessionDetailScreen.kt`,
+`ui/activity/ActivityDetailScreen.kt`, `ui/navigation/LiveSessionBar.kt`,
+`ui/components/GymSurfaces.kt` (session card), `ui/settings/BackupRestoreSection.kt`,
+`ui/workout/SetHistoryStrip.kt`, `ui/workout/WorkoutSavedSets.kt`;
+`ui/theme/TemperIcons.kt` / `OutlinedMarks.kt` for any missing glyph.
+
+**Steps.**
+1. `InstrumentMenuItem(text, icon: ImageVector, onClick, enabled, danger,
+   caption)` in `InstrumentMenu.kt`. Icon 20 dp, `TextSecondary`, Danger
+   tint for danger items, `contentDescription = null` (the text is the label).
+2. Add the missing glyphs to `OutlinedMarks` in the same stroke weight as
+   `MoreVert`.
+3. Replace each `DropdownMenuItem` at the eight sites.
+4. `ForeignControlsTest`: allow `DropdownMenuItem` only inside
+   `InstrumentMenu.kt`.
+
+**Tests.** One render test per site: icon node and text node present; a
+TalkBack pass (`AccessibilityMatrix`) reads each item once.
+
+**Phone checklist.** Open every ⋮ menu; each row has a picture; TalkBack
+reads once.
+
+**Done when** G8 holds.
+
+### P4a — Settings → Permissions (Visible, medium, one day)
+
+**Files.** `ui/settings/SettingsPage.kt` (`PERMISSIONS`),
+`ui/settings/SettingsHome.kt`, `ui/settings/SettingsScreen.kt`,
+new `ui/settings/PermissionsSection.kt`, new `domain/PermissionsCopy.kt`,
+new `domain/PhoneCapability.kt`, `timer/ExactAlarmCapability.kt`,
+`timer/RestTimerNotifications.kt` (`canUseFullScreenIntent` made public),
+`ui/permissions/LaunchPermissionsHost.kt`, `ui/workout/RestNotificationGate.kt`,
+`ui/reminders/ReminderPrefsSection.kt`, `ui/settings/RestTimerPrefsSection.kt`.
+
+**Steps.**
+1. `domain/PhoneCapability` enum: NOTIFICATIONS, EXACT_REST_ALARM,
+   LOCK_SCREEN_ALERT, BATTERY, VIBRATION; each with `title`, `why`
+   (one sentence in the owner's terms) and `state: Granted | Missing |
+   NotOnThisPhone`.
+2. `ui/settings/CapabilityProbe` (Android side) reads the five states;
+   re-read on resume.
+3. `PermissionsSection`: one `GymCard` per capability with state chip
+   (text plus icon, never colour alone), the *why*, and one action button:
+
+   | Capability | Check | Action |
+   |---|---|---|
+   | Notifications | `areNotificationsEnabled`, POST_NOTIFICATIONS on 33+ | system prompt, else app notification settings |
+   | Precise rest alerts | `ExactAlarmCapability.canScheduleExactAlarms` | `REQUEST_SCHEDULE_EXACT_ALARM` |
+   | Rest alert over the lock screen | `canUseFullScreenIntent` | `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` (34+), else "Granted" |
+   | Battery | `isIgnoringBatteryOptimizations` | per-app `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` |
+   | Vibration | always granted | "Granted", no action |
+
+4. Row in `SettingsHome` under "training": "Permissions — What Temper may do
+   on this phone". `SettingsHomeCopy.PERMISSIONS`, `permissionsSummary(n
+   missing)`.
+5. The four existing ask-points keep their behaviour and gain a
+   "Manage in Settings → Permissions" link. `LaunchPermissionsHost`'s battery
+   step moves to the per-app request intent.
+6. The page never opens itself (ADR-012 d.4).
+
+**Tests.** `PermissionsSectionRenderTest` over all 3^5 state combinations
+that matter (granted, missing, not-on-this-phone per row); `SettingsHome`
+row test; `LaunchPermissionsHost` step-order test unchanged.
+
+**Phone checklist.** Turn notifications off in Android, open the page
+(Missing, fix works); revoke exact alarms (Missing); page lists five rows on
+Android 14, four on 12.
+
+**Done when** G6 holds.
+
+### P4b — Settings → Notifications (Visible, medium, one to two days)
+
+**Files.** `ui/settings/SettingsPage.kt` (`NOTIFICATIONS`), `SettingsHome.kt`,
+`SettingsScreen.kt`, new `ui/settings/NotificationsSection.kt`, new
+`domain/NotificationsCopy.kt`, `data/repository/prefs/RestPrefsStore.kt`,
+`domain/RestTimerPreferences.kt`, `timer/RestTimerAlerts.kt`,
+`timer/RestTickPlayer.kt`, `ui/settings/RestTimerPrefsSection.kt`,
+`ui/reminders/ReminderPrefsSection.kt`.
+
+**Steps.**
+1. New prefs in `RestPrefsStore` (one `user_settings` store; keys added, no
+   migration): `restAlarmType` (SOUND_AND_VIBRATE | SOUND | VIBRATE |
+   SILENT; default SOUND_AND_VIBRATE), `restCueSound` (TEMPER_CUE |
+   SYSTEM_ALARM), `restCueVolume` (25/50/75/100; default 100),
+   `tickHaptic` (default on), `restAudioFocus` (DUCK | PAUSE | NONE; default
+   DUCK, D4), `alertRestDone`, `alertMissedDay`. `leadInSeconds` from P2.
+   `soundEnabled` and `vibrationEnabled` become derived from `restAlarmType`
+   with a one-time read-through so nobody loses a setting.
+2. `RestTimerAlerts`: request audio focus per `restAudioFocus`
+   (`AudioFocusRequest` with `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK` or
+   `_TRANSIENT_EXCLUSIVE`), release on completion; set `MediaPlayer` volume
+   from `restCueVolume`; pick the cue source from `restCueSound`. Tick
+   haptic through `Haptics.CLOCK_TICK` when `tickHaptic`.
+3. `NotificationsSection`, top to bottom:
+   1. *What Temper tells you about*: Rest done, Workout reminders (link to
+      Reminders), Missed-day check-in. Switches.
+   2. *Rest alarm*: type (single-choice radio roles, F8a's rule), sound,
+      loudness slider with spoken value, last-five-second tick, tick haptic,
+      Play preview.
+   3. *When it starts*: read-only line "Rest starts when you log a set";
+      lead-in 3 / 5 / 10 s.
+   4. *Music*: Turn music down / Pause music / Leave music alone.
+   5. *Permissions this needs*: P4a's cards, read-only, with "Manage" link.
+4. `RestTimerPrefsSection` keeps default rest and presets only; the moved
+   rows link here.
+5. `SettingsHome` row under "training": "Notifications — Alerts, sounds,
+   music".
+
+**Tests.** `RestTimerAlertsTest` (focus type per pref, volume, cue source,
+release on finish, no focus request when SILENT); `NotificationsSectionRenderTest`;
+`RestPrefsStoreTest` for the derived read-through; `SettingsHome` rows.
+
+**Phone checklist.** Play music, end a rest under each music choice; set
+loudness 25% (quieter); SILENT plays nothing and vibrates nothing; the
+permissions list at the foot matches the Permissions page.
+
+**Done when** G7 holds.
+
+### P5 — The coach reads twelve weeks (Visible, large, ADR + four PRs, one to two weeks)
+
+**Step 0 — ADR-033 "Long-window progression"** (docs only, shown to the
+owner before code). It decides:
+
+- **Window.** Every finished working set of the lift in the last 84 days,
+  most recent first, capped at 24 sessions (D5). Nothing older; nothing in
+  the window ignored. The window is measured from the session being
+  coached, not the clock (W2c).
+- **Trend.** Per session, the top set's Epley e1RM (`PersonalRecords`,
+  exact below 12 reps) and its RPE. Least-squares slope of e1RM over
+  session index: rising / flat / falling, with thresholds named in the ADR.
+  Flat or falling over 3+ sessions is the stall `StallSignal` already
+  reports; falling with rising RPE is the deload `DeloadSignal` already
+  reports; the ADR folds both into one trace.
+- **RPE table.** Zourdos 2016 (10.1519/JSC.0000000000001049) and Helms 2016
+  (10.1519/SSC.0000000000000218), both already in `EvidenceCatalog`: RPE →
+  reps in reserve → % of e1RM. Next load = that % of the trend e1RM for the
+  target reps at the goal's RPE (strength 8, hypertrophy 7–8, from
+  `CoachPreferences`), snapped by `IncrementTable`, and never more than one
+  plate step from the last top set unless the trend rose three sessions
+  running.
+- **Rep rule.** Double progression stays the default; load moves first only
+  when the table says the heavier load lands at the target RPE.
+- **Recent veto.** `RpeModifier` stays: two grinds in a row hold the weight
+  whatever the slope says.
+- **Honesty.** Fewer than 3 sessions → today's rule, trace says "Not much
+  history yet" (G2). Any claim not in a cited paper is `heuristic: true`.
+  Trace gains `window` and `slope`.
+- **Out of scope.** Cardio, holds (R2-4), session-level pacing, an LLM.
+
+**PR 1 — domain.** New `domain/progression/LongWindow.kt`: `WindowedHistory`
+(sessions, oldest and newest day, count), `TrendModel` (slope, direction,
+e1RM at the newest point), `RpeLoadTable`. `ProgressionCalculator.adjusted`
+gains `window: WindowedHistory?` and a rung between `hint` and
+`RpeModifier`. `SetMicroRec.firstSet` takes the windowed hint. `RuleTrace`
+gains the two fields. Tests: `LongWindowTest` (slope on flat, rising,
+falling, noisy; table round-trips; cap; under-three fallback), extended
+`ProgressionCalculatorTest`, `CoachRulesTest` replay (G3).
+
+**PR 2 — data.** `WorkoutRepository.lastFinishedWork` gains
+`sinceEpochDay` and `limit = 24`; `workoutDao` gets a bounded query. Run
+`EXPLAIN QUERY PLAN`; if it scans, add an index on
+`(exerciseId, sessionFinishedAt)` as Room v8 with schema export, asset copy
+and `Migration7To8Test` (ADR-032). `ProgressionHintLoader` passes the
+window. Tests: DAO test with 30 sessions over 100 days returns 24 within 84.
+
+**PR 3 — evidence.** `EvidenceCatalog` and `docs/coach/evidence-seed.json`
+gain rule ids `LW_TREND`, `LW_TABLE`, `LW_CAP` (heuristic), `LW_VETO`
+mapped to the two RPE papers, Schoenfeld 2017 and Hackett 2017.
+`CoachPolicyEvidence` maps them. Test: every rule id in code has an entry;
+every DOI is well-formed; no heuristic has a DOI.
+
+**PR 4 — UI.** *Why?* sheet shows "12 weeks · 9 sessions · rising" and the
+citation chip as today; no new screen. `CoachEvidenceCopy` and
+`RuleTraceCopy` carry the words. `LogNextCardInputsTest` gains the window
+as an input that recomputes the card; `CoachRecomputeTest` holds that a
+second of rest does not.
+
+**Phone checklist.** A lift with 10+ sessions shows the window in *Why?*;
+a lift done twice says "Not much history yet"; a week marked lighter still
+holds the weight; pounds and kilograms give the same call.
+
+**Done when** G1, G2, G3 hold.
+
+### P6 — The coach's name (Quiet, small, half a day)
+
+**Name: Tempo** (D6). Sits beside Temper, means pacing, and is a gym word
+for set speed and rest. Never "AI" (ADR-008).
+
+**Files.** New `domain/CoachIdentity.kt`; `ui/onboarding/OnboardingScreen.kt:147`,
+`domain/SyncCopy.kt:23`, `domain/ProgressionCopy.kt`, `domain/RuleTraceCopy.kt:28`,
+`domain/MastheadCopy.kt:186`, `domain/coach/CoachEvidenceCopy.kt`;
+`data/backup/BackupJson.kt:22`, `data/backup/BackupValidator.kt:427`.
+
+**Steps.** One constant, swept through the six copy objects ("Tempo
+suggests…", "Based on…" unchanged); the two "Personal Trainer" strings become
+"Temper"; a preflight grep fails on "Personal Trainer" or "AI trainer" in
+`main`. Tests: copy tests updated; `BackupValidatorTest` message.
+
+**Done when** G10 holds.
+
+## 6. Dependencies and risks
+
+| Risk | Where | Mitigation |
 |---|---|---|
-| Notifications | `areNotificationsEnabled` / POST_NOTIFICATIONS | system prompt, else app notification settings |
-| Precise rest alerts | `ExactAlarmCapability.canScheduleExactAlarms` | `REQUEST_SCHEDULE_EXACT_ALARM` |
-| Rest alert over the lock screen | `canUseFullScreenIntent` | `ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT` (API 34) |
-| Battery | `isIgnoringBatteryOptimizations` | per-app `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (replaces the general list screen used today) |
-| Vibration | always granted | shown as "Granted" for honesty |
+| Token ceiling trips on the new edge colour | P1 | Raise by exactly the new uses; note in PR |
+| Forced RPE slows logging on the floor | P2 | The track is one tap; the refusal pulses it; holds and warm-ups exempt |
+| Lead-in and rest alarm collide (rest ends as GET READY runs) | P2 | `startHoldSet` already stops rest; lead-in inherits that |
+| Audio focus on OEM phones behaves oddly | P4b | Default DUCK; NONE is one tap away; log the focus result |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is Play-sensitive | P4a | Personal build only; note for the store build in `COMMERCIAL_BOUNDARY.md` |
+| Twelve-week read is slow on a long history | P5 PR 2 | Bounded query, cap 24, index if needed, one read per lift open (W2e) |
+| Trend flips the suggestion on a noisy lift | P5 | One-step cap, recent veto, under-three fallback, replay test G3 |
+| Room v8 if an index is needed | P5 PR 2 | ADR-032 lane already exists; pre-migration copy (X2b) |
+| A packet's files collide with S1 / F10 when they start | P4 | P4 lands before F10; `SettingsScreen` split (F10c) rebases on it |
 
-Re-checks on resume. The existing four ask-points stay, and each gains a
-"Manage in Settings → Permissions" link so there is one place to go. Copy in
-a new `PermissionsCopy`. ADR-012 decision 4 is kept: the page never opens on
-its own.
+## 7. Decision log
 
-**P4b Notifications page.** New `SettingsPage.NOTIFICATIONS`. Top to
-bottom, mirroring the owner's list:
+| # | Decision | Default adopted | Owner said |
+|---|---|---|---|
+| D1 | Packet order P1 → P6 | as above | "Please proceed" (29 Sep) |
+| D2 | RPE required on holds | **No** (warm-ups and holds exempt) | default stands |
+| D3 | Lead-in default | **5 s** (3 / 5 / 10 offered) | default stands |
+| D4 | Music during a rest alert | **Turn music down** (duck) | default stands |
+| D5 | Coach window | **84 days, cap 24 sessions** | default stands |
+| D6 | Coach's name | **Tempo** | default stands; alternatives Spot, Rack, Cue |
 
-1. *What Temper tells you about*: rest done, workout reminders, missed-day
-   check-in (each on/off; reminders link to the existing Reminders page).
-2. *Rest alarm*: type (sound + vibrate / sound / vibrate / silent), sound
-   choice (bundled cue or system alarm tone), loudness (uses alarm stream;
-   a 25/50/75/100 % slider stored as `restCueVolume`), the last-five-second
-   tick (moves here from Rest timer), tick haptic on/off.
-3. *When it starts*: rest starts on Log (today's rule, read-only line) and
-   the lead-in length for timed sets (3/5/10 s, from P2).
-4. *Music*: "Pause music for the alert" (`AudioFocusRequest`
-   GAIN_TRANSIENT_EXCLUSIVE) / "Turn music down" (MAY_DUCK) / "Leave music
-   alone" (today). New code in `RestTimerAlerts`.
-5. *Permissions this needs*: the P4a section embedded, read-only, with a link
-   to the full page.
+A default the owner overturns later is changed here and in the packet that
+carries it; nothing else moves.
 
-New prefs keys in `RestPrefsStore` (`restCueVolume`, `restAlarmType`,
-`restAudioFocus`, `leadInSeconds`, `tickHaptic`); `user_settings` stays one
-store. The Rest timer page keeps default rest and the presets only. Tests:
-`RestTimerAlertsTest` for focus and volume; render tests for both pages;
-`SettingsHome` row counts.
+## 8. Side issues found, not in this plan
 
-Phone checklist: turn everything off and on from one page; start music, let
-a rest end with each of the three music choices.
-
-### P5 — The coach reads twelve weeks (Visible, large, ADR first)
-
-**Step 0, ADR-033 "Long-window progression".** Written and shown to the
-owner before any code. It decides:
-
-- **Window.** `progressionFor` reads every finished working set of the lift
-  in the last 84 days (12 weeks), most recent first, capped at 24 sessions.
-  Nothing older is read; nothing in the window is ignored.
-- **Trend model.** For each session, the top set's Epley e1RM
-  (`PersonalRecords`, already there) and its RPE. A slope over the window
-  says whether the lift is rising, flat or falling. A flat or falling slope
-  over 3+ sessions is a stall (`StallSignal` folds in); a falling slope with
-  rising RPE is a deload call (`DeloadSignal` folds in).
-- **RPE table.** Zourdos 2016 (DOI 10.1519/JSC.0000000000001049) and Helms
-  2016 (10.1519/SSC.0000000000000218), both already in the catalog: RPE →
-  reps in reserve → % of e1RM. The next load is the % of the trend e1RM that
-  matches the target reps at the target RPE (goal-dependent: strength
-  RPE 8, hypertrophy RPE 7–8, per `CoachPreferences`), snapped to the plate
-  step (`IncrementTable`, unchanged), and never more than one step from the
-  last top set unless the trend has risen 3 sessions running.
-- **Rep target.** Double progression stays the default; when the trend e1RM
-  says a heavier load would land at the target RPE, load moves first.
-- **Recent bias.** The last 2 sessions keep a veto (today's `RpeModifier`):
-  two grinds in a row hold the weight whatever the slope says. The clock is
-  still not a rule input (ADR-029, W2c).
-- **Honesty.** Fewer than 3 sessions in the window → today's one-session
-  rule, labelled "Not much history yet" in the trace. Any rule that leans
-  on a claim not in a cited paper is `heuristic: true`. The trace gains the
-  window (`evidence window` is already a `RuleTrace` field) and the slope.
-
-**Step 1, domain.** New `domain/progression/LongWindow.kt`
-(`WindowedHistory`, `TrendModel`, `RpeLoadTable`), pure Kotlin, no imports
-outside `domain` (`tools/check-domain-seams.py`). `ProgressionCalculator.adjusted`
-gains a `window: WindowedHistory?` input and a new rung between the hint and
-`RpeModifier`. `SetMicroRec.firstSet` takes the windowed hint.
-
-**Step 2, data.** `WorkoutRepository.lastFinishedWork` gets a
-`sinceEpochDay` bound and a DAO query with an index on
-`(exerciseId, sessionFinishedAt)` if `EXPLAIN` shows a scan (Room stays v7;
-an index is a migration, so only if needed, and then as v8 with its schema,
-asset copy and migration test per ADR-032).
-
-**Step 3, evidence.** `EvidenceCatalog` gains the new rule ids mapped to the
-two RPE papers and Schoenfeld 2017; new heuristic entries for the cap and the
-recent-veto. `docs/coach/evidence-seed.json` mirrors it.
-
-**Step 4, UI.** The Next card's "Why?" shows the window ("12 weeks, 9
-sessions"), the trend word, and the citation chip as today. No new screen.
-
-**Tests.** `LongWindowTest` (slope, table, cap, fewer-than-three), extended
-`ProgressionCalculatorTest` and `CoachRulesTest`, `CoachRecomputeTest`
-(inputs-only recompute holds), and a replay test that today's 96
-`ActiveWorkoutViewModelTest` cases give the same answer when the window has
-one session.
-
-Phone checklist: a lift with 10+ sessions shows the window in Why; a lift
-done twice shows "Not much history yet"; a heavy week marked lighter still
-holds.
-
-### P6 — The coach's name (Quiet, small, after the owner picks)
-
-- Sweep "coach" in `OnboardingScreen`, `SyncCopy`, `ProgressionCopy`,
-  `RuleTraceCopy`, `MastheadCopy`, `CoachEvidenceCopy` into one
-  `CoachIdentity.NAME` constant so the name can change once.
-- Fix the stale "Personal Trainer" in `BackupJson.kt:22` and
-  `BackupValidator.kt:427` to "Temper".
-- Never "AI" in user copy (ADR-008).
-
-**Candidates.** Pick: **Tempo** — sits beside Temper, means pacing, and is
-a real gym word for set speed and rest. Others: **Spot** (the spotter behind
-you), **Rack**, **Cue**. Recommendation: Tempo.
-
-## Decisions owed by the owner
-
-1. Adopt this order (P1 → P2 → P3 → P4a → P4b → P5 → P6), or reorder.
-2. P2: is RPE required on holds (planks, hangs) too? Recommend **no**.
-3. P2: lead-in length default. Recommend **5 s**.
-4. P4b: default music behaviour. Recommend **Turn music down** (duck).
-5. P5: window length 12 weeks and cap 24 sessions. Recommend **yes**.
-6. P6: the name. Recommend **Tempo**.
-
-## Side issues found on the way, not in this plan
-
-- "Personal Trainer" survives in backup error text and Drive folder names.
-- `ForeignControlsTest` may need a line for the new `InstrumentMenuItem`.
-- `LaunchPermissionsHost` opens the general battery list, not the per-app
-  request; P4a replaces it, but the first-launch walk keeps the old intent
-  until then.
+- "PersonalTrainer Backups" Drive folder and `personal-trainer-backup-*` file
+  names (docs/DRIVE_SIGNIN_CHECK.md); renaming them is a backup-format
+  decision, not copy.
+- `LaunchPermissionsHost` opens the general battery list; P4a replaces it.
+- `ForeignControlsTest` needs a line for `InstrumentMenuItem` (P3 carries it).
+- `DeloadSignal` and `StallSignal` each keep their own window today; P5's
+  ADR folds them but does not delete them.
