@@ -35,7 +35,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.WeightUnit
-import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.SectionEdge
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
@@ -249,7 +249,7 @@ internal fun NumeralWell(
         modifier = modifier
             .clip(RoundedCornerShape(Radius.md))
             .background(Surface1)
-            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.md))
+            .border(Metrics.hairline, SectionEdge, RoundedCornerShape(Radius.md))
             .padding(Metrics.space3),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),

@@ -79,7 +79,7 @@ and Settings make that trust visible.** Concretely, when this plan is done:
 
 | Milestone | Packets | Drop | What the owner checks |
 |---|---|---|---|
-| **M1 Floor feel** | P1, P2 | 107, `debug-live-2026-09-29` (or the next free) | Edges on every block; Log refused without effort; GET READY before a plank |
+| **M1 Floor feel** | P1 (built), P2 | 107, `debug-live-2026-09-29` (or the next free) | Edges on every block; Log refused without effort; GET READY before a plank |
 | **M2 Menus** | P3 | 108 | Icons in every ⋮ menu |
 | **M3 Settings** | P4a, P4b | 109, 110 | Permissions page; Notifications page; music ducks |
 | **M4 Coach** | P5 (ADR, then 4 PRs) | 111 | *Why?* shows window, trend, DOI |
@@ -94,7 +94,7 @@ files with open PRs against `trunk` as of 29 September (last merged: #443).
 Each packet lists: branch and PR, files, steps, tests, gate, drop, phone
 checklist, done-when. Steps are in the order they are done.
 
-### P1 — Section borders (Visible, small, half a day)
+### P1 — Section borders (Visible, small, half a day) — **built 29 September**, on the drop 107 checklist
 
 **Why.** Blocks on the floor are separated by 1 dp lines at 8% white; on a
 gym floor in daylight they vanish. The owner wants each section to read as
@@ -132,6 +132,15 @@ widths. Existing `WorkoutFloorRenderTest`, W1d large-text cases and
 edge; at font 2.0 nothing clips; Home cards have the same edge.
 
 **Done when** G9 holds and the drop is on the phone.
+
+*As built (29 September):* `SectionEdge` is white at 22%; `FloorSection` has
+no fill (the entry wells inside it are `Surface1` on `Pit`, and a fill would
+have taken that contrast away) and 4 dp inside the edge, not 8; the block
+gap came down 12 → 8 dp so the frames fit the height budget, which the loop
+now beats at 852 dp (budget lowered from 868 as the test's rule asks). The
+exercise header stays unframed: it is the image-led hero, not a block. The
+stats row's inner cell rules stay. `FloorSectionEdgesRenderTest` holds the
+five frames at font 1.0 and 2.0.
 
 ### P2 — RPE required, and a lead-in before a timed set (Visible, small, one day)
 

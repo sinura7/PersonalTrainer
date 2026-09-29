@@ -47,6 +47,16 @@ val Hairline = Color(0x14FFFFFF)
 /** Focus rings, the "today" marker, drag handles. White at 14%. */
 val HairlineStrong = Color(0x24FFFFFF)
 
+/**
+ * The edge of a section: a card on Home, a block on the floor. White at 22%.
+ *
+ * [Hairline] at 8% is a seam inside a panel; on a gym floor in daylight it is not an edge
+ * between panels (owner ask of 29 September 2026: "borders for the sections, to make it
+ * more obvious and easier to follow"). Decorative, so no contrast ratio applies; the
+ * 3:1 rule is [OutlineSolid]'s, for fields and controls a finger has to find.
+ */
+val SectionEdge = Color(0x38FFFFFF)
+
 /** Opaque field and control borders. Unfocused outline is ≥ 3:1 on reading surfaces. */
 val OutlineSolid = Color(0xFF6A757C)
 val OutlineSolidVariant = Color(0xFF1E2429)

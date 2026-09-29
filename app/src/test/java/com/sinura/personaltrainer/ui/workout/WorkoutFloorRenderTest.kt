@@ -360,6 +360,6 @@ class WorkoutFloorRenderTest {
          * never raise it so a change can fit.
          */
         /** ADR-029 evidence chip on the Next-set card (360×1600 baseline). */
-        const val LOOP_BUDGET_DP = 868f
+        const val LOOP_BUDGET_DP = 852f
     }
 }

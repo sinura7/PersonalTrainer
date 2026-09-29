@@ -52,6 +52,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.SectionEdge
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -163,7 +164,7 @@ fun GymCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(Radius.md)
-    val border = BorderStroke(Metrics.hairline, Hairline)
+    val border = BorderStroke(Metrics.hairline, SectionEdge)
     if (onClick != null) {
         Card(
             onClick = onClick,
@@ -192,6 +193,35 @@ fun GymCard(
             )
         }
     }
+}
+
+/**
+ * One block of the workout floor, drawn as its own panel.
+ *
+ * The floor used to separate its blocks with [HairlineDivider] rules and a change of voice;
+ * on the gym floor the rules vanished and the blocks ran together. Each block now sits in
+ * a [SectionEdge] frame. Tighter than [GymCard]: the floor's height budget
+ * (`WorkoutFloorRenderTest.LOOP_BUDGET_DP`) is measured in dp, and a frame must not push
+ * the commit off the screen, so the frame is the edge plus [Metrics.space1] above and below
+ * the block, and the block keeps its own spacing. No fill: the entry wells inside it are [Surface1] on the
+ * floor's [Pit], and a filled frame would take that contrast away.
+ */
+@Composable
+fun FloorSection(
+    modifier: Modifier = Modifier,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val shape = RoundedCornerShape(Radius.md)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(Metrics.hairline, SectionEdge, shape)
+            .padding(horizontal = Metrics.space3, vertical = Metrics.space1),
+        verticalArrangement = verticalArrangement,
+        content = content,
+    )
 }
 
 /**

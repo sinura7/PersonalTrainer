@@ -31,7 +31,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
@@ -66,7 +65,7 @@ import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymUndoHost
-import com.sinura.personaltrainer.ui.components.HairlineDivider
+import com.sinura.personaltrainer.ui.components.FloorSection
 import com.sinura.personaltrainer.ui.components.NotesBlock
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.PinnedDock
@@ -120,6 +119,11 @@ object WorkoutTestTags {
     const val START_SET_CLOCK = "workout-start-set-clock"
     const val STOP_SET_CLOCK = "workout-stop-set-clock"
     const val SET_HISTORY = "workout-set-history"
+    const val SECTION_STATS = "workout-section-stats"
+    const val SECTION_ENTRY = "workout-section-entry"
+    const val SECTION_RPE = "workout-section-rpe"
+    const val SECTION_NEXT_SET = "workout-section-next-set"
+    const val SECTION_SET_HISTORY = "workout-section-set-history"
     const val CURRENT_SET = "workout-current-set"
     const val VIEW_SETS = "workout-view-sets"
     const val SAVED_SETS_SHEET = "workout-saved-sets-sheet"
@@ -604,11 +608,13 @@ private fun ActiveWorkoutContent(
                             top = Metrics.space3,
                             bottom = Metrics.space7,
                         ),
-                        // 12, not 16. The floor's blocks are already separated by hairlines
-                        // and by the change of voice between them; the extra four points per
-                        // gap bought no clarity and, over five gaps, pushed the commit off
-                        // the screen. The bottom padding stays: that is the dock's clearance.
-                        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+                        // 8, not 12 (and not 16 before that). Each block now sits in its own
+                        // FloorSection frame, so the frame separates them and the gap only has
+                        // to keep two frames from touching; the four points a gap gave back,
+                        // over five gaps, pay for the frames without pushing the commit off
+                        // the screen (WorkoutFloorRenderTest.LOOP_BUDGET_DP). The bottom
+                        // padding stays: that is the dock's clearance.
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
                         if (!session.hasLifts()) {
                             item(key = "empty-lifts") {
@@ -661,21 +667,22 @@ private fun ActiveWorkoutContent(
                                             unit = unit,
                                         )
                                     }
-                                    Column {
-                                        HairlineDivider(startIndent = 0.dp)
+                                    FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_STATS)) {
                                         ExerciseStatsRow(
                                             stats = stats,
                                             unit = unit,
                                             visibility = statsVisibility,
                                             onApplyLastSet = if (entryEnabled) viewModel::applyLastTimeSet else null,
                                         )
-                                        HairlineDivider(startIndent = 0.dp)
                                     }
                                 }
                                 item(key = "entry") {
                                     val holdTimer = holdState.value
                                     val lastKg = state.hint?.lastWeightKg ?: state.lastPerformance?.topSet?.weightKg
-                                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                                    FloorSection(
+                                        modifier = Modifier.testTag(WorkoutTestTags.SECTION_ENTRY),
+                                        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+                                    ) {
                                         WeightRepsEditor(
                                             enabled = entryEnabled,
                                             weightKg = state.draft.weightKg,
@@ -732,13 +739,15 @@ private fun ActiveWorkoutContent(
                                     }
                                 }
                                 item(key = "rpe") {
-                                    RpeSelector(
-                                        enabled = entryEnabled,
-                                        warmup = state.draft.isWarmup,
-                                        rpe = state.draft.rpe,
-                                        recommendedRpe = microRec?.nextRpe,
-                                        onRpe = viewModel::setRpe,
-                                    )
+                                    FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_RPE)) {
+                                        RpeSelector(
+                                            enabled = entryEnabled,
+                                            warmup = state.draft.isWarmup,
+                                            rpe = state.draft.rpe,
+                                            recommendedRpe = microRec?.nextRpe,
+                                            onRpe = viewModel::setRpe,
+                                        )
+                                    }
                                 }
                                 // The rest page follows the same rule (W2b-4); the entry lock is this screen's own.
                                 val rec = shownNextSet(
@@ -758,8 +767,7 @@ private fun ActiveWorkoutContent(
                                             preparePhase = workingLogged == 0,
                                             entryMatchesSuggestion = applied,
                                         )
-                                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-                                            HairlineDivider(startIndent = 0.dp)
+                                        FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_NEXT_SET)) {
                                             NextSetRecommendation(
                                                 rec = rec,
                                                 loadClass = loadClass,
@@ -786,8 +794,7 @@ private fun ActiveWorkoutContent(
                                             ),
                                         )
                                     }
-                                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-                                        HairlineDivider(startIndent = 0.dp)
+                                    FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_SET_HISTORY)) {
                                         SetHistoryStrip(
                                             sets = logged,
                                             targetSets = currentLift.targetSets,

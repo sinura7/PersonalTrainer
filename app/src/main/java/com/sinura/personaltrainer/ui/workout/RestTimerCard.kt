@@ -51,7 +51,7 @@ import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.RestSegment
 import com.sinura.personaltrainer.ui.components.RestSegments
 import com.sinura.personaltrainer.ui.components.TemperIcons
-import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.SectionEdge
 import com.sinura.personaltrainer.ui.theme.HairlineStrong
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
@@ -182,7 +182,7 @@ internal fun RestTimerCard(
             // floor is in rather than another card on it. The segments below then recess to
             // Surface1 inside it, which is the same step read the other way.
             .background(Surface2)
-            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.md))
+            .border(Metrics.hairline, SectionEdge, RoundedCornerShape(Radius.md))
             .testTag(if (idle) WorkoutTestTags.REST_IDLE else WorkoutTestTags.REST_BAR)
             .padding(horizontal = Metrics.space3, vertical = Metrics.space2),
     ) {

@@ -21,6 +21,20 @@
 > the rest. TalkBack still hears the words once; icons are decorative.
 > Phone: open a live workout, tap ⋮, confirm a mark beside each row.
 >
+> 29 Sep 2026 — Packet P1 (the first of the owner's eight asks of 29
+> September, [owner-eight-plan-2026-09-29.md](owner-eight-plan-2026-09-29.md)):
+> the workout floor's blocks (last set, the numbers, effort, the coach's
+> Next card, the set history) each sit in their own frame, and every card
+> on Home, Settings and History takes the same brighter edge, so a section
+> reads as a section on a bright gym floor. The frames cost height, so the
+> gap between blocks came down from 12 to 8 points and the frame keeps 4
+> inside; the entry loop measures 852 dp at 360 wide, down from 868, and
+> the budget is lowered to 852. Phone checklist on PR #444 (Obtainium
+> after merge: `debugLiveCode` 108 per `tools/debug-drop-plan.py`, not
+> bumped in the P1 PR). Open a workout (each block has an edge, dark and
+> light); at the largest text nothing clips; Home's cards have the same
+> edge. Visible.
+>
 > 27 Sep 2026 — Packet N2 (owner decision of 27 September): removing
 > your only lift and then tapping Undo, or adding it back from the
 > picker, left it loading for good, so Log stayed off; and a lift brought
