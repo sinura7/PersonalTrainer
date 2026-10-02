@@ -271,10 +271,7 @@ class WorkoutFloorRenderTest {
         assertTrue("Scrollable content must retain a full touch target, was $heightDp dp", heightDp >= 48f)
     }
 
-    private fun twoSetsLogged() = listOf(
-        TestSetInput(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = 8),
-        TestSetInput(weightKg = WeightConverter.lbsToKg(70.0), reps = 10, rpe = 9),
-    )
+    private fun twoSetsLogged() = twoWorkingSetsLogged()
 
     private fun threeSetsLogged() = twoSetsLogged() +
         TestSetInput(weightKg = WeightConverter.lbsToKg(70.0), reps = 11, rpe = 9)
@@ -356,10 +353,12 @@ class WorkoutFloorRenderTest {
          * Identity top to set-history bottom at 360 dp, with two sets logged.
          *
          * 920.5 dp before packet 2, 841.0 after it, 837.0 after packet 4 shrank the plates
-         * inside their targets. A ceiling, not a target: lower it when height comes out, and
-         * never raise it so a change can fit.
+         * inside their targets; the ceiling then stood at 868 until P1 (29 September 2026)
+         * framed the blocks, took the block gap from 12 to 8 dp and measured 852.0. A
+         * ceiling, not a target: lower it when height comes out, and never raise it so a
+         * change can fit.
          */
         /** ADR-029 evidence chip on the Next-set card (360×1600 baseline). */
-        const val LOOP_BUDGET_DP = 868f
+        const val LOOP_BUDGET_DP = 852f
     }
 }

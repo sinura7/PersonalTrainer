@@ -131,8 +131,13 @@ internal fun RpeSelector(
             )
         } else {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
+                // A compact chip is its label plus space2 a side (InstrumentChip); space1 on top
+                // is the slack for glyph advance. It was a whole space2 until P1 framed the
+                // track (29 September 2026) and took 16 dp of its width: the old slack then
+                // said five would not fit at the largest text on a 360 dp phone when they do,
+                // and split the scale 3 + 2. A 320 dp phone still wraps, as its test holds.
                 val optionWidth = measurer.measure("10", style = InstrumentType.bodyStrong).size.width +
-                    with(density) { (Metrics.space2 * 2 + Metrics.space2).roundToPx() }
+                    with(density) { (Metrics.space2 * 2 + Metrics.space1).roundToPx() }
                 val gaps = with(density) { (Metrics.space2 * 4).roundToPx() }
                 val singleRow = optionWidth * RpeCopy.VALUES.count() + gaps <= with(density) { maxWidth.roundToPx() }
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {

@@ -52,6 +52,7 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.SectionEdge
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -163,7 +164,7 @@ fun GymCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(Radius.md)
-    val border = BorderStroke(Metrics.hairline, Hairline)
+    val border = BorderStroke(Metrics.hairline, SectionEdge)
     if (onClick != null) {
         Card(
             onClick = onClick,
@@ -192,6 +193,42 @@ fun GymCard(
             )
         }
     }
+}
+
+/**
+ * One block of the workout floor, drawn as its own panel.
+ *
+ * The floor used to separate its blocks with [HairlineDivider] rules and a change of voice;
+ * on the gym floor the rules vanished and the blocks ran together (owner ask of 29 September
+ * 2026). Each block now sits in a panel built the way every panel in the app is built: one
+ * step up the surface ladder ([Surface1] on the floor's [Pit]) plus a one-pixel edge, here
+ * [SectionEdge] so the step reads in daylight. A line alone on Pit reads as a field group on
+ * a form, not a panel; the fill is what makes it a panel.
+ *
+ * Tighter than [GymCard], because the floor's height is budgeted
+ * (`WorkoutFloorRenderTest.LOOP_BUDGET_DP`) and a frame must not push the commit off the
+ * screen: [Metrics.space1] above and below the block, and [horizontalPadding] at the sides,
+ * [Metrics.space2] unless the block needs the width. The stats row and the entry take
+ * [Metrics.space1]: at 360 dp their three-cell labels and the warm-up ramp's captions need
+ * every point, and both already inset their own ink. The block keeps its own spacing.
+ */
+@Composable
+fun FloorSection(
+    modifier: Modifier = Modifier,
+    horizontalPadding: Dp = Metrics.space2,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val shape = RoundedCornerShape(Radius.md)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Surface1, shape)
+            .border(Metrics.hairline, SectionEdge, shape)
+            .padding(horizontal = horizontalPadding, vertical = Metrics.space1),
+        verticalArrangement = verticalArrangement,
+        content = content,
+    )
 }
 
 /**
@@ -230,7 +267,7 @@ fun GroupedList(
             .fillMaxWidth()
             .clip(RoundedCornerShape(Radius.sm))
             .background(Surface1)
-            .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.sm)),
+            .border(Metrics.hairline, SectionEdge, RoundedCornerShape(Radius.sm)),
         content = content,
     )
 }

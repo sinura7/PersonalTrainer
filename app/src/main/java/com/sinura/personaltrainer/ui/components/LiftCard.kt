@@ -21,7 +21,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.Exercise
-import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.SectionEdge
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
@@ -60,7 +60,7 @@ fun LiftCard(
             .background(if (selected) VoltDim else Surface2)
             .border(
                 if (selected) Metrics.emphasisBorder else Metrics.hairline,
-                if (selected) Volt else Hairline,
+                if (selected) Volt else SectionEdge,
                 shape,
             ),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),

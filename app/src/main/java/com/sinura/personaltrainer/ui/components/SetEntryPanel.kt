@@ -249,6 +249,8 @@ internal fun NumeralWell(
         modifier = modifier
             .clip(RoundedCornerShape(Radius.md))
             .background(Surface1)
+            // A recessed well keeps the quiet edge: the bright SectionEdge is for panels
+            // that stand up off the floor, and a rim on a well would read as raised.
             .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.md))
             .padding(Metrics.space3),
         horizontalAlignment = Alignment.CenterHorizontally,
