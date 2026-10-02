@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.ui.components.InstrumentMenuTags
 import com.sinura.personaltrainer.ui.theme.Metrics
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -94,7 +95,10 @@ class WorkoutSetsSheetRenderTest {
         compose.onNodeWithContentDescription("Working set 1 of 3 actions").assertIsDisplayed()
         options.performClick()
         compose.onNodeWithText("Edit set").assertIsDisplayed()
-        compose.onNodeWithText("Delete set").assertIsDisplayed().performClick()
+        compose.onNodeWithTag(InstrumentMenuTags.leadingIcon("Edit set"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("Delete set").assertIsDisplayed()
+        compose.onNodeWithTag(InstrumentMenuTags.leadingIcon("Delete set"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText("Delete set").performClick()
         assertEquals("set-2", deleted)
         compose.onNodeWithTag(WorkoutTestTags.setOptions("set-1")).performClick()
         compose.onNodeWithText("Edit set").performClick()

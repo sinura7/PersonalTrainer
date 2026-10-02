@@ -3,7 +3,6 @@ package com.sinura.personaltrainer.ui.workout
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -17,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
+import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -62,45 +63,45 @@ internal fun LiftOverflowMenu(
             )
         }
         InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            DropdownMenuItem(
-                text = { Text(CurrentLiftCopy.SWITCH, style = InstrumentType.bodyStrong, color = TextPrimary) },
+            InstrumentMenuItem(
+                spokenLabel = CurrentLiftCopy.SWITCH,
+                leadingIcon = TemperIcons.ChevronDown,
                 onClick = { menuOpen = false; onSwitch() },
             )
-            DropdownMenuItem(
-                text = { Text(CurrentLiftCopy.DETAILS_SPOKEN, style = InstrumentType.bodyStrong, color = TextPrimary) },
+            InstrumentMenuItem(
+                spokenLabel = CurrentLiftCopy.DETAILS_SPOKEN,
+                leadingIcon = TemperIcons.Body,
                 onClick = { menuOpen = false; onDetails() },
             )
-            DropdownMenuItem(
-                text = { Text("Session summary", style = InstrumentType.bodyStrong, color = TextPrimary) },
+            InstrumentMenuItem(
+                spokenLabel = "Session summary",
+                leadingIcon = TemperIcons.History,
                 onClick = { menuOpen = false; onSummary() },
             )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        CurrentLiftCopy.SESSION_NOTES,
-                        style = InstrumentType.bodyStrong,
-                        color = TextPrimary,
-                    )
-                },
+            InstrumentMenuItem(
+                spokenLabel = CurrentLiftCopy.SESSION_NOTES,
+                leadingIcon = TemperIcons.Log,
                 onClick = {
                     menuOpen = false
                     onNotes()
                 },
             )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        CurrentLiftCopy.SKIP,
-                        style = InstrumentType.bodyStrong,
-                        color = TextPrimary,
-                    )
-                },
+            InstrumentMenuItem(
+                spokenLabel = CurrentLiftCopy.SKIP,
+                leadingIcon = TemperIcons.Chevron,
                 onClick = {
                     menuOpen = false
                     onSkip()
                 },
             )
-            DropdownMenuItem(
+            InstrumentMenuItem(
+                spokenLabel = CurrentLiftCopy.SWAP,
+                leadingIcon = OutlinedMarks.PlaylistAdd,
+                enabled = canEdit,
+                onClick = {
+                    menuOpen = false
+                    onSwap()
+                },
                 text = {
                     Column {
                         Text(
@@ -117,13 +118,16 @@ internal fun LiftOverflowMenu(
                         }
                     }
                 },
+            )
+            InstrumentMenuItem(
+                spokenLabel = CurrentLiftCopy.REMOVE,
+                leadingIcon = TemperIcons.Delete,
+                iconTint = Danger,
                 enabled = canEdit,
                 onClick = {
                     menuOpen = false
-                    onSwap()
+                    onRemove()
                 },
-            )
-            DropdownMenuItem(
                 text = {
                     Column {
                         Text(
@@ -139,11 +143,6 @@ internal fun LiftOverflowMenu(
                             )
                         }
                     }
-                },
-                enabled = canEdit,
-                onClick = {
-                    menuOpen = false
-                    onRemove()
                 },
             )
         }

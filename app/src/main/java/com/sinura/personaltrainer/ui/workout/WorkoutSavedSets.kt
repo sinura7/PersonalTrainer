@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +31,7 @@ import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
+import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -120,12 +120,16 @@ internal fun WorkoutSetsSheet(
                                 Icon(TemperIcons.More, contentDescription = "${labels[set.id]} actions", tint = TextSecondary)
                             }
                             InstrumentMenu(expanded = menuId == set.id, onDismissRequest = { menuId = null }) {
-                                DropdownMenuItem(
-                                    text = { Text("Edit set", style = InstrumentType.bodyStrong, color = TextPrimary) },
+                                InstrumentMenuItem(
+                                    spokenLabel = "Edit set",
+                                    leadingIcon = TemperIcons.Edit,
                                     onClick = { menuId = null; onEdit(set.id) },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text("Delete set", style = InstrumentType.bodyStrong, color = Danger) },
+                                InstrumentMenuItem(
+                                    spokenLabel = "Delete set",
+                                    leadingIcon = TemperIcons.Delete,
+                                    iconTint = Danger,
+                                    textColor = Danger,
                                     onClick = { menuId = null; onDelete(set.id) },
                                 )
                             }

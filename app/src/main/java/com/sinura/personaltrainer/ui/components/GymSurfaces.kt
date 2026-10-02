@@ -23,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -510,14 +509,9 @@ fun SessionLogRow(
                         )
                     }
                     InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    "Repeat workout",
-                                    style = InstrumentType.bodyStrong,
-                                    color = TextPrimary,
-                                )
-                            },
+                        InstrumentMenuItem(
+                            spokenLabel = "Repeat workout",
+                            leadingIcon = OutlinedMarks.PlaylistAdd,
                             onClick = {
                                 menuOpen = false
                                 onRepeat()
