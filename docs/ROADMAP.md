@@ -15,6 +15,12 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 2 Oct 2026 — Owner packet P3 (29 Sep plan: images on toolbar drop-down
+> items): every InstrumentMenu row now shows a Temper leading mark beside
+> its label — live workout ⋮, set menus, live bar, history, backup, and
+> the rest. TalkBack still hears the words once; icons are decorative.
+> Phone: open a live workout, tap ⋮, confirm a mark beside each row.
+>
 > 27 Sep 2026 — Packet N2 (owner decision of 27 September): removing
 > your only lift and then tapping Undo, or adding it back from the
 > picker, left it loading for good, so Log stayed off; and a lift brought
