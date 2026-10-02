@@ -15,6 +15,11 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 2 Oct 2026 — Packet P2b merged (#446, `76858e8f`): GET READY before a
+> hold (the eight-asks plan's third packet) — phone OK on Temper Debug 110
+> (`debug-live-2026-10-02-4`). Holds only; 3 / 5 / 10 s on the Rest timer
+> page; `debugLiveCode` stays 110 until the next authorized drop.
+>
 > 2 Oct 2026 — Owner packet P3 (29 Sep plan: images on toolbar drop-down
 > items): every InstrumentMenu row now shows a Temper leading mark beside
 > its label — live workout ⋮, set menus, live bar, history, backup, and
@@ -31,10 +36,9 @@
 > the screen locking or Android closing the app. Holds only: the set clock
 > you start yourself has no countdown. 3, 5 or 10 seconds, on the Rest
 > timer page in Settings; the length stays on this phone, like the tick.
-> On the next phone checklist (PR #446, Obtainium 110): start a plank
-> (GET READY 5…1, then HOLD); tap the big button during GET READY (nothing
-> logs); tap Cancel (no hold starts); lock the phone mid-countdown and
-> unlock (still right); set 3 s in Settings → Rest timer. Visible.
+> Phone checklist on #446 (Obtainium 110): start a plank (GET READY 5…1,
+> then HOLD); Cancel mid-countdown; lock and unlock; set 3 s on Rest timer.
+> Merged 2 Oct 2026 after phone OK. Visible.
 >
 > 29 Sep 2026 — Packet P1, the first packet of the owner's 29 September
 > plan ([the eight asks](owner-eight-plan-2026-09-29.md)): each block of the

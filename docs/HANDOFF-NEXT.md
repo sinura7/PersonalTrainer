@@ -365,8 +365,8 @@ Done so far:
   GET READY (3 / 5 / 10 s, default 5, a Settings row on the Rest timer page,
   device-local) before its clock runs; the commit is `GET_READY` and disabled,
   Cancel sits in the bar's Stop slot, nothing logs during the countdown, and a
-  restore mid-countdown resumes it. The set stopwatch has no lead-in. Rebased
-  onto post-P2a `trunk`. Visible, on PR #446 for Obtainium 110.
+  restore mid-countdown resumes it. The set stopwatch has no lead-in. Visible,
+  merged to `trunk` 2 Oct 2026 as `76858e8f` (Obtainium 110 signed off).
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the
@@ -407,10 +407,10 @@ Done so far:
 
 Next, in order (owner decision of 29 September; the plan is
 [owner-eight-plan-2026-09-29.md](owner-eight-plan-2026-09-29.md), the live
-order is the table in FRONTEND_REDESIGN.md): P3 shipped on trunk as drop 107
-(`debug-live-2026-10-02`); rebase and phone-check P1 on #444 (Obtainium 108
-after merge — **do not squash-merge until Allen OKs borders on the phone**),
-then P2a and P2b, then P4a, P4b, P5 and P6 as the plan orders them; W3, S1,
+order is the table in FRONTEND_REDESIGN.md): P3 on trunk (drop 107);
+P1, P2a and P2b merged 2 Oct 2026 (Obtainium 108–110); **next in the
+eight-asks queue is P4a** (Settings → Permissions), then P4b, P5 and P6;
+W3, S1,
 X8 and X9 follow. Of the two sessions that split the order, the
 one on the rest timer, the updater and reminders is done (the
 rest-alarm packet, R3 and R4), and so is the one on the workout floor
