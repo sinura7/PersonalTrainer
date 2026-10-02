@@ -13,6 +13,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.sinura.personaltrainer.domain.CurrentLiftCopy
+import com.sinura.personaltrainer.ui.components.InstrumentMenuTags
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
@@ -168,6 +170,25 @@ class LiftOptionsRenderTest {
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.selectedExerciseId == FLOOR_NEXT_LIFT_ID }
         assertTrue("switching stopped the clock", !vm.setStopwatch.value.running)
         compose.onAllNodesWithText(SetStopwatchCopy.SWITCH_TITLE).assertCountEquals(0)
+    }
+
+    @Test
+    fun overflowMenuRowsCarryLeadingIcons() {
+        val vm = openLegExtension(deps, viewModels, loggedSets = emptyList(), withNextLift = true)
+        compose.showWorkoutScreen(vm)
+        openOptions()
+        listOf(
+            CurrentLiftCopy.SWITCH,
+            CurrentLiftCopy.DETAILS_SPOKEN,
+            "Session summary",
+            CurrentLiftCopy.SESSION_NOTES,
+            CurrentLiftCopy.SKIP,
+            CurrentLiftCopy.SWAP,
+            CurrentLiftCopy.REMOVE,
+        ).forEach { label ->
+            compose.onNodeWithText(label, substring = true).assertIsDisplayed()
+            compose.onNodeWithTag(InstrumentMenuTags.leadingIcon(label), useUnmergedTree = true).assertIsDisplayed()
+        }
     }
 
     private fun openOptions() {

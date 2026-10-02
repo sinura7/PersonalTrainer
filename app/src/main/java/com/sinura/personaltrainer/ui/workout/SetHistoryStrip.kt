@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,6 +40,7 @@ import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SetRowCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
+import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Danger
@@ -155,15 +155,19 @@ internal fun SetHistoryStrip(
                         expanded = openMenuFor == set.id,
                         onDismissRequest = { openMenuFor = null },
                     ) {
-                        DropdownMenuItem(
-                            text = { Text(SetRowCopy.revise(ordinal), style = InstrumentType.bodyStrong, color = TextPrimary) },
+                        InstrumentMenuItem(
+                            spokenLabel = SetRowCopy.revise(ordinal),
+                            leadingIcon = TemperIcons.Edit,
                             onClick = {
                                 openMenuFor = null
                                 onEdit(set.id)
                             },
                         )
-                        DropdownMenuItem(
-                            text = { Text(SetRowCopy.delete(ordinal), style = InstrumentType.bodyStrong, color = Danger) },
+                        InstrumentMenuItem(
+                            spokenLabel = SetRowCopy.delete(ordinal),
+                            leadingIcon = TemperIcons.Delete,
+                            iconTint = Danger,
+                            textColor = Danger,
                             onClick = {
                                 openMenuFor = null
                                 onDelete(set.id)

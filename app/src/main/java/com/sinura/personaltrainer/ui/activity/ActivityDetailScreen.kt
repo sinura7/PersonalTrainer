@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -49,6 +48,8 @@ import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
+import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NotesBlock
@@ -272,14 +273,10 @@ private fun activityDeleteOverflow(
             expanded = menuOpen,
             onDismissRequest = { onMenuOpenChange(false) },
         ) {
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        ActivityEditCopy.DELETE,
-                        style = InstrumentType.bodyStrong,
-                        color = TextSecondary,
-                    )
-                },
+            InstrumentMenuItem(
+                spokenLabel = ActivityEditCopy.DELETE,
+                leadingIcon = TemperIcons.Delete,
+                textColor = TextSecondary,
                 onClick = {
                     onMenuOpenChange(false)
                     onDelete()

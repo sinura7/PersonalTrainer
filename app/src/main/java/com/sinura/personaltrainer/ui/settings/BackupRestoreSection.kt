@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -35,6 +34,8 @@ import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
+import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.InstrumentSwitch
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -354,33 +355,29 @@ internal fun SafetyCopyRow(
                     )
                 }
                 InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = {
-                            Text("Export", style = InstrumentType.bodyStrong, color = TextPrimary)
-                        },
+                    InstrumentMenuItem(
+                        spokenLabel = "Export",
+                        leadingIcon = TemperIcons.Backup,
                         onClick = {
                             menuOpen = false
                             onExport()
                         },
                     )
-                    DropdownMenuItem(
+                    InstrumentMenuItem(
+                        spokenLabel = "Restore…",
+                        leadingIcon = TemperIcons.Backup,
                         enabled = !restoreBlocked,
-                        text = {
-                            Text(
-                                "Restore…",
-                                style = InstrumentType.bodyStrong,
-                                color = if (restoreBlocked) TextDisabled else Danger,
-                            )
-                        },
+                        iconTint = if (restoreBlocked) TextDisabled else Danger,
+                        textColor = if (restoreBlocked) TextDisabled else Danger,
                         onClick = {
                             menuOpen = false
                             onRestore()
                         },
                     )
-                    DropdownMenuItem(
-                        text = {
-                            Text("Delete…", style = InstrumentType.bodyStrong, color = TextSecondary)
-                        },
+                    InstrumentMenuItem(
+                        spokenLabel = "Delete…",
+                        leadingIcon = TemperIcons.Delete,
+                        textColor = TextSecondary,
                         onClick = {
                             menuOpen = false
                             onDelete()

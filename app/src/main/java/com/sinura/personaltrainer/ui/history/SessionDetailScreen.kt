@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -45,6 +44,9 @@ import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
+import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
@@ -59,7 +61,6 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
-import com.sinura.personaltrainer.ui.components.OutlinedMarks
 
 object SessionDetailTestTags {
     const val CONTENT = "session-detail-content"
@@ -153,27 +154,18 @@ fun SessionDetailScreen(
                                 )
                             }
                             InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            "Repeat workout",
-                                            style = InstrumentType.bodyStrong,
-                                            color = TextPrimary,
-                                        )
-                                    },
+                                InstrumentMenuItem(
+                                    spokenLabel = "Repeat workout",
+                                    leadingIcon = OutlinedMarks.PlaylistAdd,
                                     onClick = {
                                         menuOpen = false
                                         viewModel.repeatSession()
                                     },
                                 )
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            "Delete session…",
-                                            style = InstrumentType.bodyStrong,
-                                            color = TextSecondary,
-                                        )
-                                    },
+                                InstrumentMenuItem(
+                                    spokenLabel = "Delete session…",
+                                    leadingIcon = TemperIcons.Delete,
+                                    textColor = TextSecondary,
                                     onClick = {
                                         menuOpen = false
                                         confirmDelete = true

@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -48,6 +47,9 @@ import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
+import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
+import com.sinura.personaltrainer.ui.components.TemperIcons
+import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
@@ -222,16 +224,22 @@ fun LiveSessionBar(
                     }
                     InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         if (state.canFinish) {
-                            DropdownMenuItem(
-                                text = { Text(LiveBarCopy.finish(state.kind), style = InstrumentType.body) },
+                            val finishLabel = LiveBarCopy.finish(state.kind)
+                            InstrumentMenuItem(
+                                spokenLabel = finishLabel,
+                                leadingIcon = TemperIcons.Check,
+                                textStyle = InstrumentType.body,
                                 onClick = {
                                     menuOpen = false
                                     onFinish()
                                 },
                             )
                         }
-                        DropdownMenuItem(
-                            text = { Text(LiveBarCopy.discard(state.kind), style = InstrumentType.body) },
+                        InstrumentMenuItem(
+                            spokenLabel = LiveBarCopy.discard(state.kind),
+                            leadingIcon = TemperIcons.Delete,
+                            iconTint = Danger,
+                            textStyle = InstrumentType.body,
                             onClick = {
                                 menuOpen = false
                                 confirmDiscard = true

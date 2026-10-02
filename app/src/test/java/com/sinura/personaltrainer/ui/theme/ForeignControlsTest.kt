@@ -54,6 +54,7 @@ class ForeignControlsTest {
             "ui/settings/BackupRestoreSection.kt",
             "ui/components/GymSurfaces.kt",
             "ui/navigation/LiveSessionBar.kt",
+            "ui/activity/ActivityDetailScreen.kt",
         )
         val materialMenu = Regex("material3\\.DropdownMenu\\b")
         menuSites.forEach { path ->
@@ -81,13 +82,19 @@ class ForeignControlsTest {
         }
         assertTrue(readOwned("ui/workout/WorkoutDock.kt").contains("GymUndoHost("))
         assertEquals(2, switchSites.size)
-        assertEquals(7, menuSites.size)
+        assertEquals(8, menuSites.size)
         assertEquals(4, snackbarHosts.size)
         assertTrue(readOwned("ui/components/InstrumentSwitch.kt").contains("fun InstrumentSwitch("))
         val menu = readOwned("ui/components/InstrumentMenu.kt")
         assertTrue(menu.contains("fun InstrumentMenu("))
+        assertTrue(menu.contains("fun InstrumentMenuItem("))
         assertTrue(menu.contains("tonalElevation = 0.dp"))
         assertTrue(menu.contains("shadowElevation = 0.dp"))
+        menuSites.forEach { path ->
+            val src = readOwned(path)
+            assertFalse("$path still uses raw DropdownMenuItem", src.contains("DropdownMenuItem("))
+            assertTrue("$path should use InstrumentMenuItem", src.contains("InstrumentMenuItem("))
+        }
     }
 
     private fun readOwned(relative: String): String {
