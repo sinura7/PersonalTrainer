@@ -108,11 +108,13 @@ class CompletedTrainingParityTest {
         assertEquals(fixtures.mixedDay, summary(state, fixtures.mixedId).localEpochDay)
 
         val months = state.monthGroups.associate { it.month to it.entries.map { entry -> entry.id }.toSet() }
-        val currentMonth = CivilYearMonth.from(CivilDate.fromEpochDay(fixtures.strengthDay))
-        val previousMonth = CivilYearMonth.from(CivilDate.fromEpochDay(fixtures.backdatedDay))
-        assertTrue(months.getValue(currentMonth).containsAll(
-            setOf(fixtures.strengthId, fixtures.cardioId, fixtures.mixedId),
-        ))
+        fun monthOf(day: Long) = CivilYearMonth.from(CivilDate.fromEpochDay(day))
+        val previousMonth = monthOf(fixtures.backdatedDay)
+        // Each fixture lands in the month of its local day — cardio can sit in the prior month
+        // when "today" is early in the month (today minus three crosses the boundary).
+        assertTrue(months.getValue(monthOf(fixtures.strengthDay)).contains(fixtures.strengthId))
+        assertTrue(months.getValue(monthOf(fixtures.cardioDay)).contains(fixtures.cardioId))
+        assertTrue(months.getValue(monthOf(fixtures.mixedDay)).contains(fixtures.mixedId))
         assertTrue(months.getValue(previousMonth).contains(fixtures.backdatedId))
 
         val todayCell = state.calendar.weeks.flatten().single {
