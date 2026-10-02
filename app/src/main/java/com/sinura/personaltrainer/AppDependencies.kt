@@ -31,6 +31,7 @@ import com.sinura.personaltrainer.workout.StartOccurrence
 import com.sinura.personaltrainer.workout.StartTrainingDay
 import com.sinura.personaltrainer.workout.WorkoutDraftCache
 import com.sinura.personaltrainer.domain.AccountAuthPort
+import com.sinura.personaltrainer.domain.PhoneCapabilityPort
 import com.sinura.personaltrainer.domain.SyncStatusPort
 import com.sinura.personaltrainer.domain.TimePort
 import kotlinx.coroutines.CoroutineDispatcher
@@ -58,6 +59,8 @@ interface AppDependencies {
     val computeDispatcher: CoroutineDispatcher
 
     val time: TimePort
+
+    val phoneCapabilities: PhoneCapabilityPort
 
     val dbMaintenance: DbMaintenance
     val exerciseRepository: ExerciseRepository

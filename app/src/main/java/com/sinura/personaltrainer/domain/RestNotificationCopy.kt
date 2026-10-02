@@ -10,7 +10,8 @@ object RestNotificationCopy {
     const val TITLE = "Rest alerts"
 
     const val SENTENCE =
-        "Rest stays visible in the shade when the phone is in your pocket."
+        "Rest stays visible in the shade when the phone is in your pocket.\n\n" +
+            PermissionsCopy.MANAGE_IN_SETTINGS
 
     const val CONTINUE = "Continue"
 

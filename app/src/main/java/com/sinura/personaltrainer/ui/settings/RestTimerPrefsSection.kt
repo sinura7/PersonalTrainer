@@ -55,7 +55,8 @@ internal fun RestTimerPrefsSection(
             GymNoticeBanner(
                 title = "Rest alerts may be delayed",
                 body = "This phone has not allowed precise rest alarms. The timer still runs, " +
-                    "but the cue can arrive late if the screen is off.",
+                    "but the cue can arrive late if the screen is off.\n\n" +
+                    com.sinura.personaltrainer.domain.PermissionsCopy.MANAGE_IN_SETTINGS,
                 actionLabel = "Allow precise rest alerts",
                 onAction = onAllowPreciseRestAlerts,
             )

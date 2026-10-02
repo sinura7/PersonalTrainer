@@ -59,10 +59,12 @@ import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.reminder.WorkManagerReminderScheduler
 import com.sinura.personaltrainer.insights.TrainingInsightsSource
+import com.sinura.personaltrainer.timer.AndroidPhoneCapabilities
 import com.sinura.personaltrainer.timer.RestTimerController
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
 import com.sinura.personaltrainer.timer.SharedPrefsRestTimerStatePersistence
+import com.sinura.personaltrainer.domain.PhoneCapabilityPort
 import com.sinura.personaltrainer.workout.CompleteTraining
 import com.sinura.personaltrainer.workout.DiscardWorkout
 import com.sinura.personaltrainer.workout.FinishWorkout
@@ -75,6 +77,7 @@ class AppContainer(context: Context) : AppDependencies {
     override val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
     override val computeDispatcher: CoroutineDispatcher = Dispatchers.Default
     override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime
+    override val phoneCapabilities: PhoneCapabilityPort = AndroidPhoneCapabilities(context)
 
     /**
      * Temper Debug only. Gym-floor is [DisabledDebugUpdate]: it never talks to
