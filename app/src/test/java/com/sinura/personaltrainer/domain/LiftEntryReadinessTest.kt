@@ -28,6 +28,10 @@ class LogCommitCopyTest {
         )
         assertEquals(null, LogCommitCopy.disabledReason(logging = false, liftReady = true))
         assertEquals(
+            LogCommitCopy.EFFORT_MISSING,
+            LogCommitCopy.disabledReason(logging = false, liftReady = true, effortMissing = true),
+        )
+        assertEquals(
             "Could not save. Your set is still here. Try again.",
             LogCommitCopy.WRITE_FAILED,
         )

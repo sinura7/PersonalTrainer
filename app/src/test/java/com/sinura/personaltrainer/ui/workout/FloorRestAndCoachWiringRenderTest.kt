@@ -255,6 +255,8 @@ class FloorRestAndCoachWiringRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.START_SET_CLOCK).assertDoesNotExist()
         val target = checkNotNull(vm.uiState.value.draft.durationSeconds)
+        vm.pickEffortIfNeeded()
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.holdTimer.value.running }
         compose.waitForIdle()
@@ -364,6 +366,8 @@ class FloorRestAndCoachWiringRenderTest {
         scrollTo(WorkoutTestTags.RPE_TRACK)
         RpeCopy.VALUES.forEach { compose.onNodeWithTag(WorkoutTestTags.rpeChoice(it)).assertIsEnabled() }
         val gate = CompletableDeferred<Unit>().also { insertGate = it }
+        vm.pickEffortIfNeeded()
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.entryLocked }
         compose.waitForIdle()
@@ -384,6 +388,8 @@ class FloorRestAndCoachWiringRenderTest {
         scrollTo(WorkoutTestTags.NEXT_SET)
         compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertIsDisplayed()
         val gate = CompletableDeferred<Unit>().also { insertGate = it }
+        vm.pickEffortIfNeeded()
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.entryLocked }
         compose.waitForIdle()
@@ -570,6 +576,8 @@ class FloorRestAndCoachWiringRenderTest {
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled()
         val gate = CompletableDeferred<Unit>().also { insertGate = it }
+        vm.pickEffortIfNeeded()
+        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.entryLocked }
         compose.waitForIdle()

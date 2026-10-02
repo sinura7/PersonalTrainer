@@ -96,17 +96,17 @@ class CoachRecomputeTest {
         val fixture = seedWorkout()
         val log = createLog(fixture.session.id)
         log.logTheFirstSet()
-        val hold = log.awaitCall("the Log's call after a set with no RPE") {
-            it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD
+        val hold = log.awaitCall("the Log's call after a set at RPE 8") {
+            it?.reasonCode == SetMicroRecCalculator.QUALITY
         }
         val holdLine = log.shownNextLine(log.awaitState { !it.entryLocked })
-        assertEquals("the card after 100 kg × 5 with no RPE", "Next: 100 kg × 5", holdLine)
+        assertEquals("the card after 100 kg × 5 at RPE 8", "Next: 100 kg × 5 · RPE 8", holdLine)
 
         log.setWeight(102.5)
         val stepped = log.awaitState { it.draft.weightKg == 102.5 && !it.entryLocked }
-        assertEquals("a weight step with no RPE leaves the Log's card as it was", holdLine, log.shownNextLine(stepped))
+        assertEquals("a weight step with no RPE chosen yet leaves the Log's card as it was", holdLine, log.shownNextLine(stepped))
         assertEquals(
-            "a weight step with no RPE leaves the Log's call as it was",
+            "a weight step with no RPE chosen yet leaves the Log's call as it was",
             hold?.content(),
             log.microRec.value?.content(),
         )
@@ -164,8 +164,8 @@ class CoachRecomputeTest {
         val log = createLog(fixture.session.id)
         log.logTheFirstSet()
         val hold = checkNotNull(
-            log.awaitCall("the Log's call after a set with no RPE") {
-                it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD
+            log.awaitCall("the Log's call after a set at RPE 8") {
+                it?.reasonCode == SetMicroRecCalculator.QUALITY
             },
         )
         dispatcher.scheduler.advanceUntilIdle()
@@ -179,14 +179,15 @@ class CoachRecomputeTest {
         watch.cancel()
 
         val stamps = issued.map { it?.trace?.generatedAtMs }
-        assertEquals("a weight step with no RPE, a second later, asked the coach again: $stamps", 1, issued.size)
+        assertEquals("a weight step with no RPE chosen yet, a second later, asked the coach again: $stamps", 1, issued.size)
         assertSame("the Log's call is the one it already had", hold, log.microRec.value)
 
         // The call still carries the time it was made (ADR-008): a change the coach reads is
         // asked about with the clock as it is now, not as it was when the key last changed.
-        log.setRpe(8)
+        // RPE 9, not 8: the logged set was an 8, so choosing 8 again asks the same question.
+        log.setRpe(9)
         val asked = checkNotNull(
-            log.awaitCall("the Log's call once RPE 8 is chosen") { it != null && it.content() != hold.content() },
+            log.awaitCall("the Log's call once RPE 9 is chosen") { it != null && it.content() != hold.content() },
         )
         assertEquals("the new call is stamped with the clock at the ask", clock.nowMillis(), asked.trace.generatedAtMs)
     }

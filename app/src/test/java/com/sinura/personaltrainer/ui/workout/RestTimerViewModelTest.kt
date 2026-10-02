@@ -157,7 +157,7 @@ class RestTimerViewModelTest {
         val fixture = seedWorkout(targetSets = 3, restSeconds = 90)
         val workout = createWorkoutViewModel(fixture.session.id)
         workout.awaitState { it.loadState == SessionLoadState.FOUND && it.draft.weightKg > 0.0 }
-        workout.logSet()
+        workout.logWorkingSet()
         workout.awaitState { !it.logging }
         dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
         dispatcher.scheduler.runCurrent()
@@ -172,7 +172,7 @@ class RestTimerViewModelTest {
                 it.floor.sessionTargetLine != null
         }
         assertEquals("Last set · 100 kg × 5", state.floor.lastSetLine)
-        assertEquals("Next: 100 kg × 5", state.floor.sessionTargetLine)
+        assertEquals("Next: 100 kg × 5 · RPE 8", state.floor.sessionTargetLine)
         assertTrue(state.rest.running)
         assertEquals(fixture.session.id, deps.restTimerStore.current().sessionId)
 

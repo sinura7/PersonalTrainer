@@ -158,6 +158,16 @@ class WorkoutEntryJourneyInstrumentedTest {
         hasTestTag(WorkoutTestTags.setOptions(setId)) and hasAnyAncestor(hasTestTag(WorkoutTestTags.SAVED_SETS_SHEET))
 
     /** The floor is a lazy list: an item below the fold is not composed until scrolled to. */
+    /**
+     * The effort a working set needs before Log takes it (P2a), set through the ViewModel: a
+     * scroll to the chip would move the list, and the eight-saves journey measures that the
+     * entry does not move. The chip itself is tapped in [warmupPresetOnlyChangesDraftAndSavingReturnsToWorkingWithClearEffort].
+     */
+    private fun pickEffort() {
+        compose.runOnIdle { fixture.vm.setRpe(8) }
+        compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.rpe == 8 }
+    }
+
     private fun scrollContentTo(tag: String): SemanticsNodeInteraction {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
         return compose.onNodeWithTag(tag)
@@ -193,6 +203,8 @@ class WorkoutEntryJourneyInstrumentedTest {
         val before = compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).fetchSemanticsNode().boundsInRoot.top
         val buttonBottom = compose.onNodeWithTag(WorkoutTestTags.LOG_SET).fetchSemanticsNode().boundsInRoot.bottom
         repeat(8) { index ->
+            // A working set logs only with its effort (P2a); the journey picks one as a thumb would.
+            pickEffort()
             compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
             awaitSets(index + 1)
             compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsDisplayed()
@@ -269,7 +281,7 @@ class WorkoutEntryJourneyInstrumentedTest {
 
     @Test fun savedSetsSheetEditsTheChosenRowDeletesAndUndoesWithoutAnotherInsert() {
         mount(fontScale = 2f)
-        repeat(2) { compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick(); awaitSets(it + 1) }
+        repeat(2) { pickEffort(); compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick(); awaitSets(it + 1) }
         val original = savedSets().first()
         scrollContentTo(WorkoutTestTags.VIEW_SETS).performClick()
         compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed()
@@ -322,6 +334,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.onNodeWithText("Stop timing").performClick()
         compose.waitUntil(5_000) { !fixture.vm.setStopwatch.value.running }
         assertTrue(savedSets().isEmpty())
+        pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed()

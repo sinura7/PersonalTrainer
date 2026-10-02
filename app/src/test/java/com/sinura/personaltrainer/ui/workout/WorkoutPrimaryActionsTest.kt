@@ -106,6 +106,14 @@ class WorkoutPrimaryActionsTest {
     }
 
     @Test
+    fun aWorkingSetWithNoEffortKeepsLogOffUntilOneIsChosen() {
+        val ready = state()
+        assertFalse(derive(ready).enabled)
+        assertTrue(derive(ready.copy(draft = ready.draft.copy(rpe = 8))).enabled)
+        assertTrue(derive(ready.copy(draft = ready.draft.copy(isWarmup = true))).enabled)
+    }
+
+    @Test
     fun timerTickPreservesPressIdentityButAChangedDraftOrSavedSetInvalidatesIt() {
         val state = state()
         val first = derive(state, stopwatch = SetStopwatchUiState(running = true, used = true, elapsedSeconds = 12))

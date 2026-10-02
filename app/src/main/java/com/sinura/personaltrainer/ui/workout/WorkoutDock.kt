@@ -75,6 +75,7 @@ internal data class WorkoutDockState(
     val editing: Boolean,
     val logging: Boolean,
     val canLog: Boolean,
+    val effortMissingForCommit: Boolean = false,
     val savePending: Boolean,
     val error: String?,
     val suggestionUnavailable: Boolean,
@@ -296,7 +297,11 @@ internal fun WorkoutDock(
                         if (accepted && action.kind == WorkoutPrimaryKind.REVIEW_SAVE) saveDetails = true
                     },
                     enabled = action.enabled,
-                    disabledReason = LogCommitCopy.disabledReason(logging = state.logging, liftReady = state.canLog || state.logging),
+                    disabledReason = LogCommitCopy.disabledReason(
+                        logging = state.logging,
+                        liftReady = state.canLog || state.logging,
+                        effortMissing = state.effortMissingForCommit && !state.logging,
+                    ),
                     modifier = Modifier
                         .testTag(
                             when {

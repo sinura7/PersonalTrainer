@@ -283,7 +283,7 @@ class FloorUndoCharacterisationTest {
         // A log whose write fails leaves its save held until the lifter retries it.
         vm.uiState.awaitFirst { it.canLog }
         failWrites = true
-        vm.logSet()
+        vm.logWorkingSet()
         vm.uiState.awaitFirst { it.save.phase == WorkoutSavePhase.FAILED && !it.logging }
         assertTrue("the failed save is still held", vm.uiState.value.save.pending)
 

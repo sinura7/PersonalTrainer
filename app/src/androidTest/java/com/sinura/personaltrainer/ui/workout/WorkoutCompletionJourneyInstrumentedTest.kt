@@ -62,11 +62,18 @@ class WorkoutCompletionJourneyInstrumentedTest {
         SystemClock.sleep(android.view.ViewConfiguration.getDoubleTapTimeout().toLong() + 20)
     }
 
+    /** A working set logs only with its effort (P2a): the journey picks 8 through the ViewModel, as the layout tests log. */
+    private fun pickEffort() {
+        compose.runOnIdle { fixture.vm.setRpe(8) }
+        compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.rpe == 8 }
+    }
+
     @Test fun logExtraAdvanceAndFinishKeepTheCorrectExerciseAndTotals() {
         fixture.seed(targetSets = 1)
         val next = fixture.addNextExercise()
         mount()
         val first = fixture.vm.uiState.value.selectedExerciseId
+        pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
         // Next needs a tap, and the commit names where it goes.
@@ -74,12 +81,14 @@ class WorkoutCompletionJourneyInstrumentedTest {
             .assert(hasContentDescription(next.name, substring = true))
         assertEquals(first, fixture.vm.uiState.value.selectedExerciseId)
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
+        pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(2)
         assertTrue(session().sets.all { it.exerciseId == first })
         compose.onNodeWithTag(WorkoutTestTags.NEXT).performClick()
         compose.waitUntil(15_000) { fixture.vm.uiState.value.selectedExerciseId == next.id && fixture.vm.uiState.value.draft.weightKg == 40.0 }
         SystemClock.sleep(android.view.ViewConfiguration.getDoubleTapTimeout().toLong() + 20)
+        pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(3)
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed().performClick()
@@ -93,6 +102,7 @@ class WorkoutCompletionJourneyInstrumentedTest {
     @Test fun deletingAndUndoingTheTargetSetRecomputeCompletionWithoutAddingASet() {
         fixture.seed(targetSets = 1)
         mount()
+        pickEffort()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
         val original = session().sets.single()

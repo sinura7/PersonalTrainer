@@ -250,7 +250,7 @@ class LogNextCardInputsTest {
             ?: throw AssertionError("Never saw the log receipt; the Log showed ${log.uiState.value}")
         assertEquals(
             "the log receipt names the set in pounds",
-            "Working set 1 of 3 logged · 220.5 lb × 5",
+            "Working set 1 of 3 logged · 220.5 lb × 5 · RPE 8",
             receipt.line,
         )
 

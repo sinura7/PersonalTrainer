@@ -148,7 +148,7 @@ class WorkoutReadRecoveryTest {
         vm.finishWorkout()
         vm.discardWorkout()
         vm.removeSelectedLift()
-        vm.logSet()
+        vm.logWorkingSet()
         val saved = deps.workoutRepository.getSession(fixture.session.id)!!
         assertFalse(saved.isFinished)
         assertEquals(1, saved.exercises.size)

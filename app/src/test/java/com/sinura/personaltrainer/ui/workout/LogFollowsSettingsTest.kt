@@ -596,7 +596,7 @@ class LogFollowsSettingsTest {
         // The workout's rows stop reaching the Log, as a flow that skips a row can: the set is
         // saved, acknowledged and deleted before the Log ever shows it.
         dropRows = true
-        log.logSet()
+        log.logWorkingSet()
         val setId = withTimeoutOrNull(TestWaits.FLOW_MS) {
             var id: String? = null
             while (id == null) {
@@ -635,7 +635,7 @@ class LogFollowsSettingsTest {
         val log = createLog(sessionId)
         log.awaitReady(SQUAT, weightKg = 102.5)
         val gate = CompletableDeferred<Unit>().also { rowGate = it }
-        log.logSet()
+        log.logWorkingSet()
         withTimeoutOrNull(TestWaits.FLOW_MS) {
             while (deps.workoutRepository.getSession(sessionId)?.sets.isNullOrEmpty()) delay(10)
         } ?: throw AssertionError("the set was never stored; the Log showed ${describe(log.uiState.value)}")
@@ -666,7 +666,7 @@ class LogFollowsSettingsTest {
         log.awaitReady(SQUAT, weightKg = 102.5)
         log.editSet(warmUpId)
         log.awaitLog("the warm-up open for correction") { it.editingSetId == warmUpId && it.draft.isWarmup && !it.entryLocked }
-        log.logSet()
+        log.logWorkingSet()
         val saved = log.awaitLog("the correction saved unchanged") {
             it.editingSetId == null && it.save.phase == WorkoutSavePhase.IDLE && !it.entryLocked && it.draft.weightKg == 60.0
         }

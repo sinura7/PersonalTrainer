@@ -83,7 +83,7 @@ class WorkoutEntryLayoutInstrumentedTest(
         if (scenario == "large") compose.runOnIdle { fixture.vm.setWeight(99999.99) }
         if (scenario == "error") compose.runOnIdle { fixture.vm.skipForNow() }
         if (scenario == "latest" || scenario == "undo") {
-            compose.runOnIdle { fixture.vm.logSet() }
+            compose.runOnIdle { fixture.vm.setRpe(8); fixture.vm.logSet() }
             compose.waitUntil(15_000) { fixture.vm.uiState.value.session?.sets?.size == 1 && !fixture.vm.uiState.value.logging }
             compose.runOnIdle { fixture.vm.skipRest(); fixture.vm.onLogReceiptShown() }
             if (scenario == "undo") {

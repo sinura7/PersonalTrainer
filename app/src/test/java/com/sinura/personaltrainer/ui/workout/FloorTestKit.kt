@@ -44,6 +44,8 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.SessionExercise
+import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -455,12 +457,36 @@ internal suspend fun WorkoutRepository.awaitSession(
  * That is what wedged ActiveWorkoutViewModelTest intermittently. The wait below is for an
  * outcome only this log can produce, not for flags an earlier snapshot also shows.
  */
+/** The effort a test's lifter picks when the set needs one and the test says nothing about it. */
+internal const val TEST_EFFORT = 8
+
+/**
+ * Picks [TEST_EFFORT] for the draft when the rule would refuse the set without one: a working
+ * set of a non-hold lift with no effort (P2a, `SetLogRules.requiresEffort`). A warm-up, a
+ * hold, or a draft that already carries an effort is left alone, so a test that sets its own
+ * value keeps it, and a test about the refusal calls [ActiveWorkoutViewModel.logSet] itself.
+ */
+internal fun ActiveWorkoutViewModel.pickEffortIfNeeded() {
+    val state = uiState.value
+    val lift = state.session?.exercises?.firstOrNull { it.exercise.id == state.selectedExerciseId } ?: return
+    val hold = HoldWork.isHold(lift.exercise)
+    if (state.draft.rpe == null && SetLogRules.requiresEffort(isWarmup = state.draft.isWarmup, isHold = hold)) {
+        setRpe(TEST_EFFORT)
+    }
+}
+
+/** A plain log as a lifter would make it: with the effort the set needs, then [ActiveWorkoutViewModel.logSet]. */
+internal fun ActiveWorkoutViewModel.logWorkingSet() {
+    pickEffortIfNeeded()
+    logSet()
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 internal suspend fun ActiveWorkoutViewModel.logSetAndSettle(repository: WorkoutRepository, scheduler: TestCoroutineScheduler) {
     val sessionId = checkNotNull(uiState.value.session?.id) { "logSetAndSettle before the session loaded" }
     val storedBefore = repository.getSession(sessionId)?.sets.orEmpty().toSet()
     val saveBefore = uiState.value.save
-    logSet()
+    logWorkingSet()
     // Wait for THIS log, not for a quiet screen. "Not logging, not saving" is also true of
     // the snapshot from before the tap: `uiState` combines Room flows on Room's threads,
     // so for a moment after logSet() it can still show the pre-log flags, and waiting on

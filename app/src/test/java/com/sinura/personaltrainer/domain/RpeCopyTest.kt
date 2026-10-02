@@ -6,9 +6,10 @@ import org.junit.Test
 
 class RpeCopyTest {
     @Test
-    fun historyNamesLastEffortAndKeepsRpeOptional() {
-        assertEquals("Optional.", RpeCopy.blurb(null))
-        assertEquals("Last time RPE 8. Optional.", RpeCopy.blurb(8))
+    fun historyNamesLastEffortAndSaysASetNeedsOne() {
+        // P2a (owner decision of 29 September 2026): a working set waits for its effort.
+        assertEquals("Needed for a working set.", RpeCopy.blurb(null))
+        assertEquals("Last time RPE 8. Needed for a working set.", RpeCopy.blurb(8))
         assertEquals(8, RpeCopy.recommended(8))
         assertNull(RpeCopy.recommended(null))
         assertNull(RpeCopy.recommended(3))
@@ -20,7 +21,8 @@ class RpeCopyTest {
             RpeCopy.spoken(8, selected = false),
         )
         assertEquals("RPE 10, max", RpeCopy.spoken(10, selected = true))
-        assertEquals("Effort · optional", RpeCopy.LABEL)
+        assertEquals("Effort", RpeCopy.LABEL)
+        assertEquals("Effort, needed for a working set", RpeCopy.LABEL_SPOKEN)
         assertEquals("Effort help", RpeCopy.HELP_SPOKEN)
         assertEquals(RpeCopy.HELPER, "6 = four reps left · 10 = max")
         assertEquals(RpeCopy.WARMUP_REASON, "Warm-up")

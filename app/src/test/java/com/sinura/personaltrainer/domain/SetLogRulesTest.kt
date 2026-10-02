@@ -7,6 +7,21 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SetLogRulesTest {
+    /** P2a (owner decision of 29 September 2026): a working set needs its effort; warm-ups and holds do not. */
+    @Test
+    fun aWorkingSetNeedsAnEffortAndWarmupsAndHoldsDoNot() {
+        assertEquals(SetLogRules.EFFORT_MISSING, SetLogRules.validateEffort(rpe = null, isWarmup = false, isHold = false))
+        assertNull(SetLogRules.validateEffort(rpe = 8, isWarmup = false, isHold = false))
+        assertNull(SetLogRules.validateEffort(rpe = null, isWarmup = true, isHold = false))
+        assertNull(SetLogRules.validateEffort(rpe = null, isWarmup = false, isHold = true))
+        assertTrue(SetLogRules.requiresEffort(isWarmup = false, isHold = false))
+        assertFalse(SetLogRules.requiresEffort(isWarmup = true, isHold = false))
+        assertFalse(SetLogRules.requiresEffort(isWarmup = false, isHold = true))
+        // The refusal is a field message: the floor shows it by the entry, History as its error.
+        assertTrue(SetLogRules.isFieldMessage(SetLogRules.EFFORT_MISSING))
+        assertTrue(SetLogRules.isUserMessage(SetLogRules.EFFORT_MISSING))
+    }
+
     @Test
     fun allowsZeroKgWarmup() {
         assertNull(SetLogRules.validate(weightKg = 0.0, reps = 8, isWarmup = true))

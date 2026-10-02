@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.domain.LiftEntryReadiness
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.LogCommitCopy
 import com.sinura.personaltrainer.domain.LogCommitFeedback
+import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.UndoKind
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -273,7 +274,7 @@ class ActiveWorkoutViewModelTest {
 
         vm.setWeight(0.0)
         // A refusal writes nothing, so there is no save to wait for; wait for the refusal.
-        vm.logSet()
+        vm.logWorkingSet()
 
         val state = vm.awaitState { it.error != null }
         assertTrue(state.error.orEmpty().contains("weight", ignoreCase = true))
@@ -364,7 +365,7 @@ class ActiveWorkoutViewModelTest {
         val stepped = FloorStepper.nextHoldSeconds(30, 1)
         vm.setHoldSeconds(stepped)
         vm.awaitState { it.draft.durationSeconds == stepped }
-        vm.logSet()
+        vm.logWorkingSet()
 
         val hold = vm.holdTimer.value
         assertTrue(hold.running)
@@ -382,7 +383,7 @@ class ActiveWorkoutViewModelTest {
             it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
         }
 
-        vm.logSet()
+        vm.logWorkingSet()
 
         val hold = vm.holdTimer.value
         assertTrue(hold.running)
@@ -614,7 +615,7 @@ class ActiveWorkoutViewModelTest {
             vm.setWarmup(true)
             vm.awaitState { it.draft.isWarmup }
 
-            vm.logSet()
+            vm.logWorkingSet()
             // The gate holds the insert open, so this is the window a lifter acts in: the tap
             // has happened, the row has not. Asserted, because a test that ran after the write
             // would prove nothing at all. No database read here — it would queue behind the
@@ -927,7 +928,7 @@ class ActiveWorkoutViewModelTest {
         // edit closing — the pre-tap snapshot still had the edit open, so neither can pass
         // on stale state (a bare idle wait lost CI on 22 September, 110 read before the 120
         // write landed).
-        vm.logSet()
+        vm.logWorkingSet()
         awaitSession(fixture.session.id) { it.sets.singleOrNull()?.weightKg == 110.0 }
         vm.awaitState { it.editingSetId == null && !it.entryLocked }
         dispatcher.scheduler.advanceTimeBy(Motion.ROW_SETTLE_MS.toLong())
@@ -939,7 +940,7 @@ class ActiveWorkoutViewModelTest {
         vm.editSet(setId)
         vm.awaitEditOpen(setId)
         vm.setWeight(120.0)
-        vm.logSet()
+        vm.logWorkingSet()
         awaitSession(fixture.session.id) { it.sets.singleOrNull()?.weightKg == 120.0 }
         val settled = vm.awaitState { it.editingSetId == null && !it.entryLocked }
 
@@ -1141,7 +1142,7 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
         vm.awaitPrefilled()
 
-        vm.logSet()
+        vm.logWorkingSet()
         vm.awaitState { it.logging }
         // Room has not returned yet. Advancing here cannot run a rest job that
         // the ViewModel will only schedule after the insert completes.
@@ -1271,7 +1272,7 @@ class ActiveWorkoutViewModelTest {
         vm.setRpe(8)
         vm.awaitState { it.draft.rpe == 8 }
 
-        vm.logSet()
+        vm.logWorkingSet()
         vm.awaitState { !it.logging }
         val receipt = checkNotNull(vm.logReceipt.value)
         val row = checkNotNull(deps.workoutRepository.getSession(fixture.session.id)).sets.single()
@@ -1386,16 +1387,18 @@ class ActiveWorkoutViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         vm.awaitState { it.session?.sets?.size == 1 }
         vm.skipRest()
+        // The logged set carried RPE 8 (every working set does since P2a); the next set has none
+        // chosen yet, and a weight step without one leaves the coach's call as it was.
         val rec = checkNotNull(
             withTimeout(TestWaits.FLOW_MS) {
-                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
+                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.QUALITY }
             },
         )
         vm.setWeight(102.5)
         dispatcher.scheduler.advanceUntilIdle()
         val after = checkNotNull(
             withTimeout(TestWaits.FLOW_MS) {
-                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.SKIP_RPE_HOLD }
+                vm.microRec.first { it?.reasonCode == SetMicroRecCalculator.QUALITY }
             },
         )
         assertEquals(rec.nextWeightKg, after.nextWeightKg, 0.0001)
@@ -2047,8 +2050,8 @@ class ActiveWorkoutViewModelTest {
         vm.awaitState {
             it.loadState == SessionLoadState.FOUND && it.draft.weightKg == 100.0
         }
-        vm.logSet()
-        vm.logSet()
+        vm.logWorkingSet()
+        vm.logWorkingSet()
         val persisted = awaitSession(fixture.session.id) { it.sets.isNotEmpty() }
         dispatcher.scheduler.advanceUntilIdle()
         assertEquals(1, persisted.sets.size)
@@ -2093,7 +2096,7 @@ class ActiveWorkoutViewModelTest {
         vm.setWeight(100.0)
         // F3 serializes entry mutations while saving. Wait for that operation to
         // release before exercising the saved-set removal refusal.
-        vm.logSet()
+        vm.logWorkingSet()
         awaitSession(fixture.session.id) { it.sets.size == 1 }
         vm.awaitState { it.session?.sets?.size == 1 && !it.logging && !it.save.pending }
 
@@ -2133,7 +2136,7 @@ class ActiveWorkoutViewModelTest {
         try {
             vm.awaitFound()
             assertFalse(vm.uiState.value.canLog)
-            vm.logSet()
+            vm.logWorkingSet()
             assertTrue(deps.workoutRepository.getSession(fixture.session.id)!!.sets.isEmpty())
             gate.complete(Unit)
             val ready = vm.awaitState {
@@ -2331,6 +2334,7 @@ class ActiveWorkoutViewModelTest {
         }
         assertTrue(state.suggestionUnavailable)
         assertTrue(state.canLog)
+        assertFalse(state.logCommitReady)
     }
 
     @Test
@@ -2356,14 +2360,14 @@ class ActiveWorkoutViewModelTest {
             val ready = vm.awaitPrefilled()
             assertFalse(ready.canFinish)
             assertTrue(ready.showDiscard)
-            vm.logSet()
+            vm.logWorkingSet()
             // The gate holds the insert open, so logging stays raised until it opens; the
             // combined uiState can publish it a beat after logSet set it.
             val busy = vm.awaitState { it.logging }
             assertFalse(busy.canFinish)
             assertFalse(busy.showDiscard)
             assertFalse(busy.canLog)
-            vm.logSet()
+            vm.logWorkingSet()
             gate.complete(Unit)
             // canFinish needs the whole entry lock released, not only `logging`: the save's
             // tail can still hold it for a beat after the row is in.
@@ -2386,12 +2390,12 @@ class ActiveWorkoutViewModelTest {
         val vm = createViewModel(fixture.session.id, container = gatedLogSet(gate))
         try {
             vm.awaitPrefilled()
-            vm.logSet()
+            vm.logWorkingSet()
             val busy = vm.awaitState { it.logging }
             assertFalse(busy.canLog)
             assertFalse(busy.canFinish)
-            vm.logSet()
-            vm.logSet()
+            vm.logWorkingSet()
+            vm.logWorkingSet()
             gate.complete(Unit)
             val settled = vm.awaitState { !it.entryLocked && it.session?.sets?.size == 1 }
             assertEquals(
@@ -2413,8 +2417,8 @@ class ActiveWorkoutViewModelTest {
         val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
         try {
             vm.awaitPrefilled()
-            vm.logSet()
-            vm.logSet()
+            vm.logWorkingSet()
+            vm.logWorkingSet()
             // The insert is gated, so logging stays raised until the gate opens; the
             // combined uiState can publish it a beat after logSet set it.
             assertTrue(vm.awaitState { it.logging }.logging)
@@ -2453,6 +2457,41 @@ class ActiveWorkoutViewModelTest {
         }
     }
 
+    /**
+     * P2a (owner decision of 29 September 2026): a working set logs only with its effort. Log
+     * stays off until one is picked; warm-ups log without one; with an effort the set goes in.
+     */
+    @Test
+    fun aWorkingSetWithoutAnEffortKeepsLogOffAndAWarmupIsNot() = runBlocking {
+        val fixture = seedWorkout(targetSets = 3)
+        val vm = createViewModel(fixture.session.id)
+        val prefilled = vm.awaitPrefilled()
+        assertTrue(prefilled.canLog)
+        assertFalse(prefilled.logCommitReady)
+        assertTrue(prefilled.effortMissingForCommit)
+        val seen = mutableListOf<LogCommitFeedback>()
+        val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
+        try {
+            vm.logSet()
+            assertEquals(0, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
+            assertNull(vm.uiState.value.error)
+            assertTrue(seen.isEmpty())
+
+            vm.setWarmup(true)
+            vm.logSetAndSettle()
+            awaitSession(fixture.session.id) { it.sets.size == 1 }
+
+            vm.setWarmup(false)
+            vm.setRpe(8)
+            assertTrue(vm.uiState.value.logCommitReady)
+            vm.logSetAndSettle()
+            awaitSession(fixture.session.id) { it.sets.count { set -> !set.isWarmup } == 1 }
+            assertEquals(8, deps.workoutRepository.getSession(fixture.session.id)!!.sets.first { !it.isWarmup }.rpe)
+        } finally {
+            job.cancel()
+        }
+    }
+
     @Test
     fun logSetRejectsZeroWeightWithoutSuccessHaptic() = runBlocking {
         val fixture = seedWorkout(targetWeightKg = 0.0)
@@ -2464,7 +2503,7 @@ class ActiveWorkoutViewModelTest {
         try {
             vm.setWeight(0.0)
             // A refusal writes nothing, so there is no save to wait for; wait for the refusal.
-            vm.logSet()
+            vm.logWorkingSet()
             vm.awaitState { it.error != null }
             assertEquals(listOf(LogCommitFeedback.REJECT), seen.toList())
             assertFalse(seen.contains(LogCommitFeedback.SUCCESS))

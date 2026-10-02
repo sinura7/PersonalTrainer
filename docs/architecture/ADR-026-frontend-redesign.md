@@ -4,7 +4,11 @@
 - **Date:** 16 September 2026
 - **Amended:** 23 September 2026 — decision 8 by
   [ADR-032](ADR-032-jvm-evidence-lanes.md): JVM renders are the visual
-  evidence; emulator goldens retire as baselines
+  evidence; emulator goldens retire as baselines; 29 September 2026 —
+  decision 3: effort is required on a working set (owner decision, P2a of
+  the eight-asks plan of 29 September, `docs/owner-eight-plan-2026-09-29.md`
+  once #444 lands); warm-ups and
+  holds stay optional. Supersedes W1b's "Effort · optional" (#393).
 - **Supersedes / Related:** ADR-002 §3 branch prefix only; ADR-005/023 visual
   identity retained; ADR-017 day-picker geometry may adapt; ADR-022 Body
   registration refined without replacing keyed catalog stills; ADR-024 gates
@@ -26,7 +30,9 @@ or totals-only History filtering describe the previous design, not the new targe
 2. Preserve Instrument, offline functionality, five destinations, canonical IDs,
    calculation rules, captured-time semantics, persistence and backup formats.
 3. Recompose workout around compact exercise identity, explicit set type,
-   editable values, optional effort, latest saved set and a two-row action area.
+   editable values, effort (optional until 29 September 2026; required on a
+   working set since, `SetLogRules.requiresEffort`), latest saved set and a
+   two-row action area.
    Unapplied suggestions are visibly and semantically distinct from selections.
 4. Completed planned work offers Next exercise (next unfinished, wrapping), then
    Finish workout. Extra sets remain explicit. No automatic advancement.

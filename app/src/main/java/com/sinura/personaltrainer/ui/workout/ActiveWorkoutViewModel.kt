@@ -195,6 +195,18 @@ data class ActiveWorkoutUiState(
             !entryLocked &&
             (liftReadiness.allowsCommit() || draftDirty)
 
+    /** True when [canLog] but a working set still needs an effort before Log may act (P2a). */
+    val effortMissingForCommit: Boolean
+        get() {
+            if (!canLog) return false
+            val exerciseId = selectedExerciseId ?: return false
+            val lift = session?.exercises?.firstOrNull { it.exercise.id == exerciseId } ?: return false
+            val hold = HoldWork.isHold(lift.exercise)
+            return SetLogRules.validateEffort(rpe = draft.rpe, isWarmup = draft.isWarmup, isHold = hold) != null
+        }
+
+    val logCommitReady: Boolean get() = canLog && !effortMissingForCommit
+
     val canFinish: Boolean
         get() = loadState == SessionLoadState.FOUND && session?.sets?.isNotEmpty() == true && !entryLocked
 
@@ -924,8 +936,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     /**
      * Whether [exerciseId]'s entry is one nobody touched, which follows a new suggestion (owner
      * decision of 25 September 2026: "untouched pre-filled numbers follow the new suggestion;
-     * typed numbers stay"). Not typed or chosen ([draftDirty]: a typed or stepped number, reps, an
-     * effort, Warm-up, a ramp chip, Last time and Use); no working set of the lift logged in this
+     * typed numbers stay"). Not typed or chosen ([draftDirty]: a typed or stepped number, reps,
+     * Warm-up, a ramp chip, Last time and Use; not an effort, since P2a made one part of every
+     * working set); no working set of the lift logged in this
      * session (after one the entry is the set just done, and dirty is not cleared by a log); not
      * a warm-up (a logged warm-up opened for correction and cancelled leaves its values, untyped);
      * no set open for correction, and none saved as a correction (it counts as typed); no save in
@@ -1138,7 +1151,10 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         if (draft.value.isWarmup) return
         val current = draft.value
         draft.value = current.copy(rpe = rpe)
-        markDraftDirty()
+        // An effort does not make the entry "typed" (P2a, 29 September 2026). Every working
+        // set now carries one, so counting it would stop every entry after a logged set from
+        // following a unit switch or a lighter week (W2e), and a follow moves only the weight,
+        // which an effort says nothing about. The effort itself is cleared by the log.
         persistDraft()
     }
 
@@ -1512,6 +1528,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             _logFeedback.tryEmit(LogCommitFeedback.REJECT)
             return
         }
+        // A working set logs only with its effort (P2a, owner decision of 29 September 2026).
+        // Here, on the one path every Log, warm-up log, hold log and Save changes takes, so
+        // the floor and the test seam refuse alike; History's corrections check the same rule.
+        // Log is disabled until effort is chosen; this guard catches tests and stray calls.
+        if (SetLogRules.validateEffort(rpe = values.rpe, isWarmup = values.isWarmup, isHold = hold) != null) return
         val command = WorkoutSetSave(
             sessionId = sessionId, exerciseId = exerciseId,
             setId = original?.setId ?: IdFactory.Uuid.newId(),

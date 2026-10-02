@@ -162,8 +162,8 @@ object WorkoutPrimaryActions {
         val enabled = available && when (kind) {
             WorkoutPrimaryKind.UNAVAILABLE, WorkoutPrimaryKind.CHECKING, WorkoutPrimaryKind.SAVING,
             WorkoutPrimaryKind.UPDATING -> false
-            WorkoutPrimaryKind.LOG_SET, WorkoutPrimaryKind.LOG_WARMUP, WorkoutPrimaryKind.SAVE_CHANGES,
-            WorkoutPrimaryKind.START_HOLD, WorkoutPrimaryKind.LOG_HOLD -> state.canLog
+            WorkoutPrimaryKind.LOG_SET, WorkoutPrimaryKind.SAVE_CHANGES -> state.logCommitReady
+            WorkoutPrimaryKind.LOG_WARMUP, WorkoutPrimaryKind.START_HOLD, WorkoutPrimaryKind.LOG_HOLD -> state.canLog
             else -> true
         }
         return WorkoutPrimaryAction(

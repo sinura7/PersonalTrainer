@@ -44,6 +44,24 @@
 > five effort chips are one row; Home's cards and Settings' lists have the
 > same edge. Visible.
 >
+> 29 Sep 2026 — Packet P2a (owner decision of 29 September, the second
+> packet of the eight-asks plan): a working set now needs its effort
+> before Log takes it. With no effort picked, Log stays off and the commit
+> shows "Pick your effort first"; pick one and Log turns on. Warm-ups and
+> timed holds (planks, hangs) still log without one, since the coach never
+> reads effort on those. A working set corrected or added in History needs
+> one too; old sets with no effort are left as they are. The heading reads
+> "Effort" instead of "Effort · optional", and TalkBack says it is needed
+> for a working set. One consequence, by design: with every working set
+> carrying an effort, the coach's "you have another in you" and its shorter
+> in-tank rests fire whenever the efforts say so, where before they waited
+> for a set that happened to have one. And picking an effort no longer
+> counts as typing in the entry, so the numbers the app filled in still
+> follow a unit switch or a lighter week after a logged set (W2e). On the
+> next phone checklist: Log off with no effort (reason on the commit);
+> pick one and Log (saved); log a warm-up and a plank without one (saved);
+> in History, clear a working set's effort and save (refused). Visible.
+>
 > 27 Sep 2026 — Packet N2 (owner decision of 27 September): removing
 > your only lift and then tapping Undo, or adding it back from the
 > picker, left it loading for good, so Log stayed off; and a lift brought

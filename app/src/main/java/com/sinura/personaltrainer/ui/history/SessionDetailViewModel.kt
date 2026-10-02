@@ -179,6 +179,12 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun updateSet(setId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
+        // A corrected working set needs its effort as a fresh one does (P2a). A hold is stored
+        // with no reps, which is how this screen tells one apart.
+        SetLogRules.validateEffort(rpe = rpe, isWarmup = isWarmup, isHold = reps == 0)?.let { missing ->
+            report(IllegalArgumentException(missing), missing)
+            return
+        }
         viewModelScope.launch {
             runCatchingCancellable {
                 container.workoutRepository.updateSet(
@@ -193,6 +199,10 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun addSet(exerciseId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
+        SetLogRules.validateEffort(rpe = rpe, isWarmup = isWarmup, isHold = reps == 0)?.let { missing ->
+            report(IllegalArgumentException(missing), missing)
+            return
+        }
         if (!mutating.compareAndSet(false, true)) return
         viewModelScope.launch {
             try {

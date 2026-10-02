@@ -221,7 +221,7 @@ class FloorWorkClocksCharacterisationTest {
     fun startingTheSetClockCancelsARestStillWaitingOnItsReceipt() = runBlocking {
         val vm = viewModel(handleFor(seed(SQUAT_LIFT)))
         vm.ready()
-        vm.logSet()
+        vm.logWorkingSet()
         // The virtual clock does not move here, so the rest this set scheduled is still waiting
         // out the row's settle before it starts.
         vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
@@ -241,7 +241,7 @@ class FloorWorkClocksCharacterisationTest {
         val vm = viewModel(handleFor(seed(HANG_LIFT)))
         vm.readyHold()
         vm.startHoldSet()
-        vm.logSet()
+        vm.logWorkingSet()
         vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
         assertFalse("the saved hold stopped", vm.holdTimer.value.running)
         assertFalse("the receipt's rest has not started yet", deps.restTimerStore.current().running)
@@ -350,6 +350,7 @@ class FloorWorkClocksCharacterisationTest {
         val sessionId = seed(SQUAT_LIFT)
         val vm = viewModel(handleFor(sessionId))
         vm.ready()
+        vm.pickEffortIfNeeded()
         val before = vm.primaryAction.awaitFirst {
             it.enabled && it.kind == WorkoutPrimaryKind.LOG_SET && it.identity.draft.weightKg == 100.0
         }
@@ -603,6 +604,7 @@ class FloorWorkClocksCharacterisationTest {
         val sessionId = seed(SQUAT_LIFT)
         val vm = viewModel(handleFor(sessionId))
         vm.ready()
+        vm.pickEffortIfNeeded()
         vm.startSetStopwatch()
         tick(5_000)
         val drawn = vm.primaryAction.awaitFirst {
@@ -623,7 +625,7 @@ class FloorWorkClocksCharacterisationTest {
     fun switchingLiftRightAfterALogStillStartsItsRest() = runBlocking {
         val vm = viewModel(handleFor(seed(SQUAT_LIFT, ROW_LIFT)))
         vm.ready()
-        vm.logSet()
+        vm.logWorkingSet()
         vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
         assertFalse("the receipt's rest has not started yet", deps.restTimerStore.current().running)
 
@@ -646,7 +648,7 @@ class FloorWorkClocksCharacterisationTest {
         vm.stopSetStopwatch()
         vm.selectExercise(SQUAT)
         vm.awaitState { it.selectedExerciseId == SQUAT && it.canLog && it.draft.weightKg == 100.0 }
-        vm.logSet()
+        vm.logWorkingSet()
         vm.awaitState { !it.logging && it.session?.sets?.size == 1 }
         assertFalse("the receipt's rest has not started yet", deps.restTimerStore.current().running)
 
@@ -720,8 +722,11 @@ class FloorWorkClocksCharacterisationTest {
      * part of the wait: the screen state is combined across Room's threads, and for a moment it
      * can show the entry ready beside the empty draft from before the prefill landed.
      */
-    private suspend fun ActiveWorkoutViewModel.ready(): ActiveWorkoutUiState =
+    private suspend fun ActiveWorkoutViewModel.ready(): ActiveWorkoutUiState {
         uiState.awaitFirst { it.canLog && it.draft.weightKg == 100.0 }
+        if (uiState.value.draft.rpe == null && !uiState.value.draft.isWarmup) setRpe(8)
+        return uiState.awaitFirst { it.logCommitReady && it.draft.weightKg == 100.0 }
+    }
 
     /** The hang is on the floor with its 30 s target and the entry takes taps. */
     private suspend fun ActiveWorkoutViewModel.readyHold(): ActiveWorkoutUiState =
