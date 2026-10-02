@@ -84,7 +84,7 @@ done:
 | G9 | Every floor block is a drawn panel (stroke and fill read off the window) at font 1.0, 1.6 and 2.0 at 360 dp; Home's cards carry the same edge | `FloorSectionEdgesRenderTest`; one Home render |
 | G10 | One `CoachIdentity.NAME` constant; "Personal Trainer" gone from user copy | a listed checker in `tools/preflight.sh` with its paired test |
 | G11 | The local gate is green on every PR and each visible packet ships as a Temper Debug drop | `./gradlew testDebugUnitTest assembleDebug lintDebug`; Obtainium |
-| G12 | After a working set that is not the lift's last planned one, rest starts on its own | already held by `ActiveWorkoutViewModelTest`; the owner sees it on drop 107 |
+| G12 | After a working set that is not the lift's last planned one, rest starts on its own | already held by `ActiveWorkoutViewModelTest`; the owner sees it on the P1 phone check |
 
 ## 2. Rules this plan obeys
 
@@ -94,9 +94,11 @@ done:
   independent review and an adversarial audit before merge (ADR-002 d.8);
   this revision is P1's.
 - Drop numbers and tags are taken at cut time from
-  `python3 tools/debug-drop-plan.py`, never planned ahead. As of 29 September
-  it names 107 and `debug-live-2026-09-29`; the P1 drop bumps
-  `debugLiveCode` in `app/build.gradle.kts` in its own commit.
+  `python3 tools/debug-drop-plan.py`, never planned ahead. Trunk already
+  shipped `debugLiveCode` 107 (`debug-live-2026-10-02`, packet P3, 2 Oct
+  2026). P1 (#444) does not bump in the PR; after squash-merge, run the
+  script again and bump `debugLiveCode` in its own commit before the
+  Obtainium drop (108 and `debug-live/2026-10-02-2` as of 2 Oct 2026).
 - This session's branch is `ccr-1cb8377d-ekl6ii`, assigned by the tool the
   owner works in; the `cursor/<slug>-b87f` rule in `owner-loop.mdc` names the
   other tool's vehicles. Both are vehicles: squash-merged and deleted. The
@@ -144,8 +146,8 @@ done:
 
 | Milestone | Packets | Drop | What the owner checks |
 |---|---|---|---|
-| **M1 Floor feel** | P1 (built), P2a, P2b | next free (107 today) with P1; P2a/P2b ride the next | Panels; Log refused without effort; GET READY before a plank; rest starts after a set |
-| **M2 Menus** | P3 | next free | Icons in every ⋮ menu |
+| **M1 Floor feel** | P1 (built), P2a, P2b | P1 on the next free after merge (108 today); P2a/P2b ride later drops | Panels; Log refused without effort; GET READY before a plank; rest starts after a set |
+| **M2 Menus** | P3 (on trunk as 107) | shipped | Icons in every ⋮ menu |
 | **M3 Settings** | P4a, P4b (three PRs) | next free per V packet | Permissions page; Notifications page; music ducks |
 | **M4 Coach** | P5 (ADR, then four PRs) | next free | *Why?* shows window, trend, DOI |
 | **M5 Name** | P6 | rides M4's drop or the next | The name in copy |
@@ -157,7 +159,7 @@ carries nine leftover vehicle heads that `owner-loop.mdc` says to delete.
 
 ## 5. The packets
 
-### P1 — Section borders — **built 29 September, revised after audit**, on the drop 107 checklist
+### P1 — Section borders — **built 29 September, revised after audit**, PR #444 phone checklist (Obtainium 108 after merge)
 
 **Owner's words.** "We need borders for the section to make it more Obvious
 to the user and easier to follow."
@@ -204,7 +206,7 @@ floor, and the boxes on Home, History and Settings got the same outline.
   (§8): one Home render asserting `DayBlock`'s card, and the 600 dp width.
 - Docs: row 12h, ROADMAP, HANDOFF-NEXT, this note.
 
-**Phone checklist (drop 107).** Open a workout under bright light with the
+**Phone checklist (PR #444; not merged until the owner OKs this on the phone).** Open a workout under bright light with the
 screen at about half brightness: each block reads as its own panel; the
 last-set label and the warm-up captions are one line. At the largest text
 nothing clips and the five effort chips are one row. Home's cards and
@@ -732,7 +734,7 @@ Plain questions; one answer each. Nothing below blocks P1's drop.
   not**? Nothing like that exists today; it would be its own small packet.
   Recommend **yes, later**, after M3.
 - **Q4 (P1).** The Working / Warm-up switch and the exercise header have
-  no frame. On drop 107, does that look right, or should the switch get
+  no frame. On the P1 phone check, does that look right, or should the switch get
   its own box?
 - **Q5 (P6).** From the gym-word shortlist, checked for clashes, **Spot**
   is the pick (near neighbours Spotr, Spottr, Spot Me; none plainly Spot);
@@ -740,7 +742,7 @@ Plain questions; one answer each. Nothing below blocks P1's drop.
 - **Q6 (process).** May each packet after P1 go on **its own branch off
   `trunk`** with its own PR, as the repo's rule says? This session was told
   to use one branch, so it needs your word.
-- **Q7 (G12).** On drop 107, log a working set that is not the lift's last
+- **Q7 (G12).** On the P1 phone check, log a working set that is not the lift's last
   planned one. Did the rest start by itself? If not: was it a warm-up, the
   last set, a correction, or were rest alerts switched off?
 - **Q8 (P3).** By "images" on the menu rows, do you mean **line icons** in
@@ -755,7 +757,8 @@ One row per drop; the owner's words go in the last column.
 
 | Drop | Packets | What to check | What the owner saw |
 |---|---|---|---|
-| 107 | P1 | P1's checklist above, plus G12 and Q4 | — |
+| 107 | P3 | Open a live workout, tap ⋮, confirm a mark beside each row | — |
+| 108 | P1 | P1's checklist above, plus G12 and Q4 | — |
 
 ## 10. Side issues found, not in this plan
 

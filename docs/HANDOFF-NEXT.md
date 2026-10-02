@@ -352,7 +352,8 @@ Done so far:
   text inside the frame; all three fixed before the drop, and the compact
   Next line now stacks at large text rather than cutting its numbers. One
   new render suite reads the panels' stroke and fill off the window. Visible,
-  on the drop 107 checklist. The plan (P2 to P6, with the owner's answers
+  on PR #444 for Allen's phone check (Obtainium 108 after merge; trunk already
+  at `debugLiveCode` 107 with P3). The plan (P2 to P6, with the owner's answers
   of 29 September) is the next queue.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
@@ -394,10 +395,11 @@ Done so far:
 
 Next, in order (owner decision of 29 September; the plan is
 [owner-eight-plan-2026-09-29.md](owner-eight-plan-2026-09-29.md), the live
-order is the table in FRONTEND_REDESIGN.md): drop 107 with P1, a phone
-check of P1 (drop 106, with N2's lines, went out as
-debug-live-2026-09-28), then P2a, P2b, P3, P4a, P4b, P5 and P6 as the plan
-orders them; W3, S1, X8 and X9 follow. Of the two sessions that split the order, the
+order is the table in FRONTEND_REDESIGN.md): P3 shipped on trunk as drop 107
+(`debug-live-2026-10-02`); rebase and phone-check P1 on #444 (Obtainium 108
+after merge — **do not squash-merge until Allen OKs borders on the phone**),
+then P2a and P2b, then P4a, P4b, P5 and P6 as the plan orders them; W3, S1,
+X8 and X9 follow. Of the two sessions that split the order, the
 one on the rest timer, the updater and reminders is done (the
 rest-alarm packet, R3 and R4), and so is the one on the workout floor
 (W2d-3a, W2d-3b and W2e, above). X2b completed Wave 0.
