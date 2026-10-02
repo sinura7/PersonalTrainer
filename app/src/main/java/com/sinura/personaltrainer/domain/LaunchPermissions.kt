@@ -17,13 +17,13 @@ enum class LaunchPermissionStep {
 object LaunchPermissionCopy {
     const val NOTIFICATIONS_TITLE = "Allow notifications"
     const val NOTIFICATIONS_BODY =
-        "Rest alerts and workout reminders need a notification."
+        "Rest alerts and workout reminders need a notification.\n\n${PermissionsCopy.MANAGE_IN_SETTINGS}"
     const val EXACT_TITLE = "Allow exact alarms"
     const val EXACT_BODY =
-        "Workout reminders and rest alerts stay on time when this is on."
+        "Workout reminders and rest alerts stay on time when this is on.\n\n${PermissionsCopy.MANAGE_IN_SETTINGS}"
     const val BATTERY_TITLE = "Unrestricted battery"
     const val BATTERY_BODY =
-        "Rest alerts can die in the background until battery is unrestricted."
+        "Rest alerts can die in the background until battery is unrestricted.\n\n${PermissionsCopy.MANAGE_IN_SETTINGS}"
     const val CONTINUE = "Continue"
     const val NOT_NOW = "Not now"
 }
@@ -46,15 +46,45 @@ object LaunchPermissions {
         alreadyShowing: Boolean,
     ): Boolean = alreadyShowing || (postureChosen && onTabAwayFromSettings && !settingsPageOpening)
 
-    fun nextStep(
-        notificationsGranted: Boolean,
-        exactAlarmsGranted: Boolean,
-        batteryUnrestricted: Boolean,
-        sdkInt: Int,
-    ): LaunchPermissionStep = when {
-        sdkInt >= 33 && !notificationsGranted -> LaunchPermissionStep.NOTIFICATIONS
-        sdkInt >= 31 && !exactAlarmsGranted -> LaunchPermissionStep.EXACT_ALARM
-        !batteryUnrestricted -> LaunchPermissionStep.BATTERY
-        else -> LaunchPermissionStep.DONE
+    fun nextStep(snapshot: PhoneCapabilitySnapshot): LaunchPermissionStep {
+        val states = snapshot.states
+        if (snapshot.sdkInt >= 33 &&
+            states.state(PhoneCapability.NOTIFICATIONS) == CapabilityState.MISSING
+        ) {
+            return LaunchPermissionStep.NOTIFICATIONS
+        }
+        if (snapshot.sdkInt >= 31 &&
+            states.state(PhoneCapability.EXACT_REST_ALARM) == CapabilityState.MISSING
+        ) {
+            return LaunchPermissionStep.EXACT_ALARM
+        }
+        if (states.state(PhoneCapability.BATTERY) == CapabilityState.MISSING) {
+            return LaunchPermissionStep.BATTERY
+        }
+        return LaunchPermissionStep.DONE
     }
+
+    /** Skipped steps count as handled for the walk only. */
+    fun nextStepWithSkips(
+        snapshot: PhoneCapabilitySnapshot,
+        skippedNotifications: Boolean,
+        skippedExact: Boolean,
+        skippedBattery: Boolean,
+    ): LaunchPermissionStep {
+        val adjusted = snapshot.copy(
+            notificationsEnabled = snapshot.notificationsEnabled || skippedNotifications,
+            restDoneChannelEnabled = snapshot.restDoneChannelEnabled || skippedNotifications,
+            postNotificationsGranted = snapshot.postNotificationsGranted || skippedNotifications,
+            canScheduleExactAlarms = snapshot.canScheduleExactAlarms || skippedExact,
+            batteryUnrestricted = snapshot.batteryUnrestricted || skippedBattery,
+        )
+        return nextStep(adjusted)
+    }
+}
+
+private fun List<PhoneCapabilityStatus>.state(capability: PhoneCapability): CapabilityState {
+    for (entry in this) {
+        if (entry.capability == capability) return entry.state
+    }
+    error("missing capability $capability")
 }

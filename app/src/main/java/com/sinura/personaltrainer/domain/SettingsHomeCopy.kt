@@ -11,6 +11,8 @@ object SettingsHomeCopy {
     const val REMINDERS = "Reminders"
     const val GENERATOR = "Week generator"
     const val REST = "Rest timer"
+    const val PERMISSIONS_TITLE = PermissionsCopy.SETTINGS_ROW_TITLE
+    const val PERMISSIONS_SUBTITLE = PermissionsCopy.SETTINGS_ROW_SUBTITLE
     const val BODYWEIGHT = "Bodyweight"
     const val SAVE_POSTURE = "How you save"
     const val ACCOUNT = "Account"
@@ -74,6 +76,9 @@ object SettingsHomeCopy {
 
     fun restSummary(preferences: RestTimerPreferences): String =
         RestTimer.formatClock(preferences.defaultRestSeconds)
+
+    fun permissionsSummary(missingCount: Int): String =
+        PermissionsCopy.homeSummary(missingCount)
 
     fun bodyweightSummary(
         bodyweightKg: Double?,

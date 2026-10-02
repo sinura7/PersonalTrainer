@@ -51,7 +51,11 @@ day. The agreed product asks once, then adapts only if the user says so.
    outcome: `Exact`, `BestEffort`, or `Failed`. Exact APIs are not called
    when the check is false. Failures are not swallowed.
 4. Special-access is requested only after rest is used or configured, never
-   during onboarding. Recheck on resume. Reschedule a live timer after grant.
+   during onboarding, **except** the signed first-open walk (Q1 / eight-asks
+   P4a): after the save-posture choice, once on a non-Settings tab, Temper
+   Debug may ask for notifications, exact alarms, and battery in that order.
+   Settings → Permissions is the standing status page; it never opens itself.
+   Recheck on resume. Reschedule a live timer after grant.
 5. Notification permission and exact-alarm access are separate capabilities.
    Denial of one does not pretend to grant the other.
 6. When exact access is unavailable, use an honest inexact fallback. The UI

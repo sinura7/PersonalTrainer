@@ -276,6 +276,8 @@ class SettingsViewModel @JvmOverloads constructor(
         container.restTimerController.refreshAlarmCapability()
     }
 
+    fun phoneCapabilities() = container.phoneCapabilities
+
     fun exactAlarmSettingsIntent(): Intent? =
         buildExactAlarmSettingsIntent(getApplication<Application>().packageName)
 

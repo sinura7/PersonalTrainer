@@ -97,9 +97,11 @@ import com.sinura.personaltrainer.ui.permissions.LaunchPermissionsHost
 import com.sinura.personaltrainer.ui.onboarding.OnboardingScreen
 import com.sinura.personaltrainer.ui.plan.PlanDayScreen
 import com.sinura.personaltrainer.ui.plan.PlanScreen
+import com.sinura.personaltrainer.ui.settings.LocalOpenPermissionsSettings
+import com.sinura.personaltrainer.ui.settings.SettingsPage
 import com.sinura.personaltrainer.ui.settings.SettingsScreen
-import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
 import com.sinura.personaltrainer.ui.settings.SettingsViewModel
+import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
@@ -495,11 +497,15 @@ fun PersonalTrainerNav(
 
     val todayEpochDay = rememberTodayEpochDay(container.time)
     var showStartSheet by rememberSaveable { mutableStateOf(false) }
+    val openPermissionsSettings = {
+        settingsViewModel.requestSettingsSubpage(SettingsPage.PERMISSIONS)
+    }
     CompositionLocalProvider(
         LocalWeightUnit provides weightUnit,
         LocalClockFormat provides clockFormat,
         LocalTodayEpochDay provides todayEpochDay,
         LocalRestAlertsAsk provides restAlertsAsk,
+        LocalOpenPermissionsSettings provides openPermissionsSettings,
     ) {
         Scaffold(
             bottomBar = {

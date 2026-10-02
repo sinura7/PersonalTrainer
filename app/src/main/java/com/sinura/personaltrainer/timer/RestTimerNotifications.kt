@@ -232,6 +232,14 @@ object RestTimerNotifications {
         }
     }
 
+    fun isRestDoneChannelEnabled(context: Context): Boolean {
+        val manager = context.applicationContext
+            .getSystemService(NotificationManager::class.java) ?: return true
+        ensureChannels(context)
+        val channel = manager.getNotificationChannel(CHANNEL_DONE) ?: return true
+        return channel.importance != NotificationManager.IMPORTANCE_NONE
+    }
+
     private fun restRemoteViews(
         context: Context,
         layoutId: Int,

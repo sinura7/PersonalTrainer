@@ -16,7 +16,8 @@ object ReminderCopy {
     const val QUIET_CAPTION = "Quiet hours can still defer a reminder that lands overnight."
     const val PERMISSION_TITLE = "Reminders need a notification"
     const val PERMISSION_BODY =
-        "This phone has not allowed notifications. Reminders stay silent until you turn them on."
+        "This phone has not allowed notifications. Reminders stay silent until you turn them on.\n\n" +
+            PermissionsCopy.MANAGE_IN_SETTINGS
     const val PERMISSION_ACTION = "Turn on"
     const val GONE = "That session is no longer on the plan."
     const val START_FAILED = "Could not start that session. Try again."

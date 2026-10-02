@@ -61,6 +61,8 @@ import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
+import com.sinura.personaltrainer.domain.PhoneCapabilityPort
+import com.sinura.personaltrainer.timer.AndroidPhoneCapabilities
 import com.sinura.personaltrainer.timer.RestTimerGateway
 import com.sinura.personaltrainer.timer.RestTimerStatePersistence
 import com.sinura.personaltrainer.timer.RestTimerStore
@@ -117,6 +119,7 @@ class FakeAppDependencies(
     override val ioDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.IO,
     override val computeDispatcher: CoroutineDispatcher = scheduler ?: Dispatchers.Default,
     override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime,
+    override val phoneCapabilities: PhoneCapabilityPort = AndroidPhoneCapabilities(context),
     /**
      * Wraps the preferences store before the repository sees it. Restore-recovery tests
      * hand in a store whose writes fail on demand, which is the only way to reach the
