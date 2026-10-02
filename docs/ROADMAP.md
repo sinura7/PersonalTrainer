@@ -21,6 +21,21 @@
 > the rest. TalkBack still hears the words once; icons are decorative.
 > Phone: open a live workout, tap ⋮, confirm a mark beside each row.
 >
+> 29 Sep 2026 — Packet P2b (owner decision of 29 September, the third
+> packet of the eight-asks plan): a plank, a hang or any other hold now
+> counts GET READY 5, 4, 3, 2, 1 before its clock runs, so you can get
+> into position after the tap. A light tick each second, a firmer one when
+> the hold begins. The big button reads "Get ready…" and takes no tap
+> during the countdown, so nothing can log a one-second plank; Cancel sits
+> where Stop sits on the bar and starts no hold. The countdown survives
+> the screen locking or Android closing the app. Holds only: the set clock
+> you start yourself has no countdown. 3, 5 or 10 seconds, on the Rest
+> timer page in Settings; the length stays on this phone, like the tick.
+> On the next phone checklist (PR #446, Obtainium 110): start a plank
+> (GET READY 5…1, then HOLD); tap the big button during GET READY (nothing
+> logs); tap Cancel (no hold starts); lock the phone mid-countdown and
+> unlock (still right); set 3 s in Settings → Rest timer. Visible.
+>
 > 29 Sep 2026 — Packet P1, the first packet of the owner's 29 September
 > plan ([the eight asks](owner-eight-plan-2026-09-29.md)): each block of the
 > workout floor (last set, the numbers, effort, the coach's Next card, the

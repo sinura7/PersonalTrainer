@@ -352,8 +352,7 @@ Done so far:
   text inside the frame; all three fixed before the drop, and the compact
   Next line now stacks at large text rather than cutting its numbers. One
   new render suite reads the panels' stroke and fill off the window. Visible,
-  merged to `trunk` 2 Oct 2026 (Obtainium 108). The plan (P2 to P6, with the
-  owner's answers of 29 September) is the next queue.
+  merged to `trunk` 2 Oct 2026 (Obtainium 108).
 - **P2a (owner decision of 29 September, the eight-asks plan):** a working set
   logs only with its effort; warm-ups and holds do not; History's
   corrections follow the same rule. The rule is `SetLogRules.requiresEffort`
@@ -361,7 +360,13 @@ Done so far:
   chosen. Picking an effort no longer counts as typing, so W2e's follows
   still work after a logged set. Every test that logged a working set now
   picks an effort first (`FloorTestKit.logWorkingSet`, `pickEffortIfNeeded`).
-  Visible, on PR #445 for the next Obtainium checklist (109 after merge).
+  Visible, merged to `trunk` 2 Oct 2026 as `f952a796` (Obtainium 109 signed off).
+- **P2b (owner decision of 29 September, the eight-asks plan):** a hold counts
+  GET READY (3 / 5 / 10 s, default 5, a Settings row on the Rest timer page,
+  device-local) before its clock runs; the commit is `GET_READY` and disabled,
+  Cancel sits in the bar's Stop slot, nothing logs during the countdown, and a
+  restore mid-countdown resumes it. The set stopwatch has no lead-in. Rebased
+  onto post-P2a `trunk`. Visible, on PR #446 for Obtainium 110.
 - **Owner decision, 26 September:** two sessions split the order so that
   no two work in the same file at once: one runs W2d-3a, W2d-3b and W2e
   (the workout floor), the other the rest-alarm packet, R3 and R4 (the

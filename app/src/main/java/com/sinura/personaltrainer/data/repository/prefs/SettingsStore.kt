@@ -124,6 +124,7 @@ internal val LIGHTER_WEEK_START = longPreferencesKey("lighter_week_start_epoch_d
 internal val REST_SOUND = booleanPreferencesKey("rest_sound")
 internal val REST_VIBRATE = booleanPreferencesKey("rest_vibrate")
 internal val REST_TICK = booleanPreferencesKey("rest_tick")
+internal val REST_LEAD_IN = intPreferencesKey("rest_hold_lead_in_seconds")
 internal val REST_DEFAULT = intPreferencesKey("rest_default_seconds")
 internal val REST_LAST_PRESET = intPreferencesKey("rest_last_preset_seconds")
 internal val REST_ALARM_ELIGIBLE = booleanPreferencesKey("rest_alarm_eligible")

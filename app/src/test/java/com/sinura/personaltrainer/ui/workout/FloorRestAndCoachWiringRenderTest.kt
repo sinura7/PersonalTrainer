@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -39,6 +40,7 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
+import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.RestHonestyCopy
 import com.sinura.personaltrainer.domain.RestNotificationCopy
@@ -260,12 +262,14 @@ class FloorRestAndCoachWiringRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.holdTimer.value.running }
         compose.waitForIdle()
+        // The tap starts GET READY first (P2b): the bar counts the lead-in down with Cancel in its
+        // Stop slot, and the hold's own countdown follows it; the characterisation tests hold the
+        // hand-over on a controllable clock, the render holds what the dock draws at the tap.
         compose.onNodeWithTag(WorkoutTestTags.HOLD_CLOCK).assertIsDisplayed()
-        compose.onNode(hasText("HOLD"), useUnmergedTree = true).assertIsDisplayed()
-        // The hold's own target, counting down: remaining, not elapsed.
-        compose.onNode(hasText(HoldWork.clock(target)) and hasAnyAncestor(hasTestTag(WorkoutTestTags.HOLD_CLOCK)), useUnmergedTree = true)
-            .assertIsDisplayed()
-        compose.onNodeWithTag(STOP).assertDoesNotExist()
+        compose.onNode(hasText(HoldWork.LEAD_IN_KICKER), useUnmergedTree = true).assertIsDisplayed()
+        compose.onAllNodes(hasText("HOLD"), useUnmergedTree = true).assertCountEquals(0)
+        compose.onNodeWithTag(STOP).assertIsDisplayed().assert(hasText(SetStopwatchCopy.CANCEL_LEAD_IN))
+        assertTrue("the hold's target is armed behind the lead-in", vm.holdTimer.value.totalSeconds == target)
     }
 
     /**

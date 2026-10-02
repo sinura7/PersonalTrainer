@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.data.repository.prefs
 
 import androidx.datastore.preferences.core.edit
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import kotlinx.coroutines.flow.Flow
 
@@ -40,6 +41,12 @@ interface RestPrefs {
      * switch the ticks on or off here.
      */
     suspend fun setRestTickEnabled(enabled: Boolean)
+
+    /**
+     * GET READY before a hold (P2b). Device-local like the tick: [setRestTimerPreferences] and the
+     * restore path leave this key alone.
+     */
+    suspend fun setHoldLeadInSeconds(seconds: Int)
     suspend fun setDefaultRestSeconds(seconds: Int)
     suspend fun setLastRestPresetSeconds(seconds: Int)
     suspend fun setRestTimerPreferences(value: RestTimerPreferences)
@@ -53,6 +60,7 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
             tickEnabled = prefs[REST_TICK] ?: true,
             defaultRestSeconds = prefs[REST_DEFAULT] ?: RestTimerPreferences.DEFAULT_SECONDS,
             lastPresetSeconds = prefs[REST_LAST_PRESET],
+            leadInSeconds = prefs[REST_LEAD_IN] ?: HoldWork.LEAD_IN_DEFAULT_SECONDS,
         ).sanitized()
     }
 
@@ -96,6 +104,10 @@ internal class RestPrefsStore(private val store: SettingsStore) : RestPrefs {
             prefs[REST_TICK] = enabled
             prefs[REST_ALARM_ELIGIBLE] = true
         }
+    }
+
+    override suspend fun setHoldLeadInSeconds(seconds: Int) {
+        store.data.edit { prefs -> prefs[REST_LEAD_IN] = HoldWork.leadInSeconds(seconds) }
     }
 
     override suspend fun setDefaultRestSeconds(seconds: Int) {

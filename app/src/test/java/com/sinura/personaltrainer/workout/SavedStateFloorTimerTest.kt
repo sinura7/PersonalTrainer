@@ -35,6 +35,35 @@ class SavedStateFloorTimerTest {
         assertEquals(30, restored.totalSeconds)
     }
 
+    /**
+     * GET READY (P2b): a hold armed at 1 000 with a 5 s lead-in starts at 6 000. Read at 3 000 it
+     * is not a reboot (now lies before the start, after the tap) and comes back with its tap
+     * time; read at 500, before the tap, it is.
+     */
+    @Test
+    fun aHoldGettingReadyIsNotAReboot() {
+        val handle = SavedStateHandle()
+        val store = SavedStateFloorTimer(handle)
+        store.writeHold(
+            "ex-plank",
+            HoldTimerUiState(
+                running = true,
+                remainingSeconds = 30,
+                totalSeconds = 30,
+                startElapsedRealtime = 6_000L,
+                deadlineElapsedRealtime = 36_000L,
+                leadInStartElapsedRealtime = 1_000L,
+                leadInRemainingSeconds = 5,
+            ),
+        )
+        val ready = store.readHold("ex-plank", nowElapsedRealtime = 3_000L)
+        assertNotNull(ready)
+        assertTrue(ready!!.running)
+        assertEquals(6_000L, ready.startElapsedRealtime)
+        assertEquals(1_000L, ready.leadInStartElapsedRealtime)
+        assertNull(store.readHold("ex-plank", nowElapsedRealtime = 500L))
+    }
+
     @Test
     fun rebootClearsHoldWhenNowIsBeforeStart() {
         val handle = SavedStateHandle()

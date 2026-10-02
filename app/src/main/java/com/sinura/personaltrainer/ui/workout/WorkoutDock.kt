@@ -54,6 +54,9 @@ internal data class WorkoutDockTimer(
     val holdRemainingSeconds: Int = 0,
     val holdTotalSeconds: Int = 0,
     val holdTargetReached: Boolean = false,
+    /** GET READY before the hold clock runs (P2b). */
+    val holdGettingReady: Boolean = false,
+    val holdLeadInRemainingSeconds: Int = 0,
     val stopwatchRunning: Boolean = false,
     val stopwatchElapsedSeconds: Int = 0,
     val offerSetClock: Boolean = false,
@@ -101,6 +104,8 @@ internal data class WorkoutDockEvents(
     val onCustomRest: (String) -> Boolean,
     val onStartSetClock: () -> Unit,
     val onStopSetClock: () -> Unit,
+    /** Ends GET READY before a hold; no hold starts (P2b). */
+    val onCancelLeadIn: () -> Unit = {},
     val onDismissRestBatteryHint: () -> Unit,
     val onOpenRest: () -> Unit,
     val onOpenNotifications: () -> Unit,
@@ -149,6 +154,7 @@ internal fun WorkoutDock(
     val contextVisible = state.error != null || !state.undoMessage.isNullOrBlank() || state.editing ||
         (!completeDock && (honesty != null || state.suggestionUnavailable))
     val clockLabel = when {
+        timer.holdGettingReady -> "Get ready ${RestTimer.formatClock(timer.holdLeadInRemainingSeconds)}"
         holdActive -> "Hold ${RestTimer.formatClock(timer.holdElapsedSeconds)}"
         timer.stopwatchRunning -> "Set time ${RestTimer.formatClock(timer.stopwatchElapsedSeconds)}"
         timer.restRunning -> "Rest ${RestTimer.formatClock(timer.restRemainingSeconds)}"
@@ -162,10 +168,23 @@ internal fun WorkoutDock(
         restRunning = timer.restRunning,
         restComplete = !timer.restCompletedTimerId.isNullOrBlank() && !timer.restRunning,
         holdActive = holdActive,
+        holdGettingReady = timer.holdGettingReady,
     )
     val timerSurface: @Composable () -> Unit = {
         when (mode) {
             FloorTimedMode.NONE -> Unit
+            FloorTimedMode.HOLD_LEAD_IN -> SetWorkDock(
+                elapsedSeconds = 0,
+                remainingSeconds = timer.holdRemainingSeconds,
+                totalSeconds = timer.holdTotalSeconds,
+                hold = true,
+                targetReached = false,
+                running = true,
+                onStop = events.onCancelLeadIn,
+                gettingReady = true,
+                leadInRemainingSeconds = timer.holdLeadInRemainingSeconds,
+                modifier = Modifier.fillMaxWidth(),
+            )
             FloorTimedMode.HOLD_RUNNING,
             FloorTimedMode.STOPWATCH_RUNNING,
             -> SetWorkDock(

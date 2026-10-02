@@ -395,15 +395,19 @@ class ActiveWorkoutViewModelTest {
 
     @Test
     fun loggingAHangWritesSecondsNotAFakeOneRepAndThenRestStarts() = runBlocking {
+        val clock = ControllableTimePort()
         val fixture = seedHangWorkout()
         assertEquals(30, fixture.session.exercises.single().targetSeconds)
-        val vm = createViewModel(fixture.session.id)
+        val vm = createViewModel(fixture.session.id, container = withClock(clock))
         vm.awaitState {
             it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
         }
 
         vm.startHoldSet()
         assertTrue(vm.holdTimer.value.running)
+        // GET READY runs first (P2b); the hold clock, and a log, come after it.
+        clock.advance(HoldWork.LEAD_IN_DEFAULT_SECONDS * 1_000L)
+        tickTimedWork()
         vm.logSetAndSettle()
 
         val persisted = awaitSession(fixture.session.id) { it.sets.size == 1 }
@@ -473,6 +477,10 @@ class ActiveWorkoutViewModelTest {
         assertTrue(vm.holdTimer.value.running)
         assertEquals(0, vm.holdTimer.value.elapsedSeconds)
         assertEquals(30, vm.holdTimer.value.remainingSeconds)
+        // GET READY runs first (P2b): five seconds in, the hold clock is at zero.
+        clock.advance(HoldWork.LEAD_IN_DEFAULT_SECONDS * 1_000L)
+        tickTimedWork()
+        assertEquals(0, vm.holdTimer.value.elapsedSeconds)
         clock.advance(5_000)
         tickTimedWork()
         assertEquals(5, vm.holdTimer.value.elapsedSeconds)
@@ -565,6 +573,8 @@ class ActiveWorkoutViewModelTest {
             it.loadState == SessionLoadState.FOUND && it.draft.durationSeconds == 30
         }
         first.startHoldSet()
+        clock.advance(HoldWork.LEAD_IN_DEFAULT_SECONDS * 1_000L)
+        tickTimedWork()
         clock.advance(8_000)
         first.clearAndJoinForTest()
         val recreated = createViewModel(fixture.session.id, handle, container)

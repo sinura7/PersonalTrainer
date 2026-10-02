@@ -83,24 +83,30 @@ internal class FloorWorkClocks(
         get() = _stopwatch.value.running || _hold.value.running
 
     /**
-     * Starts the hold on [exerciseId] at [totalSeconds]. The lift's set clock is cleared, with its
-     * saved copy, and the generation moves. The ViewModel has gated the tap and stopped the rest.
+     * Starts the hold on [exerciseId] at [totalSeconds], after [leadInSeconds] of GET READY (P2b):
+     * the hold clock starts at the tap plus the lead-in, and until then the state counts the
+     * lead-in down and is [HoldTimerUiState.gettingReady]. The lift's set clock is cleared, with
+     * its saved copy, and the generation moves. The ViewModel has gated the tap and stopped the rest.
      */
-    fun startHold(exerciseId: String, totalSeconds: Int) {
+    fun startHold(exerciseId: String, totalSeconds: Int, leadInSeconds: Int = 0) {
         saveStopwatchFor(exerciseId)
         discardStopwatch()
         bump()
         val gen = timedGeneration
         val now = elapsedNow()
-        val deadline = HoldWork.deadlineElapsedRealtime(now, totalSeconds)
+        val leadIn = leadInSeconds.coerceAtLeast(0)
+        val start = now + leadIn * 1_000L
+        val deadline = HoldWork.deadlineElapsedRealtime(start, totalSeconds)
         _hold.value = HoldTimerUiState(
             running = true,
             remainingSeconds = totalSeconds,
             totalSeconds = totalSeconds,
             elapsedSeconds = 0,
-            startElapsedRealtime = now,
+            startElapsedRealtime = start,
             deadlineElapsedRealtime = deadline,
             targetReached = false,
+            leadInStartElapsedRealtime = now,
+            leadInRemainingSeconds = leadIn,
         )
         persistHold()
         _cues.tryEmit(FloorTimerCue.HoldStarted)
@@ -112,9 +118,28 @@ internal class FloorWorkClocks(
             val hold = _hold.value
             if (!hold.running) return
             val now = elapsedNow()
-            if (now < hold.startElapsedRealtime) {
+            // The clock went backwards (a reboot): the hold is gone, GET READY with it.
+            if (now < hold.leadInStartElapsedRealtime) {
                 stopHold()
                 return
+            }
+            if (now < hold.startElapsedRealtime) {
+                // GET READY: the hold clock has not started. Each whole second is a cue.
+                val left = HoldWork.leadInRemaining(hold.startElapsedRealtime, now)
+                if (left != hold.leadInRemainingSeconds) {
+                    _hold.value = hold.copy(leadInRemainingSeconds = left)
+                    persistHold()
+                    if (left > 0) _cues.tryEmit(FloorTimerCue.LeadInTick(left))
+                }
+                delay(TIMED_TICK_MS)
+                continue
+            }
+            if (hold.leadInRemainingSeconds > 0) {
+                // GET READY just ended: the hold clock runs from here.
+                _hold.value = hold.copy(leadInRemainingSeconds = 0)
+                persistHold()
+                _cues.tryEmit(FloorTimerCue.LeadInDone)
+                continue
             }
             val remaining = HoldWork.remainingFromDeadline(
                 deadlineElapsedRealtime = hold.deadlineElapsedRealtime,
@@ -302,11 +327,19 @@ internal class FloorWorkClocks(
                 totalSeconds = hold.totalSeconds,
             )
             val reached = hold.targetReached || remaining <= 0
+            // Still in GET READY: the hold clock has not started, so nothing is elapsed and the
+            // lead-in picks up where it was (P2b).
+            val leadInLeft = if (hold.running && now < hold.startElapsedRealtime) {
+                HoldWork.leadInRemaining(hold.startElapsedRealtime, now)
+            } else {
+                0
+            }
             _hold.value = hold.copy(
                 running = hold.running && !reached,
                 remainingSeconds = if (reached) 0 else remaining,
                 elapsedSeconds = if (reached) hold.totalSeconds else elapsed,
                 targetReached = reached,
+                leadInRemainingSeconds = leadInLeft,
             )
             if (_hold.value.running) {
                 bump()

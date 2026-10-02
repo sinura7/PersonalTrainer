@@ -17,6 +17,8 @@ object LogBarCopy {
     const val SAVE_WARMUP = "Save warm-up"
     const val START_HOLD = "Start hold"
     const val LOG_HOLD = "Log hold"
+    /** The commit during GET READY: disabled, so nothing logs before the hold has been held (P2b). */
+    const val GET_READY = "Get ready…"
     const val LOGGING = "Logging…"
     const val ADD_LIFT = "Add a lift"
 
@@ -38,6 +40,7 @@ object LogBarCopy {
         draftLabel: String,
         hold: Boolean = false,
         holdRunning: Boolean = false,
+        holdGettingReady: Boolean = false,
         logging: Boolean = false,
         finish: Boolean = false,
         nextName: String? = null,
@@ -48,6 +51,7 @@ object LogBarCopy {
         val verb = when {
             editing && warmup -> SAVE_WARMUP
             editing -> SAVE_SET
+            hold && holdGettingReady -> GET_READY
             hold && holdRunning -> LOG_HOLD
             hold -> START_HOLD
             warmup -> LOG_WARMUP

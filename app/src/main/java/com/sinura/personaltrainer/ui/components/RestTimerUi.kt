@@ -124,6 +124,8 @@ fun FloorInstrumentBar(
     testTag: String,
     modifier: Modifier = Modifier,
     onStop: (() -> Unit)? = null,
+    /** The Stop slot's word: Stop for a set clock, Cancel during GET READY (P2b). */
+    stopLabel: String = SetStopwatchCopy.STOP,
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -136,7 +138,7 @@ fun FloorInstrumentBar(
         val density = LocalDensity.current
         val measurer = rememberTextMeasurer()
         val clockWidth = measurer.measure(clock, style = InstrumentType.numeralMd, softWrap = false).size.width
-        val labels = if (onStop != null) listOf(SetStopwatchCopy.STOP) else emptyList()
+        val labels = if (onStop != null) listOf(stopLabel) else emptyList()
         val controlWidth = labels.sumOf { label ->
             maxOf(with(density) { Metrics.touchMin.roundToPx() },
                 measurer.measure(label, style = InstrumentType.bodyStrong, softWrap = false).size.width +
@@ -206,7 +208,7 @@ fun FloorInstrumentBar(
                 val controlModifier = if (wrapControls) Modifier.weight(1f) else Modifier
                 if (onStop != null) {
                     RestControl(
-                        label = SetStopwatchCopy.STOP,
+                        label = stopLabel,
                         onClick = onStop,
                         modifier = controlModifier
                             .widthIn(min = Metrics.touchMin)
@@ -232,14 +234,20 @@ fun SetWorkDock(
     targetReached: Boolean = false,
     running: Boolean = true,
     onStop: (() -> Unit)? = null,
+    /** GET READY before the hold clock runs (P2b): the bar counts [leadInRemainingSeconds] down. */
+    gettingReady: Boolean = false,
+    leadInRemainingSeconds: Int = 0,
 ) {
     val kicker = when {
+        hold && gettingReady -> HoldWork.LEAD_IN_KICKER
         hold && targetReached -> HoldWork.DONE
         hold -> FloorTimerSurface.HOLD_KICKER
         else -> FloorTimerSurface.SET_KICKER
     }
     val displayClock = HoldWork.clock(
-        if (hold && !targetReached) {
+        if (hold && gettingReady) {
+            leadInRemainingSeconds.coerceAtLeast(1)
+        } else if (hold && !targetReached) {
             HoldWork.liveDockSeconds(
                 remainingSeconds = remainingSeconds,
                 targetReached = false,
@@ -250,7 +258,9 @@ fun SetWorkDock(
             FloorTimerSurface.setClockSeconds(elapsedSeconds)
         },
     )
-    val spoken = if (hold && targetReached) {
+    val spoken = if (hold && gettingReady) {
+        "Get ready, $displayClock, then the hold starts"
+    } else if (hold && targetReached) {
         "${HoldWork.DONE}. Log hold with elapsed time."
     } else if (hold) {
         "$kicker $displayClock remaining"
@@ -258,7 +268,9 @@ fun SetWorkDock(
         "$kicker $displayClock elapsed"
     }
     val accent = if (hold && targetReached) PrGold else RestCyan
-    val progress = if (hold) {
+    val progress = if (hold && gettingReady) {
+        1f
+    } else if (hold) {
         FloorTimerSurface.holdBarProgress(
             remainingSeconds = remainingSeconds,
             totalSeconds = totalSeconds,
@@ -276,6 +288,7 @@ fun SetWorkDock(
         testTag = "workout-hold-clock",
         modifier = modifier,
         onStop = onStop,
+        stopLabel = if (hold && gettingReady) SetStopwatchCopy.CANCEL_LEAD_IN else SetStopwatchCopy.STOP,
     )
 }
 

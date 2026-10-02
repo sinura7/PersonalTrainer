@@ -15,6 +15,27 @@ object HoldWork {
     const val STEP_SECONDS = 5
     const val HOLD_REPS_PLACEHOLDER = 1
 
+    /**
+     * GET READY before the hold clock runs (P2b, owner decision of 29 September 2026: "a timer
+     * countdown for exercises that require a timed workout. This gives the user a chance to
+     * start"). Holds only: a plank or a hang is entered before the clock, and the tap that
+     * starts it is made standing up. The set stopwatch gets none; the lifter starts it ready.
+     * Three lengths, no Off: 3 s is the shortest a body needs.
+     */
+    const val LEAD_IN_DEFAULT_SECONDS = 5
+    val LEAD_IN_CHOICES: List<Int> = listOf(3, 5, 10)
+    const val LEAD_IN_KICKER = "GET READY"
+
+    /** The nearest offered lead-in to [requested]; the default when nothing is asked. */
+    fun leadInSeconds(requested: Int?): Int {
+        val wanted = requested ?: return LEAD_IN_DEFAULT_SECONDS
+        return LEAD_IN_CHOICES.minByOrNull { kotlin.math.abs(it - wanted) } ?: LEAD_IN_DEFAULT_SECONDS
+    }
+
+    /** Whole seconds of GET READY left before the hold starts at [holdStartElapsedRealtime]. */
+    fun leadInRemaining(holdStartElapsedRealtime: Long, nowElapsedRealtime: Long): Int =
+        RestTimer.remainingSeconds(holdStartElapsedRealtime, nowElapsedRealtime)
+
     private val HOLD_MOVEMENT_KEYS = setOf("plank", "hold", "isometric", "static")
 
     fun isHold(exercise: Exercise): Boolean =
@@ -198,10 +219,18 @@ data class HoldTimerUiState(
     val remainingSeconds: Int = 0,
     val totalSeconds: Int = 0,
     val elapsedSeconds: Int = 0,
+    /** When the hold clock itself starts: the tap plus the lead-in. */
     val startElapsedRealtime: Long = 0L,
     val deadlineElapsedRealtime: Long = 0L,
     val targetReached: Boolean = false,
+    /** The tap that started GET READY; equal to [startElapsedRealtime] with no lead-in. */
+    val leadInStartElapsedRealtime: Long = 0L,
+    /** Whole seconds of GET READY left; zero once the hold clock runs. */
+    val leadInRemainingSeconds: Int = 0,
 ) {
     val active: Boolean get() = running || totalSeconds > 0
+
+    /** GET READY is counting: the hold is armed and running, and its clock has not started. */
+    val gettingReady: Boolean get() = running && leadInRemainingSeconds > 0
     val clock: String get() = HoldWork.dockClock(elapsedSeconds, targetReached)
 }

@@ -11,6 +11,8 @@ enum class FloorTimedMode {
     REST_IDLE,
     REST_RUNNING,
     REST_COMPLETE,
+    /** GET READY before a hold's clock runs (P2b): active, hides the rest, offers no set clock. */
+    HOLD_LEAD_IN,
     HOLD_RUNNING,
     STOPWATCH_RUNNING,
 }
@@ -22,8 +24,10 @@ object FloorTimedModeResolver {
         stopwatchRunning: Boolean,
         restRunning: Boolean,
         restComplete: Boolean,
+        holdGettingReady: Boolean = false,
     ): FloorTimedMode {
         if (!hasLifts) return FloorTimedMode.NONE
+        if (holdGettingReady) return FloorTimedMode.HOLD_LEAD_IN
         if (holdActive) return FloorTimedMode.HOLD_RUNNING
         if (stopwatchRunning) return FloorTimedMode.STOPWATCH_RUNNING
         if (restRunning) return FloorTimedMode.REST_RUNNING
@@ -33,6 +37,7 @@ object FloorTimedModeResolver {
 
     fun isActive(mode: FloorTimedMode): Boolean = when (mode) {
         FloorTimedMode.REST_RUNNING,
+        FloorTimedMode.HOLD_LEAD_IN,
         FloorTimedMode.HOLD_RUNNING,
         FloorTimedMode.STOPWATCH_RUNNING,
         -> true
@@ -52,6 +57,10 @@ object FloorTimedModeResolver {
 /** Dock / screen cues that are not rest-complete (that stays on the service). */
 sealed interface FloorTimerCue {
     data object HoldStarted : FloorTimerCue
+    /** One second of GET READY passed; [secondsLeft] remain before the hold clock runs. */
+    data class LeadInTick(val secondsLeft: Int) : FloorTimerCue
+    /** GET READY ended and the hold clock is running. */
+    data object LeadInDone : FloorTimerCue
     data class HoldTarget(val soundEnabled: Boolean) : FloorTimerCue
     data object StopwatchStarted : FloorTimerCue
     data object StopwatchStopped : FloorTimerCue

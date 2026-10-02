@@ -121,6 +121,39 @@ class SetWorkDockRenderTest {
         assertEquals(PrGold, inkOf("HOLD DONE"))
     }
 
+    /** GET READY (P2b): the same instrument, counting the lead-in down, with Cancel where Stop sits. */
+    @Test
+    fun getReadyCountsDownOnTheBarAndCancelIsItsOneControl() {
+        compose.showFloor {
+            SetWorkDock(
+                elapsedSeconds = 0,
+                remainingSeconds = 30,
+                totalSeconds = 30,
+                hold = true,
+                targetReached = false,
+                running = true,
+                onStop = stop,
+                gettingReady = true,
+                leadInRemainingSeconds = 4,
+            )
+        }
+        compose.onNodeWithTag(WorkoutTestTags.HOLD_CLOCK).assertIsDisplayed().assertHeightIsAtLeast(Metrics.logTimerRow)
+        word("GET READY").assertIsDisplayed()
+        word("0:04").assertIsDisplayed()
+        compose.onAllNodesWithText("HOLD", useUnmergedTree = true).assertCountEquals(0)
+        assertEquals(listOf("Get ready, 0:04, then the hold starts"), clockSpoken())
+        // Not the last-ten-seconds warning colour: GET READY is the ordinary cyan.
+        assertEquals(RestCyan, inkOf("GET READY"))
+        val cancel = compose.onNodeWithTag(STOP)
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .assertHeightIsAtLeast(Metrics.touchMin)
+        assertEquals(listOf("Cancel"), cancel.mergedTexts())
+        cancel.performClick()
+        assertEquals(1, stops)
+        compose.onAllNodes(liveRegions, useUnmergedTree = true).assertCountEquals(0)
+    }
+
     @Test
     fun theSetStopwatchCountsUpAndStopsFromTheBar() {
         showClock(elapsed = 12, hold = false, stoppable = true)

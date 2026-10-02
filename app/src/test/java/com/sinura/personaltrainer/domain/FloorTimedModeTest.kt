@@ -20,6 +20,27 @@ class FloorTimedModeTest {
         )
     }
 
+    /** GET READY (P2b) outranks the running hold it precedes, is active, and offers no set clock. */
+    @Test
+    fun getReadyOutranksTheHoldAndIsActive() {
+        val mode = FloorTimedModeResolver.resolve(
+            hasLifts = true,
+            holdActive = true,
+            stopwatchRunning = true,
+            restRunning = true,
+            restComplete = false,
+            holdGettingReady = true,
+        )
+        assertEquals(FloorTimedMode.HOLD_LEAD_IN, mode)
+        assertTrue(FloorTimedModeResolver.isActive(mode))
+        assertFalse(FloorTimedModeResolver.offerSetClock(mode, isHoldLift = true))
+        assertFalse(FloorTimedModeResolver.offerSetClock(mode, isHoldLift = false))
+        assertEquals(
+            FloorTimedMode.NONE,
+            FloorTimedModeResolver.resolve(hasLifts = false, holdActive = true, stopwatchRunning = false, restRunning = false, restComplete = false, holdGettingReady = true),
+        )
+    }
+
     @Test
     fun holdWinsThenStopwatchThenRest() {
         assertEquals(
@@ -79,6 +100,7 @@ class FloorTimedModeTest {
         FloorTimedMode.entries.forEach { mode ->
             val active = FloorTimedModeResolver.isActive(mode)
             if (mode == FloorTimedMode.REST_RUNNING ||
+                mode == FloorTimedMode.HOLD_LEAD_IN ||
                 mode == FloorTimedMode.HOLD_RUNNING ||
                 mode == FloorTimedMode.STOPWATCH_RUNNING
             ) {

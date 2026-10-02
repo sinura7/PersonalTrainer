@@ -531,6 +531,13 @@ class SettingsViewModel @JvmOverloads constructor(
         }
     }
 
+    /** GET READY before a hold (P2b): 3, 5 or 10 seconds. */
+    fun setHoldLeadInSeconds(seconds: Int) {
+        viewModelScope.launch {
+            container.preferencesRepository.setHoldLeadInSeconds(seconds)
+        }
+    }
+
     fun setDefaultRestSeconds(seconds: Int) {
         viewModelScope.launch {
             container.preferencesRepository.setDefaultRestSeconds(seconds)

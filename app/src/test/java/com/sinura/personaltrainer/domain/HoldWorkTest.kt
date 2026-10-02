@@ -8,6 +8,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HoldWorkTest {
+    /** GET READY (P2b): three lengths, the nearest one wins, five when nothing is asked. */
+    @Test
+    fun theLeadInIsOneOfThreeLengthsAndCountsWholeSecondsDown() {
+        assertEquals(listOf(3, 5, 10), HoldWork.LEAD_IN_CHOICES)
+        assertEquals(5, HoldWork.leadInSeconds(null))
+        assertEquals(3, HoldWork.leadInSeconds(0))
+        assertEquals(3, HoldWork.leadInSeconds(4))
+        assertEquals(5, HoldWork.leadInSeconds(6))
+        assertEquals(10, HoldWork.leadInSeconds(60))
+        // The hold starts at 5 000: 4.2 s early reads 5, 0.4 s early reads 1, at the start 0.
+        assertEquals(5, HoldWork.leadInRemaining(holdStartElapsedRealtime = 5_000L, nowElapsedRealtime = 800L))
+        assertEquals(1, HoldWork.leadInRemaining(holdStartElapsedRealtime = 5_000L, nowElapsedRealtime = 4_600L))
+        assertEquals(0, HoldWork.leadInRemaining(holdStartElapsedRealtime = 5_000L, nowElapsedRealtime = 5_000L))
+        val ready = HoldTimerUiState(running = true, totalSeconds = 30, leadInRemainingSeconds = 3)
+        assertTrue(ready.gettingReady)
+        assertFalse(ready.copy(leadInRemainingSeconds = 0).gettingReady)
+        assertFalse(ready.copy(running = false).gettingReady)
+    }
+
     @Test
     fun namedStaticHoldsAreTimeNotReps() {
         val catalog = WorkoutPaste.catalogExercises()

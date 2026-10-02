@@ -170,6 +170,19 @@ class LogBarCopyTest {
                 holdRunning = true,
             ),
         )
+        // GET READY (P2b): the commit waits, and says so, until the hold clock runs.
+        assertEquals(
+            "Get ready… · 30s",
+            LogBarCopy.commit(
+                editing = false,
+                next = false,
+                warmup = false,
+                draftLabel = "30s",
+                hold = true,
+                holdRunning = true,
+                holdGettingReady = true,
+            ),
+        )
         assertEquals("Start hold", LogBarCopy.START_HOLD)
         assertEquals("Log hold", LogBarCopy.LOG_HOLD)
         assertEquals("Logging…", LogBarCopy.LOGGING)
