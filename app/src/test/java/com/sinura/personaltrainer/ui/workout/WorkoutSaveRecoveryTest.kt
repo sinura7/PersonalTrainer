@@ -468,6 +468,9 @@ class WorkoutSaveRecoveryTest {
         }
         if (remainingExercise) {
             assertEquals("remaining", released.selectedExerciseId)
+            vm.uiState.awaitFirst { it.canLog && it.selectedExerciseId == "remaining" }
+            vm.setRpe(8)
+            vm.uiState.awaitFirst { it.logCommitReady }
             vm.primaryAction.awaitFirst { it.kind == WorkoutPrimaryKind.LOG_SET && it.enabled }
         } else {
             assertNull(released.selectedExerciseId)

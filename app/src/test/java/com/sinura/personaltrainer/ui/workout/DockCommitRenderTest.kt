@@ -160,10 +160,9 @@ class DockCommitRenderTest {
         dockState = floorDockState(action = waiting).copy(canLog = false, logging = true)
         compose.waitForIdle()
         assertEquals(LogCommitCopy.LOGGING_WAIT, stateOf(WorkoutTestTags.LOG_SET))
-        // The lift is ready, it is only held: no reason is invented.
-        dockState = floorDockState(action = waiting).copy(canLog = true)
+        dockState = floorDockState(action = waiting).copy(canLog = true, effortMissingForCommit = true)
         compose.waitForIdle()
-        assertNull(stateOf(WorkoutTestTags.LOG_SET))
+        assertEquals(LogCommitCopy.EFFORT_MISSING, stateOf(WorkoutTestTags.LOG_SET))
     }
 
     @Test

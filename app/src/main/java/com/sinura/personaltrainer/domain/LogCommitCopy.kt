@@ -9,10 +9,17 @@ object LogCommitCopy {
     const val SUGGESTION_UNAVAILABLE = "Suggestion unavailable"
     const val WAITING_FOR_LIFT = "Waiting for this lift's numbers."
     const val LOGGING_WAIT = "Logging. Wait until this set is saved."
+    /** Shown on the commit while Log is off for a working set with no effort (P2a). */
+    const val EFFORT_MISSING = "Pick your effort first"
 
-    fun disabledReason(logging: Boolean, liftReady: Boolean): String? = when {
+    fun disabledReason(
+        logging: Boolean,
+        liftReady: Boolean,
+        effortMissing: Boolean = false,
+    ): String? = when {
         logging -> LOGGING_WAIT
         !liftReady -> WAITING_FOR_LIFT
+        effortMissing -> EFFORT_MISSING
         else -> null
     }
 }

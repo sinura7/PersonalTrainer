@@ -195,6 +195,18 @@ data class ActiveWorkoutUiState(
             !entryLocked &&
             (liftReadiness.allowsCommit() || draftDirty)
 
+    /** True when [canLog] but a working set still needs an effort before Log may act (P2a). */
+    val effortMissingForCommit: Boolean
+        get() {
+            if (!canLog) return false
+            val exerciseId = selectedExerciseId ?: return false
+            val lift = session?.exercises?.firstOrNull { it.exercise.id == exerciseId } ?: return false
+            val hold = HoldWork.isHold(lift.exercise)
+            return SetLogRules.validateEffort(rpe = draft.rpe, isWarmup = draft.isWarmup, isHold = hold) != null
+        }
+
+    val logCommitReady: Boolean get() = canLog && !effortMissingForCommit
+
     val canFinish: Boolean
         get() = loadState == SessionLoadState.FOUND && session?.sets?.isNotEmpty() == true && !entryLocked
 
@@ -1519,12 +1531,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // A working set logs only with its effort (P2a, owner decision of 29 September 2026).
         // Here, on the one path every Log, warm-up log, hold log and Save changes takes, so
         // the floor and the test seam refuse alike; History's corrections check the same rule.
-        val effortMissing = SetLogRules.validateEffort(rpe = values.rpe, isWarmup = values.isWarmup, isHold = hold)
-        if (effortMissing != null) {
-            error.fail(source = ERR_LOG_SET, message = effortMissing)
-            _logFeedback.tryEmit(LogCommitFeedback.REJECT)
-            return
-        }
+        // Log is disabled until effort is chosen; this guard catches tests and stray calls.
+        if (SetLogRules.validateEffort(rpe = values.rpe, isWarmup = values.isWarmup, isHold = hold) != null) return
         val command = WorkoutSetSave(
             sessionId = sessionId, exerciseId = exerciseId,
             setId = original?.setId ?: IdFactory.Uuid.newId(),

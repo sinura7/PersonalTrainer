@@ -496,6 +496,7 @@ private fun ActiveWorkoutContent(
                                 editing = state.editingSetId != null,
                                 logging = state.logging,
                                 canLog = state.canLog,
+                                effortMissingForCommit = state.effortMissingForCommit,
                                 savePending = state.save.pending,
                                 error = state.error,
                                 suggestionUnavailable = state.suggestionUnavailable,

@@ -722,8 +722,11 @@ class FloorWorkClocksCharacterisationTest {
      * part of the wait: the screen state is combined across Room's threads, and for a moment it
      * can show the entry ready beside the empty draft from before the prefill landed.
      */
-    private suspend fun ActiveWorkoutViewModel.ready(): ActiveWorkoutUiState =
+    private suspend fun ActiveWorkoutViewModel.ready(): ActiveWorkoutUiState {
         uiState.awaitFirst { it.canLog && it.draft.weightKg == 100.0 }
+        if (uiState.value.draft.rpe == null && !uiState.value.draft.isWarmup) setRpe(8)
+        return uiState.awaitFirst { it.logCommitReady && it.draft.weightKg == 100.0 }
+    }
 
     /** The hang is on the floor with its 30 s target and the entry takes taps. */
     private suspend fun ActiveWorkoutViewModel.readyHold(): ActiveWorkoutUiState =

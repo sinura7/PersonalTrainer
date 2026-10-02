@@ -2334,6 +2334,7 @@ class ActiveWorkoutViewModelTest {
         }
         assertTrue(state.suggestionUnavailable)
         assertTrue(state.canLog)
+        assertFalse(state.logCommitReady)
     }
 
     @Test
@@ -2457,29 +2458,32 @@ class ActiveWorkoutViewModelTest {
     }
 
     /**
-     * P2a (owner decision of 29 September 2026): a working set logs only with its effort. The
-     * refusal is the same field message and reject haptic a zero weight gets, and writes
-     * nothing; a warm-up logs without one; with an effort the set goes in.
+     * P2a (owner decision of 29 September 2026): a working set logs only with its effort. Log
+     * stays off until one is picked; warm-ups log without one; with an effort the set goes in.
      */
     @Test
-    fun aWorkingSetWithoutAnEffortIsRefusedAndAWarmupIsNot() = runBlocking {
+    fun aWorkingSetWithoutAnEffortKeepsLogOffAndAWarmupIsNot() = runBlocking {
         val fixture = seedWorkout(targetSets = 3)
         val vm = createViewModel(fixture.session.id)
-        vm.awaitPrefilled()
+        val prefilled = vm.awaitPrefilled()
+        assertTrue(prefilled.canLog)
+        assertFalse(prefilled.logCommitReady)
+        assertTrue(prefilled.effortMissingForCommit)
         val seen = mutableListOf<LogCommitFeedback>()
         val job = launch(dispatcher) { vm.logFeedback.collect { seen.add(it) } }
         try {
             vm.logSet()
-            val refused = vm.awaitState { it.error != null }
-            assertEquals(SetLogRules.EFFORT_MISSING, refused.error)
-            assertEquals(listOf(LogCommitFeedback.REJECT), seen.toList())
             assertEquals(0, deps.workoutRepository.getSession(fixture.session.id)!!.sets.size)
+            assertNull(vm.uiState.value.error)
+            assertTrue(seen.isEmpty())
 
             vm.setWarmup(true)
             vm.logSetAndSettle()
             awaitSession(fixture.session.id) { it.sets.size == 1 }
 
+            vm.setWarmup(false)
             vm.setRpe(8)
+            assertTrue(vm.uiState.value.logCommitReady)
             vm.logSetAndSettle()
             awaitSession(fixture.session.id) { it.sets.count { set -> !set.isWarmup } == 1 }
             assertEquals(8, deps.workoutRepository.getSession(fixture.session.id)!!.sets.first { !it.isWarmup }.rpe)
