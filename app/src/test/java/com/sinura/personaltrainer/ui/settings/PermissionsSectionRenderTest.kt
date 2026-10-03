@@ -27,7 +27,7 @@ class PermissionsSectionRenderTest {
     @Test
     fun fiveCapabilityRowsWithChipsAndFixButtons() {
         val snapshot = PhoneCapabilitySnapshot(
-            sdkInt = 34,
+            sdkInt = 35,
             notificationsEnabled = false,
             restDoneChannelEnabled = true,
             postNotificationsGranted = false,
@@ -38,7 +38,12 @@ class PermissionsSectionRenderTest {
         )
         compose.setContent {
             PersonalTrainerTheme {
-                PermissionsSection(snapshot = snapshot)
+                SettingsSubpage(
+                    title = PermissionsCopy.SETTINGS_ROW_SUBTITLE,
+                    onBack = {},
+                ) {
+                    PermissionsSection(snapshot = snapshot)
+                }
             }
         }
         compose.onNodeWithTag(SettingsTags.PERMISSIONS).assertIsDisplayed()
