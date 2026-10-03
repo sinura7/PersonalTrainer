@@ -21,12 +21,13 @@ import com.sinura.personaltrainer.domain.RestTimerSnapshot
  */
 object RestTimerNotifications {
     /**
-     * v2 because a channel's importance cannot be changed after creation. The
-     * original `rest_timer_running` channel was IMPORTANCE_LOW, so the
-     * countdown never showed on the lock screen. This channel is HIGH, silent,
-     * and public: SystemUI can draw a chronometer while the screen is off.
+     * v3 because a channel's importance and lock-screen behaviour cannot change
+     * after creation. v2 stayed shade-only on Android 14+ when the running card
+     * used [NotificationCompat.Builder.setSilent] — SystemUI treats that as a
+     * silent/minimized notification and skips the lock-screen chronometer. This
+     * channel is HIGH, soundless (no channel sound or vibration), and public.
      */
-    const val CHANNEL_RUNNING = "rest_timer_running_v2"
+    const val CHANNEL_RUNNING = "rest_timer_running_v3"
 
     /**
      * v3 because a channel's DND bypass cannot be relied on after creation.
@@ -38,6 +39,7 @@ object RestTimerNotifications {
     const val CHANNEL_DONE = "rest_timer_done_v3"
 
     private const val LEGACY_CHANNEL_RUNNING = "rest_timer_running"
+    private const val LEGACY_CHANNEL_RUNNING_V2 = "rest_timer_running_v2"
     private const val LEGACY_CHANNEL_DONE = "rest_timer_done"
     private const val LEGACY_CHANNEL_DONE_V2 = "rest_timer_done_v2"
     const val RUNNING_ID = 4101
@@ -62,6 +64,11 @@ object RestTimerNotifications {
             manager.deleteNotificationChannel(LEGACY_CHANNEL_RUNNING)
         } catch (_: Exception) {
             // Never existed on a fresh install.
+        }
+        try {
+            manager.deleteNotificationChannel(LEGACY_CHANNEL_RUNNING_V2)
+        } catch (_: Exception) {
+            // Temper Debug builds that still hold the v2 running channel.
         }
         val running = NotificationChannel(
             CHANNEL_RUNNING,
@@ -156,7 +163,8 @@ object RestTimerNotifications {
             .setContentText(RestTimer.remainingCopy(remaining))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .setSilent(true)
+            // Do not setSilent: Android 14+ hides silent ongoing cards from the
+            // lock screen. The channel has no sound; RestTimerAlerts owns the cue.
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
