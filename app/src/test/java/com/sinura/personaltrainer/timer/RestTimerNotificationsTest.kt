@@ -20,7 +20,7 @@ class RestTimerNotificationsTest {
     private val context: Application = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun runningChannelIsHighPublicAndReplacesTheLowLegacy() {
+    fun runningChannelIsHighPublicAndReplacesLegacyIds() {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(
             android.app.NotificationChannel(
@@ -29,9 +29,17 @@ class RestTimerNotificationsTest {
                 NotificationManager.IMPORTANCE_LOW,
             ),
         )
+        manager.createNotificationChannel(
+            android.app.NotificationChannel(
+                "rest_timer_running_v2",
+                "legacy v2",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ),
+        )
         RestTimerNotifications.ensureChannels(context)
 
         assertNull(manager.getNotificationChannel("rest_timer_running"))
+        assertNull(manager.getNotificationChannel("rest_timer_running_v2"))
         val running = checkNotNull(
             manager.getNotificationChannel(RestTimerNotifications.CHANNEL_RUNNING),
         )
