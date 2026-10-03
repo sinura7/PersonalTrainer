@@ -1,8 +1,8 @@
 package com.sinura.personaltrainer.timer
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.PixelFormat
-import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.Gravity
@@ -19,11 +19,10 @@ import com.sinura.personaltrainer.domain.RestTimerSnapshot
  * Small draggable rest countdown over home / other apps. Requires
  * [Settings.canDrawOverlays]; Settings → Permissions is the fix path.
  */
+@SuppressLint("StaticFieldLeak")
 object RestTimerOverlayController {
-    fun canDrawOverlays(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true
-        return Settings.canDrawOverlays(context.applicationContext)
-    }
+    fun canDrawOverlays(context: Context): Boolean =
+        Settings.canDrawOverlays(context.applicationContext)
 
     private var windowManager: WindowManager? = null
     private var pillView: View? = null
@@ -60,6 +59,7 @@ object RestTimerOverlayController {
         val wm = windowManager ?: appContext.getSystemService(WindowManager::class.java).also {
             windowManager = it
         }
+        @SuppressLint("InflateParams")
         val view = pillView ?: LayoutInflater.from(appContext)
             .inflate(R.layout.overlay_rest_pill, null)
             .also { inflated ->
@@ -88,6 +88,7 @@ object RestTimerOverlayController {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private val dragListener = View.OnTouchListener { view, event ->
         val params = layoutParams ?: return@OnTouchListener false
         val wm = windowManager ?: return@OnTouchListener false
@@ -108,16 +109,10 @@ object RestTimerOverlayController {
     }
 
     private fun defaultLayoutParams(context: Context): WindowManager.LayoutParams {
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
-            type,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
