@@ -15,6 +15,10 @@
 > Executors verify current decisions in `docs/architecture/`, not by grepping
 > `Signed:` in this file.
 >
+> 2 Oct 2026 — Packet P4a (eight-asks plan): Settings → Permissions — one
+> page listing notifications, precise rest alarms, lock-screen alert, battery,
+> and vibration with fix buttons; first-open walk and page share one probe.
+>
 > 2 Oct 2026 — Packet P2b merged (#446, `76858e8f`): GET READY before a
 > hold (the eight-asks plan's third packet) — phone OK on Temper Debug 110
 > (`debug-live-2026-10-02-4`). Holds only; 3 / 5 / 10 s on the Rest timer

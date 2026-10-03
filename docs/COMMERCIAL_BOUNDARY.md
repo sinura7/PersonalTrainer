@@ -39,3 +39,10 @@ service. Local history and queued local work stay.
 - A remote recommendation API
 
 Do not advertise those products.
+
+## Play-sensitive permissions (personal build today)
+
+The sideload / Temper Debug manifest declares
+`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` so rest wakeups can request a per-app
+battery exemption. A Google Play store build must **drop** that permission or
+**document and justify** it under Play policy before shipping.

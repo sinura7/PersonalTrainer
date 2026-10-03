@@ -10,6 +10,7 @@ enum class SettingsPage {
     REMINDERS,
     GENERATOR,
     REST,
+    PERMISSIONS,
     BODYWEIGHT,
     SAVE_POSTURE,
     ACCOUNT,

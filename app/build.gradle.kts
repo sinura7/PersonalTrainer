@@ -17,7 +17,7 @@ val appVersionName = "1.0.0"
 // appVersionCode. The two apps are different ids, so they do not share
 // Android's upgrade counter. Obtainium will not offer an update if this
 // stays put — both previous debug-live APKs were versionCode 1.
-val debugLiveCode = 110
+val debugLiveCode = 115
 
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 val keystoreProperties = Properties()
@@ -266,6 +266,7 @@ run {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
