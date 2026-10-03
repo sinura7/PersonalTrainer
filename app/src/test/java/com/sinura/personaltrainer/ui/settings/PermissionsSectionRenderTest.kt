@@ -25,7 +25,7 @@ class PermissionsSectionRenderTest {
     @get:Rule val compose = createComposeRule()
 
     @Test
-    fun fiveCapabilityRowsWithChipsAndFixButtons() {
+    fun sixCapabilityRowsWithChipsAndFixButtons() {
         val snapshot = PhoneCapabilitySnapshot(
             sdkInt = 35,
             notificationsEnabled = false,
@@ -33,6 +33,7 @@ class PermissionsSectionRenderTest {
             postNotificationsGranted = false,
             canScheduleExactAlarms = false,
             canUseFullScreenIntent = false,
+            canDrawOverlays = false,
             batteryUnrestricted = false,
             hasVibrator = true,
         )

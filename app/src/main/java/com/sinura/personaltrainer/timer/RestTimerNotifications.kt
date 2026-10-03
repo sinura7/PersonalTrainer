@@ -29,6 +29,9 @@ object RestTimerNotifications {
      */
     const val CHANNEL_RUNNING = "rest_timer_running_v3"
 
+    /** In-app FGS posts: no peek, no lock-screen prominence while Temper is open. */
+    const val CHANNEL_RUNNING_IN_APP = "rest_timer_running_in_app_v4"
+
     /**
      * v3 because a channel's DND bypass cannot be relied on after creation.
      * v2 was silent (so RestTimerAlerts owns the cue) but `setBypassDnd(false)`,
@@ -40,6 +43,7 @@ object RestTimerNotifications {
 
     private const val LEGACY_CHANNEL_RUNNING = "rest_timer_running"
     private const val LEGACY_CHANNEL_RUNNING_V2 = "rest_timer_running_v2"
+    private const val LEGACY_CHANNEL_RUNNING_IN_APP = "rest_timer_running_in_app"
     private const val LEGACY_CHANNEL_DONE = "rest_timer_done"
     private const val LEGACY_CHANNEL_DONE_V2 = "rest_timer_done_v2"
     const val RUNNING_ID = 4101
@@ -70,6 +74,11 @@ object RestTimerNotifications {
         } catch (_: Exception) {
             // Temper Debug builds that still hold the v2 running channel.
         }
+        try {
+            manager.deleteNotificationChannel(LEGACY_CHANNEL_RUNNING_IN_APP)
+        } catch (_: Exception) {
+            // Prior in-app channel id experiments.
+        }
         val running = NotificationChannel(
             CHANNEL_RUNNING,
             "Rest timer",
@@ -80,6 +89,17 @@ object RestTimerNotifications {
             enableVibration(false)
             setShowBadge(false)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        }
+        val inApp = NotificationChannel(
+            CHANNEL_RUNNING_IN_APP,
+            "Rest timer (in app)",
+            NotificationManager.IMPORTANCE_MIN,
+        ).apply {
+            description = "Silent while Temper is on screen"
+            setSound(null, null)
+            enableVibration(false)
+            setShowBadge(false)
+            lockscreenVisibility = Notification.VISIBILITY_SECRET
         }
         val done = NotificationChannel(
             CHANNEL_DONE,
@@ -93,6 +113,7 @@ object RestTimerNotifications {
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
         }
         manager.createNotificationChannel(running)
+        manager.createNotificationChannel(inApp)
         manager.createNotificationChannel(done)
     }
 
@@ -137,6 +158,7 @@ object RestTimerNotifications {
     fun runningNotification(
         context: Context,
         state: RestTimerSnapshot,
+        presentation: RestTimerRunningPresentation = RestTimerRunningPresentation.resolve(context),
         nowElapsedRealtime: Long = SystemClock.elapsedRealtime(),
         nowWallClockMillis: Long = System.currentTimeMillis(),
     ): Notification {
@@ -157,38 +179,58 @@ object RestTimerNotifications {
             remainingSeconds = remaining,
             nowElapsedRealtime = nowElapsedRealtime,
         )
-        val autoPresentLockGlance = live && RestTimerLockGlance.shouldAutoPresentRunning(appContext)
-        val builder = NotificationCompat.Builder(appContext, CHANNEL_RUNNING)
+        val channelId = when (presentation) {
+            RestTimerRunningPresentation.FOREGROUND_IN_APP -> CHANNEL_RUNNING_IN_APP
+            RestTimerRunningPresentation.BACKGROUND_UNLOCKED,
+            RestTimerRunningPresentation.LOCKED,
+            -> CHANNEL_RUNNING
+        }
+        val builder = NotificationCompat.Builder(appContext, channelId)
             .setSmallIcon(R.drawable.ic_stat_timer)
             .setContentTitle("Rest")
             .setContentText(RestTimer.remainingCopy(remaining))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            // Do not setSilent: Android 14+ hides silent ongoing cards from the
-            // lock screen. The channel has no sound; RestTimerAlerts owns the cue.
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setCustomContentView(compact)
-            .setCustomBigContentView(expanded)
-            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setContentIntent(lockScreenIntent(appContext, state.sessionId, finished = false))
             .addAction(0, "−15s", serviceIntent(appContext, RestTimerService.ACTION_MINUS_15, 11))
             .addAction(0, "+15s", serviceIntent(appContext, RestTimerService.ACTION_ADD_15, 12))
             .addAction(0, "Skip", serviceIntent(appContext, RestTimerService.ACTION_SKIP, 13, state.timerId))
-            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-        if (autoPresentLockGlance) {
-            builder.setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setCustomHeadsUpContentView(expanded)
-            if (canUseFullScreenIntent(appContext)) {
-                builder.setFullScreenIntent(
-                    lockScreenIntent(appContext, state.sessionId, finished = false),
-                    true,
-                )
+        when (presentation) {
+            RestTimerRunningPresentation.FOREGROUND_IN_APP -> {
+                builder
+                    .setSilent(true)
+                    .setPriority(NotificationCompat.PRIORITY_MIN)
+                    .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+                    .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_DEFERRED)
             }
-        } else {
-            // Unlocked: no full-screen yank; skip heads-up custom view so the shade
-            // does not pop a draggable pill over the live workout.
-            builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            RestTimerRunningPresentation.BACKGROUND_UNLOCKED -> {
+                // Do not setSilent: lock path needs public cards; here we only need shade.
+                builder
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setCustomContentView(compact)
+                    .setCustomBigContentView(expanded)
+                    .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            }
+            RestTimerRunningPresentation.LOCKED -> {
+                // Debug 114 lock path — unchanged until owner picks a new lock UX.
+                builder
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setCustomContentView(compact)
+                    .setCustomBigContentView(expanded)
+                    .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setCustomHeadsUpContentView(expanded)
+                    .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+                if (live && canUseFullScreenIntent(appContext)) {
+                    builder.setFullScreenIntent(
+                        lockScreenIntent(appContext, state.sessionId, finished = false),
+                        true,
+                    )
+                }
+            }
         }
         if (live) {
             val whenMillis = RestTimer.endsAtWallClockMillis(

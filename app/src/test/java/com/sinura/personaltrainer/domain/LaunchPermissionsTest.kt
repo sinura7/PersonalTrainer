@@ -134,6 +134,7 @@ class LaunchPermissionsTest {
         postNotificationsGranted = postNotificationsGranted,
         canScheduleExactAlarms = canScheduleExactAlarms,
         canUseFullScreenIntent = true,
+        canDrawOverlays = true,
         batteryUnrestricted = batteryUnrestricted,
         hasVibrator = true,
     )

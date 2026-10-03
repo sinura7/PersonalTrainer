@@ -55,6 +55,7 @@ class RestNotificationContrastTest {
         shadowOf(context.getSystemService(KeyguardManager::class.java)).setKeyguardLocked(true)
         val card = RestTimerNotifications.runningNotification(
             context = context,
+            presentation = RestTimerRunningPresentation.LOCKED,
             state = RestTimerSnapshot(
                 running = true,
                 endsAtElapsedRealtime = 90_000L,

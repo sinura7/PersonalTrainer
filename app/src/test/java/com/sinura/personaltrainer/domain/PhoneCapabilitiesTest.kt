@@ -13,12 +13,14 @@ class PhoneCapabilitiesTest {
             postNotificationsGranted = true,
             canScheduleExactAlarms = true,
             canUseFullScreenIntent = true,
+            canDrawOverlays = true,
             batteryUnrestricted = true,
             hasVibrator = true,
         )
         assertEquals(CapabilityState.GRANTED, allGranted.state(PhoneCapability.NOTIFICATIONS))
         assertEquals(CapabilityState.GRANTED, allGranted.state(PhoneCapability.EXACT_REST_ALARM))
         assertEquals(CapabilityState.GRANTED, allGranted.state(PhoneCapability.LOCK_SCREEN_ALERT))
+        assertEquals(CapabilityState.GRANTED, allGranted.state(PhoneCapability.DISPLAY_OVERLAY))
         assertEquals(CapabilityState.GRANTED, allGranted.state(PhoneCapability.BATTERY))
         assertEquals(CapabilityState.GRANTED, allGranted.state(PhoneCapability.VIBRATION))
 
@@ -29,6 +31,7 @@ class PhoneCapabilitiesTest {
             postNotificationsGranted = true,
             canScheduleExactAlarms = true,
             canUseFullScreenIntent = true,
+            canDrawOverlays = true,
             batteryUnrestricted = true,
             hasVibrator = true,
         )
@@ -41,6 +44,7 @@ class PhoneCapabilitiesTest {
             postNotificationsGranted = true,
             canScheduleExactAlarms = true,
             canUseFullScreenIntent = true,
+            canDrawOverlays = true,
             batteryUnrestricted = true,
             hasVibrator = true,
         )
@@ -53,6 +57,7 @@ class PhoneCapabilitiesTest {
             postNotificationsGranted = true,
             canScheduleExactAlarms = true,
             canUseFullScreenIntent = true,
+            canDrawOverlays = true,
             batteryUnrestricted = true,
             hasVibrator = false,
         )
@@ -65,11 +70,13 @@ class PhoneCapabilitiesTest {
             postNotificationsGranted = true,
             canScheduleExactAlarms = false,
             canUseFullScreenIntent = false,
+            canDrawOverlays = true,
             batteryUnrestricted = false,
             hasVibrator = true,
         )
         assertEquals(CapabilityState.GRANTED, api30.state(PhoneCapability.EXACT_REST_ALARM))
         assertEquals(CapabilityState.GRANTED, api30.state(PhoneCapability.LOCK_SCREEN_ALERT))
+        assertEquals(CapabilityState.GRANTED, api30.state(PhoneCapability.DISPLAY_OVERLAY))
         assertEquals(CapabilityState.MISSING, api30.state(PhoneCapability.BATTERY))
 
         val api33DeniedPost = PhoneCapabilities.states(
@@ -79,6 +86,7 @@ class PhoneCapabilitiesTest {
             postNotificationsGranted = false,
             canScheduleExactAlarms = true,
             canUseFullScreenIntent = true,
+            canDrawOverlays = true,
             batteryUnrestricted = true,
             hasVibrator = true,
         )

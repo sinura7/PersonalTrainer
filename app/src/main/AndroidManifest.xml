@@ -17,6 +17,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Personal sideload build: per-app battery exemption for rest wakeups. Play builds must drop or justify (COMMERCIAL_BOUNDARY.md). -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Draggable rest pill when Temper is backgrounded during a rest (Settings → Permissions). -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:name=".PersonalTrainerApp"
