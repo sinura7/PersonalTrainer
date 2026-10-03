@@ -25,6 +25,7 @@ object PermissionsCopy {
         PhoneCapability.NOTIFICATIONS -> "Notifications"
         PhoneCapability.EXACT_REST_ALARM -> "Precise rest alerts"
         PhoneCapability.LOCK_SCREEN_ALERT -> "Rest alert over the lock screen"
+        PhoneCapability.DISPLAY_OVERLAY -> "Rest timer over other apps"
         PhoneCapability.BATTERY -> "Battery"
         PhoneCapability.VIBRATION -> "Vibration"
     }
@@ -39,6 +40,9 @@ object PermissionsCopy {
             "While you rest with the phone locked, Temper can show the live countdown over the " +
                 "lock screen; rest-done uses the same permission. Sideloaded builds usually start " +
                 "with this granted."
+        PhoneCapability.DISPLAY_OVERLAY ->
+            "When you leave Temper during a rest, the small draggable countdown can float over " +
+                "home and other apps. Android asks for this once in Display over other apps."
         PhoneCapability.BATTERY ->
             "Unrestricted battery lifts the once-per-nine-minutes throttle on the rest wakeup. " +
                 "Exact alarms already fire in Doze."
@@ -51,6 +55,7 @@ object PermissionsCopy {
         PhoneCapability.NOTIFICATIONS -> "Fix notifications"
         PhoneCapability.EXACT_REST_ALARM -> "Allow precise alarms"
         PhoneCapability.LOCK_SCREEN_ALERT -> "Allow lock-screen alert"
+        PhoneCapability.DISPLAY_OVERLAY -> "Allow display over other apps"
         PhoneCapability.BATTERY -> "Allow unrestricted battery"
         PhoneCapability.VIBRATION -> ""
     }

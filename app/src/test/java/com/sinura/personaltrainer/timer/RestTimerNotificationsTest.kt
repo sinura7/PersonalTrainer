@@ -47,6 +47,33 @@ class RestTimerNotificationsTest {
         )
         assertEquals(NotificationManager.IMPORTANCE_HIGH, running.importance)
         assertEquals(Notification.VISIBILITY_PUBLIC, running.lockscreenVisibility)
+        val inApp = checkNotNull(
+            manager.getNotificationChannel(RestTimerNotifications.CHANNEL_RUNNING_IN_APP),
+        )
+        assertEquals(NotificationManager.IMPORTANCE_MIN, inApp.importance)
+    }
+
+    @Test
+    fun inAppRunningNotificationIsQuietAndDeferred() {
+        RestTimerAppForeground.setForegroundForTest(true)
+        RestTimerNotifications.ensureChannels(context)
+        val notification = RestTimerNotifications.runningNotification(
+            context = context,
+            presentation = RestTimerRunningPresentation.FOREGROUND_IN_APP,
+            state = RestTimerSnapshot(
+                running = true,
+                endsAtElapsedRealtime = 90_000L,
+                totalSeconds = 90,
+                sessionId = "session-1",
+                timerId = "timer-1",
+            ),
+            nowElapsedRealtime = 0L,
+            nowWallClockMillis = 1_000L,
+        )
+        assertNull(notification.headsUpContentView)
+        assertNull(notification.fullScreenIntent)
+        assertEquals(Notification.PRIORITY_MIN, notification.priority)
+        assertEquals(Notification.VISIBILITY_SECRET, notification.visibility)
     }
 
     @Test
@@ -54,6 +81,7 @@ class RestTimerNotificationsTest {
         RestTimerNotifications.ensureChannels(context)
         val notification = RestTimerNotifications.runningNotification(
             context = context,
+            presentation = RestTimerRunningPresentation.BACKGROUND_UNLOCKED,
             state = RestTimerSnapshot(
                 running = true,
                 endsAtElapsedRealtime = 90_000L,
@@ -81,6 +109,7 @@ class RestTimerNotificationsTest {
         RestTimerNotifications.ensureChannels(context)
         val notification = RestTimerNotifications.runningNotification(
             context = context,
+            presentation = RestTimerRunningPresentation.BACKGROUND_UNLOCKED,
             state = RestTimerSnapshot(
                 running = true,
                 endsAtElapsedRealtime = 90_000L,
@@ -112,6 +141,7 @@ class RestTimerNotificationsTest {
 
     private fun runningCard(timerId: String): Notification = RestTimerNotifications.runningNotification(
         context = context,
+        presentation = RestTimerRunningPresentation.BACKGROUND_UNLOCKED,
         state = RestTimerSnapshot(
             running = true,
             endsAtElapsedRealtime = 90_000L,
@@ -128,6 +158,7 @@ class RestTimerNotificationsTest {
         RestTimerNotifications.ensureChannels(context)
         val notification = RestTimerNotifications.runningNotification(
             context = context,
+            presentation = RestTimerRunningPresentation.BACKGROUND_UNLOCKED,
             state = RestTimerSnapshot(
                 running = true,
                 endsAtElapsedRealtime = 90_000L,
@@ -150,7 +181,7 @@ class RestTimerNotificationsTest {
         shadowOf(context.getSystemService(KeyguardManager::class.java)).setKeyguardLocked(true)
         shadowOf(context.getSystemService(PowerManager::class.java)).setIsInteractive(true)
         RestTimerNotifications.ensureChannels(context)
-        val notification = sampleRunningCard()
+        val notification = sampleRunningCard(RestTimerRunningPresentation.LOCKED)
         assertNotNull(notification.headsUpContentView)
         assertEquals(Notification.PRIORITY_HIGH, notification.priority)
         // Full-screen intent follows the same API 34 gate as rest-done (see doneNotification…).
@@ -169,14 +200,17 @@ class RestTimerNotificationsTest {
         shadowOf(context.getSystemService(KeyguardManager::class.java)).setKeyguardLocked(false)
         shadowOf(context.getSystemService(PowerManager::class.java)).setIsInteractive(true)
         RestTimerNotifications.ensureChannels(context)
-        val notification = sampleRunningCard()
+        val notification = sampleRunningCard(RestTimerRunningPresentation.BACKGROUND_UNLOCKED)
         assertNull(notification.fullScreenIntent)
         assertNull(notification.headsUpContentView)
         assertEquals(Notification.PRIORITY_DEFAULT, notification.priority)
     }
 
-    private fun sampleRunningCard(): Notification = RestTimerNotifications.runningNotification(
+    private fun sampleRunningCard(
+        presentation: RestTimerRunningPresentation,
+    ): Notification = RestTimerNotifications.runningNotification(
         context = context,
+        presentation = presentation,
         state = RestTimerSnapshot(
             running = true,
             endsAtElapsedRealtime = 90_000L,

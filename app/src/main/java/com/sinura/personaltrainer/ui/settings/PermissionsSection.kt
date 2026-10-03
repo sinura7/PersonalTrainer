@@ -28,6 +28,7 @@ import com.sinura.personaltrainer.domain.PhoneCapabilitySnapshot
 import com.sinura.personaltrainer.domain.PhoneCapabilityStatus
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent
 import com.sinura.personaltrainer.timer.fullScreenIntentSettingsIntent
+import com.sinura.personaltrainer.timer.overlaySettingsIntent
 import com.sinura.personaltrainer.timer.ignoreBatteryOptimizationSettingsIntent
 import com.sinura.personaltrainer.timer.requestIgnoreBatteryOptimizationsIntent
 import com.sinura.personaltrainer.ui.components.GymCard
@@ -83,6 +84,9 @@ internal fun PermissionsSection(
                             fullScreenIntentSettingsIntent(context.packageName)?.let { intent ->
                                 context.startActivity(intent)
                             }
+                        }
+                        PhoneCapability.DISPLAY_OVERLAY -> {
+                            context.startActivity(overlaySettingsIntent(context.packageName))
                         }
                         PhoneCapability.BATTERY -> {
                             runCatching {

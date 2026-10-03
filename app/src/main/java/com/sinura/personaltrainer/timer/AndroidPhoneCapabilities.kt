@@ -43,6 +43,7 @@ class AndroidPhoneCapabilities(
             alarmManager?.canScheduleExactAlarms() == true
         }
         val canUseFullScreenIntent = RestTimerNotifications.canUseFullScreenIntent(appContext)
+        val canDrawOverlays = RestTimerOverlayController.canDrawOverlays(appContext)
         val batteryUnrestricted = appContext.getSystemService(PowerManager::class.java)
             ?.isIgnoringBatteryOptimizations(appContext.packageName) == true
         val hasVibrator = if (Build.VERSION.SDK_INT >= 31) {
@@ -58,6 +59,7 @@ class AndroidPhoneCapabilities(
             postNotificationsGranted = postNotificationsGranted,
             canScheduleExactAlarms = canScheduleExactAlarms,
             canUseFullScreenIntent = canUseFullScreenIntent,
+            canDrawOverlays = canDrawOverlays,
             batteryUnrestricted = batteryUnrestricted,
             hasVibrator = hasVibrator,
         )
@@ -86,6 +88,12 @@ fun fullScreenIntentSettingsIntent(packageName: String, sdkInt: Int = Build.VERS
         addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
 }
+
+fun overlaySettingsIntent(packageName: String): Intent =
+    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+        data = Uri.parse("package:$packageName")
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
 
 private const val ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS =
     "android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"

@@ -14,6 +14,7 @@ data class PhoneCapabilitySnapshot(
     val postNotificationsGranted: Boolean,
     val canScheduleExactAlarms: Boolean,
     val canUseFullScreenIntent: Boolean,
+    val canDrawOverlays: Boolean,
     val batteryUnrestricted: Boolean,
     val hasVibrator: Boolean,
 ) {
@@ -24,6 +25,7 @@ data class PhoneCapabilitySnapshot(
         postNotificationsGranted = postNotificationsGranted,
         canScheduleExactAlarms = canScheduleExactAlarms,
         canUseFullScreenIntent = canUseFullScreenIntent,
+        canDrawOverlays = canDrawOverlays,
         batteryUnrestricted = batteryUnrestricted,
         hasVibrator = hasVibrator,
     )

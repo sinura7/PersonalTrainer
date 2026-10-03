@@ -71,7 +71,7 @@ class RestTimerService : Service() {
     private var completing = false
     private var startedForeground = false
     private var lastShownEndsAt = Long.MIN_VALUE
-    private var lastRunningLockGlanceAutoPresent: Boolean? = null
+    private var lastRunningPresentation: RestTimerRunningPresentation? = null
     private var lastStartId = 0
     private var sawRunning = false
     private var stopped = false
@@ -87,10 +87,20 @@ class RestTimerService : Service() {
         }
     }
 
+    private val foregroundListener: () -> Unit = {
+        if (startedForeground && !completing) {
+            val state = controller.snapshot.value
+            if (state.running) {
+                publishRunning(state, force = true)
+            }
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        RestTimerAppForeground.addListener(foregroundListener)
         val lockFilter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_OFF)
             addAction(Intent.ACTION_SCREEN_ON)
@@ -199,11 +209,13 @@ class RestTimerService : Service() {
     }
 
     override fun onDestroy() {
+        RestTimerAppForeground.removeListener(foregroundListener)
         try {
             unregisterReceiver(lockStateReceiver)
         } catch (_: Exception) {
             // Never registered if startForeground failed early.
         }
+        RestTimerOverlayController.hide()
         handler.removeCallbacks(completeRunnable)
         handler.removeCallbacks(tickRunnable)
         tickPlayer?.release()
@@ -282,46 +294,60 @@ class RestTimerService : Service() {
         if (startedForeground) return
         val state = controller.snapshot.value
         RestTimerNotifications.ensureChannels(this)
-        startForegroundWith(RestTimerNotifications.runningNotification(this, state))
+        val presentation = RestTimerRunningPresentation.resolve(this)
+        startForegroundWith(
+            RestTimerNotifications.runningNotification(this, state, presentation),
+            presentation,
+        )
     }
 
     private fun publishRunning(state: RestTimerSnapshot, force: Boolean = false) {
         val remaining = state.remainingSeconds(SystemClock.elapsedRealtime()).coerceAtLeast(0)
+        val presentation = RestTimerRunningPresentation.resolve(this)
         if (!startedForeground) {
-            startForegroundWith(RestTimerNotifications.runningNotification(this, state))
+            startForegroundWith(
+                RestTimerNotifications.runningNotification(this, state, presentation),
+                presentation,
+            )
             lastShownEndsAt = state.endsAtElapsedRealtime
+            lastRunningPresentation = presentation
+            syncExterior(state, presentation)
             return
         }
         // Chronometer ticks in SystemUI while time remains. Re-post when the
-        // deadline changes (±15) or lock/screen state toggles full-screen intent.
-        // At zero, freeze then complete — do not leave a live countdown whose
-        // base is already past.
-        val autoPresentLockGlance = RestTimerLockGlance.shouldAutoPresentRunning(this)
+        // deadline changes (±15) or exterior presentation toggles (foreground,
+        // lock). At zero, freeze then complete.
         if (
             !force &&
             state.endsAtElapsedRealtime == lastShownEndsAt &&
-            autoPresentLockGlance == lastRunningLockGlanceAutoPresent
+            presentation == lastRunningPresentation
         ) {
             return
         }
         lastShownEndsAt = state.endsAtElapsedRealtime
-        lastRunningLockGlanceAutoPresent = autoPresentLockGlance
+        lastRunningPresentation = presentation
         if (remaining <= 0) {
             handleDeadline(state)
             return
         }
+        val notification = RestTimerNotifications.runningNotification(this, state, presentation)
         try {
             getSystemService(NotificationManager::class.java)
-                ?.notify(
-                    RestTimerNotifications.RUNNING_ID,
-                    RestTimerNotifications.runningNotification(this, state),
-                )
+                ?.notify(RestTimerNotifications.RUNNING_ID, notification)
         } catch (_: Exception) {
             // POST_NOTIFICATIONS denied; the countdown still runs and the alert still fires.
         }
+        syncExterior(state, presentation)
     }
 
-    private fun startForegroundWith(notification: Notification) {
+    private fun syncExterior(state: RestTimerSnapshot, presentation: RestTimerRunningPresentation) {
+        RestTimerOverlayController.sync(this, state, presentation)
+    }
+
+    private fun startForegroundWith(
+        notification: Notification,
+        presentation: RestTimerRunningPresentation,
+    ) {
         try {
             if (Build.VERSION.SDK_INT >= 34) {
                 ServiceCompat.startForeground(
@@ -379,9 +405,10 @@ class RestTimerService : Service() {
     private fun freezeShadeAtZero(state: RestTimerSnapshot) {
         val live = controller.snapshot.value
         if (live.running && live.timerId != state.timerId) return
-        val frozen = RestTimerNotifications.runningNotification(this, state)
+        val presentation = RestTimerRunningPresentation.resolve(this)
+        val frozen = RestTimerNotifications.runningNotification(this, state, presentation)
         if (!startedForeground) {
-            startForegroundWith(frozen)
+            startForegroundWith(frozen, presentation)
             return
         }
         try {
@@ -399,7 +426,8 @@ class RestTimerService : Service() {
         handler.removeCallbacks(tickRunnable)
         completing = false
         lastShownEndsAt = Long.MIN_VALUE
-        lastRunningLockGlanceAutoPresent = null
+        lastRunningPresentation = null
+        RestTimerOverlayController.hide()
         try {
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         } catch (_: Exception) {

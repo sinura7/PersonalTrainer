@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.diagnostics.DiagnosticRing
 import com.sinura.personaltrainer.diagnostics.LastCrashStore
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.reminder.ReminderNotifications
+import com.sinura.personaltrainer.timer.RestTimerAppForeground
 import com.sinura.personaltrainer.timer.RestTimerNotifications
 import com.sinura.personaltrainer.ui.components.TemperStillCache
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -70,6 +71,7 @@ class PersonalTrainerApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        RestTimerAppForeground.install(this)
         // Before anything that can log: the snapshot and container construction below
         // (database open, migrations) are exactly the paths whose messages carry
         // user-authored titles and internal file paths. Temper Debug is the daily

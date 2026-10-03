@@ -4,6 +4,7 @@ enum class PhoneCapability {
     NOTIFICATIONS,
     EXACT_REST_ALARM,
     LOCK_SCREEN_ALERT,
+    DISPLAY_OVERLAY,
     BATTERY,
     VIBRATION,
 }
@@ -30,6 +31,7 @@ object PhoneCapabilities {
         postNotificationsGranted: Boolean,
         canScheduleExactAlarms: Boolean,
         canUseFullScreenIntent: Boolean,
+        canDrawOverlays: Boolean,
         batteryUnrestricted: Boolean,
         hasVibrator: Boolean,
     ): List<PhoneCapabilityStatus> = PhoneCapability.entries.map { capability ->
@@ -43,6 +45,7 @@ object PhoneCapabilities {
                 postNotificationsGranted = postNotificationsGranted,
                 canScheduleExactAlarms = canScheduleExactAlarms,
                 canUseFullScreenIntent = canUseFullScreenIntent,
+                canDrawOverlays = canDrawOverlays,
                 batteryUnrestricted = batteryUnrestricted,
                 hasVibrator = hasVibrator,
             ),
@@ -57,6 +60,7 @@ object PhoneCapabilities {
         postNotificationsGranted: Boolean,
         canScheduleExactAlarms: Boolean,
         canUseFullScreenIntent: Boolean,
+        canDrawOverlays: Boolean,
         batteryUnrestricted: Boolean,
         hasVibrator: Boolean,
     ): CapabilityState = when (capability) {
@@ -73,6 +77,11 @@ object PhoneCapabilities {
         PhoneCapability.LOCK_SCREEN_ALERT -> when {
             sdkInt < 34 -> CapabilityState.GRANTED
             canUseFullScreenIntent -> CapabilityState.GRANTED
+            else -> CapabilityState.MISSING
+        }
+        PhoneCapability.DISPLAY_OVERLAY -> when {
+            sdkInt < 23 -> CapabilityState.GRANTED
+            canDrawOverlays -> CapabilityState.GRANTED
             else -> CapabilityState.MISSING
         }
         PhoneCapability.BATTERY -> if (batteryUnrestricted) {
