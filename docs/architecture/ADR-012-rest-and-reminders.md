@@ -128,16 +128,19 @@ day. The agreed product asks once, then adapts only if the user says so.
 - A reminder cannot be implemented by `setAlarmClock`.
 - Schedule packets after P7.3 that “just slide the day” without a prompt
   are regressions.
-- Running rest uses a HIGH public channel with a countdown chronometer.
-  When the device is locked or the screen is off, the running foreground
-  notification may attach a full-screen intent to `RestLockActivity`
-  (same `USE_FULL_SCREEN_INTENT` gate as rest-done). While unlocked,
-  Temper does not auto yank the live workout full screen; the shade card
-  stays quiet (no heads-up custom view). A smaller draggable rest chip on
-  the unlocked workout is a planned follow-up, not lock-screen overlay.
-  `RestLockActivity` is `showWhenLocked`. That is not overlay rest on the
-  live log. Full-screen intent is never used for onboarding.
-  Completion still uses `SCHEDULE_EXACT_ALARM`.
+- Running rest uses presentation-specific notification channels: quiet
+  in-app FGS while Temper is foreground, shade + draggable overlay when
+  background-unlocked (overlay permission), and the Debug 114 locked path
+  (full-screen intent to `RestLockActivity` when keyguard/screen-off and
+  `USE_FULL_SCREEN_INTENT` is granted). Rest-done FSI is unchanged.
+- Lock-screen countdown for running rest is a **user-added** Samsung
+  monotone AppWidget (`LockScreenRestWideWidget`, 2×1 under the clock /
+  on AOD). It reads the same `RestTimerController` snapshot as the overlay;
+  it is not Face Widget, ServiceBox, or Now Bar. OEM weather-row pills are
+  not available to third parties; the widget is the supported lock surface.
+  `RestLockActivity` remains for tap/expand and rest-done. Full-screen
+  intent is never used for onboarding. Completion still uses
+  `SCHEDULE_EXACT_ALARM`.
 - Decision 1 holds across threads, not only in order (W2b-1, 23 September
   2026). The notification's ±15 and the screens write the rest on Main; the
   alarm's completion clears it on a background thread. `RestTimerStore`'s

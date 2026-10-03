@@ -342,6 +342,7 @@ class RestTimerService : Service() {
 
     private fun syncExterior(state: RestTimerSnapshot, presentation: RestTimerRunningPresentation) {
         RestTimerOverlayController.sync(this, state, presentation)
+        RestLockScreenWidgetUpdater.updateAll(this, state)
     }
 
     private fun startForegroundWith(
