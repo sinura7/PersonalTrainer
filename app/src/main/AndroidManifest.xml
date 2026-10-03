@@ -91,6 +91,21 @@
             android:exported="false" />
 
         <receiver
+            android:name=".timer.LockScreenRestWideWidget"
+            android:exported="true"
+            android:label="@string/lockscreen_rest_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/lockscreen_rest_2x1_widget_info" />
+            <meta-data
+                android:name="samsung.appwidget.monotone.info"
+                android:resource="@xml/lockscreen_rest_2x1_widget_info_oneui" />
+        </receiver>
+
+        <receiver
             android:name=".reminder.ReminderRebuildReceiver"
             android:exported="false">
             <intent-filter>

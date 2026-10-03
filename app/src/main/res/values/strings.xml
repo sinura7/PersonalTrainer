@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Temper</string>
     <string name="rest_notification_kicker">Rest</string>
+    <string name="lockscreen_rest_widget_label">Rest countdown</string>
 </resources>

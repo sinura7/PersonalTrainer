@@ -60,4 +60,4 @@ stock_component = 1
 # 12 -> 10 in RT-1: the rest notification's two fixed text colours went; the layouts take the
 # system's notification text styles.
 xml_hex = 11
-xml_monospace = 3
+xml_monospace = 4
