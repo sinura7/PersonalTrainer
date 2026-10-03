@@ -36,8 +36,9 @@ object PermissionsCopy {
             "Rest and reminders fire on time when the screen is off. " +
                 "Android 14 phones start with this off for new installs."
         PhoneCapability.LOCK_SCREEN_ALERT ->
-            "The rest-done alert can take over the lock screen so you hear it between sets. " +
-                "Sideloaded builds usually start with this granted."
+            "While you rest with the phone locked, Temper can show the live countdown over the " +
+                "lock screen; rest-done uses the same permission. Sideloaded builds usually start " +
+                "with this granted."
         PhoneCapability.BATTERY ->
             "Unrestricted battery lifts the once-per-nine-minutes throttle on the rest wakeup. " +
                 "Exact alarms already fire in Doze."

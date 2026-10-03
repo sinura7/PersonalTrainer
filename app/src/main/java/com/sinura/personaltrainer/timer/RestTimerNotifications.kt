@@ -157,6 +157,7 @@ object RestTimerNotifications {
             remainingSeconds = remaining,
             nowElapsedRealtime = nowElapsedRealtime,
         )
+        val autoPresentLockGlance = live && RestTimerLockGlance.shouldAutoPresentRunning(appContext)
         val builder = NotificationCompat.Builder(appContext, CHANNEL_RUNNING)
             .setSmallIcon(R.drawable.ic_stat_timer)
             .setContentTitle("Rest")
@@ -167,16 +168,28 @@ object RestTimerNotifications {
             // lock screen. The channel has no sound; RestTimerAlerts owns the cue.
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCustomContentView(compact)
             .setCustomBigContentView(expanded)
-            .setCustomHeadsUpContentView(expanded)
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .setContentIntent(lockScreenIntent(appContext, state.sessionId, finished = false))
             .addAction(0, "−15s", serviceIntent(appContext, RestTimerService.ACTION_MINUS_15, 11))
             .addAction(0, "+15s", serviceIntent(appContext, RestTimerService.ACTION_ADD_15, 12))
             .addAction(0, "Skip", serviceIntent(appContext, RestTimerService.ACTION_SKIP, 13, state.timerId))
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+        if (autoPresentLockGlance) {
+            builder.setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCustomHeadsUpContentView(expanded)
+            if (canUseFullScreenIntent(appContext)) {
+                builder.setFullScreenIntent(
+                    lockScreenIntent(appContext, state.sessionId, finished = false),
+                    true,
+                )
+            }
+        } else {
+            // Unlocked: no full-screen yank; skip heads-up custom view so the shade
+            // does not pop a draggable pill over the live workout.
+            builder.setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        }
         if (live) {
             val whenMillis = RestTimer.endsAtWallClockMillis(
                 endsAtElapsedRealtime = state.endsAtElapsedRealtime,

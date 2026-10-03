@@ -3,7 +3,10 @@ package com.sinura.personaltrainer.timer
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
@@ -68,16 +71,37 @@ class RestTimerService : Service() {
     private var completing = false
     private var startedForeground = false
     private var lastShownEndsAt = Long.MIN_VALUE
+    private var lastRunningLockGlanceAutoPresent: Boolean? = null
     private var lastStartId = 0
     private var sawRunning = false
     private var stopped = false
     private val controller: RestTimerController
         get() = (application as PersonalTrainerApp).container.restTimerController
 
+    private val lockStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (!startedForeground || completing) return
+            val state = controller.snapshot.value
+            if (!state.running) return
+            publishRunning(state)
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        val lockFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(lockStateReceiver, lockFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(lockStateReceiver, lockFilter)
+        }
         scope.launch {
             controller.snapshot.collect { snap ->
                 if (snap.running) {
@@ -175,6 +199,11 @@ class RestTimerService : Service() {
     }
 
     override fun onDestroy() {
+        try {
+            unregisterReceiver(lockStateReceiver)
+        } catch (_: Exception) {
+            // Never registered if startForeground failed early.
+        }
         handler.removeCallbacks(completeRunnable)
         handler.removeCallbacks(tickRunnable)
         tickPlayer?.release()
@@ -263,12 +292,20 @@ class RestTimerService : Service() {
             lastShownEndsAt = state.endsAtElapsedRealtime
             return
         }
-        // Chronometer ticks in SystemUI while time remains. Re-post only when
-        // the deadline changes (±15) so we do not fight the lock-screen
-        // countdown. At zero, freeze then complete — do not leave a live
-        // countdown whose base is already past.
-        if (!force && state.endsAtElapsedRealtime == lastShownEndsAt) return
+        // Chronometer ticks in SystemUI while time remains. Re-post when the
+        // deadline changes (±15) or lock/screen state toggles full-screen intent.
+        // At zero, freeze then complete — do not leave a live countdown whose
+        // base is already past.
+        val autoPresentLockGlance = RestTimerLockGlance.shouldAutoPresentRunning(this)
+        if (
+            !force &&
+            state.endsAtElapsedRealtime == lastShownEndsAt &&
+            autoPresentLockGlance == lastRunningLockGlanceAutoPresent
+        ) {
+            return
+        }
         lastShownEndsAt = state.endsAtElapsedRealtime
+        lastRunningLockGlanceAutoPresent = autoPresentLockGlance
         if (remaining <= 0) {
             handleDeadline(state)
             return
@@ -362,6 +399,7 @@ class RestTimerService : Service() {
         handler.removeCallbacks(tickRunnable)
         completing = false
         lastShownEndsAt = Long.MIN_VALUE
+        lastRunningLockGlanceAutoPresent = null
         try {
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         } catch (_: Exception) {
