@@ -18,6 +18,7 @@
         android:id="@+id/rest_overlay_kicker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:paddingStart="0dp"
         android:paddingEnd="8dp"
         android:text="@string/rest_notification_kicker"
         android:textColor="@android:color/white"

@@ -15,6 +15,7 @@
         android:fontFamily="sec"
         android:includeFontPadding="false"
         android:maxLines="1"
+        android:paddingStart="0dp"
         android:paddingEnd="8dp"
         android:text="@string/rest_notification_kicker"
         android:textColor="@android:color/white"
