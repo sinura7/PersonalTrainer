@@ -128,10 +128,15 @@ day. The agreed product asks once, then adapts only if the user says so.
 - A reminder cannot be implemented by `setAlarmClock`.
 - Schedule packets after P7.3 that “just slide the day” without a prompt
   are regressions.
-- Running rest uses a HIGH public channel with a countdown chronometer so
-  the lock screen shows remaining time when the user turns the phone on.
+- Running rest uses a HIGH public channel with a countdown chronometer.
+  When the device is locked or the screen is off, the running foreground
+  notification may attach a full-screen intent to `RestLockActivity`
+  (same `USE_FULL_SCREEN_INTENT` gate as rest-done). While unlocked,
+  Temper does not auto yank the live workout full screen; the shade card
+  stays quiet (no heads-up custom view). A smaller draggable rest chip on
+  the unlocked workout is a planned follow-up, not lock-screen overlay.
   `RestLockActivity` is `showWhenLocked`. That is not overlay rest on the
-  live log. Full-screen intent is rest-done only, never onboarding.
+  live log. Full-screen intent is never used for onboarding.
   Completion still uses `SCHEDULE_EXACT_ALARM`.
 - Decision 1 holds across threads, not only in order (W2b-1, 23 September
   2026). The notification's ±15 and the screens write the rest on Main; the

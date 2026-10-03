@@ -14,6 +14,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import android.app.KeyguardManager
+import android.os.PowerManager
 
 @RunWith(RobolectricTestRunner::class)
 class RestTimerNotificationsTest {
@@ -142,6 +144,49 @@ class RestTimerNotificationsTest {
             notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.contains("-") == true,
         )
     }
+
+    @Test
+    fun runningNotificationUsesHeadsUpLockGlanceWhenKeyguardLocked() {
+        shadowOf(context.getSystemService(KeyguardManager::class.java)).setKeyguardLocked(true)
+        shadowOf(context.getSystemService(PowerManager::class.java)).setIsInteractive(true)
+        RestTimerNotifications.ensureChannels(context)
+        val notification = sampleRunningCard()
+        assertNotNull(notification.headsUpContentView)
+        assertEquals(Notification.PRIORITY_HIGH, notification.priority)
+        // Full-screen intent follows the same API 34 gate as rest-done (see doneNotification…).
+        if (RestTimerNotifications.canUseFullScreenIntent(context)) {
+            assertNotNull(notification.fullScreenIntent)
+            val fsi = shadowOf(notification.fullScreenIntent).savedIntent
+            assertEquals(RestLockActivity::class.java.name, fsi.component?.className)
+            assertFalse(fsi.getBooleanExtra(RestTimerNotifications.EXTRA_FINISHED, true))
+        } else {
+            assertNull(notification.fullScreenIntent)
+        }
+    }
+
+    @Test
+    fun runningNotificationStaysShadeOnlyWhenUnlocked() {
+        shadowOf(context.getSystemService(KeyguardManager::class.java)).setKeyguardLocked(false)
+        shadowOf(context.getSystemService(PowerManager::class.java)).setIsInteractive(true)
+        RestTimerNotifications.ensureChannels(context)
+        val notification = sampleRunningCard()
+        assertNull(notification.fullScreenIntent)
+        assertNull(notification.headsUpContentView)
+        assertEquals(Notification.PRIORITY_DEFAULT, notification.priority)
+    }
+
+    private fun sampleRunningCard(): Notification = RestTimerNotifications.runningNotification(
+        context = context,
+        state = RestTimerSnapshot(
+            running = true,
+            endsAtElapsedRealtime = 90_000L,
+            totalSeconds = 90,
+            sessionId = "session-1",
+            timerId = "timer-1",
+        ),
+        nowElapsedRealtime = 0L,
+        nowWallClockMillis = 1_000L,
+    )
 
     @Test
     fun doneNotificationSkipsFullScreenWhenTheApi34GateIsClosed() {

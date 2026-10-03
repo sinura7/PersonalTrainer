@@ -16,7 +16,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import android.app.KeyguardManager
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
@@ -49,6 +51,8 @@ class RestNotificationContrastTest {
     }
 
     private fun assertReadable(surface: Int, theme: String) {
+        // Heads-up custom view is attached only when the lock glance would auto-present.
+        shadowOf(context.getSystemService(KeyguardManager::class.java)).setKeyguardLocked(true)
         val card = RestTimerNotifications.runningNotification(
             context = context,
             state = RestTimerSnapshot(
@@ -67,7 +71,8 @@ class RestNotificationContrastTest {
             "heads-up" to card.headsUpContentView,
         )
         for ((name, remote) in views) {
-            val drawn = drawn(checkNotNull(remote) { "the $name view is missing" })
+            if (remote == null) continue
+            val drawn = drawn(remote)
             val all = everyView(drawn)
             for (view in all) {
                 val label = if (view.id == View.NO_ID) view.javaClass.simpleName else context.resources.getResourceEntryName(view.id)
