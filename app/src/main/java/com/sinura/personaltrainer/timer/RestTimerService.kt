@@ -51,6 +51,7 @@ class RestTimerService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val completeRunnable = Runnable { handleDeadline() }
     private val tickRunnable = Runnable { handleTick() }
+    private val lockWidgetRefreshRunnable = Runnable { refreshLockWidgets() }
     private var pendingTick = 0
     private var tickedEndsAt = Long.MIN_VALUE
     private var tickedSecond = 0
@@ -257,6 +258,20 @@ class RestTimerService : Service() {
         // Loaded now, at the start of the rest, so the first tick is not the one that decodes.
         if (tickPlayer == null) tickPlayer = RestTickPlayer(this)
         scheduleTick(state)
+        scheduleLockWidgetRefresh()
+    }
+
+    private fun scheduleLockWidgetRefresh() {
+        handler.removeCallbacks(lockWidgetRefreshRunnable)
+        handler.postDelayed(lockWidgetRefreshRunnable, 1_000L)
+    }
+
+    private fun refreshLockWidgets() {
+        if (!startedForeground || completing || stopped) return
+        val state = controller.snapshot.value
+        if (!state.running) return
+        RestLockScreenWidgetUpdater.updateAll(this, state)
+        scheduleLockWidgetRefresh()
     }
 
     private fun scheduleTick(state: RestTimerSnapshot) {
@@ -436,6 +451,7 @@ class RestTimerService : Service() {
         stopped = true
         handler.removeCallbacks(completeRunnable)
         handler.removeCallbacks(tickRunnable)
+        handler.removeCallbacks(lockWidgetRefreshRunnable)
         completing = false
         lastShownEndsAt = Long.MIN_VALUE
         lastRunningPresentation = null
