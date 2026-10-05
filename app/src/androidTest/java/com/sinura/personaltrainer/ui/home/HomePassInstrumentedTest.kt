@@ -40,7 +40,9 @@ import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.ScheduleOccurrence
 import com.sinura.personaltrainer.domain.ScheduleRule
 import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.domain.Weekday
@@ -416,6 +418,58 @@ class HomePassInstrumentedTest {
     }
 
     @Test
+    fun offPlanLoggedShowsDoneRowAndHidesEmptyCopy() {
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = emptyList(),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                offPlanLogged = listOf(OFF_PLAN_SUMMARY),
+            )
+        }
+        compose.onNodeWithText(PlanDayCopy.EMPTY).assertDoesNotExist()
+        compose.onNodeWithTag(HomeTags.loggedSession(OFF_PLAN_SUMMARY.id)).assertIsDisplayed()
+        compose.onNodeWithText("Push").assertIsDisplayed()
+    }
+
+    @Test
+    fun offPlanLoggedTapCallsOnOpenSession() {
+        var opened: String? = null
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = emptyList(),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                offPlanLogged = listOf(OFF_PLAN_SUMMARY),
+                onOpenSession = { opened = it },
+            )
+        }
+        compose.onNodeWithTag(HomeTags.loggedSession(OFF_PLAN_SUMMARY.id)).performClick()
+        org.junit.Assert.assertEquals(OFF_PLAN_SUMMARY.id, opened)
+    }
+
+    @Test
+    fun donePlannedRowTapOpensCompletedSession() {
+        var opened: String? = null
+        setConstrainedContent(fontScale = 1f) {
+            DailyAgendaCard(
+                items = listOf(DONE_STRENGTH_ITEM),
+                sessionLive = false,
+                onStartOccurrence = {},
+                onStartFree = {},
+                routines = listOf(PUSH_ROUTINE),
+                summariesById = mapOf("session-done" to OFF_PLAN_SUMMARY.copy(id = "session-done")),
+                onOpenSession = { opened = it },
+                today = TODAY,
+            )
+        }
+        compose.onNodeWithTag(HomeTags.agendaRow("occ-done")).performClick()
+        org.junit.Assert.assertEquals("session-done", opened)
+    }
+
+    @Test
     fun plannedRowOpensStartConfirmAndDoesNotStartUntilConfirm() {
         var started: String? = null
         setConstrainedContent(fontScale = 1f) {
@@ -637,6 +691,43 @@ class HomePassInstrumentedTest {
 
     private companion object {
         const val TODAY = 20_000L
+        val OFF_PLAN_SUMMARY = SessionSummary(
+            id = "session-off-plan",
+            routineId = "r-push",
+            routineName = "Push",
+            date = 1L,
+            finishedAt = 2L,
+            durationMinutes = 45,
+            workingSets = 12,
+            volumeKg = 8000.0,
+            localEpochDay = TODAY,
+            kind = HistoryKind.WORKOUT,
+        )
+        val DONE_STRENGTH_ITEM = AgendaItem(
+            occurrence = ScheduleOccurrence(
+                id = "occ-done",
+                ruleId = "rule-lift",
+                status = OccurrenceStatus.DONE,
+                captured = CapturedCivilTime(1L, "UTC", 0, TODAY),
+                hour = 18,
+                minute = 0,
+                completedActivityId = "session-done",
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            rule = ScheduleRule(
+                id = "rule-lift",
+                weekday = Weekday.MONDAY,
+                hour = 18,
+                minute = 0,
+                modality = ScheduleModality.STRENGTH,
+                focusKind = SessionFocusKind.PUSH,
+                routineId = "r-push",
+                createdAtMs = 1L,
+                updatedAtMs = 1L,
+            ),
+            routineName = "Push",
+        )
         val STRENGTH_ITEM = AgendaItem(
             occurrence = ScheduleOccurrence(
                 id = "occ-pm",

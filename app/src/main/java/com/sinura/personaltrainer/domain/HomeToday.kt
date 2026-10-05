@@ -14,8 +14,9 @@ object HomeToday {
         agenda: List<AgendaItem>,
         leftoverBelongs: Boolean = false,
         stillOpen: List<AgendaItem> = emptyList(),
+        offPlanLogged: List<SessionSummary> = emptyList(),
     ): Surface =
-        if (agenda.isEmpty() && stillOpen.isEmpty() && leftoverBelongs) {
+        if (agenda.isEmpty() && stillOpen.isEmpty() && offPlanLogged.isEmpty() && leftoverBelongs) {
             Surface.WEEK_FALLBACK
         } else {
             Surface.AGENDA

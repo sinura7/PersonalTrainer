@@ -32,6 +32,9 @@ import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.DayBlockCopy
+import com.sinura.personaltrainer.domain.HomeLogged
+import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.sessionLifts
 import com.sinura.personaltrainer.domain.sessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
@@ -72,6 +75,10 @@ fun DailyAgendaCard(
     onSkipOccurrence: (String) -> Unit = {},
     confirmOccurrenceId: String? = null,
     onConfirmOccurrenceConsumed: () -> Unit = {},
+    offPlanLogged: List<SessionSummary> = emptyList(),
+    summariesById: Map<String, SessionSummary> = emptyMap(),
+    onOpenSession: (String) -> Unit = {},
+    onOpenActivity: (String) -> Unit = {},
 ) {
     val catalog = items + stillOpen
     var pendingOccurrenceId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -117,7 +124,7 @@ fun DailyAgendaCard(
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         Kicker(kicker)
-        if (items.isEmpty() && stillOpen.isEmpty()) {
+        if (HomeLogged.showEmptyCopy(items, stillOpen, offPlanLogged)) {
             Text(
                 PlanDayCopy.EMPTY,
                 style = InstrumentType.body,
@@ -149,6 +156,9 @@ fun DailyAgendaCard(
                         lastIndex = items.lastIndex,
                         onMove = onMoveOccurrence,
                         onOpen = { pendingOccurrenceId = item.occurrence.id },
+                        summariesById = summariesById,
+                        onOpenSession = onOpenSession,
+                        onOpenActivity = onOpenActivity,
                     )
                 }
             }
@@ -177,6 +187,22 @@ fun DailyAgendaCard(
                         onMove = { _, _ -> },
                         onOpen = { pendingOccurrenceId = item.occurrence.id },
                         onSkip = { onSkipOccurrence(item.occurrence.id) },
+                        summariesById = summariesById,
+                        onOpenSession = onOpenSession,
+                        onOpenActivity = onOpenActivity,
+                    )
+                }
+            }
+        }
+        if (offPlanLogged.isNotEmpty()) {
+            Kicker(HomeLogged.SECTION)
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
+                offPlanLogged.forEach { summary ->
+                    HomeLoggedBlock(
+                        summary = summary,
+                        onClick = {
+                            HomeLogged.openSummary(summary, onOpenSession, onOpenActivity)
+                        },
                     )
                 }
             }
@@ -223,6 +249,9 @@ private fun AgendaRow(
     onMove: (String, Int) -> Unit,
     onOpen: () -> Unit,
     onSkip: (() -> Unit)? = null,
+    summariesById: Map<String, SessionSummary> = emptyMap(),
+    onOpenSession: (String) -> Unit = {},
+    onOpenActivity: (String) -> Unit = {},
 ) {
     val routineId = item.rule?.routineId
     val lifts = sessionLifts(routineId, routines)
@@ -242,6 +271,21 @@ private fun AgendaRow(
         startable = openable,
     )
     val canStart = openable && !sessionLive
+    val completedId = item.occurrence.completedActivityId
+    val canOpenDone = item.occurrence.status == OccurrenceStatus.DONE && completedId != null
+    val openDone: (() -> Unit)? = if (canOpenDone) {
+        {
+            HomeLogged.openCompletedId(
+                activityId = completedId!!,
+                summariesById = summariesById,
+                modality = item.rule?.modality,
+                onOpenSession = onOpenSession,
+                onOpenActivity = onOpenActivity,
+            )
+        }
+    } else {
+        null
+    }
     val leftover = MoveToToday.isLeftover(item.occurrence, todayEpochDay)
     val showSkip = onSkip != null && leftover && !sessionLive
     DayBlock(
@@ -253,7 +297,11 @@ private fun AgendaRow(
             leftover -> MoveToToday.DO_IT_TODAY
             else -> SessionOrderCopy.START_ROW
         },
-        onOpen = if (canStart) onOpen else null,
+        onOpen = when {
+            canStart -> onOpen
+            openDone != null -> openDone
+            else -> null
+        },
         modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
         controls = if (!showSkip && !showReorder) {
             null
