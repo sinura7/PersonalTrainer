@@ -9,6 +9,12 @@ object PermissionsCopy {
 
     const val MANAGE_IN_SETTINGS = "Manage in Settings → Permissions"
 
+    const val LOCK_WIDGET_SETUP =
+        "Lock screen widget (Samsung One UI): wake the phone, tap and hold the lock screen, " +
+            "choose Widgets, then pick Rest countdown or Rest countdown (compact) under Temper. " +
+            "The widget updates while a rest runs. Some One UI builds hide third-party lock " +
+            "widgets until both compact and wide sizes are listed."
+
     fun homeSummary(missingCount: Int): String = when (missingCount) {
         0 -> "All set"
         1 -> "1 to fix"
@@ -32,7 +38,8 @@ object PermissionsCopy {
 
     fun why(capability: PhoneCapability): String = when (capability) {
         PhoneCapability.NOTIFICATIONS ->
-            "Rest countdown in the shade, rest-done alerts, and workout reminders."
+            "Required for the rest timer while Temper is in the background: the ongoing " +
+                "countdown notification and rest-done alerts."
         PhoneCapability.EXACT_REST_ALARM ->
             "Rest and reminders fire on time when the screen is off. " +
                 "Android 14 phones start with this off for new installs."
@@ -41,8 +48,8 @@ object PermissionsCopy {
                 "lock screen; rest-done uses the same permission. Sideloaded builds usually start " +
                 "with this granted."
         PhoneCapability.DISPLAY_OVERLAY ->
-            "When you leave Temper during a rest, the small draggable countdown can float over " +
-                "home and other apps. Android asks for this once in Display over other apps."
+            "Required for the draggable rest countdown when you leave Temper during a rest. " +
+                "Turn on Display over other apps (Appear on top on some phones)."
         PhoneCapability.BATTERY ->
             "Unrestricted battery lifts the once-per-nine-minutes throttle on the rest wakeup. " +
                 "Exact alarms already fire in Doze."
