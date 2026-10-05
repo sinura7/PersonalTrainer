@@ -13,10 +13,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,6 +31,7 @@ import com.sinura.personaltrainer.domain.PermissionsCopy
 import com.sinura.personaltrainer.domain.PhoneCapability
 import com.sinura.personaltrainer.domain.PhoneCapabilitySnapshot
 import com.sinura.personaltrainer.domain.PhoneCapabilityStatus
+import com.sinura.personaltrainer.timer.RestTimerOverlayController
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent
 import com.sinura.personaltrainer.timer.fullScreenIntentSettingsIntent
 import com.sinura.personaltrainer.timer.overlaySettingsIntent
@@ -49,6 +55,17 @@ internal fun PermissionsSection(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var refreshTick by remember { mutableIntStateOf(0) }
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refreshTick++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    @Suppress("UNUSED_VARIABLE")
+    val unusedRefresh = refreshTick
     var askedPostNotifications by remember { mutableStateOf(false) }
     val notificationLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -104,6 +121,12 @@ internal fun PermissionsSection(
             )
         }
         Text(
+            PermissionsCopy.LOCK_WIDGET_SETUP,
+            style = InstrumentType.caption,
+            color = TextSecondary,
+            modifier = Modifier.padding(horizontal = Metrics.space1),
+        )
+        Text(
             PermissionsCopy.INSTALL_TIME_LINE,
             style = InstrumentType.caption,
             color = TextSecondary,
@@ -140,6 +163,17 @@ private fun PermissionCapabilityCard(
                 style = InstrumentType.caption,
                 color = TextSecondary,
             )
+            if (status.capability == PhoneCapability.DISPLAY_OVERLAY &&
+                status.state == CapabilityState.GRANTED
+            ) {
+                RestTimerOverlayController.lastFailureReason?.let { reason ->
+                    Text(
+                        "Overlay still failed: $reason",
+                        style = InstrumentType.caption,
+                        color = Warn,
+                    )
+                }
+            }
             if (status.state == CapabilityState.MISSING) {
                 SecondaryGymButton(
                     text = PermissionsCopy.fixLabel(status.capability),
