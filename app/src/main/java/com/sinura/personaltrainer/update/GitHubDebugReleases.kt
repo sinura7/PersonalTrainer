@@ -26,6 +26,14 @@ internal object GitHubDebugReleases {
     const val RELEASES_URL =
         "https://api.github.com/repos/sinura7/PersonalTrainer/releases?per_page=30"
 
+    /** Same releases as the API, on `github.com` — for phones that cannot resolve `api.github.com`. */
+    const val RELEASES_ATOM_URL =
+        "https://github.com/sinura7/PersonalTrainer/releases.atom"
+
+    const val STANDARD_DEBUG_APK_NAME = "PersonalTrainer-1.0.0-debug.apk"
+
+    private val DEBUG_LIVE_TAG = Regex("""^debug-live-[0-9]{4}-[0-9]{2}-[0-9]{2}(-[0-9]+)?$""")
+
     private val DEBUG_APK = Regex("""^PersonalTrainer-.+-debug\.apk$""", RegexOption.IGNORE_CASE)
     private val ASSET_CODE = Regex("""\+debug\.(\d+)""")
     private val GRADLE_CODE = Regex("""^val debugLiveCode = (\d+)\s*$""", RegexOption.MULTILINE)
@@ -39,6 +47,14 @@ internal object GitHubDebugReleases {
         "https://raw.githubusercontent.com/sinura7/PersonalTrainer/$tag/app/build.gradle.kts"
 
     fun isSafeTag(tag: String): Boolean = SAFE_TAG.matches(tag)
+
+    fun isDebugLiveTag(tag: String): Boolean = DEBUG_LIVE_TAG.matches(tag)
+
+    fun releasePageUrl(tag: String): String =
+        "https://github.com/sinura7/PersonalTrainer/releases/tag/$tag"
+
+    fun standardApkDownloadUrl(tag: String): String =
+        "https://github.com/sinura7/PersonalTrainer/releases/download/$tag/$STANDARD_DEBUG_APK_NAME"
 
     /**
      * Only the GitHub release asset URL we already parsed. Redirects to
@@ -83,6 +99,38 @@ internal object GitHubDebugReleases {
         }
         return best?.second
     }
+
+    /**
+     * When the GitHub REST host fails DNS, read the public Atom feed on `github.com`
+     * and synthesize the standard debug APK download URL CI publishes.
+     */
+    fun newestDebugReleaseFromAtom(body: String): GitHubDebugRelease? {
+        var bestUpdated = ""
+        var bestTag: String? = null
+        for (entry in ATOM_ENTRY.findAll(body)) {
+            val chunk = entry.groupValues[1]
+            val tag = ATOM_ID.find(chunk)?.groupValues?.getOrNull(1) ?: continue
+            if (!isSafeTag(tag) || !isDebugLiveTag(tag)) continue
+            val updated = ATOM_UPDATED.find(chunk)?.groupValues?.getOrNull(1).orEmpty()
+            if (bestTag == null || updated > bestUpdated) {
+                bestUpdated = updated
+                bestTag = tag
+            }
+        }
+        val tag = bestTag ?: return null
+        val apkUrl = standardApkDownloadUrl(tag)
+        if (!isAllowedApkUrl(apkUrl)) return null
+        return GitHubDebugRelease(
+            tag = tag,
+            releaseUrl = releasePageUrl(tag),
+            apkUrl = apkUrl,
+            assetVersionCode = null,
+        )
+    }
+
+    private val ATOM_ENTRY = Regex("""<entry>([\s\S]*?)</entry>""")
+    private val ATOM_ID = Regex("""<id>tag:github.com,2008:Repository/\d+/([^<]+)</id>""")
+    private val ATOM_UPDATED = Regex("""<updated>([^<]+)</updated>""")
 
     private fun debugRelease(obj: JsonObject): GitHubDebugRelease? {
         if (obj.bool("draft")) return null

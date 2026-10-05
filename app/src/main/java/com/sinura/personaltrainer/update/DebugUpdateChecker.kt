@@ -2,6 +2,8 @@ package com.sinura.personaltrainer.update
 
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import java.io.IOException
+import java.net.UnknownHostException
 
 private const val TAG = "PT/DebugUpdate"
 
@@ -54,9 +56,28 @@ internal class DebugUpdateChecker(
     }
 
     private fun fetchLatest(): DebugUpdateOffer? {
-        val release = GitHubDebugReleases.newestDebugRelease(
-            http.get(GitHubDebugReleases.RELEASES_URL),
-        ) ?: return null
+        val release = fetchReleaseMetadata() ?: return null
+        return releaseToOffer(release)
+    }
+
+    private fun fetchReleaseMetadata(): GitHubDebugRelease? {
+        val viaApi = runCatching {
+            GitHubDebugReleases.newestDebugRelease(http.get(GitHubDebugReleases.RELEASES_URL))
+        }.getOrElse { error ->
+            if (error.shouldTryAtomFallback()) {
+                AppLog.w(TAG, "GitHub API check failed (${error.message}); trying releases.atom")
+                null
+            } else {
+                throw error
+            }
+        }
+        if (viaApi != null) return viaApi
+        return GitHubDebugReleases.newestDebugReleaseFromAtom(
+            http.get(GitHubDebugReleases.RELEASES_ATOM_URL),
+        )
+    }
+
+    private fun releaseToOffer(release: GitHubDebugRelease): DebugUpdateOffer? {
         val versionCode = release.assetVersionCode
             ?: if (GitHubDebugReleases.isSafeTag(release.tag)) {
                 GitHubDebugReleases.debugLiveCode(http.get(GitHubDebugReleases.gradleUrl(release.tag)))
@@ -70,5 +91,13 @@ internal class DebugUpdateChecker(
             releaseUrl = release.releaseUrl,
             apkUrl = release.apkUrl,
         )
+    }
+
+    private fun Throwable.shouldTryAtomFallback(): Boolean = when (this) {
+        is UnknownHostException -> true
+        is IOException -> message?.contains("api.github.com", ignoreCase = true) == true ||
+            message?.contains("Unable to resolve host", ignoreCase = true) == true ||
+            message?.contains("failed to connect", ignoreCase = true) == true
+        else -> false
     }
 }

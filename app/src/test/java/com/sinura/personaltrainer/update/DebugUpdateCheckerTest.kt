@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.update
 
 import java.io.IOException
+import java.net.UnknownHostException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -38,6 +39,26 @@ class DebugUpdateCheckerTest {
             checker(http, installed = 1, enabled = false).check(minIntervalMs = 0),
         )
         assertTrue(http.urls.isEmpty())
+    }
+
+    @Test
+    fun fallsBackToAtomFeedWhenApiHostLookupFails() = runBlocking {
+        val atom = """
+            <feed><entry>
+              <id>tag:github.com,2008:Repository/1/debug-live-2026-10-05-3</id>
+              <updated>2026-10-05T17:09:30Z</updated>
+            </entry></feed>
+        """.trimIndent()
+        val http = ScriptedHttp(
+            GitHubDebugReleases.RELEASES_URL to {
+                throw UnknownHostException("Unable to resolve host api.github.com")
+            },
+            GitHubDebugReleases.RELEASES_ATOM_URL to { atom },
+            GitHubDebugReleases.gradleUrl("debug-live-2026-10-05-3") to { "val debugLiveCode = 119\n" },
+        )
+        val offer = checker(http, installed = 118).check(minIntervalMs = 0)
+        assertEquals(119, offer!!.versionCode)
+        assertTrue(http.urls.contains(GitHubDebugReleases.RELEASES_ATOM_URL))
     }
 
     @Test
