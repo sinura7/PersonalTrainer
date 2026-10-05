@@ -75,4 +75,20 @@ class RestTimerOverlayControllerTest {
         shadowOf(context.mainLooper).idle()
         assertNull(RestTimerOverlayController.lastFailureReason)
     }
+
+    @Test
+    fun syncDoesNotAttachWhenUserDismissedOverlayForThisRest() {
+        RestOverlayDismissStore.dismissForRest(context, "timer-dismissed")
+        RestTimerOverlayController.sync(
+            context,
+            RestTimerSnapshot(
+                running = true,
+                endsAtElapsedRealtime = SystemClock.elapsedRealtime() + 60_000L,
+                totalSeconds = 60,
+                timerId = "timer-dismissed",
+            ),
+        )
+        shadowOf(context.mainLooper).idle()
+        assertNull(RestTimerOverlayController.lastFailureReason)
+    }
 }

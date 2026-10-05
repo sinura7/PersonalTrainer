@@ -5,7 +5,8 @@
          of the app's one (dark) theme. -->
     <color name="window_background">#07090B</color>
     <color name="overlay_volt">#C2FF44</color>
-    <color name="rest_exterior_track">#44FFFFFF</color>
     <color name="rest_exterior_stroke">#33FFFFFF</color>
     <color name="rest_exterior_handle_scrim">#66000000</color>
+    <!-- Samsung lock monotone host uses a light pill; pit text stays readable. -->
+    <color name="lock_widget_time_on_monotone">#FF07090B</color>
 </resources>

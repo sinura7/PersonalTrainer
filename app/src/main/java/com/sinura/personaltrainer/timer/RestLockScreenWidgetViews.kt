@@ -4,7 +4,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
-import android.view.View
 import android.widget.RemoteViews
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.R
@@ -43,22 +42,11 @@ object RestLockScreenWidgetViews {
             kickerRunning = kickerRunning,
             kickerDone = kickerDone,
         )
+        val timeColor = context.getColor(R.color.lock_widget_time_on_monotone)
         views.setTextViewText(R.id.lockscreen_rest_kicker, model.kicker)
         views.setTextColor(R.id.lockscreen_rest_kicker, OVERLAY_VOLT_COLOR)
         views.setTextViewText(R.id.lockscreen_rest_time, model.timeText)
-        views.setTextColor(R.id.lockscreen_rest_time, android.graphics.Color.WHITE)
-        views.setViewVisibility(
-            R.id.lockscreen_rest_progress,
-            if (model.showProgress) View.VISIBLE else View.INVISIBLE,
-        )
-        if (model.showProgress) {
-            views.setProgressBar(
-                R.id.lockscreen_rest_progress,
-                RestExteriorDisplay.PROGRESS_MAX,
-                model.progressLevel,
-                false,
-            )
-        }
+        views.setTextColor(R.id.lockscreen_rest_time, timeColor)
         val tap = openWorkoutPendingIntent(
             context = context,
             state = state,

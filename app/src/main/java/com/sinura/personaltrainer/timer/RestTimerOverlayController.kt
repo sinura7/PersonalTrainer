@@ -5,6 +5,7 @@ import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
+import android.graphics.Rect as AndroidRect
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -33,12 +34,18 @@ object RestTimerOverlayController {
     private const val TAG = "PT/RestOverlay"
     private const val DRAG_SLOP_PX = 10
     private const val REFRESH_MS = 1_000L
+    private const val DISMISS_ZONE_SIZE_DP = 72
+    private const val DISMISS_ZONE_BOTTOM_MARGIN_DP = 128
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var windowManager: WindowManager? = null
     private var pillView: View? = null
+    private var dismissZoneView: View? = null
     private var layoutParams: WindowManager.LayoutParams? = null
+    private var dismissZoneParams: WindowManager.LayoutParams? = null
+    private var dismissZoneBounds = AndroidRect()
+    private var dismissZoneHot = false
     private var cardSizePx: Int = 0
     private var dragOffsetX = 0f
     private var dragOffsetY = 0f
@@ -87,6 +94,11 @@ object RestTimerOverlayController {
             mainHandler.post { detachFromWindow(generation) }
             return
         }
+        if (RestOverlayDismissStore.isDismissedForRest(context, state.timerId)) {
+            lastSnapshot = state
+            mainHandler.post { detachFromWindow(generation) }
+            return
+        }
         lastSnapshot = state
         mainHandler.post { attach(context.applicationContext, state, generation) }
     }
@@ -94,14 +106,19 @@ object RestTimerOverlayController {
     fun release() {
         ++syncGeneration
         mainHandler.post {
+            val appContext = pillView?.context?.applicationContext
             stopRefresh()
+            hideDismissZone()
             detachFromWindow(syncGeneration)
             pillView = null
             layoutParams = null
+            dismissZoneView = null
+            dismissZoneParams = null
             windowManager = null
             lastSnapshot = null
             cardSizePx = 0
             lastFailureReason = null
+            appContext?.let { RestOverlayDismissStore.clear(it) }
         }
     }
 
@@ -117,6 +134,7 @@ object RestTimerOverlayController {
     private fun detachFromWindow(expectedGeneration: Int) {
         if (expectedGeneration != syncGeneration) return
         stopRefresh()
+        hideDismissZone()
         val wm = windowManager ?: return
         val view = pillView ?: return
         if (view.isAttachedToWindow) {
@@ -127,6 +145,10 @@ object RestTimerOverlayController {
 
     private fun attach(appContext: Context, state: RestTimerSnapshot, expectedGeneration: Int) {
         if (expectedGeneration != syncGeneration) return
+        if (RestOverlayDismissStore.isDismissedForRest(appContext, state.timerId)) {
+            detachFromWindow(expectedGeneration)
+            return
+        }
         val wm = windowManager ?: appContext.getSystemService(WindowManager::class.java).also {
             windowManager = it
         }
@@ -236,14 +258,91 @@ object RestTimerOverlayController {
             .onFailure { AppLog.w(TAG, "Overlay layout update failed", it) }
     }
 
+    private fun showDismissZone(appContext: Context) {
+        val wm = windowManager ?: return
+        if (dismissZoneView?.isAttachedToWindow == true) {
+            updateDismissZoneBounds()
+            return
+        }
+        @SuppressLint("InflateParams")
+        val zone = dismissZoneView ?: LayoutInflater.from(appContext)
+            .inflate(R.layout.overlay_dismiss_zone, null)
+            .also { dismissZoneView = it }
+        val sizePx = DISMISS_ZONE_SIZE_DP.dpToPx(appContext)
+        val params = dismissZoneParams ?: WindowManager.LayoutParams(
+            sizePx,
+            sizePx,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            y = DISMISS_ZONE_BOTTOM_MARGIN_DP.dpToPx(appContext)
+        }.also { dismissZoneParams = it }
+        params.width = sizePx
+        params.height = sizePx
+        runCatching { wm.addView(zone, params) }
+            .onFailure { AppLog.w(TAG, "Dismiss zone add failed", it) }
+        zone.post { updateDismissZoneBounds() }
+    }
+
+    private fun hideDismissZone() {
+        dismissZoneHot = false
+        val wm = windowManager ?: return
+        val zone = dismissZoneView ?: return
+        if (zone.isAttachedToWindow) {
+            runCatching { wm.removeView(zone) }
+        }
+    }
+
+    private fun updateDismissZoneBounds() {
+        val zone = dismissZoneView ?: return
+        if (!zone.isAttachedToWindow) return
+        val loc = IntArray(2)
+        zone.getLocationOnScreen(loc)
+        dismissZoneBounds.set(
+            loc[0],
+            loc[1],
+            loc[0] + zone.width,
+            loc[1] + zone.height,
+        )
+        zone.alpha = if (dismissZoneHot) 1f else 0.85f
+    }
+
+    private fun updateDismissHotspot(rawX: Float, rawY: Float) {
+        val target = AndroidRect(dismissZoneBounds)
+        target.inset(-32, -32)
+        val hot = target.contains(rawX.toInt(), rawY.toInt())
+        if (hot != dismissZoneHot) {
+            dismissZoneHot = hot
+            dismissZoneView?.alpha = if (hot) 1f else 0.85f
+        }
+    }
+
+    private fun pillAnchorOnScreen(params: WindowManager.LayoutParams): Pair<Float, Float> {
+        val half = cardSizePx / 2f
+        return (params.x + half) to (params.y + half)
+    }
+
+    private fun dismissOverlayForCurrentRest(appContext: Context) {
+        val timerId = lastSnapshot?.timerId ?: return
+        RestOverlayDismissStore.dismissForRest(appContext, timerId)
+        ++syncGeneration
+        detachFromWindow(syncGeneration)
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     private val cardDragListener = View.OnTouchListener { view, event ->
         val params = layoutParams ?: return@OnTouchListener false
         val wm = windowManager ?: return@OnTouchListener false
         val overlay = pillView ?: return@OnTouchListener false
+        val appContext = view.context.applicationContext
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 dragMoved = false
+                dismissZoneHot = false
                 dragOffsetX = event.rawX - params.x
                 dragOffsetY = event.rawY - params.y
                 true
@@ -256,22 +355,35 @@ object RestTimerOverlayController {
                         kotlin.math.abs(nextY - params.y) > DRAG_SLOP_PX)
                 ) {
                     dragMoved = true
+                    showDismissZone(appContext)
                 }
                 params.x = nextX
                 params.y = nextY
                 safeUpdateViewLayout(wm, overlay, params)
+                if (dragMoved) {
+                    updateDismissZoneBounds()
+                    val anchor = pillAnchorOnScreen(params)
+                    updateDismissHotspot(anchor.first, anchor.second)
+                }
                 true
             }
             MotionEvent.ACTION_UP -> {
-                if (!dragMoved) {
+                if (dragMoved) {
+                    val anchor = pillAnchorOnScreen(params)
+                    updateDismissHotspot(anchor.first, anchor.second)
+                }
+                if (dragMoved && dismissZoneHot) {
+                    dismissOverlayForCurrentRest(appContext)
+                } else if (!dragMoved) {
                     view.performClick()
                 } else {
-                    RestOverlayLayoutStore.savePosition(
-                        view.context.applicationContext,
-                        params.x,
-                        params.y,
-                    )
+                    RestOverlayLayoutStore.savePosition(appContext, params.x, params.y)
                 }
+                hideDismissZone()
+                true
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                hideDismissZone()
                 true
             }
             else -> false
