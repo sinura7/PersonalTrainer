@@ -327,6 +327,9 @@ first free suffix for today, and the push that cuts the drop.
 4. Obtainium: this repo URL, **include pre-releases**, prefer the asset
    whose name ends with `-debug.apk`. Pull down to refresh.
 
+   Full Obtainium settings, GitHub token, and connection-abort troubleshooting:
+   [docs/OBTAINIUM_TEMPER_DEBUG.md](docs/OBTAINIUM_TEMPER_DEBUG.md).
+
 Do not point the gym-floor Obtainium entry at a `*-debug.apk`.
 
 ### The Temper Debug signer

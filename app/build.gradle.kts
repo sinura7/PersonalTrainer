@@ -69,6 +69,17 @@ fun supabaseBuildString(key: String): String {
     return if (raw.isEmpty()) "" else raw.replace("\\", "\\\\").replace("\"", "\\\"")
 }
 
+// Optional read-only GitHub token for Temper Debug in-app update checks (rate limits).
+val githubPropertiesFile = rootProject.file("github.properties")
+val githubProperties = Properties()
+if (githubPropertiesFile.exists()) {
+    githubPropertiesFile.inputStream().use { githubProperties.load(it) }
+}
+fun githubBuildString(key: String): String {
+    val raw = githubProperties.getProperty(key).orEmpty().trim()
+    return if (raw.isEmpty()) "" else raw.replace("\\", "\\\\").replace("\"", "\\\"")
+}
+
 android {
     namespace = "com.sinura.personaltrainer"
     compileSdk = 36
@@ -83,6 +94,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SUPABASE_URL", "\"${supabaseBuildString("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${supabaseBuildString("SUPABASE_ANON_KEY")}\"")
+        buildConfigField("String", "GITHUB_API_TOKEN", "\"${githubBuildString("GITHUB_API_TOKEN")}\"")
     }
 
     sourceSets {

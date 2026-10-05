@@ -5,8 +5,11 @@ import com.sinura.personaltrainer.util.runCatchingCancellable
 
 private const val TAG = "PT/DebugUpdate"
 
-internal const val FOREGROUND_TTL_MS = 6L * 60 * 60 * 1000
-internal const val SETTINGS_TTL_MS = 15L * 60 * 1000
+/** Re-check while Temper Debug is in use (was 6 h; too stale for live drops). */
+internal const val FOREGROUND_TTL_MS = 30L * 60 * 1000
+internal const val SETTINGS_TTL_MS = 5L * 60 * 1000
+/** First resume after process start always hits GitHub. */
+internal const val COLD_START_TTL_MS = 0L
 
 /**
  * Fetches GitHub for a newer Temper Debug APK and decides whether to prompt.

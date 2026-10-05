@@ -66,9 +66,13 @@ internal class DebugUpdateMonitor(
     private val sheet = MutableStateFlow<Intent?>(null)
     override val installSheet: StateFlow<Intent?> = sheet.asStateFlow()
 
+    private var foregroundChecks = 0
+
     override fun onForeground() {
         scope.launch {
-            refresh(FOREGROUND_TTL_MS)
+            val minInterval = if (foregroundChecks == 0) COLD_START_TTL_MS else FOREGROUND_TTL_MS
+            foregroundChecks++
+            refresh(minInterval)
             retryInstallIfPermissionGranted()
         }
     }
@@ -81,12 +85,9 @@ internal class DebugUpdateMonitor(
     }
 
     override fun dismissBanner() {
-        val offer = held.value.offer ?: return
+        if (held.value.offer == null) return
+        // Home banner only — the required prompt stays until Live is installed.
         held.update { it.copy(showBanner = false) }
-        scope.launch {
-            runCatchingCancellable { cache.dismiss(offer.versionCode) }
-                .onFailure { error -> AppLog.w(TAG, "Dismissing the update banner failed", error) }
-        }
     }
 
     override fun install() {
@@ -200,15 +201,15 @@ internal class DebugUpdateMonitor(
                     null
                 }
             }
-            val dismissed = withContext(ioDispatcher) {
-                runCatchingCancellable { cache.dismissedVersionCode() }.getOrDefault(0)
-            }
             // No newer build: whatever was downloaded is installed, or will not be (audit RM-6).
             if (offer == null) clearStaging()
             held.update { previous ->
                 DebugUpdateUi(
                     offer = offer,
-                    showBanner = offer != null && offer.versionCode > dismissed,
+                    showBanner = offer != null,
+                    showRequiredPrompt = offer != null &&
+                        previous.install != DebugUpdateInstall.Downloading &&
+                        previous.install != DebugUpdateInstall.Installing,
                     install = if (offer == null) DebugUpdateInstall.Idle else previous.install,
                     downloadPercent = null,
                 )

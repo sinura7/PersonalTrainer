@@ -64,5 +64,6 @@ class DebugUpdateMonitorTest {
         monitor.dismissBanner()
         assertNotNull(monitor.ui.value.offer)
         assertFalse(monitor.ui.value.showBanner)
+        assertTrue(monitor.ui.value.showRequiredPrompt)
     }
 }
