@@ -1,36 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/lockscreen_rest_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingStart="8dp"
-    android:paddingEnd="8dp">
+    android:background="@drawable/lockscreen_rest_card_bg"
+    android:paddingStart="10dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="8dp">
 
-    <TextView
-        android:id="@+id/lockscreen_rest_kicker"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:fontFamily="sec"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:paddingStart="0dp"
-        android:paddingEnd="8dp"
-        android:text="@string/lockscreen_rest_widget_kicker"
-        android:textColor="@android:color/white"
-        android:textSize="13sp" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="8dp">
 
-    <TextView
-        android:id="@+id/lockscreen_rest_time"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:fontFamily="sec"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:text="@string/lockscreen_rest_widget_preview_time"
-        android:textColor="@android:color/white"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-</LinearLayout>
+        <TextView
+            android:id="@+id/lockscreen_rest_kicker"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="sec"
+            android:includeFontPadding="false"
+            android:letterSpacing="0.12"
+            android:maxLines="1"
+            android:paddingStart="0dp"
+            android:paddingEnd="10dp"
+            android:text="@string/lockscreen_rest_widget_kicker"
+            android:textAllCaps="true"
+            android:textColor="@color/overlay_volt"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/lockscreen_rest_time"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:fontFamily="sec"
+            android:gravity="end|center_vertical"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:text="@string/lockscreen_rest_widget_preview_time"
+            android:textColor="@android:color/white"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/lockscreen_rest_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_gravity="bottom"
+        android:indeterminate="false"
+        android:max="1000"
+        android:progress="700"
+        android:progressDrawable="@drawable/lockscreen_rest_progress" />
+</FrameLayout>
