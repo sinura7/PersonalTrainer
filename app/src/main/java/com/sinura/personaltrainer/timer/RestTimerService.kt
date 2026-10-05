@@ -203,6 +203,17 @@ class RestTimerService : Service() {
                 controller.adjust(-15)
                 syncForeground()
             }
+            ACTION_EXTERIOR_SYNC -> {
+                val snap = controller.snapshot.value
+                if (snap.running && startedForeground) {
+                    publishRunning(snap, force = true)
+                } else if (snap.running) {
+                    RestTimerOverlayController.sync(this, snap)
+                    RestLockScreenWidgetUpdater.updateAll(this, snap)
+                } else {
+                    RestTimerOverlayController.release()
+                }
+            }
             else -> syncForeground()
         }
         return START_STICKY
@@ -215,7 +226,7 @@ class RestTimerService : Service() {
         } catch (_: Exception) {
             // Never registered if startForeground failed early.
         }
-        RestTimerOverlayController.hide()
+        RestTimerOverlayController.release()
         handler.removeCallbacks(completeRunnable)
         handler.removeCallbacks(tickRunnable)
         tickPlayer?.release()
@@ -341,7 +352,7 @@ class RestTimerService : Service() {
     }
 
     private fun syncExterior(state: RestTimerSnapshot, presentation: RestTimerRunningPresentation) {
-        RestTimerOverlayController.sync(this, state, presentation)
+        RestTimerOverlayController.sync(this, state)
         RestLockScreenWidgetUpdater.updateAll(this, state)
     }
 
@@ -428,7 +439,7 @@ class RestTimerService : Service() {
         completing = false
         lastShownEndsAt = Long.MIN_VALUE
         lastRunningPresentation = null
-        RestTimerOverlayController.hide()
+        RestTimerOverlayController.release()
         try {
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         } catch (_: Exception) {
@@ -451,6 +462,7 @@ class RestTimerService : Service() {
         const val ACTION_SKIP = "com.sinura.personaltrainer.timer.SKIP"
         const val ACTION_ADD_15 = "com.sinura.personaltrainer.timer.ADD_15"
         const val ACTION_MINUS_15 = "com.sinura.personaltrainer.timer.MINUS_15"
+        const val ACTION_EXTERIOR_SYNC = "com.sinura.personaltrainer.timer.EXTERIOR_SYNC"
         const val EXTRA_SESSION_ID = "sessionId"
         const val EXTRA_TIMER_ID = "timerId"
     }
