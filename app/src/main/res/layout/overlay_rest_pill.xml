@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rest_overlay_card"
     android:layout_width="168dp"
     android:layout_height="168dp"
     android:background="@drawable/overlay_rest_card_bg"
     android:clipToPadding="false"
-    android:elevation="12dp"
     android:padding="10dp">
 
     <com.sinura.personaltrainer.ui.overlay.RestOverlayRingView
@@ -30,16 +30,16 @@
             android:textSize="11sp"
             android:textStyle="bold" />
 
-        <Chronometer
-            android:id="@+id/rest_overlay_chrono"
+        <TextView
+            android:id="@+id/rest_overlay_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:countDown="true"
             android:fontFamily="sans-serif-medium"
             android:includeFontPadding="false"
             android:textColor="@android:color/white"
             android:textSize="34sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            tools:text="1:30" />
     </LinearLayout>
 
     <View
