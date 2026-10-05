@@ -32,6 +32,9 @@ import com.sinura.personaltrainer.domain.AccountAuthCopy
 import com.sinura.personaltrainer.domain.LegalCopy
 import com.sinura.personaltrainer.domain.SavePosture
 import com.sinura.personaltrainer.domain.SavePostureCopy
+import com.sinura.personaltrainer.domain.CapabilityState
+import com.sinura.personaltrainer.domain.PhoneCapabilities
+import com.sinura.personaltrainer.domain.PhoneCapability
 import com.sinura.personaltrainer.domain.SettingsHomeCopy
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingPlace
@@ -65,6 +68,10 @@ fun SettingsScreen(
     val reminderPrefs = prefs.reminders
     val restPrefs = prefs.restTimer
     val offerExactAlarmAccess = prefs.offerExactAlarmAccess
+    val phoneSnapshot = rememberPhoneCapabilitySnapshot(viewModel.phoneCapabilities())
+    val permissionsSummary = SettingsHomeCopy.permissionsSummary(
+        PhoneCapabilities.missingCount(phoneSnapshot.states),
+    )
     val coachPrefs = prefs.coach
     val bodyweightKg = prefs.bodyweightKg
     val preferredDays = prefs.preferredDays
@@ -203,6 +210,7 @@ fun SettingsScreen(
                             goal = coachPrefs.goal,
                         ),
                         restSummary = SettingsHomeCopy.restSummary(restPrefs),
+                        permissionsSummary = permissionsSummary,
                         bodyweightSummary = SettingsHomeCopy.bodyweightSummary(
                             bodyweightKg = bodyweightKg,
                             unit = selectedUnit,
@@ -287,6 +295,12 @@ fun SettingsScreen(
                     onCustomDefault = viewModel::setDefaultRestCustom,
                     onLeadIn = viewModel::setHoldLeadInSeconds,
                 )
+            }
+            SettingsPage.PERMISSIONS -> SettingsSubpage(
+                title = SettingsHomeCopy.PERMISSIONS_SUBTITLE,
+                onBack = goHome,
+            ) {
+                PermissionsSection(snapshot = phoneSnapshot)
             }
             SettingsPage.BODYWEIGHT -> SettingsSubpage(
                 title = SettingsHomeCopy.BODYWEIGHT,
@@ -611,7 +625,18 @@ object SettingsTags {
     const val ROW_REMINDERS = "settings-row-reminders"
     const val ROW_GENERATOR = "settings-row-generator"
     const val ROW_REST = "settings-row-rest"
+    const val ROW_PERMISSIONS = "settings-row-permissions"
     const val ROW_BODYWEIGHT = "settings-row-bodyweight"
+    const val PERMISSIONS = "settings-permissions"
+    fun permissionRow(capability: PhoneCapability): String =
+        "settings-permission-${capability.name.lowercase()}"
+    fun permissionFix(capability: PhoneCapability): String =
+        "settings-permission-fix-${capability.name.lowercase()}"
+    fun permissionChip(state: CapabilityState): String = when (state) {
+        CapabilityState.GRANTED -> "settings-permission-chip-granted"
+        CapabilityState.MISSING -> "settings-permission-chip-missing"
+        CapabilityState.NOT_ON_THIS_PHONE -> "settings-permission-chip-not_on_this_phone"
+    }
     const val ROW_SAVE_POSTURE = "settings-row-save-posture"
     const val SAVE_POSTURE = "settings-save-posture"
     const val SAVE_POSTURE_CURRENT = "settings-save-posture-current"

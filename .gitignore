@@ -27,6 +27,7 @@ keystore.properties
 debug-keystore.properties
 /debug-signing/
 supabase.properties
+github.properties
 
 # Python bytecode from tools/
 __pycache__/

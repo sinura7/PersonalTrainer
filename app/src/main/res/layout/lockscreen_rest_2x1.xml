@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TextView-only, no theme attrs: Samsung monotone RemoteViews must inflate without a host theme. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/lockscreen_rest_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp">
+
+    <TextView
+        android:id="@+id/lockscreen_rest_kicker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        android:letterSpacing="0.12"
+        android:maxLines="1"
+        android:paddingStart="0dp"
+        android:paddingEnd="8dp"
+        android:text="@string/lockscreen_rest_widget_kicker"
+        android:textAllCaps="true"
+        android:textColor="@color/overlay_volt"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/lockscreen_rest_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="@string/lockscreen_rest_widget_preview_time"
+        android:textColor="@color/lock_widget_time_on_monotone"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+</LinearLayout>

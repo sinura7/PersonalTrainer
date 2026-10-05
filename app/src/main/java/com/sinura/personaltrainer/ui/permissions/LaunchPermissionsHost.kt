@@ -1,11 +1,8 @@
 package com.sinura.personaltrainer.ui.permissions
 
 import android.Manifest
-import android.app.AlarmManager
 import android.content.Intent
 import android.os.Build
-import android.os.PowerManager
-import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -17,14 +14,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sinura.personaltrainer.domain.LaunchPermissionCopy
 import com.sinura.personaltrainer.domain.LaunchPermissionStep
 import com.sinura.personaltrainer.domain.LaunchPermissions
+import com.sinura.personaltrainer.timer.AndroidPhoneCapabilities
 import com.sinura.personaltrainer.timer.exactAlarmSettingsIntent
+import com.sinura.personaltrainer.timer.ignoreBatteryOptimizationSettingsIntent
+import com.sinura.personaltrainer.timer.requestIgnoreBatteryOptimizationsIntent
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 
 /**
@@ -41,16 +40,10 @@ fun LaunchPermissionsHost(
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    var notificationsGranted by remember {
-        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
-    }
-    var exactGranted by remember { mutableStateOf(exactAlarmsGranted(context)) }
-    var batteryUnrestricted by remember { mutableStateOf(batteryUnrestricted(context)) }
-
+    val probe = remember { AndroidPhoneCapabilities(context) }
+    var snapshot by remember { mutableStateOf(probe.read()) }
     fun refresh() {
-        notificationsGranted = NotificationManagerCompat.from(context).areNotificationsEnabled()
-        exactGranted = exactAlarmsGranted(context)
-        batteryUnrestricted = batteryUnrestricted(context)
+        snapshot = probe.read()
     }
 
     LaunchedEffect(alreadyAsked) {
@@ -72,11 +65,11 @@ fun LaunchPermissionsHost(
     var skippedExact by rememberSaveable { mutableStateOf(false) }
     var skippedBattery by rememberSaveable { mutableStateOf(false) }
 
-    val step = LaunchPermissions.nextStep(
-        notificationsGranted = notificationsGranted || skippedNotifications,
-        exactAlarmsGranted = exactGranted || skippedExact,
-        batteryUnrestricted = batteryUnrestricted || skippedBattery,
-        sdkInt = Build.VERSION.SDK_INT,
+    val step = LaunchPermissions.nextStepWithSkips(
+        snapshot = snapshot,
+        skippedNotifications = skippedNotifications,
+        skippedExact = skippedExact,
+        skippedBattery = skippedBattery,
     )
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -106,9 +99,13 @@ fun LaunchPermissionsHost(
     fun continueBattery() {
         runCatching {
             context.startActivity(
-                Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                requestIgnoreBatteryOptimizationsIntent(context.packageName)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             )
+        }.onFailure {
+            runCatching {
+                context.startActivity(ignoreBatteryOptimizationSettingsIntent())
+            }
         }
         skippedBattery = true
     }
@@ -154,15 +151,4 @@ fun LaunchPermissionsHost(
             refresh()
         },
     )
-}
-
-private fun exactAlarmsGranted(context: android.content.Context): Boolean {
-    if (Build.VERSION.SDK_INT < 31) return true
-    val manager = context.getSystemService(AlarmManager::class.java) ?: return true
-    return manager.canScheduleExactAlarms()
-}
-
-private fun batteryUnrestricted(context: android.content.Context): Boolean {
-    val manager = context.getSystemService(PowerManager::class.java) ?: return true
-    return manager.isIgnoringBatteryOptimizations(context.packageName)
 }

@@ -8,8 +8,6 @@ import org.junit.Test
 class LaunchPermissionsTest {
     @Test
     fun theWalkWaitsUntilSettingsIsLeftAfterTheChoice() {
-        // Choosing Account or Drive opens Settings in the same moment; the dialogs used to
-        // land over the sign-in form.
         assertFalse(
             LaunchPermissions.walkMayShow(
                 postureChosen = true,
@@ -68,54 +66,76 @@ class LaunchPermissionsTest {
 
     @Test
     fun nextStepWalksNotificationsThenExactThenBattery() {
-        assertEquals(
-            LaunchPermissionStep.NOTIFICATIONS,
-            LaunchPermissions.nextStep(
-                notificationsGranted = false,
-                exactAlarmsGranted = false,
-                batteryUnrestricted = false,
-                sdkInt = 33,
-            ),
+        val missingAll = snapshot(
+            sdkInt = 33,
+            notificationsEnabled = false,
+            restDoneChannelEnabled = true,
+            postNotificationsGranted = false,
+            canScheduleExactAlarms = false,
+            batteryUnrestricted = false,
         )
-        assertEquals(
-            LaunchPermissionStep.EXACT_ALARM,
-            LaunchPermissions.nextStep(
-                notificationsGranted = true,
-                exactAlarmsGranted = false,
-                batteryUnrestricted = false,
-                sdkInt = 33,
-            ),
+        assertEquals(LaunchPermissionStep.NOTIFICATIONS, LaunchPermissions.nextStep(missingAll))
+
+        val needExact = snapshot(
+            sdkInt = 33,
+            notificationsEnabled = true,
+            restDoneChannelEnabled = true,
+            postNotificationsGranted = true,
+            canScheduleExactAlarms = false,
+            batteryUnrestricted = false,
         )
-        assertEquals(
-            LaunchPermissionStep.BATTERY,
-            LaunchPermissions.nextStep(
-                notificationsGranted = true,
-                exactAlarmsGranted = true,
-                batteryUnrestricted = false,
-                sdkInt = 33,
-            ),
+        assertEquals(LaunchPermissionStep.EXACT_ALARM, LaunchPermissions.nextStep(needExact))
+
+        val needBattery = snapshot(
+            sdkInt = 33,
+            notificationsEnabled = true,
+            restDoneChannelEnabled = true,
+            postNotificationsGranted = true,
+            canScheduleExactAlarms = true,
+            batteryUnrestricted = false,
         )
-        assertEquals(
-            LaunchPermissionStep.DONE,
-            LaunchPermissions.nextStep(
-                notificationsGranted = true,
-                exactAlarmsGranted = true,
-                batteryUnrestricted = true,
-                sdkInt = 33,
-            ),
+        assertEquals(LaunchPermissionStep.BATTERY, LaunchPermissions.nextStep(needBattery))
+
+        val done = snapshot(
+            sdkInt = 33,
+            notificationsEnabled = true,
+            restDoneChannelEnabled = true,
+            postNotificationsGranted = true,
+            canScheduleExactAlarms = true,
+            batteryUnrestricted = true,
         )
+        assertEquals(LaunchPermissionStep.DONE, LaunchPermissions.nextStep(done))
     }
 
     @Test
     fun olderSdksSkipNotificationsAndExact() {
-        assertEquals(
-            LaunchPermissionStep.BATTERY,
-            LaunchPermissions.nextStep(
-                notificationsGranted = false,
-                exactAlarmsGranted = false,
-                batteryUnrestricted = false,
-                sdkInt = 30,
-            ),
+        val needBatteryOnly = snapshot(
+            sdkInt = 30,
+            notificationsEnabled = false,
+            restDoneChannelEnabled = false,
+            postNotificationsGranted = false,
+            canScheduleExactAlarms = false,
+            batteryUnrestricted = false,
         )
+        assertEquals(LaunchPermissionStep.BATTERY, LaunchPermissions.nextStep(needBatteryOnly))
     }
+
+    private fun snapshot(
+        sdkInt: Int,
+        notificationsEnabled: Boolean,
+        restDoneChannelEnabled: Boolean,
+        postNotificationsGranted: Boolean,
+        canScheduleExactAlarms: Boolean,
+        batteryUnrestricted: Boolean,
+    ): PhoneCapabilitySnapshot = PhoneCapabilitySnapshot(
+        sdkInt = sdkInt,
+        notificationsEnabled = notificationsEnabled,
+        restDoneChannelEnabled = restDoneChannelEnabled,
+        postNotificationsGranted = postNotificationsGranted,
+        canScheduleExactAlarms = canScheduleExactAlarms,
+        canUseFullScreenIntent = true,
+        canDrawOverlays = true,
+        batteryUnrestricted = batteryUnrestricted,
+        hasVibrator = true,
+    )
 }

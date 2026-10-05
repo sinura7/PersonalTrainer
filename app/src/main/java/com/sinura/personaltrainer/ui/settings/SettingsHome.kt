@@ -28,6 +28,7 @@ internal fun SettingsHome(
     remindersSummary: String,
     generatorSummary: String,
     restSummary: String,
+    permissionsSummary: String,
     bodyweightSummary: String,
     savePostureSummary: String,
     accountSummary: String,
@@ -93,6 +94,14 @@ internal fun SettingsHome(
                     icon = TemperIcons.Rest,
                     tag = SettingsTags.ROW_REST,
                     onClick = { onOpen(SettingsPage.REST) },
+                )
+                IndexHairline()
+                SettingsIndexRow(
+                    title = SettingsHomeCopy.PERMISSIONS_TITLE,
+                    subtitle = permissionsSummary,
+                    icon = TemperIcons.Reminders,
+                    tag = SettingsTags.ROW_PERMISSIONS,
+                    onClick = { onOpen(SettingsPage.PERMISSIONS) },
                 )
                 IndexHairline()
                 SettingsIndexRow(

@@ -138,4 +138,30 @@ class GitHubDebugReleasesTest {
         """.trimIndent()
         assertNull(GitHubDebugReleases.newestDebugRelease(body))
     }
+
+    @Test
+    fun atomFeedPicksNewestDebugLiveTagAndBuildsStandardApkUrl() {
+        val body = """
+            <feed>
+              <entry>
+                <id>tag:github.com,2008:Repository/1/debug-live-2026-10-05-2</id>
+                <updated>2026-10-05T16:10:28Z</updated>
+              </entry>
+              <entry>
+                <id>tag:github.com,2008:Repository/1/debug-live-2026-10-05-3</id>
+                <updated>2026-10-05T17:09:30Z</updated>
+              </entry>
+              <entry>
+                <id>tag:github.com,2008:Repository/1/v1.0.0</id>
+                <updated>2026-10-06T00:00:00Z</updated>
+              </entry>
+            </feed>
+        """.trimIndent()
+        val release = GitHubDebugReleases.newestDebugReleaseFromAtom(body)!!
+        assertEquals("debug-live-2026-10-05-3", release.tag)
+        assertEquals(
+            "https://github.com/sinura7/PersonalTrainer/releases/download/debug-live-2026-10-05-3/PersonalTrainer-1.0.0-debug.apk",
+            release.apkUrl,
+        )
+    }
 }

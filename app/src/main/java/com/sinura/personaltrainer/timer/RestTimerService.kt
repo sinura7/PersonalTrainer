@@ -3,7 +3,10 @@ package com.sinura.personaltrainer.timer
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.Handler
@@ -48,6 +51,7 @@ class RestTimerService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val completeRunnable = Runnable { handleDeadline() }
     private val tickRunnable = Runnable { handleTick() }
+    private val lockWidgetRefreshRunnable = Runnable { refreshLockWidgets() }
     private var pendingTick = 0
     private var tickedEndsAt = Long.MIN_VALUE
     private var tickedSecond = 0
@@ -68,16 +72,47 @@ class RestTimerService : Service() {
     private var completing = false
     private var startedForeground = false
     private var lastShownEndsAt = Long.MIN_VALUE
+    private var lastRunningPresentation: RestTimerRunningPresentation? = null
     private var lastStartId = 0
     private var sawRunning = false
     private var stopped = false
     private val controller: RestTimerController
         get() = (application as PersonalTrainerApp).container.restTimerController
 
+    private val lockStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (!startedForeground || completing) return
+            val state = controller.snapshot.value
+            if (!state.running) return
+            publishRunning(state)
+        }
+    }
+
+    private val foregroundListener: () -> Unit = {
+        if (startedForeground && !completing) {
+            val state = controller.snapshot.value
+            if (state.running) {
+                publishRunning(state, force = true)
+            }
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        RestTimerAppForeground.addListener(foregroundListener)
+        val lockFilter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(lockStateReceiver, lockFilter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(lockStateReceiver, lockFilter)
+        }
         scope.launch {
             controller.snapshot.collect { snap ->
                 if (snap.running) {
@@ -169,12 +204,30 @@ class RestTimerService : Service() {
                 controller.adjust(-15)
                 syncForeground()
             }
+            ACTION_EXTERIOR_SYNC -> {
+                val snap = controller.snapshot.value
+                if (snap.running && startedForeground) {
+                    publishRunning(snap, force = true)
+                } else if (snap.running) {
+                    RestTimerOverlayController.sync(this, snap)
+                    RestLockScreenWidgetUpdater.updateAll(this, snap)
+                } else {
+                    RestTimerOverlayController.release()
+                }
+            }
             else -> syncForeground()
         }
         return START_STICKY
     }
 
     override fun onDestroy() {
+        RestTimerAppForeground.removeListener(foregroundListener)
+        try {
+            unregisterReceiver(lockStateReceiver)
+        } catch (_: Exception) {
+            // Never registered if startForeground failed early.
+        }
+        RestTimerOverlayController.release()
         handler.removeCallbacks(completeRunnable)
         handler.removeCallbacks(tickRunnable)
         tickPlayer?.release()
@@ -205,6 +258,20 @@ class RestTimerService : Service() {
         // Loaded now, at the start of the rest, so the first tick is not the one that decodes.
         if (tickPlayer == null) tickPlayer = RestTickPlayer(this)
         scheduleTick(state)
+        scheduleLockWidgetRefresh()
+    }
+
+    private fun scheduleLockWidgetRefresh() {
+        handler.removeCallbacks(lockWidgetRefreshRunnable)
+        handler.postDelayed(lockWidgetRefreshRunnable, 1_000L)
+    }
+
+    private fun refreshLockWidgets() {
+        if (!startedForeground || completing || stopped) return
+        val state = controller.snapshot.value
+        if (!state.running) return
+        RestLockScreenWidgetUpdater.updateAll(this, state)
+        scheduleLockWidgetRefresh()
     }
 
     private fun scheduleTick(state: RestTimerSnapshot) {
@@ -253,38 +320,61 @@ class RestTimerService : Service() {
         if (startedForeground) return
         val state = controller.snapshot.value
         RestTimerNotifications.ensureChannels(this)
-        startForegroundWith(RestTimerNotifications.runningNotification(this, state))
+        val presentation = RestTimerRunningPresentation.resolve(this)
+        startForegroundWith(
+            RestTimerNotifications.runningNotification(this, state, presentation),
+            presentation,
+        )
     }
 
     private fun publishRunning(state: RestTimerSnapshot, force: Boolean = false) {
         val remaining = state.remainingSeconds(SystemClock.elapsedRealtime()).coerceAtLeast(0)
+        val presentation = RestTimerRunningPresentation.resolve(this)
         if (!startedForeground) {
-            startForegroundWith(RestTimerNotifications.runningNotification(this, state))
+            startForegroundWith(
+                RestTimerNotifications.runningNotification(this, state, presentation),
+                presentation,
+            )
             lastShownEndsAt = state.endsAtElapsedRealtime
+            lastRunningPresentation = presentation
+            syncExterior(state, presentation)
             return
         }
-        // Chronometer ticks in SystemUI while time remains. Re-post only when
-        // the deadline changes (±15) so we do not fight the lock-screen
-        // countdown. At zero, freeze then complete — do not leave a live
-        // countdown whose base is already past.
-        if (!force && state.endsAtElapsedRealtime == lastShownEndsAt) return
+        // Chronometer ticks in SystemUI while time remains. Re-post when the
+        // deadline changes (±15) or exterior presentation toggles (foreground,
+        // lock). At zero, freeze then complete.
+        if (
+            !force &&
+            state.endsAtElapsedRealtime == lastShownEndsAt &&
+            presentation == lastRunningPresentation
+        ) {
+            return
+        }
         lastShownEndsAt = state.endsAtElapsedRealtime
+        lastRunningPresentation = presentation
         if (remaining <= 0) {
             handleDeadline(state)
             return
         }
+        val notification = RestTimerNotifications.runningNotification(this, state, presentation)
         try {
             getSystemService(NotificationManager::class.java)
-                ?.notify(
-                    RestTimerNotifications.RUNNING_ID,
-                    RestTimerNotifications.runningNotification(this, state),
-                )
+                ?.notify(RestTimerNotifications.RUNNING_ID, notification)
         } catch (_: Exception) {
             // POST_NOTIFICATIONS denied; the countdown still runs and the alert still fires.
         }
+        syncExterior(state, presentation)
     }
 
-    private fun startForegroundWith(notification: Notification) {
+    private fun syncExterior(state: RestTimerSnapshot, presentation: RestTimerRunningPresentation) {
+        RestTimerOverlayController.sync(this, state)
+        RestLockScreenWidgetUpdater.updateAll(this, state)
+    }
+
+    private fun startForegroundWith(
+        notification: Notification,
+        presentation: RestTimerRunningPresentation,
+    ) {
         try {
             if (Build.VERSION.SDK_INT >= 34) {
                 ServiceCompat.startForeground(
@@ -342,9 +432,10 @@ class RestTimerService : Service() {
     private fun freezeShadeAtZero(state: RestTimerSnapshot) {
         val live = controller.snapshot.value
         if (live.running && live.timerId != state.timerId) return
-        val frozen = RestTimerNotifications.runningNotification(this, state)
+        val presentation = RestTimerRunningPresentation.resolve(this)
+        val frozen = RestTimerNotifications.runningNotification(this, state, presentation)
         if (!startedForeground) {
-            startForegroundWith(frozen)
+            startForegroundWith(frozen, presentation)
             return
         }
         try {
@@ -360,8 +451,11 @@ class RestTimerService : Service() {
         stopped = true
         handler.removeCallbacks(completeRunnable)
         handler.removeCallbacks(tickRunnable)
+        handler.removeCallbacks(lockWidgetRefreshRunnable)
         completing = false
         lastShownEndsAt = Long.MIN_VALUE
+        lastRunningPresentation = null
+        RestTimerOverlayController.release()
         try {
             ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         } catch (_: Exception) {
@@ -384,6 +478,7 @@ class RestTimerService : Service() {
         const val ACTION_SKIP = "com.sinura.personaltrainer.timer.SKIP"
         const val ACTION_ADD_15 = "com.sinura.personaltrainer.timer.ADD_15"
         const val ACTION_MINUS_15 = "com.sinura.personaltrainer.timer.MINUS_15"
+        const val ACTION_EXTERIOR_SYNC = "com.sinura.personaltrainer.timer.EXTERIOR_SYNC"
         const val EXTRA_SESSION_ID = "sessionId"
         const val EXTRA_TIMER_ID = "timerId"
     }

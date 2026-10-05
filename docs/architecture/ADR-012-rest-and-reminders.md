@@ -51,7 +51,11 @@ day. The agreed product asks once, then adapts only if the user says so.
    outcome: `Exact`, `BestEffort`, or `Failed`. Exact APIs are not called
    when the check is false. Failures are not swallowed.
 4. Special-access is requested only after rest is used or configured, never
-   during onboarding. Recheck on resume. Reschedule a live timer after grant.
+   during onboarding, **except** the signed first-open walk (Q1 / eight-asks
+   P4a): after the save-posture choice, once on a non-Settings tab, Temper
+   Debug may ask for notifications, exact alarms, and battery in that order.
+   Settings → Permissions is the standing status page; it never opens itself.
+   Recheck on resume. Reschedule a live timer after grant.
 5. Notification permission and exact-alarm access are separate capabilities.
    Denial of one does not pretend to grant the other.
 6. When exact access is unavailable, use an honest inexact fallback. The UI
@@ -124,11 +128,19 @@ day. The agreed product asks once, then adapts only if the user says so.
 - A reminder cannot be implemented by `setAlarmClock`.
 - Schedule packets after P7.3 that “just slide the day” without a prompt
   are regressions.
-- Running rest uses a HIGH public channel with a countdown chronometer so
-  the lock screen shows remaining time when the user turns the phone on.
-  `RestLockActivity` is `showWhenLocked`. That is not overlay rest on the
-  live log. Full-screen intent is rest-done only, never onboarding.
-  Completion still uses `SCHEDULE_EXACT_ALARM`.
+- Running rest uses presentation-specific notification channels: quiet
+  in-app FGS while Temper is foreground, shade + draggable overlay when
+  background-unlocked (overlay permission), and the Debug 114 locked path
+  (full-screen intent to `RestLockActivity` when keyguard/screen-off and
+  `USE_FULL_SCREEN_INTENT` is granted). Rest-done FSI is unchanged.
+- Lock-screen countdown for running rest is a **user-added** Samsung
+  monotone AppWidget (`LockScreenRestWideWidget`, 2×1 under the clock /
+  on AOD). It reads the same `RestTimerController` snapshot as the overlay;
+  it is not Face Widget, ServiceBox, or Now Bar. OEM weather-row pills are
+  not available to third parties; the widget is the supported lock surface.
+  `RestLockActivity` remains for tap/expand and rest-done. Full-screen
+  intent is never used for onboarding. Completion still uses
+  `SCHEDULE_EXACT_ALARM`.
 - Decision 1 holds across threads, not only in order (W2b-1, 23 September
   2026). The notification's ±15 and the screens write the rest on Main; the
   alarm's completion clears it on a background thread. `RestTimerStore`'s

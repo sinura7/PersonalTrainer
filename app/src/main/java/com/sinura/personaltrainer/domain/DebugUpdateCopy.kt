@@ -10,11 +10,16 @@ package com.sinura.personaltrainer.domain
  */
 object DebugUpdateCopy {
     const val TITLE = "Update Temper Debug"
-    const val ACTION = "Update"
+    const val REQUIRED_TITLE = "Temper Debug update required"
+    const val ACTION = "Update now"
     const val ACTION_ALLOW = "Allow"
     const val ACTION_RETRY = "Try again"
     const val BANNER_BODY =
-        "Temper Debug will download the new package, then Android will ask you to install it."
+        "A newer live test build is ready. Update now so phone checks match what Cursor shipped."
+    fun requiredBody(liveCode: Int): String =
+        "Live $liveCode is published on GitHub. This build is older. " +
+            "Temper Debug will download the package, then Android will ask you to install it. " +
+            "You need this update before further live tests count."
     const val DOWNLOADING = "Downloading the update…"
     const val INSTALLING = "Android will ask you to install this update."
     const val NEEDS_PERMISSION =

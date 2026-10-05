@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rest_overlay_dismiss_zone"
+    android:layout_width="72dp"
+    android:layout_height="72dp"
+    android:background="@drawable/overlay_dismiss_zone_bg"
+    android:contentDescription="@string/rest_overlay_dismiss_zone">
+
+    <TextView
+        android:id="@+id/rest_overlay_dismiss_glyph"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:text="@string/rest_overlay_dismiss_glyph"
+        android:textColor="@color/overlay_volt"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+</FrameLayout>
