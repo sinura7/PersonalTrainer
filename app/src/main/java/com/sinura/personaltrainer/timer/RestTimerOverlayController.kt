@@ -1,8 +1,12 @@
 package com.sinura.personaltrainer.timer
 
 import android.annotation.SuppressLint
+import android.app.AppOpsManager
 import android.content.Context
+import android.content.Intent
 import android.graphics.PixelFormat
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.Gravity
@@ -11,9 +15,11 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.Chronometer
+import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
+import com.sinura.personaltrainer.logging.AppLog
 
 /**
  * Small draggable rest countdown over home / other apps. Requires
@@ -21,41 +27,65 @@ import com.sinura.personaltrainer.domain.RestTimerSnapshot
  */
 @SuppressLint("StaticFieldLeak")
 object RestTimerOverlayController {
-    fun canDrawOverlays(context: Context): Boolean =
-        Settings.canDrawOverlays(context.applicationContext)
+    private const val TAG = "PT/RestOverlay"
+    private const val DRAG_SLOP_PX = 12
+
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private var windowManager: WindowManager? = null
     private var pillView: View? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var dragOffsetX = 0f
     private var dragOffsetY = 0f
+    private var dragMoved = false
+
+    /** Last attach failure for Settings / diagnostics. Null when shown or not attempted. */
+    @Volatile
+    var lastFailureReason: String? = null
+        private set
+
+    fun canDrawOverlays(context: Context): Boolean {
+        val appContext = context.applicationContext
+        if (Settings.canDrawOverlays(appContext)) return true
+        return appOpsAllowsOverlay(appContext)
+    }
 
     fun sync(
         context: Context,
         state: RestTimerSnapshot,
-        presentation: RestTimerRunningPresentation,
     ) {
-        if (presentation != RestTimerRunningPresentation.BACKGROUND_UNLOCKED ||
-            !state.running ||
-            !canDrawOverlays(context)
-        ) {
-            hide()
+        val wantsOverlay = state.running &&
+            !RestTimerAppForeground.isInForeground &&
+            !RestTimerLockGlance.shouldAutoPresentRunning(context)
+        if (!wantsOverlay) {
+            detachFromWindow()
             return
         }
-        show(context, state)
+        if (!canDrawOverlays(context)) {
+            lastFailureReason = "Display over other apps is off for Temper"
+            detachFromWindow()
+            return
+        }
+        mainHandler.post { attach(context.applicationContext, state) }
     }
 
-    fun hide() {
+    fun release() {
+        mainHandler.post {
+            detachFromWindow()
+            pillView = null
+            layoutParams = null
+            windowManager = null
+            lastFailureReason = null
+        }
+    }
+
+    private fun detachFromWindow() {
         val wm = windowManager ?: return
         val view = pillView ?: return
         runCatching { wm.removeView(view) }
-        pillView = null
-        layoutParams = null
-        windowManager = null
     }
 
-    private fun show(context: Context, state: RestTimerSnapshot) {
-        val appContext = context.applicationContext
+    private fun attach(appContext: Context, state: RestTimerSnapshot) {
         val wm = windowManager ?: appContext.getSystemService(WindowManager::class.java).also {
             windowManager = it
         }
@@ -64,14 +94,28 @@ object RestTimerOverlayController {
             .inflate(R.layout.overlay_rest_pill, null)
             .also { inflated ->
                 pillView = inflated
+                inflated.setOnClickListener { view ->
+                    val ctx = view.context.applicationContext
+                    ctx.startActivity(
+                        Intent(ctx, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        },
+                    )
+                }
                 inflated.setOnTouchListener(dragListener)
             }
         val params = layoutParams ?: defaultLayoutParams(appContext).also { layoutParams = it }
         bindChronometer(view, state)
-        if (view.parent == null) {
-            wm.addView(view, params)
-        } else {
-            wm.updateViewLayout(view, params)
+        try {
+            if (view.parent == null) {
+                wm.addView(view, params)
+            } else {
+                wm.updateViewLayout(view, params)
+            }
+            lastFailureReason = null
+        } catch (thrown: Exception) {
+            lastFailureReason = thrown.message ?: thrown.javaClass.simpleName
+            AppLog.e(TAG, "Could not show the rest overlay", thrown)
         }
     }
 
@@ -94,14 +138,29 @@ object RestTimerOverlayController {
         val wm = windowManager ?: return@OnTouchListener false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                dragMoved = false
                 dragOffsetX = event.rawX - params.x
                 dragOffsetY = event.rawY - params.y
                 true
             }
             MotionEvent.ACTION_MOVE -> {
-                params.x = (event.rawX - dragOffsetX).toInt()
-                params.y = (event.rawY - dragOffsetY).toInt()
+                val nextX = (event.rawX - dragOffsetX).toInt()
+                val nextY = (event.rawY - dragOffsetY).toInt()
+                if (!dragMoved &&
+                    (kotlin.math.abs(nextX - params.x) > DRAG_SLOP_PX ||
+                        kotlin.math.abs(nextY - params.y) > DRAG_SLOP_PX)
+                ) {
+                    dragMoved = true
+                }
+                params.x = nextX
+                params.y = nextY
                 wm.updateViewLayout(view, params)
+                true
+            }
+            MotionEvent.ACTION_UP -> {
+                if (!dragMoved) {
+                    view.performClick()
+                }
                 true
             }
             else -> false
@@ -123,5 +182,15 @@ object RestTimerOverlayController {
             x = (dm.widthPixels * 0.55f).toInt()
             y = (dm.heightPixels * 0.12f).toInt()
         }
+    }
+
+    private fun appOpsAllowsOverlay(context: Context): Boolean {
+        val appOps = context.getSystemService(AppOpsManager::class.java) ?: return false
+        val mode = appOps.checkOpNoThrow(
+            AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW,
+            android.os.Process.myUid(),
+            context.packageName,
+        )
+        return mode == AppOpsManager.MODE_ALLOWED
     }
 }
