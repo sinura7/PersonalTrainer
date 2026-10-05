@@ -17,7 +17,7 @@ class RestLockScreenWidgetViewsTest {
     fun buildsRemoteViewsForIdleAndRunningSnapshots() {
         assertNotNull(idleViews())
         assertNotNull(
-            RestLockScreenWidgetViews.remoteViews(
+            RestLockScreenWidgetViews.remoteViewsWide(
                 context = context,
                 state = RestTimerSnapshot(
                     running = true,
@@ -36,7 +36,7 @@ class RestLockScreenWidgetViewsTest {
     }
 
     private fun idleViews(): RemoteViews =
-        RestLockScreenWidgetViews.remoteViews(
+        RestLockScreenWidgetViews.remoteViewsWide(
             context = context,
             state = RestTimerSnapshot(running = false),
         )
