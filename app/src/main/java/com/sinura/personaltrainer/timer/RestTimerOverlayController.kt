@@ -14,7 +14,6 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.Chronometer
 import android.widget.FrameLayout
 import android.widget.TextView
 import com.sinura.personaltrainer.MainActivity
@@ -22,8 +21,8 @@ import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.ui.overlay.OVERLAY_VOLT_COLOR
 import com.sinura.personaltrainer.ui.overlay.RestOverlayRingView
-import com.sinura.personaltrainer.ui.theme.Volt
 import kotlin.math.roundToInt
 
 /**
@@ -34,12 +33,14 @@ import kotlin.math.roundToInt
 object RestTimerOverlayController {
     private const val TAG = "PT/RestOverlay"
     private const val DRAG_SLOP_PX = 10
+    private const val REFRESH_MS = 1_000L
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var windowManager: WindowManager? = null
     private var pillView: View? = null
     private var layoutParams: WindowManager.LayoutParams? = null
+    private var cardSizePx: Int = 0
     private var dragOffsetX = 0f
     private var dragOffsetY = 0f
     private var dragMoved = false
@@ -47,11 +48,20 @@ object RestTimerOverlayController {
     private var resizeStartRawX = 0f
     private var resizeStartRawY = 0f
     private var lastSnapshot: RestTimerSnapshot? = null
+    private var syncGeneration = 0
 
     /** Last attach failure for Settings / diagnostics. Null when shown or not attempted. */
     @Volatile
     var lastFailureReason: String? = null
         private set
+
+    private val refreshRunnable = Runnable {
+        val view = pillView ?: return@Runnable
+        val state = lastSnapshot ?: return@Runnable
+        if (!state.running || !view.isAttachedToWindow) return@Runnable
+        bindContent(view, state, updateScale = false)
+        scheduleRefresh()
+    }
 
     fun canDrawOverlays(context: Context): Boolean {
         val appContext = context.applicationContext
@@ -66,37 +76,58 @@ object RestTimerOverlayController {
         val wantsOverlay = state.running &&
             !RestTimerAppForeground.isInForeground &&
             !RestTimerLockGlance.shouldAutoPresentRunning(context)
+        val generation = ++syncGeneration
         if (!wantsOverlay) {
-            detachFromWindow()
+            lastSnapshot = null
+            mainHandler.post { detachFromWindow(generation) }
             return
         }
         if (!canDrawOverlays(context)) {
             lastFailureReason = "Display over other apps is off for Temper"
-            detachFromWindow()
+            lastSnapshot = null
+            mainHandler.post { detachFromWindow(generation) }
             return
         }
         lastSnapshot = state
-        mainHandler.post { attach(context.applicationContext, state) }
+        mainHandler.post { attach(context.applicationContext, state, generation) }
     }
 
     fun release() {
+        ++syncGeneration
         mainHandler.post {
-            detachFromWindow()
+            stopRefresh()
+            detachFromWindow(syncGeneration)
             pillView = null
             layoutParams = null
             windowManager = null
             lastSnapshot = null
+            cardSizePx = 0
             lastFailureReason = null
         }
     }
 
-    private fun detachFromWindow() {
-        val wm = windowManager ?: return
-        val view = pillView ?: return
-        runCatching { wm.removeView(view) }
+    private fun stopRefresh() {
+        mainHandler.removeCallbacks(refreshRunnable)
     }
 
-    private fun attach(appContext: Context, state: RestTimerSnapshot) {
+    private fun scheduleRefresh() {
+        mainHandler.removeCallbacks(refreshRunnable)
+        mainHandler.postDelayed(refreshRunnable, REFRESH_MS)
+    }
+
+    private fun detachFromWindow(expectedGeneration: Int) {
+        if (expectedGeneration != syncGeneration) return
+        stopRefresh()
+        val wm = windowManager ?: return
+        val view = pillView ?: return
+        if (view.isAttachedToWindow) {
+            runCatching { wm.removeView(view) }
+                .onFailure { AppLog.w(TAG, "Overlay remove failed", it) }
+        }
+    }
+
+    private fun attach(appContext: Context, state: RestTimerSnapshot, expectedGeneration: Int) {
+        if (expectedGeneration != syncGeneration) return
         val wm = windowManager ?: appContext.getSystemService(WindowManager::class.java).also {
             windowManager = it
         }
@@ -108,19 +139,32 @@ object RestTimerOverlayController {
                 wireCard(appContext, inflated)
             }
         val saved = RestOverlayLayoutStore.load(appContext)
-        applyCardSize(view, saved.sizeDp.dpToPx(appContext))
-        val params = layoutParams ?: defaultLayoutParams(appContext, saved).also { layoutParams = it }
-        bindContent(view, state)
+        cardSizePx = saved.sizeDp.dpToPx(appContext)
+        applyCardSize(view, cardSizePx)
+        val params = layoutParams ?: defaultLayoutParams(appContext, saved, cardSizePx).also {
+            layoutParams = it
+        }
+        params.width = cardSizePx
+        params.height = cardSizePx
         try {
-            if (view.parent == null) {
+            if (!view.isAttachedToWindow) {
                 wm.addView(view, params)
             } else {
-                wm.updateViewLayout(view, params)
+                safeUpdateViewLayout(wm, view, params)
             }
+            if (expectedGeneration != syncGeneration) {
+                detachFromWindow(syncGeneration)
+                return
+            }
+            bindContent(view, state, updateScale = true)
             lastFailureReason = null
+            scheduleRefresh()
         } catch (thrown: Exception) {
             lastFailureReason = thrown.message ?: thrown.javaClass.simpleName
             AppLog.e(TAG, "Could not show the rest overlay", thrown)
+            runCatching {
+                if (view.isAttachedToWindow) wm.removeView(view)
+            }
         }
     }
 
@@ -139,54 +183,55 @@ object RestTimerOverlayController {
         handle.setOnTouchListener(resizeListener)
     }
 
-    private fun bindContent(view: View, state: RestTimerSnapshot) {
+    private fun bindContent(
+        view: View,
+        state: RestTimerSnapshot,
+        updateScale: Boolean,
+    ) {
         val ring = view.findViewById<RestOverlayRingView>(R.id.rest_overlay_ring)
-        val chrono = view.findViewById<Chronometer>(R.id.rest_overlay_chrono)
+        val time = view.findViewById<TextView>(R.id.rest_overlay_time)
         val remaining = state.remainingSeconds(SystemClock.elapsedRealtime()).coerceAtLeast(0)
         val total = state.totalSeconds.coerceAtLeast(1)
         ring.progress = remaining.toFloat() / total.toFloat()
-        if (RestTimer.usesLiveChronometer(remaining)) {
-            chrono.isCountDown = true
-            chrono.base = state.endsAtElapsedRealtime
-            chrono.start()
-        } else {
-            chrono.stop()
-            chrono.text = RestTimer.formatClock(remaining)
-        }
-        scaleTypeForCard(view)
+        time.text = RestTimer.formatClock(remaining)
+        if (updateScale) scaleTypeForCard(view)
     }
 
     private fun scaleTypeForCard(view: View) {
-        val card = view.findViewById<FrameLayout>(R.id.rest_overlay_card)
-        val chrono = view.findViewById<Chronometer>(R.id.rest_overlay_chrono)
+        val chrono = view.findViewById<TextView>(R.id.rest_overlay_time)
         val kicker = view.findViewById<TextView>(R.id.rest_overlay_kicker)
-        val sizeDp = (card.layoutParams.width / view.resources.displayMetrics.density).toInt()
+        val sizePx = cardSizePx.coerceAtLeast(1)
+        val sizeDp = (sizePx / view.resources.displayMetrics.density).roundToInt()
         val scale = (sizeDp.toFloat() / RestOverlayLayoutStore.DEFAULT_SIZE_DP).coerceIn(0.75f, 1.45f)
         chrono.textSize = 34f * scale
         kicker.textSize = 11f * scale
-        kicker.setTextColor(
-            android.graphics.Color.argb(
-                255,
-                (Volt.red * 255).toInt(),
-                (Volt.green * 255).toInt(),
-                (Volt.blue * 255).toInt(),
-            ),
-        )
+        kicker.setTextColor(OVERLAY_VOLT_COLOR)
     }
 
     private fun applyCardSize(root: View, sizePx: Int) {
+        cardSizePx = sizePx
         val card = root.findViewById<FrameLayout>(R.id.rest_overlay_card)
-        val lp = card.layoutParams
+        val lp = card.layoutParams ?: FrameLayout.LayoutParams(sizePx, sizePx)
         lp.width = sizePx
         lp.height = sizePx
         card.layoutParams = lp
-        scaleTypeForCard(root)
+    }
+
+    private fun safeUpdateViewLayout(
+        wm: WindowManager,
+        view: View,
+        params: WindowManager.LayoutParams,
+    ) {
+        if (!view.isAttachedToWindow) return
+        runCatching { wm.updateViewLayout(view, params) }
+            .onFailure { AppLog.w(TAG, "Overlay layout update failed", it) }
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private val cardDragListener = View.OnTouchListener { view, event ->
         val params = layoutParams ?: return@OnTouchListener false
         val wm = windowManager ?: return@OnTouchListener false
+        val overlay = pillView ?: return@OnTouchListener false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 dragMoved = false
@@ -205,7 +250,7 @@ object RestTimerOverlayController {
                 }
                 params.x = nextX
                 params.y = nextY
-                wm.updateViewLayout(view.rootView, params)
+                safeUpdateViewLayout(wm, overlay, params)
                 true
             }
             MotionEvent.ACTION_UP -> {
@@ -227,29 +272,29 @@ object RestTimerOverlayController {
     @SuppressLint("ClickableViewAccessibility")
     private val resizeListener = View.OnTouchListener { handle, event ->
         val root = pillView ?: return@OnTouchListener false
-        val card = root.findViewById<FrameLayout>(R.id.rest_overlay_card)
         val wm = windowManager ?: return@OnTouchListener false
         val params = layoutParams ?: return@OnTouchListener false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                resizeStartSizePx = card.layoutParams.width
+                resizeStartSizePx = cardSizePx
                 resizeStartRawX = event.rawX
                 resizeStartRawY = event.rawY
                 true
             }
             MotionEvent.ACTION_MOVE -> {
                 val delta = ((event.rawX - resizeStartRawX) + (event.rawY - resizeStartRawY)) / 2f
-                val density = handle.resources.displayMetrics.density
                 val minPx = RestOverlayLayoutStore.MIN_SIZE_DP.dpToPx(handle.context)
                 val maxPx = RestOverlayLayoutStore.MAX_SIZE_DP.dpToPx(handle.context)
                 val nextPx = (resizeStartSizePx + delta).toInt().coerceIn(minPx, maxPx)
                 applyCardSize(root, nextPx)
-                wm.updateViewLayout(root, params)
-                lastSnapshot?.let { bindContent(root, it) }
+                params.width = nextPx
+                params.height = nextPx
+                safeUpdateViewLayout(wm, root, params)
+                lastSnapshot?.let { bindContent(root, it, updateScale = true) }
                 true
             }
             MotionEvent.ACTION_UP -> {
-                val sizeDp = (card.layoutParams.width / handle.resources.displayMetrics.density).roundToInt()
+                val sizeDp = (cardSizePx / handle.resources.displayMetrics.density).roundToInt()
                 RestOverlayLayoutStore.saveSize(handle.context.applicationContext, sizeDp)
                 true
             }
@@ -260,10 +305,11 @@ object RestTimerOverlayController {
     private fun defaultLayoutParams(
         context: Context,
         saved: RestOverlayLayoutStore.SavedLayout,
+        sizePx: Int,
     ): WindowManager.LayoutParams {
         return WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            sizePx,
+            sizePx,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
@@ -286,5 +332,4 @@ object RestTimerOverlayController {
         )
         return mode == AppOpsManager.MODE_ALLOWED
     }
-
 }

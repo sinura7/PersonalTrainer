@@ -6,7 +6,6 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
-import com.sinura.personaltrainer.ui.theme.Volt
 
 /** Remaining-rest arc (1 = full time left, 0 = done). */
 class RestOverlayRingView @JvmOverloads constructor(
@@ -27,12 +26,7 @@ class RestOverlayRingView @JvmOverloads constructor(
     private val arcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
-        color = android.graphics.Color.argb(
-            255,
-            (Volt.red * 255).toInt(),
-            (Volt.green * 255).toInt(),
-            (Volt.blue * 255).toInt(),
-        )
+        color = OVERLAY_VOLT_COLOR
     }
     private val bounds = RectF()
 
@@ -40,6 +34,7 @@ class RestOverlayRingView @JvmOverloads constructor(
         super.onDraw(canvas)
         val w = this.width
         val h = this.height
+        if (w <= 0 || h <= 0) return
         val stroke = (w.coerceAtMost(h) * 0.08f).coerceAtLeast(3f)
         trackPaint.strokeWidth = stroke
         arcPaint.strokeWidth = stroke
