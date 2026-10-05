@@ -95,6 +95,7 @@ import com.sinura.personaltrainer.ui.onboarding.OnboardingGate
 import com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModel
 import com.sinura.personaltrainer.ui.permissions.LaunchPermissionsHost
 import com.sinura.personaltrainer.ui.permissions.RestExteriorPermissionsHost
+import com.sinura.personaltrainer.ui.update.DebugUpdateRequiredHost
 import com.sinura.personaltrainer.ui.onboarding.OnboardingScreen
 import com.sinura.personaltrainer.ui.plan.PlanDayScreen
 import com.sinura.personaltrainer.ui.plan.PlanScreen
@@ -418,6 +419,7 @@ fun PersonalTrainerNav(
         )
     }
     RestExteriorPermissionsHost()
+    DebugUpdateRequiredHost()
     // Presence only. Elapsed ticks inside LiveSessionBarHost so a 1 Hz
     // label cannot rebuild this NavHost.
     val showLiveBar = hasLiveSession &&

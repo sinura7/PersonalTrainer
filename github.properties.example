@@ -1,0 +1,4 @@
+# Optional. Copy to github.properties (gitignored) for Temper Debug only.
+# Raises GitHub API rate limits for in-app update checks. Read-only public_repo scope is enough.
+# Obtainium uses its own token field in the app — set that separately on the phone.
+GITHUB_API_TOKEN=

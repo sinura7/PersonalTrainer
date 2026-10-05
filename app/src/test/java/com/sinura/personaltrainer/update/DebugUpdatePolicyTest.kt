@@ -47,9 +47,11 @@ class DebugUpdatePolicyTest {
         assertFalse(DebugUpdateCopy.SETTINGS_SUMMARY.contains("unknown apps"))
         assertFalse(DebugUpdateCopy.BANNER_BODY.contains("Obtainium"))
         assertFalse(DebugUpdateCopy.TITLE.contains("Obtainium"))
-        assertTrue(DebugUpdateCopy.BANNER_BODY.contains("Android will ask you to install"))
+        assertTrue(DebugUpdateCopy.requiredBody(51).contains("Android will ask you to install"))
         assertEquals("Update Temper Debug", DebugUpdateCopy.TITLE)
-        assertEquals("Update", DebugUpdateCopy.ACTION)
+        assertEquals("Update now", DebugUpdateCopy.ACTION)
+        val appNav = read("app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt")
+        assertTrue(appNav.contains("DebugUpdateRequiredHost"))
         assertEquals("Live 51 is ready", DebugUpdateCopy.settingsSummary(51))
         assertEquals("Downloading the update… 40%", DebugUpdateCopy.downloading(40))
     }

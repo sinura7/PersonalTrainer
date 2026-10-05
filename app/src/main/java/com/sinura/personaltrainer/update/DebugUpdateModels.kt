@@ -23,6 +23,8 @@ enum class DebugUpdateInstall {
 data class DebugUpdateUi(
     val offer: DebugUpdateOffer? = null,
     val showBanner: Boolean = false,
+    /** Blocking prompt on every entry until the user starts the in-app update. */
+    val showRequiredPrompt: Boolean = false,
     val install: DebugUpdateInstall = DebugUpdateInstall.Idle,
     val downloadPercent: Int? = null,
 )
