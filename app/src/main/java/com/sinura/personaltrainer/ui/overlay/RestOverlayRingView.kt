@@ -18,6 +18,13 @@ class RestOverlayRingView @JvmOverloads constructor(
             invalidate()
         }
 
+    /** Full volt ring when rest hits zero (brief done flash). */
+    var emphasizeDone: Boolean = false
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
@@ -35,12 +42,16 @@ class RestOverlayRingView @JvmOverloads constructor(
         val w = this.width
         val h = this.height
         if (w <= 0 || h <= 0) return
-        val stroke = (w.coerceAtMost(h) * 0.08f).coerceAtLeast(3f)
+        val stroke = (w.coerceAtMost(h) * 0.11f).coerceAtLeast(4f)
         trackPaint.strokeWidth = stroke
         arcPaint.strokeWidth = stroke
         val inset = stroke / 2f + 2f
         bounds.set(inset, inset, w - inset, h - inset)
         canvas.drawArc(bounds, 0f, 360f, false, trackPaint)
-        canvas.drawArc(bounds, -90f, 360f * progress, false, arcPaint)
+        if (emphasizeDone) {
+            canvas.drawArc(bounds, 0f, 360f, false, arcPaint)
+        } else {
+            canvas.drawArc(bounds, -90f, 360f * progress, false, arcPaint)
+        }
     }
 }

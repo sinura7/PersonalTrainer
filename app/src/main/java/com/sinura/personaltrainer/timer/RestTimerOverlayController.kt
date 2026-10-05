@@ -18,7 +18,6 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.R
-import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.overlay.OVERLAY_VOLT_COLOR
@@ -173,9 +172,11 @@ object RestTimerOverlayController {
         val card = root.findViewById<FrameLayout>(R.id.rest_overlay_card)
         val handle = root.findViewById<View>(R.id.rest_overlay_resize_handle)
         card.setOnClickListener { _ ->
+            val snap = lastSnapshot
             appContext.startActivity(
                 Intent(appContext, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    snap?.sessionId?.let { putExtra(RestTimerService.EXTRA_SESSION_ID, it) }
                 },
             )
         }
@@ -190,10 +191,18 @@ object RestTimerOverlayController {
     ) {
         val ring = view.findViewById<RestOverlayRingView>(R.id.rest_overlay_ring)
         val time = view.findViewById<TextView>(R.id.rest_overlay_time)
-        val remaining = state.remainingSeconds(SystemClock.elapsedRealtime()).coerceAtLeast(0)
-        val total = state.totalSeconds.coerceAtLeast(1)
-        ring.progress = remaining.toFloat() / total.toFloat()
-        time.text = RestTimer.formatClock(remaining)
+        val kicker = view.findViewById<TextView>(R.id.rest_overlay_kicker)
+        val appContext = view.context.applicationContext
+        val model = RestExteriorDisplay.model(
+            state = state,
+            nowElapsedRealtime = SystemClock.elapsedRealtime(),
+            kickerRunning = appContext.getString(R.string.lockscreen_rest_widget_kicker),
+            kickerDone = appContext.getString(R.string.rest_exterior_done_kicker),
+        )
+        ring.progress = model.progressLevel.toFloat() / RestExteriorDisplay.PROGRESS_MAX
+        ring.emphasizeDone = model.atZero
+        kicker.text = model.kicker
+        time.text = model.timeText
         if (updateScale) scaleTypeForCard(view)
     }
 
