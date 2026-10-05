@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.HomeLogged
 import com.sinura.personaltrainer.domain.featuredSession
 import com.sinura.personaltrainer.domain.leftoverLiftNames
 import com.sinura.personaltrainer.domain.nextSessionReason
@@ -65,6 +66,8 @@ fun HomeScreen(
     onResumeWorkout: (String) -> Unit,
     onOpenPlan: () -> Unit,
     onOpenRoutine: (String) -> Unit = {},
+    onOpenSession: (String) -> Unit = {},
+    onOpenActivity: (String) -> Unit = {},
     onLogActivity: (String) -> Unit = {},
     onOpenLiveCardio: (String) -> Unit = {},
     pendingOccurrenceStartId: String? = null,
@@ -222,6 +225,13 @@ fun HomeScreen(
     } else {
         PlanDayCopy.weekdayTitle(Weekday.fromEpochDay(selectedEpochDay))
     }
+    val daySummaries = state.loggedByDay[selectedEpochDay].orEmpty()
+    val summariesById = remember(state.loggedByDay) {
+        state.loggedByDay.values.flatten().associateBy { it.id }
+    }
+    val offPlanLogged = remember(selectedEpochDay, selectedAgenda, daySummaries) {
+        HomeLogged.offPlanForDay(selectedEpochDay, selectedAgenda, daySummaries)
+    }
     val stillOpen = remember(selectedEpochDay, today, weekStart, state.occurrences, state.rules, names) {
         if (selectedEpochDay == today) {
             DailyAgenda.stillOpen(
@@ -357,7 +367,7 @@ fun HomeScreen(
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                when (HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen)) {
+                when (HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen, offPlanLogged)) {
                     HomeToday.Surface.AGENDA ->                     DailyAgendaCard(
                         items = selectedAgenda,
                         sessionLive = sessionLive,
@@ -375,6 +385,10 @@ fun HomeScreen(
                             viewModel.moveDayBlock(selectedAgenda, occurrenceId, delta)
                         },
                         onSkipOccurrence = viewModel::skipOccurrence,
+                        offPlanLogged = offPlanLogged,
+                        summariesById = summariesById,
+                        onOpenSession = onOpenSession,
+                        onOpenActivity = onOpenActivity,
                     )
                     HomeToday.Surface.WEEK_FALLBACK -> ThisWeekCard(
                         day = leftoverDay,
@@ -495,6 +509,8 @@ object HomeTags {
     fun agendaRow(occurrenceId: String): String = "home-agenda-$occurrenceId"
 
     fun skipRow(occurrenceId: String): String = "home-skip-$occurrenceId"
+
+    fun loggedSession(sessionId: String): String = "home-logged-$sessionId"
 }
 
 private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"

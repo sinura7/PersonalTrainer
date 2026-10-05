@@ -230,6 +230,29 @@ class HomeTodayTest {
     }
 
     @Test
+    fun offPlanLoggedKeepsAgendaSurfaceOnRestLeftover() {
+        val logged = SessionSummary(
+            id = "free",
+            routineId = null,
+            routineName = "Workout",
+            date = 1L,
+            finishedAt = 2L,
+            durationMinutes = 30,
+            workingSets = 8,
+            volumeKg = 0.0,
+            localEpochDay = TODAY,
+        )
+        assertEquals(
+            HomeToday.Surface.AGENDA,
+            HomeToday.surface(
+                emptyList(),
+                leftoverBelongs = true,
+                offPlanLogged = listOf(logged),
+            ),
+        )
+    }
+
+    @Test
     fun startTagFallsBackToTheOnlyPlannedRow() {
         val cardio = item("c", ScheduleModality.CARDIO)
         assertEquals("c", HomeToday.startTagOccurrenceId(listOf(cardio)))

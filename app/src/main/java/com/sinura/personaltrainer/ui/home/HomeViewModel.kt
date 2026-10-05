@@ -15,12 +15,14 @@ import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.DayBlockOrder
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.ExtraEquipment
+import com.sinura.personaltrainer.domain.HomeLogged
 import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.OccurrenceStatus
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
@@ -67,6 +69,8 @@ data class HomeUiState(
      * in the current week as untrained after a travel-week gap.
      */
     val loggedEpochDays: Set<Long> = emptySet(),
+    /** Finished sessions grouped by local epoch day (masthead + day board). */
+    val loggedByDay: Map<Long, List<SessionSummary>> = emptyMap(),
     val lighterWeek: Boolean = false,
     val error: String? = null,
     val missedWorkPrompt: Boolean = false,
@@ -164,6 +168,7 @@ class HomeViewModel @JvmOverloads constructor(
             recommendations = insights.recommendations,
             weekPlan = insights.weekPlan,
             loggedEpochDays = insights.summaries.map { it.localEpochDay }.toSet(),
+            loggedByDay = HomeLogged.byDay(insights.summaries),
             lighterWeek = LighterWeek.isCurrent(
                 lighterStart,
                 insights.weekPlan?.weekStartEpochDay,
