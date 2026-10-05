@@ -20,10 +20,28 @@ object RestLockScreenWidgetUpdater {
             ?.value
             ?: return
         val manager = appContext.getSystemService(AppWidgetManager::class.java) ?: return
-        val component = ComponentName(appContext, LockScreenRestWideWidget::class.java)
-        val ids = manager.getAppWidgetIds(component)
+        push(
+            manager = manager,
+            appContext = appContext,
+            widgetClass = LockScreenRestWideWidget::class.java,
+            views = RestLockScreenWidgetViews.remoteViewsWide(appContext, snapshot),
+        )
+        push(
+            manager = manager,
+            appContext = appContext,
+            widgetClass = LockScreenRestSmallWidget::class.java,
+            views = RestLockScreenWidgetViews.remoteViewsSmall(appContext, snapshot),
+        )
+    }
+
+    private fun push(
+        manager: AppWidgetManager,
+        appContext: Context,
+        widgetClass: Class<*>,
+        views: android.widget.RemoteViews,
+    ) {
+        val ids = manager.getAppWidgetIds(ComponentName(appContext, widgetClass))
         if (ids.isEmpty()) return
-        val views = RestLockScreenWidgetViews.remoteViews(appContext, snapshot)
         ids.forEach { id -> manager.updateAppWidget(id, views) }
     }
 }
