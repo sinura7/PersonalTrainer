@@ -10,10 +10,13 @@ object PermissionsCopy {
     const val MANAGE_IN_SETTINGS = "Manage in Settings → Permissions"
 
     const val LOCK_WIDGET_SETUP =
-        "Lock screen widget (Samsung One UI): wake the phone, tap and hold the lock screen, " +
-            "choose Widgets, then pick Rest countdown or Rest countdown (compact) under Temper. " +
-            "The widget updates while a rest runs. Some One UI builds hide third-party lock " +
-            "widgets until both compact and wide sizes are listed."
+        "Lock screen widget (Samsung One UI): wake the phone, long-press the lock screen, " +
+            "tap Widgets, then choose Temper · Rest (compact) or Temper · Rest (wide). " +
+            "Use Samsung One UI Home as the default launcher when adding widgets; some " +
+            "third-party launchers hide the lock widget picker. Update Good Lock → LockStar on " +
+            "One UI 7 if Widgets is empty. While a rest runs, the widget shows the live time; " +
+            "if the picker still has no Temper entry, the rest notification and lock-screen " +
+            "rest glance during a locked rest still show the countdown."
 
     fun homeSummary(missingCount: Int): String = when (missingCount) {
         0 -> "All set"

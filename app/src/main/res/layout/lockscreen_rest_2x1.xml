@@ -17,17 +17,19 @@
         android:maxLines="1"
         android:paddingStart="0dp"
         android:paddingEnd="8dp"
-        android:text="@string/rest_notification_kicker"
+        android:text="@string/lockscreen_rest_widget_kicker"
         android:textColor="@android:color/white"
         android:textSize="13sp" />
 
-    <Chronometer
-        android:id="@+id/lockscreen_rest_chrono"
+    <TextView
+        android:id="@+id/lockscreen_rest_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:countDown="true"
-        android:fontFamily="monospace"
+        android:ellipsize="end"
+        android:fontFamily="sec"
         android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="@string/lockscreen_rest_widget_preview_time"
         android:textColor="@android:color/white"
         android:textSize="16sp"
         android:textStyle="bold" />

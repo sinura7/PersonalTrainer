@@ -91,6 +91,15 @@
             android:exported="false" />
 
         <receiver
+            android:name=".timer.RestLockScreenServiceBoxReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
+                <action android:name="com.samsung.android.intent.action.REQUEST_SERVICEBOX_REMOTEVIEWS" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".timer.LockScreenRestSmallWidget"
             android:exported="true"
             android:label="@string/lockscreen_rest_widget_label_small">

@@ -1,7 +1,10 @@
 <resources>
     <string name="app_name">Temper</string>
     <string name="rest_notification_kicker">Rest</string>
-    <string name="lockscreen_rest_widget_label">Rest countdown</string>
-    <string name="lockscreen_rest_widget_label_small">Rest countdown (compact)</string>
-    <string name="lockscreen_rest_widget_description">Live rest timer on the lock screen while a rest runs.</string>
+    <string name="lockscreen_rest_widget_label">Temper · Rest (wide)</string>
+    <string name="lockscreen_rest_widget_label_small">Temper · Rest (compact)</string>
+    <string name="lockscreen_rest_widget_description">Live rest countdown on the lock screen while a rest runs.</string>
+    <string name="lockscreen_rest_widget_kicker">REST</string>
+    <string name="lockscreen_rest_widget_preview_time">1:30</string>
+    <string name="rest_overlay_resize_handle">Resize rest timer</string>
 </resources>

@@ -15,20 +15,25 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.Chronometer
+import android.widget.FrameLayout
+import android.widget.TextView
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.ui.overlay.RestOverlayRingView
+import com.sinura.personaltrainer.ui.theme.Volt
+import kotlin.math.roundToInt
 
 /**
- * Small draggable rest countdown over home / other apps. Requires
+ * Draggable, resizable rest countdown over home / other apps. Requires
  * [Settings.canDrawOverlays]; Settings → Permissions is the fix path.
  */
 @SuppressLint("StaticFieldLeak")
 object RestTimerOverlayController {
     private const val TAG = "PT/RestOverlay"
-    private const val DRAG_SLOP_PX = 12
+    private const val DRAG_SLOP_PX = 10
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -38,6 +43,10 @@ object RestTimerOverlayController {
     private var dragOffsetX = 0f
     private var dragOffsetY = 0f
     private var dragMoved = false
+    private var resizeStartSizePx = 0
+    private var resizeStartRawX = 0f
+    private var resizeStartRawY = 0f
+    private var lastSnapshot: RestTimerSnapshot? = null
 
     /** Last attach failure for Settings / diagnostics. Null when shown or not attempted. */
     @Volatile
@@ -66,6 +75,7 @@ object RestTimerOverlayController {
             detachFromWindow()
             return
         }
+        lastSnapshot = state
         mainHandler.post { attach(context.applicationContext, state) }
     }
 
@@ -75,6 +85,7 @@ object RestTimerOverlayController {
             pillView = null
             layoutParams = null
             windowManager = null
+            lastSnapshot = null
             lastFailureReason = null
         }
     }
@@ -94,18 +105,12 @@ object RestTimerOverlayController {
             .inflate(R.layout.overlay_rest_pill, null)
             .also { inflated ->
                 pillView = inflated
-                inflated.setOnClickListener { view ->
-                    val ctx = view.context.applicationContext
-                    ctx.startActivity(
-                        Intent(ctx, MainActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                        },
-                    )
-                }
-                inflated.setOnTouchListener(dragListener)
+                wireCard(appContext, inflated)
             }
-        val params = layoutParams ?: defaultLayoutParams(appContext).also { layoutParams = it }
-        bindChronometer(view, state)
+        val saved = RestOverlayLayoutStore.load(appContext)
+        applyCardSize(view, saved.sizeDp.dpToPx(appContext))
+        val params = layoutParams ?: defaultLayoutParams(appContext, saved).also { layoutParams = it }
+        bindContent(view, state)
         try {
             if (view.parent == null) {
                 wm.addView(view, params)
@@ -119,9 +124,27 @@ object RestTimerOverlayController {
         }
     }
 
-    private fun bindChronometer(view: View, state: RestTimerSnapshot) {
+    @SuppressLint("ClickableViewAccessibility")
+    private fun wireCard(appContext: Context, root: View) {
+        val card = root.findViewById<FrameLayout>(R.id.rest_overlay_card)
+        val handle = root.findViewById<View>(R.id.rest_overlay_resize_handle)
+        card.setOnClickListener { _ ->
+            appContext.startActivity(
+                Intent(appContext, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                },
+            )
+        }
+        card.setOnTouchListener(cardDragListener)
+        handle.setOnTouchListener(resizeListener)
+    }
+
+    private fun bindContent(view: View, state: RestTimerSnapshot) {
+        val ring = view.findViewById<RestOverlayRingView>(R.id.rest_overlay_ring)
         val chrono = view.findViewById<Chronometer>(R.id.rest_overlay_chrono)
         val remaining = state.remainingSeconds(SystemClock.elapsedRealtime()).coerceAtLeast(0)
+        val total = state.totalSeconds.coerceAtLeast(1)
+        ring.progress = remaining.toFloat() / total.toFloat()
         if (RestTimer.usesLiveChronometer(remaining)) {
             chrono.isCountDown = true
             chrono.base = state.endsAtElapsedRealtime
@@ -130,10 +153,38 @@ object RestTimerOverlayController {
             chrono.stop()
             chrono.text = RestTimer.formatClock(remaining)
         }
+        scaleTypeForCard(view)
+    }
+
+    private fun scaleTypeForCard(view: View) {
+        val card = view.findViewById<FrameLayout>(R.id.rest_overlay_card)
+        val chrono = view.findViewById<Chronometer>(R.id.rest_overlay_chrono)
+        val kicker = view.findViewById<TextView>(R.id.rest_overlay_kicker)
+        val sizeDp = (card.layoutParams.width / view.resources.displayMetrics.density).toInt()
+        val scale = (sizeDp.toFloat() / RestOverlayLayoutStore.DEFAULT_SIZE_DP).coerceIn(0.75f, 1.45f)
+        chrono.textSize = 34f * scale
+        kicker.textSize = 11f * scale
+        kicker.setTextColor(
+            android.graphics.Color.argb(
+                255,
+                (Volt.red * 255).toInt(),
+                (Volt.green * 255).toInt(),
+                (Volt.blue * 255).toInt(),
+            ),
+        )
+    }
+
+    private fun applyCardSize(root: View, sizePx: Int) {
+        val card = root.findViewById<FrameLayout>(R.id.rest_overlay_card)
+        val lp = card.layoutParams
+        lp.width = sizePx
+        lp.height = sizePx
+        card.layoutParams = lp
+        scaleTypeForCard(root)
     }
 
     @SuppressLint("ClickableViewAccessibility")
-    private val dragListener = View.OnTouchListener { view, event ->
+    private val cardDragListener = View.OnTouchListener { view, event ->
         val params = layoutParams ?: return@OnTouchListener false
         val wm = windowManager ?: return@OnTouchListener false
         when (event.actionMasked) {
@@ -154,12 +205,18 @@ object RestTimerOverlayController {
                 }
                 params.x = nextX
                 params.y = nextY
-                wm.updateViewLayout(view, params)
+                wm.updateViewLayout(view.rootView, params)
                 true
             }
             MotionEvent.ACTION_UP -> {
                 if (!dragMoved) {
                     view.performClick()
+                } else {
+                    RestOverlayLayoutStore.savePosition(
+                        view.context.applicationContext,
+                        params.x,
+                        params.y,
+                    )
                 }
                 true
             }
@@ -167,7 +224,43 @@ object RestTimerOverlayController {
         }
     }
 
-    private fun defaultLayoutParams(context: Context): WindowManager.LayoutParams {
+    @SuppressLint("ClickableViewAccessibility")
+    private val resizeListener = View.OnTouchListener { handle, event ->
+        val root = pillView ?: return@OnTouchListener false
+        val card = root.findViewById<FrameLayout>(R.id.rest_overlay_card)
+        val wm = windowManager ?: return@OnTouchListener false
+        val params = layoutParams ?: return@OnTouchListener false
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                resizeStartSizePx = card.layoutParams.width
+                resizeStartRawX = event.rawX
+                resizeStartRawY = event.rawY
+                true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val delta = ((event.rawX - resizeStartRawX) + (event.rawY - resizeStartRawY)) / 2f
+                val density = handle.resources.displayMetrics.density
+                val minPx = RestOverlayLayoutStore.MIN_SIZE_DP.dpToPx(handle.context)
+                val maxPx = RestOverlayLayoutStore.MAX_SIZE_DP.dpToPx(handle.context)
+                val nextPx = (resizeStartSizePx + delta).toInt().coerceIn(minPx, maxPx)
+                applyCardSize(root, nextPx)
+                wm.updateViewLayout(root, params)
+                lastSnapshot?.let { bindContent(root, it) }
+                true
+            }
+            MotionEvent.ACTION_UP -> {
+                val sizeDp = (card.layoutParams.width / handle.resources.displayMetrics.density).roundToInt()
+                RestOverlayLayoutStore.saveSize(handle.context.applicationContext, sizeDp)
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun defaultLayoutParams(
+        context: Context,
+        saved: RestOverlayLayoutStore.SavedLayout,
+    ): WindowManager.LayoutParams {
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -179,8 +272,8 @@ object RestTimerOverlayController {
         ).apply {
             gravity = Gravity.TOP or Gravity.START
             val dm = context.resources.displayMetrics
-            x = (dm.widthPixels * 0.55f).toInt()
-            y = (dm.heightPixels * 0.12f).toInt()
+            x = if (saved.x != Int.MIN_VALUE) saved.x else (dm.widthPixels * 0.52f).toInt()
+            y = if (saved.y != Int.MIN_VALUE) saved.y else (dm.heightPixels * 0.14f).toInt()
         }
     }
 
@@ -193,4 +286,5 @@ object RestTimerOverlayController {
         )
         return mode == AppOpsManager.MODE_ALLOWED
     }
+
 }
