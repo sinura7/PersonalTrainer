@@ -130,7 +130,6 @@ class FloorFeedbackRenderTest {
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.draft.reps == 8 }
         compose.waitForIdle()
         val rec = checkNotNull(vm.microRec.value)
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD))
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
         compose.waitForIdle()
         val before = felt.felt().size

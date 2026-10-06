@@ -325,6 +325,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     val tempoCoachDismissed: StateFlow<Boolean> = tempoTipDismissed.asStateFlow()
     private val addASetDismissedExercises = MutableStateFlow<Set<String>>(emptySet())
     private val addASetAcceptedExercises = MutableStateFlow<Set<String>>(emptySet())
+    /** Lifters chose Add another set after planned working sets were already in (ADR-004). */
+    private val manualExtraAfterLastPlanned = MutableStateFlow<Set<String>>(emptySet())
 
     private val coachHistory = container.trainingInsights.observeShared(includeWeekPlan = false)
         .map { it.history }
@@ -650,17 +652,25 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 block = scheduleAndBlock.second,
             )
         },
-        combine(hintSettings, tempoTipDismissed, addASetDismissedExercises, addASetAcceptedExercises) {
-                hints, dismissed, quiet, accepted ->
-            TempoCoachDismissState(
-                hints = hints,
-                tempoDismissed = dismissed,
-                addASetDismissed = quiet,
-                addASetAccepted = accepted,
-            )
+        combine(
+            combine(hintSettings, tempoTipDismissed, addASetDismissedExercises, addASetAcceptedExercises) {
+                    hints, dismissed, quiet, accepted ->
+                TempoCoachDismissState(
+                    hints = hints,
+                    tempoDismissed = dismissed,
+                    addASetDismissed = quiet,
+                    addASetAccepted = accepted,
+                )
+            },
+            manualExtraAfterLastPlanned,
+        ) { dismiss, manualExtra ->
+            dismiss to manualExtra
         },
-    ) { frame, dismiss ->
+    ) { frame, dismissAndManual ->
+        val dismiss = dismissAndManual.first
+        val manualExtra = dismissAndManual.second
         val rec = frame.key.rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
+        val liftId = frame.session?.resolveSelectedExerciseId(frame.selectedExerciseId)
         TempoCoachSnapshot(
             microRec = rec,
             coachPrefs = frame.key.prefs,
@@ -678,6 +688,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             addASetDismissed = dismiss.addASetDismissed,
             addASetAccepted = dismiss.addASetAccepted,
             tempoDismissed = dismiss.tempoDismissed,
+            manualExtraAfterLastPlanned = liftId != null && liftId in manualExtra,
             inputs = frame.key.inputs,
         ).tip()
     }.stateIn(
@@ -1123,8 +1134,18 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         _pendingLiftSwitch.value = null
     }
 
-    fun requestExtraSet() {
+    fun requestExtraSet(fromUser: Boolean = true) {
         if (!canChangeEntry()) return
+        if (fromUser) {
+            session.value?.let { current ->
+                val liftId = current.resolveSelectedExerciseId(selectedExerciseId.value) ?: return@let
+                val lift = current.exercises.firstOrNull { it.exercise.id == liftId } ?: return@let
+                val workingLogged = current.setsFor(liftId).count { !it.isWarmup }
+                if (lift.targetSets > 0 && workingLogged >= lift.targetSets) {
+                    manualExtraAfterLastPlanned.value = manualExtraAfterLastPlanned.value + liftId
+                }
+            }
+        }
         wantAnotherSet.value = true
         persistDraft()
     }
@@ -1979,7 +2000,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         when (tip) {
             is TempoCoachTip.NextSet -> applyMicroRec()
             is TempoCoachTip.AddASet -> {
-                requestExtraSet()
+                wantAnotherSet.value = true
                 applyCoachRec(tip.seedRec, force = true)
                 selectedExerciseId.value?.let { liftId ->
                     addASetAcceptedExercises.value = addASetAcceptedExercises.value + liftId

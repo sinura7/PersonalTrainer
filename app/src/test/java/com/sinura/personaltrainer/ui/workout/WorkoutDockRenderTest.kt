@@ -60,23 +60,35 @@ class WorkoutDockRenderTest {
     private val logSet = floorPrimaryAction(kind = WorkoutPrimaryKind.LOG_SET, draft = ActiveExerciseDraft(weightKg = FLOOR_KG70, reps = 10))
 
     @Test
-    fun onceThePlanIsMetTheDockShowsTheClockBesideNext() {
+    fun onceThePlanIsMetAddAnotherSetStandsBesideNextAndTheClock() {
         showDock(floorDockState(action = next, payload = "Leg Curl", spokenPayload = "Leg Curl"))
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
+        val add = compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET)
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .assertHeightIsAtLeast(Metrics.touchMin)
+        compose.onNode(hasText("Add another set") and hasAnyAncestor(hasTestTag(WorkoutTestTags.ANOTHER_SET)), useUnmergedTree = true)
+            .assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).assertIsDisplayed().assertHeightIsAtLeast(Metrics.touchMin)
         compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed()
         compose.onAllNodesWithTag(WorkoutTestTags.LOG_SET).assertCountEquals(0)
+        val row = compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).getBoundsInRoot()
+        val addBounds = add.getBoundsInRoot()
+        assertTrue(addBounds.top >= row.top && addBounds.bottom <= row.bottom)
+        add.performClick()
+        assertEquals(1, another)
+        assertTrue("Add another set is not the commit", primaries.isEmpty())
     }
 
     @Test
-    fun finishingTheWorkoutDoesNotOfferAnotherSetInTheDock() {
+    fun finishingTheWorkoutAlsoOffersAnotherSet() {
         showDock(floorDockState(action = finish, payload = null))
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().performClick()
+        assertEquals(1, another)
     }
 
     @Test
-    fun addAnotherSetIsNotInTheDockWhileTheEntryIsLocked() {
+    fun addAnotherSetIsDisabledWhileTheEntryIsLocked() {
         showDock(floorDockState(action = next, payload = "Leg Curl", showAnother = false))
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         assertEquals(0, another)
@@ -89,7 +101,7 @@ class WorkoutDockRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
         // The rest card is the clock itself here, so no compact clock repeats it.
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).assertDoesNotExist()
-        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertHeightIsAtLeast(Metrics.logTimerRow)
+        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertHeightIsAtLeast(Metrics.logFloorTimerRow)
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
     }
 

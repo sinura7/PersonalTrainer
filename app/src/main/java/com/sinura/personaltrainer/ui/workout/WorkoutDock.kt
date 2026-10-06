@@ -233,7 +233,7 @@ internal fun WorkoutDock(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = Metrics.logTimerRow)
+                    .heightIn(min = Metrics.logFloorTimerRow)
                     .testTag(WorkoutTestTags.TIMER_ROW),
             ) {
                 when {
@@ -289,6 +289,17 @@ internal fun WorkoutDock(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
+                        if (state.showAnother) {
+                            TextButton(
+                                onClick = events.onAnotherSet,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = Metrics.touchMin)
+                                    .testTag(WorkoutTestTags.ANOTHER_SET),
+                            ) {
+                                Text("Add another set", style = InstrumentType.bodyStrong, color = TextSecondary)
+                            }
+                        }
                         if (timer.show) clockButton()
                     }
                     timer.show && timer.hideIdleRest && !timedActive -> TextButton(
@@ -325,7 +336,7 @@ internal fun WorkoutDock(
                             },
                         )
                         .semantics { contentDescription = spokenAction },
-                    height = Metrics.commit,
+                    height = Metrics.logFloorCommit,
                     hapticFeedback = false,
                 )
             }

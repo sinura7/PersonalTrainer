@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.workout
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +57,7 @@ import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SetStopwatchCopy
 import com.sinura.personaltrainer.domain.SetWork
 import com.sinura.personaltrainer.domain.WarmupRamp
+import com.sinura.personaltrainer.domain.coach.TempoCoachTip
 import com.sinura.personaltrainer.domain.WeightDraftSource
 import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.WorkoutProgressCalculator
@@ -383,6 +386,42 @@ private fun ActiveWorkoutContent(
             targetSets = selected?.targetSets ?: 0,
         )
     }
+    val holdLift = selected?.exercise?.let { HoldWork.isHold(it) } == true
+    val floorEntryEnabled = !state.entryLocked
+    val floorCoachRec = shownNextSet(
+        rec = microRec,
+        draftIsWarmup = state.draft.isWarmup,
+        liftIsHold = holdLift,
+    )
+    val floorAddASet = tempoCoachTip as? TempoCoachTip.AddASet
+    val floorNextTip = tempoCoachTip as? TempoCoachTip.NextSet
+    val floorTempoTip = when {
+        tempoCoachDismissed || !floorEntryEnabled || state.draft.isWarmup || holdLift -> null
+        floorAddASet != null -> floorAddASet
+        floorCoachRec != null && tempoCoachTip != null -> floorNextTip
+        else -> null
+    }
+    val floorTempoApplied = when (val tip = floorTempoTip) {
+        is TempoCoachTip.NextSet ->
+            tip.rec.isApplied(
+                weightKg = state.draft.weightKg,
+                reps = state.draft.reps,
+                rpe = state.draft.rpe,
+                unit = unit,
+            )
+        is TempoCoachTip.AddASet -> false
+        null -> false
+    }
+    val floorTempoCompactStrip = floorTempoTip is TempoCoachTip.NextSet &&
+        FloorCompactChrome.coachUsesCompactStrip(
+            preparePhase = workingLogged == 0,
+            entryMatchesSuggestion = floorTempoApplied,
+        )
+    val floorTempoScrollReserve = when {
+        floorTempoTip == null || !logBarVisible -> 0.dp
+        floorTempoCompactStrip -> Metrics.logFloorTempoCompact
+        else -> Metrics.logFloorTempoFull
+    }
 
     Scaffold(
         snackbarHost = {
@@ -447,7 +486,6 @@ private fun ActiveWorkoutContent(
             val holdTimer = holdState.value
             val setStopwatch = stopwatchState.value
             val primaryAction = primaryState.value
-            val holdLift = selected?.exercise?.let { HoldWork.isHold(it) } == true
             val offerSetClock = FloorTimedModeResolver.offerSetClock(
                 mode = FloorTimerSurface.mode(
                     holdRunning = holdTimer.running,
@@ -461,7 +499,7 @@ private fun ActiveWorkoutContent(
             ) && state.offerSetClock
             val showNext = primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE
             val showFinish = primaryAction.kind == WorkoutPrimaryKind.FINISH
-            val showAnother = false
+            val showAnother = advance.showAnother && !state.entryLocked
             // The timer slot, advance choice, and Log set share one dock so a one-handed
             // thumb reaches every control. Finish stays in the header — it is not a mid-set act.
             val emptySession = state.loadState == SessionLoadState.FOUND && session != null &&
@@ -490,7 +528,6 @@ private fun ActiveWorkoutContent(
                             },
                         )
                     } else if (logBarVisible) {
-                        val dockEntryEnabled = !state.entryLocked
                         WorkoutDock(
                             state = WorkoutDockState(
                                 primaryAction = primaryAction,
@@ -604,7 +641,7 @@ private fun ActiveWorkoutContent(
             }
 
             else -> {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding),
@@ -618,7 +655,7 @@ private fun ActiveWorkoutContent(
                             start = Metrics.gutter,
                             end = Metrics.gutter,
                             top = Metrics.space3,
-                            bottom = Metrics.space7,
+                            bottom = Metrics.space7 + floorTempoScrollReserve,
                         ),
                         // 8, not 12 (and not 16 before that). Each block now sits in its own
                         // FloorSection frame, so the frame separates them and the gap only has
@@ -770,72 +807,6 @@ private fun ActiveWorkoutContent(
                                         )
                                     }
                                 }
-                                val addASetTip = tempoCoachTip as? com.sinura.personaltrainer.domain.coach.TempoCoachTip.AddASet
-                                val nextRec = shownNextSet(
-                                    rec = microRec,
-                                    draftIsWarmup = state.draft.isWarmup,
-                                    liftIsHold = hold,
-                                )?.takeIf { entryEnabled }
-                                val nextTip = tempoCoachTip as? com.sinura.personaltrainer.domain.coach.TempoCoachTip.NextSet
-                                if (addASetTip != null) {
-                                    item(key = "next-set") {
-                                        FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_NEXT_SET)) {
-                                            TempoCoachCard(
-                                                tip = addASetTip,
-                                                loadClass = loadClass,
-                                                unit = unit,
-                                                applied = false,
-                                                enabled = entryEnabled,
-                                                onApply = { viewModel.applyTempoCoachTip(addASetTip) },
-                                                onDismiss = { viewModel.dismissTempoCoachTip(addASetTip) },
-                                                compactLandscape = landscape,
-                                                compactStrip = false,
-                                            )
-                                        }
-                                    }
-                                } else if (nextRec != null && !tempoCoachDismissed) {
-                                    val coachTip = nextTip
-                                    item(key = "next-set") {
-                                        val applied = nextRec.isApplied(
-                                            weightKg = state.draft.weightKg,
-                                            reps = state.draft.reps,
-                                            rpe = state.draft.rpe,
-                                            unit = unit,
-                                        )
-                                        val compactStrip = FloorCompactChrome.coachUsesCompactStrip(
-                                            preparePhase = workingLogged == 0,
-                                            entryMatchesSuggestion = applied,
-                                        )
-                                        FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_NEXT_SET)) {
-                                            if (compactStrip) {
-                                                NextSetRecommendation(
-                                                    rec = nextRec,
-                                                    loadClass = loadClass,
-                                                    unit = unit,
-                                                    applied = applied,
-                                                    enabled = entryEnabled,
-                                                    onApply = viewModel::applyMicroRec,
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .testTag(WorkoutTestTags.TEMPO_COACH_CARD),
-                                                    compact = true,
-                                                )
-                                            } else if (coachTip != null) {
-                                                TempoCoachCard(
-                                                    tip = coachTip,
-                                                    loadClass = loadClass,
-                                                    unit = unit,
-                                                    applied = applied,
-                                                    enabled = entryEnabled,
-                                                    onApply = { viewModel.applyTempoCoachTip(coachTip) },
-                                                    onDismiss = { viewModel.dismissTempoCoachTip(coachTip) },
-                                                    compactLandscape = landscape,
-                                                    compactStrip = false,
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
                                 item(key = "set-history") {
                                     val current = if (state.editingSetId != null || plannedComplete) {
                                         null
@@ -878,6 +849,27 @@ private fun ActiveWorkoutContent(
                                 )
                             }
                         }
+                    }
+                    floorTempoTip?.let { tip ->
+                        TempoCoachCard(
+                            tip = tip,
+                            loadClass = loadClass,
+                            unit = unit,
+                            applied = floorTempoApplied,
+                            enabled = floorEntryEnabled,
+                            onApply = { viewModel.applyTempoCoachTip(tip) },
+                            onDismiss = { viewModel.dismissTempoCoachTip(tip) },
+                            compactLandscape = landscape,
+                            compactStrip = floorTempoCompactStrip,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                                .padding(
+                                    start = Metrics.gutter,
+                                    end = Metrics.gutter,
+                                    bottom = Metrics.space1,
+                                ),
+                        )
                     }
                 }
             }

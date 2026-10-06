@@ -101,7 +101,7 @@ class WorkoutDockTimerRenderTest {
     @Test
     fun atRestTheSlotIsTheRestCardAndATapOnItOpensTheLengthSheet() {
         showDock(restAt())
-        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertHeightIsAtLeast(Metrics.logTimerRow)
+        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertHeightIsAtLeast(Metrics.logFloorTimerRow)
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.HOLD_CLOCK).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).assertDoesNotExist()
@@ -250,7 +250,7 @@ class WorkoutDockTimerRenderTest {
     @Test
     fun beforeTheFirstLiftTheSlotHoldsNoClock() {
         showDock(WorkoutDockTimer(show = false, restTotalSeconds = 120))
-        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertHeightIsAtLeast(Metrics.logTimerRow)
+        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertHeightIsAtLeast(Metrics.logFloorTimerRow)
         listOf(WorkoutTestTags.REST_IDLE, WorkoutTestTags.REST_BAR, WorkoutTestTags.HOLD_CLOCK, WorkoutTestTags.COMPANION_CLOCK).forEach {
             compose.onNodeWithTag(it).assertDoesNotExist()
         }

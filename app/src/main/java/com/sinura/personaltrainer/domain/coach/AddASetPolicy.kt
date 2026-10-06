@@ -36,6 +36,8 @@ object AddASetPolicy {
         /** Next-set math if an extra working set were allowed (load/reps/RPE). */
         val extraSetReasonCode: String?,
         val loadProgressionBlocked: Boolean,
+        /** User chose Add another set after planned working sets were already in (ADR-004). */
+        val manualExtraAfterLastPlanned: Boolean,
     )
 
     data class Offer(
@@ -46,6 +48,7 @@ object AddASetPolicy {
 
     fun evaluate(ctx: Context): Offer? {
         if (!atLastPlannedWorkingSet(ctx)) return null
+        if (ctx.manualExtraAfterLastPlanned) return null
         if (!passesHardGates(ctx)) return null
         if (ctx.addASetDismissedForExercise) return null
         if (!readinessMet(ctx)) return null

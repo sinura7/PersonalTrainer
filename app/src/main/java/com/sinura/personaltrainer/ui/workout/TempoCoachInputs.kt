@@ -32,6 +32,7 @@ internal data class TempoCoachSnapshot(
     val addASetDismissed: Set<String>,
     val addASetAccepted: Set<String>,
     val tempoDismissed: Boolean,
+    val manualExtraAfterLastPlanned: Boolean,
     val inputs: SetMicroRecInputs?,
 ) {
     fun tip(): TempoCoachTip? {
@@ -107,6 +108,7 @@ internal data class TempoCoachSnapshot(
             targetReps = asked.targetReps,
             extraSetReasonCode = extra.reasonCode,
             loadProgressionBlocked = extra.reasonCode in holdCodes,
+            manualExtraAfterLastPlanned = manualExtraAfterLastPlanned,
         )
     }
 

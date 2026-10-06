@@ -32,6 +32,7 @@ class AddASetPolicyTest {
         weeklySets: Double = 4.0,
         extraReason: String = SetMicroRecCalculator.RPE_HOLD,
         loadBlocked: Boolean = true,
+        manualExtraAfterPlan: Boolean = false,
     ) = AddASetPolicy.Context(
         goal = goal,
         primaryMuscle = CanonicalMuscle.CHEST,
@@ -50,7 +51,13 @@ class AddASetPolicyTest {
         targetReps = 8,
         extraSetReasonCode = extraReason,
         loadProgressionBlocked = loadBlocked,
+        manualExtraAfterLastPlanned = manualExtraAfterPlan,
     )
+
+    @Test
+    fun manualExtraAfterLastPlannedBlocksAddASet() {
+        assertNull(AddASetPolicy.evaluate(baseContext(manualExtraAfterPlan = true)))
+    }
 
     @Test
     fun strengthGoalBlocksAddASet() {

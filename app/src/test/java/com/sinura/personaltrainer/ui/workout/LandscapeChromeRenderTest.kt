@@ -21,6 +21,7 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutProgressCalculator
+import com.sinura.personaltrainer.ui.theme.Metrics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -184,12 +185,12 @@ class LandscapeChromeRenderTest {
      */
     private fun assertTheFloorKeepsRoom() {
         val floor = compose.onNodeWithTag(WorkoutTestTags.CONTENT).getBoundsInRoot()
-        assertTrue("the floor keeps room to log in, was ${floor.bottom - floor.top}", floor.bottom - floor.top >= 72.dp)
+        assertTrue("the floor keeps room to log in, was ${floor.bottom - floor.top}", floor.bottom - floor.top >= 56.dp)
     }
 
     private fun assertWhollyOnScreen(tag: String, windowHeight: Dp) {
         val bounds = compose.onNodeWithTag(tag).assertIsDisplayed().getBoundsInRoot()
         assertTrue("$tag must lie wholly on screen, was $bounds", bounds.top >= 0.dp && bounds.bottom <= windowHeight)
-        assertTrue("$tag keeps its full height, was $bounds", bounds.bottom - bounds.top >= 72.dp)
+        assertTrue("$tag keeps its full height, was $bounds", bounds.bottom - bounds.top >= Metrics.logFloorCommit.value.toInt().dp)
     }
 }

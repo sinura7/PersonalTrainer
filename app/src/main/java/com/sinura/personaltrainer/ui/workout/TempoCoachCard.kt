@@ -3,7 +3,6 @@ package com.sinura.personaltrainer.ui.workout
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -92,25 +91,6 @@ internal fun TempoCoachCard(
             true,
         )
     }
-    if (compactStrip && tip is TempoCoachTip.NextSet) {
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .testTag(WorkoutTestTags.TEMPO_COACH_CARD),
-        ) {
-            NextSetRecommendation(
-                rec = tip.rec,
-                loadClass = loadClass,
-                unit = unit,
-                applied = applied,
-                enabled = enabled,
-                onApply = onApply,
-                modifier = Modifier.fillMaxWidth(),
-                compact = true,
-            )
-        }
-        return
-    }
     val numbers = SetMicroRecCopy.numbers(rec, loadClass, unit)
     val detailLine = when (tip) {
         is TempoCoachTip.AddASet -> "Add 1 working set · $numbers"
@@ -118,20 +98,18 @@ internal fun TempoCoachCard(
     }
     val stackWells = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val oneLineCoach = compactLandscape || compactStrip
-    val showAvatar = !compactStrip || compactLandscape
+    val showAvatar = true
     val avatarSize = if (oneLineCoach) Metrics.space6 else Metrics.touchMin
     val pad = if (oneLineCoach) Metrics.space1 else Metrics.space2
     val touchMin = if (oneLineCoach) Metrics.space6 else Metrics.touchMin
     val tempoActions: @Composable RowScope.() -> Unit = {
-        if (!compactStrip) {
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .heightIn(min = touchMin)
-                    .testTag(WorkoutTestTags.TEMPO_COACH_DISMISS),
-            ) {
-                Text("×", style = InstrumentType.bodyStrong, color = TextSecondary)
-            }
+        TextButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .heightIn(min = touchMin)
+                .testTag(WorkoutTestTags.TEMPO_COACH_DISMISS),
+        ) {
+            Text("×", style = InstrumentType.bodyStrong, color = TextSecondary)
         }
         TextButton(
             onClick = { showWhy = true },

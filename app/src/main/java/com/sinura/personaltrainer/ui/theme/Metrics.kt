@@ -117,6 +117,19 @@ object Metrics {
     val logTimerRow: Dp = control
     val logContextRail: Dp = control
 
+    /**
+     * Live workout dock: timer companion row and Log commit, sized down modestly so Tempo
+     * can sit above the bar without crowding the floor. Floors stay at [touchMin] (48 dp).
+     */
+    val logFloorTimerRow: Dp = touchMin
+    val logFloorCommit: Dp = 64.dp
+
+    /** Scroll clearance when Tempo is pinned above the dock (compact one-line strip). */
+    val logFloorTempoCompact: Dp = 56.dp
+
+    /** Scroll clearance when Tempo shows the full card above the dock. */
+    val logFloorTempoFull: Dp = 128.dp
+
     /** The one action worth a bigger target than anything else: logging a set. */
     val commit: Dp = 72.dp
 

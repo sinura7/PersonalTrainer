@@ -415,17 +415,18 @@ class FloorRestAndCoachWiringRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         val choice = if (vm.uiState.value.draft.rpe == 9) 7 else 9
-        scrollTo(WorkoutTestTags.RPE_TRACK)
+        compose.scrollFloorTo(WorkoutTestTags.RPE_TRACK, clearTempo = true)
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(choice)).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.rpe == choice }
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(choice)).assertIsSelected()
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(choice)).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.rpe == null }
+        compose.scrollFloorTo(WorkoutTestTags.WARMUP_CHIP)
         compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.isWarmup }
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertDoesNotExist()
-        scrollTo(WorkoutTestTags.RPE_WARMUP_REASON)
+        compose.scrollFloorTo(WorkoutTestTags.RPE_WARMUP_REASON, clearTempo = true)
         compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON).assertIsDisplayed()
     }
 
@@ -472,15 +473,15 @@ class FloorRestAndCoachWiringRenderTest {
         vm.setReps(8)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.reps == 8 }
         compose.waitForIdle()
-        // Numbers first, then how hard it felt, then what the coach calls next.
+        // Numbers first, then effort; Tempo is pinned above the dock, below the scroll floor.
         compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertIsDisplayed()
         assertTempoCoachCardOnScreen(vm)
-        val entryTop = compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).fetchSemanticsNode().boundsInRoot.top
-        val rpeTop = compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).fetchSemanticsNode().boundsInRoot.top
-        val tempoTop = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNode().boundsInRoot.top
-        assertTrue(entryTop < rpeTop)
-        assertTrue(rpeTop < tempoTop)
+        val floor = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
+        val tempo = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNode().boundsInRoot
+        val timerRow = compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).fetchSemanticsNode().boundsInRoot.top
+        assertTrue("Tempo sits on the scroll floor", tempo.bottom <= floor.bottom + 1f)
+        assertTrue("Tempo stays above the timer row", tempo.bottom <= timerRow + 1f)
     }
 
     @Test
@@ -616,8 +617,10 @@ class FloorRestAndCoachWiringRenderTest {
 
     private fun assertTempoCoachCardOnScreen(vm: ActiveWorkoutViewModel) {
         waitForTempoCoachTip(vm)
-        scrollTo(WorkoutTestTags.TEMPO_COACH_CARD)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
+        compose.onAllNodes(
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+        ).assertCountEquals(0)
     }
 
     private fun show(vm: ActiveWorkoutViewModel, notificationsEnabled: Boolean = true, heightDp: Int = 800) {
