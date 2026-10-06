@@ -352,7 +352,7 @@ class WorkoutFloorComponentsTest {
             assertEquals(1, applied)
         }
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
-        compose.onNodeWithText("Why this set").assertIsDisplayed()
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.coach.TempoWhySheetCopy.TITLE_NEXT).assertIsDisplayed()
     }
 
     @Test

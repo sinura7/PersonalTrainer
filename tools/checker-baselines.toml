@@ -10,9 +10,9 @@ state_members = 1
 # 181 -> 178 on the UX batch-A merge: three mixed call sites became fully named.
 # 182 -> 181 in W2a: NumeralWell's compact branch (its `Kicker(label, asHeading = false)`) went
 # with SetEntryPanel's unused compact path.
-required_args_mixed = 181
+required_args_mixed = 182
 required_args_lambda = 46
-when_exhaustive = 50
+when_exhaustive = 51
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
 # (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site

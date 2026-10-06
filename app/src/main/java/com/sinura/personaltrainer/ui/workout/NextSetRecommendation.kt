@@ -34,13 +34,13 @@ import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.coach.CoachEngine
 import com.sinura.personaltrainer.domain.coach.CoachEvidenceCopy
+import com.sinura.personaltrainer.domain.coach.TempoWhySheetCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.QuietButton
 import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Hairline
-import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -253,23 +253,11 @@ internal fun NextSetRecommendation(
         )
     }
     if (showWhy) {
-        val whyBody = buildList {
-            addAll(SetMicroRecCopy.whyLines(rec))
-            add("")
-            addAll(CoachEvidenceCopy.whySheetAppendix(suggestion))
-        }.joinToString("\n")
-        ConfirmActionDialog(
-            title = "Why this set",
-            body = whyBody,
-            confirmLabel = if (canUse && !applied) SetMicroRecCopy.USE_SUGGESTION else SetMicroRecCopy.KEEP_MY_NUMBERS,
-            dismissLabel = if (canUse && !applied) SetMicroRecCopy.KEEP_MY_NUMBERS else null,
-            onConfirm = {
-                if (canUse && !applied) {
-                    Haptics.tick(view)
-                    onApply()
-                }
-                showWhy = false
-            },
+        TempoWhySheet(
+            model = TempoWhySheetCopy.forNextSet(rec, suggestion, loadClass, unit),
+            canApply = canUse,
+            applied = applied,
+            onApply = onApply,
             onDismiss = { showWhy = false },
         )
     }

@@ -518,9 +518,9 @@ class FloorRestAndCoachWiringRenderTest {
         // The goal set in Settings reaches the floor (audit C-1, W1b): a Strength lifter reads
         // the strength reason on the Why sheet, not the goal-free one it used to get.
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
-        compose.onNodeWithText(
-            "Rule: Had more in you — add weight · strength bias keeps reps before big jumps",
-            substring = true,
+        compose.onNode(
+            hasText("Had more in you — add weight · strength bias keeps reps before big jumps", substring = true) and
+                hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)),
         ).assertIsDisplayed()
     }
 
@@ -535,7 +535,10 @@ class FloorRestAndCoachWiringRenderTest {
         assertTempoCoachCardOnScreen(vm)
         compose.onNode(hasText("Had more in you — add weight", substring = true), useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
-        compose.onNodeWithText("Rule: Had more in you — add weight\n", substring = true).assertIsDisplayed()
+        compose.onNode(
+            hasText("Had more in you — add weight", substring = true) and
+                hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)),
+        ).assertIsDisplayed()
         compose.onAllNodesWithText("strength bias", substring = true, useUnmergedTree = true).assertCountEquals(0)
     }
 

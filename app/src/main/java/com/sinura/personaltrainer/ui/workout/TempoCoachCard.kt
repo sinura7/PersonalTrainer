@@ -35,12 +35,11 @@ import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.coach.CoachEvidenceCopy
 import com.sinura.personaltrainer.domain.coach.CoachSuggestion
-import com.sinura.personaltrainer.domain.coach.EvidenceCatalog
 import com.sinura.personaltrainer.domain.coach.TempoCoachTip
+import com.sinura.personaltrainer.domain.coach.TempoWhySheetCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.QuietButton
 import com.sinura.personaltrainer.ui.components.TemperIcons
-import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -281,31 +280,17 @@ internal fun TempoCoachCard(
         )
     }
     if (showWhy) {
-        val whyBody = buildList {
-            if (tip is TempoCoachTip.NextSet) {
-                addAll(SetMicroRecCopy.whyLines(rec))
-            } else {
-                add("Rule: ${tip.tipShort}")
-                EvidenceCatalog.resolve(tip.evidenceIds).forEach { entry ->
-                    val label = if (entry.heuristic) "Heuristic" else entry.authorsShort
-                    add("$label — ${entry.claim}")
-                }
-            }
-            add("")
-            addAll(CoachEvidenceCopy.whySheetAppendix(suggestion))
-        }.joinToString("\n")
-        ConfirmActionDialog(
-            title = if (tip is TempoCoachTip.AddASet) "Why add a set" else "Why this set",
-            body = whyBody,
-            confirmLabel = if (canUse && !applied) SetMicroRecCopy.USE_SUGGESTION else SetMicroRecCopy.KEEP_MY_NUMBERS,
-            dismissLabel = if (canUse && !applied) SetMicroRecCopy.KEEP_MY_NUMBERS else null,
-            onConfirm = {
-                if (canUse && !applied) {
-                    Haptics.tick(view)
-                    onApply()
-                }
-                showWhy = false
-            },
+        val whyModel = when (tip) {
+            is TempoCoachTip.NextSet ->
+                TempoWhySheetCopy.forNextSet(tip.rec, tip.suggestion, loadClass, unit)
+            is TempoCoachTip.AddASet ->
+                TempoWhySheetCopy.forAddASet(tip, tip.seedRec, loadClass, unit)
+        }
+        TempoWhySheet(
+            model = whyModel,
+            canApply = canUse,
+            applied = applied,
+            onApply = onApply,
             onDismiss = { showWhy = false },
         )
     }
