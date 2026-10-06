@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
@@ -337,8 +338,14 @@ class WorkoutFloorRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertExists()
         // The list is lazy: landscape, short screens and font 2.0 can start the stats and
         // entry below the fold.
-        if (heightDp >= 800 || (heightDp >= 640 && fontScale < 1.6f)) compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
-        if (heightDp >= 640 && fontScale < 1.6f) compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
+        if (heightDp >= 800 || (heightDp >= 640 && fontScale < 1.6f)) {
+            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.STATS_ROW))
+            compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
+        }
+        if (heightDp >= 640 && fontScale < 1.6f) {
+            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_ENTRY))
+            compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertExists()
+        }
         if (expectRest) compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertExists()
     }
 

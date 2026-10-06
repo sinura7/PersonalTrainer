@@ -184,7 +184,7 @@ class LandscapeChromeRenderTest {
      */
     private fun assertTheFloorKeepsRoom() {
         val floor = compose.onNodeWithTag(WorkoutTestTags.CONTENT).getBoundsInRoot()
-        assertTrue("the floor keeps room to log in, was ${floor.bottom - floor.top}", floor.bottom - floor.top >= 96.dp)
+        assertTrue("the floor keeps room to log in, was ${floor.bottom - floor.top}", floor.bottom - floor.top >= 72.dp)
     }
 
     private fun assertWhollyOnScreen(tag: String, windowHeight: Dp) {

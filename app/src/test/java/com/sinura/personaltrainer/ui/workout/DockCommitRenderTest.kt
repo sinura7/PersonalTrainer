@@ -237,7 +237,7 @@ class DockCommitRenderTest {
         compose.showWorkoutScreen(vm)
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.FINISH }
         compose.waitForIdle()
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed().performClick()
         compose.onNodeWithText(EndWorkoutCopy.TITLE).assertIsDisplayed()
         assertTrue("asking is not ending", vm.uiState.value.session?.finishedAt == null)

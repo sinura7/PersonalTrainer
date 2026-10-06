@@ -45,7 +45,10 @@ import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RestPrescription
 import com.sinura.personaltrainer.domain.RestTimer
 import com.sinura.personaltrainer.domain.RestTimerPreferences
+import com.sinura.personaltrainer.domain.SchedulePreferences
 import com.sinura.personaltrainer.domain.SessionEditRules
+import com.sinura.personaltrainer.domain.TrainingBlock
+import com.sinura.personaltrainer.domain.coach.TempoCoachTip
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.SetLogRules
@@ -318,6 +321,20 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val draftDirty = MutableStateFlow(false)
     private var prefillGeneration = 0
     private val wantAnotherSet = MutableStateFlow(false)
+    private val tempoTipDismissed = MutableStateFlow(false)
+    val tempoCoachDismissed: StateFlow<Boolean> = tempoTipDismissed.asStateFlow()
+    private val addASetDismissedExercises = MutableStateFlow<Set<String>>(emptySet())
+    private val addASetAcceptedExercises = MutableStateFlow<Set<String>>(emptySet())
+
+    private val coachHistory = container.trainingInsights.observeShared(includeWeekPlan = false)
+        .map { it.history }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val schedulePreferences = container.preferencesRepository.schedulePreferences
+        .stateIn(viewModelScope, SharingStarted.Eagerly, SchedulePreferences())
+
+    private val trainingBlock = container.preferencesRepository.trainingBlock
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The unit the undo offer and the log receipt name. It rode on [microRec] until W2c. */
     private val weightUnit: StateFlow<WeightUnit> = container.preferencesRepository.weightUnit
@@ -579,7 +596,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * the rest after a log read `.value` at once.
      * Eager: [applyMicroRec] reads this value, not a rendered snapshot.
      */
-    val microRec: StateFlow<SetMicroRec?> = combine(
+    private val coachKeyFlow = combine(
         combine(session, selectedExerciseId, draft, hint, wantAnotherSet) {
                 current, selected, currentDraft, currentHint, extra ->
             MicroRecCore(current, selected, currentDraft, currentHint, extra)
@@ -595,8 +612,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             MicroRecExtras(editingSetId = editing, lighterWeek = lighter, unit = unit, coachPrefs = coach)
         },
     ) { core, extras ->
-        // The rest page asks the same question from what this screen leaves in the draft
-        // cache (W2b-4); every input is named, so neither side can drop one.
         NextSetInputs(
             session = core.session,
             selectedExerciseId = core.selected,
@@ -607,16 +622,69 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             historySets = core.lastPerformance?.sets.orEmpty(),
             lighterWeek = extras.lighterWeek,
             unit = extras.unit,
-            // The goal set in Settings reaches the floor's coach (audit C-1); it was DEFAULT.
             coachPrefs = extras.coachPrefs,
         ).coachKey()
     }.distinctUntilChanged()
+
+    val microRec: StateFlow<SetMicroRec?> = coachKeyFlow
         .map { key -> key.rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay()) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = null,
         )
+
+    val tempoCoachTip: StateFlow<TempoCoachTip?> = combine(
+        combine(
+            combine(coachKeyFlow, session, selectedExerciseId, coachHistory) { key, currentSession, selected, history ->
+                TempoCoachFramePart1(key, currentSession, selected, history)
+            },
+            combine(schedulePreferences, trainingBlock) { schedule, block -> schedule to block },
+        ) { part, scheduleAndBlock ->
+            TempoCoachFrame(
+                key = part.key,
+                session = part.session,
+                selectedExerciseId = part.selectedExerciseId,
+                history = part.history,
+                schedule = scheduleAndBlock.first,
+                block = scheduleAndBlock.second,
+            )
+        },
+        combine(hintSettings, tempoTipDismissed, addASetDismissedExercises, addASetAcceptedExercises) {
+                hints, dismissed, quiet, accepted ->
+            TempoCoachDismissState(
+                hints = hints,
+                tempoDismissed = dismissed,
+                addASetDismissed = quiet,
+                addASetAccepted = accepted,
+            )
+        },
+    ) { frame, dismiss ->
+        val rec = frame.key.rec(nowMs = time.nowMillis(), todayEpochDay = todayEpochDay())
+        TempoCoachSnapshot(
+            microRec = rec,
+            coachPrefs = frame.key.prefs,
+            unit = dismiss.hints?.unit ?: WeightUnit.KG,
+            session = frame.session,
+            selectedExerciseId = frame.selectedExerciseId,
+            history = frame.history,
+            exerciseCatalog = emptyMap(),
+            trainingBlock = frame.block,
+            schedule = frame.schedule,
+            lighterWeek = dismiss.hints?.lighterWeek == true,
+            time = time,
+            nowMs = time.nowMillis(),
+            todayEpochDay = todayEpochDay(),
+            addASetDismissed = dismiss.addASetDismissed,
+            addASetAccepted = dismiss.addASetAccepted,
+            tempoDismissed = dismiss.tempoDismissed,
+            inputs = frame.key.inputs,
+        ).tip()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Eagerly,
+        initialValue = null,
+    )
 
     /**
      * The coach's first named lift, as an (exercise, reason) pair, or null when it has nothing
@@ -1618,6 +1686,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             editingSetId.value = null
             clearEditingOriginal()
             wantAnotherSet.value = false
+            tempoTipDismissed.value = false
             // A correction saved is the lifter's number (W2e): a warm-up's, saved unchanged, would
             // otherwise read as an untouched entry once Warm-up is cleared here.
             if (command.editing) draftDirty.value = true
@@ -1902,8 +1971,36 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     fun applyMicroRec() {
         if (!canChangeEntry()) return
         val rec = microRec.value ?: return
-        if (!rec.showApply || rec.previewOnly) return
-        // A hold's call is in reps; its card is not shown, and Apply would give it a rep.
+        applyCoachRec(rec)
+    }
+
+    fun applyTempoCoachTip(tip: TempoCoachTip) {
+        if (!canChangeEntry()) return
+        when (tip) {
+            is TempoCoachTip.NextSet -> applyMicroRec()
+            is TempoCoachTip.AddASet -> {
+                requestExtraSet()
+                applyCoachRec(tip.seedRec, force = true)
+                selectedExerciseId.value?.let { liftId ->
+                    addASetAcceptedExercises.value = addASetAcceptedExercises.value + liftId
+                }
+            }
+        }
+        tempoTipDismissed.value = true
+    }
+
+    fun dismissTempoCoachTip(tip: TempoCoachTip) {
+        if (!canChangeEntry()) return
+        when (tip) {
+            is TempoCoachTip.AddASet -> selectedExerciseId.value?.let { liftId ->
+                addASetDismissedExercises.value = addASetDismissedExercises.value + liftId
+            }
+            is TempoCoachTip.NextSet -> tempoTipDismissed.value = true
+        }
+    }
+
+    private fun applyCoachRec(rec: SetMicroRec, force: Boolean = false) {
+        if (!force && (!rec.showApply || rec.previewOnly)) return
         val current = session.value
         val liftId = current?.resolveSelectedExerciseId(selectedExerciseId.value)
         val lift = current?.exercises?.firstOrNull { it.exercise.id == liftId }
@@ -2173,5 +2270,28 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val error: String?,
         val finished: Boolean,
         val editingSetId: String?,
+    )
+
+    private data class TempoCoachFramePart1(
+        val key: CoachKey,
+        val session: WorkoutSession?,
+        val selectedExerciseId: String?,
+        val history: List<WorkoutSession>,
+    )
+
+    private data class TempoCoachFrame(
+        val key: CoachKey,
+        val session: WorkoutSession?,
+        val selectedExerciseId: String?,
+        val history: List<WorkoutSession>,
+        val schedule: SchedulePreferences,
+        val block: TrainingBlock?,
+    )
+
+    private data class TempoCoachDismissState(
+        val hints: HintSettings?,
+        val tempoDismissed: Boolean,
+        val addASetDismissed: Set<String>,
+        val addASetAccepted: Set<String>,
     )
 }

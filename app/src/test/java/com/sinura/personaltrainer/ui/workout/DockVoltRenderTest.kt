@@ -63,14 +63,14 @@ class DockVoltRenderTest {
     @Test
     fun theCommitIsTheDocksOneFilledVoltOnceThePlanIsMet() {
         showDock(floorDockState(action = next, payload = "Leg Curl"))
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertExists()
+        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         assertTheOneVoltIs(WorkoutTestTags.NEXT)
     }
 
     @Test
     fun theCommitIsTheDocksOneFilledVoltAtTheLastLift() {
         showDock(floorDockState(action = finish, payload = null))
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertExists()
+        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         assertTheOneVoltIs(WorkoutTestTags.DOCK_FINISH)
     }
 

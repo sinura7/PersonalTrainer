@@ -93,6 +93,24 @@ object EvidenceCatalog {
             claim = "With no logged history, repeat the plan or last known numbers instead of inventing a heavier load.",
             heuristic = true,
         ),
+        EvidenceEntry(
+            id = "heuristic-add-a-set-cap",
+            year = null,
+            title = "Temper add-a-set cap",
+            authorsShort = "Temper (heuristic)",
+            doi = null,
+            claim = "At most one extra working set per lift per session keeps volume nudges honest and easy to undo.",
+            heuristic = true,
+        ),
+        EvidenceEntry(
+            id = "heuristic-block-week-timing",
+            year = null,
+            title = "Temper block week timing for volume",
+            authorsShort = "Temper (heuristic)",
+            doi = null,
+            claim = "Weeks four and five of a block are a practical window to add a set when the opener volume still matches the plan.",
+            heuristic = true,
+        ),
     )
 
     private val byId: Map<String, EvidenceEntry> = entries.associateBy { it.id }

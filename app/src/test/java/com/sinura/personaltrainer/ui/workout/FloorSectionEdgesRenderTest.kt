@@ -135,18 +135,17 @@ class FloorSectionEdgesRenderTest {
     }
 
     @Test
-    fun theCompactNextStripKeepsItsNumbersWholeAtTheLargestText() {
+    fun theTempoCoachCardKeepsItsNumbersWholeAtTheLargestText() {
         val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
         show(vm, fontScale = 2f)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         compose.waitForIdle()
         compose.waitUntil(timeoutMillis = WAIT_MS) {
-            compose.onAllNodesWithTag(WorkoutTestTags.NEXT_SET_COMPACT).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNodes().isNotEmpty()
         }
         val layout = compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).textLayout()
-        // A number is never cut (ADR-030): the coach's numbers stay one whole line.
         assertTrue(
-            "the compact strip's numbers must be one whole line, were ${layout.lineCount} line(s), fits=${layout.fitsItsWidth()}",
+            "Tempo's numbers must be one whole line, were ${layout.lineCount} line(s), fits=${layout.fitsItsWidth()}",
             layout.lineCount == 1 && layout.fitsItsWidth(),
         )
     }
@@ -160,7 +159,6 @@ class FloorSectionEdgesRenderTest {
             WorkoutTestTags.SECTION_STATS,
             WorkoutTestTags.SECTION_ENTRY,
             WorkoutTestTags.SECTION_RPE,
-            WorkoutTestTags.SECTION_NEXT_SET,
             WorkoutTestTags.SECTION_SET_HISTORY,
         )
         frames.forEach { compose.onNodeWithTag(it).assertIsDisplayed() }

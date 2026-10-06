@@ -131,14 +131,14 @@ class FloorScreenWiringRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { exists(WorkoutTestTags.SET_HISTORY) }
-        // The Next-set card sits between effort and history when the coach offers one. Whether
+        // The Tempo card sits between effort and history when the coach offers one. Whether
         // it does is the coach card's own rule (T1b), so its place is checked only when shown.
         val order = listOf(
             WorkoutTestTags.CURRENT_LIFT,
             WorkoutTestTags.STATS_ROW,
             WorkoutTestTags.SET_ENTRY,
             WorkoutTestTags.RPE_TRACK,
-        ) + listOf(WorkoutTestTags.NEXT_SET, WorkoutTestTags.NEXT_SET_COMPACT).filter { exists(it) } +
+        ) + listOf(WorkoutTestTags.TEMPO_COACH_CARD).filter { exists(it) } +
             WorkoutTestTags.SET_HISTORY
         val tops = order.map { compose.onNodeWithTag(it).getBoundsInRoot().top }
         assertEquals("top to bottom: $order", tops.sorted(), tops)
@@ -386,33 +386,29 @@ class FloorScreenWiringRenderTest {
 
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
-    fun onceThePlanIsMetTheFloorOffersOneWayToAddASet() {
+    fun onceThePlanIsMetTheSavedSetsSheetStillOffersOneAddSet() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(3), withNextLift = true)
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
-        // One control asks for an extra set: the dock's "Add another set", beside Next
-        // exercise and Finish (W1a). The history used to offer a second "Add set" chip. The
-        // tall window composes the whole floor, so "not there" means not on the floor.
         compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
-        compose.onAllNodes(hasText("Add set") or hasText("Add another set"), useUnmergedTree = true).assertCountEquals(1)
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().performClick()
-        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.extraSetRequested.value }
-        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
+        compose.onNode(hasText("Add another set") and hasAnyAncestor(hasTestTag(WorkoutTestTags.SAVED_SETS_SHEET)))
+            .performClick()
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.extraSetRequested.value }
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
     }
 
     @Test
-    fun onceThePlanIsMetTheDocksAddAnotherSetAsksForAnExtraSet() {
+    fun onceThePlanIsMetRequestExtraSetStillWorksFromTheViewModel() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(3), withNextLift = true)
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
-        // The floor's one extra-set control asks for it on the same lift.
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
+        vm.requestExtraSet()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.extraSetRequested.value }
-        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         assertEquals(LEG_EXTENSION, vm.uiState.value.selectedExerciseId)
     }

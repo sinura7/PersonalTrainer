@@ -289,11 +289,6 @@ internal fun WorkoutDock(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
-                        TextButton(
-                            onClick = events.onAnotherSet,
-                            enabled = state.showAnother,
-                            modifier = Modifier.weight(1f).heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.ANOTHER_SET),
-                        ) { Text("Add another set", style = InstrumentType.bodyStrong, color = TextSecondary) }
                         if (timer.show) clockButton()
                     }
                     timer.show && timer.hideIdleRest && !timedActive -> TextButton(

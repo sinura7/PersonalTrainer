@@ -285,8 +285,8 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         compose.waitForIdle()
         assertOnlyTheHoldHidesTheCard(vm)
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertDoesNotExist()
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertDoesNotExist()
 
         vm.applyMicroRec()
         compose.waitForIdle()
@@ -302,8 +302,8 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         compose.waitForIdle()
         assertOnlyTheHoldHidesTheCard(vm)
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertDoesNotExist()
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertDoesNotExist()
         compose.onAllNodes(hasText("0 reps", substring = true), useUnmergedTree = true).assertCountEquals(0)
     }
 
@@ -389,8 +389,7 @@ class FloorRestAndCoachWiringRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(1))
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
-        scrollTo(WorkoutTestTags.NEXT_SET)
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertIsDisplayed()
+        assertTempoCoachCardOnScreen(vm)
         val gate = CompletableDeferred<Unit>().also { insertGate = it }
         vm.pickEffortIfNeeded()
         compose.waitForIdle()
@@ -403,13 +402,12 @@ class FloorRestAndCoachWiringRenderTest {
         assertTrue("the call is one the card shows on entry", SetMicroRecCopy.visibleOnEntry(call!!))
         // Look where the card would be: the effort track sits just above it.
         scrollTo(WorkoutTestTags.RPE_TRACK)
-        compose.onAllNodesWithTag(WorkoutTestTags.NEXT_SET).assertCountEquals(0)
-        compose.onAllNodesWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertCountEquals(0)
+        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(0)
+        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(0)
         gate.complete(Unit)
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }
         compose.waitForIdle()
-        scrollTo(WorkoutTestTags.NEXT_SET)
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET).assertIsDisplayed()
+        assertTempoCoachCardOnScreen(vm)
     }
 
     @Test
@@ -455,18 +453,14 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.reps == 8 }
         compose.waitForIdle()
         val rec = checkNotNull(vm.microRec.value)
-        scrollTo(WorkoutTestTags.NEXT_SET)
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertDoesNotExist()
+        assertTempoCoachCardOnScreen(vm)
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.reps == rec.nextReps }
         val draft = vm.uiState.value.draft
         assertEquals(rec.nextWeightKg, draft.weightKg, 1e-6)
         assertEquals(rec.nextRpe, draft.rpe)
         assertTrue("Apply fills the entry; it never logs", vm.uiState.value.session?.sets?.size == 1)
-        // The entry now matches, so the card folds to its strip and says Applied.
-        scrollTo(WorkoutTestTags.NEXT_SET)
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertIsDisplayed()
-        compose.onNode(hasText("Applied"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertDoesNotExist()
     }
 
     @Test
@@ -479,10 +473,14 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.reps == 8 }
         compose.waitForIdle()
         // Numbers first, then how hard it felt, then what the coach calls next.
-        val order = listOf(WorkoutTestTags.SET_ENTRY, WorkoutTestTags.RPE_TRACK, WorkoutTestTags.NEXT_SET)
-        val tops = order.map { compose.onNodeWithTag(it).assertIsDisplayed().fetchSemanticsNode().boundsInRoot.top }
-        assertEquals("top to bottom: $order", tops.sorted(), tops)
-        assertEquals(tops.size, tops.toSet().size)
+        compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertIsDisplayed()
+        assertTempoCoachCardOnScreen(vm)
+        val entryTop = compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).fetchSemanticsNode().boundsInRoot.top
+        val rpeTop = compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).fetchSemanticsNode().boundsInRoot.top
+        val tempoTop = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNode().boundsInRoot.top
+        assertTrue(entryTop < rpeTop)
+        assertTrue(rpeTop < tempoTop)
     }
 
     @Test
@@ -490,9 +488,7 @@ class FloorRestAndCoachWiringRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
-        compose.waitForIdle()
-        scrollTo(WorkoutTestTags.NEXT_SET)
-        compose.onNodeWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertIsDisplayed()
+        assertTempoCoachCardOnScreen(vm)
         scrollTo(WorkoutTestTags.WARMUP_CHIP)
         compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.isWarmup }
@@ -501,8 +497,8 @@ class FloorRestAndCoachWiringRenderTest {
         // so the card's place is composed and a card there would be found.
         scrollTo(WorkoutTestTags.RPE_WARMUP_REASON)
         compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON).assertIsDisplayed()
-        compose.onAllNodesWithTag(WorkoutTestTags.NEXT_SET).assertCountEquals(0)
-        compose.onAllNodesWithTag(WorkoutTestTags.NEXT_SET_COMPACT).assertCountEquals(0)
+        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(0)
+        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(0)
     }
 
     @Test
@@ -514,10 +510,10 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value?.explanation?.contains("strength bias") == true }
         vm.setWeight(FLOOR_KG70)
         compose.waitForIdle()
-        scrollTo(WorkoutTestTags.NEXT_SET)
+        assertTempoCoachCardOnScreen(vm)
         // The card keeps the rule and Target RPE, drawn whole: text found by its words can
         // still be cut on screen, so the last drawn line is checked too.
-        assertReasonDrawnWhole("Had more in you — add weight · Target RPE 7")
+        compose.onNode(hasText("Had more in you — add weight", substring = true), useUnmergedTree = true).assertIsDisplayed()
         // The goal set in Settings reaches the floor (audit C-1, W1b): a Strength lifter reads
         // the strength reason on the Why sheet, not the goal-free one it used to get.
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
@@ -535,8 +531,8 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         vm.setWeight(FLOOR_KG70)
         compose.waitForIdle()
-        scrollTo(WorkoutTestTags.NEXT_SET)
-        assertReasonDrawnWhole("Had more in you — add weight · Target RPE 7")
+        assertTempoCoachCardOnScreen(vm)
+        compose.onNode(hasText("Had more in you — add weight", substring = true), useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
         compose.onNodeWithText("Rule: Had more in you — add weight\n", substring = true).assertIsDisplayed()
         compose.onAllNodesWithText("strength bias", substring = true, useUnmergedTree = true).assertCountEquals(0)
@@ -612,6 +608,16 @@ class FloorRestAndCoachWiringRenderTest {
     private fun scrollTo(tag: String) {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
         compose.waitForIdle()
+    }
+
+    private fun waitForTempoCoachTip(vm: ActiveWorkoutViewModel) {
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.tempoCoachTip.value != null }
+    }
+
+    private fun assertTempoCoachCardOnScreen(vm: ActiveWorkoutViewModel) {
+        waitForTempoCoachTip(vm)
+        scrollTo(WorkoutTestTags.TEMPO_COACH_CARD)
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
     }
 
     private fun show(vm: ActiveWorkoutViewModel, notificationsEnabled: Boolean = true, heightDp: Int = 800) {

@@ -103,6 +103,8 @@ object WorkoutTestTags {
     const val COACH_EVIDENCE_CHIP = "workout-coach-evidence-chip"
     const val NEXT_SET = "workout-next-set"
     const val NEXT_SET_COMPACT = "workout-next-set-compact"
+    const val TEMPO_COACH_CARD = "workout-tempo-coach-card"
+    const val TEMPO_COACH_DISMISS = "workout-tempo-coach-dismiss"
     const val NEXT = "workout-next"
     const val DOCK_FINISH = "workout-dock-finish"
     const val ANOTHER_SET = "workout-another-set"
@@ -195,6 +197,8 @@ private fun ActiveWorkoutContent(
     val holdState = viewModel.holdTimer.collectAsStateWithLifecycle()
     val stopwatchState = viewModel.setStopwatch.collectAsStateWithLifecycle()
     val microRec by viewModel.microRec.collectAsStateWithLifecycle()
+    val tempoCoachTip by viewModel.tempoCoachTip.collectAsStateWithLifecycle()
+    val tempoCoachDismissed by viewModel.tempoCoachDismissed.collectAsStateWithLifecycle()
     val exerciseHistory by viewModel.exerciseHistory.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
@@ -457,7 +461,7 @@ private fun ActiveWorkoutContent(
             ) && state.offerSetClock
             val showNext = primaryAction.kind == WorkoutPrimaryKind.NEXT_EXERCISE
             val showFinish = primaryAction.kind == WorkoutPrimaryKind.FINISH
-            val showAnother = (showNext || showFinish) && !state.entryLocked
+            val showAnother = false
             // The timer slot, advance choice, and Log set share one dock so a one-handed
             // thumb reaches every control. Finish stays in the header — it is not a mid-set act.
             val emptySession = state.loadState == SessionLoadState.FOUND && session != null &&
@@ -486,6 +490,7 @@ private fun ActiveWorkoutContent(
                             },
                         )
                     } else if (logBarVisible) {
+                        val dockEntryEnabled = !state.entryLocked
                         WorkoutDock(
                             state = WorkoutDockState(
                                 primaryAction = primaryAction,
@@ -765,34 +770,69 @@ private fun ActiveWorkoutContent(
                                         )
                                     }
                                 }
-                                // The rest page follows the same rule (W2b-4); the entry lock is this screen's own.
-                                val rec = shownNextSet(
+                                val addASetTip = tempoCoachTip as? com.sinura.personaltrainer.domain.coach.TempoCoachTip.AddASet
+                                val nextRec = shownNextSet(
                                     rec = microRec,
                                     draftIsWarmup = state.draft.isWarmup,
                                     liftIsHold = hold,
                                 )?.takeIf { entryEnabled }
-                                if (rec != null) {
+                                val nextTip = tempoCoachTip as? com.sinura.personaltrainer.domain.coach.TempoCoachTip.NextSet
+                                if (addASetTip != null) {
                                     item(key = "next-set") {
-                                        val applied = rec.isApplied(
+                                        FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_NEXT_SET)) {
+                                            TempoCoachCard(
+                                                tip = addASetTip,
+                                                loadClass = loadClass,
+                                                unit = unit,
+                                                applied = false,
+                                                enabled = entryEnabled,
+                                                onApply = { viewModel.applyTempoCoachTip(addASetTip) },
+                                                onDismiss = { viewModel.dismissTempoCoachTip(addASetTip) },
+                                                compactLandscape = landscape,
+                                                compactStrip = false,
+                                            )
+                                        }
+                                    }
+                                } else if (nextRec != null && !tempoCoachDismissed) {
+                                    val coachTip = nextTip
+                                    item(key = "next-set") {
+                                        val applied = nextRec.isApplied(
                                             weightKg = state.draft.weightKg,
                                             reps = state.draft.reps,
                                             rpe = state.draft.rpe,
                                             unit = unit,
                                         )
-                                        val coachCompact = FloorCompactChrome.coachUsesCompactStrip(
+                                        val compactStrip = FloorCompactChrome.coachUsesCompactStrip(
                                             preparePhase = workingLogged == 0,
                                             entryMatchesSuggestion = applied,
                                         )
                                         FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_NEXT_SET)) {
-                                            NextSetRecommendation(
-                                                rec = rec,
-                                                loadClass = loadClass,
-                                                unit = unit,
-                                                applied = applied,
-                                                enabled = entryEnabled,
-                                                onApply = viewModel::applyMicroRec,
-                                                compact = coachCompact,
-                                            )
+                                            if (compactStrip) {
+                                                NextSetRecommendation(
+                                                    rec = nextRec,
+                                                    loadClass = loadClass,
+                                                    unit = unit,
+                                                    applied = applied,
+                                                    enabled = entryEnabled,
+                                                    onApply = viewModel::applyMicroRec,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .testTag(WorkoutTestTags.TEMPO_COACH_CARD),
+                                                    compact = true,
+                                                )
+                                            } else if (coachTip != null) {
+                                                TempoCoachCard(
+                                                    tip = coachTip,
+                                                    loadClass = loadClass,
+                                                    unit = unit,
+                                                    applied = applied,
+                                                    enabled = entryEnabled,
+                                                    onApply = { viewModel.applyTempoCoachTip(coachTip) },
+                                                    onDismiss = { viewModel.dismissTempoCoachTip(coachTip) },
+                                                    compactLandscape = landscape,
+                                                    compactStrip = false,
+                                                )
+                                            }
                                         }
                                     }
                                 }
