@@ -1,0 +1,54 @@
+{
+  "sourceBaseline": "eae6517845ee560ceb9695bf2f92788e2b4339cc",
+  "provenance": "Retained native JVM renders from the earlier local run; source baseline recorded by the session, not embedded in PNG/XML. Synthetic test fixtures. Byte-identical copies.",
+  "frames": [
+    {
+      "id": "N01",
+      "file": "N01-first-set-360x800.png",
+      "origin": "app/build/floor-renders/first-set-360x800.png",
+      "generator": "WorkoutFloorRenderTest.rendersTheFirstSetFloor",
+      "bytes": 121606,
+      "sha256": "db6d74d63602fc40df6273ebeb62f0fa3bf96ca40c3afa6579fc3f58cca7c811"
+    },
+    {
+      "id": "N02",
+      "file": "N02-resting-360x800.png",
+      "origin": "app/build/floor-renders/resting-360x800.png",
+      "generator": "WorkoutFloorRenderTest.rendersTheRestingFloor",
+      "bytes": 130164,
+      "sha256": "1510fcba00da605beba0809cd8396bb404c483916ef5304397a3c0be61a282d3"
+    },
+    {
+      "id": "N03",
+      "file": "N03-working-360x640.png",
+      "origin": "app/build/floor-renders/working-360x640.png",
+      "generator": "WorkoutFloorRenderTest.rendersTheFloorAt360By640",
+      "bytes": 110425,
+      "sha256": "0fe7d92a46cccd15e4603160f78138b2a2e5c4d9e2376be7575c824e4e5f6053"
+    },
+    {
+      "id": "N04",
+      "file": "N04-360x640-font1.0-before.png",
+      "origin": "app/build/screen-renders/w1d/360x640-font1.0-before.png",
+      "generator": "FirstWorkingSetRenderTest.theFirstWorkingSetHoldsTheEntryAt360By640",
+      "bytes": 104405,
+      "sha256": "b07920df4a329a89367b613b916c8672e6e1fe0c3d4c4aad27b130bff3e38288"
+    },
+    {
+      "id": "N05",
+      "file": "N05-360x640-font1.0-after.png",
+      "origin": "app/build/screen-renders/w1d/360x640-font1.0-after.png",
+      "generator": "FirstWorkingSetRenderTest.theFirstWorkingSetHoldsTheEntryAt360By640",
+      "bytes": 110779,
+      "sha256": "71bf189926b75e95960550e487d542e30e5bbdf42488a866bb141e124e5c279f"
+    },
+    {
+      "id": "N06",
+      "file": "N06-editing-360x800.png",
+      "origin": "app/build/floor-renders/editing-360x800.png",
+      "generator": "WorkoutFloorRenderTest.rendersTheEditingFloor",
+      "bytes": 105479,
+      "sha256": "57f7ca8529a78d3897d86b570b9d1fd62193f9828a325a65c5181f6132942737"
+    }
+  ]
+}

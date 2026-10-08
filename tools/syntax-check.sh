@@ -26,12 +26,32 @@ compiler_jar="kotlin-compiler-embeddable-${KOTLIN}.jar"
 stdlib_jar="kotlin-stdlib-${KOTLIN}.jar"
 coroutines_pat="kotlinx-coroutines-core-jvm-${COROUTINES:-*}.jar"
 
+# Relative colon lists are not translated by Git Bash before native Windows
+# Java starts. Convert each entry explicitly so a local jar fallback behaves
+# exactly like a populated Gradle cache, including directories with spaces.
+case "$(uname -s)" in
+  CYGWIN*|MINGW*|MSYS*)
+    CP_SEPARATOR=';'
+    java_path() { cygpath -am "$1"; }
+    ;;
+  *)
+    CP_SEPARATOR=':'
+    java_path() { printf '%s\n' "$1"; }
+    ;;
+esac
+separator=''
+
 CP=$(find "${GRADLE_USER_HOME:-$HOME/.gradle}/caches/modules-2" app/build/syntax-check-jars "${PT_JARS:-build/test-jars}" \( \
   -name "$compiler_jar" \
   -o -name "$stdlib_jar" \
   -o -name "$coroutines_pat" \
   -o -name "trove4j-*.jar" \
-  -o -name "annotations-*.jar" \) 2>/dev/null | tr '\n' ':')
+  -o -name "annotations-*.jar" \) ! -name '*-sources.jar' ! -name '*-javadoc.jar' 2>/dev/null | sort -u | \
+  while IFS= read -r jar; do
+    [ -z "$separator" ] || printf '%s' "$separator"
+    java_path "$jar" | tr -d '\n'
+    separator="$CP_SEPARATOR"
+  done)
 
 case "$CP" in
   *kotlin-compiler-embeddable*) ;;

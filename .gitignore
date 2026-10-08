@@ -37,3 +37,6 @@ __pycache__/
 # Reproducible fixture captures and native.html are versioned review evidence.
 /docs/design-audit/2026-09-16/references/
 /docs/design-audit/2026-09-16/index.html
+
+# Owner phone screenshots for UX research remain local; the catalogue is versioned.
+/docs/ux-context/references/

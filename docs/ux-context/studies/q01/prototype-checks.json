@@ -1,0 +1,167 @@
+{
+  "scope": "Headless desktop Chrome checks of the sandboxed browser concept. Not Android, native accessibility, physical touch, owner usability or native acceptance.",
+  "browserVersion": "154.0.8037.99",
+  "sourceSha256": "a65e31926534f9d73a1d0fbc9789103f3d0df3ec2092ad19f4407b3569c2e76f",
+  "checkedAt": "2026-10-08T10:38:09.926Z",
+  "tests": 29,
+  "failures": 0,
+  "checks": [
+    {
+      "name": "Initial draft and synthetic saved count",
+      "passed": true
+    },
+    {
+      "name": "Recommendation is not selected; Log is disabled",
+      "passed": true
+    },
+    {
+      "name": "Current reason is retained but visually clipped",
+      "passed": true
+    },
+    {
+      "name": "Host carousel switches to candidate",
+      "passed": true
+    },
+    {
+      "name": "Candidate reason is visible",
+      "passed": true
+    },
+    {
+      "name": "candidate: no horizontal overflow at 736px outer viewport",
+      "passed": true,
+      "details": {
+        "viewportWidth": 704,
+        "documentWidth": 704,
+        "phoneWidth": 360,
+        "overflow": []
+      }
+    },
+    {
+      "name": "current: no horizontal overflow at 736px outer viewport",
+      "passed": true,
+      "details": {
+        "viewportWidth": 704,
+        "documentWidth": 704,
+        "phoneWidth": 360,
+        "overflow": []
+      }
+    },
+    {
+      "name": "Shared variant stage height at 736px",
+      "passed": true,
+      "details": [
+        960,
+        960
+      ]
+    },
+    {
+      "name": "candidate: no horizontal overflow at 320px outer viewport",
+      "passed": true,
+      "details": {
+        "viewportWidth": 288,
+        "documentWidth": 288,
+        "phoneWidth": 288,
+        "overflow": []
+      }
+    },
+    {
+      "name": "current: no horizontal overflow at 320px outer viewport",
+      "passed": true,
+      "details": {
+        "viewportWidth": 288,
+        "documentWidth": 288,
+        "phoneWidth": 288,
+        "overflow": []
+      }
+    },
+    {
+      "name": "Shared variant stage height at 320px",
+      "passed": true,
+      "details": [
+        980,
+        980
+      ]
+    },
+    {
+      "name": "Manual values update payload and still require effort",
+      "passed": true
+    },
+    {
+      "name": "Steppers update both values",
+      "passed": true
+    },
+    {
+      "name": "Invalid draft blocks save and suppresses misleading effort helper",
+      "passed": true
+    },
+    {
+      "name": "Keyboard effort selection enables Log without changing values",
+      "passed": true
+    },
+    {
+      "name": "Reserved helper space prevents action movement",
+      "passed": true,
+      "details": {
+        "beforeY": 670.234375,
+        "afterY": 670.234375
+      }
+    },
+    {
+      "name": "Selected effort clears visible helper",
+      "passed": true
+    },
+    {
+      "name": "Rest plus fifteen works",
+      "passed": true
+    },
+    {
+      "name": "Rest minus fifteen works; active rest permits logging",
+      "passed": true
+    },
+    {
+      "name": "Save lock freezes controls and payload",
+      "passed": true
+    },
+    {
+      "name": "Repeated click commits exactly one simulated row",
+      "passed": true
+    },
+    {
+      "name": "Post-save preserves entry, resets effort and starts displayed rest",
+      "passed": true
+    },
+    {
+      "name": "Expanded two-row review and notice fit shared stage at narrow width",
+      "passed": true,
+      "details": {
+        "phone": 881.21875,
+        "stage": 980
+      }
+    },
+    {
+      "name": "Variant state remains independent",
+      "passed": true
+    },
+    {
+      "name": "Candidate state survives carousel navigation",
+      "passed": true
+    },
+    {
+      "name": "Skip ends displayed rest and effort still required",
+      "passed": true
+    },
+    {
+      "name": "Final planned set yields completion; rest ended and payload recorded",
+      "passed": true
+    },
+    {
+      "name": "Finish shows simulated summary and saved rows",
+      "passed": true
+    },
+    {
+      "name": "No JavaScript page errors",
+      "passed": true,
+      "details": []
+    }
+  ]
+}

@@ -36,7 +36,28 @@ if [ ! -d "$JARS" ]; then
   exit 2
 fi
 
-CP=$(find "$JARS" -name '*.jar' | tr '\n' ':')
+# Native Windows Java expects semicolons and Windows paths. Git Bash translates
+# some absolute colon lists implicitly, but leaves relative jar lists unchanged:
+# java then sees one nonexistent entry and cannot even load K2JVMCompiler. Make
+# every JVM classpath and compiler friend path explicit, including paths with spaces.
+case "$(uname -s)" in
+  CYGWIN*|MINGW*|MSYS*)
+    CP_SEPARATOR=';'
+    java_path() { cygpath -am "$1"; }
+    ;;
+  *)
+    CP_SEPARATOR=':'
+    java_path() { printf '%s\n' "$1"; }
+    ;;
+esac
+JARS=$(cd "$JARS" && pwd)
+separator=''
+CP=$(find "$JARS" -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | sort | \
+  while IFS= read -r jar; do
+    [ -z "${separator:-}" ] || printf '%s' "$separator"
+    java_path "$jar" | tr -d '\n'
+    separator="$CP_SEPARATOR"
+  done)
 case "$CP" in
   *kotlin-compiler-embeddable*) ;;
   *) echo "kotlin-compiler-embeddable jar not found in '$JARS'." >&2; exit 2 ;;
@@ -136,6 +157,21 @@ kotlinc() {
   java -cp "$CP" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler "$@"
 }
 
+compile() {
+  # Preserve the compiler exit status. A failed compiler can leave class files
+  # behind, so checking only whether an output directory exists is not a gate.
+  if kotlinc "$@" >"$WORK/compiler.log" 2>&1; then
+    grep -v '^warning:' "$WORK/compiler.log" || true
+  else
+    cat "$WORK/compiler.log" >&2
+    return 1
+  fi
+}
+
+MAIN_OUT=$(java_path "$WORK/main")
+BACKUP_OUT=$(java_path "$WORK/backup")
+TEST_OUT=$(java_path "$WORK/test")
+
 SRC=app/src/main/java/com/sinura/personaltrainer
 TESTS=app/src/test/java/com/sinura/personaltrainer
 
@@ -168,8 +204,11 @@ EXTRA_TESTS="$TESTS/util \
 
 echo "Compiling domain sources..."
 # shellcheck disable=SC2086
-kotlinc -nowarn -jvm-target 17 -module-name main -cp "$CP" -d "$WORK/main" \
-  "$SRC/domain" "$SRC/util" "$SRC/logging" "$WORK/stub" $EXTRA_MAIN 2>&1 | grep -v '^warning:' || true
+if ! compile -nowarn -jvm-target 17 -module-name main -cp "$CP" -d "$MAIN_OUT" \
+  "$SRC/domain" "$SRC/util" "$SRC/logging" "$WORK/stub" $EXTRA_MAIN; then
+  echo "FAILED: domain sources did not compile." >&2
+  exit 1
+fi
 
 if [ ! -d "$WORK/main/com" ]; then
   echo "FAILED: domain sources did not compile." >&2
@@ -187,7 +226,8 @@ case "$CP" in
     for f in BackupDocument.kt BackupJson.kt BackupValidator.kt AuthoredInventory.kt \
              SafetySnapshot.kt SafetySnapshotStore.kt RestoreJournal.kt RestoreJournalStore.kt \
              RestoreWitness.kt \
-             BackupEnvelope.kt BackupScaleBudget.kt DriveAboutJson.kt DriveFolderJson.kt \
+             BackupEnvelope.kt BackupScaleBudget.kt ProtectBackup.kt OpenBackup.kt \
+             DriveAboutJson.kt DriveFolderJson.kt \
              DriveErrorCopy.kt DriveHttp.kt DriveRestClient.kt; do
       [ -f "$BACKUP/$f" ] || { echo "FAILED: $BACKUP/$f is missing." >&2; exit 1; }
       BACKUP_SRC="$BACKUP_SRC $BACKUP/$f"
@@ -200,31 +240,51 @@ esac
 # $WORK/main would overwrite META-INF/main.kotlin_module — the index the compiler
 # reads to find top-level functions — and every `decideStart`/`toWeightLabel` in
 # the domain tests would stop resolving. Separate directories keep both indexes.
-MAIN_CP="$WORK/main"
-FRIENDS="$WORK/main"
+MAIN_CP="$MAIN_OUT"
+FRIENDS="$MAIN_OUT"
 if [ -n "$BACKUP_SRC" ]; then
   echo "Compiling backup sources..."
   mkdir -p "$WORK/backup"
   # shellcheck disable=SC2086
-  kotlinc -nowarn -jvm-target 17 -module-name backup -cp "$CP:$WORK/main" -d "$WORK/backup" \
-    $BACKUP_SRC 2>&1 | grep -v '^warning:' || true
+  if ! compile -nowarn -jvm-target 17 -module-name backup -cp "$CP$CP_SEPARATOR$MAIN_OUT" -d "$BACKUP_OUT" \
+    $BACKUP_SRC; then
+    echo "FAILED: backup sources did not compile." >&2
+    exit 1
+  fi
   if [ ! -d "$WORK/backup/com" ]; then
     echo "FAILED: backup sources did not compile." >&2
     exit 1
   fi
-  MAIN_CP="$WORK/main:$WORK/backup"
-  # -Xfriend-paths is comma-separated; -cp is colon-separated. Not the same list.
-  FRIENDS="$WORK/main,$WORK/backup"
+  MAIN_CP="$MAIN_OUT$CP_SEPARATOR$BACKUP_OUT"
+  # -Xfriend-paths is always comma-separated, unlike the platform's classpath.
+  FRIENDS="$MAIN_OUT,$BACKUP_OUT"
 fi
 
 echo "Compiling tests..."
-TEST_SRC="$TESTS/domain $EXTRA_TESTS"
+# These domain-package tests exercise Android integrations, despite their package:
+# the first two use Robolectric/Application/SavedStateHandle; UndoQueueTest imports
+# the Compose-backed Motion token object. Keep every one in Gradle's full unit
+# suite. Name these exceptions explicitly so a new dependency still fails this
+# lane instead of being silently filtered by an import-pattern heuristic.
+for gradle_test in CompletedTrainingParityTest.kt DraftStoreTest.kt UndoQueueTest.kt; do
+  [ -f "$TESTS/domain/$gradle_test" ] || { echo "FAILED: named Gradle-only test $gradle_test is missing." >&2; exit 1; }
+done
+DOMAIN_TESTS=$(find "$TESTS/domain" -name '*.kt' \
+  ! -path "$TESTS/domain/CompletedTrainingParityTest.kt" \
+  ! -path "$TESTS/domain/DraftStoreTest.kt" \
+  ! -path "$TESTS/domain/UndoQueueTest.kt" | sort)
+echo "NOTE: CompletedTrainingParityTest and DraftStoreTest require Robolectric and Android state; Gradle runs them."
+echo "NOTE: UndoQueueTest imports Compose-backed Motion tokens; Gradle runs it."
+TEST_SRC="$DOMAIN_TESTS $EXTRA_TESTS"
 [ -n "$BACKUP_SRC" ] && TEST_SRC="$TEST_SRC $TESTS/data/backup"
 # -Xfriend-paths mirrors Gradle's associated test compilation: without it the tests
 # cannot see `internal` declarations they legitimately exercise.
 # shellcheck disable=SC2086
-kotlinc -nowarn -jvm-target 17 -module-name test -cp "$CP:$MAIN_CP" -Xfriend-paths="$FRIENDS" -d "$WORK/test" \
-  $TEST_SRC 2>&1 | grep -v '^warning:' || true
+if ! compile -nowarn -jvm-target 17 -module-name test -cp "$CP$CP_SEPARATOR$MAIN_CP" -Xfriend-paths="$FRIENDS" -d "$TEST_OUT" \
+  $TEST_SRC; then
+  echo "FAILED: tests did not compile." >&2
+  exit 1
+fi
 
 if [ ! -d "$WORK/test/com" ]; then
   echo "FAILED: tests did not compile." >&2
@@ -234,6 +294,10 @@ fi
 CLASSES=$(cd "$WORK/test" && find . -name '*Test.class' ! -name '*$*' \
   | sed 's|^\./||; s|\.class$||; s|/|.|g' | sort)
 COUNT=$(echo "$CLASSES" | wc -w | tr -d ' ')
+[ "$COUNT" -gt 0 ] || { echo "FAILED: no compiled test classes found." >&2; exit 1; }
 echo "Running $COUNT test classes..."
+# Match Gradle's test-resource classpath. The paste corpus tests load these
+# fixtures through Class.getResource; compiling their Kotlin alone is not enough.
+TEST_RESOURCES=$(java_path "$PWD/app/src/test/resources")
 # shellcheck disable=SC2086
-java -cp "$CP:$MAIN_CP:$WORK/test" org.junit.runner.JUnitCore $CLASSES
+java -cp "$CP$CP_SEPARATOR$MAIN_CP$CP_SEPARATOR$TEST_OUT$CP_SEPARATOR$TEST_RESOURCES" org.junit.runner.JUnitCore $CLASSES

@@ -1,0 +1,403 @@
+<div id="temper-q01-comparison">
+  <div class="viz-carousel viz-dotted-background" aria-label="Temper logging readiness concepts">
+    <section data-variant="Current structure" aria-label="Current structure concept">
+      <div class="temper-q01-stage">
+        <article class="temper-q01-phone" data-concept="current" aria-label="Current structure: simulated workout entry">
+          <div class="temper-q01-caption">Interactive concept · synthetic data</div>
+          <header class="temper-q01-header">
+            <h2>Upper B</h2>
+            <p class="temper-q01-progress">Set 2 of 3 · 1 saved</p>
+            <div class="temper-q01-track" aria-hidden="true"><span></span></div>
+          </header>
+          <div class="temper-q01-entry">
+            <h3>Incline Dumbbell Bench Press</h3>
+            <p class="temper-q01-last">Last set · 70 lb × 10 · RPE 9</p>
+            <div class="temper-q01-values">
+              <div class="temper-q01-value">
+                <label for="temper-q01-current-weight">Weight · lb</label>
+                <input id="temper-q01-current-weight" data-field="weight" type="number" inputmode="decimal" value="70" min="0" max="1000" step="0.5" required>
+                <div class="temper-q01-adjust">
+                  <button class="cursor-interaction" type="button" data-step="weight:-5" aria-label="Decrease weight by 5 pounds">−</button>
+                  <button class="cursor-interaction" type="button" data-step="weight:5" aria-label="Increase weight by 5 pounds">+</button>
+                </div>
+              </div>
+              <div class="temper-q01-value">
+                <label for="temper-q01-current-reps">Reps</label>
+                <input id="temper-q01-current-reps" data-field="reps" type="number" inputmode="numeric" value="10" min="1" max="100" step="1" required>
+                <div class="temper-q01-adjust">
+                  <button class="cursor-interaction" type="button" data-step="reps:-1" aria-label="Decrease reps by 1">−</button>
+                  <button class="cursor-interaction" type="button" data-step="reps:1" aria-label="Increase reps by 1">+</button>
+                </div>
+              </div>
+            </div>
+            <p class="temper-q01-error" role="alert" hidden></p>
+            <fieldset class="temper-q01-effort">
+              <legend>Effort · RPE</legend>
+              <div class="temper-q01-effort-options">
+                <button class="cursor-interaction" type="button" data-rpe="6" aria-pressed="false">6</button>
+                <button class="cursor-interaction" type="button" data-rpe="7" aria-pressed="false">7</button>
+                <button class="cursor-interaction" type="button" data-rpe="8" aria-pressed="false">8</button>
+                <button class="cursor-interaction temper-q01-recommended" type="button" data-rpe="9" aria-pressed="false" aria-label="RPE 9, recommendation marker">9<span aria-hidden="true"></span></button>
+                <button class="cursor-interaction" type="button" data-rpe="10" aria-pressed="false">10</button>
+              </div>
+              <div class="temper-q01-effort-scale"><span>Easy</span><span>Max effort</span></div>
+            </fieldset>
+            <section class="temper-q01-rest" aria-label="Simulated rest timer">
+              <div><span class="temper-q01-rest-label">Rest</span><strong class="temper-q01-rest-time">1:32</strong></div>
+              <div class="temper-q01-rest-actions">
+                <button class="cursor-interaction" type="button" data-rest="-15" aria-label="Subtract 15 seconds of rest">−15</button>
+                <button class="cursor-interaction" type="button" data-rest="15" aria-label="Add 15 seconds of rest">+15</button>
+                <button class="cursor-interaction" type="button" data-rest="skip">Skip</button>
+              </div>
+            </section>
+            <div class="temper-q01-action-area">
+              <span class="temper-q01-sr" id="temper-q01-current-readiness">Pick your effort first</span>
+              <button class="cursor-interaction temper-q01-primary" type="button" data-action="log" disabled aria-describedby="temper-q01-current-readiness"><span>Log set</span><small>70 lb × 10</small></button>
+            </div>
+          </div>
+          <section class="temper-q01-finish" hidden>
+            <h3>All 3 sets saved</h3>
+            <button class="cursor-interaction temper-q01-primary" type="button" data-action="finish">Finish workout</button>
+          </section>
+          <section class="temper-q01-summary" hidden>
+            <h3>Workout saved</h3>
+            <p>Upper B · 3 working sets</p>
+          </section>
+          <details class="temper-q01-saved">
+            <summary class="cursor-interaction">Saved sets · <span>1</span></summary>
+            <ol><li>70 lb × 10 · RPE 9</li></ol>
+          </details>
+          <p class="temper-q01-notice" aria-live="polite" aria-atomic="true"></p>
+          <div class="temper-q01-footnote">Simulation only · rest does not count down</div>
+        </article>
+      </div>
+    </section>
+    <section data-variant="Visible readiness" aria-label="Visible readiness concept" hidden>
+      <div class="temper-q01-stage">
+        <article class="temper-q01-phone" data-concept="candidate" aria-label="Visible readiness: simulated workout entry">
+          <div class="temper-q01-caption">Interactive concept · synthetic data</div>
+          <header class="temper-q01-header">
+            <h2>Upper B</h2>
+            <p class="temper-q01-progress">Set 2 of 3 · 1 saved</p>
+            <div class="temper-q01-track" aria-hidden="true"><span></span></div>
+          </header>
+          <div class="temper-q01-entry">
+            <h3>Incline Dumbbell Bench Press</h3>
+            <p class="temper-q01-last">Last set · 70 lb × 10 · RPE 9</p>
+            <div class="temper-q01-values">
+              <div class="temper-q01-value">
+                <label for="temper-q01-candidate-weight">Weight · lb</label>
+                <input id="temper-q01-candidate-weight" data-field="weight" type="number" inputmode="decimal" value="70" min="0" max="1000" step="0.5" required>
+                <div class="temper-q01-adjust">
+                  <button class="cursor-interaction" type="button" data-step="weight:-5" aria-label="Decrease weight by 5 pounds">−</button>
+                  <button class="cursor-interaction" type="button" data-step="weight:5" aria-label="Increase weight by 5 pounds">+</button>
+                </div>
+              </div>
+              <div class="temper-q01-value">
+                <label for="temper-q01-candidate-reps">Reps</label>
+                <input id="temper-q01-candidate-reps" data-field="reps" type="number" inputmode="numeric" value="10" min="1" max="100" step="1" required>
+                <div class="temper-q01-adjust">
+                  <button class="cursor-interaction" type="button" data-step="reps:-1" aria-label="Decrease reps by 1">−</button>
+                  <button class="cursor-interaction" type="button" data-step="reps:1" aria-label="Increase reps by 1">+</button>
+                </div>
+              </div>
+            </div>
+            <p class="temper-q01-error" role="alert" hidden></p>
+            <fieldset class="temper-q01-effort">
+              <legend>Effort · RPE</legend>
+              <div class="temper-q01-effort-options">
+                <button class="cursor-interaction" type="button" data-rpe="6" aria-pressed="false">6</button>
+                <button class="cursor-interaction" type="button" data-rpe="7" aria-pressed="false">7</button>
+                <button class="cursor-interaction" type="button" data-rpe="8" aria-pressed="false">8</button>
+                <button class="cursor-interaction temper-q01-recommended" type="button" data-rpe="9" aria-pressed="false" aria-label="RPE 9, recommendation marker">9<span aria-hidden="true"></span></button>
+                <button class="cursor-interaction" type="button" data-rpe="10" aria-pressed="false">10</button>
+              </div>
+              <div class="temper-q01-effort-scale"><span>Easy</span><span>Max effort</span></div>
+            </fieldset>
+            <section class="temper-q01-rest" aria-label="Simulated rest timer">
+              <div><span class="temper-q01-rest-label">Rest</span><strong class="temper-q01-rest-time">1:32</strong></div>
+              <div class="temper-q01-rest-actions">
+                <button class="cursor-interaction" type="button" data-rest="-15" aria-label="Subtract 15 seconds of rest">−15</button>
+                <button class="cursor-interaction" type="button" data-rest="15" aria-label="Add 15 seconds of rest">+15</button>
+                <button class="cursor-interaction" type="button" data-rest="skip">Skip</button>
+              </div>
+            </section>
+            <div class="temper-q01-action-area">
+              <p class="temper-q01-readiness" id="temper-q01-candidate-readiness">Pick your effort first</p>
+              <button class="cursor-interaction temper-q01-primary" type="button" data-action="log" disabled aria-describedby="temper-q01-candidate-readiness"><span>Log set</span><small>70 lb × 10</small></button>
+            </div>
+          </div>
+          <section class="temper-q01-finish" hidden>
+            <h3>All 3 sets saved</h3>
+            <button class="cursor-interaction temper-q01-primary" type="button" data-action="finish">Finish workout</button>
+          </section>
+          <section class="temper-q01-summary" hidden>
+            <h3>Workout saved</h3>
+            <p>Upper B · 3 working sets</p>
+          </section>
+          <details class="temper-q01-saved">
+            <summary class="cursor-interaction">Saved sets · <span>1</span></summary>
+            <ol><li>70 lb × 10 · RPE 9</li></ol>
+          </details>
+          <p class="temper-q01-notice" aria-live="polite" aria-atomic="true"></p>
+          <div class="temper-q01-footnote">Simulation only · rest does not count down</div>
+        </article>
+      </div>
+    </section>
+  </div>
+</div>
+<style>
+  #temper-q01-comparison .temper-q01-stage { min-height: 960px; padding: 18px 0; box-sizing: border-box; }
+  #temper-q01-comparison .temper-q01-phone {
+    --temper-bg: #080a0b;
+    --temper-panel: #14181c;
+    --temper-panel-raised: #1e2329;
+    --temper-border: #343b42;
+    --temper-text: #f5f7f8;
+    --temper-secondary: #a6afb6;
+    --temper-volt: #c1ff36;
+    --temper-cyan: #20cfdf;
+    color-scheme: dark;
+    box-sizing: border-box;
+    width: min(100%, 360px);
+    margin: 0 auto;
+    padding: 18px 16px;
+    border-radius: 22px;
+    background: var(--temper-bg);
+    color: var(--temper-text);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  #temper-q01-comparison .temper-q01-phone * { box-sizing: border-box; }
+  #temper-q01-comparison .temper-q01-phone [hidden] { display: none !important; }
+  #temper-q01-comparison .temper-q01-phone button,
+  #temper-q01-comparison .temper-q01-phone input { font: inherit; }
+  #temper-q01-comparison .temper-q01-phone button { color: var(--temper-text); background: var(--temper-panel); border: 1px solid var(--temper-border); border-radius: 13px; min-height: 44px; }
+  #temper-q01-comparison .temper-q01-phone button:disabled { cursor: not-allowed; }
+  #temper-q01-comparison .temper-q01-caption,
+  #temper-q01-comparison .temper-q01-footnote { color: var(--temper-secondary); font-size: 11px; }
+  #temper-q01-comparison .temper-q01-caption { margin-bottom: 14px; }
+  #temper-q01-comparison .temper-q01-header h2 { margin: 0; color: var(--temper-text); font-size: 26px; font-weight: 500; }
+  #temper-q01-comparison .temper-q01-progress { margin: 4px 0 10px; color: var(--temper-secondary); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+  #temper-q01-comparison .temper-q01-track { height: 4px; border-radius: 4px; background: var(--temper-panel-raised); }
+  #temper-q01-comparison .temper-q01-track span { display: block; width: 33.333%; height: 100%; border-radius: inherit; background: var(--temper-volt); }
+  #temper-q01-comparison .temper-q01-phone h3 { margin: 20px 0 5px; color: var(--temper-text); font-size: 19px; font-weight: 500; line-height: 1.3; }
+  #temper-q01-comparison .temper-q01-last { margin: 0 0 15px; color: var(--temper-secondary); font-size: 12px; }
+  #temper-q01-comparison .temper-q01-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; background: var(--temper-panel); border: 1px solid var(--temper-border); border-radius: 18px; padding: 14px 10px; }
+  #temper-q01-comparison .temper-q01-value { min-width: 0; text-align: center; }
+  #temper-q01-comparison .temper-q01-value label { color: var(--temper-secondary); font-size: 12px; }
+  #temper-q01-comparison .temper-q01-value input { display: block; width: 100%; min-width: 0; height: 66px; margin: 4px 0 10px; padding: 4px 2px; border: 0; border-bottom: 1px solid var(--temper-border); border-radius: 0; color: var(--temper-text); background: transparent; text-align: center; font-size: 36px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  #temper-q01-comparison .temper-q01-value input:disabled { color: var(--temper-secondary); }
+  #temper-q01-comparison .temper-q01-adjust { display: flex; gap: 12px; justify-content: center; }
+  #temper-q01-comparison .temper-q01-adjust button { width: 44px; border-radius: 50%; background: var(--temper-panel-raised); font-size: 24px; }
+  #temper-q01-comparison .temper-q01-effort { min-width: 0; margin: 18px 0 14px; padding: 12px 10px 9px; border: 1px solid var(--temper-border); border-radius: 18px; }
+  #temper-q01-comparison .temper-q01-effort legend { padding: 0 4px; color: var(--temper-secondary); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  #temper-q01-comparison .temper-q01-effort-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  #temper-q01-comparison .temper-q01-effort-options button { position: relative; min-height: 52px; padding: 4px 0; font-variant-numeric: tabular-nums; }
+  #temper-q01-comparison .temper-q01-effort-options button[aria-pressed="true"] { background: var(--temper-volt); color: var(--temper-bg); border-color: var(--temper-volt); font-weight: 500; }
+  #temper-q01-comparison .temper-q01-recommended span { position: absolute; width: 6px; height: 6px; border-radius: 50%; right: 5px; top: 5px; background: var(--temper-volt); }
+  #temper-q01-comparison .temper-q01-recommended[aria-pressed="true"] span { background: var(--temper-bg); }
+  #temper-q01-comparison .temper-q01-effort-scale { display: flex; justify-content: space-between; margin-top: 6px; color: var(--temper-secondary); font-size: 11px; }
+  #temper-q01-comparison .temper-q01-rest { display: flex; gap: 10px; justify-content: space-between; align-items: center; padding: 12px 10px; border: 1px solid var(--temper-border); border-radius: 16px; background: var(--temper-panel); }
+  #temper-q01-comparison .temper-q01-rest-label { display: block; color: var(--temper-cyan); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+  #temper-q01-comparison .temper-q01-rest-time { display: block; color: var(--temper-text); font-size: 24px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  #temper-q01-comparison .temper-q01-rest-actions { display: flex; }
+  #temper-q01-comparison .temper-q01-rest-actions button { min-width: 44px; padding: 5px 8px; border-radius: 0; background: var(--temper-bg); font-size: 13px; }
+  #temper-q01-comparison .temper-q01-rest-actions button:first-child { border-radius: 12px 0 0 12px; }
+  #temper-q01-comparison .temper-q01-rest-actions button:last-child { border-radius: 0 12px 12px 0; }
+  #temper-q01-comparison .temper-q01-rest-actions button + button { border-left: 0; }
+  #temper-q01-comparison .temper-q01-action-area { margin-top: 14px; }
+  #temper-q01-comparison .temper-q01-readiness { min-height: 24px; margin: 0 0 6px; color: var(--temper-secondary); font-size: 13px; }
+  #temper-q01-comparison .temper-q01-phone .temper-q01-primary { display: block; width: 100%; min-height: 68px; padding: 10px 12px; background: var(--temper-volt); color: var(--temper-bg); border-color: var(--temper-volt); font-size: 18px; font-weight: 500; }
+  #temper-q01-comparison .temper-q01-phone .temper-q01-primary:disabled { background: var(--temper-panel); color: var(--temper-secondary); border-color: var(--temper-panel); }
+  #temper-q01-comparison .temper-q01-primary small { display: block; font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; }
+  #temper-q01-comparison .temper-q01-saved { margin-top: 16px; color: var(--temper-secondary); font-size: 12px; }
+  #temper-q01-comparison .temper-q01-saved summary { min-height: 44px; padding: 13px 0; }
+  #temper-q01-comparison .temper-q01-saved ol { margin: 0 0 14px; padding-left: 26px; color: var(--temper-text); }
+  #temper-q01-comparison .temper-q01-saved li { margin: 6px 0; font-variant-numeric: tabular-nums; }
+  #temper-q01-comparison .temper-q01-notice { min-height: 20px; margin: 6px 0; color: var(--temper-secondary); font-size: 12px; }
+  #temper-q01-comparison .temper-q01-error { margin: 6px 0; color: #ffb3b8; font-size: 12px; }
+  #temper-q01-comparison .temper-q01-summary p { color: var(--temper-secondary); }
+  #temper-q01-comparison .temper-q01-finish .temper-q01-primary { margin-top: 20px; }
+  #temper-q01-comparison .temper-q01-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+  @media (max-width: 360px) {
+    #temper-q01-comparison .temper-q01-stage { min-height: 980px; }
+    #temper-q01-comparison .temper-q01-phone { padding: 16px 12px; border-radius: 18px; }
+    #temper-q01-comparison .temper-q01-values { gap: 8px; }
+    #temper-q01-comparison .temper-q01-effort-options { gap: 4px; }
+    #temper-q01-comparison .temper-q01-rest { gap: 6px; }
+  }
+</style>
+<script>
+(() => {
+  const root = document.getElementById('temper-q01-comparison');
+  if (!root) return;
+  const names = ['current', 'candidate'];
+  const views = Object.fromEntries(names.map(name => [name, root.querySelector(`[data-concept="${name}"]`)]));
+  const initial = () => ({ weight: '70', reps: '10', rpe: null, rest: 92, sets: [{ weight: 70, reps: 10, rpe: 9 }], finished: false, showSaved: false });
+  const states = { current: initial(), candidate: initial() };
+  const locks = { current: false, candidate: false };
+  const notices = { current: '', candidate: '' };
+  const generations = { current: 0, candidate: 0 };
+  const asNumber = value => value === '' ? NaN : Number(value);
+  const validWeight = value => Number.isFinite(value) && value >= 0 && value <= 1000 && Number.isInteger(value * 2);
+  const validReps = value => Number.isInteger(value) && value >= 1 && value <= 100;
+  const validRpe = value => Number.isInteger(value) && value >= 6 && value <= 10;
+  const validRecord = record => record && validWeight(record.weight) && validReps(record.reps) && validRpe(record.rpe);
+  const validDraft = state => validWeight(asNumber(state.weight)) && validReps(asNumber(state.reps));
+  const displayNumber = value => Number.isFinite(asNumber(value)) ? String(asNumber(value)) : '—';
+  const time = seconds => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  const payload = state => `${displayNumber(state.weight)} lb × ${displayNumber(state.reps)}`;
+  const sameState = (left, right) => left.weight === right.weight && left.reps === right.reps && left.rpe === right.rpe && left.rest === right.rest && left.finished === right.finished && left.showSaved === right.showSaved && left.sets.length === right.sets.length && left.sets.every((set, index) => {
+    const other = right.sets[index];
+    return set.weight === other.weight && set.reps === other.reps && set.rpe === other.rpe;
+  });
+
+  function restore(snapshot) {
+    if (!snapshot || snapshot.privateContent?.version !== 1) return;
+    const saved = snapshot.privateContent.variants;
+    if (!saved || !names.every(name => {
+      const s = saved[name];
+      return s && typeof s.weight === 'string' && s.weight.length <= 12 && typeof s.reps === 'string' && s.reps.length <= 12 && (s.rpe === null || validRpe(s.rpe)) && Number.isInteger(s.rest) && s.rest >= 0 && s.rest <= 900 && Array.isArray(s.sets) && s.sets.length >= 1 && s.sets.length <= 3 && s.sets.every(validRecord) && typeof s.finished === 'boolean' && (!s.finished || s.sets.length === 3) && typeof s.showSaved === 'boolean';
+    })) return;
+    names.forEach(name => {
+      if (locks[name] || sameState(states[name], saved[name])) return;
+      states[name] = { ...saved[name], sets: saved[name].sets.map(set => ({ ...set })) };
+      generations[name] += 1;
+      locks[name] = false;
+      notices[name] = '';
+    });
+  }
+
+  function persist() {
+    const host = window.openai;
+    if (!host || typeof host.setWidgetState !== 'function') return;
+    const variants = Object.fromEntries(names.map(name => [name, { ...states[name], sets: states[name].sets.map(set => ({ ...set })) }]));
+    const modelContent = { concept: 'Temper Q01 visible readiness; synthetic simulation only', variants: Object.fromEntries(names.map(name => [name, { draft: payload(states[name]), effort: states[name].rpe, savedSets: states[name].sets.length, finished: states[name].finished }])) };
+    try { Promise.resolve(host.setWidgetState({ modelContent, privateContent: { version: 1, variants } })).catch(() => {}); } catch (_) {}
+  }
+
+  function render(name) {
+    const view = views[name];
+    const state = states[name];
+    const count = state.sets.length;
+    const complete = count === 3;
+    const missingEffort = state.rpe === null;
+    const valid = validDraft(state);
+    const locked = locks[name];
+    const effortBlocksLog = valid && !locked && !complete && missingEffort;
+    const last = state.sets[count - 1];
+    view.querySelector('.temper-q01-progress').textContent = complete ? '3 of 3 sets saved' : `Set ${count + 1} of 3 · ${count} saved`;
+    view.querySelector('.temper-q01-track span').style.width = `${count / 3 * 100}%`;
+    view.querySelector('.temper-q01-entry').hidden = complete;
+    view.querySelector('.temper-q01-finish').hidden = !complete || state.finished;
+    view.querySelector('.temper-q01-summary').hidden = !state.finished;
+    view.querySelector('.temper-q01-last').textContent = `Last set · ${last.weight} lb × ${last.reps} · RPE ${last.rpe}`;
+    view.querySelectorAll('[data-field]').forEach(input => {
+      if (document.activeElement !== input) input.value = state[input.dataset.field];
+      input.disabled = locked || complete;
+    });
+    view.querySelectorAll('[data-step]').forEach(button => { button.disabled = locked || complete; });
+    view.querySelectorAll('[data-rpe]').forEach(button => {
+      button.setAttribute('aria-pressed', String(Number(button.dataset.rpe) === state.rpe));
+      button.disabled = locked || complete;
+    });
+    const error = view.querySelector('.temper-q01-error');
+    error.hidden = valid;
+    error.textContent = valid ? '' : 'Use 0–1,000 lb in half-pound steps and 1–100 whole reps.';
+    const helper = view.querySelector(`#temper-q01-${name}-readiness`);
+    helper.textContent = effortBlocksLog ? 'Pick your effort first' : '';
+    if (name === 'candidate') helper.style.visibility = effortBlocksLog ? 'visible' : 'hidden';
+    const log = view.querySelector('[data-action="log"]');
+    log.disabled = locked || complete || !valid || missingEffort;
+    log.querySelector('span').textContent = locked ? 'Saving…' : 'Log set';
+    log.querySelector('small').textContent = payload(state);
+    view.querySelector('.temper-q01-rest-time').textContent = state.rest === 0 ? 'Ended' : time(state.rest);
+    view.querySelectorAll('[data-rest]').forEach(button => { button.disabled = locked || complete || state.rest === 0; });
+    const details = view.querySelector('.temper-q01-saved');
+    details.open = state.showSaved || state.finished;
+    details.querySelector('summary span').textContent = String(count);
+    details.querySelector('ol').replaceChildren(...state.sets.map(set => {
+      const item = document.createElement('li');
+      item.textContent = `${set.weight} lb × ${set.reps} · RPE ${set.rpe}`;
+      return item;
+    }));
+    const notice = view.querySelector('.temper-q01-notice');
+    if (notice.textContent !== notices[name]) notice.textContent = notices[name];
+  }
+
+  names.forEach(name => {
+    const view = views[name];
+    view.addEventListener('input', event => {
+      const input = event.target.closest('[data-field]');
+      if (!input || locks[name] || states[name].sets.length === 3) return;
+      states[name][input.dataset.field] = input.value;
+      notices[name] = '';
+      render(name);
+      persist();
+    });
+    view.addEventListener('click', event => {
+      const button = event.target.closest('button');
+      if (!button || button.disabled || locks[name]) return;
+      const state = states[name];
+      if (button.dataset.step && state.sets.length < 3) {
+        const [field, delta] = button.dataset.step.split(':');
+        const minimum = field === 'weight' ? 0 : 1;
+        const maximum = field === 'weight' ? 1000 : 100;
+        const previous = asNumber(state[field]);
+        const value = Number.isFinite(previous) ? previous : minimum;
+        state[field] = String(Math.min(maximum, Math.max(minimum, value + Number(delta))));
+        notices[name] = `${field === 'weight' ? 'Weight' : 'Reps'} ${state[field]}${field === 'weight' ? ' pounds' : ''}.`;
+      } else if (button.dataset.rpe && state.sets.length < 3) {
+        state.rpe = Number(button.dataset.rpe);
+        notices[name] = `Effort ${state.rpe} selected.`;
+      } else if (button.dataset.rest && state.sets.length < 3 && state.rest > 0) {
+        state.rest = button.dataset.rest === 'skip' ? 0 : Math.min(900, Math.max(0, state.rest + Number(button.dataset.rest)));
+        notices[name] = state.rest === 0 ? 'Rest ended.' : `Rest ${time(state.rest)}.`;
+      } else if (button.dataset.action === 'log' && state.sets.length < 3 && validDraft(state) && validRpe(state.rpe)) {
+        locks[name] = true;
+        const record = { weight: asNumber(state.weight), reps: asNumber(state.reps), rpe: state.rpe };
+        const generation = generations[name];
+        notices[name] = 'Saving set…';
+        render(name);
+        window.setTimeout(() => {
+          if (generation !== generations[name] || !locks[name]) return;
+          state.sets.push(record);
+          state.rpe = null;
+          state.rest = state.sets.length === 3 ? 0 : 120;
+          locks[name] = false;
+          notices[name] = `Set ${state.sets.length} saved: ${record.weight} lb × ${record.reps}, RPE ${record.rpe}.${state.sets.length === 3 ? ' All sets saved. Rest ended.' : ''}`;
+          render(name);
+          persist();
+          if (state.sets.length === 3) view.querySelector('[data-action="finish"]').focus();
+        }, 700);
+        return;
+      } else if (button.dataset.action === 'finish' && state.sets.length === 3 && !state.finished) {
+        state.finished = true;
+        state.showSaved = true;
+        state.rest = 0;
+        notices[name] = 'Workout saved in this simulation.';
+      } else return;
+      render(name);
+      persist();
+      if (state.finished) view.querySelector('.temper-q01-saved summary').focus();
+    });
+    view.querySelector('.temper-q01-saved').addEventListener('toggle', event => {
+      const next = event.target.open;
+      if (states[name].finished || states[name].showSaved === next) return;
+      states[name].showSaved = next;
+      persist();
+    });
+  });
+
+  restore(window.openai?.widgetState);
+  names.forEach(render);
+  window.addEventListener('openai:set_globals', event => {
+    const globals = event.detail?.globals;
+    if (!globals || !Object.prototype.hasOwnProperty.call(globals, 'widgetState')) return;
+    restore(globals.widgetState);
+    names.forEach(render);
+  });
+})();
+</script>
