@@ -10,6 +10,8 @@
   by packet W1d on the owner's decisions of 23 September 2026: a value wider
   than the numeral's sample steps its size down on the sample's line, and the
   − / + glyph is drawn at a fixed size inside its plate
+- **Clarified:** 8 October 2026 — the density-budget paragraph records the
+  later adopted CoachEngine and P1 changes; the current ratchet remains 852 dp
 - **Amends:** [ADR-026](ADR-026-frontend-redesign.md) decision 3 (the compact
   64 dp identity and its order) and the *Workout contracts* order in
   [FRONTEND_REDESIGN.md](../FRONTEND_REDESIGN.md). ADR-026 decisions 2, 4 and 8
@@ -168,10 +170,16 @@ untouched.
    "." at font 1.6 and 2.0, and at 2.0 the − drew nothing. The 48 dp target
    and the inset are unchanged.
 
-`WorkoutFloorRenderTest.theEntryLoopStaysWithinItsHeightBudget` now measures the
-loop end to end at 360 dp — identity top to set-history bottom — and holds it at
-or under 840 dp. It was 920.5 dp before this pass and is 837.0 dp after. The
-number may be lowered; it may not be raised to make a change fit.
+`WorkoutFloorRenderTest.theEntryLoopStaysWithinItsHeightBudget` measures the
+loop end to end at 360 dp — identity top to set-history bottom. The original
+density pass held it at 840 dp (920.5 dp before, 837.0 dp after). CoachEngine v1,
+adopted in commit `cc3609b1` (#370), added its evidence chip and changed the
+ceiling to 868 dp. The owner's section-frame packet P1, adopted in commit
+`89d94b41` (#444) and described in [the 29 September plan](../owner-eight-plan-2026-09-29.md),
+lowered the ceiling to its measured 852 dp. **852 dp is the current test
+ratchet**, not additional space available to a new design. The number may be
+lowered; it may not be raised to make a change fit. This clarification records
+those integrated decisions and changes no layout or test threshold.
 
 ## Consequences
 

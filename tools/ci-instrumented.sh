@@ -11,7 +11,7 @@
 # logged under its `PT/` tags.
 set -u
 
-./gradlew connectedDebugAndroidTest --stacktrace
+./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.syntheticFixture=true --stacktrace
 status=$?
 if [ "$status" -ne 0 ]; then
   echo '::group::logcat (last 400 matching lines)'

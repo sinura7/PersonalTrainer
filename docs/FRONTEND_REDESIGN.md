@@ -78,6 +78,14 @@ a Notifications page, a coach that reads twelve weeks, a name for the coach).
 of W3, S1, X8 and X9 (owner decision of 29 September); each gets a row here
 when it is cut, from 12h on.
 
+**Priority amendment, 8 October 2026:** the owner's [complete-workout UX roadmap](ux-context/README.md)
+now leads notification-settings expansion, twelve-week coaching and coach naming.
+First establish the connected workout baseline and repair verification, then
+implement supported workout findings one packet at a time. Necessary data-safety
+work keeps priority. The older rows below preserve scope and history; reconcile
+their status against current source before starting a packet. The deferred
+features are not cancelled, and sync activation retains its separate owner gate.
+
 | # | Packet | Scope | Kind | Status |
 |---|---|---|---|---|
 | 1 | S0a | Sync pause switch; Delete account hidden; honest Account copy; R8 keep rule | V | Done — #380, drop 99 |

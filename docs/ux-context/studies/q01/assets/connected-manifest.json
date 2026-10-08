@@ -1,0 +1,76 @@
+{
+  "productionSourceBase": "eae6517845ee560ceb9695bf2f92788e2b4339cc",
+  "artifactRunId": "20261008-135800403",
+  "generator": "ConnectedWorkoutJourneyInstrumentedTest.homeStart_manualResult_rest_switch_correct_finish_done_history_sameSession",
+  "provenance": "Byte-identical synthetic Android screenshots pulled after the passing combined run; device and local SHA256 matched. Root visually inspected all five. No owner history or original owner screenshots included.",
+  "runtime": {
+    "profile": "temper-tests-api29",
+    "serial": "emulator-5554",
+    "systemImage": "system-images;android-29;default;x86_64",
+    "imageRevision": "8",
+    "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+    "density": "Physical density: 420",
+    "size": "Physical size: 1080x1920",
+    "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+    "renderer": "swiftshader_indirect",
+    "fontScale": 1.0,
+    "animations": 0,
+    "locale": "en-US",
+    "timeZone": "America/Toronto",
+    "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+    "goldenProfile": "windows-swiftshader37",
+    "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+    "capturedUtc": "2026-10-08T13:58:00.3901440Z"
+  },
+  "installedPackage": {
+    "applicationId": "com.sinura.personaltrainer.debug",
+    "versionCode": 122,
+    "versionName": "1.0.0+debug.122",
+    "evidence": "PackageManager version logged by each of the three test fixtures before activity launch"
+  },
+  "fixture": "Offline owned disposable emulator with verified Android permissions and acknowledged hints; separate prior synthetic session suppresses first-record overlay. OS states restored and postconditions verified; seeded app preferences remain.",
+  "limits": [
+    "API29 portrait default text only in this Android run",
+    "Real elapsed timer observed running then Skip; no natural-expiry or delivery/timing-quality acceptance",
+    "Compose frame clock manually pumped around save/rest capture and Android Skip",
+    "Owner installed build, touch/comprehension, TalkBack, sound/haptics and physical-device performance unobserved"
+  ],
+  "frames": [
+    {
+      "id": "N07",
+      "file": "N07-home-routine-api29.png",
+      "deviceOrigin": "/sdcard/Download/20261008-135800403-connected-workout-home-routine-api29.png",
+      "bytes": 100799,
+      "sha256": "a7d1dfaa9f69f9e9395a61ebad849fd38f2dfb6424fc459e2864cd01cf01ca69"
+    },
+    {
+      "id": "N08",
+      "file": "N08-manual-ready-api29.png",
+      "deviceOrigin": "/sdcard/Download/20261008-135800403-connected-workout-manual-ready-api29.png",
+      "bytes": 144752,
+      "sha256": "8db79efa08691b30f48bffeab6a822fc2975206736ccdf70f6dc7a0ee041db7b"
+    },
+    {
+      "id": "N09",
+      "file": "N09-saved-rest-running-api29.png",
+      "deviceOrigin": "/sdcard/Download/20261008-135800403-connected-workout-saved-rest-running-api29.png",
+      "bytes": 141972,
+      "sha256": "2a1f2cfbb659db65bccfd4ef166d3e30dc4ecd84e016ab80765bde92f3b64b60"
+    },
+    {
+      "id": "N10",
+      "file": "N10-summary-api29.png",
+      "deviceOrigin": "/sdcard/Download/20261008-135800403-connected-workout-summary-api29.png",
+      "bytes": 102477,
+      "sha256": "1318a69265b8424ae8b6b5ebd79ba5629228acbbf0d1567029875abeb9cea850"
+    },
+    {
+      "id": "N11",
+      "file": "N11-history-detail-api29.png",
+      "deviceOrigin": "/sdcard/Download/20261008-135800403-connected-workout-history-detail-api29.png",
+      "bytes": 154781,
+      "sha256": "0d4041508528b2b19e26fc9201470a7824cb48fad99294512b0c5190c6a3ff46"
+    }
+  ],
+  "journeyClockPolicy": "Service state uses Android SystemClock.elapsedRealtime; Compose test frames are manually advanced only around the save/rest capture and Android Skip. No service/timer values are replaced. The launcher runtime clockPolicy is a general profile note, not an assertion of immutable service time in this journey."
+}

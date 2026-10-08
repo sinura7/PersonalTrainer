@@ -14,6 +14,13 @@ Since 22 September its packets run in the order the
 sync-safety packets; the [25 September audit](design-audit/2026-09-25/AUDIT.md)
 re-set that order on the owner's decision of the same day.
 
+On 8 October the owner prioritized the [complete-workout UX roadmap](ux-context/README.md)
+ahead of notification-settings expansion, twelve-week coaching and coach naming.
+Begin with one connected synthetic workout and repair the verification baseline;
+necessary data-safety work remains first. Those deferred feature decisions remain
+in force. Extend the same evidence-led process across the app after workout
+acceptance; do not rebuild work merely because an older progress row says pending.
+
 This file is the executable program. Accepted ADRs are the decisions it
 may not violate. Historical [ROADMAP.md](ROADMAP.md), Jobs 1–6, and
 `docs/archive/` explain how the strength logger was built. They are not

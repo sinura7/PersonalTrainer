@@ -1,0 +1,138 @@
+{
+  "productionSourceBase": "eae6517845ee560ceb9695bf2f92788e2b4339cc",
+  "scope": "First owner-authorized roadmap packet: documentation, connected synthetic baseline, verification/tooling repairs. Production behavior, schema, backup format and signing configuration unchanged.",
+  "fullLocalGate": {
+    "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+    "status": "BUILD SUCCESSFUL",
+    "tests": 3571,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "suites": 537,
+    "unitExecution": "3571 tests actually executed in the preceding complete gate. Final gate reuses unchanged unit inputs/results (testDebugUnitTest UP-TO-DATE), reruns static checks and verifies final Android test assembly/lint/build.",
+    "logSha256": "b6d9447bd46fcbe7c4fc59d9e8ac33ca9fd48c96adf8dd5c76af46293e970866",
+    "xmlAggregateSha256": "49fe2ee9a53afc753e23d1001ce3d7be4e26fc8e5c10d687ad18c283ff1dda0c",
+    "lint": {
+      "errors": 0,
+      "warnings": 0,
+      "xmlSha256": "ffaf7c5308202305506885df84669309c9425b57cb4f2515ea36bd0e37ec45c3"
+    },
+    "archive": "build/ux-context/runs/roadmap-final-gate/"
+  },
+  "selectedJvmResults": [
+    {
+      "name": "com.sinura.personaltrainer.data.local.TemperPreMigrationCopyTest",
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timestamp": "2026-10-08T13:51:35",
+      "cases": [
+        "anOlderTemperDatabaseIsCopiedWithItsWalEvenAfterTheLegacyCopyIsDone",
+        "theCopyStillHoldsTheOldFileAfterRoomMigratesTheLiveOne",
+        "onlyTheNewestTwoTemperCopiesAreKeptAndTheLegacyCopyIsNeverTouched",
+        "aDeadLaunchsHalfCopyIsThrownAwayEvenWhenThereIsNoRoomForANewOne",
+        "roomForACopyLeavesTheMigrationItsOwn",
+        "theVersionIsReadThroughSqliteNotFromTheHeaderBytes",
+        "aLeftoverJournalIsCopiedWithTheFile",
+        "aFreshInstallCopiesNothingAndIsNotCheckedAgain",
+        "theSpaceCheckCountsTheWalNotJustTheMainFile",
+        "aNewerDatabaseIsNotCopied",
+        "aCopyFinishedByALaunchThatDiedBeforeItsMarkerIsKeptAndOlderOnesAreStillTidied",
+        "aFailedCopyNeverStopsTheAppAndMarksNothing",
+        "aCurrentDatabaseIsNeverCopied",
+        "aCompleteCopyIsNeverOverwritten",
+        "aCheckedVersionIsNotCheckedAgain",
+        "aCopyLeftHalfWrittenByADeadLaunchIsTakenAgainNotKept",
+        "aDatabaseWithNoSchemaYetIsNotCopied",
+        "aCopyThatFailsPartWayIsNeverKeptAndTheNextLaunchTakesItWhole",
+        "onlyOlderCopyFoldersCountAndAnythingElseThereIsLeftAlone",
+        "onANearlyFullPhoneTheCopyIsSkippedSoTheMigrationKeepsItsRoom",
+        "anUnreadableFileIsNotCopiedAndIsLookedAtAgain"
+      ],
+      "xmlSha256": "41f99606df5e3f108a8dd0453db03733c33f4e97ed4778a08804dc0056bac437"
+    },
+    {
+      "name": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timestamp": "2026-10-08T13:52:52",
+      "cases": [
+        "manualResultRestSwitchCorrectionAndFinishAgreeInSummaryHistoryAndDetail"
+      ],
+      "xmlSha256": "98ae75e4e151233a03551c329e8068247c79ef2ae100ade74c916369705343cb"
+    }
+  ],
+  "nativeAndroid": {
+    "artifactRunId": "20261008-135800403",
+    "suite": {
+      "name": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "timestamp": "2026-10-08T13:58:42",
+      "cases": [
+        "seedSession_typeWeight_log_rest_finish_reachesSummary",
+        "leaveResume_finishFromBar_rotateSummary_andRepairUndo",
+        "homeStart_manualResult_rest_switch_correct_finish_done_history_sameSession"
+      ],
+      "xmlSha256": "6a16d3d2ed0c87155897905418d204106b3da87785f9eaab894add2977c069fa"
+    },
+    "archive": "build/ux-context/runs/android-attempt-09-success/",
+    "logSha256": "409c185e717b0bb6e688cc66f345006cd45f8f5fa93599a62bd21ae816be0807",
+    "logcatSha256": "7b6da8de41888429b44aebb65ae79282baaad31fa6315e59e2df5c7795ff5174",
+    "runtimeProfileSha256": "c630a71ac11489469856229365a01b1da9470f706463d240a7a7496fbaf7f5b9",
+    "installedVersionCode": 122,
+    "installedVersionName": "1.0.0+debug.122",
+    "osRestoration": "All three setup and cleanup observations in logcat: original animation scales, Wi-Fi/data strings, app-op modes and capabilities compared; seeded app preferences remain.",
+    "captureManifest": "assets/connected-manifest.json"
+  },
+  "standalonePreflight": {
+    "status": "preflight: OK",
+    "classes": 248,
+    "tests": 1635,
+    "failures": 0,
+    "logSha256": "22324afc517876ed995bad434c90763ffc1436a2dcf0cb53eec86f6fa98011cf",
+    "archive": "build/ux-context/runs/preflight-repair-20261008/preflight-verified.log",
+    "gradleOnlyDomainFiles": [
+      "CompletedTrainingParityTest.kt",
+      "DraftStoreTest.kt",
+      "UndoQueueTest.kt"
+    ],
+    "contractProbes": {
+      "checks": 9,
+      "platforms": [
+        "Windows Git sh",
+        "WSL Linux"
+      ],
+      "status": "All passed; zero-discovery mutant also rejected."
+    }
+  },
+  "review": {
+    "independent": "Initial medium unchecked restoration finding fixed and rereviewed; no remaining material findings. Reviewer read source, XML/logs and captures; no independent test execution.",
+    "adversarial": "Older cleanup timeout finding fixed and rereviewed; no remaining actionable findings. Reviewer read final source and attempt08/09 archives; earlier independently executed the nine shell contract probes."
+  },
+  "verificationSourceSha256": {
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/ConnectedWorkoutJourneyInstrumentedTest.kt": "966d788bd6f8de0515413c27dd2c55622f2bef797470b2149f062887fef81d06",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutJourneyInstrumentedTest.kt": "e18ccc2450f38f1ea7172cb9ff26b9e7a1e04576288a8263794fe15d6344ab62",
+    "app/src/test/java/com/sinura/personaltrainer/ui/workout/ConnectedWorkoutJourneyTest.kt": "025c56ad9398ee605160992fde51a253d8ccd434380a122f2de934589df77ed6",
+    "app/src/test/java/com/sinura/personaltrainer/data/local/TemperPreMigrationCopyTest.kt": "6bab7783303ef71cae8683149f2065c74121c660451f758ac684614ad5046502",
+    "tools/preflight.sh": "7fffd3edb12755f2c48085a7194142ee07540899919038cbab5bd578a53471e9",
+    "tools/run-domain-tests.sh": "03253884bbe3dfc4c89c607a5d269eb0234876b62a764131b9654a6de1cb17e4",
+    "tools/syntax-check.sh": "e04605e8227acd79d4322f70b8b173c7114235dee147b11aadaca5677ac2391a",
+    "tools/test_domain_lane.sh": "ca4cad161a86e075adad81d84cd4aa00643d2b75c287506e15a1ea07daa54275",
+    "tools/ci-instrumented.sh": "9026d083051e2a0c3fc7efde40c83eacebfbe436022b37c7b9df0f91a555f77d"
+  },
+  "evidenceLimits": [
+    "Original failed gate remains archived and is not overwritten by repaired success.",
+    "API29 only in this Android run; 360x800 Robolectric API35 connected case is separate.",
+    "Older smoke retains its direct timer-stop seam; full AppNav connected case uses Android Skip.",
+    "No denied-permission, natural-expiry, notification/lock delivery, physical touch/TalkBack/sound/haptics/performance or owner comprehension acceptance from these results.",
+    "Published Live124 comes from open PR457; installed owner build unknown.",
+    "Complete workout usability milestone, chosen native UX change and broader app roadmap remain open."
+  ],
+  "sourceHashPolicy": "Verification source hashes record actual Windows working-tree bytes used by this run; Git text normalization may change line endings in repository blobs."
+}
