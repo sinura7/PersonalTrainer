@@ -98,6 +98,9 @@ internal fun TempoWhySheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    // Reserve room for the fixed actions; a long explanation must
+                    // scroll instead of measuring Keep/Use at zero height.
+                    .weight(1f, fill = false)
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = Metrics.space4),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space4),

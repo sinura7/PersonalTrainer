@@ -301,6 +301,6 @@ class DockCommitRenderTest {
 
     private companion object {
         /** The owner's floor rule, as a number: a thumb-and-chalk target, not a token's name. */
-        val COMMIT_MIN = Metrics.logFloorCommit
+        val COMMIT_MIN = 72.dp
     }
 }

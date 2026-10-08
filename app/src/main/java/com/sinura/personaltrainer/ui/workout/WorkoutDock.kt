@@ -336,7 +336,7 @@ internal fun WorkoutDock(
                             },
                         )
                         .semantics { contentDescription = spokenAction },
-                    height = Metrics.logFloorCommit,
+                height = Metrics.commit,
                     hapticFeedback = false,
                 )
             }

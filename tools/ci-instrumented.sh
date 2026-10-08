@@ -66,10 +66,54 @@ network_posture() {
     *) printf 'active\n' ;;
   esac
 }
-wifi_before=$(shell_value settings get global wifi_on) || fail 'Cannot capture WiFi state.'
-data_before=$(shell_value settings get global mobile_data) || fail 'Cannot capture mobile-data state.'
-case "$wifi_before/$data_before" in 0/0|0/1|1/0|1/1) ;; *) fail 'Unsupported original network settings; leaving device unchanged.' ;; esac
-network_before=$(network_posture) || fail 'Cannot capture original connectivity.'
+# A fresh boot can expose enabled transport settings before its default network
+# arrives. Restoring that transient enabled/none pair later would correctly fail
+# the strict rollback check even after a green suite. Capture only a coherent
+# observed posture, unchanged across two polls, before installing any rollback
+# trap or touching the device. Both disabled requires none; an enabled transport
+# requires an actual active default network. A disconnected startup is refused.
+# Check before starting another bounded adb read and after the final read. A
+# read begun before expiry may finish up to its existing 10 s timeout later;
+# that late result must not admit a baseline or start another device read.
+initial_network_before_deadline() {
+  if [ "$(date +%s)" -ge "$deadline" ]; then
+    fail "Initial network state did not settle before mutation: actual=$posture_now; leaving device unchanged."
+  fi
+}
+capture_network_baseline() {
+  deadline=$(( $(date +%s) + 30 ))
+  candidate= stable_reads=0 posture_now=unread
+  while :; do
+    initial_network_before_deadline
+    wifi_now=$(shell_value settings get global wifi_on) || fail 'Cannot capture initial WiFi state; leaving device unchanged.'
+    initial_network_before_deadline
+    data_now=$(shell_value settings get global mobile_data) || fail 'Cannot capture initial mobile-data state; leaving device unchanged.'
+    case "$wifi_now/$data_now" in
+      0/0|0/1|1/0|1/1) ;;
+      *) fail 'Unsupported initial network settings; leaving device unchanged.' ;;
+    esac
+    initial_network_before_deadline
+    network_now=$(network_posture) || fail 'Cannot capture initial connectivity; leaving device unchanged.'
+    posture_now="$wifi_now/$data_now/$network_now"
+    initial_network_before_deadline
+    case "$posture_now" in
+      0/0/none|0/1/active|1/0/active|1/1/active)
+        if [ "$candidate" = "$posture_now" ]; then
+          stable_reads=$((stable_reads + 1))
+        else
+          candidate=$posture_now stable_reads=1
+        fi
+        if [ "$stable_reads" -ge 2 ]; then
+          wifi_before=$wifi_now data_before=$data_now network_before=$network_now
+          return 0
+        fi
+        ;;
+      *) candidate= stable_reads=0 ;;
+    esac
+    sleep 1
+  done
+}
+capture_network_baseline
 echo "CI_SYNTHETIC_NETWORK serial=$serial avd=$avd api=$api target=com.sinura.personaltrainer.debug originalWifi=$wifi_before originalData=$data_before originalDefault=$network_before"
 
 await_network() {

@@ -15,15 +15,16 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
+import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.coach.CoachEvidenceCopy
 import com.sinura.personaltrainer.domain.coach.CoachSuggestion
@@ -49,6 +51,44 @@ import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
+/** Keep open explanations when the floor moves its card between pinned and scroll layouts. */
+internal class TempoCoachCardState(
+    why: MutableState<Boolean>,
+    evidence: MutableState<Boolean>,
+) {
+    var showWhy by why
+    var showEvidence by evidence
+}
+
+@Composable
+internal fun rememberTempoCoachCardState(tipKey: String?): TempoCoachCardState {
+    val why = rememberSaveable(tipKey) { mutableStateOf(false) }
+    val evidence = rememberSaveable(tipKey) { mutableStateOf(false) }
+    return remember(why, evidence) { TempoCoachCardState(why, evidence) }
+}
+
+private fun TempoCoachTip.presentation(): Triple<SetMicroRec, CoachSuggestion, Boolean> = when (this) {
+    is TempoCoachTip.NextSet -> Triple(rec, suggestion, rec.showApply && !rec.previewOnly)
+    is TempoCoachTip.AddASet -> Triple(
+        seedRec,
+        CoachSuggestion(
+            weightKg = seedRec.nextWeightKg,
+            reps = seedRec.nextReps,
+            rpe = seedRec.nextRpe,
+            restSeconds = seedRec.restSeconds,
+            reasonCode = "ADD_A_SET",
+            explanationShort = tipShort,
+            evidenceIds = evidenceIds,
+            trace = trace,
+            previewOnly = false,
+            showApply = true,
+            anotherSetAdvised = false,
+            warmupSets = emptyList(),
+        ),
+        true,
+    )
+}
+
 @Composable
 internal fun TempoCoachCard(
     tip: TempoCoachTip,
@@ -61,35 +101,10 @@ internal fun TempoCoachCard(
     modifier: Modifier = Modifier,
     compactLandscape: Boolean = false,
     compactStrip: Boolean = false,
+    cardState: TempoCoachCardState = rememberTempoCoachCardState(tip.tipShort),
+    renderDialogs: Boolean = true,
 ) {
-    val view = LocalView.current
-    var showWhy by rememberSaveable(tip.tipShort) { mutableStateOf(false) }
-    var showEvidence by rememberSaveable(tip.tipShort) { mutableStateOf(false) }
-    val (rec, suggestion, canUse) = when (tip) {
-        is TempoCoachTip.NextSet -> Triple(
-            tip.rec,
-            tip.suggestion,
-            tip.rec.showApply && !tip.rec.previewOnly,
-        )
-        is TempoCoachTip.AddASet -> Triple(
-            tip.seedRec,
-            CoachSuggestion(
-                weightKg = tip.seedRec.nextWeightKg,
-                reps = tip.seedRec.nextReps,
-                rpe = tip.seedRec.nextRpe,
-                restSeconds = tip.seedRec.restSeconds,
-                reasonCode = "ADD_A_SET",
-                explanationShort = tip.tipShort,
-                evidenceIds = tip.evidenceIds,
-                trace = tip.trace,
-                previewOnly = false,
-                showApply = true,
-                anotherSetAdvised = false,
-                warmupSets = emptyList(),
-            ),
-            true,
-        )
-    }
+    val (rec, _, canUse) = tip.presentation()
     val numbers = SetMicroRecCopy.numbers(rec, loadClass, unit)
     val detailLine = when (tip) {
         is TempoCoachTip.AddASet -> "Add 1 working set · $numbers"
@@ -111,7 +126,7 @@ internal fun TempoCoachCard(
             Text("×", style = InstrumentType.bodyStrong, color = TextSecondary)
         }
         TextButton(
-            onClick = { showWhy = true },
+            onClick = { cardState.showWhy = true },
             modifier = Modifier
                 .heightIn(min = touchMin)
                 .testTag(WorkoutTestTags.MICRO_REC_WHY),
@@ -269,17 +284,33 @@ internal fun TempoCoachCard(
             }
         }
     }
-    if (showEvidence) {
+    if (renderDialogs) {
+        TempoCoachDialogs(tip, loadClass, unit, applied, onApply, cardState)
+    }
+}
+
+/** Modal ownership stays outside the lazy list, including when its card is offscreen. */
+@Composable
+internal fun TempoCoachDialogs(
+    tip: TempoCoachTip,
+    loadClass: LoadClass,
+    unit: WeightUnit,
+    applied: Boolean,
+    onApply: () -> Unit,
+    cardState: TempoCoachCardState,
+) {
+    val (_, suggestion, canUse) = tip.presentation()
+    if (cardState.showEvidence) {
         ConfirmActionDialog(
             title = "Evidence",
             body = CoachEvidenceCopy.detailLines(suggestion).joinToString("\n\n"),
             confirmLabel = "Close",
             dismissLabel = null,
-            onConfirm = { showEvidence = false },
-            onDismiss = { showEvidence = false },
+            onConfirm = { cardState.showEvidence = false },
+            onDismiss = { cardState.showEvidence = false },
         )
     }
-    if (showWhy) {
+    if (cardState.showWhy) {
         val whyModel = when (tip) {
             is TempoCoachTip.NextSet ->
                 TempoWhySheetCopy.forNextSet(tip.rec, tip.suggestion, loadClass, unit)
@@ -291,7 +322,7 @@ internal fun TempoCoachCard(
             canApply = canUse,
             applied = applied,
             onApply = onApply,
-            onDismiss = { showWhy = false },
+            onDismiss = { cardState.showWhy = false },
         )
     }
 }

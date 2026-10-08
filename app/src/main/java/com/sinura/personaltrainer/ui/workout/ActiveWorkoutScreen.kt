@@ -425,8 +425,14 @@ private fun ActiveWorkoutContent(
             preparePhase = workingLogged == 0,
             entryMatchesSuggestion = floorTempoApplied,
         )
+    // A pinned card can cover the entire usable entry region at large text or short
+    // landscape heights. Let it scroll in the established RPE → coach → history order.
+    val floorTempoInline = landscape || LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
+    // Consume restored modal state only after the advice loads, as the card did
+    // before hoisting; a transient null tip must not reset restored saveable inputs.
+    val floorTempoCardState = floorTempoTip?.let { rememberTempoCoachCardState(it.tipShort) }
     val floorTempoScrollReserve = when {
-        floorTempoTip == null || !logBarVisible -> 0.dp
+        floorTempoTip == null || !logBarVisible || floorTempoInline -> 0.dp
         floorTempoCompactStrip -> Metrics.logFloorTempoCompact
         else -> Metrics.logFloorTempoFull
     }
@@ -815,6 +821,25 @@ private fun ActiveWorkoutContent(
                                         )
                                     }
                                 }
+                                if (floorTempoInline) {
+                                    floorTempoTip?.let { tip ->
+                                        item(key = "tempo-coach") {
+                                            TempoCoachCard(
+                                                tip = tip,
+                                                loadClass = loadClass,
+                                                unit = unit,
+                                                applied = floorTempoApplied,
+                                                enabled = floorEntryEnabled,
+                                                onApply = { viewModel.applyTempoCoachTip(tip) },
+                                                onDismiss = { viewModel.dismissTempoCoachTip(tip) },
+                                                compactLandscape = landscape,
+                                                compactStrip = floorTempoCompactStrip,
+                                                cardState = checkNotNull(floorTempoCardState),
+                                                renderDialogs = false,
+                                            )
+                                        }
+                                    }
+                                }
                                 item(key = "set-history") {
                                     val current = if (state.editingSetId != null || plannedComplete) {
                                         null
@@ -858,7 +883,7 @@ private fun ActiveWorkoutContent(
                             }
                         }
                     }
-                    floorTempoTip?.let { tip ->
+                    floorTempoTip?.takeUnless { floorTempoInline }?.let { tip ->
                         TempoCoachCard(
                             tip = tip,
                             loadClass = loadClass,
@@ -869,6 +894,8 @@ private fun ActiveWorkoutContent(
                             onDismiss = { viewModel.dismissTempoCoachTip(tip) },
                             compactLandscape = landscape,
                             compactStrip = floorTempoCompactStrip,
+                            cardState = checkNotNull(floorTempoCardState),
+                            renderDialogs = false,
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .fillMaxWidth()
@@ -882,6 +909,17 @@ private fun ActiveWorkoutContent(
                 }
             }
         }
+    }
+
+    floorTempoTip?.let { tip ->
+        TempoCoachDialogs(
+            tip = tip,
+            loadClass = loadClass,
+            unit = unit,
+            applied = floorTempoApplied,
+            onApply = { viewModel.applyTempoCoachTip(tip) },
+            cardState = checkNotNull(floorTempoCardState),
+        )
     }
 
     if (setsOpen && selected != null) {

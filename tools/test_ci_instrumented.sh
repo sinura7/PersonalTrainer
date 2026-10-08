@@ -26,17 +26,58 @@ if [ "$1" = devices ]; then
 fi
 [ "$1" = -s ] && [ "$2" = emulator-5554 ] || exit 90
 shift 2
+advance_startup_read_time() {
+  [ ! -f "$MOCK_ROOT/mutation-called" ] || return 0
+  if [ -f "$MOCK_ROOT/startup-expiry-after-wifi" ]; then
+    seconds=8
+  elif [ -f "$MOCK_ROOT/startup-expiry-after-connectivity" ]; then
+    case "$1/$2" in */1) seconds=6 ;; connectivity/2) seconds=8 ;; *) seconds=2 ;; esac
+  else
+    return 0
+  fi
+  tick=100; if [ -f "$MOCK_ROOT/tick" ]; then tick=$(cat "$MOCK_ROOT/tick"); fi
+  printf '%s\n' "$((tick + seconds))" > "$MOCK_ROOT/tick"
+}
 case "$*" in
   'shell getprop ro.hardware') cat "$MOCK_ROOT/hardware" ;;
   'shell getprop ro.build.fingerprint') cat "$MOCK_ROOT/fingerprint" ;;
   'shell getprop ro.kernel.qemu.avd_name'|'shell getprop ro.boot.qemu.avd_name') cat "$MOCK_ROOT/avd" ;;
   'shell getprop ro.build.version.sdk') cat "$MOCK_ROOT/api" ;;
   'shell pm list packages') cat "$MOCK_ROOT/packages" ;;
-  'shell settings get global wifi_on') cat "$MOCK_ROOT/wifi" ;;
-  'shell settings get global mobile_data') cat "$MOCK_ROOT/data" ;;
+  'shell settings get global wifi_on')
+    reads=0; if [ -f "$MOCK_ROOT/wifi-reads" ]; then reads=$(cat "$MOCK_ROOT/wifi-reads"); fi
+    reads=$((reads + 1)); printf '%s\n' "$reads" > "$MOCK_ROOT/wifi-reads"
+    advance_startup_read_time wifi "$reads"
+    if [ -f "$MOCK_ROOT/unreadable-wifi-after-first" ] && [ "$reads" -gt 1 ] && [ ! -f "$MOCK_ROOT/mutation-called" ]; then exit 28; fi
+    if [ -f "$MOCK_ROOT/startup-transports-change" ] && [ "$reads" -ge 2 ] && [ ! -f "$MOCK_ROOT/mutation-called" ]; then
+      printf '0\n' > "$MOCK_ROOT/wifi"; printf '0\n' > "$MOCK_ROOT/data"
+    fi
+    cat "$MOCK_ROOT/wifi"
+    ;;
+  'shell settings get global mobile_data')
+    reads=0; if [ -f "$MOCK_ROOT/data-reads" ]; then reads=$(cat "$MOCK_ROOT/data-reads"); fi
+    reads=$((reads + 1)); printf '%s\n' "$reads" > "$MOCK_ROOT/data-reads"
+    advance_startup_read_time data "$reads"
+    cat "$MOCK_ROOT/data"
+    ;;
   'shell dumpsys connectivity')
-    if [ -f "$MOCK_ROOT/unknown-connectivity" ]; then printf 'Unrecognized snapshot\n'; exit 0; fi
-    if [ -f "$MOCK_ROOT/restore-connectivity-failure" ] && [ -f "$MOCK_ROOT/gradle-called" ]; then
+    reads=0; if [ -f "$MOCK_ROOT/connectivity-reads" ]; then reads=$(cat "$MOCK_ROOT/connectivity-reads"); fi
+    reads=$((reads + 1)); printf '%s\n' "$reads" > "$MOCK_ROOT/connectivity-reads"
+    advance_startup_read_time connectivity "$reads"
+    if [ ! -f "$MOCK_ROOT/mutation-called" ]; then
+      printf '%s\n' "$reads" > "$MOCK_ROOT/pre-mutation-connectivity-reads"
+    fi
+    if [ -f "$MOCK_ROOT/unknown-connectivity" ] ||
+      { [ -f "$MOCK_ROOT/unknown-connectivity-after-first" ] && [ "$reads" -gt 1 ] && [ ! -f "$MOCK_ROOT/mutation-called" ]; }; then
+      printf 'Unrecognized snapshot\n'; exit 0
+    fi
+    if [ ! -f "$MOCK_ROOT/mutation-called" ] &&
+      { [ -f "$MOCK_ROOT/boot-network-never-settles" ] || { [ -f "$MOCK_ROOT/boot-network-settles" ] && [ "$reads" = 1 ]; }; }; then
+      printf 'Active default network: none\n'
+    elif [ ! -f "$MOCK_ROOT/mutation-called" ] &&
+      { [ -f "$MOCK_ROOT/offline-network-never-settles" ] || { [ -f "$MOCK_ROOT/offline-network-settles" ] && [ "$reads" = 1 ]; }; }; then
+      printf 'Active default network: 100\n'
+    elif [ -f "$MOCK_ROOT/restore-connectivity-failure" ] && [ -f "$MOCK_ROOT/gradle-called" ]; then
       printf 'Active default network: none\n'
     elif [ -f "$MOCK_ROOT/stays-online" ] || [ "$(cat "$MOCK_ROOT/wifi")/$(cat "$MOCK_ROOT/data")" != 0/0 ]; then
       printf 'Active default network: 100\n'
@@ -46,8 +87,9 @@ case "$*" in
     # Internet request records remain even offline; they are not active networks.
     printf 'Network Requests:\n  NetworkRequest [ Capabilities: INTERNET ]\n'
     ;;
-  'shell svc wifi disable') printf '0\n' > "$MOCK_ROOT/wifi" ;;
+  'shell svc wifi disable') touch "$MOCK_ROOT/mutation-called"; printf '0\n' > "$MOCK_ROOT/wifi" ;;
   'shell svc data disable')
+    touch "$MOCK_ROOT/mutation-called"
     printf '0\n' > "$MOCK_ROOT/data"
     if [ -f "$MOCK_ROOT/setup-failure" ] && [ ! -f "$MOCK_ROOT/setup-failed-once" ]; then
       touch "$MOCK_ROOT/setup-failed-once"
@@ -55,9 +97,10 @@ case "$*" in
     fi
     ;;
   'shell svc wifi enable')
+    touch "$MOCK_ROOT/mutation-called"
     if [ ! -f "$MOCK_ROOT/restore-failure" ] || [ ! -f "$MOCK_ROOT/gradle-called" ]; then printf '1\n' > "$MOCK_ROOT/wifi"; fi
     ;;
-  'shell svc data enable') printf '1\n' > "$MOCK_ROOT/data" ;;
+  'shell svc data enable') touch "$MOCK_ROOT/mutation-called"; printf '1\n' > "$MOCK_ROOT/data" ;;
   'logcat -d') printf 'TestRunner: synthetic failure evidence\n' ;;
   'shell ls /sdcard/Download/*.png 2>/dev/null') ;;
   *) printf 'Unexpected mock adb call: %s\n' "$*" >&2; exit 91 ;;
@@ -69,13 +112,15 @@ set -eu
 [ "$1" = +%s ] || exit 92
 tick=100
 if [ -f "$MOCK_ROOT/tick" ]; then tick=$(cat "$MOCK_ROOT/tick"); fi
-tick=$((tick + 10))
-printf '%s\n' "$tick" > "$MOCK_ROOT/tick"
 printf '%s\n' "$tick"
 MOCK
 cat > "$test_root/bin/sleep" <<'MOCK'
 #!/bin/sh
-exit 0
+set -eu
+tick=100; if [ -f "$MOCK_ROOT/tick" ]; then tick=$(cat "$MOCK_ROOT/tick"); fi
+seconds=10
+if [ -f "$MOCK_ROOT/startup-expiry-after-wifi" ] || [ -f "$MOCK_ROOT/startup-expiry-after-connectivity" ]; then seconds=1; fi
+printf '%s\n' "$((tick + seconds))" > "$MOCK_ROOT/tick"
 MOCK
 cat > "$test_root/gradlew" <<'MOCK'
 #!/bin/sh
@@ -163,5 +208,44 @@ grep -q 'Network restoration failed' "$case_root/output"
 start_case original_failure_survives_restore_failure; touch "$case_root/restore-failure"; printf '7\n' > "$case_root/gradle-status"; run_case 7
 grep -q 'Network restoration failed (original exit=7)' "$case_root/output"
 start_case interrupted_gradle; touch "$case_root/signal"; run_case 143; assert_restored 1 1
+
+# Startup is captured only after a coherent posture repeats. These have no real
+# device dependency: the mock's changing readings model boot completion only.
+start_case boot_default_network_settles; touch "$case_root/boot-network-settles"; run_case 0; assert_restored 1 1
+grep -q 'originalWifi=1 originalData=1 originalDefault=active' "$case_root/output"
+[ "$(cat "$case_root/pre-mutation-connectivity-reads")" -ge 3 ]
+test -f "$case_root/gradle-called"
+start_case boot_default_network_never_settles; touch "$case_root/boot-network-never-settles"; run_case 1; assert_no_mutation
+grep -q 'Initial network state did not settle before mutation' "$case_root/output"
+start_case offline_default_network_settles; printf '0\n' > "$case_root/wifi"; printf '0\n' > "$case_root/data"; touch "$case_root/offline-network-settles"; run_case 0; assert_restored 0 0
+grep -q 'originalWifi=0 originalData=0 originalDefault=none' "$case_root/output"
+[ "$(cat "$case_root/pre-mutation-connectivity-reads")" -ge 3 ]
+start_case offline_default_network_never_settles; printf '0\n' > "$case_root/wifi"; printf '0\n' > "$case_root/data"; touch "$case_root/offline-network-never-settles"; run_case 1; assert_no_mutation
+grep -q 'Initial network state did not settle before mutation' "$case_root/output"
+start_case startup_setting_unreadable_after_first; touch "$case_root/unreadable-wifi-after-first"; run_case 1; assert_no_mutation
+grep -q 'Cannot capture initial WiFi state' "$case_root/output"
+start_case startup_connectivity_unreadable_after_first; touch "$case_root/unknown-connectivity-after-first"; run_case 1; assert_no_mutation
+grep -q 'Cannot capture initial connectivity' "$case_root/output"
+start_case startup_transports_change_before_stable; touch "$case_root/startup-transports-change"; run_case 0; assert_restored 0 0
+grep -q 'originalWifi=0 originalData=0 originalDefault=none' "$case_root/output"
+[ "$(cat "$case_root/pre-mutation-connectivity-reads")" -ge 3 ]
+
+# Each mocked adb read takes at most the runner's existing 10-second bound.
+# First poll: 3 x 8 s = 24 s; sleep 1; second WiFi completes at 33 s.
+# Expiry must prevent BOTH further reads and baseline admission.
+start_case startup_deadline_crossed_by_second_wifi; touch "$case_root/startup-expiry-after-wifi"; run_case 1; assert_no_mutation
+grep -q 'Initial network state did not settle before mutation' "$case_root/output"
+[ "$(cat "$case_root/wifi-reads")" = 2 ]
+[ "$(cat "$case_root/data-reads")" = 1 ]
+[ "$(cat "$case_root/connectivity-reads")" = 1 ]
+[ "$(cat "$case_root/tick")" = 133 ]
+# First poll 18 s; sleep 1; second WiFi/data 2 s each; final network 8 s.
+# Two matching coherent snapshots arrive, but the final result is at 31 s.
+start_case startup_deadline_crossed_by_matching_final_network; touch "$case_root/startup-expiry-after-connectivity"; run_case 1; assert_no_mutation
+grep -q 'Initial network state did not settle before mutation' "$case_root/output"
+[ "$(cat "$case_root/wifi-reads")" = 2 ]
+[ "$(cat "$case_root/data-reads")" = 2 ]
+[ "$(cat "$case_root/connectivity-reads")" = 2 ]
+[ "$(cat "$case_root/tick")" = 131 ]
 
 printf 'ci-instrumented shell checks: %s passed (mock adb/Gradle; no device/build).\n' "$case_count"

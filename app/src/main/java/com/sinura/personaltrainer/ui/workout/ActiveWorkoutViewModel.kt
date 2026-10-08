@@ -1365,7 +1365,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 _deleteFeedback.tryEmit(DeleteFeedback.REMOVED)
                 draftCache.removeLift(sessionId, selectedId)
                 savedDraft.removeLift(selectedId)
-                clearLiftSelection()
+                // Room can select and prefill a survivor before this mutation resumes.
+                // Clear only the removed selection; keep that newer entry ready.
+                if (selectedExerciseId.value == selectedId) clearLiftSelection()
                 error.clearFrom(source = ERR_REMOVE_LIFT, before = started)
             } catch (thrown: CancellationException) {
                 throw thrown

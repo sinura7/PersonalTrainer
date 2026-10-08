@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -28,6 +30,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.swipeDown
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -212,6 +217,9 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         assertEquals(listOf(original.id), session().sets.map { it.id })
 
         scrollFloorTo(WorkoutTestTags.setChip(original.id))
+        captureWindow("saved-set-before-scroll")
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.setChip(original.id))
+        captureWindow("saved-set-after-scroll")
         compose.onNodeWithTag(WorkoutTestTags.setChip(original.id)).performClick()
         compose.onNodeWithText(SetRowCopy.revise(SetOrdinalCopy.working(1, TARGET_SETS))).performClick()
         enterNumbers(85.0, 3)
@@ -376,7 +384,11 @@ class ConnectedWorkoutJourneyInstrumentedTest {
     private fun enterNumbers(weightKg: Double, reps: Int, mustDiffer: Boolean = false) {
         assertNoBlockingDialogs()
         scrollFloorTo(WorkoutTestTags.WEIGHT_STEPPER)
+        if (mustDiffer) captureWeightEntryState("before-tap")
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
+        if (mustDiffer) captureWeightEntryState("after-scroll")
         compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performClick()
+        if (mustDiffer) captureWeightEntryState("after-tap")
         val weight = compose.onNodeWithTag(NumberEntryTags.FIELD)
         if (mustDiffer) {
             val prefill = NumericEntry.parseWeightKg(weight.fetchSemanticsNode().config[SemanticsProperties.EditableText].text, WeightUnit.KG)
@@ -385,7 +397,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         }
         weight.performTextReplacement(weightKg.toString())
         compose.onNodeWithText("Set").performClick()
-        scrollFloorTo(WorkoutTestTags.REPS_STEPPER)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.REPS_STEPPER)
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).performClick()
         val repetitions = compose.onNodeWithTag(NumberEntryTags.FIELD)
         if (mustDiffer) {
@@ -398,12 +410,12 @@ class ConnectedWorkoutJourneyInstrumentedTest {
     }
 
     private fun assertDraftNumbers(weightKg: Double, reps: Int) {
-        scrollFloorTo(WorkoutTestTags.WEIGHT_STEPPER)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
         compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performClick()
         val weight = compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode()
         assertEquals(weightKg, checkNotNull(NumericEntry.parseWeightKg(weight.config[SemanticsProperties.EditableText].text, WeightUnit.KG)), EPSILON)
         compose.onNodeWithText("Cancel").performClick()
-        scrollFloorTo(WorkoutTestTags.REPS_STEPPER)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.REPS_STEPPER)
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).performClick()
         val repetitions = compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode()
         assertEquals(reps, NumericEntry.parseReps(repetitions.config[SemanticsProperties.EditableText].text))
@@ -412,7 +424,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
 
     private fun chooseEffort(value: Int) {
         assertNoBlockingDialogs()
-        scrollFloorTo(WorkoutTestTags.rpeChoice(value))
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.rpeChoice(value))
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(value)).performClick()
     }
 
@@ -486,6 +498,15 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         }
     }
 
+    private fun captureWeightEntryState(state: String) {
+        for (tag in listOf(WorkoutTestTags.WEIGHT_STEPPER, WorkoutTestTags.TEMPO_COACH_CARD,
+            WorkoutTestTags.CONTENT, WorkoutTestTags.LOG_SET, NumberEntryTags.FIELD)) {
+            val bounds = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().map { it.boundsInRoot }
+            println("NATIVE_ENTRY_DIAGNOSTIC journey=connected state=$state tag=$tag bounds=$bounds")
+        }
+        captureWindow("weight-$state")
+    }
+
     private fun captureWindow(state: String) {
         SystemClock.sleep(750)
         environment.assertNoBlockingPrompts()
@@ -513,6 +534,38 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         const val PREFIX = "Connected AppNav"
         const val TARGET_SETS = 3
         const val EPSILON = 0.0001
+    }
+}
+
+/** Real swipes expose leaf controls; an inline coach is ordinary scrollable content. */
+internal fun ComposeContentTestRule.revealFloorControlAboveTempo(tag: String) {
+    onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
+    for (attempt in 0..3) {
+        val target = onNodeWithTag(tag).assertIsDisplayed().fetchSemanticsNode()
+        val bounds = target.boundsInRoot
+        val content = onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
+        val tempo = onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
+            !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT))).fetchSemanticsNodes()
+            .singleOrNull()?.boundsInRoot
+        val safeBottom = minOf(content.bottom, tempo?.top ?: content.bottom)
+        val fullyVisible = bounds.width >= target.size.width - 1f && bounds.height >= target.size.height - 1f &&
+            bounds.top >= content.top && bounds.bottom <= safeBottom - 1f
+        println("NATIVE_ENTRY_REACHABILITY tag=$tag attempt=$attempt bounds=$bounds size=${target.size} " +
+            "content=$content tempo=$tempo fullyVisible=$fullyVisible")
+        if (fullyVisible) return
+        check(attempt < 3) { "$tag remains clipped or behind Tempo after three real content swipes" }
+        val safeHeight = safeBottom - content.top
+        check(safeHeight > target.size.height + 48f) { "No safe swipe area above Tempo for $tag" }
+        // Keep the entire gesture above the overlay. A semantics action would bypass
+        // the real hit test and could conceal the interaction that failed on Debug124.
+        onNodeWithTag(WorkoutTestTags.CONTENT).performTouchInput {
+            if (target.positionInRoot.y < content.top) {
+                swipeDown(startY = safeHeight * 0.3f, endY = safeHeight * 0.8f, durationMillis = 600)
+            } else {
+                swipeUp(startY = safeHeight * 0.8f, endY = safeHeight * 0.3f, durationMillis = 600)
+            }
+        }
+        waitForIdle()
     }
 }
 

@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
+import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -12,10 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
@@ -25,6 +28,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -51,6 +56,8 @@ import com.sinura.personaltrainer.ui.summary.SummaryTags
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryViewModel
 import com.sinura.personaltrainer.ui.theme.Motion
+import java.io.File
+import java.util.UUID
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -105,6 +112,7 @@ class ConnectedWorkoutJourneyTest {
     private val finishedIds = mutableListOf<String>()
     private val openedHistoryIds = mutableListOf<String>()
     private var summaryDone = false
+    private val artifactRunId = UUID.randomUUID().toString()
 
     @Before
     fun setUp() {
@@ -190,6 +198,9 @@ class ConnectedWorkoutJourneyTest {
 
         // Correction starts from the saved chip, not from editSet called by the test.
         scrollFloorTo(WorkoutTestTags.setChip(original.id))
+        captureFloorControl("saved-set-before-scroll", WorkoutTestTags.setChip(original.id))
+        revealFloorControlAboveTempo(WorkoutTestTags.setChip(original.id))
+        captureFloorControl("saved-set-after-scroll", WorkoutTestTags.setChip(original.id))
         compose.onNodeWithTag(WorkoutTestTags.setChip(original.id)).performClick()
         compose.onNodeWithText(SetRowCopy.revise(SetOrdinalCopy.working(1, TARGET_SETS))).performClick()
         awaitEntry("the saved row is open for correction") { it.editingSetId == original.id }
@@ -351,7 +362,58 @@ class ConnectedWorkoutJourneyTest {
 
     private fun chooseEffort(value: Int) {
         scrollFloorTo(WorkoutTestTags.rpeChoice(value))
-        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(value)).performClick()
+        captureFloorControl("rpe-$value-before-tap", WorkoutTestTags.rpeChoice(value))
+        revealFloorControlAboveTempo(WorkoutTestTags.rpeChoice(value))
+        captureFloorControl("rpe-$value-after-scroll", WorkoutTestTags.rpeChoice(value))
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(value)).assertIsDisplayed().assertIsEnabled().performClick()
+        captureFloorControl("rpe-$value-after-tap", WorkoutTestTags.rpeChoice(value))
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(value)).assertIsSelected()
+    }
+
+    /** Keep real touches on their intended floor controls, above the pinned coach. */
+    private fun revealFloorControlAboveTempo(tag: String) {
+        for (attempt in 0..3) {
+            val target = compose.onNodeWithTag(tag).assertIsDisplayed().fetchSemanticsNode()
+            val bounds = target.boundsInRoot
+            val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
+            val tempo = compose.onAllNodes(
+                hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
+                    !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+            ).fetchSemanticsNodes()
+                .singleOrNull()?.boundsInRoot
+            val safeBottom = minOf(content.bottom, tempo?.top ?: content.bottom)
+            val fullyVisible = bounds.width >= target.size.width - 1f && bounds.height >= target.size.height - 1f &&
+                bounds.top >= content.top && bounds.bottom <= safeBottom - 1f
+            println("JVM_CONNECTED_REACHABILITY run=$artifactRunId tag=$tag attempt=$attempt bounds=$bounds " +
+                "size=${target.size} content=$content tempo=$tempo fullyVisible=$fullyVisible")
+            if (fullyVisible) return
+            check(attempt < 3) { "$tag remains clipped or behind Tempo after three real content swipes" }
+            val safeHeight = safeBottom - content.top
+            check(safeHeight > target.size.height + 48f) { "No safe swipe area above Tempo for $tag" }
+            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performTouchInput {
+                swipeUp(startY = safeHeight * 0.8f, endY = safeHeight * 0.3f, durationMillis = 600)
+            }
+            compose.waitForIdle()
+        }
+    }
+
+    private fun captureFloorControl(state: String, targetTag: String) {
+        for (tag in listOf(targetTag, WorkoutTestTags.TEMPO_COACH_CARD, WorkoutTestTags.CONTENT, WorkoutTestTags.LOG_SET)) {
+            val nodes = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes()
+            println("JVM_CONNECTED_TOUCH run=$artifactRunId state=$state tag=$tag " +
+                "nodes=${nodes.map { "bounds=${it.boundsInRoot}, window=${it.boundsInWindow}, size=${it.size}" }}")
+        }
+        println("JVM_CONNECTED_TOUCH run=$artifactRunId state=$state draft=${active.uiState.value.draft}")
+        val directory = File("build/screen-renders/connected-workout-journey-touch/$artifactRunId")
+        check(directory.exists() || directory.mkdirs()) { "Cannot create touch evidence directory $directory" }
+        val frame = compose.drawWindow()
+        try {
+            File(directory, "$state.png").outputStream().use { output ->
+                check(frame.compress(Bitmap.CompressFormat.PNG, 100, output)) { "Cannot write $state frame" }
+            }
+        } finally {
+            frame.recycle()
+        }
     }
 
     private fun switchTo(exerciseId: String) {
