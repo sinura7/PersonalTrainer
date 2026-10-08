@@ -2,7 +2,7 @@
 
 **Date:** 8 October 2026
 
-**Status:** Connected mechanical baseline implemented and verification repaired. One interactive alternative proposed; owner task observation and design choice pending.
+**Status:** Connected mechanical baseline implemented; the complete synthetic Android suite passes. The focused readiness comparison and two connected workout proposals await owner task observation and design choice.
 
 **Production baseline:** `eae6517845ee560ceb9695bf2f92788e2b4339cc`, Debug 122. Verification and documentation changes are recorded below; production behavior is unchanged.
 
@@ -24,7 +24,7 @@ The existing missing-effort explanation, “Pick your effort first,” reaches t
 
 This establishes a visible-feedback gap worth comparing. It does not establish that the owner is confused, that rest disables logging, or that the supplied S05 image runs this exact build.
 
-The user was asked what, if anything, made recording a recent set require unwanted attention. No answer or unaided task performance has been recorded in this study yet. No completion time, preference, or improvement percentage is claimed.
+The owner reports broad clunkiness and a preference for a simpler, polished front end. No task-specific cause or unaided task performance has been recorded in this study yet. No completion time, variant preference, or improvement percentage is claimed.
 
 ## Evidence chain
 
@@ -281,3 +281,76 @@ An independent source/evidence review found no material findings in the study re
 ## Current conclusion
 
 Q01 now has a supported, narrow comparison: expose the existing readiness explanation visually. Native baseline facts and mechanical contracts have been checked. The owner's comprehension, preference, complete-workout performance, and the candidate's native fit remain pending. The next decision is based on that focused comparison, not a broader redesign inferred from these images.
+
+## Connected proposals following O10
+
+[Quiet and Context](connected-workout-proposals.html) explore the owner's reported
+clunkiness and request for a sophisticated, simple front end. They are proposed
+workout compositions, not replicas of current Debug 124 or accepted ADR changes.
+The earlier readiness comparison remains open. Quiet is the recommended direction
+for the next discussion; no native redesign is selected or implemented here.
+
+| Existing record | Proposal and tradeoff | Acceptance task / product rule |
+|---|---|---|
+| Q01 / UX03, UX23, UX24, UX26 | Both place actual values, effort, visible readiness and Log together, ahead of secondary content. Quiet hides saved rows behind one inspection action; Context exposes them and a last-saved/planned-next strip, adding height. | Enter 82.5 lb × 12, choose effort 8 and save once; distinguish the pending entry from saved work. Preserve manual values, required effort and the explicit save payload. A new composition would amend ADR-027, after selection and native evidence. |
+| Q02 | Tempo is secondary to recording. Why explains the fixed synthetic suggestion; Apply explicitly fills numbers **and effort**, without logging. | Apply, inspect the draft, then enter a different actual result. No new coaching policy or automatic log is proposed. |
+| Q03 / Q04 | Rest controls and Home return remain reachable; switching preserves per-exercise drafts. The expanded timer identifies its saved source exercise even after switching. | Close rest, return through Home, switch away/back, then Skip or allow completion. Neither rest nor exercise switching writes a set or finishes the workout. |
+| Q08 | Saved-row correction, separate correction draft, Undo, early-finish warning, Summary and same-workout History are connected. | Correct 82.5 × 12 to 80 × 11, undo/retry it and finish with an unlogged entry. Saved identity/timestamp and totals must reconcile; unfinished work must be explicit. |
+
+The [136-check record](connected-proposal-checks.json) pins the fragment and driver
+hashes, Chrome version, tasks and results. It covers both complete branches,
+duplicate/slow writes, failed logs and corrections, reload of a pending write,
+exact Retry, keyboard focus, Apply, Undo, rest-source/Close/Skip/expiry, explicit
+progression/extra sets, early and prescribed finishing, Summary and History.
+Widths 736/412/360/320 px with text scales 1.0/1.6/2.0 reflow without horizontal
+clipping; equal variant stages and representative images were checked.
+
+This uses display-pound arithmetic and a browser clock, not Room's canonical
+storage or the Android timer. Twelve saved sets per variant is a comparison
+capacity, not a Temper product limit. The prepared routine start omits the native
+confirmation sheet; it does not authorize removing that confirmation. Native
+height/IME/accessibility, physical touch/timing/performance and owner comprehension
+remain separate. Drivers and images are in ignored `build/ux-context/quiet-flow/`.
+
+Try one task on each proposal: start, record 82.5 lb × 12 at effort 8, return through
+Home, correct the saved result to 80 lb × 11, then finish and find it in History.
+Record the first unclear step and any extra navigation. Earlier explanations are
+a learning effect; do not describe the result as an unaided first encounter.
+
+## Complete native suite follow-up
+
+After baseline integration in [PR #458](https://github.com/sinura7/PersonalTrainer/pull/458),
+the hosted [initial run](https://github.com/sinura7/PersonalTrainer/actions/runs/37790074455)
+reported one JVM timeout and nine Android failures. These are retained alongside
+the later [trunk run](https://github.com/sinura7/PersonalTrainer/actions/runs/37792090519),
+whose deterministic job passed but whose emulator repeated the nine failures.
+
+The three journeys encountered a dialog consistent with an update offer fetched
+by an earlier class; per-journey offline setup could not remove that cached offer.
+The suite runner now establishes and verifies offline state before any app launch
+on a fresh, explicitly authorized disposable emulator. Exact network settings and
+active-default posture are restored and verified on exit. It refuses physical,
+additional, unrelated or preinstalled-Temper devices; no app/cache is cleared.
+Twenty-three mocked process-contract checks run through static preflight.
+
+Six completion-layout failures expected enabled Log with a fresh, unselected
+effort. The fixture now taps the displayed effort control at each demonstrated
+fresh-draft transition. Existing enabled, layout, recovery and durable-row
+assertions remain. No production behavior, database or signer changed.
+
+The complete local API-29 suite executed **211 tests across 31 classes with zero
+failures, errors or skips**, including all nine previously failing cases, in
+4m32s. All three actual MainActivity journeys observed Debug 122 and offline
+state; their restoration returned to the suite's offline posture, then the suite
+verified original WiFi/data/connectivity restoration. Twenty-five captures match
+device/host hashes. See [the portable follow-up record](native-suite-followup.json)
+and ignored `build/ux-context/runs/native-fixture-reliability/` for raw evidence.
+
+The separate JVM timeout occurred after exercise removal with the survivor
+projected but readiness `NONE`. Source review suggests observer selection can be
+cleared by later removal cleanup. A deterministic continuation-order regression
+is drafted but unexecuted; this production race is **not repaired** by the fixture
+packet. Execute it on the Debug-124 stack, where PR #457 already owns that
+ViewModel. That stack also needs an independent measurement of its 64 dp Log
+minimum against the accepted 72 dp contract. A fresh green JVM run does not erase
+the original failure. C06 and phone acceptance remain open.
