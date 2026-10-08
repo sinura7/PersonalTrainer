@@ -12,6 +12,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
@@ -89,6 +91,15 @@ class WorkoutCompletionLayoutInstrumentedTest(
                 }
             }
         }
+        if (scenario == "edit-denied") {
+            // A loaded entry is ready before its working-set commit is: the
+            // first draft still needs an actual effort choice (P2a).
+            compose.waitUntil(15_000) {
+                fixture.vm.primaryAction.value.kind == WorkoutPrimaryKind.LOG_SET &&
+                    fixture.vm.uiState.value.canLog
+            }
+            chooseEffort()
+        }
         compose.waitUntil(15_000) {
             val action = fixture.vm.primaryAction.value
             action.enabled && action.kind == when {
@@ -101,10 +112,14 @@ class WorkoutCompletionLayoutInstrumentedTest(
         if (scenario == "edit-denied") {
             compose.runOnIdle { fixture.vm.editSet(checkNotNull(setId)) }
             compose.waitUntil(15_000) { fixture.vm.primaryAction.value.kind == WorkoutPrimaryKind.SAVE_CHANGES }
+            // Opening this legacy row reloads its null effort, replacing the
+            // unsaved draft above. Choose the corrected effort explicitly.
+            chooseEffort()
         }
         if (scenario == "extra") {
             compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
             compose.waitUntil(15_000) { fixture.vm.primaryAction.value.kind == WorkoutPrimaryKind.LOG_SET }
+            chooseEffort()
         }
         SystemClock.sleep(750)
         GoldenCapture.awaitViewport(compose, width, height)
@@ -189,9 +204,31 @@ class WorkoutCompletionLayoutInstrumentedTest(
             compose.onNodeWithText("Return to entry").performClick()
             compose.waitUntil(15_000) { !fixture.vm.uiState.value.save.pending }
             val expected = if (scenario == "removed-owner") WorkoutPrimaryKind.LOG_SET else WorkoutPrimaryKind.ADD_EXERCISE
+            if (scenario == "removed-owner") {
+                // Recovery selects the surviving lift with a fresh draft; it
+                // must not inherit the removed lift's effort or invent one.
+                compose.waitUntil(15_000) {
+                    fixture.vm.primaryAction.value.kind == expected && fixture.vm.uiState.value.canLog
+                }
+                chooseEffort()
+            }
             compose.waitUntil(15_000) { fixture.vm.primaryAction.value.kind == expected && fixture.vm.primaryAction.value.enabled }
             assertTrue(runBlocking(Dispatchers.IO) { repo.getSession(sessionId)!!.sets.isEmpty() })
         }
+    }
+
+    private fun chooseEffort() {
+        compose.waitUntil(15_000) { fixture.vm.uiState.value.canLog }
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT)
+            .performScrollToNode(hasTestTag(WorkoutTestTags.rpeChoice(8)))
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).assertIsDisplayed().assertIsEnabled().performClick()
+        compose.waitUntil(5_000) {
+            fixture.vm.uiState.value.draft.rpe == 8 && fixture.vm.primaryAction.value.enabled
+        }
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).assertIsSelected()
+        // Keep the original entry/layout assertions on their intended viewport.
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_ENTRY))
     }
 
     companion object {

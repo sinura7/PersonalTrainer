@@ -1,0 +1,168 @@
+{
+  "recordedAtUtc": "2026-10-08T15:06:46.563128+00:00",
+  "productionSourceBase": "b3969da5f02c2ad7713e363c1049020bab860379",
+  "scope": "Verification/tooling and synthetic completion-fixture repairs only; no production, schema, backup, version or signing change.",
+  "sourceHashes": {
+    "tools/preflight.sh": "62f12971261464ebd426655f4715351828986317738d8ccf4e09ce67ee0087c9",
+    "tools/ci-instrumented.sh": "20610e6e03fe10ac187c0d82a72457264a46628fda0b2bf5ecde39df727a865a",
+    "tools/test_ci_instrumented.sh": "ffd2a81efa25869271b7a8a376ae5eac2684b0460606aacc4ca909c34d98ed35",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutCompletionLayoutInstrumentedTest.kt": "00ac53ec92bf040e6157df6c3ff7850273f486c108bcae16a9f774a0b3fe4d9c"
+  },
+  "hashConvention": "SHA256 of Windows working-tree bytes used for these runs; Git newline normalization may change text-file hashes on another checkout.",
+  "originalHostedEvidence": {
+    "initialRun": "https://github.com/sinura7/PersonalTrainer/actions/runs/37790074455",
+    "initialUnit": {
+      "tests": 3571,
+      "failures": 1,
+      "case": "RemovedLiftComesBackTest.aRemovedLiftBroughtBackByUndoKeepsItsOwnWeightNotZero",
+      "causeStatus": "Observer/removal cleanup race inferred from source and captured NONE state; deterministic reproduction and production repair pending on PR457 stack."
+    },
+    "initialAndroid": {
+      "tests": 211,
+      "failures": 9,
+      "journeys": 3,
+      "completionLayout": 6
+    },
+    "mergedTrunkRun": "https://github.com/sinura7/PersonalTrainer/actions/runs/37792090519",
+    "mergedTrunkResult": "Deterministic job passed; same nine Android cases failed."
+  },
+  "fullLocalGate": {
+    "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+    "status": "BUILD SUCCESSFUL",
+    "units": {
+      "tests": 3571,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "suites": 537,
+    "unitExecution": "UP-TO-DATE: retained unchanged 3571 passing results; no fresh unit execution in this follow-up gate.",
+    "staticExecution": "Executed static preflight including all 23 new mocked runner contract cases.",
+    "logSha256": "ee5ea804e1c51eea1149dd29bd95c6d610ff1dfcc2588aff504045fa12923d23",
+    "xmlAggregateSha256": "49fe2ee9a53afc753e23d1001ce3d7be4e26fc8e5c10d687ad18c283ff1dda0c",
+    "archive": "build/ux-context/runs/native-fixture-reliability/final-gate/"
+  },
+  "fullAndroidSuite": {
+    "command": "TEMPER_DISPOSABLE_AVD=temper-tests-api29 ANDROID_SERIAL=emulator-5554 sh tools/ci-instrumented.sh",
+    "status": "BUILD SUCCESSFUL",
+    "tests": 211,
+    "classes": 31,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "duration": "4m32s",
+    "artifactRunId": "94c56579-4dc8-4ddd-97ca-c8395ae13344",
+    "runtimeProfile": {
+      "profile": "temper-tests-api29",
+      "serial": "emulator-5554",
+      "systemImage": "system-images;android-29;default;x86_64",
+      "imageRevision": "8",
+      "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+      "density": "Physical density: 420",
+      "size": "Physical size: 1080x1920",
+      "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+      "renderer": "swiftshader_indirect",
+      "fontScale": 1.0,
+      "animations": 0,
+      "locale": "en-US",
+      "timeZone": "America/Toronto",
+      "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+      "goldenProfile": "windows-swiftshader37",
+      "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+      "capturedUtc": "2026-10-08T14:54:21.1484173Z"
+    },
+    "installedVersion": {
+      "code": 122,
+      "name": "1.0.0+debug.122",
+      "observations": 3
+    },
+    "offline": "Verified settings0/0 and no active default network before Gradle/first launch; all three journey fixtures observed offline.",
+    "restoration": "Three journey fixtures verified suite-offline posture; outer runner verified original WiFi1/data1/default active after Gradle.",
+    "affectedCases": [
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest",
+        "name": "seedSession_typeWeight_log_rest_finish_reachesSummary"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest",
+        "name": "leaveResume_finishFromBar_rotateSummary_andRepairUndo"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyInstrumentedTest",
+        "name": "homeStart_manualResult_rest_switch_correct_finish_done_history_sameSession"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x800-font1-next]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x640-font2-next]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x800-font1-finish]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x640-font2-finish]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x800-font1-extra]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x640-font2-extra]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x800-font1-edit-denied]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x640-font2-edit-denied]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x800-font1-removed-owner]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x640-font2-removed-owner]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x800-font1-removed-last]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x640-font2-removed-last]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[412x840-font1.6-next]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[600x840-font2-next]"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[640x360-font2-next]"
+      }
+    ],
+    "logSha256": "661aac746b164bac2ef1ad7eea8c73470195d47057ab999e873e04b361d6eede",
+    "xmlSha256": "9f4d6aba7c15a39b220c7a59a7695d828c5a45c7d32dbf52311026f26b0d4a22",
+    "captures": 25,
+    "captureHashesSha256": "fd6a8897a2df2ead90f0e8fa0f34e8c23a57ae65390739c8c8e9ce40626ca7bc",
+    "archive": "build/ux-context/runs/native-fixture-reliability/full-suite-01/"
+  },
+  "review": "Independent and adversarial source/evidence reviews completed; no remaining blocking findings in the fixture/tooling packet.",
+  "limits": [
+    "Local API29 synthetic emulator evidence, not physical phone acceptance or performance.",
+    "Current owner reports Debug124; its distinct Tempo source and open PR457 still require a matching native walkthrough.",
+    "The suspected removal-ordering production race is not fixed by these test/tooling repairs.",
+    "The full hosted run of this new runner remains supplementary evidence to obtain; local211/211 is not a hosted result."
+  ]
+}

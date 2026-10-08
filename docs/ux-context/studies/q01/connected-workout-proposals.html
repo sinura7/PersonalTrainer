@@ -1,0 +1,602 @@
+<div id="temper-quiet-workout" class="viz-carousel viz-dotted-background" aria-label="Temper workout design proposals">
+  <section class="tw-stage" data-variant="Quiet" aria-label="Quiet workout proposal">
+    <div class="tw-phone tw-quiet" data-product="quiet" aria-label="Temper Quiet workout">
+      <div class="tw-product" data-screen></div>
+    </div>
+  </section>
+  <section class="tw-stage" data-variant="Context" aria-label="Context workout proposal" hidden>
+    <div class="tw-phone tw-context" data-product="context" aria-label="Temper Context workout">
+      <div class="tw-product" data-screen></div>
+    </div>
+  </section>
+</div>
+<style>
+#temper-quiet-workout .tw-stage { padding: 58px 8px 18px; }
+#temper-quiet-workout .tw-phone {
+  --tw-scale: 1;
+  --tw-bg: #090b0c;
+  --tw-surface: #15191c;
+  --tw-raised: #20262a;
+  --tw-ink: #f3f5f4;
+  --tw-muted: #a8b1b4;
+  --tw-line: #30373b;
+  --tw-volt: #c8ff34;
+  --tw-volt-ink: #182006;
+  --tw-cyan: #25cddd;
+  --tw-error: #ffa7a0;
+  color-scheme: dark;
+  width: min(100%, 412px);
+  min-height: calc(780px * var(--tw-scale));
+  margin: 0 auto;
+  background: var(--tw-bg);
+  color: var(--tw-ink);
+  border-radius: 28px;
+  overflow: clip;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-size: calc(15px * var(--tw-scale));
+  line-height: 1.45;
+  font-weight: 400;
+  box-shadow: 0 16px 40px #0003;
+}
+#temper-quiet-workout .tw-phone * { box-sizing: border-box; }
+#temper-quiet-workout .tw-product { min-height: inherit; display: flex; flex-direction: column; }
+#temper-quiet-workout .tw-phone h1,
+#temper-quiet-workout .tw-phone h2,
+#temper-quiet-workout .tw-phone h3,
+#temper-quiet-workout .tw-phone p { margin: 0; }
+#temper-quiet-workout .tw-phone h1 { font-size: calc(29px * var(--tw-scale)); line-height: 1.2; font-weight: 500; letter-spacing: -.035em; overflow-wrap: anywhere; }
+#temper-quiet-workout .tw-phone h2 { font-size: calc(23px * var(--tw-scale)); line-height: 1.25; font-weight: 500; letter-spacing: -.025em; overflow-wrap: anywhere; }
+#temper-quiet-workout .tw-phone h3 { font-size: calc(17px * var(--tw-scale)); font-weight: 500; }
+#temper-quiet-workout .tw-phone button,
+#temper-quiet-workout .tw-phone input { font: inherit; }
+#temper-quiet-workout .tw-phone button {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+#temper-quiet-workout .tw-phone button:disabled { color: var(--tw-muted); cursor: default; }
+#temper-quiet-workout .tw-phone button:hover:not(:disabled) { background: var(--tw-raised); }
+#temper-quiet-workout .tw-phone .tw-primary {
+  width: 100%; min-height: 72px; background: var(--tw-volt); color: var(--tw-volt-ink);
+  font-size: calc(18px * var(--tw-scale)); border-radius: 18px;
+}
+#temper-quiet-workout .tw-phone .tw-primary:hover:not(:disabled) { background: #dcff7b; }
+#temper-quiet-workout .tw-phone .tw-primary:disabled { background: var(--tw-surface); color: var(--tw-muted); }
+#temper-quiet-workout .tw-phone .tw-secondary { background: var(--tw-surface); }
+#temper-quiet-workout .tw-phone .tw-secondary:hover:not(:disabled) { background: var(--tw-raised); }
+#temper-quiet-workout .tw-phone .tw-subline { display: block; margin-top: 2px; font-size: calc(13px * var(--tw-scale)); font-weight: 400; }
+#temper-quiet-workout .tw-phone .tw-muted { color: var(--tw-muted); }
+#temper-quiet-workout .tw-phone .tw-small { font-size: calc(13px * var(--tw-scale)); }
+#temper-quiet-workout .tw-phone .tw-label { color: var(--tw-muted); font-size: calc(12px * var(--tw-scale)); letter-spacing: .07em; text-transform: uppercase; }
+#temper-quiet-workout .tw-phone .tw-numeric { font-variant-numeric: tabular-nums; }
+#temper-quiet-workout .tw-phone .tw-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 18px 12px 8px; }
+#temper-quiet-workout .tw-phone .tw-top-title { flex: 1; font-size: calc(18px * var(--tw-scale)); font-weight: 500; }
+#temper-quiet-workout .tw-phone .tw-content { padding: 16px 22px; display: flex; flex-direction: column; gap: 22px; }
+#temper-quiet-workout .tw-phone .tw-footer { padding: 16px 22px 24px; margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+#temper-quiet-workout .tw-phone .tw-commit { display: flex; flex-direction: column; gap: 8px; }
+#temper-quiet-workout .tw-phone .tw-heading { display: flex; flex-direction: column; gap: 9px; }
+#temper-quiet-workout .tw-phone .tw-progress { display: flex; gap: 5px; }
+#temper-quiet-workout .tw-phone .tw-progress span { flex: 1; height: 5px; border-radius: 8px; background: var(--tw-raised); }
+#temper-quiet-workout .tw-phone .tw-progress span.tw-complete { background: var(--tw-volt); }
+#temper-quiet-workout .tw-phone .tw-routine { display: flex; flex-direction: column; gap: 20px; padding: 22px 0; border-top: 1px solid var(--tw-line); border-bottom: 1px solid var(--tw-line); }
+#temper-quiet-workout .tw-phone .tw-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#temper-quiet-workout .tw-phone .tw-row-main { flex: 1; min-width: 130px; }
+#temper-quiet-workout .tw-phone .tw-exercise-name { margin-top: 3px; }
+#temper-quiet-workout .tw-phone .tw-entry { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(140px * var(--tw-scale))), 1fr)); gap: 20px; }
+#temper-quiet-workout .tw-phone .tw-field { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+#temper-quiet-workout .tw-phone .tw-field > label { display: flex; flex-direction: column; gap: 8px; }
+#temper-quiet-workout .tw-phone .tw-input-wrap { display: flex; align-items: baseline; gap: 5px; border-bottom: 1px solid var(--tw-line); padding-bottom: 9px; }
+#temper-quiet-workout .tw-phone input { min-width: 0; width: 100%; border: 0; padding: 0; border-radius: 3px; background: transparent; color: var(--tw-ink); font-size: calc(40px * var(--tw-scale)); line-height: 1.15; letter-spacing: -.04em; }
+#temper-quiet-workout .tw-phone .tw-unit { color: var(--tw-muted); flex: 0 0 auto; }
+#temper-quiet-workout .tw-phone .tw-step { display: flex; justify-content: space-between; gap: 10px; }
+#temper-quiet-workout .tw-phone .tw-step button { background: var(--tw-surface); flex: 1; font-size: calc(21px * var(--tw-scale)); }
+#temper-quiet-workout .tw-phone .tw-effort { display: flex; flex-direction: column; gap: 10px; }
+#temper-quiet-workout .tw-phone .tw-effort-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
+#temper-quiet-workout .tw-phone .tw-effort-buttons button { flex: 1; background: var(--tw-surface); padding: 12px 4px; font-size: calc(18px * var(--tw-scale)); }
+#temper-quiet-workout .tw-phone .tw-effort-buttons button[aria-pressed="true"] { background: #233017; color: var(--tw-volt); box-shadow: inset 0 0 0 1px var(--tw-volt); }
+#temper-quiet-workout .tw-phone .tw-effort-caption { display: flex; justify-content: space-between; gap: 12px; font-size: calc(12px * var(--tw-scale)); color: var(--tw-muted); }
+#temper-quiet-workout .tw-phone .tw-coach { padding-top: 17px; border-top: 1px solid var(--tw-line); display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+#temper-quiet-workout .tw-phone .tw-coach-main { flex: 1; min-width: 145px; }
+#temper-quiet-workout .tw-phone .tw-coach-actions { display: flex; gap: 2px; }
+#temper-quiet-workout .tw-phone .tw-coach button { padding-inline: 8px; }
+#temper-quiet-workout .tw-phone .tw-readiness { min-height: 22px; color: var(--tw-muted); font-size: calc(13px * var(--tw-scale)); }
+#temper-quiet-workout .tw-phone .tw-readiness[role="alert"] { color: var(--tw-error); }
+#temper-quiet-workout .tw-phone .tw-rest { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; padding: 8px 0; border-top: 1px solid var(--tw-line); border-bottom: 1px solid var(--tw-line); }
+#temper-quiet-workout .tw-phone .tw-rest-open { flex: 1; min-width: 95px; padding-left: 0; color: var(--tw-cyan); text-align: left; }
+#temper-quiet-workout .tw-phone .tw-rest button:not(.tw-rest-open) { padding-inline: 8px; }
+#temper-quiet-workout .tw-phone .tw-receipt { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: calc(13px * var(--tw-scale)); }
+#temper-quiet-workout .tw-phone .tw-receipt span { flex: 1; min-width: 150px; }
+#temper-quiet-workout .tw-phone .tw-saved { display: flex; flex-direction: column; gap: 2px; }
+#temper-quiet-workout .tw-phone .tw-saved-row { display: flex; align-items: center; width: 100%; gap: 12px; text-align: left; padding: 12px 0; border-bottom: 1px solid var(--tw-line); border-radius: 0; }
+#temper-quiet-workout .tw-phone .tw-saved-row .tw-row-main { min-width: 110px; }
+#temper-quiet-workout .tw-phone .tw-saved-index { color: var(--tw-muted); width: 24px; font-variant-numeric: tabular-nums; }
+#temper-quiet-workout .tw-phone .tw-saved-value { font-size: calc(17px * var(--tw-scale)); }
+#temper-quiet-workout .tw-phone .tw-action-link { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 12px 0; text-align: left; }
+#temper-quiet-workout .tw-phone .tw-context-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); gap: 12px; padding: 16px; background: var(--tw-surface); border-radius: 14px; }
+#temper-quiet-workout .tw-phone .tw-context-strip p + p { margin-top: 5px; }
+#temper-quiet-workout .tw-phone.tw-context .tw-content { gap: 19px; }
+#temper-quiet-workout .tw-phone .tw-nav { display: flex; align-items: flex-end; gap: 2px; padding: 12px 8px 18px; border-top: 1px solid var(--tw-line); }
+#temper-quiet-workout .tw-phone .tw-nav button { flex: 1; min-width: 0; min-height: 60px; padding: 5px 2px; display: flex; align-items: center; flex-direction: column; gap: 5px; border-radius: 8px; font-size: calc(11px * var(--tw-scale)); }
+#temper-quiet-workout .tw-phone .tw-nav button[aria-current="page"] { color: var(--tw-volt); }
+#temper-quiet-workout .tw-phone .tw-nav svg { width: 21px; height: 21px; }
+#temper-quiet-workout .tw-phone .tw-nav button:disabled { color: #839094; }
+#temper-quiet-workout .tw-phone .tw-timer { display: grid; place-items: center; position: relative; width: min(100%, 310px); margin: 12px auto 10px; }
+#temper-quiet-workout .tw-phone .tw-timer svg { width: 100%; height: auto; display: block; }
+#temper-quiet-workout .tw-phone .tw-timer-track { fill: none; stroke: var(--tw-raised); stroke-width: 9; }
+#temper-quiet-workout .tw-phone .tw-timer-fill { fill: none; stroke: var(--tw-cyan); stroke-width: 9; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 160px 160px; }
+#temper-quiet-workout .tw-phone .tw-timer-center { position: absolute; display: flex; align-items: center; flex-direction: column; gap: 8px; padding: 30px; text-align: center; }
+#temper-quiet-workout .tw-phone .tw-timer-center strong { font-weight: 400; font-size: calc(52px * var(--tw-scale)); line-height: 1.05; letter-spacing: -.05em; }
+#temper-quiet-workout .tw-phone .tw-timer-center span { color: var(--tw-cyan); }
+#temper-quiet-workout .tw-phone .tw-timer-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+#temper-quiet-workout .tw-phone .tw-timer-actions button { background: var(--tw-surface); min-height: 64px; }
+#temper-quiet-workout .tw-phone .tw-choice { display: flex; gap: 10px; flex-direction: column; }
+#temper-quiet-workout .tw-phone .tw-choice-row { width: 100%; min-height: 82px; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; background: var(--tw-surface); }
+#temper-quiet-workout .tw-phone .tw-choice-row[aria-pressed="true"] { box-shadow: inset 3px 0 var(--tw-volt); }
+#temper-quiet-workout .tw-phone .tw-choice-row p + p { margin-top: 5px; }
+#temper-quiet-workout .tw-phone .tw-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); gap: 20px; padding: 25px 0; border-top: 1px solid var(--tw-line); border-bottom: 1px solid var(--tw-line); }
+#temper-quiet-workout .tw-phone .tw-metric-value { font-size: calc(33px * var(--tw-scale)); letter-spacing: -.04em; }
+#temper-quiet-workout .tw-phone .tw-history-row { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 12px; padding: 20px 0; border-bottom: 1px solid var(--tw-line); border-radius: 0; }
+#temper-quiet-workout .tw-phone .tw-history-row p + p { margin-top: 6px; }
+#temper-quiet-workout .tw-phone .tw-notice { min-height: 20px; font-size: calc(13px * var(--tw-scale)); color: var(--tw-muted); }
+#temper-quiet-workout .tw-phone .tw-empty { padding: 18px 0; color: var(--tw-muted); }
+#temper-quiet-workout .tw-phone .tw-context-note { color: var(--tw-muted); font-size: calc(13px * var(--tw-scale)); }
+@media (max-width: 370px) {
+  #temper-quiet-workout .tw-stage { padding-inline: 0; }
+  #temper-quiet-workout .tw-phone .tw-content,
+  #temper-quiet-workout .tw-phone .tw-footer { padding-inline: 16px; }
+  #temper-quiet-workout .tw-phone .tw-top-title { font-size: calc(16px * var(--tw-scale)); }
+  #temper-quiet-workout .tw-phone .tw-rest-open { min-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #temper-quiet-workout .tw-phone * { scroll-behavior: auto; }
+}
+</style>
+<script>
+(() => {
+  const root = document.getElementById('temper-quiet-workout');
+  if (!root) return;
+  const SCHEMA = 3;
+  const MAX_COMPARISON_SETS=12;
+  const instanceToken = `tw-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const exercises = ['Incline Dumbbell Bench Press', 'Seated Cable Row'];
+  const viewNames = ['home','workout','rest','exercises','edit','finish','summary','history','detail','why'];
+  const appearance = { textScale: 1 };
+  const probes = { failNextWrite: false, saveSpeed: 'Normal' };
+  const states = {};
+  const controllers = {};
+  let layoutQueued=false;
+  function matchStageHeights() {
+    layoutQueued=false;
+    const stages=Array.from(root.querySelectorAll(':scope > [data-variant]'));
+    const width=root.getBoundingClientRect().width;
+    let height=0;
+    for(const stage of stages) {
+      const hidden=stage.hidden;
+      const oldStyle=stage.getAttribute('style');
+      if(hidden) {
+        stage.style.visibility='hidden';stage.style.position='absolute';stage.style.width=`${width}px`;
+        stage.hidden=false;
+      }
+      const style=getComputedStyle(stage);
+      height=Math.max(height,stage.querySelector('.tw-phone').getBoundingClientRect().height+parseFloat(style.paddingTop)+parseFloat(style.paddingBottom));
+      if(hidden)stage.hidden=true;
+      if(oldStyle===null)stage.removeAttribute('style');else stage.setAttribute('style',oldStyle);
+    }
+    for(const stage of stages)stage.style.minHeight=`${Math.ceil(height)}px`;
+  }
+  function queueLayout() {
+    if(layoutQueued)return;
+    layoutQueued=true;requestAnimationFrame(matchStageHeights);
+  }
+  const esc = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const num = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+  const now = () => Date.now();
+  const clone = x => JSON.parse(JSON.stringify(x));
+  const freshDraft = () => ({ weight: '60', reps: '8', effort: null, dirty: false });
+  const fresh = () => ({ view:'home', active:false, completed:false, exercise:0, onlySaved:false, planned:[3,3], drafts:[freshDraft(),freshDraft()], saved:[], nextId:1, startedAt:null, endedAt:null, rest:null, edit:null, pending:null, failed:null, undo:null, notice:'', busy:false });
+  function validDraft(d) {
+    const a = d && typeof d === 'object' ? d : {};
+    return { weight:typeof a.weight === 'string' && a.weight.length < 18 ? a.weight : '60', reps:typeof a.reps === 'string' && a.reps.length < 10 ? a.reps : '8', effort:[6,7,8,9,10].includes(a.effort) ? a.effort : null, dirty:a.dirty === true };
+  }
+  function restoreOne(value) {
+    const s = fresh();
+    if (!value || typeof value !== 'object') return s;
+    s.view = viewNames.includes(value.view) ? value.view : 'home';
+    s.active = value.active === true;
+    s.completed = value.completed === true;
+    s.exercise = value.exercise === 1 ? 1 : 0;
+    s.onlySaved = value.onlySaved === true;
+    s.planned = [0,1].map(i => Number.isInteger(value.planned?.[i]) && value.planned[i] >= 3 && value.planned[i] <= MAX_COMPARISON_SETS-3 ? value.planned[i] : 3);
+    if(s.planned[0]+s.planned[1]>MAX_COMPARISON_SETS)s.planned=[3,3];
+    s.drafts = [validDraft(value.drafts?.[0]), validDraft(value.drafts?.[1])];
+    s.saved = Array.isArray(value.saved) ? value.saved.filter(r => r && Number.isInteger(r.id) && r.id > 0 && [0,1].includes(r.exercise) && Number.isFinite(r.weight) && r.weight >= 0 && Number.isInteger(r.reps) && r.reps > 0 && [6,7,8,9,10].includes(r.effort)).map(r => ({id:r.id,exercise:r.exercise,weight:r.weight,reps:r.reps,effort:r.effort,at:Number.isFinite(r.at)?r.at:now()})) : [];
+    s.nextId = Math.max(1, Number.isSafeInteger(value.nextId)?value.nextId:1, ...s.saved.map(r => r.id + 1));
+    s.startedAt = Number.isFinite(value.startedAt) ? value.startedAt : null;
+    s.endedAt = Number.isFinite(value.endedAt) ? value.endedAt : null;
+    if (value.rest && Number.isFinite(value.rest.deadline) && Number.isFinite(value.rest.duration) && value.rest.duration > 0 && Number.isInteger(value.rest.sourceId)) s.rest = {deadline:value.rest.deadline,duration:value.rest.duration,sourceId:value.rest.sourceId,status:['running','complete','skipped'].includes(value.rest.status)?value.rest.status:'running'};
+    if (value.edit && s.saved.some(r => r.id === value.edit.id)) s.edit = {id:value.edit.id,draft:validDraft(value.edit.draft)};
+    if (value.undo && s.saved.some(r => r.id === value.undo.id)) {
+      if(value.undo.kind==='new') s.undo={kind:'new',id:value.undo.id};
+      if(value.undo.kind==='edit') {
+        const r=value.undo.previous;
+        if(r && r.id===value.undo.id && [0,1].includes(r.exercise) && Number.isFinite(r.weight) && r.weight>=0 && Number.isInteger(r.reps) && r.reps>0 && [6,7,8,9,10].includes(r.effort)) s.undo={kind:'edit',id:value.undo.id,previous:{id:r.id,exercise:r.exercise,weight:r.weight,reps:r.reps,effort:r.effort,at:Number.isFinite(r.at)?r.at:now()}};
+      }
+    }
+    if (!s.active && !s.completed && !['home','history'].includes(s.view)) s.view = 'home';
+    if (s.view === 'edit' && !s.edit) s.view = s.active ? 'workout' : 'detail';
+    if (s.completed && ['workout','rest','exercises','edit','finish','why'].includes(s.view)) s.view = 'summary';
+    if (value.failed && ['new','edit'].includes(value.failed.kind)) {
+      const p = value.failed.payload;
+      if (p && [0,1].includes(p.exercise) && Number.isFinite(p.weight) && p.weight >= 0 && Number.isInteger(p.reps) && p.reps > 0 && [6,7,8,9,10].includes(p.effort)) s.failed = {kind:value.failed.kind,payload:{exercise:p.exercise,weight:p.weight,reps:p.reps,effort:p.effort},id:Number.isInteger(value.failed.id)?value.failed.id:null};
+    }
+    if (value.pending && !s.failed) {
+      const p = value.pending;
+      if (p && ['new','edit'].includes(p.kind) && p.payload) {
+        const temp = restoreOne({active:s.active,failed:p});
+        s.failed = temp.failed;
+        if (s.failed) s.notice = 'This set was not saved. Retry when you are ready.';
+      }
+    }
+    return s;
+  }
+  function restore(snapshot) {
+    const p = snapshot?.privateContent;
+    if (p?.schema !== SCHEMA) return false;
+    for (const key of ['quiet','context']) states[key] = restoreOne(p.variants?.[key]);
+    appearance.textScale = Number.isFinite(p.appearance?.textScale) ? Math.min(2,Math.max(1,p.appearance.textScale)) : 1;
+    probes.saveSpeed = ['Normal','Slow'].includes(p.probes?.saveSpeed) ? p.probes.saveSpeed : 'Normal';
+    probes.failNextWrite = p.probes?.failNextWrite === true;
+    return true;
+  }
+  if (!restore(window.openai?.widgetState)) { states.quiet = fresh(); states.context = fresh(); }
+  function persist() {
+    const variants = {};
+    for (const key of ['quiet','context']) {
+      const s = states[key];
+      variants[key] = {view:s.view,active:s.active,completed:s.completed,exercise:s.exercise,onlySaved:s.onlySaved,planned:s.planned,drafts:s.drafts,saved:s.saved,nextId:s.nextId,startedAt:s.startedAt,endedAt:s.endedAt,rest:s.rest,edit:s.edit,pending:s.pending,failed:s.failed,undo:s.undo};
+    }
+    const snapshot = {
+      modelContent:{concept:'Temper connected workout proposals',baseline:'Owner uses Debug 124',variants:Object.fromEntries(['quiet','context'].map(key => [key,{screen:states[key].view,savedSets:states[key].saved.length,finished:states[key].completed,exercise:exercises[states[key].exercise],draft:states[key].drafts[states[key].exercise],volumeLb:volume(states[key]),lastSaved:states[key].saved.at(-1)??null}]))},
+      privateContent:{schema:SCHEMA,origin:instanceToken,variants,appearance:clone(appearance),probes:clone(probes)}
+    };
+    if (JSON.stringify(snapshot).length > 15000) {
+      for(const key of ['quiet','context']){
+        states[key].notice='This comparison reached its recovery limit. Keep this view open to inspect your entries.';
+        render(key);
+      }
+      return;
+    }
+    if (window.openai?.setWidgetState) Promise.resolve(window.openai.setWidgetState(snapshot)).catch(() => {});
+  }
+  const icon = name => `<i data-lucide="${name}" aria-hidden="true"></i>`;
+  const button = (action, label, cls='', extra='') => `<button type="button" class="cursor-interaction ${cls}" data-action="${action}" ${extra}>${label}</button>`;
+  const time = ms => { const secs=Math.max(0,Math.ceil(ms/1000)); return `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`; };
+  const rowsFor = (s,i=s.exercise) => s.saved.filter(r => r.exercise === i);
+  const totalPlanned = s => s.planned.reduce((a,b)=>a+b,0);
+  const volume = s => s.saved.reduce((sum,r)=>sum+r.weight*r.reps,0);
+  const remaining = s => s.rest?.status === 'running' ? Math.max(0,s.rest.deadline-now()) : 0;
+  function parseDraft(d) {
+    const w = String(d.weight).trim().replace(',','.');
+    const r = String(d.reps).trim();
+    if (!/^\d+(?:\.\d{1,2})?$/.test(w) || !Number.isFinite(Number(w)) || Number(w) < 0) return {error:'Enter a valid weight.'};
+    if (!/^\d+$/.test(r) || Number(r) < 1 || Number(r) > 100 || !Number.isSafeInteger(Number(r))) return {error:'Enter 1–100 whole reps.'};
+    if (d.effort === null) return {error:'Choose effort to log this working set.',missing:true};
+    return {weight:Number(w),reps:Number(r),effort:d.effort};
+  }
+  const payloadLabel = p => `${num(p.weight)} lb × ${num(p.reps)} · effort ${p.effort}`;
+  function nav(s) {
+    return `<nav class="tw-nav" aria-label="Main navigation">${[
+      ['home','house','Home'],['body','person-standing','Body'],['plan','calendar-days','Plan'],['history','history','History'],['settings','settings','Settings']
+    ].map(([key,name,label])=>button(`nav-${key}`,`${icon(name)}<span>${label}</span>`,'',`${(key==='home'&&s.view==='home')||(key==='history'&&s.view==='history')?'aria-current="page"':''} ${['home','history'].includes(key)?'':'disabled'}`)).join('')}</nav>`;
+  }
+  function top(title,left='home',right='',leftLabel='') {
+    const leftLabels = {home:'Home',workout:'Back',history:'Back'};
+    return `<header class="tw-top">${button(left,esc(leftLabel||leftLabels[left]||'Back'))}<span class="tw-top-title">${esc(title)}</span>${right ? button(right,right==='finish'?'Finish':'Close') : '<span aria-hidden="true" style="width:48px"></span>'}</header>`;
+  }
+  function announcement(s) { return `<div class="tw-notice" role="status" aria-live="polite" data-notice>${esc(s.notice)}</div>`; }
+  function restCompact(s) {
+    if (!s.rest || s.rest.status !== 'running') return '';
+    return `<section class="tw-rest" aria-label="Running rest timer">${button('rest',`Rest <span class="tw-numeric" data-rest-time>${time(remaining(s))}</span>`,'tw-rest-open')}${button('minus-rest','−15','', 'aria-label="Shorten rest by 15 seconds"')}${button('plus-rest','+15','','aria-label="Extend rest by 15 seconds"')}${button('skip-rest','Skip','','aria-label="Skip rest"')}</section>`;
+  }
+  function receipt(s) {
+    if (!s.undo) return announcement(s);
+    return `<div class="tw-receipt"><span>${s.undo.kind==='new'?'Last save':'Last correction'}</span>${button('undo',s.undo.kind==='new'?'Undo save':'Undo edit')}</div>${announcement(s)}`;
+  }
+  function entry(d,editing=false) {
+    const prefix=editing?'edit-':'';
+    return `<div class="tw-entry">
+      <div class="tw-field"><label><span class="tw-label">Weight</span><span class="tw-input-wrap"><input class="tw-numeric" type="text" inputmode="decimal" autocomplete="off" aria-label="${editing?'Corrected':'Actual'} weight in pounds" data-field="${prefix}weight" value="${esc(d.weight)}"><span class="tw-unit">lb</span></span></label><span class="tw-step">${button(`${prefix}weight-minus`,'−','','aria-label="Decrease weight by 2.5 pounds"')}${button(`${prefix}weight-plus`,'+','','aria-label="Increase weight by 2.5 pounds"')}</span></div>
+      <div class="tw-field"><label><span class="tw-label">Reps</span><span class="tw-input-wrap"><input class="tw-numeric" type="text" inputmode="numeric" autocomplete="off" aria-label="${editing?'Corrected':'Actual'} reps" data-field="${prefix}reps" value="${esc(d.reps)}"><span class="tw-unit" aria-hidden="true">&nbsp;</span></span></label><span class="tw-step">${button(`${prefix}reps-minus`,'−','','aria-label="Decrease reps by one"')}${button(`${prefix}reps-plus`,'+','','aria-label="Increase reps by one"')}</span></div>
+    </div>`;
+  }
+  function effort(d,editing=false) {
+    return `<section class="tw-effort" aria-label="Effort for this set"><div class="tw-row"><span class="tw-label">Effort</span><span class="tw-small tw-muted" data-effort-label>${d.effort===null?'Choose one':`Selected ${d.effort}`}</span></div><div class="tw-effort-buttons">${[6,7,8,9,10].map(v=>button(`${editing?'edit-':''}effort`,String(v),'',`data-value="${v}" aria-label="Effort ${v}" aria-pressed="${d.effort===v}"`)).join('')}</div><div class="tw-effort-caption"><span>Easy</span><span>Maximum effort</span></div></section>`;
+  }
+  function savedRows(s, editable=true, exercise=s.exercise) {
+    const rows=rowsFor(s,exercise);
+    if (!rows.length) return '<p class="tw-empty tw-small">No sets saved yet.</p>';
+    return `<div class="tw-saved">${rows.map((r,i)=> editable ? button('edit',`<span class="tw-saved-index">${i+1}</span><span class="tw-row-main"><span class="tw-saved-value tw-numeric">${num(r.weight)} lb × ${r.reps}</span><span class="tw-subline tw-muted">Effort ${r.effort} · Saved</span></span><span class="tw-small">Edit</span>`,'tw-saved-row',`data-id="${r.id}" aria-label="Edit saved set ${i+1}: ${num(r.weight)} pounds, ${r.reps} reps, effort ${r.effort}"`) : `<div class="tw-saved-row"><span class="tw-saved-index">${i+1}</span><span class="tw-row-main"><span class="tw-saved-value tw-numeric">${num(r.weight)} lb × ${r.reps}</span><span class="tw-subline tw-muted">Effort ${r.effort} · Saved</span></span></div>`).join('')}</div>`;
+  }
+  function coaching(s) {
+    return `<section class="tw-coach" aria-label="Tempo suggestion"><div class="tw-coach-main"><p class="tw-label">Tempo suggests</p><p class="tw-numeric">60 lb × 8 <span class="tw-small tw-muted">· effort 9</span></p></div><div class="tw-coach-actions">${button('why','Why?')}${button('apply','Apply','tw-secondary','aria-label="Apply 60 pounds, 8 reps and effort 9 to your entry"')}</div></section>`;
+  }
+  function readiness(s,editing=false) {
+    const d=editing?s.edit.draft:s.drafts[s.exercise];
+    const parsed=parseDraft(d);
+    const failed=s.failed && s.failed.kind===(editing?'edit':'new');
+    if (s.busy) return `<p class="tw-readiness" role="status" data-readiness>Saving your ${editing?'correction':'set'}…</p>`;
+    if (failed) return '<p class="tw-readiness" role="alert" data-readiness>Couldn’t save. Your entry is still here.</p>';
+    return `<p class="tw-readiness" ${parsed.error&&!parsed.missing?'role="alert"':''} data-readiness>${parsed.error?esc(parsed.error):''}</p>`;
+  }
+  function logButton(s,editing=false) {
+    const parsed=parseDraft(editing?s.edit.draft:s.drafts[s.exercise]);
+    const failed=s.failed && s.failed.kind===(editing?'edit':'new');
+    const p=failed?s.failed.payload:parsed;
+    return button(editing?'save-edit':'log',`${s.busy?'Saving…':failed?'Retry save':editing?'Save correction':'Log set'}${!p.error?`<span class="tw-subline tw-numeric">${payloadLabel(p)}</span>`:''}`,'tw-primary',`data-log ${s.busy||(!failed&&parsed.error)?'disabled':''}`);
+  }
+  function workout(s,variant) {
+    const d=s.drafts[s.exercise];
+    const count=rowsFor(s).length;
+    const done=count>=s.planned[s.exercise];
+    const other=s.exercise===0?1:0;
+    const context=variant==='context';
+    const last=rowsFor(s).at(-1);
+    const strip=context?`<div class="tw-context-strip"><div><p class="tw-label">Last saved</p><p class="tw-numeric">${last?`${num(last.weight)} lb × ${last.reps}`:'No sets yet'}</p></div><div><p class="tw-label">Planned next</p><p class="tw-numeric">60 lb × 8</p></div></div>`:'';
+    const main=done ? button(rowsFor(s,other).length<s.planned[other]?'next-exercise':'finish',rowsFor(s,other).length<s.planned[other]?'Next exercise':'Finish workout','tw-primary') : logButton(s);
+    return `${top('Upper B','home','finish')}<main class="tw-content">
+      <div class="tw-heading"><div class="tw-row"><span class="tw-label">${s.exercise+1} of 2 exercises</span>${button('exercises','Exercises')}</div><h1>${exercises[s.exercise]}</h1><p class="tw-small tw-muted">${done?'Planned sets saved':`Working set ${count+1} of ${s.planned[s.exercise]}`} · ${count} saved</p><div class="tw-progress" role="img" aria-label="${count} of ${s.planned[s.exercise]} planned sets saved">${Array.from({length:s.planned[s.exercise]},(_,i)=>`<span class="${i<count?'tw-complete':''}"></span>`).join('')}</div></div>
+      ${strip}
+      ${done?`<p>All planned sets for this exercise are saved.</p>${savedRows(s)}`:`${context?'<p class="tw-label">Your entry</p>':''}<fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:22px" ${s.busy?'disabled':''}>${entry(d)}${effort(d)}</fieldset>`}
+      <div class="tw-commit">${!done?readiness(s):''}${main}${done?button('extra','Add an extra set','',totalPlanned(s)>=MAX_COMPARISON_SETS?'disabled':''):s.failed?button('edit-failed','Edit entry'):''}</div>
+      ${restCompact(s)}${!done?coaching(s):''}
+      ${!done?context?`<section><h3>Saved sets</h3>${savedRows(s)}</section>`:button('saved',`${count?'Saved sets':'No saved sets'} <span class="tw-small tw-muted">${count?`${count} · inspect or correct`:'Log your first set'}</span>`,'tw-action-link',!count?'disabled':''):''}
+      ${receipt(s)}
+    </main>`;
+  }
+  function home(s) {
+    return `<header class="tw-top"><span class="tw-top-title">TEMPER</span><span class="tw-small tw-muted">Thursday · 8 Oct</span></header><main class="tw-content"><div class="tw-heading"><p class="tw-label">Today</p><h1>${s.completed?'Workout saved.':s.active?'Ready when you are.':'A stronger day.'}</h1><p class="tw-muted">${s.completed?'Upper B is in your history.':s.active?'Your workout is still in progress.':'Upper B · Strength day'}</p></div><section class="tw-routine" aria-label="Upper B routine"><div class="tw-row"><h2>Upper B</h2><span class="tw-small tw-muted">2 lifts · 6 sets</span></div>${exercises.map((name,i)=>`<div class="tw-row"><div class="tw-row-main"><p>${name}</p><p class="tw-subline tw-muted">3 working sets</p></div><span class="tw-small tw-muted">${i+1}</span></div>`).join('')}</section>${s.active?`<p class="tw-small tw-muted">${s.saved.length} ${s.saved.length===1?'set':'sets'} saved${s.rest?.status==='running'?` · Rest <span data-rest-time>${time(remaining(s))}</span>`:''}</p>`:''}${announcement(s)}</main><footer class="tw-footer">${s.completed?button('history','View workout history','tw-primary'):button(s.active?'workout':'start',s.active?'Return to workout':'Start Upper B','tw-primary')}</footer>${nav(s)}`;
+  }
+  function fullRest(s) {
+    const ms=remaining(s), running=s.rest?.status==='running';
+    const ratio=running?Math.min(1,ms/s.rest.duration):0;
+    const source=s.saved.find(r=>r.id===s.rest?.sourceId);
+    const restExercise=source?.exercise??s.exercise;
+    return `${top('Rest','workout','','Close')}<main class="tw-content"><div class="tw-timer" role="timer" aria-label="Rest time remaining" aria-live="off"><svg viewBox="0 0 320 320" aria-hidden="true"><circle class="tw-timer-track" cx="160" cy="160" r="146"></circle><circle class="tw-timer-fill" data-timer-ring cx="160" cy="160" r="146" stroke-dasharray="917.35" stroke-dashoffset="${917.35*(1-ratio)}"></circle></svg><div class="tw-timer-center"><span class="tw-label" data-timer-status>${running?'Rest':'Rest complete'}</span><strong class="tw-numeric" data-rest-time>${time(ms)}</strong></div></div><div class="tw-heading"><h2>${exercises[restExercise]}</h2><p class="tw-muted">${source?`Saved set · ${payloadLabel(source)}`:'No set saved for this exercise.'}</p><p class="tw-muted">Planned rest · 2:00</p><p class="tw-small tw-muted">${running?'Close returns to your entry. Rest keeps running.':'Rest completed naturally. Your next set has not been logged.'}</p></div>${announcement(s)}</main><footer class="tw-footer">${running?`<div class="tw-timer-actions">${button('minus-rest','−15','','aria-label="Shorten rest by 15 seconds"')}${button('plus-rest','+15','','aria-label="Extend rest by 15 seconds"')}${button('skip-rest','Skip','','aria-label="Skip rest and return to workout"')}</div>`:button('workout','Return to workout','tw-primary')}</footer>`;
+  }
+  function exercisePicker(s,onlySaved=false) {
+    if (onlySaved) return `${top('Saved sets','workout')}<main class="tw-content"><h2>${exercises[s.exercise]}</h2>${savedRows(s)}${announcement(s)}</main><footer class="tw-footer">${button('workout','Back to entry','tw-primary')}</footer>`;
+    return `${top('Exercises','workout')}<main class="tw-content"><h1>Choose your exercise.</h1><div class="tw-choice">${exercises.map((name,i)=>button('choose-exercise',`<span><p>${name}</p><p class="tw-small tw-muted">${rowsFor(s,i).length}/${s.planned[i]} sets saved${s.drafts[i].dirty?' · Entry kept':''}</p></span><span class="tw-small">${s.exercise===i?'Current':'Open'}</span>`,'tw-choice-row',`data-value="${i}" aria-pressed="${s.exercise===i}"`)).join('')}</div>${announcement(s)}</main><footer class="tw-footer">${button('workout','Back to entry')}</footer>`;
+  }
+  function editScreen(s) {
+    const row=s.saved.find(r=>r.id===s.edit?.id);
+    if (!row) return workout(s,'quiet');
+    const ordinal=rowsFor(s,row.exercise).findIndex(r=>r.id===row.id)+1;
+    return `${top('Edit saved set','cancel-edit')}<main class="tw-content"><div class="tw-heading"><h2>${exercises[row.exercise]}</h2><p class="tw-small tw-muted">Saved set ${ordinal} · ${payloadLabel(row)}</p><p class="tw-small tw-muted">Your next-set entry stays separate.</p></div><fieldset style="border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:22px" ${s.busy?'disabled':''}>${entry(s.edit.draft,true)}${effort(s.edit.draft,true)}</fieldset>${announcement(s)}</main><footer class="tw-footer">${readiness(s,true)}${logButton(s,true)}${button(s.failed?'edit-failed':'cancel-edit',s.failed?'Edit correction':'Cancel', '',s.busy?'disabled':'')}</footer>`;
+  }
+  function finishScreen(s) {
+    const dirty=s.drafts.filter(d=>d.dirty).length;
+    return `${top('Finish workout','workout')}<main class="tw-content"><div class="tw-heading"><h1>${s.saved.length<totalPlanned(s)?'Finish here?':'Ready to finish?'}</h1><p class="tw-muted">${s.saved.length} of ${totalPlanned(s)} planned sets saved.</p></div>${dirty?`<section class="tw-routine"><h3>${dirty===1?'You have an unlogged entry.':'You have unlogged entries.'}</h3>${s.drafts.map((d,i)=>d.dirty?`<p><span>${exercises[i]}</span><span class="tw-subline tw-muted tw-numeric">${esc(d.weight)} lb × ${esc(d.reps)}${d.effort!==null?` · effort ${d.effort}`:' · effort not selected'}</span></p>`:'').join('')}<p class="tw-small tw-muted">Finishing saves your completed sets. These entries will not be logged.</p></section>`:`<p>Your ${s.saved.length} saved ${s.saved.length===1?'set is':'sets are'} ready for Summary and History.</p>`}${announcement(s)}</main><footer class="tw-footer">${button('confirm-finish',dirty?'Finish without unlogged entries':'Finish and view summary','tw-primary')}${button('workout','Keep working out')}</footer>`;
+  }
+  function summary(s) {
+    return `${top('Summary','home')}<main class="tw-content"><div class="tw-heading"><p class="tw-label">Upper B · Thursday, 8 Oct</p><h1>Workout saved.</h1><p class="tw-muted">${s.saved.length<totalPlanned(s)?`Finished early · ${s.saved.length} of ${totalPlanned(s)} planned sets.`:'All planned sets recorded.'}</p></div><div class="tw-metrics"><div><p class="tw-label">Working sets</p><p class="tw-metric-value tw-numeric">${s.saved.length}</p></div><div><p class="tw-label">Volume</p><p class="tw-metric-value tw-numeric">${num(volume(s))} <span class="tw-small tw-muted">lb</span></p></div></div>${exercises.map((name,i)=>rowsFor(s,i).length?`<section><h3>${name}</h3>${savedRows(s,false,i)}</section>`:'').join('')}${announcement(s)}</main><footer class="tw-footer">${button('done','Done','tw-primary')}</footer>`;
+  }
+  function history(s) {
+    return `<header class="tw-top"><span class="tw-top-title">History</span><span class="tw-small tw-muted">October 2026</span></header><main class="tw-content"><h1>Your saved workouts.</h1>${s.completed?button('detail',`<span><h3>Upper B</h3><p class="tw-small tw-muted">Thursday, 8 Oct · ${s.saved.length} ${s.saved.length===1?'set':'sets'}</p><p class="tw-small tw-numeric">${num(volume(s))} lb volume</p></span><span>Open</span>`,'tw-history-row','aria-label="Open Upper B saved workout from Thursday October 8"'):'<p class="tw-empty">Your finished workout will appear here.</p>'}${s.active?button('workout','Return to Upper B','tw-secondary'):''}${announcement(s)}</main><footer class="tw-footer"></footer>${nav(s)}`;
+  }
+  function detail(s) {
+    return `${top('Workout details','history')}<main class="tw-content"><div class="tw-heading"><h1>Upper B</h1><p class="tw-muted">Thursday, 8 Oct · Finished</p></div><p class="tw-numeric">${s.saved.length} working ${s.saved.length===1?'set':'sets'} · ${num(volume(s))} lb volume</p>${exercises.map((name,i)=>rowsFor(s,i).length?`<section><h3>${name}</h3>${savedRows(s,false,i)}</section>`:'').join('')}${announcement(s)}</main><footer class="tw-footer">${button('history','Back to history','tw-secondary')}</footer>`;
+  }
+  function why(s) {
+    return `${top('Tempo','workout')}<main class="tw-content"><div class="tw-heading"><p class="tw-label">Suggested next set</p><h1>60 lb × 8</h1><p class="tw-muted">Target effort · 9</p></div><section class="tw-routine"><h3>Keep this set controlled.</h3><p>Keep the suggested weight and reps. Aim for a hard set you can complete with control.</p><p class="tw-small tw-muted">Apply fills your entry. Review it, then use Log set when you are ready.</p></section>${announcement(s)}</main><footer class="tw-footer">${button('apply-return','Apply to entry','tw-primary')}${button('workout','Keep my entry')}</footer>`;
+  }
+  function render(key) {
+    const c=controllers[key], s=states[key];
+    if (!c) return;
+    const focused=c.screen.contains(document.activeElement)?document.activeElement:null;
+    const focus=focused?.getAttribute('data-field');
+    const actionFocus=focused?.getAttribute('data-action');
+    const valueFocus=focused?.getAttribute('data-value');
+    const idFocus=focused?.getAttribute('data-id');
+    if(s.busy&&!c.pendingFocus&&focused)c.pendingFocus={field:focus,action:actionFocus,value:valueFocus,id:idFocus};
+    const recovery=!s.busy?c.pendingFocus:null;
+    const selection=focus && document.activeElement.selectionStart;
+    const html=s.view==='home'?home(s):s.view==='workout'?workout(s,key):s.view==='rest'?fullRest(s):s.view==='exercises'?exercisePicker(s,s.onlySaved===true):s.view==='edit'?editScreen(s):s.view==='finish'?finishScreen(s):s.view==='summary'?summary(s):s.view==='history'?history(s):s.view==='detail'?detail(s):why(s);
+    c.screen.innerHTML=html;
+    c.phone.style.setProperty('--tw-scale',appearance.textScale);
+    if (globalThis.lucide) lucide.createIcons({attrs:{width:20,height:20}});
+    c.screen.querySelectorAll('button').forEach(b=>{if(s.busy)b.disabled=true;});
+    if(!s.busy&&recovery) {
+      const field=recovery.field&&c.screen.querySelector(`[data-field="${recovery.field}"]`);
+      const target=Array.from(c.screen.querySelectorAll('button[data-action]')).find(b=>b.dataset.action===recovery.action&&b.getAttribute('data-value')===recovery.value&&b.getAttribute('data-id')===recovery.id&&!b.disabled);
+      (field??target??c.screen.querySelector('input:not(:disabled),button:not(:disabled)'))?.focus({preventScroll:true});
+      c.pendingFocus=null;
+    } else if (!s.busy&&focus) {
+      const input=c.screen.querySelector(`[data-field="${focus}"]`);
+      if (input) { input.focus({preventScroll:true}); if (typeof selection==='number') try {input.setSelectionRange(selection,selection);}catch(_){} }
+    } else if(!s.busy&&actionFocus) {
+      const target=Array.from(c.screen.querySelectorAll('button[data-action]')).find(b=>b.dataset.action===actionFocus&&b.getAttribute('data-value')===valueFocus&&b.getAttribute('data-id')===idFocus&&!b.disabled);
+      (target??c.screen.querySelector('button:not(:disabled)'))?.focus({preventScroll:true});
+    }
+    queueLayout();
+  }
+  function renderAll() { for (const key of ['quiet','context']) render(key); }
+  function setView(key,view) {
+    const s=states[key];
+    if (s.busy) return;
+    s.view=view; s.onlySaved=false; s.notice='';
+    render(key); persist();
+  }
+  function setNotice(key,message) {
+    states[key].notice=message;
+    const el=controllers[key].screen.querySelector('[data-notice]');
+    if(el)el.textContent=message;
+  }
+  function applySuggestion(key,back=false) {
+    const s=states[key];
+    s.drafts[s.exercise]={weight:'60',reps:'8',effort:9,dirty:true};
+    s.failed=null;
+    if(back)s.view='workout';
+    s.notice='Suggestion applied to your entry. No set logged.';
+    render(key);persist();
+  }
+  function start(key) {
+    const s=states[key];
+    if(s.active||s.completed)return;
+    s.active=true;s.startedAt=now();s.view='workout';
+    s.notice='Upper B started.';
+    render(key);persist();
+  }
+  async function write(key,editing=false) {
+    const s=states[key];
+    if(s.busy||!s.active)return;
+    if(!editing&&s.saved.length>=MAX_COMPARISON_SETS){s.notice='This comparison supports up to 12 saved sets.';render(key);return;}
+    let op=s.failed?.kind===(editing?'edit':'new')?s.failed:null;
+    if(!op) {
+      const parsed=parseDraft(editing?s.edit?.draft:s.drafts[s.exercise]);
+      if(parsed.error)return;
+      const row=editing?s.saved.find(r=>r.id===s.edit?.id):null;
+      if(editing&&!row)return;
+      op={kind:editing?'edit':'new',id:row?.id??null,payload:{exercise:row?.exercise??s.exercise,weight:parsed.weight,reps:parsed.reps,effort:parsed.effort}};
+    }
+    op=clone(op);
+    s.busy=true;s.pending=op;s.failed=null;s.notice='';
+    const shouldFail=probes.failNextWrite;
+    if(shouldFail)probes.failNextWrite=false;
+    render(key);persist();
+    await new Promise(resolve=>setTimeout(resolve,probes.saveSpeed==='Slow'?1800:350));
+    if(states[key]!==s)return;
+    s.busy=false;s.pending=null;
+    if(shouldFail) {s.failed=op;s.notice='Nothing was saved. Retry saves the same entry once.';render(key);persist();return;}
+    if(op.kind==='new') {
+      const row={id:s.nextId++,exercise:op.payload.exercise,weight:op.payload.weight,reps:op.payload.reps,effort:op.payload.effort,at:now()};
+      s.saved.push(row);s.undo={kind:'new',id:row.id};
+      s.drafts[op.payload.exercise]={weight:String(op.payload.weight),reps:String(op.payload.reps),effort:null,dirty:false};
+      s.rest={deadline:now()+120000,duration:120000,sourceId:row.id,status:'running'};
+      s.notice='Set saved. Select effort for your next set.';
+    } else {
+      const index=s.saved.findIndex(r=>r.id===op.id);
+      if(index<0){s.failed=op;s.notice='This saved set could not be found.';render(key);persist();return;}
+      const old=clone(s.saved[index]);
+      s.saved[index]={...old,...op.payload};
+      s.undo={kind:'edit',id:old.id,previous:old};s.edit=null;s.view='workout';s.notice='Correction saved to the same set.';
+    }
+    s.failed=null;render(key);persist();
+  }
+  function undo(key) {
+    const s=states[key], op=s.undo;
+    if(!op||s.busy||!s.active)return;
+    const i=s.saved.findIndex(r=>r.id===op.id);
+    if(i<0)return;
+    if(op.kind==='new') {
+      s.saved.splice(i,1);
+      if(s.rest?.sourceId===op.id)s.rest=null;
+      s.notice='Saved set removed. Your current entry is kept.';
+    } else {s.saved[i]=clone(op.previous);s.notice='Saved set restored to its previous result.';}
+    s.undo=null;render(key);persist();
+  }
+  function adjustRest(key,delta) {
+    const s=states[key];
+    if(s.busy||s.rest?.status!=='running')return;
+    s.rest.deadline+=delta;
+    if(delta>0)s.rest.duration+=delta;
+    if(s.rest.deadline<=now()){s.rest.status='complete';s.notice='Rest complete. You can keep working out.';}
+    render(key);persist();
+  }
+  function tick() {
+    let changed=false;
+    for(const key of ['quiet','context']) {
+      const s=states[key], c=controllers[key];
+      if(!s.rest||s.rest.status!=='running')continue;
+      const ms=remaining(s);
+      if(ms<=0){s.rest.status='complete';s.notice='Rest complete. You can keep working out.';render(key);changed=true;continue;}
+      c.screen.querySelectorAll('[data-rest-time]').forEach(el=>{el.textContent=time(ms);});
+      const ring=c.screen.querySelector('[data-timer-ring]');
+      if(ring)ring.setAttribute('stroke-dashoffset',String(917.35*(1-Math.min(1,ms/s.rest.duration))));
+    }
+    if(changed)persist();
+  }
+  function act(key,action,buttonEl) {
+    const s=states[key];
+    if(s.busy)return;
+    if(action==='start'){start(key);return;}
+    if(action==='log'){write(key,false);return;}
+    if(action==='save-edit'){write(key,true);return;}
+    if(action==='undo'){undo(key);return;}
+    if(action==='apply'||action==='apply-return'){applySuggestion(key,action==='apply-return');return;}
+    if(action==='minus-rest'||action==='plus-rest'){adjustRest(key,action==='minus-rest'?-15000:15000);return;}
+    if(action==='skip-rest'){
+      if(s.rest){s.rest.status='skipped';s.rest.deadline=now();}
+      if(s.view==='rest')s.view='workout';
+      s.notice='Rest skipped. Your workout is still in progress.';render(key);persist();return;
+    }
+    if(action==='edit-failed'){s.failed=null;s.notice='Your entry is ready to edit.';render(key);persist();return;}
+    if(action==='edit') {
+      const row=s.saved.find(r=>r.id===Number(buttonEl.dataset.id));
+      if(!row)return;
+      s.edit={id:row.id,draft:{weight:String(row.weight),reps:String(row.reps),effort:row.effort,dirty:false}};s.failed=null;s.view='edit';s.notice='';render(key);persist();return;
+    }
+    if(action==='cancel-edit'){s.edit=null;s.failed=null;setView(key,'workout');return;}
+    if(action==='saved'){s.onlySaved=true;s.view='exercises';s.notice='';render(key);persist();return;}
+    if(action==='choose-exercise'||action==='next-exercise') {
+      s.exercise=action==='next-exercise'?(s.exercise===0?1:0):Number(buttonEl.dataset.value);
+      s.failed=null;s.view='workout';s.onlySaved=false;s.notice='Exercise opened. Your other entry is kept.';render(key);persist();return;
+    }
+    if(action==='extra'){if(totalPlanned(s)>=MAX_COMPARISON_SETS)return;s.planned[s.exercise]+=1;s.notice='Extra working set added.';render(key);persist();return;}
+    if(action==='confirm-finish') {
+      s.active=false;s.completed=true;s.endedAt=now();s.rest=null;s.undo=null;s.failed=null;s.edit=null;s.view='summary';s.notice='Saved sets are in your workout history.';render(key);persist();return;
+    }
+    if(action==='finish') {s.failed=null;setView(key,'finish');return;}
+    if(action==='effort'||action==='edit-effort') {
+      const draft=action==='edit-effort'?s.edit?.draft:s.drafts[s.exercise];
+      if(!draft)return;
+      draft.effort=Number(buttonEl.dataset.value);draft.dirty=true;s.failed=null;s.notice='';render(key);persist();return;
+    }
+    const match=action.match(/^(edit-)?(weight|reps)-(minus|plus)$/);
+    if(match) {
+      const draft=match[1]?s.edit?.draft:s.drafts[s.exercise];if(!draft)return;
+      const field=match[2], step=field==='weight'?2.5:1;
+      const current=Number(String(draft[field]).replace(',','.'));
+      draft[field]=String(Math.round(Math.max(field==='weight'?0:1,(Number.isFinite(current)?current:0)+(match[3]==='minus'?-step:step))*100)/100);
+      draft.dirty=true;s.failed=null;s.notice='';render(key);persist();return;
+    }
+    if(action==='done'||action==='nav-home'||action==='home'){setView(key,'home');return;}
+    if(action==='nav-history'||action==='history'){setView(key,'history');return;}
+    if(['workout','rest','exercises','detail','why'].includes(action)){setView(key,action);}
+  }
+  for(const key of ['quiet','context']) {
+    const phone=root.querySelector(`[data-product="${key}"]`);
+    const screen=phone.querySelector('[data-screen]');
+    controllers[key]={phone,screen};
+    screen.addEventListener('click',e=>{const b=e.target.closest('button[data-action]');if(b&&!b.disabled)act(key,b.dataset.action,b);});
+    screen.addEventListener('input',e=>{
+      const input=e.target.closest('input[data-field]');if(!input||states[key].busy)return;
+      const s=states[key], edit=input.dataset.field.startsWith('edit-');
+      const field=input.dataset.field.replace(/^edit-/,'');
+      const draft=edit?s.edit?.draft:s.drafts[s.exercise];if(!draft)return;
+      draft[field]=input.value;draft.dirty=true;s.failed=null;s.notice='';render(key);persist();
+    });
+  }
+  renderAll();
+  new ResizeObserver(queueLayout).observe(root);
+  tick();
+  const timer=setInterval(tick,500);
+  window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});
+  window.addEventListener('openai:set_globals',e=>{
+    if(!e.detail?.globals||!Object.prototype.hasOwnProperty.call(e.detail.globals,'widgetState'))return;
+    if(e.detail.globals.widgetState?.privateContent?.origin===instanceToken)return;
+    if(restore(e.detail.globals.widgetState)){renderAll();tick();}
+  });
+  if(globalThis.Tweak) {
+    const design=new Tweak({container:root,onChange:()=>{renderAll();persist();}});
+    design.addSlider(appearance,'textScale',{label:'Text size',min:1,max:2,step:.1,unit:'×',reference:'appearance.textScale'});
+    design.addSelect(probes,'saveSpeed',{label:'Save response',options:['Normal','Slow'],reference:'probes.saveSpeed'});
+    design.addToggle(probes,'failNextWrite',{label:'Fail next save',reference:'probes.failNextWrite'});
+  }
+})();
+</script>

@@ -1,0 +1,850 @@
+{
+  "recordedAtUtc": "2026-10-08T15:01:44.205Z",
+  "browser": {
+    "engine": "Chromium",
+    "version": "154.0.8037.99",
+    "headless": true,
+    "sandboxedIframe": true
+  },
+  "fragmentSha256": "aaa4acabc90d27296ce445d0af7ecb066b4692d202d0eb5823f20199820745c3",
+  "driverSha256": "01e021e3f01767b742be48ddbbc1a97fa87a74af4d3127669e2d11867474a144",
+  "checks": 136,
+  "failures": 0,
+  "results": [
+    {
+      "name": "quiet: Start creates a restorable live draft with no saved set",
+      "passed": true
+    },
+    {
+      "name": "quiet: suggestion does not select effort",
+      "passed": true
+    },
+    {
+      "name": "quiet: out-of-range reps block saving with a visible reason",
+      "passed": true
+    },
+    {
+      "name": "quiet: keyboard selects effort and preserves focus and manual values",
+      "passed": true
+    },
+    {
+      "name": "quiet: Log follows effort before secondary coaching/history",
+      "passed": true,
+      "details": {
+        "between": 52,
+        "logHeight": 72,
+        "entryHeight": 139.828125
+      }
+    },
+    {
+      "name": "quiet: slow write disables controls and duplicate actions",
+      "passed": true
+    },
+    {
+      "name": "quiet: reloaded pending write becomes explicit unsaved Retry",
+      "passed": true
+    },
+    {
+      "name": "quiet: keyboard focus returns to a usable control after saving",
+      "passed": true
+    },
+    {
+      "name": "quiet: slow duplicate taps save exact intended result once",
+      "passed": true,
+      "details": {
+        "id": 1,
+        "exercise": 0,
+        "weight": 82.5,
+        "reps": 12,
+        "effort": 8,
+        "at": 1791471671726
+      }
+    },
+    {
+      "name": "quiet: next set clears effort and rest alone does not block logging",
+      "passed": true
+    },
+    {
+      "name": "quiet: selecting effort enables Log during rest",
+      "passed": true
+    },
+    {
+      "name": "quiet: plus15 extends the same timer",
+      "passed": true
+    },
+    {
+      "name": "quiet: minus15 reverses extension",
+      "passed": true
+    },
+    {
+      "name": "quiet: timer remains tied to saved source exercise after switching",
+      "passed": true
+    },
+    {
+      "name": "quiet: Close keeps timer running and current selected exercise",
+      "passed": true
+    },
+    {
+      "name": "quiet: Home offers live return without finishing",
+      "passed": true
+    },
+    {
+      "name": "quiet: switching and Home return preserve manual draft",
+      "passed": true
+    },
+    {
+      "name": "quiet: correction updates same row and preserves timestamp/next draft",
+      "passed": true,
+      "details": {
+        "id": 1,
+        "exercise": 0,
+        "weight": 80,
+        "reps": 11,
+        "effort": 9,
+        "at": 1791471671726
+      }
+    },
+    {
+      "name": "quiet: Undo edit restores same saved result only",
+      "passed": true
+    },
+    {
+      "name": "quiet: failed correction preserves original saved record and exposes Retry",
+      "passed": true
+    },
+    {
+      "name": "quiet: correction Retry writes the frozen payload once",
+      "passed": true
+    },
+    {
+      "name": "quiet: Why then keep entry does not change values",
+      "passed": true
+    },
+    {
+      "name": "quiet: Apply changes draft numbers and effort without logging",
+      "passed": true
+    },
+    {
+      "name": "quiet: failed new log leaves prior count and frozen payload for Retry",
+      "passed": true
+    },
+    {
+      "name": "quiet: Retry logs exact draft once and clears effort again",
+      "passed": true
+    },
+    {
+      "name": "quiet: Undo save removes just that row and its rest",
+      "passed": true
+    },
+    {
+      "name": "quiet: natural rest completion does not log or finish",
+      "passed": true
+    },
+    {
+      "name": "quiet: finish states that unlogged entry will not be saved",
+      "passed": true
+    },
+    {
+      "name": "quiet: keep working out preserves pending entry",
+      "passed": true
+    },
+    {
+      "name": "quiet: early Finish uses only saved records and stops timer",
+      "passed": true
+    },
+    {
+      "name": "quiet: Summary total reconciles",
+      "passed": true
+    },
+    {
+      "name": "quiet: Done returns Home with saved history action",
+      "passed": true
+    },
+    {
+      "name": "quiet: same workout detail reconciles corrected values",
+      "passed": true
+    },
+    {
+      "name": "quiet: persisted state is bounded valid JSON",
+      "passed": true
+    },
+    {
+      "name": "quiet: restored snapshot shows same finished Detail",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 736px, text1",
+      "passed": true,
+      "details": {
+        "phoneWidth": 412,
+        "viewport": 704,
+        "documentWidth": 704,
+        "outside": [],
+        "stageMinHeights": [
+          "1018px",
+          "1018px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 736px, text1",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 736px, text1.6",
+      "passed": true,
+      "details": {
+        "phoneWidth": 412,
+        "viewport": 704,
+        "documentWidth": 704,
+        "outside": [],
+        "stageMinHeights": [
+          "1470px",
+          "1470px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 736px, text1.6",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 736px, text2",
+      "passed": true,
+      "details": {
+        "phoneWidth": 412,
+        "viewport": 704,
+        "documentWidth": 704,
+        "outside": [],
+        "stageMinHeights": [
+          "1939px",
+          "1939px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 736px, text2",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 412px, text1",
+      "passed": true,
+      "details": {
+        "phoneWidth": 364,
+        "viewport": 380,
+        "documentWidth": 380,
+        "outside": [],
+        "stageMinHeights": [
+          "1053px",
+          "1053px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 412px, text1",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 412px, text1.6",
+      "passed": true,
+      "details": {
+        "phoneWidth": 364,
+        "viewport": 380,
+        "documentWidth": 380,
+        "outside": [],
+        "stageMinHeights": [
+          "1618px",
+          "1618px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 412px, text1.6",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 412px, text2",
+      "passed": true,
+      "details": {
+        "phoneWidth": 364,
+        "viewport": 380,
+        "documentWidth": 380,
+        "outside": [],
+        "stageMinHeights": [
+          "2017px",
+          "2017px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 412px, text2",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 360px, text1",
+      "passed": true,
+      "details": {
+        "phoneWidth": 328,
+        "viewport": 328,
+        "documentWidth": 328,
+        "outside": [],
+        "stageMinHeights": [
+          "1266px",
+          "1266px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 360px, text1",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 360px, text1.6",
+      "passed": true,
+      "details": {
+        "phoneWidth": 328,
+        "viewport": 328,
+        "documentWidth": 328,
+        "outside": [],
+        "stageMinHeights": [
+          "1753px",
+          "1753px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 360px, text1.6",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 360px, text2",
+      "passed": true,
+      "details": {
+        "phoneWidth": 328,
+        "viewport": 328,
+        "documentWidth": 328,
+        "outside": [],
+        "stageMinHeights": [
+          "2082px",
+          "2082px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 360px, text2",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 320px, text1",
+      "passed": true,
+      "details": {
+        "phoneWidth": 288,
+        "viewport": 288,
+        "documentWidth": 288,
+        "outside": [],
+        "stageMinHeights": [
+          "1370px",
+          "1370px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 320px, text1",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 320px, text1.6",
+      "passed": true,
+      "details": {
+        "phoneWidth": 288,
+        "viewport": 288,
+        "documentWidth": 288,
+        "outside": [],
+        "stageMinHeights": [
+          "1861px",
+          "1861px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 320px, text1.6",
+      "passed": true
+    },
+    {
+      "name": "quiet: no horizontal clipping at 320px, text2",
+      "passed": true,
+      "details": {
+        "phoneWidth": 288,
+        "viewport": 288,
+        "documentWidth": 288,
+        "outside": [],
+        "stageMinHeights": [
+          "2235px",
+          "2235px"
+        ]
+      }
+    },
+    {
+      "name": "quiet: variants share responsive stage height at 320px, text2",
+      "passed": true
+    },
+    {
+      "name": "quiet: no browser JavaScript errors",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "quiet: Skip ends rest and returns to live entry without a write",
+      "passed": true
+    },
+    {
+      "name": "quiet: inconsistent failed correction never executes as ordinary Log",
+      "passed": true
+    },
+    {
+      "name": "quiet: planned completion offers explicit next exercise without advancing",
+      "passed": true
+    },
+    {
+      "name": "quiet: extra set is explicit and requires fresh effort",
+      "passed": true
+    },
+    {
+      "name": "quiet: explicit next exercise retains earlier saved records",
+      "passed": true
+    },
+    {
+      "name": "quiet: final prescribed set offers Finish without auto-finishing",
+      "passed": true
+    },
+    {
+      "name": "quiet: comparison capacity is explicit and leaves recovery state bounded",
+      "passed": true
+    },
+    {
+      "name": "quiet: finishing completed work reconciles twelve exact records",
+      "passed": true
+    },
+    {
+      "name": "context: Start creates a restorable live draft with no saved set",
+      "passed": true
+    },
+    {
+      "name": "context: suggestion does not select effort",
+      "passed": true
+    },
+    {
+      "name": "context: out-of-range reps block saving with a visible reason",
+      "passed": true
+    },
+    {
+      "name": "context: keyboard selects effort and preserves focus and manual values",
+      "passed": true
+    },
+    {
+      "name": "context: Log follows effort before secondary coaching/history",
+      "passed": true,
+      "details": {
+        "between": 49,
+        "logHeight": 72,
+        "entryHeight": 139.828125
+      }
+    },
+    {
+      "name": "context: slow write disables controls and duplicate actions",
+      "passed": true
+    },
+    {
+      "name": "context: reloaded pending write becomes explicit unsaved Retry",
+      "passed": true
+    },
+    {
+      "name": "context: keyboard focus returns to a usable control after saving",
+      "passed": true
+    },
+    {
+      "name": "context: slow duplicate taps save exact intended result once",
+      "passed": true,
+      "details": {
+        "id": 1,
+        "exercise": 0,
+        "weight": 82.5,
+        "reps": 12,
+        "effort": 8,
+        "at": 1791471689494
+      }
+    },
+    {
+      "name": "context: next set clears effort and rest alone does not block logging",
+      "passed": true
+    },
+    {
+      "name": "context: selecting effort enables Log during rest",
+      "passed": true
+    },
+    {
+      "name": "context: plus15 extends the same timer",
+      "passed": true
+    },
+    {
+      "name": "context: minus15 reverses extension",
+      "passed": true
+    },
+    {
+      "name": "context: timer remains tied to saved source exercise after switching",
+      "passed": true
+    },
+    {
+      "name": "context: Close keeps timer running and current selected exercise",
+      "passed": true
+    },
+    {
+      "name": "context: Home offers live return without finishing",
+      "passed": true
+    },
+    {
+      "name": "context: switching and Home return preserve manual draft",
+      "passed": true
+    },
+    {
+      "name": "context: correction updates same row and preserves timestamp/next draft",
+      "passed": true,
+      "details": {
+        "id": 1,
+        "exercise": 0,
+        "weight": 80,
+        "reps": 11,
+        "effort": 9,
+        "at": 1791471689494
+      }
+    },
+    {
+      "name": "context: Undo edit restores same saved result only",
+      "passed": true
+    },
+    {
+      "name": "context: failed correction preserves original saved record and exposes Retry",
+      "passed": true
+    },
+    {
+      "name": "context: correction Retry writes the frozen payload once",
+      "passed": true
+    },
+    {
+      "name": "context: Why then keep entry does not change values",
+      "passed": true
+    },
+    {
+      "name": "context: Apply changes draft numbers and effort without logging",
+      "passed": true
+    },
+    {
+      "name": "context: failed new log leaves prior count and frozen payload for Retry",
+      "passed": true
+    },
+    {
+      "name": "context: Retry logs exact draft once and clears effort again",
+      "passed": true
+    },
+    {
+      "name": "context: Undo save removes just that row and its rest",
+      "passed": true
+    },
+    {
+      "name": "context: natural rest completion does not log or finish",
+      "passed": true
+    },
+    {
+      "name": "context: finish states that unlogged entry will not be saved",
+      "passed": true
+    },
+    {
+      "name": "context: keep working out preserves pending entry",
+      "passed": true
+    },
+    {
+      "name": "context: early Finish uses only saved records and stops timer",
+      "passed": true
+    },
+    {
+      "name": "context: Summary total reconciles",
+      "passed": true
+    },
+    {
+      "name": "context: Done returns Home with saved history action",
+      "passed": true
+    },
+    {
+      "name": "context: same workout detail reconciles corrected values",
+      "passed": true
+    },
+    {
+      "name": "context: persisted state is bounded valid JSON",
+      "passed": true
+    },
+    {
+      "name": "context: restored snapshot shows same finished Detail",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 736px, text1",
+      "passed": true,
+      "details": {
+        "phoneWidth": 412,
+        "viewport": 704,
+        "documentWidth": 704,
+        "outside": [],
+        "stageMinHeights": [
+          "1253px",
+          "1253px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 736px, text1",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 736px, text1.6",
+      "passed": true,
+      "details": {
+        "phoneWidth": 412,
+        "viewport": 704,
+        "documentWidth": 704,
+        "outside": [],
+        "stageMinHeights": [
+          "1796px",
+          "1796px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 736px, text1.6",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 736px, text2",
+      "passed": true,
+      "details": {
+        "phoneWidth": 412,
+        "viewport": 704,
+        "documentWidth": 704,
+        "outside": [],
+        "stageMinHeights": [
+          "2316px",
+          "2316px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 736px, text2",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 412px, text1",
+      "passed": true,
+      "details": {
+        "phoneWidth": 364,
+        "viewport": 380,
+        "documentWidth": 380,
+        "outside": [],
+        "stageMinHeights": [
+          "1288px",
+          "1288px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 412px, text1",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 412px, text1.6",
+      "passed": true,
+      "details": {
+        "phoneWidth": 364,
+        "viewport": 380,
+        "documentWidth": 380,
+        "outside": [],
+        "stageMinHeights": [
+          "1972px",
+          "1972px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 412px, text1.6",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 412px, text2",
+      "passed": true,
+      "details": {
+        "phoneWidth": 364,
+        "viewport": 380,
+        "documentWidth": 380,
+        "outside": [],
+        "stageMinHeights": [
+          "2394px",
+          "2394px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 412px, text2",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 360px, text1",
+      "passed": true,
+      "details": {
+        "phoneWidth": 328,
+        "viewport": 328,
+        "documentWidth": 328,
+        "outside": [],
+        "stageMinHeights": [
+          "1501px",
+          "1501px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 360px, text1",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 360px, text1.6",
+      "passed": true,
+      "details": {
+        "phoneWidth": 328,
+        "viewport": 328,
+        "documentWidth": 328,
+        "outside": [],
+        "stageMinHeights": [
+          "2072px",
+          "2072px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 360px, text1.6",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 360px, text2",
+      "passed": true,
+      "details": {
+        "phoneWidth": 328,
+        "viewport": 328,
+        "documentWidth": 328,
+        "outside": [],
+        "stageMinHeights": [
+          "2459px",
+          "2459px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 360px, text2",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 320px, text1",
+      "passed": true,
+      "details": {
+        "phoneWidth": 288,
+        "viewport": 288,
+        "documentWidth": 288,
+        "outside": [],
+        "stageMinHeights": [
+          "1661px",
+          "1661px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 320px, text1",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 320px, text1.6",
+      "passed": true,
+      "details": {
+        "phoneWidth": 288,
+        "viewport": 288,
+        "documentWidth": 288,
+        "outside": [],
+        "stageMinHeights": [
+          "2232px",
+          "2232px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 320px, text1.6",
+      "passed": true
+    },
+    {
+      "name": "context: no horizontal clipping at 320px, text2",
+      "passed": true,
+      "details": {
+        "phoneWidth": 288,
+        "viewport": 288,
+        "documentWidth": 288,
+        "outside": [],
+        "stageMinHeights": [
+          "2748px",
+          "2748px"
+        ]
+      }
+    },
+    {
+      "name": "context: variants share responsive stage height at 320px, text2",
+      "passed": true
+    },
+    {
+      "name": "context: no browser JavaScript errors",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "context: Skip ends rest and returns to live entry without a write",
+      "passed": true
+    },
+    {
+      "name": "context: inconsistent failed correction never executes as ordinary Log",
+      "passed": true
+    },
+    {
+      "name": "context: planned completion offers explicit next exercise without advancing",
+      "passed": true
+    },
+    {
+      "name": "context: extra set is explicit and requires fresh effort",
+      "passed": true
+    },
+    {
+      "name": "context: explicit next exercise retains earlier saved records",
+      "passed": true
+    },
+    {
+      "name": "context: final prescribed set offers Finish without auto-finishing",
+      "passed": true
+    },
+    {
+      "name": "context: comparison capacity is explicit and leaves recovery state bounded",
+      "passed": true
+    },
+    {
+      "name": "context: finishing completed work reconciles twelve exact records",
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Synthetic browser state and display-pound volume only; not Android/Room or owner acceptance.",
+    "Viewport width/font reflow checks; no native viewport-height, IME or physical phone proof.",
+    "Rest expiry uses accelerated browser clock, not Android timing.",
+    "Twelve saved sets per variant is a comparison capacity, not a new Temper product limit.",
+    "Prepared two-lift start only; existing Android start confirmation is outside this comparison."
+  ]
+}

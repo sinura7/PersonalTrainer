@@ -214,6 +214,8 @@ step "test_summary_gate.sh"
 sh tools/test_summary_gate.sh || fail "test_summary_gate.sh"
 step "test_domain_lane.sh"
 sh tools/test_domain_lane.sh || fail "test_domain_lane.sh"
+step "test_ci_instrumented.sh"
+sh tools/test_ci_instrumented.sh || fail "test_ci_instrumented.sh"
 
 # One run over every source set, not one per set. A root scanned alone is a false clean:
 # nothing outside it is in the declaration index, so every call into another source set is
