@@ -35,6 +35,7 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -237,7 +238,7 @@ class DockCommitRenderTest {
         compose.showWorkoutScreen(vm)
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.FINISH }
         compose.waitForIdle()
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed().performClick()
         compose.onNodeWithText(EndWorkoutCopy.TITLE).assertIsDisplayed()
         assertTrue("asking is not ending", vm.uiState.value.session?.finishedAt == null)

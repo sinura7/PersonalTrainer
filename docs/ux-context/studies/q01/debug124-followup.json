@@ -1,0 +1,2473 @@
+{
+  "recordedAtUtc": "2026-10-08T17:36:01.480663+00:00",
+  "status": "Bounded repairs passed the complete local and native gates; draft stack integration, design choice and owner phone acceptance remain pending.",
+  "scope": "Preserve a survivor's observed entry during removal cleanup; restore the accepted 72dp primary workout target; make existing coaching scroll at large text or landscape to recover blocked entry controls; preserve open explanations across relocation; reserve visible Why actions below the scrolling body; repair genuine UI test traversal and runner startup capture. No chosen broad native redesign or coaching algorithm change in this packet.",
+  "source": {
+    "publishedTag": "debug-live-2026-10-06-1",
+    "publishedCommit": "a1f47d1a0d41d1e0264d4457407391cf7d4af92e",
+    "stackBeforePacket": "f006c7e446e6e9f3a5f75fa5c732c2c1415750fb",
+    "dependency": "https://github.com/sinura7/PersonalTrainer/pull/457",
+    "finalVehicle": "cursor/workout-contract-recovery-b87f",
+    "dependencyTitle": "Tempo coach UI: dock, overlay placement, Why sheet redesign",
+    "integration": "Draft stack includes the unchanged open Tempo/coaching dependency; resolving that dependency's scope is required before integration. No automatic merge or Debug drop is authorized by this UX packet."
+  },
+  "hashConvention": "SHA256 of retained Windows working-tree bytes. XML aggregate hashes append sorted filenames, NUL and raw XML bytes. Git text normalization may change bytes in another checkout.",
+  "sourceHashesAtRecording": {
+    "app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutScreen.kt": "8d073022008fa85a7825fc8194de88a0719764d6fae6ae0c08ee4e53768967b7",
+    "app/src/main/java/com/sinura/personaltrainer/ui/workout/TempoCoachCard.kt": "3482ef2d9b3411439b1032353f26113cc686cc97a45efbf64019722b37a25c76",
+    "app/src/main/java/com/sinura/personaltrainer/ui/workout/TempoWhySheet.kt": "86015c74273252c464741fb327982ada0e45b2fbbba74a5bbc07c638abbd898e",
+    "app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModel.kt": "47a1e96a3bb68a1f3912162fef504160b2b5f6abd9a5084639f7c214ffd3b467",
+    "app/src/main/java/com/sinura/personaltrainer/ui/workout/WorkoutDock.kt": "6a63a06e922e1804b394b47e34303717f6b7e26b4c4e74d69fe0186bb9a4c843",
+    "app/src/test/java/com/sinura/personaltrainer/ui/workout/RemovedLiftObserverOrderingTest.kt": "6917214850dbab889dcbcea31a8009323497ef8787e28a7c69c0aedced5cfb28",
+    "app/src/test/java/com/sinura/personaltrainer/ui/workout/WorkoutCommitTargetRenderTest.kt": "da15a3de3e302e4cf176d6c47c09b441579ae6b915a1d66a2a37538763b49b60",
+    "app/src/test/java/com/sinura/personaltrainer/ui/workout/ConnectedWorkoutJourneyTest.kt": "c4568dc8ca657235d83f725977fd159fb594a524f2e014a7e7f1fcf11ef376e5",
+    "app/src/test/java/com/sinura/personaltrainer/ui/workout/DockCommitRenderTest.kt": "0f2f7fc344b0f4c9de5716b60721d6636031c6f72d626ed5204eec14e2a3c079",
+    "app/src/test/java/com/sinura/personaltrainer/ui/workout/AdaptiveTempoReachabilityRenderTest.kt": "dd14acc6b7c5526b33551913895a63bd11c7b831ded875684350ec7d60f15eb8",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutJourneyInstrumentedTest.kt": "1bf02d3d794898a61f88a3845cd3013447310d059c8e4c52530b4a144ad850b4",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/ConnectedWorkoutJourneyInstrumentedTest.kt": "0bdbb448f763df87bcd794359af7dd6c25ff36e0fb473491332250c725bd24ae",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutCompletionLayoutInstrumentedTest.kt": "79f6dc6047c8310da7095d568534cf4f6bcd371be6215053733e2bc5425dfe03",
+    "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutEntryJourneyInstrumentedTest.kt": "2fb7d32584fd0138f3e9dd0562f57505c23725c0430421049316cb22a7ef3aee",
+    "tools/ci-instrumented.sh": "89b370f2248109031ca51c6b658b831b249bb1b1dd8e07b38280742542e2f266",
+    "tools/test_ci_instrumented.sh": "5f56b573614098a8f817f5e825a4abd5aa67a60d78628eb80bc637ac7ec635e2"
+  },
+  "matchingPublishedNativeBaseline": {
+    "productionPathsCompared": [
+      "app/src/main",
+      "app/src/debug",
+      "app/src/release",
+      "app/build.gradle.kts",
+      "build.gradle.kts",
+      "gradle/libs.versions.toml"
+    ],
+    "productionMatchesPublishedTag": true,
+    "productionProof": "build/ux-context/runs/debug124-connected-baseline/source-proof.json",
+    "productionProofSha256": "f89befa4ee3935ba5a691bf890975c74e2cd9e71ddb3791b0858749e39ac520e",
+    "immutableTreeRecheck": {
+      "file": "build/ux-context/runs/workout-contract-recovery/production-tree-recheck.json",
+      "sha256": "7d0cfa5f7219e041f9f8b5dbcd67a57fe87063ed215b97f82aed64d4b64045c3",
+      "recordedAtUtc": "2026-10-08T17:36:01.458950+00:00",
+      "command": [
+        "git",
+        "diff",
+        "--name-only",
+        "a1f47d1a0d41d1e0264d4457407391cf7d4af92e",
+        "f006c7e446e6e9f3a5f75fa5c732c2c1415750fb",
+        "--",
+        "app/src/main",
+        "app/src/debug",
+        "app/src/release",
+        "app/build.gradle.kts",
+        "build.gradle.kts",
+        "gradle/libs.versions.toml"
+      ],
+      "exit": 0,
+      "changedPaths": [],
+      "classification": "Fresh immutable-tree recheck; separate from the original run's retained source-proof.json and source-hash records. An empty-output .diff named by the original baseline index was not materialized; its absence is not treated as proof."
+    },
+    "attempts": [
+      {
+        "attempt": "attempt-01",
+        "runId": "20261008-152232420",
+        "driver": "Pinned Tempo selector adapter only; original numeric-entry scroll/tap",
+        "tests": 3,
+        "passed": 1,
+        "failed": 2,
+        "outcome": "Both first weight-dialog lookups failed before post-rest adapter; legacy leave/resume/rotate/Undo passed.",
+        "sourceHashes": [
+          {
+            "sha256": "D9EDAF53B209EC251BDFB648A68556B654223AFC3CDB7BE8EFEF7950B742CF09",
+            "file": "ActiveWorkoutJourneyInstrumentedTest.kt"
+          },
+          {
+            "sha256": "966D788BD6F8DE0515413C27DD2C55622F2BEF797470B2149F062887FEF81D06",
+            "file": "ConnectedWorkoutJourneyInstrumentedTest.kt"
+          }
+        ],
+        "diff": "attempt-01/test-adapter.diff",
+        "summary": "attempt-01/summary.json"
+      },
+      {
+        "attempt": "attempt-02",
+        "runId": "20261008-152740967",
+        "driver": "Added read-only before/after first-weight screenshots and bounds; unchanged tap",
+        "tests": 2,
+        "passed": 0,
+        "failed": 2,
+        "outcome": "Both failures reproduced. Weight center was covered by pinned Tempo; before/after frame pairs identical.",
+        "sourceHashes": [
+          {
+            "sha256": "917ECC84B059A2BA74A46884878C10FBB52CAC0143904B41872ED2002748A5D6",
+            "file": "ActiveWorkoutJourneyInstrumentedTest.kt"
+          },
+          {
+            "sha256": "2375C2C03AECFFDAD4515A773075191B5B25FC05E754860FFFFD55E581AD1ADF",
+            "file": "ConnectedWorkoutJourneyInstrumentedTest.kt"
+          }
+        ],
+        "diff": "attempt-02/test-adapter.diff",
+        "summary": "attempt-02/summary.json"
+      },
+      {
+        "attempt": "attempt-03",
+        "runId": "20261008-153208065",
+        "driver": "Added bounded real safe-area CONTENT swipe and full-bounds guard for numeric and effort controls",
+        "tests": 3,
+        "passed": 2,
+        "failed": 1,
+        "outcome": "Legacy2 passed; connected passed logging/rest/lift switching/draft retention and failed to open saved-set Revise menu.",
+        "sourceHashes": [
+          {
+            "sha256": "1BF02D3D794898A61F88A3845CD3013447310D059C8E4C52530B4A144AD850B4",
+            "file": "ActiveWorkoutJourneyInstrumentedTest.kt"
+          },
+          {
+            "sha256": "AF147B0283461FB8CA115AE355ED2BF76848E06ECF94048CBA614F4FF2D1D5A3",
+            "file": "ConnectedWorkoutJourneyInstrumentedTest.kt"
+          }
+        ],
+        "diff": "attempt-03/test-adapter.diff",
+        "summary": "attempt-03/summary.json"
+      },
+      {
+        "attempt": "attempt-04",
+        "runId": "20261008-153456560",
+        "driver": "Same bounded real swipe/full-bounds guard also applied to saved-set chip; added before/after chip frames",
+        "tests": 3,
+        "passed": 3,
+        "failed": 0,
+        "outcome": "All3 journeys passed including same-row correction, Summary, Done/Home/History/detail.",
+        "sourceHashes": [
+          {
+            "sha256": "1BF02D3D794898A61F88A3845CD3013447310D059C8E4C52530B4A144AD850B4",
+            "file": "ActiveWorkoutJourneyInstrumentedTest.kt"
+          },
+          {
+            "sha256": "BC2C88962C0FC0D0F8577609A1663AF638E01E3730BB136BE27646132009A305",
+            "file": "ConnectedWorkoutJourneyInstrumentedTest.kt"
+          }
+        ],
+        "diff": "attempt-04/test-adapter.diff",
+        "summary": "attempt-04/summary.json"
+      }
+    ],
+    "geometryPixels": {
+      "initialWeight": {
+        "bounds": [
+          53,
+          1139,
+          519,
+          1265
+        ],
+        "tempo": [
+          42,
+          1162,
+          1038,
+          1310
+        ],
+        "tapCenter": [
+          286,
+          1202
+        ],
+        "afterOneSwipe": [
+          53,
+          692,
+          519,
+          818
+        ]
+      },
+      "savedSetChip": {
+        "bounds": [
+          63,
+          1080,
+          516,
+          1206
+        ],
+        "tempo": [
+          42,
+          1070,
+          1038,
+          1310
+        ],
+        "afterOneSwipe": [
+          63,
+          764,
+          516,
+          890
+        ]
+      }
+    },
+    "successfulPayload": "87.5kg x4 @8 manually typed and saved; real rest Skip; unsaved92.5kg x6 @7 survives lift switch away/back; original saved row corrected to85kg x3 @9; Summary255kg; Done -> Home -> History -> detail same session and row.",
+    "finalRun": {
+      "sourceStackHead": "f006c7e446e6e9f3a5f75fa5c732c2c1415750fb",
+      "publishedTag": "debug-live-2026-10-06-1",
+      "publishedTagCommit": "a1f47d1a0d41d1e0264d4457407391cf7d4af92e",
+      "productionMatchesPublishedTag": true,
+      "productionPathsCompared": [
+        "app/src/main",
+        "app/src/debug",
+        "app/src/release",
+        "app/build.gradle.kts",
+        "build.gradle.kts",
+        "gradle/libs.versions.toml"
+      ],
+      "artifactRunId": "20261008-153456560",
+      "result": "BUILD SUCCESSFUL in 59s",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "gradleTasks": {
+        "upToDate": 63,
+        "total": 69,
+        "executed": 6
+      },
+      "classes": [
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest",
+          "tests": 2
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyInstrumentedTest",
+          "tests": 1
+        }
+      ],
+      "installedVersionCode": 124,
+      "installedVersionName": "1.0.0+debug.124",
+      "installedVersionObservations": [
+        "10-08 11:35:11.466  3384  3407 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+        "10-08 11:35:26.791  3384  3407 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+        "10-08 11:35:31.801  3384  3407 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)"
+      ],
+      "verifiedRestorations": [
+        "10-08 11:35:26.308  3384  3407 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=1, mobile_data=1} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+        "10-08 11:35:31.202  3384  3407 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=1, mobile_data=1} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+        "10-08 11:35:53.899  3384  3407 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=1, mobile_data=1} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false"
+      ],
+      "captures": 16,
+      "captureDeviceHashesMatch": true,
+      "sourceHashesVerifiedUnchanged": true,
+      "noTemperPackagesAfterUtp": true,
+      "connectedPayload": "Manually typed87.5kg x4 @8; real UI Skip; unsaved92.5kg x6 @7 retained away/back; corrected same saved row85kg x3 @9; Summary255kg; Done -> Home -> History -> detail same session and row.",
+      "guidance": "Synthetic long routine/exercise labels; real content swipes added to expose numeric fields, effort controls and saved-set chip above pinned Tempo. No Apply used to fill actual values or effort.",
+      "limitations": "Exactly3 selected synthetic API29 journeys; no full Android/JVM gate in this run, no physical-phone acceptance, no original S05 version attribution. Local research APK from matching production source; no distribution/signing override/drop."
+    },
+    "limits": [
+      "Three selected synthetic API29 cases, not a complete Android gate.",
+      "Long fixture labels and particular scroll positions; not universal overlap or owner friction frequency.",
+      "Matching production source and observed local124 identity do not prove distribution signer or owner phone settings.",
+      "Original screenshot runtime identity and owner phone usability acceptance remain unknown."
+    ]
+  },
+  "contractProbes": {
+    "unchangedProductionRed": {
+      "tests": 2,
+      "failures": 2,
+      "errors": 0,
+      "skipped": 0,
+      "xmlFiles": 2,
+      "failuresPreserved": [
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.RemovalObserverOrderingRegressionCandidate",
+          "case": "aCommittedRemovalMustNotClearTheSurvivorAlreadySelectedByItsObserver",
+          "message": "java.lang.AssertionError: removal cleanup must preserve the observer's READY selection; state=ActiveWorkoutUiState(loadState=FOUND, session=WorkoutSession(id=520852a0-650f-477c-b855-defd82347248, routineId=test-routine, routineName=Lower B, date=1791474040036, notes=, durationMinutes=0, startedAt=1791474040036, finishedAt=null, exercises=[SessionExercise(id=2766498f-22c6-4cf2-bd8c-7f1eb2f7b6aa, sessionId=520852a0-650f-477c-b855-defd82347248, exercise=Exercise(id=leg-extension, name=Leg Extension, muscleGroup=Quads, notes=, isCustom=false, equipment=OTHER, loadType=EXTERNAL, movementKey=null, imageKey=null, muscles=[]), sortOrder=0, targetSets=3, targetReps=10, targetWeightKg=31.75150366049478, restSeconds=120, targetSeconds=null, targetSecondsMax=null)], sets=[]), selectedExerciseId=leg-extension, draft=ActiveExerciseDraft(weightKg=31.75150366049478, reps=10, rpe=null, isWarmup=false, durationSeconds=null), hint=null, lastPerformance=null, searchQuery=, searchResults=[], showExercisePicker=false, notes=, error=null, finished=false, editingSetId=null, logging=false, save=WorkoutSaveState(phase=IDLE, command=null, message=null), mutating=false, liftReadiness=NONE, suggestionUnavailable=false, draftDirty=false, swapping=false, swapSiblings=[], suggestion=null, suggestionReason=null) expected:<READY> but was:<NONE>",
+          "xml": "build/ux-context/runs/debug124-contract-probes/red/xml/TEST-com.sinura.personaltrainer.ui.workout.RemovalObserverOrderingRegressionCandidate.xml",
+          "sha256": "d12abe6600f906575a418786bd8d6965b763d7afaa97a9fe56660cfcc6b006f1"
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.WorkoutCommit72ContractCandidateTest",
+          "case": "portrait360_font10",
+          "message": "java.lang.AssertionError: ADR-027 workout commit must render at least 72 dp and remain fully reachable; 360x640-font10: [Observation(name=ready, visibleHeightDp=64.0, layoutHeightDp=64.0, widthDp=328.0, frameWidthDp=360.0, frameHeightDp=640.0, fullyInside=true, enabled=true), Observation(name=effort-missing, visibleHeightDp=64.0, layoutHeightDp=64.0, widthDp=328.0, frameWidthDp=360.0, frameHeightDp=640.0, fullyInside=true, enabled=false), Observation(name=saving, visibleHeightDp=64.0, layoutHeightDp=64.0, widthDp=328.0, frameWidthDp=360.0, frameHeightDp=640.0, fullyInside=true, enabled=false), Observation(name=next-one-line, visibleHeightDp=64.0, layoutHeightDp=64.0, widthDp=328.0, frameWidthDp=360.0, frameHeightDp=640.0, fullyInside=true, enabled=true), Observation(name=finish-one-line, visibleHeightDp=64.0, layoutHeightDp=64.0, widthDp=328.0, frameWidthDp=360.0, frameHeightDp=640.0, fullyInside=true, enabled=true)]",
+          "xml": "build/ux-context/runs/debug124-contract-probes/red/xml/TEST-com.sinura.personaltrainer.ui.workout.WorkoutCommit72ContractCandidateTest.xml",
+          "sha256": "a0f600e3db35d18c1750b4976c618722c91093c1df4fd91f19677acc6c46178f"
+        }
+      ],
+      "xmlAggregateSha256": "341de1ded79d9c360907ed25ad45a5059992d8d47cba0b4b001d3eeda6d346cf",
+      "archive": "build/ux-context/runs/debug124-contract-probes/red/xml"
+    },
+    "twoSmallFixesGreen": {
+      "tests": 29,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "xmlFiles": 4,
+      "failuresPreserved": [],
+      "xmlAggregateSha256": "56f24f8f95481a837bf3f6a03ba77a11f9ddd916e94a644ec30e68918db4c88f",
+      "archive": "build/ux-context/runs/debug124-contract-probes/green/xml"
+    },
+    "classRename": "Executed candidates became RemovedLiftObserverOrderingTest and WorkoutCommitTargetRenderTest; test bodies were retained. Their final gate execution is separate.",
+    "targetMeasurements": {
+      "profiles": 9,
+      "states": 45,
+      "minimumDp": 72,
+      "measurements": [
+        {
+          "profile": "360x640-font10",
+          "sha256": "511c823bf1dc61cc432159db0a22f65a1f494ac5cade84f34ef2922cb4b71c48",
+          "states": [
+            {
+              "scenario": "ready",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "effort-missing",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "saving",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "next-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "finish-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            }
+          ]
+        },
+        {
+          "profile": "360x640-font16",
+          "sha256": "e025460868d611c6238c51c66c2d91a563318ffb3313d6a2e62b86d0b0c25b44",
+          "states": [
+            {
+              "scenario": "ready",
+              "visible_height_dp": "76.5",
+              "layout_height_dp": "76.5",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "effort-missing",
+              "visible_height_dp": "76.5",
+              "layout_height_dp": "76.5",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "saving",
+              "visible_height_dp": "76.5",
+              "layout_height_dp": "76.5",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "next-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "finish-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            }
+          ]
+        },
+        {
+          "profile": "360x640-font20",
+          "sha256": "30c6529d953ad87482cda01a1a9f40a1600a87172882bae991c6c350c10e6b75",
+          "states": [
+            {
+              "scenario": "ready",
+              "visible_height_dp": "88.5",
+              "layout_height_dp": "88.5",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "effort-missing",
+              "visible_height_dp": "88.5",
+              "layout_height_dp": "88.5",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "saving",
+              "visible_height_dp": "88.5",
+              "layout_height_dp": "88.5",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "next-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "finish-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "328.0",
+              "frame_width_dp": "360.0",
+              "frame_height_dp": "640.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            }
+          ]
+        },
+        {
+          "profile": "412x840-font10",
+          "sha256": "8e9b2b3d281c380956c55869dae6e292932edf1c57b9cb963eef11474b723aa9",
+          "states": [
+            {
+              "scenario": "ready",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "effort-missing",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "saving",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "next-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "finish-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            }
+          ]
+        },
+        {
+          "profile": "412x840-font16",
+          "sha256": "6fa474a75ed85c78a01ae4d104af126970069ba89cd09f0b287c11d576c5de97",
+          "states": [
+            {
+              "scenario": "ready",
+              "visible_height_dp": "76.5",
+              "layout_height_dp": "76.5",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "effort-missing",
+              "visible_height_dp": "76.5",
+              "layout_height_dp": "76.5",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "saving",
+              "visible_height_dp": "76.5",
+              "layout_height_dp": "76.5",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "next-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "finish-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            }
+          ]
+        },
+        {
+          "profile": "412x840-font20",
+          "sha256": "a78e6df6276313cfb5b2daa3425c167a538385e139520fbef0182adf601a57a1",
+          "states": [
+            {
+              "scenario": "ready",
+              "visible_height_dp": "88.5",
+              "layout_height_dp": "88.5",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "effort-missing",
+              "visible_height_dp": "88.5",
+              "layout_height_dp": "88.5",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "saving",
+              "visible_height_dp": "88.5",
+              "layout_height_dp": "88.5",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "next-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "finish-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "380.0",
+              "frame_width_dp": "412.0",
+              "frame_height_dp": "840.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            }
+          ]
+        },
+        {
+          "profile": "640x360-land-font10",
+          "sha256": "21f090892a80a65cfd413abb1967c0f814a02a48de7b06053e51061a5f59fa7b",
+          "states": [
+            {
+              "scenario": "ready",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "effort-missing",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "saving",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "next-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "finish-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            }
+          ]
+        },
+        {
+          "profile": "640x360-land-font16",
+          "sha256": "0689426c145783e9aead71b9ef8dd95929ce2ab044910de4e84700167392b429",
+          "states": [
+            {
+              "scenario": "ready",
+              "visible_height_dp": "76.5",
+              "layout_height_dp": "76.5",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "effort-missing",
+              "visible_height_dp": "76.5",
+              "layout_height_dp": "76.5",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "saving",
+              "visible_height_dp": "76.5",
+              "layout_height_dp": "76.5",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "next-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "finish-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            }
+          ]
+        },
+        {
+          "profile": "640x360-land-font20",
+          "sha256": "f6e0d592eddc3cf434eccf287109d2f57f615663ed309eb1e9dc0a328b1d558e",
+          "states": [
+            {
+              "scenario": "ready",
+              "visible_height_dp": "88.5",
+              "layout_height_dp": "88.5",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "effort-missing",
+              "visible_height_dp": "88.5",
+              "layout_height_dp": "88.5",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "saving",
+              "visible_height_dp": "88.5",
+              "layout_height_dp": "88.5",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "false"
+            },
+            {
+              "scenario": "next-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            },
+            {
+              "scenario": "finish-one-line",
+              "visible_height_dp": "72.0",
+              "layout_height_dp": "72.0",
+              "width_dp": "608.0",
+              "frame_width_dp": "640.0",
+              "frame_height_dp": "360.0",
+              "fully_inside": "true",
+              "enabled": "true"
+            }
+          ]
+        }
+      ]
+    },
+    "limits": [
+      "Ordering gate proves the race, not its phone frequency.",
+      "Component frame inclusion does not certify full-screen reachability, physical touch or TalkBack."
+    ]
+  },
+  "runnerStartup": {
+    "initialEvidence": {
+      "status": "shadow candidate verified; live tools unchanged",
+      "recorded_utc": "2026-10-08T15:40:33.688724+00:00",
+      "host": "Windows Git Bash; mock adb and Gradle only",
+      "original": {
+        "exit": 0,
+        "passed": 23
+      },
+      "red_regression": {
+        "exit": 1,
+        "first_new_case": "boot_default_network_settles",
+        "original_default": "none",
+        "restored_default": "active"
+      },
+      "candidate": {
+        "exit": 0,
+        "passed": 30,
+        "existing_cases": 23,
+        "new_cases": 7
+      },
+      "syntax_checks": {
+        "runner_exit": 0,
+        "harness_exit": 0,
+        "command": "sh -n"
+      },
+      "git_apply_check": {
+        "exit": 0,
+        "applied": false
+      },
+      "limits": [
+        "No real adb call",
+        "No Gradle/build/test/device execution",
+        "No hosted rerun of candidate",
+        "Fresh-boot explanation remains inference from recorded posture mismatch"
+      ],
+      "hash_encoding": "candidate and patch files are UTF-8 LF; logs use actual captured bytes",
+      "sha256": {
+        "candidate/tools/ci-instrumented.sh": "60f9bb32c2cd926be83791bbb79413e27e7f17b10f11717f13e8281107a105ce",
+        "candidate/tools/test_ci_instrumented.sh": "3425d459f7dcb04259608c237eac04f7a6d1a9c22d6d5169afef495af7c3e801",
+        "startup.patch": "069e0f7cfeae9ef84024b8232e1f0ebcfbfa496004ca33cba8b0e2a8ed24c985",
+        "original-checks.log": "7e78744f2f493c25fa7387c42107de4db4666af6c0d350c43bd975a22c1bd4b5",
+        "before-checks.log": "b8d6f18a6f315b75a2144707eeba1bf1c80e994c34848e4127d9b77933f4b6f0",
+        "candidate-checks.log": "a5ed0c06340a3560465ce082be666808031e6f771cda6ec794b20a61f3657c72"
+      }
+    },
+    "deadlineEvidence": {
+      "status": "deadline shadow candidate verified; live tools unchanged by this task",
+      "recorded_utc": "2026-10-08T15:59:46.741273+00:00",
+      "host": "Windows Git Bash; mock adb and Gradle only",
+      "supersedes": "Initial startup candidate admitted coherent results after its deadline; initial 30 passing mocks did not cover slow reads.",
+      "red_wifi": {
+        "exit": 1,
+        "runner_exit": 0,
+        "case": "startup_deadline_crossed_by_second_wifi",
+        "expected_runner_exit": 1
+      },
+      "red_final_network": {
+        "exit": 1,
+        "runner_exit": 0,
+        "case": "startup_deadline_crossed_by_matching_final_network",
+        "expected_runner_exit": 1
+      },
+      "candidate": {
+        "exit": 0,
+        "passed": 32,
+        "retained_cases": 30,
+        "new_deadline_cases": 2
+      },
+      "clock": "Observational date; sleep advances 10 seconds normally or 1 in slow-read cases; flagged adb readings advance bounded simulated durations.",
+      "wifi_expiry": {
+        "elapsed_s": 33,
+        "wifi_reads": 2,
+        "data_reads": 1,
+        "connectivity_reads": 1,
+        "svc_or_gradle": false
+      },
+      "final_network_expiry": {
+        "elapsed_s": 31,
+        "wifi_reads": 2,
+        "data_reads": 2,
+        "connectivity_reads": 2,
+        "svc_or_gradle": false
+      },
+      "deadline_rule": "Before each adb read and after final network read; no late admission or later read after expiry. An already-started read retains its 10-second timeout; no transport mutation during startup.",
+      "restore_and_remaining_runner_suffix": "byte-identical to initial startup candidate after CI_SYNTHETIC_NETWORK baseline echo",
+      "syntax_checks": {
+        "runner_exit": 0,
+        "harness_exit": 0,
+        "command": "sh -n"
+      },
+      "git_apply_check": {
+        "exit": 0,
+        "applied": false,
+        "against": "current tools with first startup patch"
+      },
+      "limits": [
+        "No real adb call",
+        "No Gradle/build/device execution",
+        "No hosted rerun of candidate",
+        "Real gate and emulator checks still pending after integration"
+      ],
+      "sha256": {
+        "deadline-candidate/tools/ci-instrumented.sh": "89b370f2248109031ca51c6b658b831b249bb1b1dd8e07b38280742542e2f266",
+        "deadline-candidate/tools/test_ci_instrumented.sh": "5f56b573614098a8f817f5e825a4abd5aa67a60d78628eb80bc637ac7ec635e2",
+        "deadline.patch": "2b9476356c05f81da01bec99e8a5d51126410e0c6ff69d460564e9172ff4df67",
+        "deadline-before-wifi-checks.log": "15a76f97eb5e8fb0509d2c5e8a625721d15bb26ea5eedf712927c69947dfdef9",
+        "deadline-before-final-checks.log": "bb5bc530ff46916927bf9e07b2f40221260d7f255dca98be0a071b4c523ddb84",
+        "deadline-candidate-checks.log": "3194c139342322b2553ae6b3f3c9c1f4c152aff9960ebe138e10f464f76890dd"
+      }
+    },
+    "liveMockLog": "build/ux-context/runs/workout-contract-recovery/runner-live-checks.log",
+    "liveMockLogSha256": "c3c086f29044d9203efb4a083ae355425b26ac492d8bc33964b6bd6db6ae3ca0",
+    "liveMockResult": "32 checks passed; mock adb/Gradle only. Strict restoration code remains unchanged.",
+    "deadline": "30-second admission window, checked before each read and after final read. Already-started reads retain a 10-second timeout; no late baseline admission or next read."
+  },
+  "originalFullGateFailure": {
+    "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+    "exit": 1,
+    "duration": "9m56s",
+    "units": {
+      "tests": 3592,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "xmlFiles": 542,
+      "failuresPreserved": [
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyTest",
+          "case": "manualResultRestSwitchCorrectionAndFinishAgreeInSummaryHistoryAndDetail",
+          "message": "java.lang.AssertionError: effort preserves the typed result, not within 20000 ms; at the end: ActiveWorkoutUiState(loadState=FOUND, session=WorkoutSession(id=b9760269-bb10-4a44-9042-c64eca6199bf, routineId=240f8362-17b5-4357-9374-98f4f8f200c2, routineName=Connected journey lower, date=1791474933312, notes=, durationMinutes=0, startedAt=1791474933312, finishedAt=null, exercises=[SessionExercise(id=e9eaf0d2-cca2-48fe-9ace-b712475dd8f2, sessionId=b9760269-bb10-4a44-9042-c64eca6199bf, exercise=Exercise(id=leg-extension, name=Leg Extension, muscleGroup=Quads, notes=, isCustom=false, equipment=OTHER, loadType=EXTERNAL, movementKey=null, imageKey=null, muscles=[]), sortOrder=0, targetSets=3, targetReps=10, targetWeightKg=31.75150366049478, restSeconds=120, targetSeconds=null, targetSecondsMax=null), SessionExercise(id=9bb87c95-ea54-422d-af61-a305ce1990a3, sessionId=b9760269-bb10-4a44-9042-c64eca6199bf, exercise=Exercise(id=romanian-deadlift, name=Romanian Deadlift, muscleGroup=Hamstrings, notes=, isCustom=false, equipment=OTHER, loadType=EXTERNAL, movementKey=null, imageKey=null, muscles=[]), sortOrder=1, targetSets=3, targetReps=8, targetWeightKg=40.8, restSeconds=90, targetSeconds=null, targetSecondsMax=null)], sets=[]), selectedExerciseId=leg-extension, draft=ActiveExerciseDraft(weightKg=37.4, reps=12, rpe=null, isWarmup=false, durationSeconds=null), hint=null, lastPerformance=null, searchQuery=, searchResults=[], showExercisePicker=false, notes=, error=null, finished=false, editingSetId=null, logging=false, save=WorkoutSaveState(phase=IDLE, command=null, message=null), mutating=false, liftReadiness=READY, suggestionUnavailable=false, draftDirty=true, swapping=false, swapSiblings=[], suggestion=null, suggestionReason=null)",
+          "xml": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt01/test-results/TEST-com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyTest.xml",
+          "sha256": "31d3acf652a5faec0dd85ed44b94d8648bf3bf6293267e29a039715b18cfeb55"
+        }
+      ],
+      "xmlAggregateSha256": "1c686606ece08e6299938cfd3b9c250ae22e5e4883fd0b44fe36ac7e12c58a08",
+      "archive": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt01/test-results"
+    },
+    "log": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt01/gradle.log",
+    "logSha256": "6fb7717bc3aff026ef889a66d63bf945c5e4254d9490319431a16f347550ed92",
+    "classification": "Real connected-journey failure, not a demonstrated host limitation. Effort8 touch left manually typed37.4kgx12 at rpe=null; driver diagnosis and new results are separate."
+  },
+  "jvmDriverFollowup": {
+    "initialFailure": "full-gate-attempt01:3592 unit tests,1 ConnectedWorkoutJourneyTest failure; other gate evidence remains separate",
+    "attempts": [
+      {
+        "path": "jvm-connected-attempt01",
+        "result": "Wrapper rejected separate --tests argument;0 tests executed"
+      },
+      {
+        "diff": "jvm-connected-attempt02/test-driver.diff",
+        "path": "jvm-connected-attempt02",
+        "source": "jvm-connected-attempt02/ConnectedWorkoutJourneyTest.kt",
+        "result": "Diagnostics-only driver:1 executed/1 failed;preflight32mockpass",
+        "hash": "jvm-connected-attempt02/source-hash.json"
+      },
+      {
+        "diff": "jvm-connected-attempt03/test-driver.diff",
+        "path": "jvm-connected-attempt03",
+        "source": "jvm-connected-attempt03/ConnectedWorkoutJourneyTest.kt",
+        "result": "Bounded real-swipe driver:1 executed/0fail/errors/skips;preflight32mockpass",
+        "hash": "jvm-connected-attempt03/source-hash.json"
+      }
+    ],
+    "demonstratedGeometryPixels": {
+      "tempoBounds": [
+        32,
+        1106,
+        688,
+        1218
+      ],
+      "rpe8Center": [
+        360,
+        1178
+      ],
+      "contentBounds": [
+        0,
+        201,
+        720,
+        1226
+      ],
+      "rpe8Bounds": [
+        304,
+        1130,
+        416,
+        1226
+      ]
+    },
+    "finding": "The original ordinary RPE8 tap lands on the overlaid Tempo surface: Tempo disappears while the chip remains unselected and the draft stays37.4kgx12/rpe=null. The failed and successful before/after PNGs and semantic bounds are preserved.",
+    "repair": "Swipe only the uncovered content area, at most3 times, until the full effort/saved-chip target lies above Tempo; then ordinary click. Assert selected effort and all previous durable payload/session checks. No VM setters, Apply or semantics-click bypass added.",
+    "success": {
+      "result": "BUILD SUCCESSFUL in 3m26s",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "artifactRunId": "a7948151-05d9-42b4-afc5-c8025df42786",
+      "driver": "Real CONTENT swipe above pinned Tempo, full target bounds and selected effort guard; original exact session/row/result assertions retained",
+      "gradleTasks": {
+        "total": 33,
+        "upToDate": 29,
+        "executed": 4
+      },
+      "preflight": "executed and passed including32mock runner cases",
+      "captures": 11,
+      "sourceHash": "AB0F769663A1FA36D46B4A288EDE68612B8155C16A402AF5DE6209F7F39180B1"
+    },
+    "successfulJourney": "Manual82.5lb x12 @8 (canonical37.4kg), live rest identity, unsaved87.5lb x9 @7 survives switching, original saved row corrected80lb x11 @9 (canonical36.3kg), Finish/Summary399.3kg/Done callback/History/detail same row and session.",
+    "limitations": [
+      "One selected JVM screen-host journey; not AppNav, native Android service behavior, full gate or phone acceptance.",
+      "JVM360x800 native graphics profile; observed overlap is this rendered state, not all owner-phone states.",
+      "Existing withKeypad clock/Set semantics seam remains unchanged and documented in FloorTestKit.",
+      "Native fullsuite follows separately; no passing native result is inferred from this JVM test."
+    ]
+  },
+  "adaptiveJvmAttempts": {
+    "firstStaticFailure": {
+      "testsExecuted": 0,
+      "archive": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt01",
+      "classification": "Component modal state named state was outside the checker VM-state convention. Renamed cardState without changing the checker or its baseline."
+    },
+    "firstMatrix": {
+      "tests": 10,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "xmlFiles": 1,
+      "failuresPreserved": [
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "openWhySurvivesRelocationEvenWhenTheInlineCardIsOffscreen",
+          "message": "java.lang.AssertionError: Failed: assertDoesNotExist.",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt02/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "3d0b7b88dcd50285fe67b0acb2cc3e7fa14d3847afd5532a59a99b85eb69cd95"
+        }
+      ],
+      "xmlAggregateSha256": "c6d66141845a40948faf9d3e3e0ed0fae4b220f3e375a529eb03c7d7ce9da4d9",
+      "archive": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt02/test-results"
+    },
+    "modalDiagnosis": {
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 0,
+      "xmlFiles": 1,
+      "failuresPreserved": [
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "openWhySurvivesRelocationEvenWhenTheInlineCardIsOffscreen",
+          "message": "java.lang.AssertionError: Failed: assertDoesNotExist.",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt03/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "b9a4c60f57ec5d105aaae393528c535989b2ada9e114170823cdbc406bf22d59"
+        }
+      ],
+      "xmlAggregateSha256": "477d9e4d7eecb9503f8cb1edd6fb99d2bd45ac7699b3320aa799627562f5e6ba",
+      "archive": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt03/test-results"
+    },
+    "postRepairSetupAttempt": {
+      "tests": 24,
+      "failures": 9,
+      "errors": 0,
+      "skipped": 0,
+      "xmlFiles": 3,
+      "failuresPreserved": [
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "landscape_font10",
+          "message": "java.lang.AssertionError: No node found that matches TestTag = 'workout-micro-rec-apply' in scrollable container",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "7f0d6b57406df60711e0aca1d3701e56f54a3b1f76a89964529397804bc6c94d"
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "landscape_font16",
+          "message": "java.lang.AssertionError: No node found that matches TestTag = 'workout-micro-rec-apply' in scrollable container",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "7f0d6b57406df60711e0aca1d3701e56f54a3b1f76a89964529397804bc6c94d"
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "landscape_font20",
+          "message": "java.lang.AssertionError: No node found that matches TestTag = 'workout-micro-rec-apply' in scrollable container",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "7f0d6b57406df60711e0aca1d3701e56f54a3b1f76a89964529397804bc6c94d"
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "portrait412_font10",
+          "message": "java.lang.AssertionError: No node found that matches TestTag = 'workout-micro-rec-apply' in scrollable container",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "7f0d6b57406df60711e0aca1d3701e56f54a3b1f76a89964529397804bc6c94d"
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "portrait412_font16",
+          "message": "java.lang.AssertionError: No node found that matches TestTag = 'workout-micro-rec-apply' in scrollable container",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "7f0d6b57406df60711e0aca1d3701e56f54a3b1f76a89964529397804bc6c94d"
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "portrait412_font20",
+          "message": "java.lang.AssertionError: No node found that matches TestTag = 'workout-micro-rec-apply' in scrollable container",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "7f0d6b57406df60711e0aca1d3701e56f54a3b1f76a89964529397804bc6c94d"
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "portrait360_font10",
+          "message": "java.lang.AssertionError: No node found that matches TestTag = 'workout-micro-rec-apply' in scrollable container",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "7f0d6b57406df60711e0aca1d3701e56f54a3b1f76a89964529397804bc6c94d"
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "portrait360_font16",
+          "message": "java.lang.AssertionError: No node found that matches TestTag = 'workout-micro-rec-apply' in scrollable container",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "7f0d6b57406df60711e0aca1d3701e56f54a3b1f76a89964529397804bc6c94d"
+        },
+        {
+          "class": "com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest",
+          "case": "portrait360_font20",
+          "message": "java.lang.AssertionError: No node found that matches TestTag = 'workout-micro-rec-apply' in scrollable container",
+          "xml": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results/TEST-com.sinura.personaltrainer.ui.workout.AdaptiveTempoReachabilityRenderTest.xml",
+          "sha256": "7f0d6b57406df60711e0aca1d3701e56f54a3b1f76a89964529397804bc6c94d"
+        }
+      ],
+      "xmlAggregateSha256": "e10e8ba8a037d62c73dd34bc19e22333497b36b99bdc218ae3e5fdd9874575df",
+      "archive": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt04/test-results",
+      "classification": "Nine cases successfully used the Why suggestion, then incorrectly expected another card Apply after the unchanged policy dismissed that tip. Final11 use separate Keep/card-Apply and Why-Use fixtures; no reset or save manufactures a reoffer."
+    },
+    "finalGateMatrix": {
+      "tests": 11,
+      "failures": 0,
+      "actualGateRunIds": [
+        "0197de11-500d-48ac-9802-8680b7bb55ba",
+        "130a8e6a-5e8c-4b7b-9b72-e0ed63e4b4ea",
+        "208714bf-7243-4b5c-b5a6-9dc5e2429bdb",
+        "47620de4-890a-455d-9c3e-966ed27e7f33",
+        "5d046afa-f776-43b4-adb1-bb33cd0d7b5d",
+        "63b18e5e-6c98-4f01-88d0-5e368c1e29cd",
+        "7b5ad15b-3f37-4043-86d4-a7b8e10ca070",
+        "7ea452d6-82be-4692-a79e-8a6644489fa4",
+        "9a0f1d58-4945-4cab-902d-edb7b9f0ed80",
+        "babb24dd-dbfa-4098-b1f0-c11d330ee4f5",
+        "fc86e9d4-8180-44bc-b4b7-66790696ccd4"
+      ],
+      "files": [
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/0197de11-500d-48ac-9802-8680b7bb55ba/640x360-land-font10/apply-after-touch.png",
+          "sha256": "dd16ca947415f32bde9efe3bdac9c0d355a84928ad784743ffb4e26cf8daab89",
+          "bytes": 46332
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/0197de11-500d-48ac-9802-8680b7bb55ba/640x360-land-font10/apply-before-touch.png",
+          "sha256": "5594114445198e6fc272b5a82ad1faa3b397a8cdf81e3b51b5ad8537ac847c2d",
+          "bytes": 57086
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/0197de11-500d-48ac-9802-8680b7bb55ba/640x360-land-font10/before-keep-touch-geometry.txt",
+          "sha256": "e21b3e4265e0f49b3e79bffaffa80bfdc9cca2527fc735d9e592667ee1c3432e",
+          "bytes": 913
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/0197de11-500d-48ac-9802-8680b7bb55ba/640x360-land-font10/before-keep-touch-modal-window.png",
+          "sha256": "80b4775407a713cf6b2401de90fb9bb571f39bd602587242b4472eecf313598a",
+          "bytes": 49953
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/0197de11-500d-48ac-9802-8680b7bb55ba/640x360-land-font10/effort-before-touch.png",
+          "sha256": "555ceb90e205c9dfbfbe2afb86c3a5f63c601bf53d427a3dc1d19f1ce8e2f46e",
+          "bytes": 40047
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/0197de11-500d-48ac-9802-8680b7bb55ba/640x360-land-font10/numeric-before-touch.png",
+          "sha256": "2af107b12f90aaaf79db1c31fae793456d76e1b4ec150ef057ac85a084472f88",
+          "bytes": 41170
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/0197de11-500d-48ac-9802-8680b7bb55ba/640x360-land-font10/reachability.tsv",
+          "sha256": "e17f0b8ce6ee716c6c4625e4fd842eeb864a634ee30e146ff8981677d5d047e2",
+          "bytes": 576
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/130a8e6a-5e8c-4b7b-9b72-e0ed63e4b4ea/640x360-land-font16/apply-after-touch.png",
+          "sha256": "151604352e1c262ec557b4f8bf0244295002efde70793dd28a2c7be1c1904c8e",
+          "bytes": 62165
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/130a8e6a-5e8c-4b7b-9b72-e0ed63e4b4ea/640x360-land-font16/apply-before-touch.png",
+          "sha256": "3f7aba4861586c0bf5d8967a8eb917009f1036548efdb0b1d42e8260338bcb78",
+          "bytes": 75552
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/130a8e6a-5e8c-4b7b-9b72-e0ed63e4b4ea/640x360-land-font16/before-keep-touch-geometry.txt",
+          "sha256": "e21b3e4265e0f49b3e79bffaffa80bfdc9cca2527fc735d9e592667ee1c3432e",
+          "bytes": 913
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/130a8e6a-5e8c-4b7b-9b72-e0ed63e4b4ea/640x360-land-font16/before-keep-touch-modal-window.png",
+          "sha256": "80b4775407a713cf6b2401de90fb9bb571f39bd602587242b4472eecf313598a",
+          "bytes": 49953
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/130a8e6a-5e8c-4b7b-9b72-e0ed63e4b4ea/640x360-land-font16/effort-before-touch.png",
+          "sha256": "8dbb1011cc9bf6cc8f712815134675fe53a276756938e11f350f0c31828be060",
+          "bytes": 50590
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/130a8e6a-5e8c-4b7b-9b72-e0ed63e4b4ea/640x360-land-font16/numeric-before-touch.png",
+          "sha256": "a161142f09c733174881da372a0ee23a24ea3cfba658e2b297542c61a8d52c1a",
+          "bytes": 44648
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/130a8e6a-5e8c-4b7b-9b72-e0ed63e4b4ea/640x360-land-font16/reachability.tsv",
+          "sha256": "cf7a39f7ad1a5933bb4dfeef452ee2c57e536d8b728ed4b5a4dd2a1ae77aecf9",
+          "bytes": 577
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/208714bf-7243-4b5c-b5a6-9dc5e2429bdb/412x840-font20/apply-after-touch.png",
+          "sha256": "314e026662a5a982eac48653b6076e336f85a949d5245a15c692ad991d6f17e9",
+          "bytes": 141025
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/208714bf-7243-4b5c-b5a6-9dc5e2429bdb/412x840-font20/apply-before-touch.png",
+          "sha256": "d079d21ab3f0c456fe0d593b343f82f9847aeab376d66a7918fa17680922d677",
+          "bytes": 150477
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/208714bf-7243-4b5c-b5a6-9dc5e2429bdb/412x840-font20/before-keep-touch-geometry.txt",
+          "sha256": "80a0c98e36adce39fe96178e586be07350dbc0547ec9e3b3c07bed1e418c5a58",
+          "bytes": 922
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/208714bf-7243-4b5c-b5a6-9dc5e2429bdb/412x840-font20/before-keep-touch-modal-window.png",
+          "sha256": "22c81aedca17218b1b2f6b40abb4d804e78d9692db83b555790e2cf24779b7d0",
+          "bytes": 170610
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/208714bf-7243-4b5c-b5a6-9dc5e2429bdb/412x840-font20/effort-before-touch.png",
+          "sha256": "b4c22ca1a3fb6a1ee08202cf2a8c2674f8e47ab839078bf6ed7baf03934575e5",
+          "bytes": 128298
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/208714bf-7243-4b5c-b5a6-9dc5e2429bdb/412x840-font20/numeric-before-touch.png",
+          "sha256": "9dcc924fc2b21f0b09f10a13cbd4e1e9083a83891173bd083ef6d1b5d7cc537c",
+          "bytes": 138345
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/208714bf-7243-4b5c-b5a6-9dc5e2429bdb/412x840-font20/reachability.tsv",
+          "sha256": "1b30fae4f17800c6ad9c8a2d47bb58847dec9a27c0ea92701b5d317a7150dc67",
+          "bytes": 576
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/47620de4-890a-455d-9c3e-966ed27e7f33/360x640-font10/apply-after-touch.png",
+          "sha256": "95251b7a941f5d70c3b7e8847c015dc6620e57a9ceb875549a713bd7501d7ea8",
+          "bytes": 95872
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/47620de4-890a-455d-9c3e-966ed27e7f33/360x640-font10/apply-before-touch.png",
+          "sha256": "a3d772321c0c76179ab69f12e4cc2e0b4b1f326ee38f7024d2e410da192e8458",
+          "bytes": 106097
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/47620de4-890a-455d-9c3e-966ed27e7f33/360x640-font10/before-keep-touch-geometry.txt",
+          "sha256": "1a324097a74de9a9cc10df558ee523fd52a3f265825ff16f6a35f25066e62096",
+          "bytes": 921
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/47620de4-890a-455d-9c3e-966ed27e7f33/360x640-font10/before-keep-touch-modal-window.png",
+          "sha256": "f509aada8138ee96edbbda31b699167b15e8ae7fdcff786c1d55d7f11853110a",
+          "bytes": 113828
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/47620de4-890a-455d-9c3e-966ed27e7f33/360x640-font10/effort-before-touch.png",
+          "sha256": "25afeadcc931e2ca29da755070ca376a4b288ca5c0d4ef0e444e20188b00d0bd",
+          "bytes": 99695
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/47620de4-890a-455d-9c3e-966ed27e7f33/360x640-font10/numeric-before-touch.png",
+          "sha256": "659ff69103e4f14c62b862f767a2fd47b02ba937e3f25ae4f92ec1d214210d44",
+          "bytes": 103731
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/47620de4-890a-455d-9c3e-966ed27e7f33/360x640-font10/reachability.tsv",
+          "sha256": "4e789f1a37ec81ebaca293c2efabbea65fef158e968697d40dc7e8840d2dc73c",
+          "bytes": 1027
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/47620de4-890a-455d-9c3e-966ed27e7f33/360x640-font10/workout-rpe-8-clipped-attempt-0.png",
+          "sha256": "db10bfff173701543334f49b577d52d1890c97d47e658e26b49a58bc9999a589",
+          "bytes": 107397
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/47620de4-890a-455d-9c3e-966ed27e7f33/360x640-font10/workout-weight-stepper-clipped-attempt-0.png",
+          "sha256": "d0e20e9571702474ec7b5088c5282b780ca03ee7f668b67e8bd48ecc00b11453",
+          "bytes": 131853
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/5d046afa-f776-43b4-adb1-bb33cd0d7b5d/412x840-font16/apply-after-touch.png",
+          "sha256": "31930baa58efc5d00c9ededa298d001e797bd0d221195ec1ed22eadddbc5160a",
+          "bytes": 131208
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/5d046afa-f776-43b4-adb1-bb33cd0d7b5d/412x840-font16/apply-before-touch.png",
+          "sha256": "e982c66fa3e44dbd829947a45d0050520611b5e305bcaf3ffcc30d7dd2b2cd4a",
+          "bytes": 150400
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/5d046afa-f776-43b4-adb1-bb33cd0d7b5d/412x840-font16/before-keep-touch-geometry.txt",
+          "sha256": "80a0c98e36adce39fe96178e586be07350dbc0547ec9e3b3c07bed1e418c5a58",
+          "bytes": 922
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/5d046afa-f776-43b4-adb1-bb33cd0d7b5d/412x840-font16/before-keep-touch-modal-window.png",
+          "sha256": "22c81aedca17218b1b2f6b40abb4d804e78d9692db83b555790e2cf24779b7d0",
+          "bytes": 170610
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/5d046afa-f776-43b4-adb1-bb33cd0d7b5d/412x840-font16/effort-before-touch.png",
+          "sha256": "1358685e1bbf230f59e8f4b9e81df70f56c73abc8a270c45a4b5240b2225cfec",
+          "bytes": 140670
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/5d046afa-f776-43b4-adb1-bb33cd0d7b5d/412x840-font16/numeric-before-touch.png",
+          "sha256": "86042160b30016db1d33e16a99d57b5e75a78ea6c7579499b68cebd357b3bf5f",
+          "bytes": 130751
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/5d046afa-f776-43b4-adb1-bb33cd0d7b5d/412x840-font16/reachability.tsv",
+          "sha256": "82b6f1635ced492f677ad176373c62d91efb07979eda2936f3d87753eb0598b9",
+          "bytes": 573
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/63b18e5e-6c98-4f01-88d0-5e368c1e29cd/why-use-independent/after-use-touch.png",
+          "sha256": "d42ff6e6d96b9b60e82dab2a1e260b7a58c540e77847dae1807c8e5e12109723",
+          "bytes": 97208
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/63b18e5e-6c98-4f01-88d0-5e368c1e29cd/why-use-independent/before-use-touch-geometry.txt",
+          "sha256": "40179bf494c310ea89f5da67e670f03a54e89e34ee60a50b2023bbe34465cc65",
+          "bytes": 921
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/63b18e5e-6c98-4f01-88d0-5e368c1e29cd/why-use-independent/before-use-touch-modal-window.png",
+          "sha256": "93057a9da5f7c711ce7cf4c428c0b6bd880f21d338a72b03069c8027c04eeb8e",
+          "bytes": 121026
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7b5ad15b-3f37-4043-86d4-a7b8e10ca070/640x360-land-font20/apply-after-touch.png",
+          "sha256": "4a63fac05bc36423cafea58bbd01a1bcf5196014c06e5b870a0122b1de668d02",
+          "bytes": 66603
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7b5ad15b-3f37-4043-86d4-a7b8e10ca070/640x360-land-font20/apply-before-touch.png",
+          "sha256": "69c836058c878346ca4454182f4ae7725c960573959a081160c40ecfeed69cd8",
+          "bytes": 80409
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7b5ad15b-3f37-4043-86d4-a7b8e10ca070/640x360-land-font20/before-keep-touch-geometry.txt",
+          "sha256": "e21b3e4265e0f49b3e79bffaffa80bfdc9cca2527fc735d9e592667ee1c3432e",
+          "bytes": 913
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7b5ad15b-3f37-4043-86d4-a7b8e10ca070/640x360-land-font20/before-keep-touch-modal-window.png",
+          "sha256": "80b4775407a713cf6b2401de90fb9bb571f39bd602587242b4472eecf313598a",
+          "bytes": 49953
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7b5ad15b-3f37-4043-86d4-a7b8e10ca070/640x360-land-font20/effort-before-touch.png",
+          "sha256": "ca1fb92adff4e92501ccc8732f69b1a59fd914748fc7b44bedf9262f0787be12",
+          "bytes": 54884
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7b5ad15b-3f37-4043-86d4-a7b8e10ca070/640x360-land-font20/numeric-before-touch.png",
+          "sha256": "51cceeb9bdfd9099b38df7580478db9e21816d7583dff99e4870c97a7ca1dde1",
+          "bytes": 48962
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7b5ad15b-3f37-4043-86d4-a7b8e10ca070/640x360-land-font20/reachability.tsv",
+          "sha256": "36a52b79f12246323a689f1d43c505a1f8bab440951b39ec800cd70bf1aa7106",
+          "bytes": 577
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7ea452d6-82be-4692-a79e-8a6644489fa4/360x640-font20/apply-after-touch.png",
+          "sha256": "34c2d1f12d2c7c3ca592aa259d0548ddb3226ff328588804b4db2dad949ba472",
+          "bytes": 97227
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7ea452d6-82be-4692-a79e-8a6644489fa4/360x640-font20/apply-before-touch.png",
+          "sha256": "6b140337ecd2548a23474b19f7bb7723d15eaac87079ee228739ea4a619b3fc6",
+          "bytes": 112123
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7ea452d6-82be-4692-a79e-8a6644489fa4/360x640-font20/before-keep-touch-geometry.txt",
+          "sha256": "1a324097a74de9a9cc10df558ee523fd52a3f265825ff16f6a35f25066e62096",
+          "bytes": 921
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7ea452d6-82be-4692-a79e-8a6644489fa4/360x640-font20/before-keep-touch-modal-window.png",
+          "sha256": "f509aada8138ee96edbbda31b699167b15e8ae7fdcff786c1d55d7f11853110a",
+          "bytes": 113828
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7ea452d6-82be-4692-a79e-8a6644489fa4/360x640-font20/effort-before-touch.png",
+          "sha256": "6163b00276dacabf334b207eb23b4a929da9b5e94188e9807d54260291a60f47",
+          "bytes": 85757
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7ea452d6-82be-4692-a79e-8a6644489fa4/360x640-font20/numeric-before-touch.png",
+          "sha256": "1575557b7b2f99218672c15e98a47e0f5d839f3b54f3e064753c17a1c2831973",
+          "bytes": 83439
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/7ea452d6-82be-4692-a79e-8a6644489fa4/360x640-font20/reachability.tsv",
+          "sha256": "fc31ed55a02f9af90420546b964619113cfc30c2323f88efdaa1dd4a3e50be94",
+          "bytes": 569
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/9a0f1d58-4945-4cab-902d-edb7b9f0ed80/360x640-font16/apply-after-touch.png",
+          "sha256": "6adcaebfa25522adde49a1eed8cd25fc724e0a77ba34761e4b5b68d940bbfc02",
+          "bytes": 98926
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/9a0f1d58-4945-4cab-902d-edb7b9f0ed80/360x640-font16/apply-before-touch.png",
+          "sha256": "8bc5885ea9cfe4886ebb9a615390990a1bc40d5775417663daa668c4d3ffbe08",
+          "bytes": 115285
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/9a0f1d58-4945-4cab-902d-edb7b9f0ed80/360x640-font16/before-keep-touch-geometry.txt",
+          "sha256": "1a324097a74de9a9cc10df558ee523fd52a3f265825ff16f6a35f25066e62096",
+          "bytes": 921
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/9a0f1d58-4945-4cab-902d-edb7b9f0ed80/360x640-font16/before-keep-touch-modal-window.png",
+          "sha256": "f509aada8138ee96edbbda31b699167b15e8ae7fdcff786c1d55d7f11853110a",
+          "bytes": 113828
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/9a0f1d58-4945-4cab-902d-edb7b9f0ed80/360x640-font16/effort-before-touch.png",
+          "sha256": "50d5f01d1abc0580211c06125f5fea7a868926421ab312040852d073e8dc40f6",
+          "bytes": 96031
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/9a0f1d58-4945-4cab-902d-edb7b9f0ed80/360x640-font16/numeric-before-touch.png",
+          "sha256": "808940cdfda60a092625da4404e1e1d56365325ef3e180517b12d198c29a9e25",
+          "bytes": 77086
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/9a0f1d58-4945-4cab-902d-edb7b9f0ed80/360x640-font16/reachability.tsv",
+          "sha256": "3d7f39b950b944f6f022221880687c09d2139361b3dcc97d72ae5b592b6f16c1",
+          "bytes": 569
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/inline-offscreen-why-open-geometry.txt",
+          "sha256": "40179bf494c310ea89f5da67e670f03a54e89e34ee60a50b2023bbe34465cc65",
+          "bytes": 921
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/inline-offscreen-why-open-modal-window.png",
+          "sha256": "93057a9da5f7c711ce7cf4c428c0b6bd880f21d338a72b03069c8027c04eeb8e",
+          "bytes": 121026
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/inline-offscreen-why-open.png",
+          "sha256": "23e6e187a8c5a3b2c0f619512d5dfda8443b0d3a855a04cb663faf7c225627fb",
+          "bytes": 104937
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/pinned-why-open-geometry.txt",
+          "sha256": "40179bf494c310ea89f5da67e670f03a54e89e34ee60a50b2023bbe34465cc65",
+          "bytes": 921
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/pinned-why-open-modal-window.png",
+          "sha256": "93057a9da5f7c711ce7cf4c428c0b6bd880f21d338a72b03069c8027c04eeb8e",
+          "bytes": 121026
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/pinned-why-open.png",
+          "sha256": "d0e20e9571702474ec7b5088c5282b780ca03ee7f668b67e8bd48ecc00b11453",
+          "bytes": 131853
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/returned-pinned-after-keep-touch-geometry.txt",
+          "sha256": "6a72521dad14aed02f316b11ef065cea7879799ec6f248e66a4ef907f2e9d59a",
+          "bytes": 290
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/returned-pinned-before-keep-touch-geometry.txt",
+          "sha256": "40179bf494c310ea89f5da67e670f03a54e89e34ee60a50b2023bbe34465cc65",
+          "bytes": 921
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/returned-pinned-before-keep-touch-modal-window.png",
+          "sha256": "93057a9da5f7c711ce7cf4c428c0b6bd880f21d338a72b03069c8027c04eeb8e",
+          "bytes": 121026
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/fc86e9d4-8180-44bc-b4b7-66790696ccd4/412x840-font10/apply-after-touch.png",
+          "sha256": "bc44b43f7d5f6219c356a28be3b87a3e69004d443f3744692cc5710beec7f931",
+          "bytes": 117019
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/fc86e9d4-8180-44bc-b4b7-66790696ccd4/412x840-font10/apply-before-touch.png",
+          "sha256": "187e30b33cfaea7de9af4fab406597bb181d97e2736b5e8b6f1a4c18aaa25290",
+          "bytes": 141134
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/fc86e9d4-8180-44bc-b4b7-66790696ccd4/412x840-font10/before-keep-touch-geometry.txt",
+          "sha256": "80a0c98e36adce39fe96178e586be07350dbc0547ec9e3b3c07bed1e418c5a58",
+          "bytes": 922
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/fc86e9d4-8180-44bc-b4b7-66790696ccd4/412x840-font10/before-keep-touch-modal-window.png",
+          "sha256": "22c81aedca17218b1b2f6b40abb4d804e78d9692db83b555790e2cf24779b7d0",
+          "bytes": 170610
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/fc86e9d4-8180-44bc-b4b7-66790696ccd4/412x840-font10/effort-before-touch.png",
+          "sha256": "c066c2639e4d2b804fdbe23b54b9c44922694b3623823d0b601868a26edbca6e",
+          "bytes": 134232
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/fc86e9d4-8180-44bc-b4b7-66790696ccd4/412x840-font10/numeric-before-touch.png",
+          "sha256": "1a8a5f8540f8132f980308037849082465143307c0fb08274b133d7bb4722e9c",
+          "bytes": 153558
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/fc86e9d4-8180-44bc-b4b7-66790696ccd4/412x840-font10/reachability.tsv",
+          "sha256": "d5bc9a11e13a7d59cd4b22500b64dd2d81741b46b32d78d5025f834379905310",
+          "bytes": 887
+        },
+        {
+          "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/fc86e9d4-8180-44bc-b4b7-66790696ccd4/412x840-font10/workout-rpe-8-clipped-attempt-0.png",
+          "sha256": "63a0ec20e1a135a3e39d3899a71c602c60265ad3c5a8a4a3c955f1a62f844112",
+          "bytes": 162260
+        }
+      ],
+      "limits": [
+        "Scoped floor fonts do not change Robolectric Dialog font; the actual native OS/modal font2 test is separate.",
+        "Activity-only drawWindow PNGs omit modal pixels; separately named modal-window PNGs draw live Dialog decor.",
+        "These are guided synthetic JVM/Room tests, not phone acceptance or Activity/process restoration."
+      ]
+    }
+  },
+  "originalNativeSuiteFailure": {
+    "result": "211 native tests completed;9failures",
+    "tests": 211,
+    "failures": 9,
+    "errors": 0,
+    "skipped": 0,
+    "classes": [
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.data.backup.BackupEnvelopeInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.data.backup.BackupPolicyInstrumentedTest"
+      },
+      {
+        "tests": 3,
+        "class": "com.sinura.personaltrainer.data.local.MigrationDeviceTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.data.local.SchemaV1BaselineDeviceTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.data.local.TemperMigrationDeviceTest"
+      },
+      {
+        "tests": 4,
+        "class": "com.sinura.personaltrainer.data.repository.ScheduleRepositoryInstrumentedTest"
+      },
+      {
+        "tests": 6,
+        "class": "com.sinura.personaltrainer.data.repository.WorkoutRepositoryInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.InstrumentationSmokeTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.SdkTargetInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.timer.ExactAlarmCapabilityInstrumentedTest"
+      },
+      {
+        "tests": 10,
+        "class": "com.sinura.personaltrainer.ui.components.FrontendControlsInstrumentedTest"
+      },
+      {
+        "tests": 4,
+        "class": "com.sinura.personaltrainer.ui.components.IdentityBeforeMetricsInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.ui.history.HistoryPassInstrumentedTest"
+      },
+      {
+        "tests": 27,
+        "class": "com.sinura.personaltrainer.ui.home.HomePassInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.library.LibraryPassInstrumentedTest"
+      },
+      {
+        "tests": 25,
+        "class": "com.sinura.personaltrainer.ui.navigation.FrontendShellInstrumentedTest"
+      },
+      {
+        "tests": 3,
+        "class": "com.sinura.personaltrainer.ui.plan.PlanPassInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.preview.FoundationStateGalleryInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.preview.FrontendBaselineCaptureTest"
+      },
+      {
+        "tests": 12,
+        "class": "com.sinura.personaltrainer.ui.ProductionScreensPassInstrumentedTest"
+      },
+      {
+        "tests": 4,
+        "class": "com.sinura.personaltrainer.ui.progress.BodyPassInstrumentedTest"
+      },
+      {
+        "tests": 8,
+        "class": "com.sinura.personaltrainer.ui.RemainingPagesPassInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutNotificationDenialInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyInstrumentedTest"
+      },
+      {
+        "tests": 21,
+        "class": "com.sinura.personaltrainer.ui.workout.RestCompletionLayoutInstrumentedTest"
+      },
+      {
+        "tests": 3,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionJourneyInstrumentedTest"
+      },
+      {
+        "tests": 15,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest"
+      },
+      {
+        "tests": 8,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest"
+      },
+      {
+        "tests": 38,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryLayoutInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutTimerOverlayInstrumentedTest"
+      }
+    ],
+    "failed": [
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x800-font1-extra]",
+        "failure": "androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:887)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:482)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.chooseEffort(WorkoutCompletionLayoutInstrumentedTest.kt:226)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.primaryActionAndRecoveryRemainReachable(WorkoutCompletionLayoutInstrumentedTest.kt:122)\n"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x640-font2-extra]",
+        "failure": "androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:887)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:482)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.chooseEffort(WorkoutCompletionLayoutInstrumentedTest.kt:226)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.primaryActionAndRecoveryRemainReachable(WorkoutCompletionLayoutInstrumentedTest.kt:122)\n"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x800-font1-edit-denied]",
+        "failure": "androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:887)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:482)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.chooseEffort(WorkoutCompletionLayoutInstrumentedTest.kt:226)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.primaryActionAndRecoveryRemainReachable(WorkoutCompletionLayoutInstrumentedTest.kt:101)\n"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x640-font2-edit-denied]",
+        "failure": "androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:887)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:482)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.chooseEffort(WorkoutCompletionLayoutInstrumentedTest.kt:226)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.primaryActionAndRecoveryRemainReachable(WorkoutCompletionLayoutInstrumentedTest.kt:101)\n"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x800-font1-removed-owner]",
+        "failure": "androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:887)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:482)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.chooseEffort(WorkoutCompletionLayoutInstrumentedTest.kt:226)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.primaryActionAndRecoveryRemainReachable(WorkoutCompletionLayoutInstrumentedTest.kt:213)\n"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "name": "primaryActionAndRecoveryRemainReachable[360x640-font2-removed-owner]",
+        "failure": "androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms\nat androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:887)\nat androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:482)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.chooseEffort(WorkoutCompletionLayoutInstrumentedTest.kt:226)\nat com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest.primaryActionAndRecoveryRemainReachable(WorkoutCompletionLayoutInstrumentedTest.kt:213)\n"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest",
+        "name": "numericEntrySelectsExistingValueValidatesCancelsAndAppliesAbsoluteDecimal",
+        "failure": "java.lang.AssertionError: Assert failed: The component with TestTag = 'number-entry-field' is not displayed!\nat androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)\nat com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest.numericEntrySelectsExistingValueValidatesCancelsAndAppliesAbsoluteDecimal(WorkoutEntryJourneyInstrumentedTest.kt:234)\n"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest",
+        "name": "savedSetsSheetEditsTheChosenRowDeletesAndUndoesWithoutAnotherInsert",
+        "failure": "java.lang.AssertionError: Assert failed: The component with TestTag = 'workout-saved-sets-sheet' is not displayed!\nat androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)\nat com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest.savedSetsSheetEditsTheChosenRowDeletesAndUndoesWithoutAnotherInsert(WorkoutEntryJourneyInstrumentedTest.kt:287)\n"
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest",
+        "name": "switcherNamesProgressAndRequiresConfirmationToInterruptTimingAtLargeText",
+        "failure": "java.lang.AssertionError: Assert failed: The component with TestTag = 'workout-lift-switcher-ex-custom-45c56e06-176a-4e2d-8d49-385a30764b8f' is not displayed!\nat androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)\nat com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest.switcherNamesProgressAndRequiresConfirmationToInterruptTimingAtLargeText(WorkoutEntryJourneyInstrumentedTest.kt:353)\n"
+      }
+    ],
+    "sourceHashesUnchanged": true,
+    "nativeCollectorStopped": true,
+    "installedVersionObservations": [
+      "10-08 12:19:29.240  3504  3536 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+      "10-08 12:19:39.259  3504  3536 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+      "10-08 12:19:43.728  3504  3536 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)"
+    ],
+    "fixtureRestorations": [
+      "10-08 12:19:38.884  3504  3536 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+      "10-08 12:19:42.470  3504  3536 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+      "10-08 12:20:03.413  3504  3536 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false"
+    ],
+    "suiteNetworkRestoration": "CI_SYNTHETIC_NETWORK_RESTORED wifi=1 data=1 default=active",
+    "captures": 29,
+    "captureDeviceHashesMatch": true,
+    "diagnosis": "Pending bounded before/after control capture; no assumption that nine failures are all driver issues.",
+    "sourceState": "Debug124-based recovery worktree with frozen working changes, recorded in source-hashes.json and executed-source.diff; not untouched published124."
+  },
+  "nativeLayoutDiagnosis": {
+    "classification": "Tempo covers real touch targets; three observed cases cannot fit the entire target above Tempo with scrolling alone",
+    "rootRequest": "Need bounded product layout decision for insufficient safe viewport before full211 can be green",
+    "productionChangedByDiagnostic": false,
+    "assertionsPreserved": true,
+    "limitations": [
+      "Synthetic isolated Room and createComposeRule fixtures, not owner-phone acceptance",
+      "Forced viewport profile coordinates differ from full-window screen coordinates",
+      "Entry captureWindow settles 1000ms after before bounds, but after bounds reproduce identical geometry; preserve both readings",
+      "No blind Tempo dismissal, semantics hit-test bypass, extra effort tap, timeout expansion or VM setter added"
+    ],
+    "driverChange": "Before/after diagnostics only; no reachability adaptation applied",
+    "failures": 9,
+    "tests": 23,
+    "cases": [
+      {
+        "captures": [
+          "completion-360-640-font2-0-extra-rpe1-before-tap",
+          "completion-360-640-font2-0-removed-owner-rpe1-before-tap"
+        ],
+        "scenario": "Completion extra and removed-owner,360x640,font2",
+        "contentY": [
+          402,
+          820
+        ],
+        "safeAboveTempo": 3,
+        "tempoY": [
+          405,
+          809
+        ],
+        "target": "RPE8",
+        "targetHeight": 126,
+        "inference": "Whole target cannot fit while Tempo remains pinned",
+        "targetY": [
+          694,
+          820
+        ]
+      },
+      {
+        "scenario": "Entry numeric,font2,real window",
+        "inference": "Whole target cannot fit while Tempo remains pinned",
+        "target": "WEIGHT_STEPPER",
+        "targetY": [
+          729,
+          934
+        ],
+        "safeAboveTempo": 180,
+        "contentY": [
+          339,
+          934
+        ],
+        "tempoY": [
+          519,
+          923
+        ],
+        "targetHeight": 205
+      },
+      {
+        "scenario": "Entry savedsets,font2,real window",
+        "inference": "Covered tap; real swipe adaptation potentially sufficient but not yet executed",
+        "target": "VIEW_SETS",
+        "targetY": [
+          880,
+          1006
+        ],
+        "safeAboveTempo": 221,
+        "contentY": [
+          339,
+          1093
+        ],
+        "tempoY": [
+          560,
+          1082
+        ],
+        "targetHeight": 126
+      },
+      {
+        "scenario": "Entry switcher,font2,long synthetic label",
+        "inference": "Covered tap; real swipe adaptation potentially sufficient but not yet executed; screenshot also shows OS heads-up rest notification above target",
+        "target": "LIFT_SWITCH",
+        "targetY": [
+          904,
+          1030
+        ],
+        "safeAboveTempo": 489,
+        "contentY": [
+          339,
+          1243
+        ],
+        "tempoY": [
+          828,
+          1232
+        ],
+        "targetHeight": 126
+      }
+    ]
+  },
+  "adaptiveRepair": {
+    "demonstratedFailure": "At 360x640/font2, only3px above pinned Tempo for126px effort target; entry fixture180px above pin for205px numeric target. Full targets cannot fit above the overlay.",
+    "behavior": "fontScale>=1.6 or landscape places exactly one existing coach after effort and before saved sets in the scroll list; no overlay/reserve there. Normal portrait retains pin. Screen-owned saveable state and modal composition preserve open explanations even when the card is not composed.",
+    "contracts": [
+      "No coaching policy changes",
+      "Apply fills draft without logging",
+      "Same entry item2 anchor",
+      "No target shrink or852dp budget increase"
+    ],
+    "firstMatrix": {
+      "tests": 10,
+      "failures": 1,
+      "entryProfilesPassed": 9,
+      "failure": "Why survived font1->2->1 with inline card uncomposed, but final Keep touch did not close. Modal geometry/dismissal diagnosis is separate.",
+      "archive": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt02",
+      "modalRenderLimit": "drawWindow captures the Activity floor, not the ModalBottomSheet window; modal semantics and native window evidence are separate."
+    },
+    "whyDiagnosis": {
+      "tests": 1,
+      "failures": 1,
+      "actualGeometry": "At360x640/font1, Use and Keep each measured656x0 with zero root/window bounds before and after the unchanged touch.",
+      "modalEvidence": "Separate live720x1280 Dialog decor PNG confirms explanation fills sheet and leaves no visible actions.",
+      "archive": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt03",
+      "repair": "Weight the scrollable explanation body with fill=false to reserve header/actions without changing their callbacks or targets."
+    }
+  },
+  "finalGate": {
+    "xmlFiles": 543,
+    "counts": {
+      "errors": 0,
+      "failures": 0,
+      "tests": 3603,
+      "skipped": 0
+    },
+    "unitTaskExecuted": true,
+    "mergedTrunk": "24936a5bf13566b4d082df32f207a1ac1226aeac",
+    "exit": 0,
+    "result": "complete required local gate passed",
+    "head": "f006c7e446e6e9f3a5f75fa5c732c2c1415750fb",
+    "sourceStable": true,
+    "startedAtUtc": "2026-10-08T17:07:13.6913514Z",
+    "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+    "endedAtUtc": "2026-10-08T17:17:17.5891163Z"
+  },
+  "finalNativeSuite": {
+    "skipped": 0,
+    "sourceFilesChecked": 1505,
+    "installedVersionObservations": [
+      "10-08 13:20:41.020  3541  3564 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+      "10-08 13:20:51.751  3541  3564 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+      "10-08 13:20:56.885  3541  3564 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)"
+    ],
+    "classes": [
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.data.backup.BackupEnvelopeInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.data.backup.BackupPolicyInstrumentedTest"
+      },
+      {
+        "tests": 3,
+        "class": "com.sinura.personaltrainer.data.local.MigrationDeviceTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.data.local.SchemaV1BaselineDeviceTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.data.local.TemperMigrationDeviceTest"
+      },
+      {
+        "tests": 4,
+        "class": "com.sinura.personaltrainer.data.repository.ScheduleRepositoryInstrumentedTest"
+      },
+      {
+        "tests": 6,
+        "class": "com.sinura.personaltrainer.data.repository.WorkoutRepositoryInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.InstrumentationSmokeTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.SdkTargetInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.timer.ExactAlarmCapabilityInstrumentedTest"
+      },
+      {
+        "tests": 10,
+        "class": "com.sinura.personaltrainer.ui.components.FrontendControlsInstrumentedTest"
+      },
+      {
+        "tests": 4,
+        "class": "com.sinura.personaltrainer.ui.components.IdentityBeforeMetricsInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.ui.history.HistoryPassInstrumentedTest"
+      },
+      {
+        "tests": 27,
+        "class": "com.sinura.personaltrainer.ui.home.HomePassInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.library.LibraryPassInstrumentedTest"
+      },
+      {
+        "tests": 25,
+        "class": "com.sinura.personaltrainer.ui.navigation.FrontendShellInstrumentedTest"
+      },
+      {
+        "tests": 3,
+        "class": "com.sinura.personaltrainer.ui.plan.PlanPassInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.preview.FoundationStateGalleryInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.preview.FrontendBaselineCaptureTest"
+      },
+      {
+        "tests": 12,
+        "class": "com.sinura.personaltrainer.ui.ProductionScreensPassInstrumentedTest"
+      },
+      {
+        "tests": 4,
+        "class": "com.sinura.personaltrainer.ui.progress.BodyPassInstrumentedTest"
+      },
+      {
+        "tests": 8,
+        "class": "com.sinura.personaltrainer.ui.RemainingPagesPassInstrumentedTest"
+      },
+      {
+        "tests": 2,
+        "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutNotificationDenialInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyInstrumentedTest"
+      },
+      {
+        "tests": 21,
+        "class": "com.sinura.personaltrainer.ui.workout.RestCompletionLayoutInstrumentedTest"
+      },
+      {
+        "tests": 3,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionJourneyInstrumentedTest"
+      },
+      {
+        "tests": 15,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest"
+      },
+      {
+        "tests": 9,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest"
+      },
+      {
+        "tests": 38,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryLayoutInstrumentedTest"
+      },
+      {
+        "tests": 1,
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutTimerOverlayInstrumentedTest"
+      }
+    ],
+    "limitations": [
+      "One actual AppNav journey plus two legacy MainActivity journeys; their explicit seams remain documented",
+      "Adaptive Why verifies actual OS/modal font2 and in-place floor font relocation, not Why Activity recreation",
+      "Why Use has full64dp enabled target coverage; real Keep and card Apply are tapped; separate JVM test covers actual Why Use"
+    ],
+    "failures": 0,
+    "exit": 0,
+    "fixtureRestorations": [
+      "10-08 13:20:51.351  3541  3564 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+      "10-08 13:20:55.420  3541  3564 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+      "10-08 13:21:18.045  3541  3564 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false"
+    ],
+    "gradleExit": 0,
+    "tests": 212,
+    "initialArchiveProcessExit": 1,
+    "errors": 0,
+    "captureDeviceHashesMatch": true,
+    "captures": 71,
+    "nativeCollectorStopped": true,
+    "archiveCompletedUtc": "2026-10-08T17:26:46.2215944Z",
+    "fontRestored": true,
+    "result": "212 native tests executed and passed; initial archive filename error recovered without rerun",
+    "suiteNetworkRestoration": "CI_SYNTHETIC_NETWORK_RESTORED wifi=1 data=1 default=active",
+    "sourceHashesUnchanged": true,
+    "adaptiveModalObservations": [
+      "10-08 13:22:26.265  3541  3564 I System.out: NATIVE_ADAPTIVE_FONT osFont=2.0 floorFont=1.0",
+      "10-08 13:22:26.715  3541  3564 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+      "10-08 13:22:28.033  3541  3564 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+      "10-08 13:22:29.616  3541  3564 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+      "10-08 13:22:31.799  3541  3564 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-use bounds=Rect.fromLTRB(42.0, 1416.0, 1038.0, 1584.0) size=996 x 168 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+      "10-08 13:22:31.882  3541  3564 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+      "10-08 13:22:32.849  3541  3564 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0"
+    ],
+    "sourceState": "Debug124-based recovery source with frozen working changes; not untouched published124 and not owner-phone acceptance",
+    "suiteNetworkAdmission": [
+      "CI_SYNTHETIC_NETWORK serial=emulator-5554 avd=temper-tests-api29 api=29 target=com.sinura.personaltrainer.debug originalWifi=1 originalData=1 originalDefault=active",
+      "CI_SYNTHETIC_NETWORK_OFFLINE verified before Gradle/first app launch",
+      "CI_SYNTHETIC_NETWORK_RESTORED wifi=1 data=1 default=active"
+    ],
+    "windowRestored": true,
+    "packagesAfterEmpty": true,
+    "archiveRecovery": {
+      "cause": "Hard-coded app-debug.apk filename did not match versioned output metadata",
+      "testRerun": false,
+      "originalExitFile": "exit-code.txt",
+      "completed": true,
+      "actualApkFile": "PersonalTrainer-1.0.0-debug.apk",
+      "originalErrorFile": "archive-or-setup-error.txt"
+    }
+  },
+  "finalVerificationArtifacts": {
+    "local": {
+      "summary": {
+        "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/summary.json",
+        "bytes": 567,
+        "sha256": "c04d3b10f1f3b032b1e6ac0ea2223b4133ba824f0f3210e89100ccc92274089f"
+      },
+      "log": {
+        "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/gradle.log",
+        "bytes": 24523,
+        "sha256": "adfefb17514cb402fcc7a41f5dbdf3b3ef2ce6a0e9baf75b4c3f152d6f44ab9e"
+      },
+      "xml": {
+        "tests": 3603,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xmlFiles": 543,
+        "failuresPreserved": [],
+        "xmlAggregateSha256": "a3b46fc07661a07bcfb17a73a2d439807a7b146869b5a4e3a8e18f0e15f6fe80",
+        "archive": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/test-results"
+      },
+      "sourceBefore": {
+        "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/source-hashes-before.json",
+        "bytes": 2482,
+        "sha256": "1fb3e8998b9f307516c164ea931bad8c382db54e71fd609c71f7eeaa920cfa5e"
+      },
+      "sourceAfter": {
+        "file": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/source-hashes-after.json",
+        "bytes": 2482,
+        "sha256": "1fb3e8998b9f307516c164ea931bad8c382db54e71fd609c71f7eeaa920cfa5e"
+      }
+    },
+    "native": {
+      "summary": {
+        "file": "build/ux-context/runs/workout-contract-recovery/native-suite-final/summary.json",
+        "bytes": 9508,
+        "sha256": "a0ed94a79c95e7683171f077d7a6b351809701412fb4e27164cb02b9eedb227f"
+      },
+      "log": {
+        "file": "build/ux-context/runs/workout-contract-recovery/native-suite-final/gradle.log",
+        "bytes": 8083,
+        "sha256": "908d261243919ba54fc012c135e0864356930d6692f8657ca06e9898c5f936d7"
+      },
+      "xml": {
+        "tests": 212,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xmlFiles": 1,
+        "failuresPreserved": [],
+        "xmlAggregateSha256": "04eec296e3421667c920fba565d96361d4141f0ab79e067059d29c2894fb9bf1",
+        "archive": "build/ux-context/runs/workout-contract-recovery/native-suite-final/results"
+      },
+      "sourceBefore": {
+        "file": "build/ux-context/runs/workout-contract-recovery/native-suite-final/source-hashes.json",
+        "bytes": 389640,
+        "sha256": "f4bd2a50361479d09dc281d0b1d694f1662af64ceb4a3a4cd0a766019c7d47c5"
+      },
+      "sourceAfter": {
+        "file": "build/ux-context/runs/workout-contract-recovery/native-suite-final/source-hashes-after.json",
+        "bytes": 389640,
+        "sha256": "f4bd2a50361479d09dc281d0b1d694f1662af64ceb4a3a4cd0a766019c7d47c5"
+      },
+      "captureManifest": {
+        "file": "build/ux-context/runs/workout-contract-recovery/native-suite-final/capture-hashes.json",
+        "bytes": 21887,
+        "sha256": "516dd667fe184637844a8d55990fb815cdf9a43ba0ad4adbb47585cfc2dcc3d0"
+      },
+      "initialArchiveError": {
+        "file": "build/ux-context/runs/workout-contract-recovery/native-suite-final/archive-or-setup-error.txt",
+        "bytes": 474,
+        "sha256": "8d139aed7716ab97a13f411cd29f2d0c641aa05c8a174ee78e63e1fc53cc7a95"
+      },
+      "initialArchiveExit": {
+        "file": "build/ux-context/runs/workout-contract-recovery/native-suite-final/exit-code.txt",
+        "bytes": 3,
+        "sha256": "f1b2f662800122bed0ff255693df89c4487fbdcf453d3524a42d4ec20c3d9c04"
+      },
+      "apk": {
+        "Path": "C:\\Users\\allen\\.codex\\worktrees\\temper-ux-context\\PersonalTrainer\\app\\build\\outputs\\apk\\debug\\PersonalTrainer-1.0.0-debug.apk",
+        "Hash": "1831E0CB623F9C4F262CCE508FB17E902AD979BA37B9D643F942247FDE538662"
+      }
+    }
+  },
+  "retainedImages": [
+    {
+      "file": "docs/ux-context/studies/q01/assets/debug124/weight-before-tap-api29.png",
+      "source": "build/ux-context/runs/debug124-connected-baseline/attempt-02/captures/20261008-152740967-connected-workout-weight-before-tap-api29.png",
+      "bytes": 179686,
+      "sha256": "b6a7d58bcf2f04f0576e91558549a8a0f06b38c9aebc41064e7d08d38b81266b"
+    },
+    {
+      "file": "docs/ux-context/studies/q01/assets/debug124/weight-after-scroll-api29.png",
+      "source": "build/ux-context/runs/debug124-connected-baseline/attempt-03/captures/20261008-153208065-connected-workout-weight-after-scroll-api29.png",
+      "bytes": 146636,
+      "sha256": "64ea990701d3f110c176ebfd20089cb05d017b0afff60ea1add7574b215075b2"
+    },
+    {
+      "file": "docs/ux-context/studies/q01/assets/debug124/commit-360x640-font20.png",
+      "source": "build/ux-context/runs/debug124-contract-probes/green/renders/workout-commit72-investigation/360x640-font20/ready.png",
+      "bytes": 44587,
+      "sha256": "1c73d93ac615d7ec07fd279fb979b5c8b9dfac7e5a1a9818b29d3a3fab0aed8f"
+    },
+    {
+      "file": "docs/ux-context/studies/q01/assets/debug124/commit-landscape-font20.png",
+      "source": "build/ux-context/runs/debug124-contract-probes/green/renders/workout-commit72-investigation/640x360-land-font20/next-one-line.png",
+      "bytes": 26688,
+      "sha256": "8db674ac48464f25ccd0e6e8663c118b276f713e7df0abcded031453dfe8cb4b"
+    },
+    {
+      "file": "docs/ux-context/studies/q01/assets/debug124/why-before-footer-repair-jvm.png",
+      "source": "build/ux-context/runs/workout-contract-recovery/adaptive-jvm-attempt03/render-evidence/why-relocation/returned-pinned-before-keep-touch-modal-window.png",
+      "bytes": 135380,
+      "sha256": "174baf34d4ea657766a15fe998c25e8f18b1d50aca901fa7febf8a47232e3108"
+    },
+    {
+      "file": "docs/ux-context/studies/q01/assets/debug124/why-after-footer-repair-jvm.png",
+      "source": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02/renders/adaptive-tempo-reachability/babb24dd-dbfa-4098-b1f0-c11d330ee4f5/why-relocation/pinned-why-open-modal-window.png",
+      "bytes": 121026,
+      "sha256": "93057a9da5f7c711ce7cf4c428c0b6bd880f21d338a72b03069c8027c04eeb8e"
+    },
+    {
+      "file": "docs/ux-context/studies/q01/assets/debug124/why-osfont20-actions-api29.png",
+      "source": "build/ux-context/runs/workout-contract-recovery/native-suite-final/captures/89276a0f-10b1-41e6-a351-d86e2a578a29-frontend-workout-window-adaptive-why-osfont20-manual-actions-api29.png",
+      "bytes": 152266,
+      "sha256": "92f4c394b6759d158044aaf737ec246a28d3d2b7adf8b1259388085a3153122a"
+    }
+  ],
+  "reviews": {
+    "independent": {
+      "reviewedAtUtc": "2026-10-08T17:32:52Z",
+      "metadataRefreshedAtUtc": "2026-10-08T17:35:34Z",
+      "status": "complete",
+      "verdict": "No blocking source or evidence findings within the bounded draft packet.",
+      "scope": {
+        "worktree": "C:/Users/allen/.codex/worktrees/temper-ux-context/PersonalTrainer",
+        "branch": "cursor/workout-contract-recovery-b87f",
+        "branchAtInitialReview": "codex/workout-contract-recovery",
+        "finalVehicle": "cursor/workout-contract-recovery-b87f",
+        "baseHead": "f006c7e446e6e9f3a5f75fa5c732c2c1415750fb",
+        "mergeHead": "24936a5bf13566b4d082df32f207a1ac1226aeac",
+        "changes": [
+          "Survivor selection preserved during removal cleanup",
+          "Independent 72dp workout commit target",
+          "Existing Tempo card scrolls at large text or landscape",
+          "Modal state survives in-place placement changes",
+          "Why body reserves fixed footer targets",
+          "Real-touch fixture traversal",
+          "Bounded initial network admission with unchanged strict restoration"
+        ],
+        "reviewerActions": "Read-only source/artifact review; recomputed hashes and XML totals; viewed native/JVM modal frames. No Gradle, adb, source edits or device mutation."
+      },
+      "blockers": [],
+      "fullGate": {
+        "archive": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02",
+        "requiredCommand": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+        "result": "BUILD SUCCESSFUL in 9m 59s",
+        "exit": 0,
+        "tests": 3603,
+        "xmlSuites": 543,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "unitTaskExecuted": true,
+        "allXmlWrittenAfterGateStart": true,
+        "beforeAfterAndCurrentSourceHashesMatch": true,
+        "sourceHashesChecked": 16,
+        "staticRunnerMocksPassed": 32
+      },
+      "adaptiveJvm": {
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "sourceSha256": "DD14ACC6B7C5526B33551913895A63BD11C7B831DED875684350EC7D60F15EB8",
+        "inspected": "Nine real floor profiles with manual entry, effort, full footer bounds, ordinary Keep and draft-only card Apply; offscreen modal preservation; independent real Why Use with exact draft-only payload.",
+        "numericEntrySeam": "Existing documented Robolectric keypad clock/Set confirmation seam remains; no direct draft reset/save manufactures another tip."
+      },
+      "nativeSuite": {
+        "archive": "build/ux-context/runs/workout-contract-recovery/native-suite-final",
+        "xml": "results/TEST-temper-tests-api29(AVD) - 10-_app-.xml",
+        "xmlSha256": "3B5FD7C21D0A34BB55881835A29E178FB0930D1DA0A415938A078735E3DD4AA3",
+        "tests": 212,
+        "classes": 31,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "result": "BUILD SUCCESSFUL in 5m 45s; connectedDebugAndroidTest executed all212 unfiltered tests.",
+        "gradleExit": 0,
+        "sourceFilesChecked": 1505,
+        "beforeAfterAndCurrentSourceHashesMatch": true,
+        "captures": 71,
+        "hostDigestsMatchRetainedDeviceDigests": true,
+        "initialNetwork": "wifi=1 data=1 default=active",
+        "offlineBeforeGradleAndFirstLaunch": true,
+        "strictRestoredNetwork": "wifi=1 data=1 default=active",
+        "fontBeforeAfter": "1.0 / 1.0",
+        "physicalWindowBeforeAfter": "1080x1920 / 1080x1920",
+        "packageManifestsBeforeAfterEmpty": true,
+        "recordedCollectorPid": 7912,
+        "recordedCollectorPidCurrentlyRunning": false,
+        "installedVersionCode": 124,
+        "sourceIdentity": "Modified Debug124 recovery source; not untouched published124.",
+        "routeScope": "One actual AppNav journey and two legacy MainActivity journeys; documented fixture seams remain."
+      },
+      "nativeAdaptiveModal": {
+        "case": "WorkoutEntryJourneyInstrumentedTest.adaptiveTempoKeepsWhyAcrossFontRelocationAndApplyOnlyChangesDraft",
+        "casePassed": true,
+        "osFont": 2,
+        "observedModalFont": 2,
+        "density": 2.625,
+        "keepLayoutPixels": [
+          996,
+          126
+        ],
+        "keepHeightDp": 48,
+        "useLayoutPixels": [
+          996,
+          168
+        ],
+        "useHeightDp": 64,
+        "fullTargetsWithinDialog": true,
+        "actualKeepAndCardApplyTouches": true,
+        "useActivation": "Full enabled native target measured; ordinary Why Use activation verified separately in JVM.",
+        "frame": "captures/89276a0f-10b1-41e6-a351-d86e2a578a29-frontend-workout-window-adaptive-why-osfont20-manual-actions-api29.png",
+        "frameSha256": "92F4C394B6759D158044AAF737EC246A28D3D2B7ADF8B1259388085A3153122A",
+        "visualObservation": "Use and Keep visible. Transient Drag handle tooltip overlaps part of title; capture retained without claiming final visual acceptance."
+      },
+      "archiveRecovery": {
+        "initialArchiveProcessExit": 1,
+        "originalError": "Hard-coded app-debug.apk missing; retained output metadata names PersonalTrainer-1.0.0-debug.apk.",
+        "originalExitAndErrorRetained": true,
+        "testRerun": false,
+        "metadataRecoveryCompleted": true,
+        "actualApkSha256": "1831E0CB623F9C4F262CCE508FB17E902AD979BA37B9D643F942247FDE538662",
+        "classification": "Archive filename failure after successful Gradle test execution; not hidden or counted as a test failure."
+      },
+      "retainedFailures": [
+        "Original full gate:3592/1",
+        "Original complete native suite:211/9",
+        "Diagnostics-only native repeat:23/9",
+        "First adaptive matrix:10/1",
+        "One-case adaptive modal diagnostic:1/1 and real zero-height footer",
+        "Adaptive attempt04:24/9 fixture sequence requested card Apply after Why Use dismissed tip",
+        "Native archive process:exit1 after successful tests, recovered without rerun"
+      ],
+      "limits": [
+        "API29 synthetic isolated emulator fixtures; physical-phone touch, TalkBack and owner acceptance remain pending.",
+        "In-place floor font/placement relocation with OS/modal font2 does not establish Activity or process saved-state restoration.",
+        "Native Why Use activation is not claimed; native target geometry plus separate actual JVM activation are distinguished."
+      ],
+      "portableEvidenceIndex": {
+        "path": "docs/ux-context/studies/q01/debug124-followup.json",
+        "inspectedAfterFinalRegeneration": true,
+        "finalGateAndNativeSummariesMatchRetainedEvidence": true,
+        "all16RecordedSourceHashesMatchCurrentBytes": true,
+        "originalByteNativeFont2AssetSha256": "92F4C394B6759D158044AAF737EC246A28D3D2B7ADF8B1259388085A3153122A",
+        "originalByteNativeFont2AssetBytes": 152266,
+        "bothCompletedReviewsPresent": true
+      },
+      "authority": {
+        "intendedDelivery": "DRAFT stacked PR",
+        "unchangedDependency": "https://github.com/sinura7/PersonalTrainer/pull/457",
+        "dependencyIntegrationUnresolved": true,
+        "quietSelected": false,
+        "ownerPhoneAcceptancePending": true,
+        "mergeOrDebugDropAuthorizedByReview": false,
+        "noVersionSignerOrSchemaChange": true
+      },
+      "report": "build/ux-context/reviews/independent-workout-contract-recovery.md"
+    },
+    "adversarial": {
+      "review": "adversarial",
+      "recordedUtc": "2026-10-08T17:32:53Z",
+      "scope": "Bounded working delta against f006c7e4: removal readiness cleanup, 72 dp primary target, adaptive Tempo placement/modal ownership/footer reachability, truthful native drivers and startup network admission",
+      "verdict": "passed_bounded_packet",
+      "blockingFindings": [],
+      "closedFindings": [
+        "Initial network admission could accept a coherent second snapshot after its 30-second arrival window; before-each-read and after-final-read checks plus two red/green counterexamples close this finding",
+        "Pinned Tempo could leave less clear height than numeric/effort targets; adaptive inline placement and full-size real-touch regressions cover the demonstrated states",
+        "Why body could measure both footer actions at zero height; bounded weighted scroll body restores fixed action reachability"
+      ],
+      "evidence": {
+        "requiredLocalGate": {
+          "archive": "build/ux-context/runs/workout-contract-recovery/full-gate-attempt02",
+          "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+          "result": "BUILD SUCCESSFUL in 9m 59s",
+          "unitTaskExecuted": true,
+          "xmlSuitesIndependentlyCounted": 543,
+          "testsIndependentlyCounted": 3603,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xmlWritesBeforeGateStart": 0,
+          "recordedSourceHashesStillMatchLive": 16,
+          "adaptiveCases": 11,
+          "adaptiveFailures": 0,
+          "includes": [
+            "Debug/unsigned release assembly and R8",
+            "lint",
+            "Android-test assembly",
+            "static checks",
+            "32 mock runner checks"
+          ]
+        },
+        "nativeSuite": {
+          "archive": "build/ux-context/runs/workout-contract-recovery/native-suite-final",
+          "result": "BUILD SUCCESSFUL in 5m 45s",
+          "testsIndependentlyCounted": 212,
+          "classesIndependentlyCounted": 31,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sourceHashesBeforeAfterAndLiveMatched": 1505,
+          "captureHashesIndependentlyMatchedToDevice": 71,
+          "profile": "temper-tests-api29 / API29 / 1080x1920 / 420dpi / emulator37.1.11 SwiftShader",
+          "target": "com.sinura.personaltrainer.debug / versionCode124",
+          "network": "coherent 1/1/active admission; verified 0/0/none before first app launch; strict 1/1/active restoration",
+          "fontAndWindowBeforeAfterMatch": true,
+          "packageInventoryAfterEmpty": true,
+          "fixtureRestorationObservationsRetained": true
+        },
+        "nativeArchiveRecovery": {
+          "originalArchiveProcessExit": 1,
+          "gradleSuiteExit": 0,
+          "cause": "Archive script expected app-debug.apk; output metadata names PersonalTrainer-1.0.0-debug.apk",
+          "originalExitAndErrorRetained": true,
+          "testRerun": false,
+          "metadataRecoveryCompleted": true
+        },
+        "nativeModal": {
+          "reviewedCapture": "89276a0f-10b1-41e6-a351-d86e2a578a29-frontend-workout-window-adaptive-why-osfont20-manual-actions-api29.png",
+          "actualOsAndNodeFontScale": 2.0,
+          "keepVisibleDp": 48,
+          "useVisibleDp": 64,
+          "keepAndCardApplyActuallyTapped": true,
+          "whyUseNativeCoverage": "enabled/full-target geometry only",
+          "whyUseActualTouchCoverage": "independent passing JVM fixture",
+          "transientTooltip": "Drag handle tooltip overlaps heading only; both footer targets visible"
+        }
+      },
+      "oracleReview": "Original manual numbers, same saved row, correction, Undo and durable-session assertions retained. Full-size unobstructed target checks and real swipes added. Independent Why-Use fixture preserves nine Keep/card-Apply profiles without tip reset or extra save.",
+      "limits": [
+        "Synthetic emulator evidence does not establish owner-phone acceptance, touch feel or TalkBack speech",
+        "Adaptive Why covers in-place font relocation, not Why Activity recreation",
+        "Native Why Use is measured/enabled but not tapped; JVM separately taps it",
+        "Quiet/Context prototype direction remains unselected and owner comprehension remains unobserved",
+        "Open PR457 coaching-policy work is outside this bounded adversarial audit"
+      ],
+      "integration": {
+        "status": "draft_stacked_only",
+        "dependency": "Open PR457 coaching-policy scope remains unresolved",
+        "mergeAuthorizedByReview": false,
+        "debugDropAuthorizedByReview": false
+      },
+      "reviewerExecution": "Read-only source, retained XML/log/manifests and images. No Gradle/adb or production/test/documentation mutation; ignored review artifacts only.",
+      "markdownReport": "build/ux-context/reviews/adversarial-workout-contract-recovery.md"
+    }
+  },
+  "hostedEvidence": {
+    "pr459": {
+      "run": "https://github.com/sinura7/PersonalTrainer/actions/runs/37798650481",
+      "deterministic": "success",
+      "optionalEmulator": "failed strictrestore after all211tests/BUILD SUCCESSFUL",
+      "mismatch": "expected1/1/none; actual1/1/active",
+      "classification": "Transient fresh-start snapshot is an inference; mismatch is actual evidence."
+    },
+    "mergedTrunk459": {
+      "run": "https://github.com/sinura7/PersonalTrainer/actions/runs/37798946959",
+      "deterministic": "success",
+      "optionalEmulator": "success"
+    }
+  },
+  "designAndAcceptance": {
+    "recommendedProposal": "Quiet",
+    "selectedProposal": null,
+    "proposalChecks": "connected-proposal-checks.json",
+    "ownerTaskResult": "pending",
+    "next": "Compare connected Quiet/Context tasks, choose the recording hierarchy, then implement one native packet with constrained full-screen and phone evidence.",
+    "unchanged": [
+      "manual value control",
+      "required working-repetition effort",
+      "Apply changes draft without logging",
+      "explicit progression",
+      "logging allowed during rest",
+      "schema/backup",
+      "version/signing"
+    ]
+  }
+}

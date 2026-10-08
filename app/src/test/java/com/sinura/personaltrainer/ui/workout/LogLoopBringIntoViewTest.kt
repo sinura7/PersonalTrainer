@@ -29,7 +29,7 @@ class LogLoopBringIntoViewTest {
     @Test
     fun resumeAndLiftSwitchFocusTheEntryNotAVanishedListOffset() {
         assertEquals(0, LogLoopBringIntoView.entryListIndex())
-        assertEquals("header, stats, then the numerals", 2, LogLoopBringIntoView.editRevealIndex())
+        assertEquals("identity, then the numerals", 1, LogLoopBringIntoView.editRevealIndex())
         assertFalse(ownedSource("ui/workout/ActiveWorkoutScreen.kt").contains("itemsIndexed("))
     }
 }

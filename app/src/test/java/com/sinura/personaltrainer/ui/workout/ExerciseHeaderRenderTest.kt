@@ -202,7 +202,8 @@ class ExerciseHeaderRenderTest {
     fun aSetContextTooLongToShareItsLineKeepsItsWordsAndTheSwitchMovesUnder() {
         showHeader(setContext = LONG_SET_CONTEXT)
         val context = assertSetContextIsWhole()
-        assertTrue(compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).getBoundsInRoot().top >= context.bottom)
+        val switch = compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).getBoundsInRoot()
+        assertTrue("the long context stays whole above the switch: context=$context switch=$switch", switch.top >= context.bottom)
     }
 
     @Test
@@ -214,21 +215,19 @@ class ExerciseHeaderRenderTest {
     }
 
     @Test
-    fun thePictureIsFullSizeAtNormalText() {
+    fun thePictureKeepsItsCompactSizeAtNormalText() {
         showHeader()
-        still().assertWidthIsEqualTo(Metrics.exerciseHeroImage)
+        still().assertWidthIsEqualTo(Metrics.workoutIdentityImage)
     }
 
     @Test
-    fun aLongNameShrinksThePictureToGiveTheWordsRoom() {
-        // More than two lines of title beside the full-size still falls back to the small
-        // one, so a long lift name keeps the column instead of running to five lines.
+    fun aLongNameKeepsTheCompactPictureToGiveTheWordsRoom() {
         showHeader(lift = floorLift(targetSets = 3, name = LONG_NAME))
         still().assertWidthIsEqualTo(Metrics.workoutIdentityImage)
     }
 
     @Test
-    fun largeTextShrinksThePictureAndKeepsBothSetTypeChipsOnOneRow() {
+    fun largeTextKeepsTheCompactPictureAndBothSetTypeChipsOnOneRow() {
         showHeader(fontScale = LogLoopScale.STACK_WELLS_FROM)
         still().assertWidthIsEqualTo(Metrics.workoutIdentityImage)
         val working = compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).assertIsDisplayed().assertHeightIsAtLeast(Metrics.touchMin)
@@ -331,7 +330,7 @@ class ExerciseHeaderRenderTest {
          * Longer than any set context the app writes today: more than two lines beside the
          * switch at 360 dp, well within two on its own.
          */
-        const val LONG_SET_CONTEXT = "Warm-up set 2 · then working set 1 of 3"
+        const val LONG_SET_CONTEXT = "Warm-up set 12 · then working set 123 of 123 at the planned load and effort"
         const val LONG_NAME = "Single-arm half-kneeling cable row with a three-second pause at the top of every rep"
     }
 }

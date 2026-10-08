@@ -127,22 +127,28 @@ class FloorScreenWiringRenderTest {
 
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
-    fun theLoopReadsIdentityStatsEntryEffortThenHistory() {
+    fun theLoopReadsIdentityEntryEffortReadinessHistoryCoachThenStats() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { exists(WorkoutTestTags.SET_HISTORY) }
-        // The Next-set card sits between effort and history when the coach offers one. Whether
-        // it does is the coach card's own rule (T1b), so its place is checked only when shown.
+        // Quiet gives entry and saved work priority over secondary advice and statistics.
         val order = listOf(
             WorkoutTestTags.CURRENT_LIFT,
-            WorkoutTestTags.STATS_ROW,
             WorkoutTestTags.SET_ENTRY,
             WorkoutTestTags.RPE_TRACK,
-        ) + listOf(WorkoutTestTags.NEXT_SET, WorkoutTestTags.NEXT_SET_COMPACT).filter { exists(it) } +
-            WorkoutTestTags.SET_HISTORY
+            WorkoutTestTags.LOG_READINESS,
+            WorkoutTestTags.SET_HISTORY,
+            WorkoutTestTags.TEMPO_COACH_CARD,
+            WorkoutTestTags.STATS_ROW,
+        )
         val tops = order.map { compose.onNodeWithTag(it).getBoundsInRoot().top }
         assertEquals("top to bottom: $order", tops.sorted(), tops)
         assertEquals(tops.size, tops.toSet().size)
+        if (exists(WorkoutTestTags.TEMPO_COACH_CARD)) {
+            compose.onAllNodes(
+                hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+            ).assertCountEquals(1)
+        }
         // The identity names the set about to be logged, from the saved rows.
         compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true)
             .assert(hasText(SetOrdinalCopy.draftLine(isWarmup = false, warmupLogged = 0, workingLogged = 2, targetSets = 3)))
@@ -171,7 +177,7 @@ class FloorScreenWiringRenderTest {
     fun switchingLiftFromTheOverflowBringsTheNewIdentityAndEntryBackIntoView() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(2), withNextLift = true)
         show(vm)
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_HISTORY))
+        compose.scrollFloorTo(WorkoutTestTags.SET_HISTORY, clearTempo = true)
         compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).assertIsNotDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
         compose.onNodeWithText(CurrentLiftCopy.SWITCH).performClick()
@@ -325,7 +331,7 @@ class FloorScreenWiringRenderTest {
     fun aSetChipsReviseOpensTheEditAndRevealsTheEntry() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         // Short enough that reaching the chips scrolls the numerals off screen.
-        show(vm, heightDp = 600)
+        show(vm, heightDp = 520)
         val first = checkNotNull(vm.uiState.value.session?.sets?.minByOrNull { it.completedAt })
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.setChip(first.id)))
         compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertIsNotDisplayed()
@@ -357,8 +363,7 @@ class FloorScreenWiringRenderTest {
         }
         val vm = floorViewModel(deps = deps, sessionId = sessionId).also(viewModels::add)
         show(vm)
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
-        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
+        openViewSets()
         compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed()
         compose.onNodeWithText("Working set 1 of 3").assertIsDisplayed()
         compose.onNodeWithText("Working set 2 of 3 · Latest").assertIsDisplayed()
@@ -391,9 +396,6 @@ class FloorScreenWiringRenderTest {
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
-        // One control asks for an extra set: the dock's "Add another set", beside Next
-        // exercise and Finish (W1a). The history used to offer a second "Add set" chip. The
-        // tall window composes the whole floor, so "not there" means not on the floor.
         compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
         compose.onAllNodes(hasText("Add set") or hasText("Add another set"), useUnmergedTree = true).assertCountEquals(1)
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().performClick()
@@ -404,15 +406,29 @@ class FloorScreenWiringRenderTest {
     }
 
     @Test
+    @Config(qualifiers = "w360dp-h1600dp-xhdpi")
+    fun onceThePlanIsMetTheSavedSetsSheetStillOffersOneAddSet() {
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(3), withNextLift = true)
+        show(vm, heightDp = 1600)
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
+        compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
+        compose.onNode(hasText("Add another set") and hasAnyAncestor(hasTestTag(WorkoutTestTags.SAVED_SETS_SHEET)))
+            .performClick()
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.extraSetRequested.value }
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
+    }
+
+    @Test
     fun onceThePlanIsMetTheDocksAddAnotherSetAsksForAnExtraSet() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(3), withNextLift = true)
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
         compose.waitForIdle()
-        // The floor's one extra-set control asks for it on the same lift.
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.extraSetRequested.value }
-        compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         assertEquals(LEG_EXTENSION, vm.uiState.value.selectedExerciseId)
     }
@@ -421,8 +437,9 @@ class FloorScreenWiringRenderTest {
     fun theSavedSetsSheetsAddAnotherSetAsksForAnExtraSetAndCloses() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(3), withNextLift = true)
         show(vm)
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
-        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
+        compose.waitUntil(timeoutMillis = WAIT_MS) { vm.primaryAction.value.kind == WorkoutPrimaryKind.NEXT_EXERCISE }
+        compose.waitForIdle()
+        openViewSets()
         // The sheet covers the dock, so it keeps its own "Add another set" in the dock's
         // words: the same act, said the same way, wherever the lifter is looking.
         compose.onNode(hasText("Add another set") and hasAnyAncestor(hasTestTag(WorkoutTestTags.SAVED_SETS_SHEET)))
@@ -432,8 +449,7 @@ class FloorScreenWiringRenderTest {
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertDoesNotExist()
         // Asked once is enough: opened again, the sheet no longer offers it.
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
-        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
+        openViewSets()
         compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed()
         assertSheetOffersNoAnotherSet(lastRow = "Working set 3 of 3")
     }
@@ -613,6 +629,11 @@ class FloorScreenWiringRenderTest {
         movementKey = movementKey,
         nameKey = name.lowercase(),
     )
+
+    private fun openViewSets() {
+        compose.scrollFloorTo(WorkoutTestTags.VIEW_SETS, clearTempo = true)
+        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
+    }
 
     private fun viewModel(sessionId: String) = ActiveWorkoutViewModel(
         application = ApplicationProvider.getApplicationContext(),

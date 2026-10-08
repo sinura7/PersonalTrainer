@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -33,6 +34,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.testutil.GoldenCapture
+import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.workout.SavedStateWorkoutSave
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +55,7 @@ class WorkoutCompletionLayoutInstrumentedTest(
 ) {
     @get:Rule val compose = createComposeRule()
     private val fixture = WorkoutEntryFixture()
+    private var effortSelection = 0
     @After fun cleanup() = fixture.close()
 
     @Test fun primaryActionAndRecoveryRemainReachable() {
@@ -220,15 +223,33 @@ class WorkoutCompletionLayoutInstrumentedTest(
     private fun chooseEffort() {
         compose.waitUntil(15_000) { fixture.vm.uiState.value.canLog }
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsNotEnabled()
+        GoldenCapture.awaitViewport(compose, width, height)
         compose.onNodeWithTag(WorkoutTestTags.CONTENT)
             .performScrollToNode(hasTestTag(WorkoutTestTags.rpeChoice(8)))
+        effortSelection++
+        captureEffort("before-reveal")
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.rpeChoice(8))
+        captureEffort("before-tap")
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).assertIsDisplayed().assertIsEnabled().performClick()
+        captureEffort("after-tap")
         compose.waitUntil(5_000) {
             fixture.vm.uiState.value.draft.rpe == 8 && fixture.vm.primaryAction.value.enabled
         }
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).assertIsSelected()
         // Keep the original entry/layout assertions on their intended viewport.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_ENTRY))
+    }
+
+    private fun captureEffort(state: String) {
+        val label = "completion-$width-$height-font${font.toString().replace('.', '-')}-$scenario-rpe$effortSelection-$state"
+        for (tag in listOf(WorkoutTestTags.rpeChoice(8), WorkoutTestTags.TEMPO_COACH_CARD,
+            WorkoutTestTags.CONTENT, WorkoutTestTags.LOG_SET)) {
+            val nodes = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes()
+            println("NATIVE_COMPLETION_TOUCH $label tag=$tag nodes=${nodes.map { "${it.boundsInRoot} size=${it.size}" }}")
+        }
+        println("NATIVE_COMPLETION_TOUCH $label draft=${fixture.vm.uiState.value.draft} action=${fixture.vm.primaryAction.value}")
+        val bitmap = GoldenCapture.capture(compose).asAndroidBitmap()
+        try { NativeArtifacts.write(label, bitmap) } finally { bitmap.recycle() }
     }
 
     companion object {

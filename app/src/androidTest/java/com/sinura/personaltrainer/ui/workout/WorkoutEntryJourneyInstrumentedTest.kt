@@ -11,10 +11,15 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -22,6 +27,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -31,6 +37,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
@@ -69,7 +76,7 @@ class WorkoutEntryJourneyInstrumentedTest {
                 val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
                 val previousFlags = automation.serviceInfo.flags
                 val landscape = description.methodName.startsWith("longName")
-                val large = landscape || description.methodName.startsWith("numericEntry") || description.methodName.startsWith("savedSetsSheet") || description.methodName.startsWith("switcher")
+                val large = landscape || description.methodName.startsWith("numericEntry") || description.methodName.startsWith("savedSetsSheet") || description.methodName.startsWith("switcher") || description.methodName.startsWith("adaptiveTempo")
                 try {
                     shell("settings put system font_scale ${if (large) "2.0" else "1.0"}")
                     awaitSystemFont(if (large) 2f else 1f)
@@ -122,7 +129,8 @@ class WorkoutEntryJourneyInstrumentedTest {
         }
     }
 
-    private fun mount(fontScale: Float = 1f, notifications: Boolean = true, targetSets: Int = 12, longName: Boolean = false, savedCount: Int = 0) {
+    private fun mount(fontScale: Float = 1f, notifications: Boolean = true, targetSets: Int = 12, longName: Boolean = false, savedCount: Int = 0,
+        fontScaleOverride: State<Float>? = null) {
         fixture.seed(targetSets = targetSets, longName = longName)
         if (savedCount > 0) runBlocking(Dispatchers.IO) {
             val exercise = checkNotNull(fixture.container.workoutRepository.getSession(fixture.sessionId)).exercises.single().exercise
@@ -132,7 +140,9 @@ class WorkoutEntryJourneyInstrumentedTest {
             }
         }
         GoldenCapture.mountDevice(compose, fontScale = fontScale) {
-            CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG, LocalReducedMotion provides true) {
+            val hostDensity = LocalDensity.current
+            CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG, LocalReducedMotion provides true,
+                LocalDensity provides Density(hostDensity.density, fontScaleOverride?.value ?: hostDensity.fontScale)) {
                 Scaffold(bottomBar = { Column {} }) { padding ->
                     Box(Modifier.padding(padding).consumeWindowInsets(padding)) {
                         ActiveWorkoutScreen(onExit = {}, onFinished = {}, viewModel = fixture.vm, restNotificationsEnabledOverride = notifications)
@@ -197,6 +207,33 @@ class WorkoutEntryJourneyInstrumentedTest {
         bitmap.recycle()
     }
 
+    private fun captureFloorControl(state: String, target: String) {
+        captureWindow(state)
+        for (tag in listOf(target, WorkoutTestTags.TEMPO_COACH_CARD, WorkoutTestTags.CONTENT, WorkoutTestTags.LOG_SET)) {
+            val nodes = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes()
+            println("NATIVE_ENTRY_TOUCH $state tag=$tag nodes=${nodes.map { "${it.boundsInRoot} size=${it.size}" }}")
+        }
+        println("NATIVE_ENTRY_TOUCH $state draft=${fixture.vm.uiState.value.draft} action=${fixture.vm.primaryAction.value}")
+    }
+
+    private fun assertWhyActionFullyVisible(tag: String, minimumHeightDp: Int): SemanticsNodeInteraction {
+        compose.onAllNodes(isDialog()).assertCountEquals(1)
+        val dialog = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot
+        val action = compose.onNodeWithTag(tag).assertIsDisplayed().assertIsEnabled()
+        val node = action.fetchSemanticsNode()
+        val bounds = node.boundsInRoot
+        val density = node.layoutInfo.density.density
+        val resources = ApplicationProvider.getApplicationContext<android.app.Application>().resources
+        println("NATIVE_WHY_ACTION tag=$tag bounds=$bounds size=${node.size} dialog=$dialog " +
+            "density=$density nodeFont=${node.layoutInfo.density.fontScale} osFont=${resources.configuration.fontScale}")
+        assertEquals("The modal itself must render at font2", 2f, node.layoutInfo.density.fontScale, 0.01f)
+        assertTrue("$tag must retain its $minimumHeightDp dp visible target", bounds.height / density >= minimumHeightDp - 0.5f)
+        assertTrue("$tag must be fully unclipped", bounds.width >= node.size.width - 1f && bounds.height >= node.size.height - 1f)
+        assertTrue("$tag must fit the dialog window", bounds.left >= dialog.left && bounds.top >= dialog.top &&
+            bounds.right <= dialog.right && bounds.bottom <= dialog.bottom)
+        return action
+    }
+
     @Test fun eightSavesKeepEntryAndCommitPositionsAndPersistExactlyTheirPayloads() {
         mount()
         scrollContentTo(WorkoutTestTags.WEIGHT_STEPPER)
@@ -229,14 +266,20 @@ class WorkoutEntryJourneyInstrumentedTest {
 
     @Test fun numericEntrySelectsExistingValueValidatesCancelsAndAppliesAbsoluteDecimal() {
         mount(fontScale = 2f)
-        scrollContentTo(WorkoutTestTags.WEIGHT_STEPPER).performClick()
+        scrollContentTo(WorkoutTestTags.WEIGHT_STEPPER)
+        captureFloorControl("numeric-open-before-reveal", WorkoutTestTags.WEIGHT_STEPPER)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
+        captureFloorControl("numeric-open-before-tap", WorkoutTestTags.WEIGHT_STEPPER)
+        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performClick()
+        captureFloorControl("numeric-open-after-tap", WorkoutTestTags.WEIGHT_STEPPER)
         val field = compose.onNodeWithTag(NumberEntryTags.FIELD)
         field.assertIsDisplayed()
         assertEquals(TextRange(0, 2), field.fetchSemanticsNode().config[SemanticsProperties.TextSelectionRange])
         field.performTextReplacement("85,5")
         compose.onNodeWithText("Cancel").performClick()
         assertEquals(60.0, fixture.vm.uiState.value.draft.weightKg, 0.01)
-        scrollContentTo(WorkoutTestTags.WEIGHT_STEPPER).performClick()
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
+        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performClick()
         field.performTextReplacement("-5")
         compose.onNodeWithText("Set").assertIsNotEnabled()
         awaitKeyboard()
@@ -283,7 +326,12 @@ class WorkoutEntryJourneyInstrumentedTest {
         mount(fontScale = 2f)
         repeat(2) { pickEffort(); compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick(); awaitSets(it + 1) }
         val original = savedSets().first()
-        scrollContentTo(WorkoutTestTags.VIEW_SETS).performClick()
+        scrollContentTo(WorkoutTestTags.VIEW_SETS)
+        captureFloorControl("savedsets-open-before-reveal", WorkoutTestTags.VIEW_SETS)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.VIEW_SETS)
+        captureFloorControl("savedsets-open-before-tap", WorkoutTestTags.VIEW_SETS)
+        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
+        captureFloorControl("savedsets-open-after-tap", WorkoutTestTags.VIEW_SETS)
         compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed()
         captureWindow("saved-sets-font20")
         sheetRowFor(original.id).performClick()
@@ -294,17 +342,20 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.CANCEL_EDIT).assertIsDisplayed().performClick()
         compose.waitUntil(15_000) { fixture.vm.uiState.value.editingSetId == null }
         assertEquals(60.0, savedSets().first { it.id == original.id }.weightKg, 0.01)
-        scrollContentTo(WorkoutTestTags.VIEW_SETS).performClick()
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.VIEW_SETS)
+        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
         sheetRowFor(original.id).performClick()
         compose.onNodeWithText("Edit set").performClick()
         compose.waitUntil(15_000) { fixture.vm.uiState.value.editingSetId == original.id }
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
         compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsDisplayed().performClick()
         compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement("70")
         compose.onNodeWithText("Set").performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         compose.waitUntil(15_000) { savedSets().first { it.id == original.id }.weightKg == 70.0 && !fixture.vm.uiState.value.logging }
         assertEquals(2, savedSets().size)
-        scrollContentTo(WorkoutTestTags.VIEW_SETS).performClick()
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.VIEW_SETS)
+        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
         sheetRowFor(original.id).performClick()
         compose.onNodeWithText("Delete set").performClick()
         awaitSets(1)
@@ -313,6 +364,105 @@ class WorkoutEntryJourneyInstrumentedTest {
         val restored = savedSets().first { it.id == original.id }
         assertEquals(original.completedAt, restored.completedAt)
         assertEquals(70.0, restored.weightKg, 0.01)
+    }
+
+    @Test fun adaptiveTempoKeepsWhyAcrossFontRelocationAndApplyOnlyChangesDraft() {
+        // The OS and modal use font2. Only the floor's Compose font override changes:
+        // this exercises relocation within one screen, not Activity recreation.
+        val adaptiveFont = mutableFloatStateOf(1f)
+        mount(fontScale = 2f, fontScaleOverride = adaptiveFont)
+        val actualOsFont = ApplicationProvider.getApplicationContext<android.app.Application>().resources.configuration.fontScale
+        assertEquals(2f, actualOsFont, 0.01f)
+        println("NATIVE_ADAPTIVE_FONT osFont=$actualOsFont floorFont=${adaptiveFont.floatValue}")
+        compose.waitUntil(15_000) { fixture.vm.uiState.value.canLog && fixture.vm.microRec.value != null }
+        val originalSessionId = fixture.sessionId
+        val originalDraft = fixture.vm.uiState.value.draft
+        val coach = hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD)
+        val inlineCoach = coach and hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT))
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_WHY)
+        compose.onAllNodes(coach).assertCountEquals(1)
+        compose.onAllNodes(inlineCoach).assertCountEquals(1)
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().assertIsEnabled().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
+        val originalWhy = compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_TITLE).fetchSemanticsNode()
+            .config[SemanticsProperties.Text]
+        val originalExplanation = compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SUMMARY).fetchSemanticsNode()
+            .config[SemanticsProperties.Text]
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_KEEP, 48)
+        captureWindow("adaptive-why-osfont20-floor10")
+
+        compose.runOnIdle { adaptiveFont.floatValue = 2f }
+        compose.waitForIdle()
+        compose.onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)).assertCountEquals(1)
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
+        assertEquals(originalWhy, compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_TITLE)
+            .fetchSemanticsNode().config[SemanticsProperties.Text])
+        assertEquals(originalExplanation, compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SUMMARY)
+            .fetchSemanticsNode().config[SemanticsProperties.Text])
+        assertEquals(originalDraft, fixture.vm.uiState.value.draft)
+        assertTrue(savedSets().isEmpty())
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_KEEP, 48)
+        captureWindow("adaptive-why-osfont20-floor20")
+
+        // Return through the same branch boundary while the sheet is still open.
+        compose.runOnIdle { adaptiveFont.floatValue = 1f }
+        compose.waitForIdle()
+        compose.onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)).assertCountEquals(1)
+        compose.runOnIdle { adaptiveFont.floatValue = 2f }
+        compose.waitForIdle()
+        compose.onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)).assertCountEquals(1)
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_KEEP, 48).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertDoesNotExist()
+        assertEquals(originalDraft, fixture.vm.uiState.value.draft)
+
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
+        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performClick()
+        compose.onNodeWithTag(NumberEntryTags.FIELD).assertIsDisplayed().performTextReplacement("65.5")
+        compose.onNodeWithText("Set").performClick()
+        compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.weightKg == 65.5 }
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsNotEnabled()
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.rpeChoice(8))
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).assertIsDisplayed().assertIsEnabled().performClick()
+        compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.rpe == 8 }
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).assertIsSelected()
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsEnabled()
+        assertEquals(65.5, fixture.vm.uiState.value.draft.weightKg, 0.01)
+        assertEquals(8, fixture.vm.uiState.value.draft.reps)
+        assertTrue(savedSets().isEmpty())
+
+        // With changed manual numbers both actions must have their full real targets.
+        // Keep closes without changing those numbers; Apply is exercised on the card
+        // below. Either Apply route dismisses this tip until a set is actually saved.
+        val manualDraft = fixture.vm.uiState.value.draft
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_WHY)
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().performClick()
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_USE, 64)
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_KEEP, 48)
+        captureWindow("adaptive-why-osfont20-manual-actions")
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_KEEP, 48).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertDoesNotExist()
+        assertEquals(manualDraft, fixture.vm.uiState.value.draft)
+        assertTrue(savedSets().isEmpty())
+        assertFalse(fixture.vm.restTimerState.value.running)
+
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_APPLY)
+        compose.onAllNodes(coach).assertCountEquals(1)
+        compose.onAllNodes(inlineCoach).assertCountEquals(1)
+        compose.onNode(inlineCoach).assertIsDisplayed()
+        val recommendation = checkNotNull(fixture.vm.microRec.value)
+        assertTrue("Typed weight must differ from Apply's suggestion", recommendation.nextWeightKg != 65.5)
+        captureFloorControl("adaptive-font20-before-apply", WorkoutTestTags.MICRO_REC_APPLY)
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed().assertIsEnabled().performClick()
+        compose.waitUntil(5_000) {
+            val draft = fixture.vm.uiState.value.draft
+            draft.weightKg == recommendation.nextWeightKg && draft.reps == recommendation.nextReps &&
+                draft.rpe == recommendation.nextRpe
+        }
+        assertEquals(originalSessionId, fixture.vm.uiState.value.session?.id)
+        assertTrue(savedSets().isEmpty())
+        assertFalse(fixture.vm.restTimerState.value.running)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
+        captureFloorControl("adaptive-font20-after-apply", WorkoutTestTags.WEIGHT_STEPPER)
     }
 
     @Test fun deniedNotificationsRetainIdleTimingAndCompletedExerciseActions() {
@@ -349,7 +499,12 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.runOnIdle { fixture.vm.startSetStopwatch() }
         compose.waitUntil(5_000) { fixture.vm.setStopwatch.value.running }
         // The visible "Lift n of N" control is the way into the switcher (W1a).
-        scrollContentTo(WorkoutTestTags.LIFT_SWITCH).performClick()
+        scrollContentTo(WorkoutTestTags.LIFT_SWITCH)
+        captureFloorControl("switcher-open-before-reveal", WorkoutTestTags.LIFT_SWITCH)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.LIFT_SWITCH)
+        captureFloorControl("switcher-open-before-tap", WorkoutTestTags.LIFT_SWITCH)
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).performClick()
+        captureFloorControl("switcher-open-after-tap", WorkoutTestTags.LIFT_SWITCH)
         compose.onNodeWithTag(WorkoutTestTags.liftSwitcherRow(original)).assertIsDisplayed()
         captureWindow("switcher-font20")
         compose.onNodeWithTag("workout-switcher-list").performScrollToNode(hasTestTag(WorkoutTestTags.liftSwitcherRow(next.id)))

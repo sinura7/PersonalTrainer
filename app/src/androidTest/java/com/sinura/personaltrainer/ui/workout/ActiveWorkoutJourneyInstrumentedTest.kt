@@ -21,7 +21,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -137,7 +136,11 @@ class ActiveWorkoutJourneyInstrumentedTest {
         // synthetic result differs from both prefilled numbers, and Set only fills the draft.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT)
             .performScrollToNode(hasTestTag(WorkoutTestTags.WEIGHT_STEPPER))
+        captureWeightEntryState("before-tap")
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
+        captureWeightEntryState("after-scroll")
         compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).performClick()
+        captureWeightEntryState("after-tap")
         val weightField = compose.onNodeWithTag(NumberEntryTags.FIELD)
         val suggestedWeight = checkNotNull(NumericEntry.parseWeightKg(
             weightField.fetchSemanticsNode().config[SemanticsProperties.EditableText].text,
@@ -147,8 +150,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
         weightField.performTextReplacement(ACTUAL_WEIGHT_KG.toString())
         compose.onNodeWithText("Set").performClick()
 
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT)
-            .performScrollToNode(hasTestTag(WorkoutTestTags.REPS_STEPPER))
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.REPS_STEPPER)
         compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).performClick()
         val repsField = compose.onNodeWithTag(NumberEntryTags.FIELD)
         val suggestedReps = checkNotNull(NumericEntry.parseReps(
@@ -163,7 +165,7 @@ class ActiveWorkoutJourneyInstrumentedTest {
         })
 
         // A working set logs only with its effort (P2a): the 8 chip, scrolled into view and tapped.
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.rpeChoice(8)))
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.rpeChoice(8))
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.LOG_SET) and isEnabled())
@@ -223,17 +225,17 @@ class ActiveWorkoutJourneyInstrumentedTest {
         } finally {
             compose.mainClock.autoAdvance = autoAdvance
         }
-        // The suggestion is a list item under the RPE track, outside the initial viewport
-        // on this profile, so a lazy list composes nothing for it until scrolled. Scroll
-        // the LIST to it, and keep trying while the coach is still deriving the set.
-        awaitCondition("next-set suggestion listed") {
+        // Quiet keeps advice in the scrolling floor, after the entry and saved work.
+        // Reveal the actual control before checking it; advice may start below the fold.
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_APPLY)
+        awaitCondition("inline Tempo suggestion displayed") {
             compose.waitForIdle()
             runCatching {
-                compose.onNodeWithTag(WorkoutTestTags.CONTENT)
-                    .performScrollToNode(hasTestTag(WorkoutTestTags.NEXT_SET))
+                compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
+                compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed()
             }.isSuccess
         }
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed()
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
@@ -516,6 +518,15 @@ class ActiveWorkoutJourneyInstrumentedTest {
         val routineName: String,
         val exercise: Exercise,
     )
+
+    private fun captureWeightEntryState(state: String) {
+        for (tag in listOf(WorkoutTestTags.WEIGHT_STEPPER, WorkoutTestTags.TEMPO_COACH_CARD,
+            WorkoutTestTags.CONTENT, WorkoutTestTags.LOG_SET, NumberEntryTags.FIELD)) {
+            val bounds = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes().map { it.boundsInRoot }
+            println("NATIVE_ENTRY_DIAGNOSTIC journey=active state=$state tag=$tag bounds=$bounds")
+        }
+        captureWindow("weight-$state")
+    }
 
     /** Capture real Android windows without waiting for the continuously animated rest track. */
     private fun captureWindow(state: String) {

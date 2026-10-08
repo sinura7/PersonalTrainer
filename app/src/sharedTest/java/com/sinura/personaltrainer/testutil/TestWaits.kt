@@ -94,19 +94,43 @@ fun stalledThreads(): String {
             interesting.containsMatchIn(thread.name) ||
                 stack.any { interesting.containsMatchIn(it.className) }
         }
-        .toSortedMap(compareBy { it.name })
+    return renderStalledThreads(threads)
+}
+
+/** Keep transaction diagnostics first, retain same-name threads, and bound the whole log. */
+internal fun renderStalledThreads(threads: Map<Thread, Array<StackTraceElement>>): String {
     if (threads.isEmpty()) return "no app, Room, SQLite or coroutine thread was alive to blame"
+    val ordered = threads.entries.sortedWith(compareBy(
+        { entry ->
+            if (entry.key.name.contains("room-txn", ignoreCase = true)) 0
+            else if (entry.key.name.contains("room-query", ignoreCase = true)) 1
+            else 2
+        },
+        { entry -> entry.key.name },
+        { entry -> entry.key.id },
+    ))
     return buildString {
         append("threads that could be holding this up (${threads.size}):")
-        threads.forEach { (thread, stack) ->
-            append("\n  \"${thread.name}\" ${thread.state}")
-            stack.take(FRAMES_PER_THREAD).forEach { append("\n      at $it") }
-            if (stack.size > FRAMES_PER_THREAD) append("\n      ... ${stack.size - FRAMES_PER_THREAD} more")
+        for ((thread, stack) in ordered) {
+            val section = buildString {
+                append("\n  \"${thread.name}\" ${thread.state} id=${thread.id}")
+                stack.take(FRAMES_PER_THREAD).forEach { append("\n      at $it") }
+                if (stack.size > FRAMES_PER_THREAD) append("\n      ... ${stack.size - FRAMES_PER_THREAD} more")
+            }
+            val available = MAX_THREAD_DUMP_CHARS - TRUNCATED_THREAD_DUMP.length - length
+            if (section.length > available) {
+                append(section.take(available.coerceAtLeast(0)))
+                append(TRUNCATED_THREAD_DUMP)
+                break
+            }
+            append(section)
         }
     }
 }
 
 /** Deep enough to name the park site and who called it; short enough to read in a CI log. */
 private const val FRAMES_PER_THREAD = 12
+private const val MAX_THREAD_DUMP_CHARS = 19_999
+private const val TRUNCATED_THREAD_DUMP = "\n... thread dump truncated; additional frames or threads omitted"
 
 private val NOTHING_YET = Any()

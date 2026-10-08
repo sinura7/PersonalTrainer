@@ -28,8 +28,12 @@ import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -716,6 +720,20 @@ internal fun ComposeContentTestRule.assertTapOpensNoKeypad(tap: () -> Unit) {
     } finally {
         mainClock.autoAdvance = true
     }
+}
+
+/** Tempo is pinned above the dock; nudge scroll so floor controls are not under it. */
+internal fun ComposeContentTestRule.scrollFloorClearOfTempo() {
+    onNodeWithTag(WorkoutTestTags.CONTENT).performTouchInput {
+        swipeUp(startY = bottom * 0.75f, endY = top + height * 0.15f, durationMillis = 150)
+    }
+    waitForIdle()
+}
+
+internal fun ComposeContentTestRule.scrollFloorTo(tag: String, clearTempo: Boolean = false) {
+    onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
+    if (clearTempo) scrollFloorClearOfTempo()
+    waitForIdle()
 }
 
 private fun ComposeContentTestRule.settleKeypad() {

@@ -14,6 +14,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -30,6 +32,7 @@ import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
 import com.sinura.personaltrainer.domain.coach.CoachEngine
 import com.sinura.personaltrainer.domain.coach.CoachEvidenceCopy
+import com.sinura.personaltrainer.domain.coach.TempoWhySheetCopy
 import com.sinura.personaltrainer.domain.setMicroRecInputs
 import com.sinura.personaltrainer.ui.theme.Metrics
 import org.junit.Assert.assertEquals
@@ -140,7 +143,9 @@ class NextSetRecommendationRenderTest {
         shown("Had more in you — add weight · Target RPE 7")
         compose.onAllNodesWithText("strength bias", substring = true, useUnmergedTree = true).assertCountEquals(0)
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
-        compose.onNodeWithText("Rule: $strength", substring = true).assertIsDisplayed()
+        compose.onNode(
+            hasText(strength, substring = true) and hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)),
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -168,26 +173,25 @@ class NextSetRecommendationRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsNotEnabled().performClick()
         assertEquals(0, applies)
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsEnabled().performClick()
-        compose.onNodeWithText("Why this set").assertIsDisplayed()
+        compose.onNodeWithText(TempoWhySheetCopy.TITLE_NEXT).assertIsDisplayed()
     }
 
     @Test
     fun whyOpensTheRuleTraceAndCanUseTheSuggestion() {
         showCard()
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
-        compose.onNodeWithText("Why this set").assertIsDisplayed()
-        // The engine's own trace, then the evidence it rests on.
-        compose.onNodeWithText(SetMicroRecCopy.whyLines(rec).first(), substring = true).assertIsDisplayed()
-        compose.onNodeWithText(CoachEvidenceCopy.whySheetAppendix(CoachEngine.fromMicroRec(rec)).last(), substring = true).assertIsDisplayed()
+        compose.onNodeWithText(TempoWhySheetCopy.TITLE_NEXT).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SUMMARY).assertIsDisplayed()
+        compose.onNodeWithText(TempoWhySheetCopy.SECTION_EVIDENCE).assertIsDisplayed()
         compose.onNodeWithText("Keep my numbers").assertIsDisplayed()
         compose.onNodeWithText("Use suggestion").performClick()
         assertEquals(1, applies)
-        compose.onAllNodesWithText("Why this set").assertCountEquals(0)
+        compose.onAllNodesWithText(TempoWhySheetCopy.TITLE_NEXT).assertCountEquals(0)
         // Keep my numbers closes the sheet and changes nothing.
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
         compose.onNodeWithText("Keep my numbers").performClick()
         assertEquals(1, applies)
-        compose.onAllNodesWithText("Why this set").assertCountEquals(0)
+        compose.onAllNodesWithText(TempoWhySheetCopy.TITLE_NEXT).assertCountEquals(0)
     }
 
     @Test
@@ -245,7 +249,7 @@ class NextSetRecommendationRenderTest {
     fun theCompactStripsWhyOpensTheRuleTrace() {
         showCard(compact = true)
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
-        compose.onNodeWithText("Why this set").assertIsDisplayed()
+        compose.onNodeWithText(TempoWhySheetCopy.TITLE_NEXT).assertIsDisplayed()
         compose.onNodeWithText("Use suggestion").performClick()
         assertEquals(1, applies)
     }

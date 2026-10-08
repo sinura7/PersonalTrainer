@@ -45,6 +45,7 @@ object CoachPolicyEvidence {
         SetMicroRecCalculator.NO_HISTORY -> listOf("heuristic-conservative-first-set")
         SetMicroRecCalculator.LIGHTER_HOLD -> listOf("helms-2016-rpe-application")
         SetMicroRecCalculator.BW_HOLD -> listOf("helms-2016-rpe-application")
+        "ADD_A_SET" -> AddASetPolicy.evidenceIds()
         else -> emptyList()
     }
 }

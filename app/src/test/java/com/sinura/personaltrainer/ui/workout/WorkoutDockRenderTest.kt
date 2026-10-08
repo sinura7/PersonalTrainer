@@ -62,7 +62,6 @@ class WorkoutDockRenderTest {
     @Test
     fun onceThePlanIsMetAddAnotherSetStandsBesideNextAndTheClock() {
         showDock(floorDockState(action = next, payload = "Leg Curl", spokenPayload = "Leg Curl"))
-        // The floor's one "Add set" (W1a): the set history no longer offers its own chip.
         val add = compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET)
             .assertIsDisplayed()
             .assertIsEnabled()
@@ -72,7 +71,6 @@ class WorkoutDockRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).assertIsDisplayed().assertHeightIsAtLeast(Metrics.touchMin)
         compose.onNodeWithTag(WorkoutTestTags.NEXT).assertIsDisplayed()
         compose.onAllNodesWithTag(WorkoutTestTags.LOG_SET).assertCountEquals(0)
-        // Both choices live in the companion row, above the commit.
         val row = compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).getBoundsInRoot()
         val addBounds = add.getBoundsInRoot()
         assertTrue(addBounds.top >= row.top && addBounds.bottom <= row.bottom)
@@ -85,7 +83,6 @@ class WorkoutDockRenderTest {
     fun finishingTheWorkoutAlsoOffersAnotherSet() {
         showDock(floorDockState(action = finish, payload = null))
         compose.onNodeWithTag(WorkoutTestTags.DOCK_FINISH).assertIsDisplayed()
-        // Finish keeps a way back to one more set.
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().performClick()
         assertEquals(1, another)
     }
@@ -93,7 +90,7 @@ class WorkoutDockRenderTest {
     @Test
     fun addAnotherSetIsDisabledWhileTheEntryIsLocked() {
         showDock(floorDockState(action = next, payload = "Leg Curl", showAnother = false))
-        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsNotEnabled().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         assertEquals(0, another)
     }
 
@@ -104,7 +101,7 @@ class WorkoutDockRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
         // The rest card is the clock itself here, so no compact clock repeats it.
         compose.onNodeWithTag(WorkoutTestTags.COMPANION_CLOCK).assertDoesNotExist()
-        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertHeightIsAtLeast(Metrics.logTimerRow)
+        compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).assertHeightIsAtLeast(Metrics.logFloorTimerRow)
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
     }
 
