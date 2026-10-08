@@ -1,16 +1,55 @@
 {
-  "recordedAtUtc": "2026-10-08T15:01:44.205Z",
+  "recordedAtUtc": "2026-10-08T17:46:56.148Z",
   "browser": {
     "engine": "Chromium",
     "version": "154.0.8037.99",
     "headless": true,
     "sandboxedIframe": true
   },
-  "fragmentSha256": "aaa4acabc90d27296ce445d0af7ecb066b4692d202d0eb5823f20199820745c3",
-  "driverSha256": "01e021e3f01767b742be48ddbbc1a97fa87a74af4d3127669e2d11867474a144",
-  "checks": 136,
+  "fragmentSha256": "260daa39542a4aa120185b7b3a1d4d75c4110754a8f60ed1498838e9b366c779",
+  "driverSha256": "347eae8e95f83cb76678d713984101490f7b0e769a456fc796eb8436395a6886",
+  "checks": 154,
   "failures": 0,
   "results": [
+    {
+      "name": "quiet: Home routine shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        },
+        {
+          "index": 1,
+          "text": "Seated Cable Row",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
+      "name": "quiet: active exercise shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 64,
+          "height": 64,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
     {
       "name": "quiet: Start creates a restorable live draft with no saved set",
       "passed": true
@@ -57,7 +96,7 @@
         "weight": 82.5,
         "reps": 12,
         "effort": 8,
-        "at": 1791471671726
+        "at": 1791481581434
       }
     },
     {
@@ -77,6 +116,60 @@
       "passed": true
     },
     {
+      "name": "quiet: exercise picker shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        },
+        {
+          "index": 1,
+          "text": "Seated Cable Row",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
+      "name": "quiet: switched exercise shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 1,
+          "text": "Seated Cable Row",
+          "width": 64,
+          "height": 64,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
+      "name": "quiet: rest source after switching shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 64,
+          "height": 64,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
       "name": "quiet: timer remains tied to saved source exercise after switching",
       "passed": true
     },
@@ -93,6 +186,21 @@
       "passed": true
     },
     {
+      "name": "quiet: saved-set correction shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 64,
+          "height": 64,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
       "name": "quiet: correction updates same row and preserves timestamp/next draft",
       "passed": true,
       "details": {
@@ -101,7 +209,7 @@
         "weight": 80,
         "reps": 11,
         "effort": 9,
-        "at": 1791471671726
+        "at": 1791481581434
       }
     },
     {
@@ -145,6 +253,21 @@
       "passed": true
     },
     {
+      "name": "quiet: unlogged entry at Finish shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
       "name": "quiet: keep working out preserves pending entry",
       "passed": true
     },
@@ -157,12 +280,42 @@
       "passed": true
     },
     {
+      "name": "quiet: Summary grouped exercise shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
       "name": "quiet: Done returns Home with saved history action",
       "passed": true
     },
     {
       "name": "quiet: same workout detail reconciles corrected values",
       "passed": true
+    },
+    {
+      "name": "quiet: History Detail grouped exercise shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
     },
     {
       "name": "quiet: persisted state is bounded valid JSON",
@@ -181,8 +334,8 @@
         "documentWidth": 704,
         "outside": [],
         "stageMinHeights": [
-          "1018px",
-          "1018px"
+          "1048px",
+          "1048px"
         ]
       }
     },
@@ -199,8 +352,8 @@
         "documentWidth": 704,
         "outside": [],
         "stageMinHeights": [
-          "1470px",
-          "1470px"
+          "1521px",
+          "1521px"
         ]
       }
     },
@@ -217,8 +370,8 @@
         "documentWidth": 704,
         "outside": [],
         "stageMinHeights": [
-          "1939px",
-          "1939px"
+          "1972px",
+          "1972px"
         ]
       }
     },
@@ -235,8 +388,8 @@
         "documentWidth": 380,
         "outside": [],
         "stageMinHeights": [
-          "1053px",
-          "1053px"
+          "1048px",
+          "1048px"
         ]
       }
     },
@@ -253,8 +406,8 @@
         "documentWidth": 380,
         "outside": [],
         "stageMinHeights": [
-          "1618px",
-          "1618px"
+          "1644px",
+          "1644px"
         ]
       }
     },
@@ -271,8 +424,8 @@
         "documentWidth": 380,
         "outside": [],
         "stageMinHeights": [
-          "2017px",
-          "2017px"
+          "2119px",
+          "2119px"
         ]
       }
     },
@@ -289,8 +442,8 @@
         "documentWidth": 328,
         "outside": [],
         "stageMinHeights": [
-          "1266px",
-          "1266px"
+          "1261px",
+          "1261px"
         ]
       }
     },
@@ -307,8 +460,8 @@
         "documentWidth": 328,
         "outside": [],
         "stageMinHeights": [
-          "1753px",
-          "1753px"
+          "1834px",
+          "1834px"
         ]
       }
     },
@@ -325,8 +478,8 @@
         "documentWidth": 328,
         "outside": [],
         "stageMinHeights": [
-          "2082px",
-          "2082px"
+          "2147px",
+          "2147px"
         ]
       }
     },
@@ -343,8 +496,8 @@
         "documentWidth": 288,
         "outside": [],
         "stageMinHeights": [
-          "1370px",
-          "1370px"
+          "1400px",
+          "1400px"
         ]
       }
     },
@@ -361,8 +514,8 @@
         "documentWidth": 288,
         "outside": [],
         "stageMinHeights": [
-          "1861px",
-          "1861px"
+          "1941px",
+          "1941px"
         ]
       }
     },
@@ -379,8 +532,8 @@
         "documentWidth": 288,
         "outside": [],
         "stageMinHeights": [
-          "2235px",
-          "2235px"
+          "2300px",
+          "2300px"
         ]
       }
     },
@@ -424,6 +577,45 @@
     {
       "name": "quiet: finishing completed work reconciles twelve exact records",
       "passed": true
+    },
+    {
+      "name": "context: Home routine shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        },
+        {
+          "index": 1,
+          "text": "Seated Cable Row",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
+      "name": "context: active exercise shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 64,
+          "height": 64,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
     },
     {
       "name": "context: Start creates a restorable live draft with no saved set",
@@ -471,7 +663,7 @@
         "weight": 82.5,
         "reps": 12,
         "effort": 8,
-        "at": 1791471689494
+        "at": 1791481600632
       }
     },
     {
@@ -491,6 +683,60 @@
       "passed": true
     },
     {
+      "name": "context: exercise picker shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        },
+        {
+          "index": 1,
+          "text": "Seated Cable Row",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
+      "name": "context: switched exercise shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 1,
+          "text": "Seated Cable Row",
+          "width": 64,
+          "height": 64,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
+      "name": "context: rest source after switching shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 64,
+          "height": 64,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
       "name": "context: timer remains tied to saved source exercise after switching",
       "passed": true
     },
@@ -507,6 +753,21 @@
       "passed": true
     },
     {
+      "name": "context: saved-set correction shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 64,
+          "height": 64,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
       "name": "context: correction updates same row and preserves timestamp/next draft",
       "passed": true,
       "details": {
@@ -515,7 +776,7 @@
         "weight": 80,
         "reps": 11,
         "effort": 9,
-        "at": 1791471689494
+        "at": 1791481600632
       }
     },
     {
@@ -559,6 +820,21 @@
       "passed": true
     },
     {
+      "name": "context: unlogged entry at Finish shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
       "name": "context: keep working out preserves pending entry",
       "passed": true
     },
@@ -571,12 +847,42 @@
       "passed": true
     },
     {
+      "name": "context: Summary grouped exercise shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
+    },
+    {
       "name": "context: Done returns Home with saved history action",
       "passed": true
     },
     {
       "name": "context: same workout detail reconciles corrected values",
       "passed": true
+    },
+    {
+      "name": "context: History Detail grouped exercise shows matching loaded artwork beside full exercise names",
+      "passed": true,
+      "details": [
+        {
+          "index": 0,
+          "text": "Incline Dumbbell Bench Press",
+          "width": 48,
+          "height": 48,
+          "loaded": true,
+          "alongside": true,
+          "decorative": true
+        }
+      ]
     },
     {
       "name": "context: persisted state is bounded valid JSON",
@@ -595,8 +901,8 @@
         "documentWidth": 704,
         "outside": [],
         "stageMinHeights": [
-          "1253px",
-          "1253px"
+          "1283px",
+          "1283px"
         ]
       }
     },
@@ -613,8 +919,8 @@
         "documentWidth": 704,
         "outside": [],
         "stageMinHeights": [
-          "1796px",
-          "1796px"
+          "1847px",
+          "1847px"
         ]
       }
     },
@@ -631,8 +937,8 @@
         "documentWidth": 704,
         "outside": [],
         "stageMinHeights": [
-          "2316px",
-          "2316px"
+          "2349px",
+          "2349px"
         ]
       }
     },
@@ -649,8 +955,8 @@
         "documentWidth": 380,
         "outside": [],
         "stageMinHeights": [
-          "1288px",
-          "1288px"
+          "1283px",
+          "1283px"
         ]
       }
     },
@@ -667,8 +973,8 @@
         "documentWidth": 380,
         "outside": [],
         "stageMinHeights": [
-          "1972px",
-          "1972px"
+          "1998px",
+          "1998px"
         ]
       }
     },
@@ -685,8 +991,8 @@
         "documentWidth": 380,
         "outside": [],
         "stageMinHeights": [
-          "2394px",
-          "2394px"
+          "2496px",
+          "2496px"
         ]
       }
     },
@@ -703,8 +1009,8 @@
         "documentWidth": 328,
         "outside": [],
         "stageMinHeights": [
-          "1501px",
-          "1501px"
+          "1496px",
+          "1496px"
         ]
       }
     },
@@ -721,8 +1027,8 @@
         "documentWidth": 328,
         "outside": [],
         "stageMinHeights": [
-          "2072px",
-          "2072px"
+          "2153px",
+          "2153px"
         ]
       }
     },
@@ -739,8 +1045,8 @@
         "documentWidth": 328,
         "outside": [],
         "stageMinHeights": [
-          "2459px",
-          "2459px"
+          "2524px",
+          "2524px"
         ]
       }
     },
@@ -757,8 +1063,8 @@
         "documentWidth": 288,
         "outside": [],
         "stageMinHeights": [
-          "1661px",
-          "1661px"
+          "1691px",
+          "1691px"
         ]
       }
     },
@@ -775,8 +1081,8 @@
         "documentWidth": 288,
         "outside": [],
         "stageMinHeights": [
-          "2232px",
-          "2232px"
+          "2312px",
+          "2312px"
         ]
       }
     },
@@ -793,8 +1099,8 @@
         "documentWidth": 288,
         "outside": [],
         "stageMinHeights": [
-          "2748px",
-          "2748px"
+          "2812px",
+          "2812px"
         ]
       }
     },
@@ -846,5 +1152,29 @@
     "Rest expiry uses accelerated browser clock, not Android timing.",
     "Twelve saved sets per variant is a comparison capacity, not a new Temper product limit.",
     "Prepared two-lift start only; existing Android start confirmation is outside this comparison."
-  ]
+  ],
+  "artworkSources": [
+    {
+      "source": "app/src/main/res/drawable-nodpi/ex_incline_dumbbell_bench_press.webp",
+      "bytes": 3464,
+      "sha256": "89542af706a0e7ad5050647821222b7fbfc556460404661d74f44cfec02bebfc"
+    },
+    {
+      "source": "app/src/main/res/drawable-nodpi/ex_seated_cable_row.webp",
+      "bytes": 3464,
+      "sha256": "f1be64104ac196e7581be906b510860798fb71681cbb42608ba85a61c256094b"
+    }
+  ],
+  "artworkFollowup": {
+    "recordedAtUtc": "2026-10-08T17:48:45.954090+00:00",
+    "ownerRequest": "Corresponding exercise images beside exercise names",
+    "checksAdded": 18,
+    "scope": "Interactive proposals only; no Android source, policy, version or distribution change",
+    "previousComparison": {
+      "commit": "e94d5ebfd761df11c7be89263b942fb7239f2e48",
+      "checks": 136,
+      "fragmentSha256": "aaa4acabc90d27296ce445d0af7ecb066b4692d202d0eb5823f20199820745c3",
+      "recordSha256": "cead2c222b96ad789c912487ce41572bc9529a7d92b043c5773024bd19727c88"
+    }
+  }
 }

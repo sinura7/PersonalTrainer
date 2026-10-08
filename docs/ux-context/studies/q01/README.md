@@ -297,11 +297,24 @@ for the next discussion; no native redesign is selected or implemented here.
 | Q03 / Q04 | Rest controls and Home return remain reachable; switching preserves per-exercise drafts. The expanded timer identifies its saved source exercise even after switching. | Close rest, return through Home, switch away/back, then Skip or allow completion. Neither rest nor exercise switching writes a set or finishes the workout. |
 | Q08 | Saved-row correction, separate correction draft, Undo, early-finish warning, Summary and same-workout History are connected. | Correct 82.5 × 12 to 80 × 11, undo/retry it and finish with an unlogged entry. Saved identity/timestamp and totals must reconcile; unfinished work must be explicit. |
 
-The [136-check record](connected-proposal-checks.json) pins the fragment and driver
+Following O11, both proposals place each existing exercise illustration beside
+its complete name: 64 px in exercise headings and 48 px in routine/picker/review
+rows. The source assets are `ex_incline_dumbbell_bench_press.webp` and
+`ex_seated_cable_row.webp`; their original bytes are embedded for offline use and
+hashed in the check record. A rest names and depicts its saved source exercise,
+while a correction depicts that saved row's exercise. Text wraps beside the
+image, and the image has no separate tab stop or redundant spoken name. These
+are proposed browser dimensions, not native dp acceptance or a new artwork set.
+
+The [154-check record](connected-proposal-checks.json) pins the fragment and driver
 hashes, Chrome version, tasks and results. It covers both complete branches,
 duplicate/slow writes, failed logs and corrections, reload of a pending write,
 exact Retry, keyboard focus, Apply, Undo, rest-source/Close/Skip/expiry, explicit
 progression/extra sets, early and prescribed finishing, Summary and History.
+It reruns the original 136 checks and adds eighteen checks of decoded matching
+artwork beside exercise names across Home, entry, switching, rest, correction,
+Finish, Summary and Detail. The original run's hash/count remain indexed as the
+previous comparison; this update changes no Android source or workout policy.
 Widths 736/412/360/320 px with text scales 1.0/1.6/2.0 reflow without horizontal
 clipping; equal variant stages and representative images were checked.
 
