@@ -2,21 +2,22 @@
 
 **Date:** 8 October 2026
 
-**Status:** Connected mechanical baselines established on Debug 122 and matching published Debug 124 source. The complete synthetic Android suite passed on Debug 122; the bounded Debug-124 repairs and their final gate are recorded in the dated follow-up below. The focused readiness comparison and two connected workout proposals await owner task observation and design choice.
+**Status:** Native Quiet is implemented under O12 on the reviewed Debug-124 stack, with passing complete local and Android gates. Fresh mandatory reviews and trunk integration remain pending. The connected Debug-122/124 baselines, bounded repairs and browser proposals below retain their original evidence scope. Physical-phone acceptance remains unclaimed.
 
-**Production baseline:** `eae6517845ee560ceb9695bf2f92788e2b4339cc`, Debug 122. Verification and documentation changes are recorded below; production behavior is unchanged.
+**Original study baseline:** `eae6517845ee560ceb9695bf2f92788e2b4339cc`, Debug 122. Later Debug-124 repairs and the new native implementation direction are recorded separately below.
 
 The later source reconciliation confirms published Live 124 comes from open PR
 #457's Tempo UI branch. The owner screenshot's installed version remains unknown.
 This comparison isolates readiness on trunk 122; it does not reproduce that
-branch's complete layout. Reconcile the overlapping UI before a native proposal.
+branch's complete layout. The later Debug-124 follow-up reconciles that source;
+the open stack still needs resolution before trunk integration.
 
 The owner subsequently reports currently using Debug 124 and finding the
 workflow clunky. The requested direction is a sophisticated but simple front
 end with one obvious next action, inspired by Wealthsimple/Web3. This supports
-exploring the connected workout's hierarchy and traversal; it does not select
-the existing visible-readiness alternative. Execute the published Tempo source
-and compare a connected proposal before changing its overlapping native UI.
+exploring the connected workout's hierarchy and traversal. After the published
+Tempo walkthrough and connected proposals, O12 authorizes native Quiet
+development through completion without owner testing during development.
 
 ## Finding
 
@@ -24,7 +25,7 @@ The existing missing-effort explanation, “Pick your effort first,” reaches t
 
 This establishes a visible-feedback gap worth comparing. It does not establish that the owner is confused, that rest disables logging, or that the supplied S05 image runs this exact build.
 
-The owner reports broad clunkiness and a preference for a simpler, polished front end. No task-specific cause or unaided task performance has been recorded in this study yet. No completion time, variant preference, or improvement percentage is claimed.
+The owner reports broad clunkiness and a preference for a simpler, polished front end, then approves proceeding from the updated proposals. No unaided owner task performance, completion time or improvement percentage has been recorded. Later synthetic native findings establish specific traversal problems within their recorded fixtures.
 
 ## Evidence chain
 
@@ -70,7 +71,12 @@ The concept reserves 30 CSS pixels for the candidate's explanation. Its number f
 
 ## Owner task and decision record
 
-Use the neutral method in [the foundation](../../EVIDENCE.md#how-to-run-the-first-study). The owner's earlier exposure to the explanation in this conversation is a learning effect: a later attempt cannot be described as completely unprimed discovery.
+This is the original, unexecuted owner-study protocol. O12 supersedes its place
+as a prerequisite: native development and agent verification proceed without
+asking the owner to test. If the protocol is used after development, use the
+neutral method in [the foundation](../../EVIDENCE.md#how-to-run-the-first-study).
+Earlier explanations and prototype browsing are learning effects; a later
+attempt cannot be described as completely unprimed discovery.
 
 1. Present the current screen and a fictional result: **75 lb × 8**, with a natural description that the final repetitions were hard but roughly two more felt possible. This supplies context, not a control instruction or training prescription.
 2. Say: “You just completed this set with the result on the task card. Record what happened as you normally would.” Observe the first interpretation/action before help. Do not initially name effort or the reason Log is disabled.
@@ -280,19 +286,26 @@ An independent source/evidence review found no material findings in the study re
 
 ## Readiness comparison conclusion
 
-The original Q01 comparison exposes the existing readiness explanation visually. Native baseline facts and mechanical contracts have been checked. The owner's comprehension, preference, complete-workout performance, and the candidate's native fit remain pending. The later connected proposals also respond to O10's explicit direction and the demonstrated pinned-card traversal problem; they do not imply owner acceptance of a new layout.
+The original Q01 comparison exposes the existing readiness explanation visually. Native baseline facts and mechanical contracts have been checked. The later connected proposals respond to O10's simpler direction and the demonstrated pinned-card traversal problem. O12 now authorizes native Quiet development; the original comparison did not measure owner comprehension or complete-workout performance, and its browser evidence does not establish the native candidate's fit.
 
 ## Connected proposals following O10
 
 [Quiet and Context](connected-workout-proposals.html) explore the owner's reported
-clunkiness and request for a sophisticated, simple front end. They are proposed
-workout compositions, not replicas of current Debug 124 or accepted ADR changes.
-The earlier readiness comparison remains open. Quiet is the recommended direction
-for the next discussion; no native redesign is selected or implemented here.
+clunkiness and request for a sophisticated, simple front end. They remain browser
+proposals rather than replicas of Debug 124. Following favorable feedback and
+O12's development instruction, Quiet is the native implementation direction under
+[the ADR-027 amendment](../../../architecture/ADR-027-workout-logging-redesign.md#amendment--8-october-2026-native-quiet-workout-composition).
+This decision does not convert browser results into native or phone acceptance.
+
+The native adaptation keeps one anchored 72 dp primary, a compact 64 dp matching
+exercise identity, and the saved-set strip. Entry, effort and readiness precede
+the strip; coaching scrolls after it, followed by saved statistics. It removes
+the floating coach in every layout. The complete floor, including relocated
+statistics, remains subject to the existing 852 dp ratchet and 48 dp touch floor.
 
 | Existing record | Proposal and tradeoff | Acceptance task / product rule |
 |---|---|---|
-| Q01 / UX03, UX23, UX24, UX26 | Both place actual values, effort, visible readiness and Log together, ahead of secondary content. Quiet hides saved rows behind one inspection action; Context exposes them and a last-saved/planned-next strip, adding height. | Enter 82.5 lb × 12, choose effort 8 and save once; distinguish the pending entry from saved work. Preserve manual values, required effort and the explicit save payload. A new composition would amend ADR-027, after selection and native evidence. |
+| Q01 / UX03, UX23, UX24, UX26 | Both place actual values, effort, visible readiness and Log together, ahead of secondary content. Quiet hides saved rows behind one inspection action; Context exposes them and a last-saved/planned-next strip, adding height. | Enter 82.5 lb × 12, choose effort 8 and save once; distinguish the pending entry from saved work. Preserve manual values, required effort and the explicit save payload. The native Quiet composition follows ADR-027's dated amendment and requires its own verification. |
 | Q02 | Tempo is secondary to recording. Why explains the fixed synthetic suggestion; Apply explicitly fills numbers **and effort**, without logging. | Apply, inspect the draft, then enter a different actual result. No new coaching policy or automatic log is proposed. |
 | Q03 / Q04 | Rest controls and Home return remain reachable; switching preserves per-exercise drafts. The expanded timer identifies its saved source exercise even after switching. | Close rest, return through Home, switch away/back, then Skip or allow completion. Neither rest nor exercise switching writes a set or finishes the workout. |
 | Q08 | Saved-row correction, separate correction draft, Undo, early-finish warning, Summary and same-workout History are connected. | Correct 82.5 × 12 to 80 × 11, undo/retry it and finish with an unlogged entry. Saved identity/timestamp and totals must reconcile; unfinished work must be explicit. |
@@ -325,10 +338,11 @@ confirmation sheet; it does not authorize removing that confirmation. Native
 height/IME/accessibility, physical touch/timing/performance and owner comprehension
 remain separate. Drivers and images are in ignored `build/ux-context/quiet-flow/`.
 
-Try one task on each proposal: start, record 82.5 lb × 12 at effort 8, return through
-Home, correct the saved result to 80 lb × 11, then finish and find it in History.
-Record the first unclear step and any extra navigation. Earlier explanations are
-a learning effect; do not describe the result as an unaided first encounter.
+The native packet reuses the connected synthetic task: start, record a different
+actual result with effort, return through Home, correct the saved result, then
+finish and find it in History. The agent runs this and the recovery/adaptation
+checks during development. A later owner task may add usability evidence, but is
+not a prerequisite under O12; prior explanations remain a learning effect.
 
 ## Complete native suite follow-up
 
@@ -406,17 +420,17 @@ No accessibility shortcut replaces numeric entry or correction.
 Image source paths, hashes and generating runs are retained in the follow-up
 record. Copies preserve the original PNG bytes.
 
-Repair order is to preserve recording readiness, restore the accepted primary
-target and recover constrained-screen reachability, then compare the broader
-recording/coaching hierarchy with the owner. The repairs restore existing
-contracts; the broader Quiet/Context choice remains open.
+The bounded repair order preserved recording readiness, restored the accepted
+primary target and recovered constrained-screen reachability. These repairs
+restore existing contracts. O12 subsequently authorizes the native Quiet
+hierarchy as the next implementation packet on this reviewed stack.
 
 | Existing study / rule | Demonstrated problem and next action | Evidence limit |
 |---|---|---|
-| Q01 / UX03, UX23 | The pinned Tempo card covers the weight-field center and later a saved chip at the tested scroll positions. Recording/correction require extra swipes. The connected Quiet proposal keeps recording together and makes coaching secondary; compare it before adopting the new hierarchy. | Long synthetic routine/exercise labels on this API-29 profile; no claim that every normal phone entry is covered or that this explains all owner friction. |
+| Q01 / UX03, UX23 | The pinned Tempo card covers the weight-field center and later a saved chip at the tested scroll positions. Recording/correction require extra swipes. The authorized native Quiet packet groups recording and makes coaching secondary; verify reachability and retained coach actions in the native implementation. | Long synthetic routine/exercise labels on this API-29 profile; no claim that every normal phone entry is covered or that this explains all owner friction. |
 | Q01 / recording readiness | Real Room can commit removal, deliver the survivor and finish its prefill before removal cleanup resumes. Unconditional cleanup then changes READY to NONE. Preserve the newer raw selection when cleaning up the removed lift. | The regression controls continuation order; it does not estimate how often this happens on a phone. |
 | ADR-027 / primary target | All five measured component states render at 64 dp at 360×640/font 1.0, below the accepted 72 dp floor. Use the established commit token and an independent hard 72 dp test oracle. | Component height and native bounds are evidence; full-screen reachability and physical touch remain separate. |
-| Q01 / UX03, UX23 / adaptive entry | At 360×640/font 2.0, Tempo leaves only 3 px of the content region clear for a 126 px effort target. Another entry fixture leaves 180 px for a 205 px numeric target. Scrolling cannot expose either full control above the pin. Move the existing card into the scroll order after effort and before saved sets at font ≥1.6 or landscape; retain its actions and normal portrait pin. | Actual API-29 geometry and failed touches prove these states. This does not establish the owner's font settings or select the broader Quiet layout. |
+| Q01 / UX03, UX23 / adaptive entry | At 360×640/font 2.0, Tempo leaves only 3 px of the content region clear for a 126 px effort target. Another entry fixture leaves 180 px for a 205 px numeric target. Scrolling cannot expose either full control above the pin. The bounded repair moved the card after effort and before saved sets at font ≥1.6 or landscape, retaining its actions and normal portrait pin. The subsequent Quiet packet makes coaching scroll in every layout. | Actual API-29 geometry and failed touches prove these fixture states. This does not establish the owner's font settings or verify the subsequent Quiet implementation. |
 
 The two regression probes first fail on unchanged production: the real observer
 ordering loses readiness, and five measured targets are 64 dp. The small fixes
@@ -513,7 +527,49 @@ snapshot case without assuming that every hosted failure is a host issue.
 The bounded fixes and native drivers are verified on the Debug-124 stack; their
 complete gate, real runner execution and independent/adversarial review results
 are retained in the [portable follow-up record](debug124-followup.json).
-Integration is pending because the stack also
-contains open PR #457's existing Tempo/coaching work. This UX packet does not
-authorize integrating new coaching policy, choose the final layout, change the
-database/backup format or prepare a Debug drop.
+Integration is pending because the stack also contains open PR #457's existing
+Tempo/coaching work. O12 authorizes native Quiet development on that reviewed
+stack, preserving the existing recommendation policy. Reconcile the dependency
+before trunk integration. This packet adds no coaching algorithms, changes no
+database/backup format and does not prepare a Debug drop. The new implementation
+receives its own verification below; the preceding results belong to the bounded repairs.
+
+## Native Quiet candidate — 8 October 2026
+
+Quiet is implemented under O12 and ADR-027's composition amendment. The matching
+64 dp exercise still sits beside the complete name. Actual values, effort and
+visible logging guidance precede saved work, inline coaching and statistics. The
+existing 72 dp primary action stays anchored. A pending write disables coaching
+in place so removing the card cannot shrink the list during a save. Manual values,
+effort requirements, explicit progression and Apply-as-draft retain their existing
+contracts. The complete density budget still includes coaching and the moved stats.
+
+The complete API-29 repeat executes **212 tests across 31 classes with no
+failures/errors/skips**. It includes one connected AppNav workout through actual
+entry, rest/return, switching, same-row correction, Finish, Summary and History.
+All source hashes stay unchanged, 73 captures match device hashes, network and
+display settings are restored, fixture packages are absent and the collector is
+stopped. [N12](assets/N12-quiet-identity-api29.png) shows the real catalog identity;
+[N13](assets/N13-quiet-correction-api29.png) shows the correction and its payload.
+
+The preceding native run retains 25 shell failures: its log identifies a System UI
+BOOT_COMPLETED ANR, then input directed at that system dialog. A complete
+source-identical cold-boot repeat passes all 212; no shell checks are skipped.
+Local failures are also retained: a held-transaction test tried a transactional
+read before releasing the write, a long-header fixture still fitted beside the
+compact image, a feedback test assumed pinned coaching, and the diagnostic dump
+exceeded its existing 20,000-character limit. Each demonstrated cause is repaired
+without raising checks. The final complete local gate passes **3,625 tests across
+546 suites with no failures/errors/skips**, along with static checks, Debug/release
+builds, lint and Android test assembly. All 546 XML files are fresh and the 1,509
+source hashes match both the before/after gate snapshots and the native repeat.
+The compact [Quiet follow-up](quiet-native-followup.json) separates these attempts from the
+earlier bounded-repair evidence.
+
+Fresh independent and adversarial reviewers hit the account usage limit before
+completing their reports. Their reported completion-copy, density-precondition and
+offscreen-Why findings are addressed, but neither fresh review has passed. Under
+ADR-002 decision 8, PR #460 remains a draft pending those reviews and integration.
+The existing baseline reviews do not cover Quiet. Broader app UX phases and
+physical-phone acceptance remain separate; O12 does not require owner testing
+during development. No Debug drop is prepared by this packet.

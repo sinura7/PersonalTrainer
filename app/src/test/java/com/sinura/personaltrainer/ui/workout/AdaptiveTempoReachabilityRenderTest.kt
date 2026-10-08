@@ -94,12 +94,12 @@ class AdaptiveTempoReachabilityRenderTest {
         Dispatchers.resetMain()
     }
 
-    @Test fun portrait360_font10() = exerciseControls("360x640-font10", 1f, inline = false)
+    @Test fun portrait360_font10() = exerciseControls("360x640-font10", 1f, inline = true)
     @Test fun portrait360_font16() = exerciseControls("360x640-font16", 1.6f, inline = true)
     @Test fun portrait360_font20() = exerciseControls("360x640-font20", 2f, inline = true)
 
     @Test @Config(qualifiers = "w412dp-h840dp-xhdpi")
-    fun portrait412_font10() = exerciseControls("412x840-font10", 1f, inline = false)
+    fun portrait412_font10() = exerciseControls("412x840-font10", 1f, inline = true)
     @Test @Config(qualifiers = "w412dp-h840dp-xhdpi")
     fun portrait412_font16() = exerciseControls("412x840-font16", 1.6f, inline = true)
     @Test @Config(qualifiers = "w412dp-h840dp-xhdpi")
@@ -113,39 +113,49 @@ class AdaptiveTempoReachabilityRenderTest {
     fun landscape_font20() = exerciseControls("640x360-land-font20", 2f, inline = true)
 
     @Test
-    fun openWhySurvivesRelocationEvenWhenTheInlineCardIsOffscreen() {
+    fun openWhySurvivesTextReflowEvenWhenTheInlineCardIsOffscreen() {
         val vm = openFloor(fontScale = 1f)
         val before = vm.uiState.value
         val storedBefore = stored(vm)
-        assertCardPlacement(inline = false)
         reveal(WorkoutTestTags.MICRO_REC_WHY, "why-relocation")
+        assertCardPlacement(inline = true)
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsEnabled().performClick()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
-        capture("why-relocation", "pinned-why-open")
-        observeWhy("pinned-why-open")
+        capture("why-relocation", "inline-why-open")
+        observeWhy("inline-why-open")
 
         // The top of the floor remains at its identity; the new inline coach is
         // below entry and effort, outside this short viewport. Its dialog must not
         // disappear when that LazyColumn item is not composed.
         compose.runOnIdle { font.floatValue = 2f }
         compose.waitForIdle()
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.CURRENT_LIFT))
+        compose.waitForIdle()
         compose.onAllNodes(
             hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
                 !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
         ).assertCountEquals(0)
-        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(0)
+        val contentBounds = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
+        // A retained lazy item must be completely outside the viewport; no item means
+        // it is uncomposed. Either state independently proves the sheet outlives its card.
+        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNodes().forEach { card ->
+            assertTrue("Why remains open with its card offscreen, card=${card.boundsInRoot} content=$contentBounds",
+                card.boundsInRoot.bottom <= contentBounds.top || card.boundsInRoot.top >= contentBounds.bottom)
+        }
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
         capture("why-relocation", "inline-offscreen-why-open")
         observeWhy("inline-offscreen-why-open")
 
         compose.runOnIdle { font.floatValue = 1f }
         compose.waitForIdle()
-        assertCardPlacement(inline = false)
+        compose.onAllNodes(
+            hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
+        ).assertCountEquals(0)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
-        observeWhy("returned-pinned-before-keep-touch")
+        observeWhy("returned-inline-before-keep-touch")
         assertWhyActionReachable(WorkoutTestTags.TEMPO_WHY_USE, 64f)
         assertWhyActionReachable(WorkoutTestTags.TEMPO_WHY_KEEP, 48f).performClick()
-        observeWhy("returned-pinned-after-keep-touch")
+        observeWhy("returned-inline-after-keep-touch")
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertDoesNotExist()
         assertEquals(before.draft, vm.uiState.value.draft)
         assertEquals(storedBefore, stored(vm))

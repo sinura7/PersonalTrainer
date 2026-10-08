@@ -382,7 +382,7 @@ class FloorRestAndCoachWiringRenderTest {
     }
 
     @Test
-    fun whileASaveIsUnderwayTheCoachsCardStandsDown() {
+    fun whileASaveIsUnderwayTheCoachsCardDisablesInPlace() {
         // The card's rule, rewritten in W2b-4 to share shownNextSet with the rest page: the Log
         // keeps its entry lock on top, so the coach's call stands down while a set is being saved
         // and comes back when it lands (W2b-4 review, T2).
@@ -401,9 +401,10 @@ class FloorRestAndCoachWiringRenderTest {
         // A call the card would show anywhere else: the lock is the only reason it stands down.
         assertTrue("the call is one the card shows on entry", SetMicroRecCopy.visibleOnEntry(call!!))
         // Look where the card would be: the effort track sits just above it.
-        scrollTo(WorkoutTestTags.RPE_TRACK)
-        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(0)
-        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertCountEquals(0)
+        assertTempoCoachCardOnScreen(vm)
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_DISMISS).assertIsNotEnabled()
         gate.complete(Unit)
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }
         compose.waitForIdle()
@@ -473,13 +474,15 @@ class FloorRestAndCoachWiringRenderTest {
         vm.setReps(8)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.reps == 8 }
         compose.waitForIdle()
-        // Numbers first, then effort; Tempo is pinned above the dock, below the scroll floor.
+        // Numbers, effort and saved work precede the ordinary scrolling coach.
         compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertIsDisplayed()
         assertTempoCoachCardOnScreen(vm)
         val floor = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
         val tempo = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNode().boundsInRoot
         val timerRow = compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).fetchSemanticsNode().boundsInRoot.top
+        val savedWork = compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNode().boundsInRoot
+        assertTrue("saved work precedes advice", savedWork.bottom <= tempo.top)
         assertTrue("Tempo sits on the scroll floor", tempo.bottom <= floor.bottom + 1f)
         assertTrue("Tempo stays above the timer row", tempo.bottom <= timerRow + 1f)
     }
@@ -620,10 +623,11 @@ class FloorRestAndCoachWiringRenderTest {
 
     private fun assertTempoCoachCardOnScreen(vm: ActiveWorkoutViewModel) {
         waitForTempoCoachTip(vm)
+        scrollTo(WorkoutTestTags.TEMPO_COACH_CARD)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
         compose.onAllNodes(
             hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
-        ).assertCountEquals(0)
+        ).assertCountEquals(1)
     }
 
     private fun show(vm: ActiveWorkoutViewModel, notificationsEnabled: Boolean = true, heightDp: Int = 800) {

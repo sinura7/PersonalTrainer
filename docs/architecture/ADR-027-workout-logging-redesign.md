@@ -12,6 +12,9 @@
   − / + glyph is drawn at a fixed size inside its plate
 - **Clarified:** 8 October 2026 — the density-budget paragraph records the
   later adopted CoachEngine and P1 changes; the current ratchet remains 852 dp
+- **Amended:** 8 October 2026 — native Quiet composition, authorized under
+  [O12](../ux-context/README.md#owner-decisions-for-this-project); implementation
+  and agent verification proceed on the reviewed Debug-124 stack
 - **Amends:** [ADR-026](ADR-026-frontend-redesign.md) decision 3 (the compact
   64 dp identity and its order) and the *Workout contracts* order in
   [FRONTEND_REDESIGN.md](../FRONTEND_REDESIGN.md). ADR-026 decisions 2, 4 and 8
@@ -19,7 +22,8 @@
 - **Does not supersede:** [ADR-005](ADR-005-instrument-identity.md) (one filled
   Volt, tokens, tabular numerals), [ADR-008](ADR-008-deterministic-rules.md)
   (the recommendation is the deterministic coach's), [ADR-012](ADR-012-rest-and-reminders.md)
-  (the rest clock is the service's; no overlay clock), [ADR-023](ADR-023-palette-and-reduced-motion.md).
+  (one service-owned rest clock, including its later exterior presentations),
+  [ADR-023](ADR-023-palette-and-reduced-motion.md).
 - **Related:** owner decision and reference image, 18 September 2026;
   [workout-entry-experience-report.md](../workout-entry-experience-report.md) §11
   (bones to retain).
@@ -180,6 +184,61 @@ lowered the ceiling to its measured 852 dp. **852 dp is the current test
 ratchet**, not additional space available to a new design. The number may be
 lowered; it may not be raised to make a change fit. This clarification records
 those integrated decisions and changes no layout or test threshold.
+
+## Amendment — 8 October 2026, native Quiet workout composition
+
+The owner approved proceeding from the updated workout proposals and directed
+development through completion without owner testing during development (O12).
+The native packet adapts [Quiet](../ux-context/studies/q01/README.md#connected-proposals-following-o10)
+to Compose's existing recording and timer contracts. Browser approval does not
+establish native usability or physical-phone acceptance; those evidence limits
+remain explicit while the agent implements and verifies the packet.
+
+1. **Recording comes first.** Amend decision 1's floor order to a compact 64 dp
+   keyed exercise illustration beside the complete name and existing identity
+   controls; actual entry values; effort and visible readiness; saved-set strip;
+   inline coaching; then Last set · Best set · Volume. Names wrap without losing
+   the matching artwork. The image adds no redundant spoken name or separate
+   focus stop. Existing exercise details, Working | Warm-up, Plan / Last fills,
+   set correction and explicit Add set remain reachable.
+2. **Keep one anchored primary action of at least 72 dp.** Values, effort,
+   readiness and the primary form the recording sequence. The native adaptation
+   retains the dock for keyboard, small-window and timing reachability rather
+   than copying the browser's inline Log. The existing derived action supplies
+   its verb, explicit payload and readiness; visible feedback accompanies the
+   actual blocker. Missing effort, saving, correction, failed writes and exact
+   Retry must remain understandable and actionable. There is no duplicate Log.
+3. **Secondary content scrolls.** Coaching follows the saved-set strip and
+   always participates in the floor's scroll order, with no floating coach or
+   reserved overlay height. Why, Apply and existing coaching actions are retained;
+   Pending saves keep the existing advice card in place with its controls
+   disabled. Removing it during a write can clamp the shorter lazy list and
+   move the entry; disabling it preserves the viewport and write lock.
+   Apply still fills the draft without writing a set. Saved statistics move
+   below coaching without changing their calculations. Saved work stays
+   inspectable and correctable; this native adaptation retains the strip instead
+   of adopting the browser proposal's hidden saved-row presentation.
+4. **Retain the existing behavior and accessibility floors.** Instrument's
+   semantic colors, one filled Volt action, tabular numerals and non-color state
+   cues remain. Manual values, required working-repetition effort and its reset,
+   suggested-versus-selected effort, explicit progression/extra sets, logging
+   during rest, service-owned timers and recovery identities are unchanged.
+   Touch targets remain at least 48 dp. The **852 dp ratchet** now measures the
+   complete floor content through the relocated statistics, including saved sets
+   and coaching, with the dock outside that measurement. Moving history earlier
+   must not shorten the measurement or create permission to raise its threshold.
+5. **Verify the native packet independently.** Resume reveals the identity/start
+   of the floor; correction reveals its entry rather than the relocated stats.
+   Check long names, all entry modes, font 1.0/1.6/2.0, small and adaptive windows,
+   landscape, IME, full-control reachability, failure/retry and the connected
+   Start → Log → rest/return → correction → Finish → Summary/History journey.
+   Run the applicable local gate and independent/adversarial reviews on the
+   implementation. Earlier browser and Debug-124 baseline passes are retained
+   separately; they are not fresh verification of Quiet.
+
+This amendment changes composition on the reviewed Debug-124 stack. It adds no
+coaching algorithm, persistence format, navigation destination or distribution
+change. Reconcile the overlapping Tempo/coaching stack before trunk integration.
 
 ## Consequences
 

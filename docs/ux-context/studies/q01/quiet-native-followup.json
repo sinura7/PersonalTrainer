@@ -1,0 +1,240 @@
+{
+  "date": "2026-10-08",
+  "packet": "Native Quiet workout composition under O12 and ADR-027 amendment",
+  "baseHead": "e2d13e74cdda9da2a323aeff5719555054570829",
+  "publishedPolicyHead": "a1f47d1a0d41d1e0264d4457407391cf7d4af92e",
+  "status": "Native Quiet implemented and automated gates passed; fresh reviews and trunk integration pending",
+  "sourceState": "Verified source inputs are captured by executed diffs and source hashes. Hosted checks before this push cover the earlier remote head.",
+  "fullLocalGate": {
+    "trunk": "24936a5bf13566b4d082df32f207a1ac1226aeac",
+    "head": "e2d13e74cdda9da2a323aeff5719555054570829",
+    "startedAtUtc": "2026-10-08T19:27:12.2499581Z",
+    "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+    "counts": {
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "tests": 3625
+    },
+    "xmlFiles": 546,
+    "result": "complete required local gate passed",
+    "sourceStable": true,
+    "exit": 0,
+    "unitTaskExecuted": true,
+    "allXmlFresh": true,
+    "endedAtUtc": "2026-10-08T19:36:55.0038348Z",
+    "archive": "build/ux-context/runs/quiet-native/full-gate-attempt04"
+  },
+  "native": {
+    "startedAtUtc": "2026-10-08T19:19:35.9903217Z",
+    "endedAtUtc": "2026-10-08T19:26:23.1641358Z",
+    "exit": 0,
+    "tests": 212,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "sourceHashesUnchanged": true,
+    "captures": 73,
+    "captureDeviceHashesMatch": true,
+    "nativeCollectorStopped": true,
+    "suiteNetworkRestoration": "CI_SYNTHETIC_NETWORK_RESTORED wifi=1 data=1 default=active",
+    "classes": [
+      {
+        "class": "com.sinura.personaltrainer.data.backup.BackupEnvelopeInstrumentedTest",
+        "tests": 1
+      },
+      {
+        "class": "com.sinura.personaltrainer.data.backup.BackupPolicyInstrumentedTest",
+        "tests": 2
+      },
+      {
+        "class": "com.sinura.personaltrainer.data.local.MigrationDeviceTest",
+        "tests": 3
+      },
+      {
+        "class": "com.sinura.personaltrainer.data.local.SchemaV1BaselineDeviceTest",
+        "tests": 1
+      },
+      {
+        "class": "com.sinura.personaltrainer.data.local.TemperMigrationDeviceTest",
+        "tests": 1
+      },
+      {
+        "class": "com.sinura.personaltrainer.data.repository.ScheduleRepositoryInstrumentedTest",
+        "tests": 4
+      },
+      {
+        "class": "com.sinura.personaltrainer.data.repository.WorkoutRepositoryInstrumentedTest",
+        "tests": 6
+      },
+      {
+        "class": "com.sinura.personaltrainer.InstrumentationSmokeTest",
+        "tests": 2
+      },
+      {
+        "class": "com.sinura.personaltrainer.SdkTargetInstrumentedTest",
+        "tests": 1
+      },
+      {
+        "class": "com.sinura.personaltrainer.timer.ExactAlarmCapabilityInstrumentedTest",
+        "tests": 2
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.components.FrontendControlsInstrumentedTest",
+        "tests": 10
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.components.IdentityBeforeMetricsInstrumentedTest",
+        "tests": 4
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.history.HistoryPassInstrumentedTest",
+        "tests": 2
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.home.HomePassInstrumentedTest",
+        "tests": 27
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.library.LibraryPassInstrumentedTest",
+        "tests": 1
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.navigation.FrontendShellInstrumentedTest",
+        "tests": 25
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.plan.PlanPassInstrumentedTest",
+        "tests": 3
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.preview.FoundationStateGalleryInstrumentedTest",
+        "tests": 1
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.preview.FrontendBaselineCaptureTest",
+        "tests": 1
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.ProductionScreensPassInstrumentedTest",
+        "tests": 12
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.progress.BodyPassInstrumentedTest",
+        "tests": 4
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.RemainingPagesPassInstrumentedTest",
+        "tests": 8
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest",
+        "tests": 2
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutNotificationDenialInstrumentedTest",
+        "tests": 1
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyInstrumentedTest",
+        "tests": 1
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.RestCompletionLayoutInstrumentedTest",
+        "tests": 21
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionJourneyInstrumentedTest",
+        "tests": 3
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest",
+        "tests": 15
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest",
+        "tests": 9
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryLayoutInstrumentedTest",
+        "tests": 38
+      },
+      {
+        "class": "com.sinura.personaltrainer.ui.workout.WorkoutTimerOverlayInstrumentedTest",
+        "tests": 1
+      }
+    ]
+  },
+  "nativeArchive": "build/ux-context/runs/quiet-native/native-suite-attempt02",
+  "evidenceFrames": [
+    {
+      "file": "assets/N12-quiet-identity-api29.png",
+      "rawCapture": "a2cb0ab1-57f1-48df-88d7-22bd1cce8abf-connected-workout-quiet-catalog-identity-api29.png",
+      "sha256": "687636fa455a2ef4683d2523e9364bc9498f17f1775967afe561df7c31205d18"
+    },
+    {
+      "file": "assets/N13-quiet-correction-api29.png",
+      "rawCapture": "a2cb0ab1-57f1-48df-88d7-22bd1cce8abf-connected-workout-quiet-correction-ready-api29.png",
+      "sha256": "6d94b328f9b94878b732c54c9610a64a086528007154d4a1c38dd1039365b26b"
+    }
+  ],
+  "retainedFailures": [
+    {
+      "archive": "targeted-attempt05-results",
+      "tests": 130,
+      "failures": 25,
+      "status": "Failed targeted run, preserved separately; not a complete gate."
+    },
+    {
+      "archive": "full-gate-attempt01",
+      "status": "Incomplete: held-transaction recovery test tried a second transactional read and deadlocked. Thread dump preserved; owned worker terminated. Gradle reported 63 completed, 1 failure, 1 skipped. Stale XML counts are explicitly not execution evidence."
+    },
+    {
+      "archive": "targeted-attempt06-results",
+      "tests": 2,
+      "failures": 0,
+      "status": "Controlled long-header fixture and held-write/failure/retry fixes passed."
+    },
+    {
+      "archive": "full-gate-attempt02",
+      "tests": 3623,
+      "failures": 1,
+      "status": "Old pinned Why expectation failed; updated to scroll to the actual action, retaining haptic and no-write assertions."
+    },
+    {
+      "archive": "full-gate-attempt03",
+      "tests": 3623,
+      "failures": 1,
+      "status": "Diagnostic dump reached 20490 characters. Bounded total output without changing the existing <20000 check; Room transaction details prioritized and duplicate-name thread stacks retained. Two deterministic regressions added."
+    },
+    {
+      "archive": "native-suite-attempt01",
+      "tests": 212,
+      "failures": 25,
+      "status": "All failures in FrontendShellInstrumentedTest. Raw log reports System UI BOOT_COMPLETED ANR and input targeted at its Application Not Responding window (uid1000). Complete source-identical cold-boot repeat passes all 212; no checks skipped or relaxed."
+    }
+  ],
+  "reviews": {
+    "dependency": "Completed baseline policy/dependency review; published policy/data equality rechecked. Earlier bounded-recovery reviews retain their narrower scope.",
+    "freshIndependent": "Incomplete: review agent hit account usage limit. Its reported completion-copy and density precondition findings were addressed, but no final review passed.",
+    "freshAdversarial": "Incomplete: review agent hit account usage limit. Its reported offscreen-Why precondition finding was addressed, but no final review passed.",
+    "merge": "Pending fresh mandatory reviews under ADR-002; draft PR460 stacked on PR457."
+  },
+  "limitations": [
+    "Synthetic API29 and JVM evidence does not establish owner-phone usability, touch feel, timing, sound/haptics or physical-device performance.",
+    "Owner is not asked to test during development.",
+    "Broader Home, History, Plan, Library, Body, cardio, onboarding and Settings roadmap phases remain.",
+    "No Debug drop or public release prepared."
+  ],
+  "matchingLocalAndNativeSourceInputs": {
+    "files": 1509,
+    "equal": true,
+    "manifestSha256": "699cbf8bdda4f6e808760cb1f2a47aab1e29b4bcab6ad1cc50c894485797144d"
+  },
+  "rawEvidenceHashes": {
+    "full-gate-attempt04/gradle.log": "98a948ed89378201bbc037d37b0b1fd305379beeadb1b618f64d17d59792e363",
+    "native-suite-attempt02/gradle.log": "9bdc320654ee15fae4fcd8c201bab17423d96a9b72505cdca1664523e8b363f5",
+    "native-suite-attempt02/live-logcat.txt": "14a430ec96298e052e7ee5f328ad44fa5d3cebd8909192d7ced09d49588bbda6",
+    "full-gate-attempt04/executed.diff": "7c74c6e6bea1f744d9ed76c6dcce34b458ed059928134a9cc2047fb094edcd32"
+  }
+}

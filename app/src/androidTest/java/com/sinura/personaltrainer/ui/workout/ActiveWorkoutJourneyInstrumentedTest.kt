@@ -225,9 +225,10 @@ class ActiveWorkoutJourneyInstrumentedTest {
         } finally {
             compose.mainClock.autoAdvance = autoAdvance
         }
-        // Debug124 pins Tempo above the dock, outside the scrolling content list.
-        // Wait for the derived suggestion and its real Apply control to be visible.
-        awaitCondition("pinned Tempo suggestion displayed") {
+        // Quiet keeps advice in the scrolling floor, after the entry and saved work.
+        // Reveal the actual control before checking it; advice may start below the fold.
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_APPLY)
+        awaitCondition("inline Tempo suggestion displayed") {
             compose.waitForIdle()
             runCatching {
                 compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()

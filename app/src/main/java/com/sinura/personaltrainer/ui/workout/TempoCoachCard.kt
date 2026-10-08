@@ -119,6 +119,7 @@ internal fun TempoCoachCard(
     val tempoActions: @Composable RowScope.() -> Unit = {
         TextButton(
             onClick = onDismiss,
+            enabled = enabled,
             modifier = Modifier
                 .heightIn(min = touchMin)
                 .testTag(WorkoutTestTags.TEMPO_COACH_DISMISS),
@@ -127,6 +128,7 @@ internal fun TempoCoachCard(
         }
         TextButton(
             onClick = { cardState.showWhy = true },
+            enabled = enabled,
             modifier = Modifier
                 .heightIn(min = touchMin)
                 .testTag(WorkoutTestTags.MICRO_REC_WHY),

@@ -5,7 +5,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -75,25 +73,13 @@ internal fun ExerciseHeader(
 ) {
     val meaning = LoadClass.of(lift.exercise.loadType).weightMeaning
     val equipment = CurrentLiftCopy.secondaryLine(lift.exercise.equipment.label, meaning)
-    val density = LocalDensity.current
-    val measurer = rememberTextMeasurer()
-    BoxWithConstraints(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .testTag(WorkoutTestTags.CURRENT_LIFT),
     ) {
-        val wordsWidth = with(density) {
-            (maxWidth - Metrics.exerciseHeroImage - Metrics.space3).roundToPx()
-        }.coerceAtLeast(1)
-        val titleLines = measurer.measure(
-            lift.exercise.name,
-            style = InstrumentType.heroTitle,
-            constraints = Constraints(maxWidth = wordsWidth),
-        ).lineCount
-        val stacked = density.fontScale >= 1.6f || titleLines > 2
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            // The still and the words share one row; the switch rides the words' last line, so
-            // a long name has the whole column. Large text or a long name shrinks the still.
+            // A compact matching still gives the full name room beside it at every text size.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -105,12 +91,11 @@ internal fun ExerciseHeader(
             ) {
                 DetailsStill(
                     lift = lift,
-                    stacked = stacked,
                     enabled = enabled,
                     onDetails = onDetails,
                 )
                 Column(
-                    modifier = Modifier.padding(top = Metrics.space1),
+                    modifier = Modifier.weight(1f).padding(top = Metrics.space1),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space1),
                 ) {
                     // One stop for what the lift is: its equipment and name, read from the
@@ -125,8 +110,6 @@ internal fun ExerciseHeader(
                             text = lift.exercise.name,
                             style = InstrumentType.heroTitle,
                             color = TextPrimary,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     SetContextBesideSwitch(setContext = setContext) {
@@ -210,7 +193,6 @@ private fun SetContextBesideSwitch(
 @Composable
 private fun DetailsStill(
     lift: SessionExercise,
-    stacked: Boolean,
     enabled: Boolean,
     onDetails: () -> Unit,
 ) {
@@ -228,9 +210,9 @@ private fun DetailsStill(
     ) {
         ExerciseThumb(
             exercise = lift.exercise,
-            size = if (stacked) Metrics.workoutIdentityImage else Metrics.exerciseHeroImage,
+            size = Metrics.workoutIdentityImage,
             showBadge = false,
-            artPadding = if (stacked) Metrics.space1 else Metrics.space2,
+            artPadding = Metrics.space1,
         )
         Box(
             modifier = Modifier

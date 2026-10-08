@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
@@ -117,7 +118,9 @@ class WorkoutEntryLayoutInstrumentedTest(
                 .assertTextEquals("1 OF 1 EXERCISE · 0 OF 12 SETS")
                 .assertContentDescriptionEquals("1 of 1 exercise · 0 of 12 sets")
             compose.onNodeWithTag(WorkoutTestTags.SET_TYPE).assertIsDisplayed()
-            compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertIsDisplayed()
+            // Past performance is secondary; the initial viewport prioritizes entry.
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
+                !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT))).assertCountEquals(0)
             compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertIsDisplayed()

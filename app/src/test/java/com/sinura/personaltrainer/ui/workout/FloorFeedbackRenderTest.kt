@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.workout
 import android.app.Application
 import android.view.HapticFeedbackConstants
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -130,7 +132,10 @@ class FloorFeedbackRenderTest {
         compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.uiState.value.draft.reps == 8 }
         compose.waitForIdle()
         val rec = checkNotNull(vm.microRec.value)
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        compose.waitUntil(timeoutMillis = FLOOR_WAIT_MS) { vm.tempoCoachTip.value != null }
+        // Quiet keeps coaching in the list; reach its actual action before opening Why.
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.MICRO_REC_WHY))
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().assertIsEnabled().performClick()
         compose.waitForIdle()
         val before = felt.felt().size
         compose.onNodeWithText(SetMicroRecCopy.USE_SUGGESTION).performClick()

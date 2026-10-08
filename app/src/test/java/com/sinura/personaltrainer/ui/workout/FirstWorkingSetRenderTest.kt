@@ -77,8 +77,10 @@ import org.robolectric.annotation.GraphicsMode
  * third-width cell — `102.5 × 10` at font 1.3 — wrapped to a second line and moved the entry
  * too, and now shrinks to fit one line; and stacked, from font 1.6, Best and Volume arrived
  * above the entry and pushed it down, and now never join the floor at those sizes (they are in
- * Details). So every case holds the stats row's height, the numerals and the Last set's number
- * still across the first working save, reading positions only with the row on screen.
+ * Details). The native Quiet composition now places statistics after entry, saved sets and
+ * coaching. Every case still holds the row's height and the Last number's position within it,
+ * inspecting them in their own viewport. Entry stability is measured at the entry viewport
+ * immediately before and after the real save, without scrolling away and back after Log.
  *
  * Every case first checks the phase change it exists for: side by side the Last cell alone
  * before the save and Best and Volume after; stacked, the Last cell alone on both sides of it.
@@ -157,26 +159,34 @@ class FirstWorkingSetRenderTest {
         assertLastAlone()
         capture("warmup-first-360x640-font1.0-before")
         val stats = statsRowHeight()
-        val entry = entryTop()
         val numeral = lastNumeralBaseline()
+        reachTheEntry()
+        capture("warmup-first-360x640-font1.0-before-entry")
+        val entry = entryTop()
         logAndWait(vm, sets = 1)
-        capture("warmup-first-360x640-font1.0-after-warmup")
+        capture("warmup-first-360x640-font1.0-after-warmup-entry")
+        assertEquals("a warm-up must not move the numerals", entry, entryTop(), 1f)
         assertTrue("the first save must be the warm-up", vm.uiState.value.session!!.sets.single().isWarmup)
         assertLastAlone()
+        capture("warmup-first-360x640-font1.0-after-warmup")
         assertEquals("a warm-up must not grow the stats row", stats, statsRowHeight(), 1f)
-        assertEquals("a warm-up must not move the numerals", entry, entryTop(), 1f)
-        assertEquals("a warm-up must not move the Last set's number", numeral, lastNumeralBaseline(), 1f)
+        assertEquals("a warm-up must not move the Last set's number within the stats row", numeral, lastNumeralBaseline(), 1f)
         // The save hands the draft back as a working set, so the next Log is the first one. Two
         // Logs inside the double-tap window are one tap (performPrimary); a lifter's next set
         // comes long after, so the device clock passes the window first.
         Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(ViewConfiguration.getDoubleTapTimeout().toLong()))
+        reachTheEntry()
+        // Returning from secondary stats is an intentional scroll, and the warm-up ramp
+        // has stood down. Measure the working entry here, immediately across its write.
+        val workingEntry = entryTop()
         logAndWait(vm, sets = 2)
-        capture("warmup-first-360x640-font1.0-after-working")
+        capture("warmup-first-360x640-font1.0-after-working-entry")
+        assertEquals("the first working set must not move the numerals", workingEntry, entryTop(), 1f)
         assertFalse("the second save must be a working set", vm.uiState.value.session!!.sets.last().isWarmup)
         assertFullRow()
+        capture("warmup-first-360x640-font1.0-after-working")
         assertEquals("the first working set must not grow the stats row", stats, statsRowHeight(), 1f)
-        assertEquals("the first working set must not move the numerals", entry, entryTop(), 1f)
-        assertEquals("the first working set must not move the Last set's number", numeral, lastNumeralBaseline(), 1f)
+        assertEquals("the first working set must not move the Last set's number within the stats row", numeral, lastNumeralBaseline(), 1f)
         assertCommitReachable()
     }
 
@@ -221,27 +231,24 @@ class FirstWorkingSetRenderTest {
     fun stackedAt412By840Font20TheFirstWorkingSetHoldsTheEntry() = holdsTheEntryStacked(widthDp = 412, heightDp = 840, fontScale = 2f)
 
     /**
-     * Landscape at large text shows the row or the entry, never both at once, so the entry's
-     * place is held as the height of everything above it: the identity and the stats row.
+     * Landscape at large text shows the row or entry separately. Entry position is checked
+     * across the save in its viewport; the secondary stats row is inspected independently.
      */
     @Test
     @Config(qualifiers = "w800dp-h360dp-land-xhdpi")
     fun stackedInLandscapeFont16TheFirstWorkingSetHoldsTheEntry() =
-        holdsTheEntryStacked(widthDp = 800, heightDp = 360, fontScale = 1.6f, rowAndEntryOnOneScreen = false)
+        holdsTheEntryStacked(widthDp = 800, heightDp = 360, fontScale = 1.6f)
 
     @Test
     @Config(qualifiers = "w800dp-h360dp-land-xhdpi")
     fun stackedInLandscapeFont20TheFirstWorkingSetHoldsTheEntry() =
-        holdsTheEntryStacked(widthDp = 800, heightDp = 360, fontScale = 2f, rowAndEntryOnOneScreen = false)
+        holdsTheEntryStacked(widthDp = 800, heightDp = 360, fontScale = 2f)
 
     /**
-     * Side by side: the first working save leaves the stats row its height, and so the numerals
-     * and the Last set's number above them exactly where they were. One pixel, as in
-     * FloorScreenWiringRenderTest's save guard.
-     *
-     * The height is the cause and holds whatever the scroll. The positions are read with the stats
-     * row on screen above the entry, where a taller row would push the entry down: scrolled until
-     * the row is out of view, the list holds the entry still whatever the row does.
+     * Side by side: preserve the secondary stats row's height and the Last number's line,
+     * and independently keep the entry still across Log. Read the entry before any post-save
+     * navigation, so restoring a scroll anchor cannot hide a movement caused by the save.
+     * One pixel, as in FloorScreenWiringRenderTest's save guard.
      */
     private fun holdsTheEntry(
         widthDp: Int,
@@ -275,12 +282,15 @@ class FirstWorkingSetRenderTest {
         assertLastAlone()
         capture("$name-before")
         val stats = statsRowHeight()
-        val entry = entryTop()
         val numeral = lastNumeralBaseline()
-        logAndWait(vm, sets = 1)
-        // Back to where "before" was drawn and read, by the same scrolls, so the two frames can
-        // be laid over each other.
         reachTheEntry()
+        capture("$name-before-entry")
+        val entry = entryTop()
+        logAndWait(vm, sets = 1)
+        capture("$name-after-entry")
+        assertEquals("the first working set must not move the numerals", entry, entryTop(), 1f)
+        // The saved stats are now secondary content. Reach them after the independent entry
+        // assertion; their own height and number baseline must survive the phase transition.
         reachTheStatsRow()
         capture("$name-after")
         val saved = vm.uiState.value.session!!.sets.single()
@@ -288,53 +298,50 @@ class FirstWorkingSetRenderTest {
         assertEquals(10, saved.reps)
         assertFullRow()
         assertEquals("the first working set must not grow the stats row", stats, statsRowHeight(), 1f)
-        assertEquals("the first working set must not move the numerals", entry, entryTop(), 1f)
-        assertEquals("the first working set must not move the Last set's number", numeral, lastNumeralBaseline(), 1f)
+        assertEquals("the first working set must not move the Last set's number within the stats row", numeral, lastNumeralBaseline(), 1f)
         assertEachValueIsOneWholeLine(mustShrink = valuesMustShrink)
         assertCommitReachable()
     }
 
     /**
      * Stacked, from font 1.6: the floor keeps the Last cell alone before and after the first
-     * working set (owner decision of 23 September 2026, ADR-030), so the save leaves the row, the
-     * numerals and the Last set's number where they were, and Best and Volume never appear on the
-     * floor. The Last cell keeps one line for its label and one for its number, with nothing
-     * reserved under either: stacked, nothing sits beside it to line up with.
+     * working set (owner decision of 23 September 2026, ADR-030). Check entry position across
+     * Log separately from the secondary row, where Best and Volume never appear. The Last cell
+     * keeps one line for its label and one for its number, with nothing reserved under either:
+     * stacked, nothing sits beside it to line up with.
      */
-    private fun holdsTheEntryStacked(widthDp: Int, heightDp: Int, fontScale: Float, rowAndEntryOnOneScreen: Boolean = true) {
+    private fun holdsTheEntryStacked(widthDp: Int, heightDp: Int, fontScale: Float) {
         assertTrue(LogLoopScale.stackEntryWells(fontScale))
         val vm = openLegExtension()
         show(vm, widthDp, heightDp, fontScale)
         val name = "${widthDp}x$heightDp-font$fontScale"
         reachTheEntry()
-        capture("$name-before-entry")
         assertCommitReachable()
         assertLastAlone()
         capture("$name-before")
         val stats = statsRowHeight()
-        val entry = if (rowAndEntryOnOneScreen) entryTop() else null
         val numeral = lastNumeralBaseline()
         val gap = lastLabelGap()
         assertLastLabelIsOneLine()
         assertLastNumberIsOneLine()
-        // Last, as it scrolls: every reading above is taken on the same path before and after.
+        // The identity still precedes entry; stats no longer do.
         val identity = identityHeight()
         reachTheEntry()
+        capture("$name-before-entry")
+        val entry = entryTop()
         logAndWait(vm, sets = 1)
+        capture("$name-after-entry")
+        assertEquals("stacked, the first working set must not move the numerals", entry, entryTop(), 1f)
         assertFalse("the save must be a working set", vm.uiState.value.session!!.sets.single().isWarmup)
-        reachTheEntry()
         reachTheStatsRow()
         capture("$name-after")
         assertEquals("stacked, the first working set must not grow the stats row", stats, statsRowHeight(), 1f)
-        if (entry != null) assertEquals("stacked, the first working set must not move the numerals", entry, entryTop(), 1f)
         assertLastAlone()
-        assertEquals("stacked, the first working set must not move the Last set's number", numeral, lastNumeralBaseline(), 1f)
+        assertEquals("stacked, the first working set must not move the Last set's number within the stats row", numeral, lastNumeralBaseline(), 1f)
         assertEquals("stacked, the Last cell keeps its one-line label", gap, lastLabelGap(), 1f)
         assertLastLabelIsOneLine()
         assertLastNumberIsOneLine()
         assertEquals("stacked, the first working set must not grow the identity above the entry", identity, identityHeight(), 1f)
-        reachTheEntry()
-        capture("$name-after-entry")
         assertCommitReachable()
     }
 
@@ -348,8 +355,8 @@ class FirstWorkingSetRenderTest {
     }
 
     /**
-     * Scrolls the floor until the stats row is fully in view. From the entry that is the least
-     * scroll back up, which leaves the row straight above the numerals.
+     * Scrolls the floor down to the secondary stats row, after saved sets and inline coaching.
+     * Its text and height checks do not depend on entry sharing this viewport.
      */
     private fun reachTheStatsRow() {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.STATS_ROW))
@@ -385,7 +392,7 @@ class FirstWorkingSetRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
     }
 
-    /** The stats row's own laid-out height, in pixels, unclipped: the cause, whatever the scroll. */
+    /** The stats row's own laid-out height, in pixels, unclipped and independent of scroll. */
     private fun statsRowHeight(): Float {
         reachTheStatsRow()
         val height = compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).fetchSemanticsNode().size.height
@@ -393,18 +400,17 @@ class FirstWorkingSetRenderTest {
         return height.toFloat()
     }
 
-    /** The exercise identity's laid-out height, in pixels: with the stats row, all there is above the entry. */
+    /** The exercise identity's laid-out height, in pixels: the content preceding entry. */
     private fun identityHeight(): Float {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.CURRENT_LIFT))
         return compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).fetchSemanticsNode().size.height.toFloat()
     }
 
     /**
-     * Where the numerals sit, in pixels, so "did not move" can be held to one pixel. Read with the
-     * stats row on screen, or a taller row could not move them at all.
+     * Where the numerals sit, in pixels, so "did not move" can be held to one pixel. Read at the
+     * entry viewport immediately before and after Log, with no intervening scroll restoration.
      */
     private fun entryTop(): Float {
-        compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertIsDisplayed()
         return compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertIsDisplayed().fetchSemanticsNode().positionInRoot.y
     }
 
@@ -520,14 +526,15 @@ class FirstWorkingSetRenderTest {
     }
 
     /**
-     * The baseline of the Last cell's number: where it reads, so a value drawn smaller to fit its
-     * cell still counts as where it was when it sits on the same line.
+     * The Last number's baseline relative to the visible stats row. This preserves its reading
+     * line when the value shrinks, independently of where scrolling placed the secondary row.
      */
     private fun lastNumeralBaseline(): Float {
         val number = lastCellTexts().last()
         val layouts = mutableListOf<TextLayoutResult>()
         assertTrue(number.config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts) == true)
-        return number.positionInRoot.y + layouts.single().firstBaseline
+        val statsTop = compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertIsDisplayed().fetchSemanticsNode().positionInRoot.y
+        return number.positionInRoot.y - statsTop + layouts.single().firstBaseline
     }
 
     /** From the top of the Last cell's label to the top of its number, after scrolling to the cell. */

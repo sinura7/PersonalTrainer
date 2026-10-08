@@ -65,4 +65,32 @@ class StalledThreadsTest {
         assertTrue(dump, dump.contains("room-txn-test"))
         assertTrue("dump was ${dump.length} chars", dump.length < 20_000)
     }
+
+    @Test
+    fun aLargeDumpKeepsTheTransactionStateAndReportsItsTruncation() {
+        val threads = (1..80).associate { number ->
+            Thread("DefaultDispatcher-worker-$number") to Array(16) {
+                StackTraceElement("kotlinx.coroutines.${"LongFrame".repeat(24)}", "dispatch", "Dispatcher.kt", it)
+            }
+        }.toMutableMap()
+        threads[Thread("room-txn-test")] = arrayOf(
+            StackTraceElement("androidx.room.TransactionExecutor", "execute", "TransactionExecutor.kt", 38),
+        )
+        val dump = renderStalledThreads(threads)
+        assertTrue("dump was ${dump.length} chars", dump.length < 20_000)
+        assertTrue(dump, dump.contains("\"room-txn-test\" NEW"))
+        assertTrue(dump, dump.contains("androidx.room.TransactionExecutor.execute"))
+        assertTrue(dump, dump.indexOf("room-txn-test") < dump.indexOf("DefaultDispatcher-worker"))
+        assertTrue(dump, dump.contains("thread dump truncated"))
+    }
+
+    @Test
+    fun twoGraphsWithTheSameExecutorNameKeepBothStacks() {
+        val dump = renderStalledThreads(mapOf(
+            Thread("room-txn-test") to arrayOf(StackTraceElement("androidx.room.FirstGraph", "execute", "Room.kt", 1)),
+            Thread("room-txn-test") to arrayOf(StackTraceElement("androidx.room.SecondGraph", "execute", "Room.kt", 2)),
+        ))
+        assertTrue(dump, dump.contains("androidx.room.FirstGraph.execute"))
+        assertTrue(dump, dump.contains("androidx.room.SecondGraph.execute"))
+    }
 }

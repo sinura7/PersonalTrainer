@@ -167,13 +167,18 @@ class WorkoutFloorRenderTest {
     fun theEntryLoopStaysWithinItsHeightBudget() {
         val vm = openLegExtension(deps, viewModels, loggedSets = twoSetsLogged())
         render(name = "budget-360x1600", vm = vm, heightDp = 1600) {
+            compose.waitUntil(timeoutMillis = 20_000) { vm.tempoCoachTip.value != null }
             compose.waitUntil(timeoutMillis = 20_000) {
-                compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNodes().isNotEmpty() &&
+                    compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNodes().isNotEmpty()
             }
         }
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
         val identity = compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).fetchSemanticsNode()
-        val history = compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNode()
-        val loopDp = (history.boundsInRoot.bottom - identity.boundsInRoot.top) /
+        // Include the relocated secondary statistics and inline coach, not only the
+        // shorter entry-to-history prefix. Reordering must not weaken the density ratchet.
+        val finalSection = compose.onNodeWithTag(WorkoutTestTags.SECTION_STATS).fetchSemanticsNode()
+        val loopDp = (finalSection.boundsInRoot.bottom - identity.boundsInRoot.top) /
             identity.layoutInfo.density.density
         assertTrue(
             "the entry loop must stay within $LOOP_BUDGET_DP dp at 360 dp wide, was $loopDp dp",

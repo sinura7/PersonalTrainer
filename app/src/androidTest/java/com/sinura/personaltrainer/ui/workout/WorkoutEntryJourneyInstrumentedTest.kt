@@ -379,8 +379,9 @@ class WorkoutEntryJourneyInstrumentedTest {
         val originalDraft = fixture.vm.uiState.value.draft
         val coach = hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD)
         val inlineCoach = coach and hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT))
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_WHY)
         compose.onAllNodes(coach).assertCountEquals(1)
-        compose.onAllNodes(inlineCoach).assertCountEquals(0)
+        compose.onAllNodes(inlineCoach).assertCountEquals(1)
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().assertIsEnabled().performClick()
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertIsDisplayed()
         val originalWhy = compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_TITLE).fetchSemanticsNode()

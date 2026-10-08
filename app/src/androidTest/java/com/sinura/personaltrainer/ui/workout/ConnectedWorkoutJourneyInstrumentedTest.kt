@@ -7,12 +7,14 @@ import android.os.SystemClock
 import android.net.ConnectivityManager
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
@@ -29,10 +31,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -40,6 +44,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
+import com.sinura.personaltrainer.R
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.DebugUpdateCopy
@@ -63,6 +68,8 @@ import com.sinura.personaltrainer.timer.AndroidPhoneCapabilities
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.components.SessionLogTags
 import com.sinura.personaltrainer.ui.components.SetTableLine
+import com.sinura.personaltrainer.ui.components.ThumbCache
+import com.sinura.personaltrainer.ui.components.keyedArtwork
 import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
 import com.sinura.personaltrainer.ui.home.HomeStartTags
 import com.sinura.personaltrainer.ui.home.HomeTags
@@ -163,14 +170,23 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         assertTrue(session().sets.isEmpty())
         scrollFloorTo(WorkoutTestTags.liftCard(fixture.first.id))
         compose.onNodeWithTag(WorkoutTestTags.liftCard(fixture.first.id)).assertIsDisplayed()
+        assertCatalogIdentity()
+        captureWindow("quiet-catalog-identity")
+        assertReadiness("Choose effort to log this set.")
+        val primaryBottom = assertPrimaryTarget().bottom
+        assertNoFloatingCoach()
 
         // Read each rendered prefill before typing different actual numbers. Confirming a
         // numeric dialog fills the draft; it must not create a saved set or choose effort.
         enterNumbers(87.5, 4, mustDiffer = true)
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsNotEnabled()
+        assertReadiness("Choose effort to log this set.")
         assertTrue(session().sets.isEmpty())
         chooseEffort(8)
         awaitEnabledLog()
+        assertReadiness("Ready to log your entry.")
+        assertNoFloatingCoach()
+        assertEquals("scrolling keeps the primary pinned", primaryBottom, assertPrimaryTarget().bottom, 1f)
         assertNoBlockingDialogs()
         captureWindow("manual-ready")
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
@@ -204,6 +220,8 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         }
         compose.waitForIdle()
         assertNoBlockingDialogs()
+        awaitEntryWithoutEffort()
+        assertReadiness("Choose effort to log this set.")
 
         // A distinct unsaved draft travels away and back. Neither the switch nor a later
         // correction may turn that draft into a second saved set.
@@ -214,6 +232,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         assertDraftNumbers(92.5, 6)
         scrollFloorTo(WorkoutTestTags.rpeChoice(7))
         compose.onNodeWithTag(WorkoutTestTags.rpeChoice(7)).assertIsSelected()
+        assertReadiness("Ready to log your entry.")
         assertEquals(listOf(original.id), session().sets.map { it.id })
 
         scrollFloorTo(WorkoutTestTags.setChip(original.id))
@@ -222,8 +241,17 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         captureWindow("saved-set-after-scroll")
         compose.onNodeWithTag(WorkoutTestTags.setChip(original.id)).performClick()
         compose.onNodeWithText(SetRowCopy.revise(SetOrdinalCopy.working(1, TARGET_SETS))).performClick()
+        assertReadiness("Save changes updates this saved set.")
         enterNumbers(85.0, 3)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.RPE_CLEAR)
+        compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).assertIsDisplayed().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsNotEnabled()
+        assertReadiness("Choose effort to save this correction.")
+        assertEquals(listOf(original.id), session().sets.map { it.id })
         chooseEffort(9)
+        assertReadiness("Save changes updates this saved set.")
+        assertPrimaryTarget()
+        captureWindow("quiet-correction-ready")
         compose.onNodeWithText("Save changes").assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsEnabled().performClick()
         awaitCondition("correction updates the same row") {
@@ -234,6 +262,8 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         assertEquals(original.completedAt, corrected.completedAt)
         assertEquals(original.setNumber, corrected.setNumber)
         assertFalse("correcting a saved set does not start another rest", container.restTimerStore.current().running)
+        awaitEntryWithoutEffort()
+        assertReadiness("Choose effort to log this set.")
 
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled().performClick()
         compose.onNodeWithText("End workout?").assertIsDisplayed()
@@ -241,6 +271,8 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         awaitTag(SummaryTags.DONE)
         assertNoBlockingDialogs()
         compose.onNodeWithText("WORKOUT COMPLETE").assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.LOG_READINESS).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertDoesNotExist()
         compose.onNodeWithText(fixture.routineName).assertIsDisplayed()
         compose.onNodeWithContentDescription("Total volume 255 kg").assertIsDisplayed()
         captureWindow("summary")
@@ -301,7 +333,15 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         container.preferencesRepository.markRestBatteryHintShown()
         container.preferencesRepository.markRestAlertsAsked()
         val suffix = UUID.randomUUID().toString().take(8)
-        val first = createExercise("$PREFIX squat $suffix")
+        // Read the catalog row so the identity capture contains its real keyed squat
+        // still. Only the routine and its synthetic sessions/sets are authored here.
+        val first = withTimeout(15_000) {
+            container.exerciseRepository.observeAll().first { rows -> rows.any { it.id == "ex-barbell-back-squat" } }
+                .single { it.id == "ex-barbell-back-squat" }
+        }
+        assertEquals("Barbell Back Squat", first.name)
+        assertEquals("ex_barbell_back_squat", first.imageKey)
+        assertFalse(first.isCustom)
         val second = createExercise("$PREFIX row $suffix")
         val routine = container.routineRepository.create("$PREFIX prior $suffix")
         for (exercise in listOf(first, second)) {
@@ -379,6 +419,82 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         assertEquals(reps, set.reps)
         assertEquals(effort, set.rpe)
         assertFalse(set.isWarmup)
+    }
+
+    private fun assertCatalogIdentity() {
+        val artwork = checkNotNull(keyedArtwork(fixture.first.imageKey))
+        assertEquals(R.drawable.ex_barbell_back_squat, artwork)
+        compose.waitUntil(15_000) { ThumbCache.peek(artwork, ThumbCache.THUMB_SAMPLE) != null }
+        compose.waitForIdle()
+        val image = compose.onNodeWithTag(WorkoutTestTags.DETAILS).assertIsDisplayed().fetchSemanticsNode()
+        val name = compose.onNode(hasText(fixture.first.name) and
+            hasAnyAncestor(hasTestTag(WorkoutTestTags.liftCard(fixture.first.id))), useUnmergedTree = true)
+            .assertIsDisplayed().assertTextEquals(fixture.first.name)
+        val nameNode = name.fetchSemanticsNode()
+        val imageBounds = image.boundsInRoot
+        val nameBounds = nameNode.boundsInRoot
+        val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
+        val density = image.layoutInfo.density.density
+        assertEquals("identity image width", 64f, imageBounds.width / density, 0.5f)
+        assertEquals("identity image height", 64f, imageBounds.height / density, 0.5f)
+        assertTrue("the full name sits beside the image", nameBounds.left > imageBounds.right)
+        assertTrue("identity image is fully visible", imageBounds.height >= image.size.height - 1f &&
+            imageBounds.top >= content.top && imageBounds.bottom <= content.bottom)
+        assertTrue("the full name is visible", nameBounds.height >= nameNode.size.height - 1f &&
+            nameBounds.top >= content.top && nameBounds.bottom <= content.bottom)
+        val layouts = mutableListOf<TextLayoutResult>()
+        name.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        repeat(layout.lineCount) { line ->
+            assertFalse("the exercise name must not truncate", layout.isLineEllipsized(line))
+            assertTrue("the name glyphs fit their actual box",
+                layout.getLineLeft(line) >= -1f && layout.getLineRight(line) <= nameNode.size.width + 1f)
+        }
+        assertEquals(fixture.first.name.length, layout.getLineEnd(layout.lineCount - 1, visibleEnd = true))
+        // The known row/key, completed async decode and raw capture support visual review
+        // of the actual still. Geometry and semantics alone do not identify bitmap pixels.
+        println("NATIVE_QUIET_IDENTITY exercise=${fixture.first.id} name=${fixture.first.name} " +
+            "imageKey=${fixture.first.imageKey} drawable=$artwork image=$imageBounds nameBounds=$nameBounds density=$density")
+    }
+
+    private fun assertReadiness(text: String) {
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.LOG_READINESS)
+        val readiness = hasTestTag(WorkoutTestTags.LOG_READINESS) and
+            hasAnyAncestor(hasTestTag(WorkoutTestTags.SECTION_RPE))
+        compose.waitUntil(15_000) { compose.onAllNodes(readiness and hasText(text)).fetchSemanticsNodes().isNotEmpty() }
+        val node = compose.onNode(readiness).assertIsDisplayed().assertTextEquals(text)
+        val layouts = mutableListOf<TextLayoutResult>()
+        node.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        val rendered = node.fetchSemanticsNode()
+        // Compose may rebuild short text at its offered width for this action.
+        // Inspect actual glyph extents and the final character against the drawn box.
+        repeat(layout.lineCount) { line ->
+            assertFalse("the visible readiness message must not truncate", layout.isLineEllipsized(line))
+            assertTrue("readiness glyphs fit their actual box",
+                layout.getLineLeft(line) >= -1f && layout.getLineRight(line) <= rendered.size.width + 1f)
+        }
+        assertEquals(text.length, layout.getLineEnd(layout.lineCount - 1, visibleEnd = true))
+        println("NATIVE_QUIET_READINESS text=$text bounds=${rendered.boundsInRoot}")
+    }
+
+    private fun assertNoFloatingCoach() {
+        compose.onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
+            !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT))).assertCountEquals(0)
+    }
+
+    private fun assertPrimaryTarget(): androidx.compose.ui.geometry.Rect {
+        compose.onAllNodes(hasTestTag(WorkoutTestTags.LOG_SET)).assertCountEquals(1)
+        val primary = compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed().fetchSemanticsNode()
+        val bounds = primary.boundsInWindow
+        val density = primary.layoutInfo.density.density
+        val window = compose.runOnIdle { compose.activity.window.decorView.width to compose.activity.window.decorView.height }
+        assertTrue("primary retains its 72dp target", bounds.height / density >= 71.5f)
+        assertTrue("primary is fully inside the window", bounds.width >= primary.size.width - 1f &&
+            bounds.height >= primary.size.height - 1f && bounds.left >= 0f && bounds.top >= 0f &&
+            bounds.right <= window.first && bounds.bottom <= window.second)
+        println("NATIVE_QUIET_PRIMARY bounds=$bounds size=${primary.size} density=$density window=$window")
+        return bounds
     }
 
     private fun enterNumbers(weightKg: Double, reps: Int, mustDiffer: Boolean = false) {

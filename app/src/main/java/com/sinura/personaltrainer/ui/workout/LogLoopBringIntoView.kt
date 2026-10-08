@@ -12,7 +12,7 @@ object LogLoopBringIntoView {
 
     /**
      * ADR-027: an edit scrolls the entry itself under the header, not the identity. The
-     * floor's list is exercise-header, stats, then the entry, so the numerals are item 2.
+     * Quiet puts the entry immediately after exercise-header, so the numerals are item 1.
      */
-    fun editRevealIndex(): Int = 2
+    fun editRevealIndex(): Int = 1
 }

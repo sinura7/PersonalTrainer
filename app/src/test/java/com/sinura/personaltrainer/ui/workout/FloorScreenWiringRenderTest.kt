@@ -127,17 +127,19 @@ class FloorScreenWiringRenderTest {
 
     @Test
     @Config(qualifiers = "w360dp-h1600dp-xhdpi")
-    fun theLoopReadsIdentityStatsEntryEffortThenHistory() {
+    fun theLoopReadsIdentityEntryEffortReadinessHistoryCoachThenStats() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
         show(vm, heightDp = 1600)
         compose.waitUntil(timeoutMillis = WAIT_MS) { exists(WorkoutTestTags.SET_HISTORY) }
-        // Tempo is pinned above the dock, not in the scroll loop (T1b).
+        // Quiet gives entry and saved work priority over secondary advice and statistics.
         val order = listOf(
             WorkoutTestTags.CURRENT_LIFT,
-            WorkoutTestTags.STATS_ROW,
             WorkoutTestTags.SET_ENTRY,
             WorkoutTestTags.RPE_TRACK,
+            WorkoutTestTags.LOG_READINESS,
             WorkoutTestTags.SET_HISTORY,
+            WorkoutTestTags.TEMPO_COACH_CARD,
+            WorkoutTestTags.STATS_ROW,
         )
         val tops = order.map { compose.onNodeWithTag(it).getBoundsInRoot().top }
         assertEquals("top to bottom: $order", tops.sorted(), tops)
@@ -145,7 +147,7 @@ class FloorScreenWiringRenderTest {
         if (exists(WorkoutTestTags.TEMPO_COACH_CARD)) {
             compose.onAllNodes(
                 hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT)),
-            ).assertCountEquals(0)
+            ).assertCountEquals(1)
         }
         // The identity names the set about to be logged, from the saved rows.
         compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true)
