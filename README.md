@@ -39,6 +39,7 @@ databases, different icons.
 |---|---|
 | [docs/FOUNDATION_PROGRAM.md](docs/FOUNDATION_PROGRAM.md) | **current program — packets, gates, signed decisions** |
 | [docs/architecture/](docs/architecture/README.md) | accepted architecture decision records |
+| [docs/ux-context/](docs/ux-context/README.md) | current design research foundation, workout workflow, and owner screenshot evidence |
 | [docs/architecture/backup-threat-model.md](docs/architecture/backup-threat-model.md) | signed backup/privacy inventory (P3.1) |
 | [docs/foundation-audit/](docs/foundation-audit/README.md) | dated foundation audit (23 August 2026); the latest whole-app audit is [docs/design-audit/2026-09-25/](docs/design-audit/2026-09-25/AUDIT.md) |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | project layout, running tests, what will bite you |

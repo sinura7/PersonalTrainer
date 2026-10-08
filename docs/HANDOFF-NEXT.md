@@ -10,6 +10,13 @@ re-checked every finding after thirty packets and set the next order
 things at once; [their plan](owner-eight-plan-2026-09-29.md) now leads the
 queue, and its first packet (P1, section frames) is built.
 
+**Latest owner priority, 8 October 2026:** [complete the workout UX first](ux-context/README.md),
+then study the surrounding app. A connected synthetic start-to-history baseline
+and trustworthy verification come first; notification-settings expansion,
+twelve-week coaching and coach naming follow validated workout improvements.
+Necessary data-safety work is still first. Older completion notes below must be
+checked against current source before repeating their work.
+
 The first thing a new session on this repository should read. Rewritten
 23 September 2026, during the whole-app audit program (packet X1). The one
 before it was written on 12 September and still said live code 46 and Room v4.

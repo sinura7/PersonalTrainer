@@ -66,9 +66,9 @@ bootstrap_jars() {
         jar=""
         for r in $roots; do
             if [ -n "$must" ]; then
-                jar="$(find "$r" -path "*$must*" -name "$pat" 2>/dev/null | sort | tail -1)"
+                jar="$(find "$r" -path "*$must*" -name "$pat" ! -name '*-sources.jar' ! -name '*-javadoc.jar' 2>/dev/null | sort | tail -1)"
             else
-                jar="$(find "$r" -name "$pat" 2>/dev/null | sort | tail -1)"
+                jar="$(find "$r" -name "$pat" ! -name '*-sources.jar' ! -name '*-javadoc.jar' 2>/dev/null | sort | tail -1)"
             fi
             [ -n "$jar" ] && break
         done
@@ -125,12 +125,23 @@ jars_usable() {
     if [ -n "$JUNIT" ]; then
         jar_has_class "$JARS/junit-${JUNIT}.jar" 'org/junit/Test.class' || return 1
     fi
+    # A sources archive can have the right prefix while providing no runnable
+    # classes. Check every required compiler/test dependency before reusing a
+    # previously bootstrapped directory (not only Kotlin and JUnit).
+    have_trove=0
+    for f in "$JARS"/trove4j-*.jar; do
+        if jar_has_class "$f" 'gnu/trove/TObjectHashingStrategy.class'; then have_trove=1; break; fi
+    done
+    [ "$have_trove" = 1 ] || return 1
+    have_hamcrest=0
+    for f in "$JARS"/hamcrest-core-*.jar; do
+        if jar_has_class "$f" 'org/hamcrest/Matcher.class'; then have_hamcrest=1; break; fi
+    done
+    [ "$have_hamcrest" = 1 ] || return 1
     for f in "$JARS"/annotations-*.jar; do
-        [ -e "$f" ] || return 1
-        if unzip -l "$f" 2>/dev/null | grep -q 'org/jetbrains/annotations/NotNull\.class'; then
+        if jar_has_class "$f" 'org/jetbrains/annotations/NotNull.class'; then
             return 0
         fi
-        return 1
     done
     return 1
 }
@@ -138,6 +149,9 @@ jars_usable() {
 if ! jars_usable; then
     rm -rf "$JARS"
     bootstrap_jars "$JARS" || echo "preflight: no jar directory; will fall back to Gradle for tests" >&2
+    if [ -d "$JARS" ] && ! jars_usable; then
+        fail "bootstrapped test jars are missing required classes"
+    fi
 fi
 export PT_JARS="$JARS"   # syntax-check.sh and run-domain-tests.sh both read this
 
@@ -198,6 +212,8 @@ summary() {
 # until 10 Sep 2026; this proves both directions before any of it is trusted.
 step "test_summary_gate.sh"
 sh tools/test_summary_gate.sh || fail "test_summary_gate.sh"
+step "test_domain_lane.sh"
+sh tools/test_domain_lane.sh || fail "test_domain_lane.sh"
 
 # One run over every source set, not one per set. A root scanned alone is a false clean:
 # nothing outside it is in the declaration index, so every call into another source set is

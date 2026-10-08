@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -472,7 +473,10 @@ class TemperPreMigrationCopyTest {
  * [TemperDatabase.create] builds on it.
  */
 private class IsolatedCopyContext(base: Context) : ContextWrapper(base) {
-    val root = File(base.cacheDir, "temper-copy-${System.nanoTime()}").also { it.mkdirs() }
+    // Robolectric's cache path contains the full test name. Nesting the copy below it takes
+    // the longer cases past Windows SQLite's path limit, including its WAL/journal sidecars.
+    // Keep the same isolated files, databases and preferences under a short, unique temp root.
+    val root = Files.createTempDirectory("temper-copy-").toFile()
     private val databases = File(root, "databases").also { it.mkdirs() }
     private val files = File(root, "files").also { it.mkdirs() }
     private val prefix = root.name
