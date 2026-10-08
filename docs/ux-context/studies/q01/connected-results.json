@@ -131,8 +131,13 @@
     "API29 only in this Android run; 360x800 Robolectric API35 connected case is separate.",
     "Older smoke retains its direct timer-stop seam; full AppNav connected case uses Android Skip.",
     "No denied-permission, natural-expiry, notification/lock delivery, physical touch/TalkBack/sound/haptics/performance or owner comprehension acceptance from these results.",
-    "Published Live124 comes from open PR457; installed owner build unknown.",
+    "Published Live124 comes from open PR457; the owner subsequently reports using Debug124. This executed Android baseline is122; physical-device metadata and earlier capture build remain uninspected.",
     "Complete workout usability milestone, chosen native UX change and broader app roadmap remain open."
   ],
-  "sourceHashPolicy": "Verification source hashes record actual Windows working-tree bytes used by this run; Git text normalization may change line endings in repository blobs."
+  "sourceHashPolicy": "Verification source hashes record actual Windows working-tree bytes used by this run; Git text normalization may change line endings in repository blobs.",
+  "ownerFollowup": {
+    "reportedInstalledVersion": "Temper Debug124",
+    "reportedFriction": "Clunky workflow; wants one obvious action, simpler navigation and sophisticated but simple presentation. Wealthsimple/Web3 references.",
+    "scope": "Owner report after the recorded122run; not task-specific observation or native124acceptance."
+  }
 }

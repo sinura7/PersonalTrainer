@@ -11,6 +11,13 @@ The later source reconciliation confirms published Live 124 comes from open PR
 This comparison isolates readiness on trunk 122; it does not reproduce that
 branch's complete layout. Reconcile the overlapping UI before a native proposal.
 
+The owner subsequently reports currently using Debug 124 and finding the
+workflow clunky. The requested direction is a sophisticated but simple front
+end with one obvious next action, inspired by Wealthsimple/Web3. This supports
+exploring the connected workout's hierarchy and traversal; it does not select
+the existing visible-readiness alternative. Execute the published Tempo source
+and compare a connected proposal before changing its overlapping native UI.
+
 ## Finding
 
 The existing missing-effort explanation, “Pick your effort first,” reaches the disabled Log button's accessibility state description but is not rendered as visible text. Native floor images show a subdued Log button and its pending payload. At 360×640, Effort can be below the captured viewport while Log remains visible.
@@ -205,7 +212,7 @@ app preferences were restored.
 | Priority / existing record | Evidence and next action |
 |---|---|
 | Verification first | The initial four copy failures and standalone compiler failure prevented a trustworthy gate. Fix their demonstrated causes and verify restoration of the native fixture before integration. No recording defect was demonstrated by those failures. |
-| C06: match the owner's source | Live 124 is published from open PR #457; this executed baseline is trunk 122. Establish the installed build and reconcile the Tempo branch before changing its overlapping Kotlin UI. |
+| C06: match the owner's source | The owner reports Debug 124; its source is open PR #457. This executed baseline is trunk 122. Execute the Tempo branch before changing its overlapping Kotlin UI. |
 | Q01 / UX03, UX23, UX24, UX26 | Source and small native renders establish the absent visible missing-effort reason. The connected path saves the intended values correctly. Compare the existing candidate with the owner; retain current behavior unless the evidence supports a change. |
 | Q02, Q03, Q04, Q08 | Coaching interpretation, interruption/return, progression and finishing remain complete-workout research tasks. Mechanical switching, correction, early finish and review now have connected coverage. Owner uncertainty, assistance and friction remain unobserved. |
 

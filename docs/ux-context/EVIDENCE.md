@@ -6,6 +6,13 @@
 
 **Owner confirmation:** S01-S05 show current Temper. Installed variant/version and capture settings are not established.
 
+**Later owner report, 8 October:** currently using **Temper Debug 124**. The
+workflow feels clunky; the desired direction is one obvious action, simpler
+navigation and a polished, sophisticated front end, with Wealthsimple/Web3 as
+references. This establishes broad friction and a design direction, not an
+observed cause, task-specific difficulty or acceptance of an alternative. Exact
+metadata for the five earlier captures remains unknown. See O09-O10 in the brief.
+
 Read [the brief](README.md) and [workflow map](WORKFLOWS.md) together with this catalogue. Supplied image order is not a chronology.
 
 ## Evidence vocabulary
