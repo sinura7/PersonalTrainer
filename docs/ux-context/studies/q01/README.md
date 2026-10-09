@@ -2,7 +2,7 @@
 
 **Date:** 8 October 2026
 
-**Status:** Native Quiet is reviewed, merged and reverified on trunk under O12. Its completed packet remains separate from the UX23 workout-truth follow-up. Full08 freshly passed the complete local gate. Native03 exposed an incomplete draft snapshot in the Why fixture; its synchronization repair compiled under the required Full09 task command, reusing unchanged Full08 JVM results. Native04 then passed all 222 native tests on that corrected source. The separate N2 runtime attempt ended incomplete before editing because its no-foreground-service precondition was not met; exact readback and cleanup passed separately. The scoped candidate is ready for an immutable commit and fresh pinned reviews; integration and post-merge verification remain pending. All original failures and the earlier guard-proof limitation remain preserved. The connected Debug-122/124 baselines, bounded repairs and browser proposals below retain their original evidence scope. N2 recovery, broader app UX work and physical-phone acceptance remain open.
+**Status:** Native Quiet is reviewed, merged and reverified on trunk under O12. Its completed packet remains separate from the UX23 workout-truth follow-up. Full08 freshly passed the complete local gate. Native03 exposed an incomplete draft snapshot in the Why fixture; its synchronization repair compiled under the required Full09 task command, reusing unchanged Full08 JVM results. Native04 then passed all 222 native tests on that corrected source. The separate N2 runtime attempt ended incomplete before editing because its no-foreground-service precondition was not met; exact readback and cleanup passed separately. Draft [PR #461](https://github.com/sinura7/PersonalTrainer/pull/461) records the committed pre-repair candidate `f8943ae5`. A hosted deterministic CI failure exposed a JVM fixture synchronization assumption; its test-only repair freshly passed Full11. An amended immutable pin, fresh independent/adversarial reviews and updated hosted checks remain required before integration and post-merge verification. All original failures and the earlier guard-proof limitation remain preserved. The connected Debug-122/124 baselines, bounded repairs and browser proposals below retain their original evidence scope. N2 recovery, broader app UX work and physical-phone acceptance remain open.
 
 **Original study baseline:** `eae6517845ee560ceb9695bf2f92788e2b4339cc`, Debug 122. Later Debug-124 repairs and the new native implementation direction are recorded separately below.
 
@@ -672,8 +672,8 @@ is paused for that exact draft revision until a new edit or explicit Retry, so
 the text being discarded cannot later write itself back. Three Room-backed
 regressions cover the Finish interleavings, and a separate failed-discard
 regression covers that History recovery path. The complete gates below verify
-that source and the subsequent review corrections. Complete native verification and final
-pinned reviews remain pending.
+that source and the subsequent review corrections. At that stage, complete native
+verification and final pinned reviews remained pending; Native04 is recorded below.
 
 `targeted-attempt09` ended incomplete with **zero fresh XML and no completed
 test count**. Its 32 retained XML files are older results, not results from this
@@ -722,8 +722,8 @@ nine Notes, nine Why and nine Missing-session profiles passed.
 The summary and executed source remain under
 `build/ux-context/runs/workout-truth/full-gate-attempt05/`. The summary's SHA-256 is
 `aa938a634758d2566ad4ff4e4ca9c7fca6c4a5e0eec7aa7fbf2ddfefaf2f59e9`.
-This pins the archived uncommitted source and its before/after hashes; HEAD is
-still the merged Quiet base, and no final candidate commit is pinned yet.
+This pins the archived uncommitted source and its before/after hashes. At that
+run, HEAD was still the merged Quiet base and no candidate commit was pinned.
 
 Fresh provisional reviews after that gate found **three P2 corrections**, now
 implemented and mechanically verified in `full-gate-attempt06`:
@@ -760,8 +760,8 @@ The frozen-source local evidence is retained under
 `c21e487bf1b61139b832675d28b5f578c28ec40ccccc5acd37d2eb99c8bcdc88`;
 the before-run source manifest SHA-256 is
 `2fe65d8624da86c193fd2c76bd3bf23a0bdbd93f039246d5bd2a92d44dd546d6`.
-The executed source remains uncommitted at this update; these archive hashes pin
-the local result, not a final candidate commit.
+The executed source was uncommitted at that update; these archive hashes pin
+that local result, not the later committed candidate.
 
 After that gate, inspection of the landscape/font-2.0 notes guard showed its last
 line, “app closes.”, below the visible text viewport. The fixture compared the
@@ -821,7 +821,7 @@ These are native-graphics JVM captures, not physical-phone acceptance. Full07's
 summary and frozen executed source remain under
 `build/ux-context/runs/workout-truth/full-gate-attempt07/`; the summary SHA-256 is
 `a27ea8a4d68b8bd5087c9b7333d3cea745e0c950944e4de7138b661bf3a3ce58`.
-No final candidate commit is pinned yet.
+No candidate commit was pinned at that run.
 
 The owned, unfiltered, offline API-29 `native-suite-attempt02` completed
 **222 tests across 32 classes, zero failures/errors/skips**, with all **1,521
@@ -858,7 +858,7 @@ matrices and loaded shipping-tab smoke coverage.
 Full08's summary, XML, log and frozen executed source remain under
 `build/ux-context/runs/workout-truth/full-gate-attempt08/`; its summary SHA-256 is
 `1d554478034a334326e2c65d44efa1b99727148b1ea61a56ab2def581e336a96`.
-No final candidate commit is pinned yet.
+No candidate commit was pinned at that run.
 
 The portable Full08 frames below match their original generator files and the
 hashes in [the follow-up manifest](quiet-native-followup.json). All are synthetic
@@ -973,9 +973,12 @@ results, UI and restoration evidence remain under
 Experiment builds and named setup/inspect/cleanup methods are excluded from the
 permanent **222-test** native-suite count. N2 remains an explicit recovery gap.
 
-The scoped candidate is ready for an immutable commit and fresh independent/
-adversarial reviews against that pin. Those reviews, integration and the
-clean-trunk full rerun/affected connected journey remain pending. The passing
+Draft [PR #461](https://github.com/sinura7/PersonalTrainer/pull/461) records the
+committed pre-repair candidate `f8943ae5`. The hosted failure and fresh Full11
+fixture verification below supersede its earlier integration-ready status. An
+amended immutable pin, fresh independent/adversarial reviews and updated hosted
+checks remain required before integration, followed by the clean-trunk full rerun and
+affected connected journey. The passing
 local/native runs and bounded N2 attempt do not close UX23, the broader roadmap
 or physical-phone acceptance. No schema, backup format, public API or new
 coaching rule is introduced; the internal Finish/cache changes preserve the
@@ -1004,9 +1007,56 @@ executed JVM tests** and all **554 XML files byte-identical** to Full08's fresh
 final runtime-manifest SHA-256 is
 `cb033c80d8ed63730ccd7cba8588d6870ff3c7b4ce999c5d7ac448ddb341dbc8`.
 
-Native04's production and Android sources remain byte-identical; the sole
-subsequent change is that JVM fixture's line endings. Its 222-test result retains
-that scope. Final immutable-commit reviews and integration remain pending at
-this candidate snapshot. Clean-trunk verification must freshly execute the full
+At the Full10 snapshot, Native04's production and Android sources remained
+byte-identical; the sole subsequent change was that JVM fixture's line endings.
+Its 222-test result retains that scope. The later hosted CI failure and test-only
+repair are recorded below. Clean-trunk verification must freshly execute the full
 required gate and affected native journey. N2, owner-phone acceptance and the
 broader UX criteria remain open.
+
+#### Hosted CI failure and fresh fixture verification — 8 October 2026
+
+The committed pre-repair candidate is `f8943ae5` in draft
+[PR #461](https://github.com/sinura7/PersonalTrainer/pull/461). The push
+[CI run 37867942005](https://github.com/sinura7/PersonalTrainer/actions/runs/37867942005)
+failed the deterministic `Tests, lint, debug build` job: **3,702 tests completed,
+one failed**. The sole failure was
+`DeletedNoteStaysDeletedTest.wordsTypedJustBeforeAProcessDeathComeBackAndAreWritten`:
+the immediate exact-once assertion expected the restored authored note but saw
+`writesStarted=[]` after **401 ms of virtual time**. The separate PR
+[CI run 37867945752](https://github.com/sinura7/PersonalTrainer/actions/runs/37867945752)
+passed its deterministic steps, and both hosted native jobs passed. Those passes
+do not erase the failed deterministic gate or certify the subsequent repair.
+The original push log, reports and pre-repair fixture remain under
+`build/ux-context/runs/workout-truth/hosted-ci-diagnosis/`.
+
+The author and independent reviewer identified a synchronization assumption:
+the fresh transactional live-row read can still await real Room I/O before
+entering the notes DAO when `runCurrent` returns. The fixture's existing bounded
+`awaitWriteLanded` was after the failing immediate assertion. The repair changes
+only `DeletedNoteStaysDeletedTest.kt`: both positive restore cases now await the
+actual durable write before asserting exactly one write, while explicitly
+checking that virtual time remains **401 ms**. Negative checks, SavedState
+restoration, cancellation/join, cache clearing and actual-row assertions remain.
+The dedicated exact **399/400 ms** debounce test passed even in the failed hosted
+run; neither the production debounce nor native code changed.
+
+`full-gate-attempt11` freshly passed the frozen repaired source: **3,702 tests
+across 554 suites, all 554 XML files fresh, zero failures/errors/skips**, with
+**1,521 stable inputs**. The actual command
+`./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest --rerun-tasks`
+ran from **2026-10-09T01:27:17.3770067Z** to **2026-10-09T01:38:04.0240231Z**,
+returned exit **0** and **BUILD SUCCESSFUL** in 10m 40s; all **135 actionable
+tasks executed**. Restore **7/7** and Move **24/24**, including the dedicated
+**399/400 ms** debounce case, passed. Summary SHA-256:
+`dc00702c2787049f1fecc1c99cfe673b32dcdef1bd7c979e97ed9a720599dc0d`;
+final manifest SHA-256:
+`ce85b25783fc00e7146eea9882d4a8114cfa4202c4e4a64b057928ce07d7008d`.
+The only runtime-input delta from Full10 is `DeletedNoteStaysDeletedTest.kt`
+(SHA-256 `db30b3b777966b58d3a6e9182770605acaf6c5577de09eb68a36987088cc2d9e`);
+all production and Android bytes still match Native04. This pass verifies that
+repair and preserves the original failed push result. An amended immutable pin,
+fresh independent/adversarial reviews and updated hosted deterministic checks
+remain required before integration, followed by the clean-trunk full rerun and
+affected connected journey. N2, UX23-AC01–AC03's broader scope, related UX24/UX25
+coverage and physical-phone acceptance remain open; no Debug drop is recorded.

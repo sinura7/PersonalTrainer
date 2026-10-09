@@ -203,7 +203,10 @@ message edit passed the fresh Full08 complete local gate across nine profiles.
 Native03 then exposed an incomplete draft snapshot in its Why fixture. That
 fixture's synchronization repair compiled under the required Full09 command,
 which reused unchanged Full08 JVM results. Native04 then passed all 222 native
-tests on the corrected source; final pinned reviews and integration remain pending.
+tests on the corrected source. Draft PR #461 now records pre-repair candidate
+`f8943ae5`; the later hosted CI failure and fresh Full11 fixture verification are
+recorded below. An amended immutable pin, fresh independent/adversarial reviews
+and updated hosted checks remain required before integration.
 Fresh provisional reviews added forward History Repeat/Resume and outside-editor
 Finish to that same notes-safety acceptance: protected Back/Repeat/Resume requires
 a notes save or explicit recovery choice before leaving or starting another
@@ -229,8 +232,9 @@ discarding the authored draft. History Repeat/Resume stays queued behind the
 notes barrier. A failed forward-discard reload pauses autosave for the exact
 draft revision until a new edit or explicit Retry. Three Room-backed Finish
 regressions and a failed-discard regression cover these repairs. Their source
-passed the complete gates below, including later corrections; complete native
-verification and reviews remain pending. These internal Finish/cache repairs add no schema,
+passed the complete gates below, including later corrections. Complete native
+verification and reviews were pending at that stage; Native04 is recorded below.
+These internal Finish/cache repairs add no schema,
 backup format, public API or coaching-rule change.
 
 `targeted-attempt09` ended incomplete with zero fresh XML and no completed test
@@ -258,8 +262,8 @@ inputs. From `2026-10-08T23:13:30.6250547Z` to `2026-10-08T23:24:09.8255104Z`, t
 four required tasks ran with `--rerun-tasks`; all **135 actionable tasks executed**
 with builds, lint, Android test assembly and static checks passing. The seven
 Room-timing cases and nine each Notes/Why/Missing profiles passed. The Q01 record
-pins the archived uncommitted source and summary hash; no final candidate commit
-is pinned yet.
+pins the archived uncommitted source and summary hash; no candidate commit was
+pinned at that run.
 
 Three subsequent **P2 corrections passed in `full-gate-attempt06`**: protected Back
 must allow a confirmed finished session despite stale exit intent in both
@@ -403,11 +407,12 @@ Q01 pins the preserved runtime summary and phase evidence. Experiment builds and
 named runtime methods are excluded from the permanent 222-test native count;
 unchanged readback after the rejected precondition does not close N2 recovery.
 
-The scoped candidate is ready for an immutable commit and fresh pinned
-independent/adversarial reviews. Those reviews, integration and post-merge
+Draft [PR #461](https://github.com/sinura7/PersonalTrainer/pull/461) records the
+committed pre-repair candidate `f8943ae5`. Full11 freshly passed the fixture-only
+synchronization repair below. An amended immutable pin, fresh independent/
+adversarial reviews and updated hosted checks remain required. Integration and post-merge
 verification remain pending; N2 and physical-phone acceptance remain open.
-No final candidate commit, owner-phone test or Debug drop is recorded for this
-development work.
+No owner-phone test or Debug drop is recorded for this development work.
 
 See the [Q01 follow-up record](../ux-context/studies/q01/README.md#latest-targeted-verification-and-pending-repairs--8-october-2026)
 for the attempt boundaries. These updates do not mark UX23-AC01–AC03, the
@@ -483,8 +488,45 @@ CRLF in one new JVM fixture; exact CRLF-to-LF normalization preserved its entire
 source text and assertions. Full10 passed the normal required gate (24 executed,
 2 cached, 109 up-to-date tasks), reporting zero new JVM tests and 554 XML files
 byte-identical to Full08's fresh 3,702-test pass. All 1,521 inputs remained stable;
-production/Android inputs still match Native04. Summary SHA-256:
+production/Android inputs at that snapshot still match Native04. Summary SHA-256:
 `c549d8413f8d1cb0d41e59df5fadbb66bffe7f6b21192cced079280ef3567975`.
-Final immutable-commit reviews/integration and clean-trunk fresh verification
-remain required; N2 and broader acceptance remain open. This formatting pass
+Pinned rereviews/integration and clean-trunk fresh verification remain required;
+N2 and broader acceptance remain open. This formatting pass
 does not add executed tests or close an acceptance criterion.
+
+**Hosted CI failure and fresh fixture verification (8 October 2026):** Push
+[CI 37867942005](https://github.com/sinura7/PersonalTrainer/actions/runs/37867942005)
+completed **3,702 tests with one failure** in the deterministic `Tests, lint,
+debug build` job. The sole failure was
+`DeletedNoteStaysDeletedTest.wordsTypedJustBeforeAProcessDeathComeBackAndAreWritten`:
+its immediate exact-once assertion saw no DAO write after **401 virtual ms**.
+PR [CI 37867945752](https://github.com/sinura7/PersonalTrainer/actions/runs/37867945752)
+passed all deterministic steps; both hosted native jobs passed. Those results
+retain their own source boundaries and do not turn the failed push gate green.
+The original log, reports and fixture are preserved under
+`build/ux-context/runs/workout-truth/hosted-ci-diagnosis/`.
+
+The author and independent reviewer identified that the transactional live-row
+read can still await real Room I/O before notes DAO entry when `runCurrent`
+returns. Only the JVM restore fixture changed: both positive cases now use the
+existing bounded `awaitWriteLanded` before their exact-once assertion and check
+that virtual time stays **401 ms**. Negative checks, SavedState restoration,
+cancellation/join, cache clear and actual-row checks remain. The dedicated
+**399/400 ms** debounce test passed in the failed hosted run; production and
+native code are unchanged.
+
+Full11 freshly passed the frozen repaired source: **3,702 tests across 554
+suites, all XML fresh, zero failures/errors/skips**, with **1,521 stable inputs**.
+The required four-task command with `--rerun-tasks` ran from
+**2026-10-09T01:27:17.3770067Z** to **2026-10-09T01:38:04.0240231Z**, returned
+exit **0** and **BUILD SUCCESSFUL** in 10m 40s; all **135 actionable tasks
+executed**. Restore **7/7** and Move **24/24**, including the dedicated
+**399/400 ms** case, passed. Summary SHA-256:
+`dc00702c2787049f1fecc1c99cfe673b32dcdef1bd7c979e97ed9a720599dc0d`.
+Only `DeletedNoteStaysDeletedTest.kt` differs from Full10's runtime inputs;
+production and Android bytes still match Native04. The original failed push
+remains failed. An amended immutable pin, fresh independent/adversarial reviews,
+updated hosted deterministic checks, integration and post-merge verification
+remain pending. See the [Q01 hosted CI record](../ux-context/studies/q01/README.md#hosted-ci-failure-and-fresh-fixture-verification--8-october-2026)
+for the source/manifest hashes. N2, UX23-AC01–AC03, related UX24/UX25 coverage and
+physical-phone acceptance remain open.

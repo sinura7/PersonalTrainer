@@ -300,10 +300,10 @@
   "nextPacket": {
     "existingBacklogId": "UX23",
     "scope": "Truthful notes-save states, retry and write ordering; Add-a-set trace explains actual unchanged decision; factual missing-session copy; named coach-dismiss action; W3/TS-3 permanent actual-five-tab renders",
-    "status": "Verified development candidate; final immutable-commit review and integration pending; N2 and phone acceptance remain open",
+    "status": "Fixture synchronization repair freshly verified in Full11; amended immutable pin, fresh reviews and hosted checks/integration pending. N2 and phone/broader UX remain open.",
     "ordering": "Before Home and History; phone and Recents-removal evidence retain separate scope",
     "evidence": {
-      "finalReviewAndIntegration": "Pending",
+      "finalReviewAndIntegration": "New amended pin and fresh reviews, updated hosted checks and integration pending",
       "nativeFinal": "Native04 passed all 222 tests on the final full-entry precondition",
       "portableFrames": [
         {
@@ -372,7 +372,7 @@
         }
       ],
       "fullGateSummarySha256": "1d554478034a334326e2c65d44efa1b99727148b1ea61a56ab2def581e336a96",
-      "runtimeInputManifestSha256": "cb033c80d8ed63730ccd7cba8588d6870ff3c7b4ce999c5d7ac448ddb341dbc8",
+      "runtimeInputManifestSha256": "ce85b25783fc00e7146eea9882d4a8114cfa4202c4e4a64b057928ce07d7008d",
       "fullGate": {
         "sourceFiles": 1521,
         "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest --rerun-tasks",
@@ -640,7 +640,7 @@
         "summarySha256": "0187020a853f5ce35a5efe3ff0b8e979366c51750ed2bd161719a016afa2c8fb",
         "archive": "build/ux-context/runs/workout-truth/native-suite-attempt04"
       },
-      "runtimeInputManifestArchive": "build/ux-context/runs/workout-truth/full-gate-attempt10/source-hashes-before.json",
+      "runtimeInputManifestArchive": "build/ux-context/runs/workout-truth/full-gate-attempt11/source-hashes-before.json",
       "boundedInterruption": {
         "status": "Incomplete before editing: live AppNav starts foreground service, so the experiment no-FGS precondition correctly rejected",
         "recentsRemovalPerformed": false,
@@ -656,6 +656,38 @@
         "readback": "Same synthetic session and set, payload, start/date/live/no-rest and original notes unchanged"
       },
       "finalRepositoryGate": {
+        "archive": "build/ux-context/runs/workout-truth/full-gate-attempt11",
+        "summary": {
+          "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest --rerun-tasks",
+          "startedAtUtc": "2026-10-09T01:27:17.3770067Z",
+          "endedAtUtc": "2026-10-09T01:38:04.0240231Z",
+          "head": "f8943ae587158e4a96b4d638f462837a9d7d019c",
+          "nativeExitCode": 0,
+          "exit": 0,
+          "buildSuccessful": true,
+          "requestedTaskExecuted": {
+            "testDebugUnitTest": true,
+            "assembleDebug": true,
+            "lintDebug": true,
+            "assembleDebugAndroidTest": true
+          },
+          "counts": {
+            "tests": 3702,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "xmlFiles": 554,
+          "allXmlFresh": true,
+          "sourceFiles": 1521,
+          "sourceStable": true,
+          "verificationErrors": [],
+          "result": "Fresh complete four-task gate passed after notes fixture synchronization repair."
+        },
+        "summarySha256": "dc00702c2787049f1fecc1c99cfe673b32dcdef1bd7c979e97ed9a720599dc0d",
+        "nativeScope": "All production and Android inputs still match Native04; only DeletedNoteStaysDeletedTest.kt changed from Full10. Postmerge native rerun remains required."
+      },
+      "formattingGate": {
         "archive": "build/ux-context/runs/workout-truth/full-gate-attempt10",
         "summary": {
           "priorFreshJvmSummarySha256": "1D554478034A334326E2C65D44EFA1B99727148B1EA61A56AB2DEF581E336A96",
@@ -695,6 +727,34 @@
         },
         "nativeScope": "All production/Android bytes match Native04; sole subsequent JVM fixture change is exactly CRLF-to-LF",
         "summarySha256": "c549d8413f8d1cb0d41e59df5fadbb66bffe7f6b21192cced079280ef3567975"
+      },
+      "ciFixtureRepair": {
+        "preRepairCandidate": "f8943ae587158e4a96b4d638f462837a9d7d019c",
+        "failedPushRun": 37867942005,
+        "failedPushCounts": {
+          "tests": 3702,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "xmlFiles": 554
+        },
+        "passingPrRun": 37867945752,
+        "passingPrCounts": {
+          "tests": 3702,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xmlFiles": 554
+        },
+        "archive": "build/ux-context/runs/workout-truth/hosted-ci-diagnosis",
+        "diagnosisSha256": "71a64b00c0e58b8db97846762925fbeafe7917e4102b0cf29089e482580f1dd1",
+        "changedPath": "app/src/test/java/com/sinura/personaltrainer/ui/workout/DeletedNoteStaysDeletedTest.kt",
+        "sourceSha256": "db30b3b777966b58d3a6e9182770605acaf6c5577de09eb68a36987088cc2d9e",
+        "cause": "Immediate DAO-entry assertion preceded the existing bounded real Room write-completion wait; the fresh transactional live-row read could still be pending after virtual debounce.",
+        "repair": "Both positive cases settle existing bounded Room writes before exact-once assertions and assert no virtual clock advancement. Negative and exact 399/400 ms checks remain.",
+        "verification": "Full11 freshly passed 3702/554, all135tasks executed, restore7/7 and Move24/24; original failed hosted run remains failed.",
+        "amendedHostedChecks": "Pending new candidate push",
+        "integration": "Pending new immutable pin and fresh reviews, then hosted checks and clean-trunk gate/native journey."
       }
     }
   }
