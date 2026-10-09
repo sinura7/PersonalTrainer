@@ -22,6 +22,7 @@ import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.TrainingInsights
@@ -90,6 +91,10 @@ internal class NativeWorkoutTruthFixture {
     private val drafts = WorkoutDraftCache()
     private val insights = object : TrainingInsightsPublisher {
         override fun observeShared(includeWeekPlan: Boolean): Flow<TrainingInsights> = MutableStateFlow(TrainingInsights())
+        override fun observeSharedHealth(includeWeekPlan: Boolean): Flow<DataHealth<TrainingInsights>> =
+            flow { emit(DataHealth.Available(TrainingInsights())) }
+        override fun retrySharedHealth(includeWeekPlan: Boolean): Flow<DataHealth<TrainingInsights>> =
+            flow { emit(DataHealth.Available(TrainingInsights())) }
         override fun observe(window: Flow<HeatWindow>, refresh: Flow<Any?>, includeWeekPlan: Boolean): Flow<TrainingInsights> =
             MutableStateFlow(TrainingInsights())
     }

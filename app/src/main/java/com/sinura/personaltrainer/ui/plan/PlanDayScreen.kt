@@ -299,6 +299,7 @@ internal fun ReorderRow(
     // Plain Modifier, per lint's ModifierParameter rule: the list-row inset is the
     // caller's, so a block that already has card padding does not pay it twice.
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = modifier,
@@ -307,6 +308,7 @@ internal fun ReorderRow(
         if (index > 0) {
             TextButton(
                 onClick = { onMove(occurrenceId, -1) },
+                enabled = enabled,
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier
                     .heightIn(min = Metrics.touchMin)
@@ -323,6 +325,7 @@ internal fun ReorderRow(
         if (index < lastIndex) {
             TextButton(
                 onClick = { onMove(occurrenceId, 1) },
+                enabled = enabled,
                 contentPadding = PaddingValues(0.dp),
                 modifier = Modifier
                     .heightIn(min = Metrics.touchMin)

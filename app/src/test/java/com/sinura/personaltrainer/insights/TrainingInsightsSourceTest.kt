@@ -3,38 +3,59 @@ package com.sinura.personaltrainer.insights
 import android.app.Application
 import android.database.sqlite.SQLiteException
 import androidx.test.core.app.ApplicationProvider
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.sinura.personaltrainer.FakeAppDependencies
+import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.repository.HomePreferencesSnapshot
+import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
+import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseRecencyRow
 import com.sinura.personaltrainer.data.local.entity.SessionStillRow
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
+import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.InsightFailure
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingInsightsCalculator
 import com.sinura.personaltrainer.domain.TrainingInsightsInput
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.testutil.ReadGate
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.catchingUncaught
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import com.sinura.personaltrainer.ui.home.HomeReadState
+import com.sinura.personaltrainer.ui.home.HomeViewModel
 import java.time.ZoneOffset
+import java.time.ZoneId
+import java.io.IOException
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -42,6 +63,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -315,6 +337,8 @@ class TrainingInsightsSourceTest {
     private fun source(
         computeDispatcher: CoroutineDispatcher = dispatcher,
         shareGraceMs: Long = TrainingInsightsSource.SHARE_GRACE_MS,
+        zone: () -> ZoneId = { ZONE },
+        routineRepository: RoutineRepository = deps.routineRepository,
         compute: (TrainingInsightsInput) -> TrainingInsights = { input ->
             inputs += input
             TrainingInsightsCalculator.compute(input)
@@ -323,14 +347,14 @@ class TrainingInsightsSourceTest {
             { _, _, _ -> emptyList() },
     ): TrainingInsightsSource = TrainingInsightsSource(
         workoutRepository = deps.workoutRepository,
-        routineRepository = deps.routineRepository,
+        routineRepository = routineRepository,
         exerciseRepository = deps.exerciseRepository,
         preferencesRepository = deps.preferencesRepository,
         scheduleRepository = deps.scheduleRepository,
         activityRepository = deps.activityRepository,
         computeDispatcher = computeDispatcher,
         nowMs = { NOW_MS },
-        zone = { ZONE },
+        zone = zone,
         compute = compute,
         loadHints = loadHints,
         shareGraceMs = shareGraceMs,
@@ -457,6 +481,356 @@ class TrainingInsightsSourceTest {
         assertNotNull("the next visit never assembled the summary again", nextVisit)
     }
 
+    @Test
+    fun failedInitialRequiredReadEmitsUnavailableAndColdRetryRestartsWithASiblingAttached() = runBlocking {
+        val gate = ReadGate(shouldFail = true)
+        var decorated: RecoverableActivityStillsDao? = null
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            activityDaoDecorator = { dao -> RecoverableActivityStillsDao(dao, gate).also { decorated = it } },
+        )
+        val reads = checkNotNull(decorated)
+        val src = source()
+        val health = mutableListOf<DataHealth<TrainingInsights>>()
+        val sibling = launch { src.observeSharedHealth(false).collect { health += it } }
+        awaitUntil { health.any { it is DataHealth.Unavailable } }
+        assertTrue(inputs.isEmpty())
+        val sessionsBefore = deps.database.activityDao().getAllGraphs()
+        val hold = CompletableDeferred<Unit>()
+        reads.hold = hold
+        gate.shouldFail = false
+        val previousReads = reads.attempts.get()
+        val retryFlow = src.retrySharedHealth(false)
+        settle()
+        assertEquals("requesting a flow must not initiate a read", previousReads, reads.attempts.get())
+        val retry = async { retryFlow.first() }
+        awaitUntil { reads.attempts.get() > previousReads }
+        assertFalse("a retry returned the old replay", retry.isCompleted)
+        hold.complete(Unit)
+        assertTrue(withTimeout(TestWaits.FLOW_MS) { retry.await() } is DataHealth.Available)
+        awaitUntil { health.any { it is DataHealth.Available } }
+        assertEquals(sessionsBefore, deps.database.activityDao().getAllGraphs())
+        sibling.cancel()
+    }
+
+    @Test
+    fun retryDoesNotReturnAnOldSuccessfulReplayAndDoesNotRestartTheOtherPlanVariant() = runBlocking {
+        val gate = ReadGate(shouldFail = false)
+        var decorated: RecoverableActivityStillsDao? = null
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            activityDaoDecorator = { dao -> RecoverableActivityStillsDao(dao, gate).also { decorated = it } },
+        )
+        val reads = checkNotNull(decorated)
+        val src = source()
+        val withPlan = launch { src.observeSharedHealth(true).collect { } }
+        val withoutPlan = launch { src.observeSharedHealth(false).collect { } }
+        awaitComputes(2)
+        val withCount = inputs.count { it.includeWeekPlan }
+        val previousReads = reads.attempts.get()
+        val hold = CompletableDeferred<Unit>()
+        reads.hold = hold
+        val retry = async { src.retrySharedHealth(false).first() }
+        awaitUntil { reads.attempts.get() > previousReads }
+        assertFalse(retry.isCompleted)
+        hold.complete(Unit)
+        assertTrue(withTimeout(TestWaits.FLOW_MS) { retry.await() } is DataHealth.Available)
+        assertEquals(withCount, inputs.count { it.includeWeekPlan })
+        assertEquals(2, inputs.count { !it.includeWeekPlan })
+        withPlan.cancel()
+        withoutPlan.cancel()
+    }
+
+    @Test
+    fun anInitialAssemblyFailureIsUnavailableAndRetryCanRecoverWithoutDetaching() = runBlocking {
+        val attempts = AtomicInteger()
+        val src = source(compute = { input ->
+            if (attempts.getAndIncrement() == 0) error("assembly failed")
+            TrainingInsightsCalculator.compute(input)
+        })
+        val health = mutableListOf<DataHealth<TrainingInsights>>()
+        val sibling = launch { src.observeSharedHealth(false).collect { health += it } }
+        awaitUntil { health.any { it is DataHealth.Unavailable } }
+        val retry = withTimeout(TestWaits.FLOW_MS) { src.retrySharedHealth(false).first() }
+        assertTrue(retry is DataHealth.Available)
+        awaitUntil { health.any { it is DataHealth.Available } }
+        sibling.cancel()
+    }
+
+    @Test
+    fun laterAssemblyFailureIsDegradedAndAFutureEmissionCanRecover() = runBlocking {
+        var fail = false
+        val src = source(compute = { input ->
+            if (fail) error("assembly failed")
+            TrainingInsightsCalculator.compute(input)
+        })
+        val health = mutableListOf<DataHealth<TrainingInsights>>()
+        val refresh = MutableStateFlow(0)
+        val sibling = launch { src.observeSharedHealth(false).collect { health += it } }
+        val nudger = launch { src.observe(refresh = refresh, includeWeekPlan = false).collect { } }
+        awaitUntil { health.any { it is DataHealth.Available } }
+        val first = (health.last() as DataHealth.Available).value
+        fail = true
+        refresh.value++
+        awaitUntil { health.lastOrNull() is DataHealth.Degraded }
+        assertSame(first, (health.last() as DataHealth.Degraded).lastValue)
+        fail = false
+        refresh.value++
+        awaitUntil { health.lastOrNull() is DataHealth.Available }
+        nudger.cancel()
+        sibling.cancel()
+    }
+
+    @Test
+    fun retargetFailureDoesNotTerminateTheBodyWindowStream() = runBlocking {
+        var failZone = false
+        val window = MutableStateFlow(HeatWindow.CURRENT_WEEK)
+        val src = source(zone = { if (failZone) error("zone unavailable") else ZONE })
+        val values = mutableListOf<TrainingInsights>()
+        val job = launch { src.observe(window = window, includeWeekPlan = false).collect { values += it } }
+        awaitUntil { values.isNotEmpty() }
+        val first = values.last()
+        val before = values.size
+        failZone = true
+        window.value = HeatWindow.CURRENT_MONTH
+        awaitUntil { values.size > before }
+        assertSame(first, values.last())
+        failZone = false
+        window.value = HeatWindow.DAY
+        awaitUntil { values.last().snapshot?.window == HeatWindow.DAY }
+        assertEquals(1, inputs.size)
+        job.cancel()
+    }
+
+    @Test
+    fun optionalProgressionFailureRemainsAvailableWithItsStageFailure() = runBlocking {
+        val src = source(loadHints = { _, _, _ -> error("hints down") })
+        val health = withTimeout(TestWaits.FLOW_MS) { src.observeSharedHealth(false).first() }
+        assertTrue(health is DataHealth.Available)
+        val insights = (health as DataHealth.Available).value
+        assertTrue(insights.failed(InsightFailure.PROGRESSION))
+        assertNotNull(insights.snapshot)
+    }
+
+    @Test
+    fun laterRequiredHistoryFailureIsDegradedAndRetryRecollectsThatRead() = runBlocking {
+        var decorated: FailingInsightReadsDao? = null
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            workoutDaoDecorator = { dao ->
+                FailingInsightReadsDao(dao, InsightRead.SUMMARIES).also { decorated = it }
+            },
+        )
+        val reads = checkNotNull(decorated)
+        val seeded = seedTestWorkout(deps, finish = true)
+        val src = source()
+        val seen = mutableListOf<DataHealth<TrainingInsights>>()
+        val sibling = launch { src.observeSharedHealth(false).collect { seen += it } }
+        awaitUntil { seen.lastOrNull() is DataHealth.Available }
+        val summaries = checkNotNull(seen.last().presentValue()).summaries
+        reads.shouldFail = true
+        val extra = deps.workoutRepository.startFreeWorkout("Trigger history read")
+        deps.workoutRepository.logSet(extra.id, seeded.exercise.id, 80.0, 6, 8, false)
+        deps.workoutRepository.finishSession(extra.id, "")
+        awaitUntil { seen.lastOrNull() is DataHealth.Degraded }
+        assertEquals(summaries, seen.last().presentValue()?.summaries)
+        val before = deps.database.workoutDao().getAllSessions()
+        reads.shouldFail = false
+        val recovered = withTimeout(TestWaits.FLOW_MS) { src.retrySharedHealth(false).first() }
+        assertTrue(recovered is DataHealth.Available)
+        assertEquals(2, recovered.presentValue()?.summaries?.size)
+        assertEquals(before, deps.database.workoutDao().getAllSessions())
+        sibling.cancel()
+    }
+
+    @Test
+    fun atomicPreferencesSnapshotUsesTheSameCanonicalDefaultsAndStoredValues() = runBlocking {
+        suspend fun assertMatchesStoredFields() {
+            val prefs = deps.preferencesRepository
+            val health = prefs.observeHomePreferencesHealth().first()
+            assertTrue(health is DataHealth.Available)
+            val snapshot = checkNotNull(health.presentValue())
+            assertEquals(prefs.schedulePreferences.first(), snapshot.schedulePreferences)
+            assertEquals(prefs.weightUnit.first(), snapshot.weightUnit)
+            assertEquals(prefs.coachPreferences.first(), snapshot.coachPreferences)
+            assertEquals(prefs.lighterWeekStartEpochDay.first(), snapshot.lighterWeekStartEpochDay)
+            assertEquals(prefs.preferredDays.first(), snapshot.preferredDays)
+            assertEquals(prefs.bodyweightCheckInWeekday.first(), snapshot.bodyweightCheckInWeekday)
+            assertEquals(prefs.onboardingComplete.first(), snapshot.onboardingComplete)
+        }
+        assertMatchesStoredFields()
+        deps.preferencesRepository.setSchedulePreferences(SchedulePreferences(2, SplitStyle.FULL_BODY, Weekday.SUNDAY))
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+        deps.preferencesRepository.setAvailableEquipment(setOf("DUMBBELL"))
+        deps.preferencesRepository.setLighterWeekStartEpochDay(20_000L)
+        deps.preferencesRepository.setPreferredDays(setOf(Weekday.TUESDAY, Weekday.THURSDAY))
+        deps.preferencesRepository.setBodyweightCheckInWeekday(Weekday.SATURDAY)
+        deps.preferencesRepository.setOnboardingComplete(true)
+        assertMatchesStoredFields()
+    }
+
+    @Test
+    fun safePreferenceFallbackCannotBecomeAnAvailableInsightsSnapshotBeforeRawFailure() = runBlocking {
+        var decorated: RecoverableInsightsPreferences? = null
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            prefsStoreDecorator = { real -> RecoverableInsightsPreferences(real).also { decorated = it } },
+        )
+        val reads = checkNotNull(decorated)
+        val prefs = deps.preferencesRepository
+        val storedUnit = if (WeightUnit.fromStorage(null) == WeightUnit.KG) WeightUnit.LBS else WeightUnit.KG
+        val storedSchedule = SchedulePreferences(2, SplitStyle.FULL_BODY, Weekday.SUNDAY)
+        prefs.setWeightUnit(storedUnit)
+        prefs.setSchedulePreferences(storedSchedule)
+        prefs.setAvailableEquipment(setOf("DUMBBELL"))
+        prefs.setOnboardingComplete(true)
+        val rawBefore = deps.rawPreferenceValues()
+        val sessionsBefore = deps.database.workoutDao().getAllSessions()
+        val legacyUnits = mutableListOf<WeightUnit>()
+        val snapshots = mutableListOf<DataHealth<HomePreferencesSnapshot>>()
+        val health = mutableListOf<DataHealth<TrainingInsights>>()
+        val legacy = launch { prefs.weightUnit.collect { legacyUnits += it } }
+        val raw = launch { prefs.observeHomePreferencesHealth().collect { snapshots += it } }
+        val sibling = launch { source().observeSharedHealth(false).collect { health += it } }
+        awaitUntil { health.lastOrNull() is DataHealth.Available && snapshots.isNotEmpty() && legacyUnits.isNotEmpty() }
+        val original = snapshots.last().presentValue()
+        reads.fail.value = true
+        awaitUntil {
+            legacyUnits.lastOrNull() == WeightUnit.fromStorage(null) &&
+                snapshots.lastOrNull() is DataHealth.Degraded && health.lastOrNull() is DataHealth.Degraded
+        }
+        assertEquals(original, snapshots.last().presentValue())
+        assertTrue(inputs.isNotEmpty())
+        assertTrue("safe defaults must never enter an Available or Degraded computation", inputs.all {
+            it.unit == storedUnit && it.preferences == storedSchedule && it.coachPrefs.availableEquipment == setOf("DUMBBELL")
+        })
+        assertEquals(rawBefore, deps.rawPreferenceValues())
+        assertEquals(sessionsBefore, deps.database.workoutDao().getAllSessions())
+        legacy.cancel()
+        raw.cancel()
+        sibling.cancel()
+    }
+
+    @Test
+    fun initialRawPreferencesFailureIsUnavailableAndHeldColdRetryRecollectsItWithoutWrites() = runBlocking {
+        var decorated: RecoverableInsightsPreferences? = null
+        deps.close()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            prefsStoreDecorator = { real -> RecoverableInsightsPreferences(real).also { decorated = it } },
+        )
+        val reads = checkNotNull(decorated)
+        deps.preferencesRepository.setWeightUnit(WeightUnit.KG)
+        deps.preferencesRepository.setOnboardingComplete(true)
+        val before = deps.rawPreferenceValues()
+        reads.fail.value = true
+        val src = source()
+        val seen = mutableListOf<DataHealth<TrainingInsights>>()
+        val sibling = launch { src.observeSharedHealth(false).collect { seen += it } }
+        awaitUntil { seen.lastOrNull() is DataHealth.Unavailable }
+        assertTrue(inputs.isEmpty())
+        val attempts = reads.attempts.get()
+        val hold = CompletableDeferred<Unit>()
+        reads.hold = hold
+        reads.fail.value = false
+        val retry = async { src.retrySharedHealth(false).first() }
+        awaitUntil { reads.attempts.get() > attempts }
+        assertFalse("retry must not reuse the failed raw snapshot", retry.isCompleted)
+        hold.complete(Unit)
+        assertTrue(withTimeout(TestWaits.FLOW_MS) { retry.await() } is DataHealth.Available)
+        assertTrue(inputs.all { it.unit == WeightUnit.KG })
+        assertEquals(before, deps.rawPreferenceValues())
+        assertTrue(deps.database.workoutDao().getAllSessions().isEmpty())
+        sibling.cancel()
+    }
+
+    @Test
+    fun aRequiredRoutineFaultDisablesAttachedHomeBeforeInFlightHintsCancellationFinishes() = runBlocking {
+        deps.routineRepository.create("Before the fault")
+        deps.preferencesRepository.setOnboardingComplete(true)
+        val failRoutineRead = MutableStateFlow(false)
+        val realDao = deps.database.routineDao()
+        val refusingDao = object : RoutineDao by realDao {
+            override fun observeAll(): Flow<List<RoutineWithExercises>> =
+                combine(realDao.observeAll(), failRoutineRead) { rows, failing ->
+                    if (failing) throw SQLiteException("The actual routine read failed")
+                    rows
+                }
+        }
+        val hintsStarted = CompletableDeferred<Unit>()
+        val cancellationEntered = CompletableDeferred<Unit>()
+        val releaseCleanup = CompletableDeferred<Unit>()
+        var loads = 0
+        val src = source(
+            routineRepository = RoutineRepository(routineDao = refusingDao, database = deps.database),
+            loadHints = { _, _, _ ->
+                if (++loads == 2) {
+                    hintsStarted.complete(Unit)
+                    try {
+                        awaitCancellation()
+                    } finally {
+                        withContext(NonCancellable) {
+                            cancellationEntered.complete(Unit)
+                            releaseCleanup.await()
+                        }
+                    }
+                }
+                emptyList()
+            },
+        )
+        val graph = object : AppDependencies by deps {
+            override val trainingInsights: TrainingInsightsPublisher = src
+        }
+        val home = HomeViewModel(ApplicationProvider.getApplicationContext(), graph)
+        val seen = mutableListOf<DataHealth<TrainingInsights>>()
+        val sibling = launch { src.observeSharedHealth(true).collect { seen += it } }
+        try {
+            awaitUntil { home.uiState.value.readState == HomeReadState.CURRENT && seen.lastOrNull() is DataHealth.Available }
+            val oldBoard = home.uiState.value
+            val oldUnit = deps.preferencesRepository.weightUnit.first()
+            deps.preferencesRepository.setWeightUnit(if (oldUnit == WeightUnit.KG) WeightUnit.LBS else WeightUnit.KG)
+            awaitUntil { hintsStarted.isCompleted }
+            // A healthy replacement starts cancelling the old hints. The fault arrives
+            // while that cancellation is already joining its held cleanup.
+            deps.preferencesRepository.setWeightUnit(oldUnit)
+            awaitUntil { cancellationEntered.isCompleted }
+            val routinesBefore = realDao.getAllRoutines()
+            val routineExercisesBefore = realDao.getAllRoutineExercises()
+            val sessionsBefore = deps.database.workoutDao().getAllSessions()
+            val activitiesBefore = deps.database.activityDao().getAllGraphs()
+            val prefsBefore = deps.rawPreferenceValues()
+            failRoutineRead.value = true
+            awaitUntil {
+                cancellationEntered.isCompleted && seen.lastOrNull() is DataHealth.Degraded &&
+                    home.uiState.value.readState == HomeReadState.STALE
+            }
+            assertFalse("failure was hidden until cleanup released", releaseCleanup.isCompleted)
+            assertEquals(oldBoard.routines, home.uiState.value.routines)
+            assertFalse(home.uiState.value.mutationEnabled)
+            assertFalse("a known insight-only read fault admitted a workout", home.startFreeWorkout())
+            val failureAt = seen.lastIndex
+            releaseCleanup.complete(Unit)
+            settle()
+            assertTrue("obsolete hints completion restored Available after the fault", seen.drop(failureAt).none {
+                it is DataHealth.Available
+            })
+            assertEquals(HomeReadState.STALE, home.uiState.value.readState)
+            assertEquals(routinesBefore, realDao.getAllRoutines())
+            assertEquals(routineExercisesBefore, realDao.getAllRoutineExercises())
+            assertEquals(sessionsBefore, deps.database.workoutDao().getAllSessions())
+            assertEquals(activitiesBefore, deps.database.activityDao().getAllGraphs())
+            assertEquals(prefsBefore, deps.rawPreferenceValues())
+        } finally {
+            releaseCleanup.complete(Unit)
+            home.clearAndJoinForTest()
+            sibling.cancel()
+        }
+    }
+
     private suspend fun settle() = repeat(5) {
         dispatcher.scheduler.runCurrent()
         delay(10)
@@ -522,4 +896,38 @@ private class FailingActivityStillsDao(
         gate.check("the activity history")
         return delegate.completedSessionStills()
     }
+}
+
+private class RecoverableActivityStillsDao(
+    private val delegate: ActivityDao,
+    private val gate: ReadGate,
+) : ActivityDao by delegate {
+    val attempts = AtomicInteger()
+    @Volatile var hold: CompletableDeferred<Unit>? = null
+
+    override suspend fun completedSessionStills(): List<SessionStillRow> {
+        attempts.incrementAndGet()
+        hold?.await()
+        gate.check("the activity history")
+        return delegate.completedSessionStills()
+    }
+}
+
+/** The real isolated DataStore, with a read fault emitted independently of any write. */
+private class RecoverableInsightsPreferences(private val delegate: DataStore<Preferences>) : DataStore<Preferences> {
+    val attempts = AtomicInteger()
+    val fail = MutableStateFlow(false)
+    @Volatile var hold: CompletableDeferred<Unit>? = null
+
+    override val data: Flow<Preferences> = flow {
+        attempts.incrementAndGet()
+        emitAll(combine(delegate.data, fail) { prefs, failing ->
+            hold?.await()
+            if (failing) throw IOException("The isolated settings read failed")
+            prefs
+        })
+    }
+
+    override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+        delegate.updateData(transform)
 }

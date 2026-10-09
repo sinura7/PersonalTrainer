@@ -12,7 +12,9 @@ state_members = 1
 # with SetEntryPanel's unused compact path.
 required_args_mixed = 182
 required_args_lambda = 46
-when_exhaustive = 51
+# Home required-read recovery: indexing generic sealed types makes DataHealth visible.
+# Measured with complete source, preserving and tightening the existing skip ceiling.
+when_exhaustive = 48
 # Call sites check-lambda-arity declines rather than guesses at: a lambda header that does
 # not parse as a parameter list, a declaration whose parameter is not a plain function type
 # (a receiver type `T.(A) -> R` among them), and a fully-qualified call, which the call-site

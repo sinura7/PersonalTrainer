@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
 import com.sinura.personaltrainer.data.sync.SyncAuthoring
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.CatalogMeta
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
@@ -63,11 +64,13 @@ class ExerciseRepository(
      * every heat recomputation, and a relation query would fan out to one lookup per exercise
      * every time either table changed.
      */
-    fun observeAll(): Flow<List<Exercise>> =
+    fun observeAllHealth(): Flow<DataHealth<List<Exercise>>> =
         combine(exerciseDao.observeAll(), catalogDao.observeAllCredits()) { rows, credits ->
             val byExercise = credits.groupByExercise()
             rows.map { it.toDomain(byExercise[it.id].orEmpty()) }
-        }.observeHealth("the exercise catalog").presentValues()
+        }.observeHealth("the exercise catalog")
+
+    fun observeAll(): Flow<List<Exercise>> = observeAllHealth().presentValues()
 
     /**
      * Name, muscle group, or nickname.

@@ -61,6 +61,7 @@ import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
@@ -161,6 +162,7 @@ fun GymCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     colors: CardColors = CardDefaults.cardColors(containerColor = Surface2),
+    enabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(Radius.md)
@@ -168,6 +170,7 @@ fun GymCard(
     if (onClick != null) {
         Card(
             onClick = onClick,
+            enabled = enabled,
             modifier = modifier.fillMaxWidth(),
             colors = colors,
             shape = shape,
@@ -396,6 +399,7 @@ fun InstrumentRow(
     checked: Boolean? = null,
     onCheckedChange: ((Boolean) -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
+    enabled: Boolean = true,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val interaction = when {
@@ -403,6 +407,7 @@ fun InstrumentRow(
             Modifier
                 .toggleable(
                     value = checked,
+                    enabled = enabled,
                     role = Role.Switch,
                     onValueChange = onCheckedChange,
                 )
@@ -411,11 +416,12 @@ fun InstrumentRow(
             Modifier
                 .selectable(
                     selected = selected,
+                    enabled = enabled,
                     role = Role.RadioButton,
                     onClick = onClick,
                 )
                 .semantics(mergeDescendants = true) {}
-        onClick != null -> Modifier.clickable(role = Role.Button, onClick = onClick)
+        onClick != null -> Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
         else -> Modifier
     }
     Row(
@@ -432,7 +438,7 @@ fun InstrumentRow(
             Text(
                 title,
                 style = InstrumentType.title,
-                color = TextPrimary,
+                color = if (enabled) TextPrimary else TextDisabled,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

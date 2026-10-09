@@ -66,7 +66,7 @@ for src in clean.values():
         if entries:
             cases[m.group(1)] = entries
 
-    for m in re.finditer(r"\bsealed\s+(?:class|interface)\s+([A-Za-z_]\w*)\s*(?:\([^)]*\))?\s*(?::[^{]*)?\{", src):
+    for m in re.finditer(r"\bsealed\s+(?:class|interface)\s+([A-Za-z_]\w*)\s*(?:<[^>{}]*>\s*)?(?:\([^)]*\))?\s*(?::[^{]*)?\{", src):
         end = block_end(src, src.index("{", m.end() - 1))
         body = src[m.end():end]
         subs = set(re.findall(r"\b(?:data\s+)?(?:object|class)\s+([A-Z]\w*)", body))

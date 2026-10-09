@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.domain.MissedWorkChoice
 import com.sinura.personaltrainer.domain.MissedWorkPolicy
 import com.sinura.personaltrainer.domain.MoveToToday
 import com.sinura.personaltrainer.domain.OccurrenceStatus
+import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SessionSummary
@@ -37,7 +38,9 @@ import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.data.repository.AuxiliaryBlocks
 import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
-import com.sinura.personaltrainer.data.repository.presentValues
+import com.sinura.personaltrainer.data.repository.combineHealth
+import com.sinura.personaltrainer.domain.DataHealth
+import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.reminder.ReminderNotifications
 import com.sinura.personaltrainer.util.runCatchingCancellable
@@ -49,10 +52,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+enum class HomeReadState { WAITING, CURRENT, UNAVAILABLE, STALE }
 
 data class HomeUiState(
     val isLoading: Boolean = true,
@@ -83,9 +100,16 @@ data class HomeUiState(
     val rules: List<com.sinura.personaltrainer.domain.ScheduleRule> = emptyList(),
     val weekStartEpochDay: Long = 0L,
     val suggestedExtraEquipment: ExtraEquipment = ExtraEquipment.MIXED,
+    val readState: HomeReadState = HomeReadState.WAITING,
+    val retryPending: Boolean = false,
+    val readProblem: String? = null,
+    val bodyweightSavePending: Boolean = false,
+    val bodyweightSaveError: String? = null,
+    val bodyweightDraftKg: Double? = null,
 ) {
     /** True for a live workout or live cardio — Home's filled Volt hides for both. */
     val sessionLive: Boolean get() = inProgress != null || liveActivity != null
+    val mutationEnabled: Boolean get() = readState == HomeReadState.CURRENT && !retryPending
 }
 
 /** A leftover Skip, held only long enough for the undo host to offer it back. */
@@ -95,49 +119,167 @@ data class SkippedDayOffer(
     val title: String,
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
     private val actionError = MutableStateFlow<String?>(null)
+    private val bodyweightSave = MutableStateFlow(BodyweightSave())
+    private val _bodyweightSaved = MutableStateFlow(false)
+    val bodyweightSaved: StateFlow<Boolean> = _bodyweightSaved.asStateFlow()
     private val undoableSkip = MutableStateFlow<SkippedDayOffer?>(null)
     val skippedDay: StateFlow<SkippedDayOffer?> = undoableSkip.asStateFlow()
 
-    val uiState: StateFlow<HomeUiState> = combine(
-        container.trainingInsights.observeShared(),
-        combine(
-            container.workoutRepository.observeInProgress(),
-            container.activityRepository.observeLive(),
-        ) { workout, cardio -> workout to cardio },
-        actionError,
-        combine(
-            combine(
-                container.preferencesRepository.lighterWeekStartEpochDay,
-                combine(
-                    container.plannerRepository.observeOccurrences(),
-                    container.plannerRepository.observeRules(),
-                    container.plannerRepository.observeDecisions(),
-                ) { occurrences, rules, decisions -> Triple(occurrences, rules, decisions) },
-            ) { lighterStart, planner -> lighterStart to planner },
-            combine(
-                combine(
-                    container.preferencesRepository.schedulePreferences,
-                    container.preferencesRepository.preferredDays,
-                    // Guarded: the plain log throws what Room throws (audit DB-1).
-                    container.preferencesRepository.bodyweightLogHealth.presentValues(),
-                    container.preferencesRepository.bodyweightCheckInWeekday,
-                    container.preferencesRepository.onboardingComplete,
-                ) { preferences, preferredDays, log, checkIn, setupComplete ->
-                    HomeCadence(preferences, preferredDays, log, checkIn, setupComplete)
-                },
-                container.preferencesRepository.coachPreferences,
-            ) { cadence, coach ->
-                cadence.copy(
-                    suggestedExtra = ExtraEquipment.fromPreferences(coach.availableEquipment),
-                )
+    private val readGeneration = MutableStateFlow(0L)
+    private val board = MutableStateFlow(HomeUiState())
+    private var lastCompleteBoard: HomeUiState? = null
+    // Kept on the ViewModel's main dispatcher, before any presentation computation. A stale
+    // enabled frame must never admit a queued tap after a required read has failed.
+    private var authoritativeReadState = HomeReadState.WAITING
+    private var authoritativeRetryPending = false
+    private var healthRevision = 0L
+    private val terminalReminderRequests = mutableSetOf<String>()
+
+    val uiState: StateFlow<HomeUiState> = combine(board, actionError, bodyweightSave) { state, error, weight ->
+        state.copy(
+            error = error,
+            bodyweightSavePending = weight.pending,
+            bodyweightSaveError = weight.error,
+            bodyweightDraftKg = weight.kg,
+        )
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, HomeUiState())
+
+    init {
+        // This safety collector belongs to the ViewModel, not its current composition. The
+        // last complete board survives a navigation/rotation and a retry never shows a partly
+        // refreshed mixture as current. Producers still own sharing and their retry identity.
+        viewModelScope.launch {
+            readGeneration.flatMapLatest { generation ->
+                flow { emitAll(requiredReads(retry = generation != 0L)) }
+                    .catch { thrown ->
+                        if (thrown is CancellationException) throw thrown
+                        AppLog.w(TAG, "Reading Home failed", thrown)
+                        emit(DataHealth.Unavailable("Home"))
+                    }
+                    .map<DataHealth<HomeInputs>, DataHealth<HomeInputs>?> { it }
+                    .onStart { emit(null) }
+                    .map { generation to it }
+            }.map { (generation, health) ->
+                val revision = if (generation == readGeneration.value) ++healthRevision else healthRevision
+                // collectLatest cancels AND joins the old compute action. Publish the safety
+                // refusal before that join: even slow cancellation must not leave an old
+                // enabled frame able to start or mutate anything.
+                if (generation == readGeneration.value) {
+                    when (health) {
+                        null -> showReadProblem(waiting = true)
+                        is DataHealth.Unavailable, is DataHealth.Degraded -> showReadProblem()
+                        is DataHealth.Available -> Unit
+                    }
+                }
+                Triple(generation, revision, health)
+            // Keep health publication live even if a healthy replacement has already
+            // begun joining a cancelled computation. Only the latest pending work is kept.
+            }.buffer(Channel.CONFLATED).collectLatest { (generation, revision, health) ->
+                if (generation != readGeneration.value) return@collectLatest
+                when (health) {
+                    null, is DataHealth.Unavailable, is DataHealth.Degraded -> Unit
+                    is DataHealth.Available -> {
+                        val rendered = runCatchingCancellable {
+                            withContext(container.computeDispatcher) { completeBoard(health.value) }
+                        }.getOrElse { thrown ->
+                            AppLog.w(TAG, "Preparing Home failed", thrown)
+                            if (generation == readGeneration.value && revision == healthRevision) showReadProblem()
+                            return@collectLatest
+                        }
+                        if (generation != readGeneration.value || revision != healthRevision) return@collectLatest
+                        lastCompleteBoard = rendered
+                        authoritativeReadState = HomeReadState.CURRENT
+                        authoritativeRetryPending = false
+                        board.value = rendered
+                    }
+                }
+            }
+        }
+    }
+
+    /** A deliberate retry restarts every required read. Old shared replay cannot satisfy it. */
+    fun retryRead(): Boolean {
+        if (authoritativeRetryPending || authoritativeReadState == HomeReadState.CURRENT ||
+            authoritativeReadState == HomeReadState.WAITING
+        ) return false
+        authoritativeRetryPending = true
+        showReadProblem(waiting = true)
+        readGeneration.value += 1L
+        return true
+    }
+
+    private fun showReadProblem(waiting: Boolean = false) {
+        if (!waiting) authoritativeRetryPending = false
+        val held = lastCompleteBoard
+        authoritativeReadState = when {
+            held != null -> HomeReadState.STALE
+            waiting && !authoritativeRetryPending -> HomeReadState.WAITING
+            else -> HomeReadState.UNAVAILABLE
+        }
+        board.value = (held ?: HomeUiState()).copy(
+            isLoading = authoritativeReadState == HomeReadState.WAITING,
+            readState = authoritativeReadState,
+            retryPending = authoritativeRetryPending,
+            readProblem = when (authoritativeReadState) {
+                HomeReadState.WAITING -> null
+                HomeReadState.STALE ->
+                    "Home could not refresh. Showing the last complete view. Retry before making changes."
+                else -> "Home could not be read. Retry before starting or changing anything."
             },
-        ) { planner, cadence -> planner to cadence },
-    ) { insights, livePair, error, extras ->
+        )
+    }
+
+    private fun canMutate(): Boolean =
+        authoritativeReadState == HomeReadState.CURRENT && !authoritativeRetryPending
+
+    private fun requiredReads(retry: Boolean): Flow<DataHealth<HomeInputs>> {
+        val live = combineHealth(
+            container.workoutRepository.observeInProgressHealth(),
+            if (retry) container.activityRepository.retryLiveHealth()
+            else container.activityRepository.observeLiveHealth(),
+        ) { workout, cardio -> workout to cardio }
+        val planner = combineHealth(
+            combineHealth(
+                container.plannerRepository.observeOccurrencesHealth(),
+                container.plannerRepository.observeRulesHealth(),
+            ) { occurrences, rules -> occurrences to rules },
+            container.plannerRepository.observeDecisionsHealth(),
+        ) { pair, decisions -> Triple(pair.first, pair.second, decisions) }
+        // Decode one raw snapshot. Combining safe-derived defaults with a separate raw
+        // health signal lets those defaults race ahead of a failed-store warning.
+        val cadence = combineHealth(
+            container.preferencesRepository.observeHomePreferencesHealth(),
+            container.preferencesRepository.bodyweightLogHealth,
+        ) { preferences, log ->
+            preferences.lighterWeekStartEpochDay to HomeCadence(
+                preferences.schedulePreferences, preferences.preferredDays, log,
+                preferences.bodyweightCheckInWeekday, preferences.onboardingComplete,
+                ExtraEquipment.fromPreferences(preferences.coachPreferences.availableEquipment),
+            )
+        }
+        val extras = combineHealth(planner, cadence) { planned, checkIn ->
+            (checkIn.first to planned) to checkIn.second
+        }
+        return combineHealth(
+            combineHealth(
+                if (retry) container.trainingInsights.retrySharedHealth()
+                else container.trainingInsights.observeSharedHealth(),
+                live,
+            ) { insights, activities -> insights to activities },
+            extras,
+        ) { main, additional -> HomeInputs(main.first, main.second, additional) }
+    }
+
+    private fun completeBoard(input: HomeInputs): HomeUiState {
+        val insights = input.insights
+        val livePair = input.live
+        val extras = input.extras
         val inProgress = livePair.first
         val liveActivity = livePair.second
         val sessionLive = inProgress != null || liveActivity != null
@@ -155,7 +297,7 @@ class HomeViewModel @JvmOverloads constructor(
         val weekOcc = occurrences.filter { it.localEpochDay in weekStart..(weekStart + 6) }
         val overdue = MissedWorkPolicy.overdue(weekOcc, today)
         val decision = decisions.firstOrNull { it.weekStartEpochDay == weekStart }
-        HomeUiState(
+        return HomeUiState(
             isLoading = false,
             inProgress = inProgress,
             liveActivity = liveActivity,
@@ -173,7 +315,6 @@ class HomeViewModel @JvmOverloads constructor(
                 lighterStart,
                 insights.weekPlan?.weekStartEpochDay,
             ),
-            error = error,
             // Not while a session is live: a lifter mid-workout at 18:20 answering
             // "1 planned session was not done" burns the week's one decision on a
             // session they are in the middle of doing.
@@ -193,16 +334,9 @@ class HomeViewModel @JvmOverloads constructor(
             rules = rules,
             weekStartEpochDay = weekStart,
             suggestedExtraEquipment = cadence.suggestedExtra,
+            readState = HomeReadState.CURRENT,
         )
     }
-        // Same reason as Plan: this transform walks every finished session to build the logged
-        // set on the first frame after a cold start.
-        .flowOn(container.computeDispatcher)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = HomeUiState(),
-        )
 
     /**
      * The session to open, held as state rather than passed as a callback.
@@ -293,10 +427,14 @@ class HomeViewModel @JvmOverloads constructor(
         }
     }
 
-    fun startSuggestedDay(day: SuggestedTrainingDay) {
+    fun startSuggestedDay(day: SuggestedTrainingDay): Boolean {
+        // A confirmation owns the day it showed, even when selection or the plan changes.
+        // Consult the completed board directly: the presentation flow may still be behind it.
+        if (!canMutate() || board.value.weekPlan?.dayOn(day.epochDay) != day) return false
         viewModelScope.launch {
             start(day, PendingOccurrence.plannedOccurrenceId(container, day))
         }
+        return true
     }
 
     /**
@@ -304,15 +442,23 @@ class HomeViewModel @JvmOverloads constructor(
      * pending occurrence is cleared — finishing this must not mark a Plan
      * row DONE.
      */
-    fun startFreeWorkout() {
+    fun startFreeWorkout(): Boolean {
+        if (!canMutate()) return false
         viewModelScope.launch {
             openWorkout(container.workoutRepository.startFreeWorkoutSafely(), freeDay())
         }
+        return true
     }
 
-    fun startRoutine(routineId: String) {
+    fun startRoutine(routineId: String): Boolean {
+        if (!canMutate()) return false
         viewModelScope.launch {
-            val routine = container.routineRepository.getById(routineId)
+            val routine = runCatchingCancellable { container.routineRepository.getById(routineId) }
+                .getOrElse { thrown ->
+                    AppLog.w(TAG, "Reading the routine to start failed", thrown)
+                    actionError.value = ReminderCopy.START_FAILED
+                    return@launch
+                }
             if (routine == null) {
                 actionError.value = "That routine is no longer available."
                 return@launch
@@ -326,9 +472,11 @@ class HomeViewModel @JvmOverloads constructor(
                 freeDay(title = routine.name, routineId = routine.id),
             )
         }
+        return true
     }
 
-    fun startCardio(type: CardioType) {
+    fun startCardio(type: CardioType): Boolean {
+        if (!canMutate()) return false
         viewModelScope.launch {
             when (
                 val outcome = container.startLiveCardio(
@@ -346,17 +494,25 @@ class HomeViewModel @JvmOverloads constructor(
                     actionError.value = outcome.reason
             }
         }
+        return true
     }
 
-    fun startAux(packId: String) {
+    fun startAux(packId: String): Boolean {
+        if (!canMutate()) return false
         viewModelScope.launch {
             val pack = AuxiliaryPacks.byId(packId) ?: return@launch
-            val routineId = AuxiliaryBlocks.ensureRoutine(
-                pack,
-                container.routineRepository,
-                container.exerciseRepository,
-            )
-            val routine = container.routineRepository.getById(routineId)
+            val routine = runCatchingCancellable {
+                val routineId = AuxiliaryBlocks.ensureRoutine(
+                    pack,
+                    container.routineRepository,
+                    container.exerciseRepository,
+                )
+                container.routineRepository.getById(routineId)
+            }.getOrElse { thrown ->
+                AppLog.w(TAG, "Preparing the extra to start failed", thrown)
+                actionError.value = ReminderCopy.START_FAILED
+                return@launch
+            }
             if (routine == null || routine.exercises.isEmpty()) {
                 actionError.value = SessionOrderCopy.NEED_A_LIFT
                 return@launch
@@ -366,6 +522,7 @@ class HomeViewModel @JvmOverloads constructor(
                 freeDay(title = pack.title, routineId = routine.id),
             )
         }
+        return true
     }
 
     private suspend fun openWorkout(
@@ -404,12 +561,13 @@ class HomeViewModel @JvmOverloads constructor(
         confidence = ScheduleConfidence.HIGH,
     )
 
-    fun applyMissedWork(choice: MissedWorkChoice) {
+    fun applyMissedWork(choice: MissedWorkChoice): Boolean {
+        if (!canMutate()) return false
+        val weekStart = lastCompleteBoard?.weekPlan?.weekStartEpochDay ?: return false
         viewModelScope.launch {
-            val weekStart = uiState.value.weekPlan?.weekStartEpochDay ?: return@launch
             val now = time.captureNow()
             val nowMinutes = time.wallMinutesOfDay(now.instantMillis, now.zoneId)
-            runCatching {
+            runCatchingCancellable {
                 container.plannerRepository.applyMissedWork(
                     choice = choice,
                     weekStart = CivilDate.fromEpochDay(weekStart),
@@ -420,6 +578,7 @@ class HomeViewModel @JvmOverloads constructor(
                 )
             }.onFailure { actionError.value = "Could not save that decision. Try again." }
         }
+        return true
     }
 
     /**
@@ -429,7 +588,8 @@ class HomeViewModel @JvmOverloads constructor(
      * (audit UI-1). A refused or failed start leaves the reminder as it was, except for a
      * leftover from an earlier day: moving it to today already cancels its reminders.
      */
-    fun startOccurrence(occurrenceId: String, deliveryId: String? = null) {
+    fun startOccurrence(occurrenceId: String, deliveryId: String? = null): Boolean {
+        if (!canMutate()) return false
         val reminder = deliveryId?.let { ReminderTap(occurrenceId = occurrenceId, deliveryId = it) }
         viewModelScope.launch {
             // Its reads used to be unguarded, so a failed one closed the app (audit UI-12's
@@ -473,6 +633,26 @@ class HomeViewModel @JvmOverloads constructor(
                 StartOccurrenceOutcome.Missing -> reminderGone(reminder)
             }
         }
+        return true
+    }
+
+    /**
+     * A notification already names the intended session. Waiting keeps that handoff alive;
+     * a read refusal consumes only this in-app request, without touching its durable delivery
+     * or notification. Recovery therefore never turns a refused tap into a delayed start.
+     */
+    fun dispatchPendingOccurrenceStart(
+        occurrenceId: String,
+        deliveryId: String? = null,
+        requestId: String? = null,
+    ): Boolean {
+        val token = requestId ?: "legacy:$occurrenceId:$deliveryId"
+        if (token in terminalReminderRequests) return true
+        if (authoritativeReadState == HomeReadState.WAITING) return false
+        terminalReminderRequests += token
+        if (!canMutate()) return true
+        startOccurrence(occurrenceId, deliveryId)
+        return true
     }
 
     /**
@@ -554,8 +734,9 @@ class HomeViewModel @JvmOverloads constructor(
         _navigateToSession.value = blocked.sessionId
     }
 
-    fun discardBlockedAndStart() {
-        val blocked = _blockedByInProgress.value ?: return
+    fun discardBlockedAndStart(): Boolean {
+        if (!canMutate()) return false
+        val blocked = _blockedByInProgress.value ?: return false
         _blockedByInProgress.value = null
         viewModelScope.launch {
             when (val result = container.discardWorkout(blocked.sessionId)) {
@@ -566,6 +747,7 @@ class HomeViewModel @JvmOverloads constructor(
                 is DiscardOutcome.Failed -> actionError.value = result.message
             }
         }
+        return true
     }
 
     fun dismissBlockedStart() {
@@ -576,14 +758,15 @@ class HomeViewModel @JvmOverloads constructor(
         actionError.value = null
     }
 
-    fun skipOccurrence(occurrenceId: String) {
+    fun skipOccurrence(occurrenceId: String): Boolean {
+        if (!canMutate()) return false
         viewModelScope.launch {
-            runCatching {
+            runCatchingCancellable {
                 val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
-                    ?: return@runCatching
-                if (!MoveToToday.isLeftover(occurrence, todayEpochDay())) return@runCatching
+                    ?: return@runCatchingCancellable
+                if (!MoveToToday.isLeftover(occurrence, todayEpochDay())) return@runCatchingCancellable
                 val previous = container.plannerRepository.skipOccurrence(occurrenceId)
-                    ?: return@runCatching
+                    ?: return@runCatchingCancellable
                 val title = DailyAgenda.forDay(
                     epochDay = occurrence.localEpochDay,
                     occurrences = listOf(occurrence),
@@ -598,28 +781,33 @@ class HomeViewModel @JvmOverloads constructor(
             }.onSuccess { actionError.value = null }
                 .onFailure { actionError.value = "Could not skip that session. Try again." }
         }
+        return true
     }
 
-    fun undoSkipOccurrence() {
-        val pending = undoableSkip.value ?: return
+    fun undoSkipOccurrence(): Boolean {
+        if (!canMutate()) return false
+        val pending = undoableSkip.value ?: return false
         undoableSkip.value = null
         viewModelScope.launch {
-            runCatching {
+            runCatchingCancellable {
                 container.plannerRepository.restoreSkippedOccurrence(
                     occurrenceId = pending.occurrenceId,
                     previousStatus = pending.previousStatus,
                 )
             }.onFailure { actionError.value = "Could not restore that session. Try again." }
         }
+        return true
     }
 
     fun onUndoOfferHandled() {
+        if (!canMutate()) return
         undoableSkip.value = null
     }
 
-    fun addDaySession(epochDay: Long, add: HomeDayAdd, once: Boolean) {
+    fun addDaySession(epochDay: Long, add: HomeDayAdd, once: Boolean): Boolean {
+        if (!canMutate()) return false
         viewModelScope.launch {
-            runCatching {
+            runCatchingCancellable {
                 val today = todayEpochDay()
                 val nowMinutes = time.wallMinutesOfDay(
                     time.nowMillis(),
@@ -673,18 +861,21 @@ class HomeViewModel @JvmOverloads constructor(
             }.onSuccess { actionError.value = null }
                 .onFailure { actionError.value = "Could not add that session. Try again." }
         }
+        return true
     }
 
-    fun moveDayBlock(items: List<AgendaItem>, occurrenceId: String, delta: Int) {
+    fun moveDayBlock(items: List<AgendaItem>, occurrenceId: String, delta: Int): Boolean {
+        if (!canMutate()) return false
         viewModelScope.launch {
             val from = items.indexOfFirst { it.occurrence.id == occurrenceId }
             val moves = DayBlockOrder.move(items, from, delta)
             if (moves.isEmpty()) return@launch
-            runCatching {
+            runCatchingCancellable {
                 container.plannerRepository.applyDayOrder(moves)
             }.onSuccess { actionError.value = null }
                 .onFailure { actionError.value = "Could not reorder that session. Try again." }
         }
+        return true
     }
 
     /**
@@ -719,11 +910,68 @@ class HomeViewModel @JvmOverloads constructor(
     /** A reminder's Start: the occurrence it named, and its delivery. */
     data class ReminderTap(val occurrenceId: String, val deliveryId: String)
 
-    fun recordBodyweight(kg: Double) {
-        viewModelScope.launch {
-            container.preferencesRepository.recordBodyweight(kg, todayEpochDay())
+    fun recordBodyweight(kg: Double): Boolean {
+        if (!canMutate() || !canEditBodyweightDraft()) return false
+        if (!kg.isFinite() || kg !in OnboardingAnswers.MIN_BODYWEIGHT_KG..OnboardingAnswers.MAX_BODYWEIGHT_KG) {
+            bodyweightSave.value = BodyweightSave(kg = kg, error = "Enter a weight in the allowed range.")
+            return false
         }
+        // Set/IME and an old enabled frame share this admission latch. The dialog remains
+        // open until all of the repository's writes finish, with the authored value intact.
+        bodyweightSave.value = BodyweightSave(pending = true, kg = kg)
+        _bodyweightSaved.value = false
+        val epochDay = todayEpochDay()
+        viewModelScope.launch {
+            runCatchingCancellable {
+                container.preferencesRepository.recordBodyweight(kg, epochDay)
+            }.onSuccess {
+                // Keep ownership through the UI's close/acknowledge boundary. A callback
+                // queued from the old field must not admit another write in that interval.
+                _bodyweightSaved.value = true
+                bodyweightSave.value = BodyweightSave()
+            }.onFailure { thrown ->
+                AppLog.w(TAG, "Saving the weigh-in failed", thrown)
+                bodyweightSave.value = BodyweightSave(
+                    kg = kg,
+                    error = "Could not finish saving this weight. Keep it here and try again.",
+                )
+            }
+        }
+        return true
     }
+
+    fun onBodyweightSaveHandled() {
+        _bodyweightSaved.value = false
+    }
+
+    /** The submitted value owns the field until the successful close is acknowledged. */
+    fun canEditBodyweightDraft(): Boolean = !bodyweightSave.value.pending && !_bodyweightSaved.value
+
+    /** Explicit dismissal discards only this authored field, and never cancels a live write. */
+    fun discardBodyweightDraft(): Boolean {
+        if (!canEditBodyweightDraft()) return false
+        bodyweightSave.value = BodyweightSave()
+        return true
+    }
+
+    private data class BodyweightSave(
+        val pending: Boolean = false,
+        val kg: Double? = null,
+        val error: String? = null,
+    )
+
+    private data class HomeInputs(
+        val insights: TrainingInsights,
+        val live: Pair<WorkoutSession?, ActivitySession?>,
+        val extras: Pair<
+            Pair<Long?, Triple<
+                List<com.sinura.personaltrainer.domain.ScheduleOccurrence>,
+                List<com.sinura.personaltrainer.domain.ScheduleRule>,
+                List<com.sinura.personaltrainer.domain.MissedWorkDecision>,
+            >>,
+            HomeCadence,
+        >,
+    )
 
     private data class HomeCadence(
         val preferences: com.sinura.personaltrainer.domain.SchedulePreferences,

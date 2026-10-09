@@ -33,6 +33,7 @@ fun MissedWorkCard(
     onAdaptWeek: () -> Unit,
     onKeepDates: () -> Unit,
     onSkipMissed: () -> Unit,
+    mutationEnabled: Boolean = true,
 ) {
     var otherChoices by rememberSaveable { mutableStateOf(false) }
     GymCard {
@@ -51,6 +52,7 @@ fun MissedWorkCard(
             PrimaryGymButton(
                 text = MissedWorkCopy.KEEP,
                 onClick = onKeepDates,
+                enabled = mutationEnabled,
                 modifier = Modifier.testTag(MissedWorkTags.KEEP),
             )
             SecondaryGymButton(
@@ -62,14 +64,17 @@ fun MissedWorkCard(
                 SecondaryGymButton(
                     text = MissedWorkCopy.MOVE,
                     onClick = onMoveRemaining,
+                    enabled = mutationEnabled,
                 )
                 SecondaryGymButton(
                     text = MissedWorkCopy.ADAPT,
                     onClick = onAdaptWeek,
+                    enabled = mutationEnabled,
                 )
                 SecondaryGymButton(
                     text = MissedWorkCopy.SKIP,
                     onClick = onSkipMissed,
+                    enabled = mutationEnabled,
                 )
             }
         }

@@ -51,6 +51,7 @@ import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.data.repository.observeHealth
 import com.sinura.personaltrainer.domain.ReminderScheduler
 import com.sinura.personaltrainer.reminder.NoOpReminderScheduler
 import com.sinura.personaltrainer.domain.AccountAuthPort
@@ -59,6 +60,7 @@ import com.sinura.personaltrainer.domain.SyncStatusPort
 import com.sinura.personaltrainer.domain.AlarmScheduleResult
 import com.sinura.personaltrainer.domain.ExactAlarmAttempt
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.insights.TrainingInsightsPublisher
 import com.sinura.personaltrainer.domain.PhoneCapabilityPort
@@ -80,6 +82,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import com.sinura.personaltrainer.domain.RestTimerSnapshot
 
@@ -215,17 +220,20 @@ class FakeAppDependencies(
         )
     private val prefsContext = IsolatedAppContext(context.applicationContext)
     private val prefsScope = CoroutineScope(SupervisorJob() + prefsDispatcher)
-    private val prefsStore = prefsStoreDecorator(
-        PreferenceDataStoreFactory.create(
-            // The app's own handler, so a corruption test exercises what the phone runs.
-            corruptionHandler = userSettingsCorruptionHandler(),
-            scope = prefsScope,
-            produceFile = {
-                File(prefsContext.filesDir, "datastore/user_settings.preferences_pb")
-                    .also(prefsFileBeforeOpen)
-            },
-        ),
+    private val rawPrefsStore = PreferenceDataStoreFactory.create(
+        // The app's own handler, so a corruption test exercises what the phone runs.
+        corruptionHandler = userSettingsCorruptionHandler(),
+        scope = prefsScope,
+        produceFile = {
+            File(prefsContext.filesDir, "datastore/user_settings.preferences_pb")
+                .also(prefsFileBeforeOpen)
+        },
     )
+    private val prefsStore = prefsStoreDecorator(rawPrefsStore)
+
+    /** Undecorated isolated store, for read-fault tests to prove that refusal wrote nothing. */
+    suspend fun rawPreferenceValues(): Map<String, Any> =
+        rawPrefsStore.data.first().asMap().mapKeys { it.key.name }
     override val preferencesRepository: PreferencesRepository =
         PreferencesRepository(
             prefsContext,
@@ -296,6 +304,12 @@ class FakeAppDependencies(
     )
     override val trainingInsights: TrainingInsightsPublisher = object : TrainingInsightsPublisher {
         override fun observeShared(includeWeekPlan: Boolean): Flow<TrainingInsights> = insights
+        override fun observeSharedHealth(includeWeekPlan: Boolean): Flow<DataHealth<TrainingInsights>> =
+            insights.observeHealth("test training insights")
+        // This fixture has no shared producer: collection really reopens its controlled input.
+        override fun retrySharedHealth(includeWeekPlan: Boolean): Flow<DataHealth<TrainingInsights>> = flow {
+            emitAll(insights.observeHealth("test training insights"))
+        }
         override fun observe(
             window: Flow<HeatWindow>,
             refresh: Flow<Any?>,

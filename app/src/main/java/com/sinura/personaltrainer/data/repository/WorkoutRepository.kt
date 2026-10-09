@@ -173,7 +173,7 @@ class WorkoutRepository(
      * not re-aggregate every lift. The picker keeps [observeLastLogged].
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun observeFinishedLastLogged(): Flow<Map<String, Long>> =
+    fun observeFinishedLastLoggedHealth(): Flow<DataHealth<Map<String, Long>>> =
         workoutDao.observeFinishedWorkGeneration()
             .distinctUntilChanged()
             .mapLatest {
@@ -181,7 +181,9 @@ class WorkoutRepository(
             }
             .distinctUntilChanged()
             .observeHealth("when each lift was last logged")
-            .presentValues()
+
+    fun observeFinishedLastLogged(): Flow<Map<String, Long>> =
+        observeFinishedLastLoggedHealth().presentValues()
 
     fun observeBestWorkingWeights(): Flow<Map<String, Double>> =
         workoutDao.observeBestWorkingWeights().map { rows ->
@@ -189,14 +191,16 @@ class WorkoutRepository(
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun observeFinishedSince(minDateMs: Long): Flow<List<WorkoutSession>> =
+    fun observeFinishedSinceHealth(minDateMs: Long): Flow<DataHealth<List<WorkoutSession>>> =
         workoutDao.observeFinishedWorkGeneration()
             .distinctUntilChanged()
             .mapLatest {
                 workoutDao.getFinishedSessionsSince(minDateMs).map { it.toDomain() }
             }
             .observeHealth("recent finished workouts")
-            .presentValues()
+
+    fun observeFinishedSince(minDateMs: Long): Flow<List<WorkoutSession>> =
+        observeFinishedSinceHealth(minDateMs).presentValues()
 
     suspend fun sessionsBetween(minDateMs: Long, maxDateMs: Long): List<WorkoutSession> =
         workoutDao.getFinishedSessionsBetween(minDateMs, maxDateMs).map { it.toDomain() }
@@ -263,10 +267,11 @@ class WorkoutRepository(
         workoutDao.observeSession(id).map { it?.toDomain() }
             .observeHealth("this session")
 
-    fun observeInProgress(): Flow<WorkoutSession?> =
+    fun observeInProgressHealth(): Flow<DataHealth<WorkoutSession?>> =
         workoutDao.observeInProgressSession().map { it?.toSummary() }
             .observeHealth("the in-progress session")
-            .presentValues()
+
+    fun observeInProgress(): Flow<WorkoutSession?> = observeInProgressHealth().presentValues()
 
     suspend fun getInProgress(): WorkoutSession? =
         workoutDao.getInProgressSession()?.toSummary()

@@ -1,7 +1,13 @@
 package com.sinura.personaltrainer.ui.components
 
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -33,6 +39,7 @@ import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
@@ -57,6 +64,14 @@ fun <T> NumberEntryDialog(
     onConfirm: (T) -> Unit,
     onDismiss: () -> Unit,
     appliedValueLabel: ((T) -> String)? = null,
+    confirmEnabled: Boolean = true,
+    /** A refused commit keeps both the typed value and the dialog. */
+    onConfirmAccepted: ((T) -> Boolean)? = null,
+    recoveryContent: (@Composable () -> Unit)? = null,
+    dismissEnabled: Boolean = true,
+    inputEnabled: Boolean = true,
+    /** Consults the current owner when input arrives from a previously editable frame. */
+    onInputAllowed: () -> Boolean = { true },
 ) {
     var text by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(
@@ -67,6 +82,22 @@ fun <T> NumberEntryDialog(
     val suffixSlot: (@Composable () -> Unit)? = unitLabel?.let { label -> { Text(label) } }
     val focus = remember { FocusRequester() }
     val view = LocalView.current
+    val confirm: (Boolean) -> Unit = { haptic ->
+        if (confirmEnabled) {
+            // A queued Set or IME action may come from the frame before the latest edit.
+            // Read the authored field now; the old frame's parsed value is display state.
+            parse(text.text)?.let { value ->
+                val accepted = onConfirmAccepted?.invoke(value) ?: run {
+                    onConfirm(value)
+                    true
+                }
+                if (accepted) {
+                    if (haptic) Haptics.tick(view)
+                    onDismiss()
+                }
+            }
+        }
+    }
     LaunchedEffect(Unit) {
         // The dialog's window attaches a frame after this composes, and requesting focus
         // before the node exists throws. Wait one frame, and treat it as best effort even
@@ -77,54 +108,58 @@ fun <T> NumberEntryDialog(
     }
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (dismissEnabled) onDismiss() },
         title = { Text(title, style = InstrumentType.title) },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                singleLine = true,
-                isError = text.text.isNotBlank() && parsed == null,
-                // Says why "Set" is greyed out. A disabled button with no reason beside it is
-                // just a dead end.
-                supportingText = {
-                    val applied = parsed?.let { appliedValueLabel?.invoke(it) }
-                    Text(if (applied == null) helper else "$helper\nWill use $applied", style = InstrumentType.caption)
-                },
-                suffix = suffixSlot,
-                textStyle = InstrumentType.numeralMd,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        parsed?.let {
-                            onConfirm(it)
-                            onDismiss()
-                        }
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { if (inputEnabled && onInputAllowed()) text = it },
+                    readOnly = !inputEnabled,
+                    singleLine = true,
+                    isError = text.text.isNotBlank() && parsed == null,
+                    // Says why "Set" is greyed out. A disabled button with no reason beside it is
+                    // just a dead end.
+                    supportingText = {
+                        val applied = parsed?.let { appliedValueLabel?.invoke(it) }
+                        Text(if (applied == null) helper else "$helper\nWill use $applied", style = InstrumentType.caption)
                     },
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focus)
-                    .testTag(NumberEntryTags.FIELD),
-            )
+                    suffix = suffixSlot,
+                    textStyle = InstrumentType.numeralMd,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { confirm(false) },
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusRequester(focus)
+                        .testTag(NumberEntryTags.FIELD),
+                )
+                recoveryContent?.invoke()
+            }
         },
         confirmButton = {
             TextButton(
-                enabled = parsed != null,
-                onClick = {
-                    parsed?.let {
-                        Haptics.tick(view)
-                        onConfirm(it)
-                        onDismiss()
-                    }
-                },
-            ) { Text("Set", style = InstrumentType.bodyStrong, color = if (parsed != null) Volt else TextDisabled) }
+                enabled = parsed != null && confirmEnabled,
+                onClick = { confirm(true) },
+                modifier = Modifier
+                    .heightIn(min = Metrics.touchMin)
+                    .widthIn(min = Metrics.touchMin)
+                    .testTag(NumberEntryTags.CONFIRM),
+            ) { Text("Set", style = InstrumentType.bodyStrong, color = if (parsed != null && confirmEnabled) Volt else TextDisabled) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                enabled = dismissEnabled,
+                modifier = Modifier.heightIn(min = Metrics.touchMin).widthIn(min = Metrics.touchMin),
+            ) {
                 Text("Cancel", style = InstrumentType.bodyStrong, color = TextSecondary)
             }
         },
@@ -133,6 +168,7 @@ fun <T> NumberEntryDialog(
 
 object NumberEntryTags {
     const val FIELD = "number-entry-field"
+    const val CONFIRM = "number-entry-confirm"
 }
 
 /**

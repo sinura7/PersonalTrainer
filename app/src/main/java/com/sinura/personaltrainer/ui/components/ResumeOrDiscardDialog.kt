@@ -3,6 +3,8 @@ package com.sinura.personaltrainer.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -10,6 +12,7 @@ import androidx.compose.ui.Modifier
 import com.sinura.personaltrainer.domain.LiveBarCopy
 import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
@@ -30,16 +33,24 @@ fun ResumeOrDiscardDialog(
     onResume: () -> Unit,
     onDiscardAndStart: () -> Unit,
     onDismiss: () -> Unit,
+    discardEnabled: Boolean = true,
+    recoveryContent: (@Composable () -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("A workout is already in progress", style = InstrumentType.title) },
         text = {
-            Text(
-                "Pick one — this one, or the session you were in the middle of.",
-                style = InstrumentType.body,
-                color = TextSecondary,
-            )
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                Text(
+                    "Pick one — this one, or the session you were in the middle of.",
+                    style = InstrumentType.body,
+                    color = TextSecondary,
+                )
+                recoveryContent?.invoke()
+            }
         },
         confirmButton = {
             Column(
@@ -50,7 +61,12 @@ fun ResumeOrDiscardDialog(
                     text = LiveBarCopy.resumeLabel(LiveBarKind.WORKOUT),
                     onClick = onResume,
                 )
-                DangerGymButton(text = "Discard it and start this", onClick = onDiscardAndStart)
+                SecondaryGymButton(
+                    text = "Discard it and start this",
+                    onClick = onDiscardAndStart,
+                    enabled = discardEnabled,
+                    contentColor = Danger,
+                )
             }
         },
     )

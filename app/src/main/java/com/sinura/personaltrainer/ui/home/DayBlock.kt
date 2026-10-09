@@ -25,6 +25,7 @@ import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
@@ -64,11 +65,12 @@ fun DayBlock(
     action: String?,
     onOpen: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     controls: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val status = lines.status
     val surface = if (onOpen != null) modifier.semantics { role = Role.Button } else modifier
-    GymCard(modifier = surface, onClick = onOpen) {
+    GymCard(modifier = surface, onClick = onOpen, enabled = enabled) {
         DayBlockHead(title = title, lines = lines, exercises = exercises)
         if (status != null || action != null) {
             Row(
@@ -92,7 +94,7 @@ fun DayBlock(
                     Text(
                         action,
                         style = InstrumentType.bodyStrong,
-                        color = Volt,
+                        color = if (enabled) Volt else TextDisabled,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
