@@ -233,9 +233,11 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun updateSet(setId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
-        // A corrected working set needs its effort as a fresh one does (P2a). A hold is stored
-        // with no reps, which is how this screen tells one apart.
-        SetLogRules.validateEffort(rpe = rpe, isWarmup = isWarmup, isHold = reps == 0)?.let { missing ->
+        // Effort follows the original timed type, even if the generic rep editor was
+        // nudged. Supported older timed rows can have a nonpositive rep representation.
+        val original = uiState.value.session?.sets?.firstOrNull { it.id == setId }
+        val timedOriginal = original != null && original.reps < 1 && (original.durationSeconds ?: 0) > 0
+        SetLogRules.validateEffort(rpe = rpe, isWarmup = isWarmup, isHold = timedOriginal || reps == 0)?.let { missing ->
             report(IllegalArgumentException(missing), missing)
             return
         }

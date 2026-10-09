@@ -1002,6 +1002,94 @@ Root inspected the actual formerly hidden row and both preserved repeated target
 Original red runs stay red. This is a filtered pre-integration pass; standalone
 preflight, clean complete/native gates and both final reviews still remain.
 
+**Complete repaired gate remains failed:** Clean `9d988658`, tree
+`edcb3af38115aff6f239e0dd09f671ab014e51f5`, ran `full03` from
+**19:15:39.8962642Z–19:33:25.7412982Z**. The complete standalone preflight passed
+**1,694 tests / 255 classes**; the unfiltered four-task Windows gate executed
+**3,976 app tests / 574 fresh suites, one failure, zero errors/skips**. Its failed
+History retry check includes a previous `progressFailed=true` snapshot after a
+trace index sampled before retry; the independently awaited new pending state
+passed. Application and test causes remain to be distinguished with a deliberately
+delayed recorder, preserving the original assertion and failed XML. No prior pass
+waives this failure. All **1,546 inputs** stayed unchanged. Summary SHA-256:
+`2C951F657577151628DF678DC460AB0A12A41851A7C5D021AE771B6DB3C79889`;
+execution seal: `D1A2C82642D65368948E644A166F974F10AF3AA575258F8A97CA9F6A404936B4`.
+All **2,413 PNGs / 4,465 render files** are preserved, manifest SHA-256:
+`1C23E4FD21E653176CD007C6FFB5F7E1F3E30D8DDF62BD2E3B491543C17A2283`.
+The new native run is deferred while a separate supported-restore/actual-editor
+counter tests the source-predicted conversion of an original weighted timed hold
+outside the prescription graph into repetition work. Planned holds are controls;
+the raw stored row, volume and full unrelated inventory are the safety oracles.
+No wrong write or safe correction is credited before executing that counter.
+
+**Executed causal counters:** `counter06` stopped before tests because one new
+`BackupSetLog` call mixed positional/named arguments and exceeded the existing
+182-skip ceiling. It has zero fresh XML/cases/frames; no pass is inferred from
+old results. Only that call became fully named with identical values, retaining
+all checker limits. Fresh `counter07`, **19:47:52.3585034Z–19:51:36.6384608Z**,
+executed **six cases / two fresh suites, two failures, zero errors/skips**, with
+**1,547 unchanged inputs**. The original retry test passed. The delayed recorder
+received the old FAILED before recovery, appended it at index 4 after the index-4
+cut, then acknowledged a genuine new pending state at index 5. The recovery query
+remained held/unreturned and every state from that new boundary passed the loading,
+null-result and no-failure assertions. The unchanged old-cut helper failed on the
+prior snapshot. This establishes a recorder observation error without a production
+History change; the original full03 failure remains failed evidence.
+
+The separate full supported-restore/shipping-editor hold counter confirmed a high
+wrong-type write: original **12.5 kg / reps 0 / 45 seconds / no effort** became
+**reps 1 / RPE 8**, retaining load/duration/ID/time, after actual +1/effort/Save.
+The stored row and resulting native receipt are retained before the failed type
+and teardown-inventory assertions. This invents **12.5 kg repetition volume**.
+Untouched saved-only Save explicitly refused `Reps must be at least 1`; both planned
+hold controls passed. Do not infer safe saving from the unchanged refused row.
+Summary SHA-256: `C8199D4F809C22873889041D8C4F15AB51C5211BF850C7F5D28B544B9D95AC9D`;
+input manifest: `76798765731DFBE8278CFE0BF513553DC2CB6445AC8AA931DFDD455B029A8183`;
+execution seal: `767F3C78D7F26FD12AFEC89BE57E4F830EFF78F7845B98FFCF8826166ED95AFF`.
+All **32 PNGs / 107 files**, including complete raw inventories and recorder
+chronology, are preserved; render manifest SHA-256:
+`7FCFA8CC6607C206254859E3171AAA61C0E2BC8C66AE7C0699CABA2AFA122CA9`.
+The repair uses the original saved positive-duration/nonpositive-rep distinction
+already used by work/copy, preserves its exact representation, retains the planned
+hold fallback and leaves strict load/weight rules unchanged. Positive-rep stopwatch
+controls and accepted older negative-rep timed backup preservation require fresh
+execution. No schema, validator, backup format or public API change is planned.
+
+**Fresh repaired focused pass:** `targeted06`,
+**19:59:18.7955314Z–20:04:41.6566426Z**, passed **214 cases / 18 fresh suites**,
+zero failures/errors/skips, all four required Windows tasks and unchanged
+**1,548 inputs**. All six independent supported full-restore/editor cases now
+require successful no-refusal Save. Original zero-rep and literal -3 timed rows
+retain their exact representation; +1 with effort 8 changes only effort, while
++1 with all effort controls off retains null effort and all original fields.
+Planned controls also pass. Every inventory from restore through teardown remains
+exact apart from the specifically requested original-row effort. Seven real-Room
+controls verify normal stopwatch strength, zero-rep strength refusal, unknown-load
+zero/invalid-weight refusal, explicit repository duration correction and unrelated
+saved-row/session preservation. Duration editing through the sheet remains open.
+
+All 22 History period checks pass, including original retry and delayed recorder
+with acknowledged recorded boundaries, strict held tails and actual recovery.
+Production History and its keyed ownership rules are unchanged. All 28 restored
+graph render cases and the existing Summary/detail matrix still pass. Summary
+SHA-256: `F22CF19CFF89F31F54858BFBF737F73983E01914BFDA44A241CF87F6DC05353A`;
+input manifest: `D2EC308FBC523208B99F5C79B82E560285BEC50C47F10AA512C8AD9A31967A2F`;
+execution seal: `BC314AFBD82B0DDA707473F3B5F8B52C9774DE50FEDFD1D7D9B7656BBB7AA61A`.
+The fresh archive preserves **733 PNGs / 1,842 files**, manifest SHA-256:
+`952E0F33E5843B003789DF9D7E217AC1EF7965E4F09511ED6FE3DEE5174DA7CE`.
+This remains filtered pre-integration evidence; complete standalone/unfiltered
+verification, fresh native execution and both nonauthor final reviews are pending.
+Original failed runs and their red causal evidence remain preserved.
+
+**Named dependent refinement — Set Edit sheet identity and numeric controls
+(F9/W11/V12/Q08/UX29):** Fresh full03 frames show the identity kicker truncating
+at font 2.0 and the actual default 360 dp ±2.5 labels splitting into two lines.
+RPE 10 reflows at 320 dp/font 2.0, but the observed viewport alone does not prove
+permanent clipping. Holds have no dedicated duration correction control. Exact
+original row and value/effort prefill are verified by targeted05; no incorrect
+increment is inferred from label wrapping. Retain these observations for the next
+editor refinement, while any demonstrated wrong-type save blocks this packet.
+
 ### UX30 — Establish an evidence-led design delivery and regression process
 
 | Check | Priority | Fixtures | Expected outcome | Status |

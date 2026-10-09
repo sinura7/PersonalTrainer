@@ -112,6 +112,43 @@ runtime inputs, with **685 archived PNGs**. Original setup/workflow failures rem
 preserved; the counter now uses checked effort semantics, actual Hebrew resource
 RTL and the shipping sheet's Expand action. Complete clean gates, fresh native
 execution and nonauthor final reviews remain required before approval.
+Clean `9d988658` then ran the unfiltered `full03` gate: **3,976 app tests /
+574 fresh suites, one failure, zero errors/skips**; **1,694 standalone tests /
+255 classes passed**. The History retry assertion captured an old failed state
+after its trace boundary, although the separately awaited new request was loading.
+This remains a failed gate. A deterministic delayed-recorder counter will establish
+whether the cause is the test's observation boundary or application behavior before
+changing either. The 1,546 inputs stayed unchanged and all 2,413 fresh PNGs are
+archived. `counter06` stopped before tests on a new mixed argument call; the
+identical fully named fixture keeps the checker ceiling unchanged. `counter07`
+then executed **six cases / two suites, two failures**. Supported restore → Edit →
+rep +1 / effort 8 → Save changed an original weighted timed hold from zero to one
+rep and invented repetition volume. The untouched saved-only hold was explicitly
+refused; planned-hold controls remained correct. The delayed recorder independently
+appended its old failed state after the trace cut while the real new read remained
+pending. The unchanged old assertion failed although every state after the recorded
+new pending boundary passed. Both demonstrated causes are being repaired: preserve
+the original saved timed type and bind retry assertions to acknowledged recorder
+boundaries. All **32 counter PNGs** and full raw inventories/chronology are retained.
+Native03 remains deferred until fresh complete verification closes the repairs.
+The repaired `targeted06` pass executes **214 cases / 18 fresh suites**, zero
+failures/errors/skips, all four Windows tasks and unchanged **1,548 inputs**.
+All six full-restore/editor cases now require successful Save: zero-rep originals,
+the accepted literal -3 timed representation, and a rep nudge with all effort
+controls off preserve exact timed data. Seven Room correction controls retain
+stopwatch strength, strict refusals, explicit duration correction and every
+unrelated saved row. The original and delayed-recorder History tests pass without
+changing production History. All **733 PNGs** and inventories/chronology are
+archived. This filtered result precedes the clean complete gate, fresh native
+execution, final reviews and integration; it does not close the editor refinement.
+
+The dependent **Set Edit sheet identity and numeric controls** refinement remains
+open under F9/W11/V12/Q08/UX29: a long identity truncates at font 2.0, the default
+360 dp ±2.5 labels wrap, and hold-duration correction lacks its own control. RPE 10
+reflow at 320 dp/font 2.0 needs a complete reachability check. Exact original-row
+selection and prefill passed; these layout observations do not establish wrong
+increments or permanently unreachable effort. A demonstrated unsafe hold write
+would take priority in the current packet rather than wait for this refinement.
 Hidden saved work takes priority over the separate Summary
 hold-duration refinement. No broader UX29 or phone acceptance is claimed.
 Returning from a historical correction to the
