@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.FilledSessionLift
@@ -200,7 +201,12 @@ private fun PlannedMetric(value: String, label: String, unit: String? = null) {
             contentDescription = "${SessionOrderCopy.PLANNED} $label $displayed"
         },
     ) {
-        Text(displayed, style = InstrumentType.numeralSm, color = TextPrimary)
+        // Sets × reps is an ordered mathematical expression even in an RTL card.
+        Text(
+            displayed,
+            style = InstrumentType.numeralSm.copy(textDirection = TextDirection.Ltr),
+            color = TextPrimary,
+        )
         Text(label.uppercase(), style = InstrumentType.kicker, color = TextSecondary)
     }
 }

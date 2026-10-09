@@ -195,6 +195,50 @@ internal class SavedWorkRenderHost(
         } finally { frame.recycle() }
     }
 
+    /** Mathematical operand order is visual even when its enclosing card flows RTL. */
+    fun numericOrder(interaction: SemanticsNodeInteraction, expected: String, orderedOffsets: List<Int>) {
+        readable(interaction, expected)
+        val node = interaction.fetchSemanticsNode()
+        val input = interaction.textLayout().layoutInput
+        val measured = TextMeasurer(input.fontFamilyResolver, input.density, input.layoutDirection, cacheSize = 0).measure(
+            text = input.text, style = input.style, overflow = input.overflow,
+            softWrap = input.softWrap, maxLines = input.maxLines, placeholders = input.placeholders,
+            constraints = input.constraints.copy(minWidth = 0, maxWidth = node.size.width),
+        )
+        assertTrue("numeric visual-order probe includes both operands", orderedOffsets.size >= 2)
+        assertTrue("numeric visual-order probe names actual characters", orderedOffsets.all { it in expected.indices })
+        assertTrue("first and last probed characters are numbers",
+            expected[orderedOffsets.first()].isDigit() && expected[orderedOffsets.last()].isDigit())
+        val line = measured.getLineForOffset(orderedOffsets.first())
+        assertTrue("planned mathematical operands share their actual line",
+            orderedOffsets.all { measured.getLineForOffset(it) == line })
+        val origin = node.positionInWindow
+        val glyphs = orderedOffsets.map { offset ->
+            val glyph = measured.getBoundingBox(offset)
+            SavedWorkRect(origin.x + glyph.left, origin.y + glyph.top, origin.x + glyph.right, origin.y + glyph.bottom)
+        }
+        val frame = draw()
+        try {
+            val visible = node.boundsInWindow.intersect(window())
+            glyphs.forEachIndexed { index, glyph ->
+                assertTrue("ordered mathematical glyph fits the actual clip: $expected / $glyph / $visible",
+                    glyph.left >= visible.left - 1f && glyph.right <= visible.right + 1f &&
+                        glyph.top >= visible.top - 1f && glyph.bottom <= visible.bottom + 1f)
+                var color = input.style.color
+                input.text.spanStyles.forEach { span ->
+                    val offset = orderedOffsets[index]
+                    if (offset >= span.start && offset < span.end && span.item.color != Color.Unspecified) color = span.item.color
+                }
+                assertTrue("native ink occupies each ordered mathematical glyph: ${expected[orderedOffsets[index]]}",
+                    frame.count(glyph.intersect(visible), color) > 0)
+            }
+        } finally { frame.recycle() }
+        glyphs.zipWithNext().forEach { (first, next) ->
+            assertTrue("planned mathematical characters draw in operand order: $expected / $glyphs",
+                first.right <= next.left + 1f)
+        }
+    }
+
     /** Interior native pixels exclude the thumb's outline and equipment badge. */
     fun still(under: String, size: Dp): List<Int> {
         tag(under)

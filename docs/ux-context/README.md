@@ -85,7 +85,12 @@ exact artwork/fallback case, with 400 fresh PNGs and unchanged 1,545 runtime
 inputs. The first run's glyph-color assertion failure remains preserved; a
 pixel probe confirmed the annotated unit used a different color, and the
 corrected helper retains actual glyph/clip checks. The complete gate, connected
-execution and final reviews remain. No broader UX29 acceptance is claimed.
+execution and final reviews remain. Independent render inspection then found
+RTL operands reversed despite correct semantic text; a new native glyph-order
+counter fails before the local direction fix. The first complete gate's one
+old spoken-label expectation is retained, and the corrected connected JVM
+journey passes with exact saved-set identity. A fresh complete gate must verify
+both repairs. No broader UX29 acceptance is claimed.
 Returning from a historical correction to the
 retained Summary still needs an actual AppNav counter and a snapshot-policy
 decision before changing that deliberate contract.

@@ -373,6 +373,7 @@ class SummaryDetailSavedWorkRenderTest {
         host.capture("detail-complete-identity")
         val plan = FilledLiftCardTags.planned(exercise.id)
         for (value in listOf("Planned", "3 × 5", "2:00", "140 kg")) host.readable(host.words(value, plan), value)
+        host.numericOrder(host.words("3 × 5", plan), "3 × 5", orderedOffsets = listOf(0, 2, 4))
         val plannedMetrics = compose.onAllNodes(SemanticsMatcher("spoken planned metric") {
             it.config.getOrNull(SemanticsProperties.ContentDescription)?.any { words -> words.startsWith("Planned ") } == true
         }).fetchSemanticsNodes()

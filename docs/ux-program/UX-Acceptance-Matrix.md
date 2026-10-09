@@ -878,6 +878,27 @@ use controlled UI state and verify exact callbacks, not a simulated successful
 database retry. Read-only route/correction callback checks leave all synthetic
 rows unchanged. Complete local/native gates and final review must still execute.
 
+**Retained complete-gate failure and visual counter:** Clean `fc68ebb1`
+`full01` finalized **3,939 app cases / 573 fresh suites**, one failure and
+zero errors/skips, with **1,685 standalone tests / 255 classes** passing and
+1,545 unchanged runtime inputs. The connected JVM journey failed only its old
+detail spoken-label lookup after its exact saved-row checks. Its summary
+SHA-256 is `AE71156F2A107B1E76E9A1BC9CE0172A7F20032B28EEA5B8A996E36CDC821FB3`;
+2,139 fresh PNGs / 3,595 files remain archived. JVM and native journey
+expectations now require the explicit Recorded working label and the exact
+saved-set ancestor, retaining all value/write/navigation assertions.
+
+Independent targeted-render inspection also found semantic `3 × 5` visually
+drawn `5 × 3` in RTL. `counter03` finalized two cases / two fresh suites with
+one intentional operand-order failure, zero errors/skips and unchanged inputs;
+the corrected connected JVM journey passed. Summary SHA-256:
+`E2BB66EA3C5EDF33AAA2003F8B322D660DBAB09EC10C478D4AC2DAF89CAF45FE`.
+The new probe confirms real ink and clipping for each operand/operator before
+checking their measured order. The local planned metric now shapes mathematical
+values LTR while retaining RTL card flow. The original targeted tests' green
+text assertions did not establish operand order. Fresh full/native gates and
+final reviews remain necessary; neither original failed run becomes a pass.
+
 ### UX30 — Establish an evidence-led design delivery and regression process
 
 | Check | Priority | Fixtures | Expected outcome | Status |
