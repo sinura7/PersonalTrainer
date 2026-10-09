@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.history
 
 import android.app.Application
+import androidx.room.withTransaction
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
@@ -22,9 +23,11 @@ import com.sinura.personaltrainer.testutil.ActivityReadGate
 import com.sinura.personaltrainer.testutil.FailingObserveCompletedSummariesDao
 import com.sinura.personaltrainer.testutil.FailingPastBlocksDao
 import com.sinura.personaltrainer.testutil.FailingWeighInsDao
+import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.ReadGate
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.TEST_STAMP
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.catchingUncaught
 import com.sinura.personaltrainer.testutil.insertTestExercise
@@ -149,6 +152,7 @@ class HistoryViewModelTest {
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
+            time = FrozenTime(TEST_STAMP, "UTC"),
         )
         val fixture = seedTestWorkout(
             deps = deps,
@@ -166,11 +170,34 @@ class HistoryViewModelTest {
         )
         deps.workoutRepository.finishSession(sessionId = later.id, notes = "")
 
+        // Capture a known chronology in isolated Room before observing it. The fake's
+        // calendar clock anchors History; WorkoutRepository still stamps its real writes.
+        // Tied millisecond stamps leave newest-first session order as record order.
+        val dao = deps.database.workoutDao()
+        val earlierSet = checkNotNull(dao.getSet(fixture.session.sets.single().id))
+            .copy(completedAt = TEST_STAMP)
+        val laterSet = checkNotNull(dao.getSet(logged.setId))
+            .copy(completedAt = TEST_STAMP + 1)
+        val earlierSession = checkNotNull(dao.getSessionRow(fixture.session.id))
+            .copy(date = TEST_STAMP, startedAt = TEST_STAMP, finishedAt = TEST_STAMP + 1)
+        val laterSession = checkNotNull(dao.getSessionRow(later.id))
+            .copy(date = TEST_STAMP + 1, startedAt = TEST_STAMP + 1, finishedAt = TEST_STAMP + 2)
+        deps.database.withTransaction {
+            dao.updateSession(earlierSession)
+            dao.updateSession(laterSession)
+            dao.updateSet(earlierSet)
+            dao.updateSet(laterSet)
+        }
+        assertEquals(earlierSession, dao.getSessionRow(fixture.session.id))
+        assertEquals(laterSession, dao.getSessionRow(later.id))
+        assertEquals(earlierSet, dao.getSet(earlierSet.id))
+        assertEquals(laterSet, dao.getSet(laterSet.id))
         viewModel = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         val before = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { it.horizonProgress != null && it.summaries.size == 2 }
         }
         assertEquals(0, before.horizonProgress!!.recordsBroken)
+        assertEquals(setOf(fixture.session.id, later.id), before.summaries.map { it.id }.toSet())
 
         deps.workoutRepository.updateSet(
             setId = logged.setId,
@@ -183,7 +210,13 @@ class HistoryViewModelTest {
         val after = withTimeout(TestWaits.FLOW_MS) {
             viewModel!!.uiState.first { (it.horizonProgress?.recordsBroken ?: 0) > 0 }
         }
+        assertEquals(2, after.horizonProgress!!.recordsBroken)
         assertEquals(2, after.summaries.size)
+        assertEquals(setOf(fixture.session.id, later.id), after.summaries.map { it.id }.toSet())
+        assertEquals(earlierSet, dao.getSet(earlierSet.id))
+        assertEquals(laterSet.copy(weightKg = 110.0), dao.getSet(laterSet.id))
+        assertEquals(earlierSession, dao.getSessionRow(fixture.session.id))
+        assertEquals(laterSession, dao.getSessionRow(later.id))
     }
 
     @Test
