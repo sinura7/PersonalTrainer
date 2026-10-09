@@ -306,17 +306,22 @@ class HistoryPeriodViewModelTest {
         insertWorkout("before", day(2024, 10, 31), 90.0)
         insertWorkout("start", day(2024, 11, 1), 100.0)
         insertWorkout("today", TODAY, 110.0)
+        // Known completed work retains its captured date ahead of device Today.
         insertWorkout("after", TODAY + 1, 120.0)
+        insertWorkout("outside-next-month", day(2024, 12, 1), 130.0)
         val activityId = insertCardio(day(2024, 11, 10))
         withModel { model ->
             val state = awaitReady(model)
-            val expected = setOf(HistoryKind.WORKOUT to "start", HistoryKind.WORKOUT to "today", HistoryKind.ACTIVITY to activityId)
-            assertEquals(HistoryPeriodRange(day(2024, 11, 1), TODAY + 1), state.periodRange)
+            val expected = setOf(
+                HistoryKind.WORKOUT to "start", HistoryKind.WORKOUT to "today",
+                HistoryKind.WORKOUT to "after", HistoryKind.ACTIVITY to activityId,
+            )
+            assertEquals(HistoryPeriodRange(day(2024, 11, 1), TODAY + 2), state.periodRange)
             assertEquals(expected, state.summaries.map { it.kind to it.id }.toSet())
             assertEquals(expected, state.monthGroups.flatMap { it.entries }.map { it.kind to it.id }.toSet())
-            assertEquals(3, state.horizonTotals!!.sessionCount)
-            assertEquals(2, state.horizonTotals!!.workingSets)
-            assertEquals(1050.0, state.horizonTotals!!.volumeKg, 0.0)
+            assertEquals(4, state.horizonTotals!!.sessionCount)
+            assertEquals(3, state.horizonTotals!!.workingSets)
+            assertEquals(1650.0, state.horizonTotals!!.volumeKg, 0.0)
             assertEquals(600L, state.horizonTotals!!.cardioSeconds)
             assertEquals(1000.0, state.horizonTotals!!.cardioDistanceMeters, 0.0)
             val calendarIds = state.calendar.weeks.flatten().flatMap { date ->

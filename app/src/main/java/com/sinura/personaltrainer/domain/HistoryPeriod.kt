@@ -28,57 +28,120 @@ data class HistoryPeriodRange(
 }
 
 object HistoryPeriodMath {
-    fun anchor(selection: HistoryPeriodSelection, today: CivilDate): CivilDate =
-        if (selection.followToday) today else CivilDate.fromEpochDay(
-            selection.anchorEpochDay.coerceAtMost(today.epochDay),
-        )
+    fun anchor(
+        selection: HistoryPeriodSelection,
+        today: CivilDate,
+        weekStart: Weekday = Weekday.MONDAY,
+        completedEpochDays: Set<Long> = emptySet(),
+    ): CivilDate {
+        if (selection.followToday) return today
+        val date = CivilDate.fromEpochDay(selection.anchorEpochDay)
+        if (canSelectDay(date.epochDay, today, completedEpochDays)) return date
+        if (selection.horizon == AnalyticsHorizon.ALL_TIME ||
+            startOf(date, selection.horizon, weekStart) <= today) return today
+        // A restored month/week/year may point at an empty day in a period with
+        // captured work. Keep that period, using one of its actual completed days.
+        val completed = completedInPeriod(date, selection.horizon, weekStart, completedEpochDays)
+        return completed.minOrNull()?.let(CivilDate::fromEpochDay) ?: today
+    }
+
+    fun canSelectDay(epochDay: Long, today: CivilDate, completedEpochDays: Set<Long> = emptySet()): Boolean =
+        epochDay in MIN_HISTORY_EPOCH_DAY..MAX_HISTORY_EPOCH_DAY &&
+            (epochDay <= today.epochDay || epochDay in completedEpochDays)
+
+    fun canSelectMonth(
+        month: CivilYearMonth,
+        today: CivilDate,
+        completedEpochDays: Set<Long> = emptySet(),
+    ): Boolean {
+        val first = month.atDay(1)
+        if (first.epochDay !in MIN_HISTORY_EPOCH_DAY..MAX_HISTORY_EPOCH_DAY) return false
+        return first <= today ||
+            completedInPeriod(first, AnalyticsHorizon.MONTH, Weekday.MONDAY, completedEpochDays).isNotEmpty()
+    }
 
     fun resolve(
         selection: HistoryPeriodSelection,
         today: CivilDate,
         weekStart: Weekday,
         earliestEpochDay: Long?,
+        completedEpochDays: Set<Long> = emptySet(),
     ): HistoryPeriodRange {
-        val date = anchor(selection, today)
+        val date = anchor(selection, today, weekStart, completedEpochDays)
+        val completed = completedInPeriod(date, selection.horizon, weekStart, completedEpochDays)
+        // Device Today answers "now". Captured completed dates answer where saved
+        // work belongs, including after travel moves the device date backwards.
+        val visibleThrough = maxOf(today.epochDay, completed.maxOrNull() ?: today.epochDay)
         val start = if (selection.horizon == AnalyticsHorizon.ALL_TIME) {
-            (earliestEpochDay ?: today.epochDay).coerceIn(MIN_HISTORY_EPOCH_DAY, today.epochDay)
+            (earliestEpochDay ?: completed.minOrNull() ?: today.epochDay)
+                .coerceIn(MIN_HISTORY_EPOCH_DAY, visibleThrough)
         } else {
             startOf(date, selection.horizon, weekStart).epochDay
         }
         val end = if (selection.horizon == AnalyticsHorizon.ALL_TIME) {
-            today.epochDay + 1
+            visibleThrough + 1
         } else {
-            endOf(date, selection.horizon, weekStart).coerceAtMost(today.epochDay + 1)
+            endOf(date, selection.horizon, weekStart).coerceAtMost(visibleThrough + 1)
         }
-        return HistoryPeriodRange(start.coerceAtLeast(MIN_HISTORY_EPOCH_DAY), end)
+        return HistoryPeriodRange(start.coerceAtLeast(MIN_HISTORY_EPOCH_DAY), end.coerceAtMost(MAX_HISTORY_EPOCH_DAY + 1))
     }
 
     fun previous(
         selection: HistoryPeriodSelection,
         today: CivilDate,
         weekStart: Weekday,
+        completedEpochDays: Set<Long> = emptySet(),
     ): HistoryPeriodSelection? {
         if (selection.horizon == AnalyticsHorizon.ALL_TIME) return null
         // Resolve the boundary too: a selected Week uses the configured start day.
-        val date = anchor(selection, today)
+        val date = anchor(selection, today, weekStart, completedEpochDays)
         val previous = shifted(date, selection.horizon, -1)
         if (startOf(previous, selection.horizon, weekStart).epochDay < MIN_HISTORY_EPOCH_DAY) return null
-        return selectionFor(selection.horizon, previous)
+        return navigableSelection(selection.horizon, previous, today, weekStart, completedEpochDays)
     }
 
     fun next(
         selection: HistoryPeriodSelection,
         today: CivilDate,
         weekStart: Weekday,
+        completedEpochDays: Set<Long> = emptySet(),
     ): HistoryPeriodSelection? {
         if (selection.horizon == AnalyticsHorizon.ALL_TIME) return null
-        val next = shifted(anchor(selection, today), selection.horizon, 1)
-        if (startOf(next, selection.horizon, weekStart) > today) return null
-        return selectionFor(selection.horizon, if (next > today) today else next)
+        val next = shifted(anchor(selection, today, weekStart, completedEpochDays), selection.horizon, 1)
+        return navigableSelection(selection.horizon, next, today, weekStart, completedEpochDays)
     }
 
     fun current(selection: HistoryPeriodSelection, today: CivilDate): HistoryPeriodSelection =
         selection.copy(anchorEpochDay = today.epochDay, followToday = true)
+
+    private fun navigableSelection(
+        horizon: AnalyticsHorizon,
+        date: CivilDate,
+        today: CivilDate,
+        weekStart: Weekday,
+        completedEpochDays: Set<Long>,
+    ): HistoryPeriodSelection? {
+        if (date.epochDay !in MIN_HISTORY_EPOCH_DAY..MAX_HISTORY_EPOCH_DAY) return null
+        if (date <= today) return selectionFor(horizon, date)
+        val completed = completedInPeriod(date, horizon, weekStart, completedEpochDays)
+        if (date.epochDay in completed) return selectionFor(horizon, date)
+        if (startOf(date, horizon, weekStart) <= today) return selectionFor(horizon, today)
+        return completed.minOrNull()?.let { selectionFor(horizon, CivilDate.fromEpochDay(it)) }
+    }
+
+    private fun completedInPeriod(
+        date: CivilDate,
+        horizon: AnalyticsHorizon,
+        weekStart: Weekday,
+        completedEpochDays: Set<Long>,
+    ): List<Long> {
+        val start = startOf(date, horizon, weekStart).epochDay
+        val end = endOf(date, horizon, weekStart)
+        return completedEpochDays.filter {
+            it in MIN_HISTORY_EPOCH_DAY..MAX_HISTORY_EPOCH_DAY &&
+                (horizon == AnalyticsHorizon.ALL_TIME || (it >= start && it < end))
+        }
+    }
 
     private fun selectionFor(horizon: AnalyticsHorizon, date: CivilDate): HistoryPeriodSelection? =
         if (date.epochDay in MIN_HISTORY_EPOCH_DAY..MAX_HISTORY_EPOCH_DAY) {

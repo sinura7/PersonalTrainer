@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.CalendarDay
 import com.sinura.personaltrainer.domain.HistoryCopy
+import com.sinura.personaltrainer.domain.HistoryPeriodMath
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TrainingCalendarBuilder
 import com.sinura.personaltrainer.domain.TrainingMonth
@@ -88,6 +89,7 @@ fun TrainingCalendarCard(
     unit: WeightUnit,
     modifier: Modifier = Modifier,
     stripState: WeekStripState = rememberWeekStripState(),
+    completedEpochDays: Set<Long> = emptySet(),
 ) {
     val weeks = if (horizon == AnalyticsHorizon.MONTH) month.weeks
         else listOfNotNull(month.weekContaining(selectedEpochDay))
@@ -168,7 +170,10 @@ fun TrainingCalendarCard(
                         week.forEach { day ->
                             DayCell(
                                 day, day.date == today.toCivilDate(), day.date.epochDay == selectedEpochDay,
-                                day.date.epochDay <= today.toEpochDay(), { onSelectDay(day.date.epochDay) }, unit,
+                                HistoryPeriodMath.canSelectDay(
+                                    epochDay = day.date.epochDay, today = today.toCivilDate(),
+                                    completedEpochDays = completedEpochDays,
+                                ), { onSelectDay(day.date.epochDay) }, unit,
                                 Modifier.width(with(density) { cellWidthPx.toDp() })
                                     .onGloballyPositioned { coordinates ->
                                         val origin = coordinates.positionInParent()

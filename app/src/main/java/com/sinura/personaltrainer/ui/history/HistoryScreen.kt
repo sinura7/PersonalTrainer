@@ -45,6 +45,7 @@ import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.HistoryKind
+import com.sinura.personaltrainer.domain.HistoryPeriodMath
 import com.sinura.personaltrainer.domain.HistoryPeriodRange
 import com.sinura.personaltrainer.domain.HorizonProgress
 import com.sinura.personaltrainer.domain.HorizonTotals
@@ -103,8 +104,10 @@ fun HistoryScreen(
     // Own exploration before a required-read retry can temporarily remove the calendar.
     val calendarState = rememberWeekStripState()
     var secondary by rememberSaveable { mutableStateOf<String?>(null) }
-    val selectedDay = if (state.selection.followToday) state.today.epochDay
-        else minOf(state.selection.anchorEpochDay, state.today.epochDay)
+    val selectedDay = HistoryPeriodMath.anchor(
+        selection = state.selection, today = state.today, weekStart = state.weekStart,
+        completedEpochDays = state.completedEpochDays,
+    ).epochDay
 
     LaunchedEffect(today) { viewModel.updateToday(today) }
     LaunchedEffect(navigateToSession) {
@@ -188,6 +191,7 @@ fun HistoryScreen(
                                     selectedEpochDay = selectedDay, horizon = state.horizon,
                                     onSelectDay = viewModel::selectDay, unit = unit,
                                     stripState = calendarState,
+                                    completedEpochDays = state.completedEpochDays,
                                 )
                             }
                         AnalyticsHorizon.YEAR -> item(key = "year-months") {
@@ -202,7 +206,10 @@ fun HistoryScreen(
                                     SecondaryGymButton(
                                         text = "${DateCopy.monthYear(month.toYearMonth())} · $count ${HistoryCopy.sessionsLabel(count)}",
                                         onClick = { viewModel.selectMonth(month) },
-                                        enabled = month.atDay(1).epochDay <= state.today.epochDay,
+                                        enabled = HistoryPeriodMath.canSelectMonth(
+                                            month = month, today = state.today,
+                                            completedEpochDays = state.completedEpochDays,
+                                        ),
                                         modifier = Modifier.fillMaxWidth().testTag(HistoryTags.month(month)),
                                     )
                                 }
