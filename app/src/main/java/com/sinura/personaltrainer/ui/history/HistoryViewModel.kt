@@ -63,6 +63,8 @@ data class HistoryUiState(
     val unavailable: Boolean = false,
     val stale: Boolean = false,
     val summaries: List<SessionSummary> = emptyList(),
+    /** Full catalog membership, independent of the currently scoped list/calendar. */
+    val completedEpochDays: Set<Long> = emptySet(),
     val monthGroups: List<HistoryMonthGroup> = emptyList(),
     /**
      * Lifetime standing bests, one per lift, newest first. Independent of [horizon]: the
@@ -301,11 +303,13 @@ class HistoryViewModel @JvmOverloads constructor(
         container.preferencesRepository.weightUnit,
         historyRetry,
     ) { cat, selection, currentToday, unit, attempt ->
+        val completedEpochDays = cat.summaries.map { it.localEpochDay }.toSet()
         val range = if (cat.unavailable) null else HistoryPeriodMath.resolve(
             selection = selection,
             today = currentToday,
             weekStart = cat.weekStart,
             earliestEpochDay = cat.summaries.minOfOrNull { it.localEpochDay },
+            completedEpochDays = completedEpochDays,
         )
         val scoped = if (range == null) emptyList() else cat.summaries.filter { it.localEpochDay in range }
         PeriodRequest(
@@ -314,6 +318,7 @@ class HistoryViewModel @JvmOverloads constructor(
             today = currentToday,
             range = range,
             summaries = scoped,
+            completedEpochDays = completedEpochDays,
             projections = DailyProjectionBuilder.project(scoped),
             unit = unit,
             attempt = attempt,
@@ -359,9 +364,8 @@ class HistoryViewModel @JvmOverloads constructor(
     ) { request, progress ->
         val cat = request.catalog
         val selection = request.selection
-        val anchor = if (selection.followToday) request.today.epochDay
-            else minOf(selection.anchorEpochDay, request.today.epochDay)
-        val month = CivilYearMonth.from(CivilDate.fromEpochDay(anchor))
+        val anchor = HistoryPeriodMath.anchor(selection, request.today, cat.weekStart, request.completedEpochDays)
+        val month = CivilYearMonth.from(anchor)
         // Preferences and the catalog can publish before the block-input flow catches up.
         // Only reviews formatted and computed for this visible request may be exposed.
         val blocks = cat.blockRead?.takeIf { read ->
@@ -372,6 +376,7 @@ class HistoryViewModel @JvmOverloads constructor(
         if (cat.unavailable) {
             return@combine HistoryUiState(
                 isLoading = false, unavailable = true, selection = selection,
+                completedEpochDays = request.completedEpochDays,
                 horizon = selection.horizon, today = request.today, unit = request.unit,
                 calendar = TrainingMonth(month),
                 stale = cat.stale,
@@ -390,6 +395,7 @@ class HistoryViewModel @JvmOverloads constructor(
             isLoading = false,
             stale = cat.stale || failed,
             summaries = request.summaries,
+            completedEpochDays = request.completedEpochDays,
             monthGroups = groupHistoryByMonth(request.summaries.map { it.toHistoryEntry() }),
             records = cat.records,
             recordsLoading = false,
@@ -409,7 +415,7 @@ class HistoryViewModel @JvmOverloads constructor(
             horizon = selection.horizon,
             selection = selection,
             periodRange = range,
-            canGoNext = HistoryPeriodMath.next(selection, request.today, cat.weekStart) != null,
+            canGoNext = HistoryPeriodMath.next(selection, request.today, cat.weekStart, request.completedEpochDays) != null,
             progressLoading = matching == null || matching.status == ProgressStatus.LOADING,
             progressFailed = failed,
             unit = request.unit,
@@ -443,22 +449,26 @@ class HistoryViewModel @JvmOverloads constructor(
     }
 
     fun selectDay(epochDay: Long) {
-        if (!supportedDay(epochDay) || epochDay > today.value.epochDay) return
+        if (!HistoryPeriodMath.canSelectDay(epochDay, today.value, uiState.value.completedEpochDays)) return
         setSelection(HistoryPeriodSelection(AnalyticsHorizon.DAY, epochDay, false))
     }
 
     fun selectMonth(month: CivilYearMonth) {
         val anchor = month.atDay(1).epochDay
-        if (!supportedDay(anchor) || anchor > today.value.epochDay) return
+        if (!HistoryPeriodMath.canSelectMonth(month, today.value, uiState.value.completedEpochDays)) return
         setSelection(HistoryPeriodSelection(AnalyticsHorizon.MONTH, anchor, false))
     }
 
     fun showPreviousPeriod() {
-        HistoryPeriodMath.previous(periodSelection.value, today.value, uiState.value.weekStart)?.let(::setSelection)
+        HistoryPeriodMath.previous(
+            periodSelection.value, today.value, uiState.value.weekStart, uiState.value.completedEpochDays,
+        )?.let(::setSelection)
     }
 
     fun showNextPeriod() {
-        HistoryPeriodMath.next(periodSelection.value, today.value, uiState.value.weekStart)?.let(::setSelection)
+        HistoryPeriodMath.next(
+            periodSelection.value, today.value, uiState.value.weekStart, uiState.value.completedEpochDays,
+        )?.let(::setSelection)
     }
 
     fun showCurrentPeriod() {
@@ -589,6 +599,7 @@ class HistoryViewModel @JvmOverloads constructor(
         val today: CivilDate,
         val range: HistoryPeriodRange?,
         val summaries: List<SessionSummary>,
+        val completedEpochDays: Set<Long>,
         val projections: List<DailyProjection>,
         val unit: WeightUnit,
         val attempt: Int,

@@ -246,7 +246,7 @@ gap remains open separately from the direct-screen JVM geometry matrix.
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
 | UX15-AC01 | P1 | F05 | With years of synthetic history, a participant can reach lifetime records and the newest activity without an unbounded scroll. | Not executed |
-| UX15-AC02 | P1 | F05 | Changing a horizon produces one period across totals, calendar, progress and list; lifetime records and blocks are labeled secondary views. | Bounded machine checks below; participant acceptance not executed |
+| UX15-AC02 | P1 | F05 | Changing a horizon produces one period across totals, calendar, progress and list; lifetime records and blocks are labeled secondary views. | Bounded #465 integration and machine checks completed below; captured-date travel visibility follow-up pending; participant acceptance not executed |
 | UX15-AC03 | P1 | F05 | Editing a prior best refreshes visible results and record drill-down identifies the supporting session. | Not executed |
 
 **Verification follow-up (9 October 2026 UTC):** Home recovery merged through
@@ -276,8 +276,8 @@ hosted run remains a failed historical result. F6a implements one saved civil
 period for History's list, calendar, totals and keyed progress; full-log records
 and blocks are explicitly activated lifetime views. Current Month is the default;
 Day/Week strips, Month, Year month choices and All chronology retain full civil
-dates, reachable controls and exact workout/activity identity. Summary/detail
-clarity is a following packet.
+dates, reachable controls and exact workout/activity identity. The immediate
+captured-date visibility follow-up below precedes Summary/detail clarity.
 
 **F6a executed local evidence (9 October 2026 UTC):** The targeted run passed
 289 tests / 52 fresh suites. The subsequent complete standalone preflight and
@@ -331,6 +331,145 @@ matrix. Native summary SHA-256:
 Later documentation-only pins must bind to the same verified runtime bytes;
 these tests executed the candidate above, not a later Git tree. Physical-phone,
 TalkBack, OS process-death and performance limits remain open.
+
+**F6a integration completed (9 October 2026 UTC):** [PR #465](https://github.com/sinura7/PersonalTrainer/pull/465)
+merged as `7a41c9779a5d5a1bd00714c6ade30053a2c5e09e`. Its tree equals reviewed
+candidate `ec258beb5c15f8da5e90c6ca9d064ca35b0a64fa`; fresh independent integration
+review approved this bounded packet and its executed machine gates, with the
+captured-date follow-up below explicitly open. All **1,540 runtime inputs**
+match the pre-merge gate and actual-trunk local/native executions.
+
+The clean-trunk full gate freshly passed **3,894 tests / 569 suites**, zero
+failures/errors/skips, and the complete standalone preflight passed **1,675
+tests / 254 classes**. All 135 Gradle tasks executed, including Debug/release
+assembly, lint and Android-test assembly. Full summary SHA-256:
+`27DE6BCE97FB71A5A14712833818162C6FC7BEB11430D37D84447ED1C3CF3AFA`.
+The unchanged clean-trunk native run passed **222 tests / 32 classes**, zero
+failures/errors/skips, with all **85 fresh captures** matching device hashes,
+13 fixture restoration pairs, restored network/settings, empty package
+inventories and completed collector/emulator cleanup. Native summary SHA-256:
+`562BB8992EEA533026E1472E5F57E8AC1D9F2F5462E43373EF88E35EE1CD7908`.
+
+[Actual-trunk CI 37945856269](https://github.com/sinura7/PersonalTrainer/actions/runs/37945856269)
+checked out that exact squash commit in both jobs. Independent parsing verified
+**3,894 tests / 569 suites** in the required job and **222 tests / 32 classes**
+in the supplemental native job, all passed. Hosted summary SHA-256:
+`0d2a1def30687786c7b059026542540e67d3e9c9d72c86df6c25917407c09cd8`.
+The earlier [branch push 37942981235](https://github.com/sinura7/PersonalTrainer/actions/runs/37942981235)
+remains failed: `failedLiveNotesKeepExactTextAndRetryCommitsOnlyNotes` timed out
+while observing the keyboard window before its write/Retry assertions. Hidden
+IME versus observation failure remains unresolved; later unchanged passes do
+not prove a cause or replace that result.
+
+The execution/review bindings are retained in
+`build/ux-context/runs/history-period-coherence/integration-complete-7a41c977.json`
+and `build/ux-context/reviews/history-f6a-integration-independent-7a41c977.md`.
+These are local ignored evidence. The native History baseline remains obscured
+by the existing permissions modal; it does not certify unobscured native period
+layout. Mounted JVM evidence retains that separate scope. This integration
+does not close broader UX15/Q08, physical-phone/TalkBack, OS process-death,
+performance, equal-millisecond record ordering or legacy strength captured-date
+storage. No owner-phone testing or installation, or Obtainium drop, is claimed.
+
+**Immediate F6a / UX15 / Q08 captured-date visibility follow-up (9 October):**
+One real counterexample on merged `7a41c977` confirms a completed Tokyo activity
+through the production repository with captured date **9 October**. Nine hours
+later the instant has advanced, while the device in Honolulu reads **8 October**.
+The durable activity graph and completed summary remain exactly unchanged, but
+the ready All History projection omits the activity. This is a visibility failure,
+not a failed save, rewritten captured date or legacy strength-date attribution.
+
+`history-captured-date-visibility/counter01` ran from **15:13:27.0214152Z** to
+**15:16:54.6117497Z** and finalized one fresh XML: **one test, one visibility
+assertion failure, zero errors/skips**, with **1,541 unchanged inputs** and
+stable references. It is not a passing regression or full gate. Its original
+test, raw log and summary remain under
+`build/ux-context/runs/history-captured-date-visibility/counter01/`.
+
+The current single packet, `codex/history-captured-date-visibility`, repairs
+read-side bounds and navigation so **All includes all known completed captured
+records**, their dates remain reachable, and a current period can include known
+captured dates ahead of device today within that selected civil span. Empty
+future-only periods stay unavailable. Totals, calendar, progress and list must
+continue using one coherent range, with exact stored graph/summary identity
+preserved. This follows [ADR-011](../architecture/ADR-011-time-semantics.md) and
+[ADR-026](../architecture/ADR-026-frontend-redesign.md); no new policy authority,
+ADR amendment or captured-date rewrite is introduced. Repair verification,
+review and integration remain pending at this initial counterexample snapshot.
+
+**Travel repair targeted evidence:** `targeted01` finalized **136 tests / 24
+fresh suites, nine failures, zero errors/skips** with 1,543 stable inputs. All
+five real-data travel cases and seven date-policy cases passed. Eight new render
+cases waited for the changed date before delivering its Compose frame; their
+failed captures show the old date before later semantics synchronize to the new
+date. The existing native layout drain now precedes that READY wait, retaining
+the real date effect, assertions and 20-second timeout. The ninth failure was
+the old mixed-source expectation excluding known completed work ahead of Today;
+it now includes that work and separately excludes a completed next-month row.
+Original failed XML/logs and all 157 fresh PNGs remain preserved.
+
+`targeted02` then passed **22 tests / four fresh suites**, zero failures/errors/
+skips, from **15:35:33.3547894Z** to **15:39:21.2661114Z**, with 1,543 stable inputs
+and stable references. It covers six real-data cases, seven date-policy cases,
+eight native-graphics travel interactions and the corrected mixed-source case.
+Supported deletion and backup recovery preserve the raw selected date and
+restore the exact activity graph, range and metrics; no Activity Undo is claimed.
+The eight renders cover 320 dp/font 2.0, landscape/font 2.0, RTL/font 2.0 and
+412 dp/font 1.0 at both October and year boundaries, with exact detail routes,
+48 dp actions, full text and unchanged durable data. All **56 fresh PNGs** were
+archived with matching hashes. Summary SHA-256:
+`788BAF21458095DA56A8540AF33C3F5FB74B791D539FA14BC8F8A1214EBCA8F5`;
+runtime manifest SHA-256:
+`95BAD8FEA772682A194FEB728F0CA2A684C9C84C903580069BBD3F0B38240FC8`.
+These targeted checks do not substitute for the complete local gate, connected
+Android verification, clean candidate reviews, hosted checks or integration,
+which remain pending. They do not establish physical-phone acceptance.
+
+**Travel repair complete local gate:** `full01` passed the complete standalone
+preflight (**1,682 tests / 255 classes**) and unfiltered four-task Windows gate
+with `--rerun-tasks`: **3,915 tests / 572 fresh suites**, zero failures/errors/
+skips, from **15:40:41.1548844Z** to **15:57:26.0967913Z**. All 1,543 runtime
+inputs and Git references remained unchanged. The existing 14-profile screen
+matrix and eight focused travel renders pass together; original failed attempts
+remain failed evidence. Full summary SHA-256:
+`CDA0E71160B93E27A8F9D3ED4A465BCBB5F3DF394DAE073033D058BE318A10E3`.
+At that local-gate snapshot, clean candidate binding, connected verification
+and final review were pending. Their executed closure follows; hosted checks
+and integration remain subsequent work. No phone or whole-app acceptance is inferred.
+
+**Travel repair native and final-review closure:** Clean candidate
+`dd82321fe8b780b4ec8eec0440a11feca22781d3`, tree
+`09660cc24762e0b8014700d9c274060c789d627f`, binds all **1,543 runtime inputs**
+to the closed full gate. `native01` ran from **16:00:28.1099563Z** to
+**16:07:08.3710194Z** on the dedicated offline API-29 emulator and passed
+**222 tests / 32 classes**, zero failures/errors/skips. All **85 fresh captures**
+match their device hashes; all 13 fixture admission/restoration pairs, final
+settings/network, empty package inventories, collector stop and unchanged
+source/references were verified. Root's separate **16:08:24.2547147Z** process
+query confirmed emulator shutdown. Native summary SHA-256:
+`C5B515A679105E65C4C1619FC4536F115AEDB3AFF2BEF3905FC9049E509EB0F4`;
+artifact manifest SHA-256:
+`99EE6C4630D5A0F41A59C3E6F5E322E595961C38CE09104AD9BC3A11B554E0C9`.
+
+Fresh independent and adversarial reviewers approve that exact bounded
+candidate with no new blocking findings, independently checking raw XML,
+runtime blobs, render/capture hashes and selected changed frames. Their ignored
+reports are `build/ux-context/reviews/history-captured-independent-dd82321f.md`
+(SHA-256 `B17A75B9F8649DD4E015AE4930CDB697EB323C041FBC07C8287D543813E28247`)
+and `history-captured-adversarial-dd82321f.md`
+(SHA-256 `A0C0BA7DDA445CE466842401047A82C66E05193C71E72DDDE92D427F69CB9456`).
+The subsequent documentation-only closure must retain this runtime binding;
+native execution occurred on `dd82321f`, not on the later documentation tree.
+Hosted verification and integration are not yet complete at this snapshot.
+
+The new travel proof uses real Repository/Room data and mounted real Compose
+JVM renders. The inherited connected suite verifies adjacent workout/History
+behavior, including the same corrected **85 kg × 3 / 255 kg** saved result; it
+does not perform a new Android timezone-travel journey. The native History
+baseline remains permission-modal obscured. Primitive saved-selection recovery
+does not establish OS process-death recovery. Prior hosted IME-observation
+failure, legacy strength captured-date storage, equal-millisecond ordering,
+cross-store atomicity and physical-phone/performance acceptance remain open.
 
 Equal-timestamp record ordering remains a medium UX15 dependency: current record
 feedback can depend on input order when chronology ties. This repair changes no
@@ -754,10 +893,13 @@ followed by the bounded History chronology-fixture repair in
 Earlier attempts below retain their dated evidence boundaries. Home/Plan week
 geometry integrated through [PR #464](https://github.com/sinura7/PersonalTrainer/pull/464)
 as `5c7f869b`, with completed reviews and clean-trunk verification recorded under
-UX12. The active packet is History's one-period/coherent-progress work under
-F6a/UX15 and the affected UX12/UX24/UX25 checks. Its complete local and native
-gates are now passed as recorded under UX15; final review, hosted checks and
-integration remain pending.
+UX12. History's one-period/coherent-progress work integrated through
+[PR #465](https://github.com/sinura7/PersonalTrainer/pull/465) as `7a41c977`, with
+independently verified actual-trunk local, native and hosted gates recorded under
+UX15. Its immediate single active F6a/UX15/Q08 packet now repairs confirmed
+captured-date visibility after travel before Summary. Complete local/native
+gates and both final reviews pass; hosted checks and integration remain pending
+at this snapshot.
 Legacy strength captured-date
 storage remains a separately specified dependency. These integrations do not
 close broader F4, UX23, UX24/UX25 or physical-phone acceptance.
