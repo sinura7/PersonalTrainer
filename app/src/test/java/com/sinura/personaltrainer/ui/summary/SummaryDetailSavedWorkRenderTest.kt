@@ -39,9 +39,11 @@ import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.FilledSessionLift
+import com.sinura.personaltrainer.domain.FilledSessionPrescription
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.PersonalRecordKind
+import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.SummaryCopy
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -414,8 +416,11 @@ class SummaryDetailSavedWorkRenderTest {
         val held = SetLog(id = "saved-hold", sessionId = SESSION_ID, exerciseId = holdExercise.id,
             exerciseName = HOLD_NAME, setNumber = 1, weightKg = 0.0, reps = 0, rpe = null,
             isWarmup = false, completedAt = STAMP + 1_000L, durationSeconds = 23)
-        shownLift = FilledSessionLift(number = 2, exercise = holdExercise, targetSets = 3, targetReps = 1,
-            targetWeightKg = null, restSeconds = 45, sets = listOf(held), targetSeconds = 20, targetSecondsMax = 30)
+        val holdPrescription = SessionExercise(id = "planned-hold", sessionId = SESSION_ID,
+            exercise = holdExercise, sortOrder = 1, targetSets = 3, targetReps = 1,
+            targetWeightKg = null, restSeconds = 45, targetSeconds = 20, targetSecondsMax = 30)
+        shownLift = FilledSessionLift(number = 2, exercise = holdExercise,
+            prescriptions = listOf(FilledSessionPrescription(2, holdPrescription)), sets = listOf(held))
         loadClass = LoadClass.BODYWEIGHT
         host.drain()
         host.readable(host.words(HOLD_NAME, SessionDetailTestTags.liftCard(holdExercise.id)), HOLD_NAME)
@@ -429,8 +434,7 @@ class SummaryDetailSavedWorkRenderTest {
         assertSame("hold correction retains exact duration-bearing row", held, editedSets.last())
         host.capture("detail-hold-recorded-duration")
 
-        shownLift = shownLift.copy(targetSets = 0, targetReps = 0, targetSeconds = null,
-            targetSecondsMax = null, restSeconds = 0, sets = emptyList())
+        shownLift = shownLift.copy(prescriptions = emptyList(), sets = emptyList())
         host.drain()
         assertTrue("set-only or unplanned history invents no target section", compose.onAllNodes(hasTestTag(plan)).fetchSemanticsNodes().isEmpty())
         host.readable(host.words("No recorded sets", FilledLiftCardTags.recorded(holdExercise.id)), "No recorded sets")

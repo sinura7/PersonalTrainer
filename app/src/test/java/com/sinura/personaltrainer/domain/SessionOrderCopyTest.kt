@@ -237,4 +237,33 @@ class SessionOrderCopyTest {
             ),
         )
     }
+
+    @Test
+    fun repeatedPrescriptionsSpeakOriginalPositionsAndTargetsWithRecordedCountOnce() {
+        val planned = listOf(
+            SessionOrderCopy.filledPrescriptionSpoken(1, 3, 5, "1:30", "100 kg"),
+            SessionOrderCopy.filledPrescriptionSpoken(3, 2, 8, "2:00", "80 kg"),
+        )
+        assertEquals(
+            "1. Squat. Quads. Recorded: 1 working set. Planned 1: Work 3 × 5. Rest 1:30. Load 100 kg" +
+                ". Planned 3: Work 2 × 8. Rest 2:00. Load 80 kg",
+            SessionOrderCopy.filledGroupSpoken(1, "Squat", "Quads", 1, planned),
+        )
+        // No single target or summed target is used as a recorded completion denominator.
+        assertEquals("1", SessionOrderCopy.filledCount(1, 0))
+    }
+
+    @Test
+    fun repeatedHoldAndEmptyTargetsAreNotReplacedWithAnotherPrescription() {
+        assertEquals(
+            "Planned 3: Work 2 × 20–30s. Rest 0:45. Load 0 kg",
+            SessionOrderCopy.filledPrescriptionSpoken(3, 2, 1, "0:45", "0 kg", 20, 30),
+        )
+        val empty = SessionOrderCopy.filledPrescriptionSpoken(4, 0, 0, "0:00", null)
+        assertEquals("Planned 4: Work 0 × 0. Rest 0:00", empty)
+        assertEquals(
+            "2. Hold. Recorded: 0 working sets. Planned 4: Work 0 × 0. Rest 0:00",
+            SessionOrderCopy.filledGroupSpoken(2, "Hold", "", 0, listOf(empty)),
+        )
+    }
 }

@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466, with fresh local, native and hosted verification on actual merged trunk. The active F9/W11/V12/Q08/UX29 packet improves exercise identity and planned/recorded clarity in Summary and session details. Broader app UX phases and physical-phone acceptance remain.
+**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466, with fresh local, native and hosted verification on actual merged trunk. The active F9/W11/V12/Q08/UX23/UX29 packet improves exercise identity, planned/recorded clarity and restored saved-work reachability in Summary and session details. Broader app UX phases and physical-phone acceptance remain.
 
 **Audience:** Temper's owner and the next designer, engineer, or agent continuing this work.
 
@@ -84,13 +84,36 @@ across eight fresh suites, including the 14-profile native-graphics matrix and
 exact artwork/fallback case, with 400 fresh PNGs and unchanged 1,545 runtime
 inputs. The first run's glyph-color assertion failure remains preserved; a
 pixel probe confirmed the annotated unit used a different color, and the
-corrected helper retains actual glyph/clip checks. The complete gate, connected
-execution and final reviews remain. Independent render inspection then found
+corrected helper retains actual glyph/clip checks. Independent render inspection found
 RTL operands reversed despite correct semantic text; a new native glyph-order
 counter fails before the local direction fix. The first complete gate's one
 old spoken-label expectation is retained, and the corrected connected JVM
-journey passes with exact saved-set identity. A fresh complete gate must verify
-both repairs. No broader UX29 acceptance is claimed.
+journey passes with exact saved-set identity. Clean `c49b19ba` then passed the
+fresh complete gate: **3,939 app tests / 573 suites**, **1,685 standalone tests /
+255 classes**, all required build/lint tasks and unchanged 1,545 runtime inputs.
+The 2,139 archived native-graphics PNGs include all 400 receipt-profile frames.
+Fresh native execution passed **222 tests / 32 classes**, 85 device-hashed
+captures and all 13 fixture restoration pairs, with matching runtime inputs.
+The preceding startup attempt stopped on a SystemUI `BOOT_COMPLETED` ANR before
+app install and ran zero tests; that failed evidence remains separate.
+
+Final review withholds integration for reproduced restored-history defects.
+Supported backup inputs can contain a saved set outside a partially populated
+plan, or distinct prescription rows sharing an exercise ID. `counter04` executed
+real BackupService preview/commit, Room reads and shipping Detail: four failures
+in seven cases reproduced an unreachable original saved set and a duplicate-key
+crash while scrolling. All postrestore inventories remained byte-identical
+through teardown; the defects affect access, not stored record integrity.
+The display repair groups exact exercise IDs, preserves each original numbered
+prescription and exposes every saved SetLog once, including saved-only exercises.
+Both restored graphs now pass independent 14-profile render cases in `targeted05`:
+**142 cases / 11 fresh suites**, zero failures/errors/skips and unchanged 1,546
+runtime inputs, with **685 archived PNGs**. Original setup/workflow failures remain
+preserved; the counter now uses checked effort semantics, actual Hebrew resource
+RTL and the shipping sheet's Expand action. Complete clean gates, fresh native
+execution and nonauthor final reviews remain required before approval.
+Hidden saved work takes priority over the separate Summary
+hold-duration refinement. No broader UX29 or phone acceptance is claimed.
 Returning from a historical correction to the
 retained Summary still needs an actual AppNav counter and a snapshot-policy
 decision before changing that deliberate contract.

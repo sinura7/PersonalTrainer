@@ -1,19 +1,14 @@
 package com.sinura.personaltrainer.domain
 
 /**
- * One lift on a finished session, in the same shape as a program card: identity,
- * the prescription it was started with, and the sets that filled it in.
+ * One exact exercise on a finished session. Each original prescription remains
+ * separate; saved sets belong to the exercise, not to any one prescription.
  */
 data class FilledSessionLift(
     val number: Int,
     val exercise: Exercise,
-    val targetSets: Int,
-    val targetReps: Int,
-    val targetWeightKg: Double?,
-    val restSeconds: Int,
+    val prescriptions: List<FilledSessionPrescription>,
     val sets: List<SetLog>,
-    val targetSeconds: Int? = null,
-    val targetSecondsMax: Int? = null,
 ) {
     val workingLogged: Int get() = sets.count { !it.isWarmup }
 
@@ -22,8 +17,17 @@ data class FilledSessionLift(
      * card uses. Orphaned set-only history has nothing to print there.
      */
     val hasPrescription: Boolean
-        get() = targetSets > 0 ||
-            restSeconds > 0 ||
-            targetSeconds != null ||
-            (targetWeightKg != null && targetWeightKg > 0.0)
+        get() = prescriptions.any { it.hasTargets }
+}
+
+/** The original row and its position before exercise grouping, including repeated rows. */
+data class FilledSessionPrescription(
+    val originalPosition: Int,
+    val row: SessionExercise,
+) {
+    val hasTargets: Boolean
+        get() = row.targetSets > 0 ||
+            row.restSeconds > 0 ||
+            row.targetSeconds != null ||
+            (row.targetWeightKg != null && row.targetWeightKg > 0.0)
 }

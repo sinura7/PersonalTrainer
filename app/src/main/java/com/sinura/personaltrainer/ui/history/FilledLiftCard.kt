@@ -45,6 +45,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 
 internal object FilledLiftCardTags {
     fun planned(exerciseId: String) = "session-detail-planned-$exerciseId"
+    fun plannedEntry(prescriptionId: String) = "session-detail-planned-entry-$prescriptionId"
     fun recorded(exerciseId: String) = "session-detail-recorded-$exerciseId"
     fun setRow(setId: String) = "session-detail-set-$setId"
     fun addSet(exerciseId: String) = "session-detail-add-set-$exerciseId"
@@ -53,7 +54,7 @@ internal object FilledLiftCardTags {
 /**
  * A finished lift in the same chrome as the program card and the floor card:
  * numbered badge, still, complete name, muscle, kit chip, working-set count,
- * then explicitly planned Work / Rest / Load and the recorded sets.
+ * then every original planned Work / Rest / Load entry and the recorded sets once.
  */
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
@@ -65,30 +66,54 @@ internal fun FilledLiftCard(
     onEditSet: (SetLog) -> Unit,
     onAddSet: () -> Unit,
 ) {
-    val restClock = RestTimer.formatClock(lift.restSeconds)
-    val loadKg = lift.targetWeightKg?.takeIf { it > 0.0 }
-    val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
-    val spoken = SessionOrderCopy.filledSpoken(
-        number = lift.number,
-        name = lift.exercise.name,
-        muscleGroup = lift.exercise.muscleGroup,
-        workingLogged = lift.workingLogged,
-        targetSets = lift.targetSets,
-        targetReps = lift.targetReps,
-        restClock = restClock.takeIf { lift.hasPrescription },
-        load = loadDisplay,
-        holdSeconds = lift.targetSeconds,
-        holdSecondsMax = lift.targetSecondsMax,
-    )
+    val repeated = lift.prescriptions.size > 1
+    val single = lift.prescriptions.singleOrNull()?.row
+    // Sets reference an exercise, so multiple prescriptions cannot each claim their completion.
+    val countTarget = single?.targetSets ?: 0
+    val spoken = if (repeated) {
+        SessionOrderCopy.filledGroupSpoken(
+            number = lift.number,
+            name = lift.exercise.name,
+            muscleGroup = lift.exercise.muscleGroup,
+            workingLogged = lift.workingLogged,
+            plannedEntries = lift.prescriptions.map { entry ->
+                val row = entry.row
+                SessionOrderCopy.filledPrescriptionSpoken(
+                    originalPosition = entry.originalPosition,
+                    sets = row.targetSets,
+                    reps = row.targetReps,
+                    restClock = RestTimer.formatClock(row.restSeconds),
+                    load = row.targetWeightKg?.let { WeightConverter.formatLabel(it, unit) },
+                    holdSeconds = row.targetSeconds,
+                    holdSecondsMax = row.targetSecondsMax,
+                )
+            },
+        )
+    } else {
+        SessionOrderCopy.filledSpoken(
+            number = lift.number,
+            name = lift.exercise.name,
+            muscleGroup = lift.exercise.muscleGroup,
+            workingLogged = lift.workingLogged,
+            targetSets = countTarget,
+            targetReps = single?.targetReps ?: 0,
+            restClock = single?.let { RestTimer.formatClock(it.restSeconds) }
+                .takeIf { lift.hasPrescription },
+            load = single?.targetWeightKg?.takeIf { it > 0.0 }
+                ?.let { WeightConverter.formatLabel(it, unit) },
+            holdSeconds = single?.targetSeconds,
+            holdSecondsMax = single?.targetSecondsMax,
+        )
+    }
     val headerTrailing = @Composable {
         Column {
             Text(
-                SessionOrderCopy.filledCount(lift.workingLogged, lift.targetSets),
+                SessionOrderCopy.filledCount(lift.workingLogged, countTarget),
                 style = InstrumentType.numeralSm,
                 color = TextPrimary,
             )
             Text(
-                if (lift.targetSets > 0) "Working sets: recorded / planned" else "Recorded working sets",
+                if (countTarget > 0) "Working sets: recorded / planned" else "Recorded working sets",
                 style = InstrumentType.caption,
                 color = TextSecondary,
             )
@@ -103,7 +128,7 @@ internal fun FilledLiftCard(
         completeName = true,
         trailing = headerTrailing,
     ) {
-        if (lift.hasPrescription) {
+        if (lift.hasPrescription || repeated) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -111,31 +136,44 @@ internal fun FilledLiftCard(
                     .testTag(FilledLiftCardTags.planned(lift.exercise.id)),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                DetailSectionLabel(SessionOrderCopy.PLANNED)
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                ) {
-                    if (lift.targetSets > 0 || lift.targetSeconds != null) {
-                        PlannedMetric(
-                            value = SessionOrderCopy.workValue(
-                                lift.targetSets,
-                                lift.targetReps.coerceAtLeast(1),
-                                lift.targetSeconds,
-                                lift.targetSecondsMax,
-                            ),
-                            label = SessionOrderCopy.WORK,
+                lift.prescriptions.forEach { entry ->
+                    val row = entry.row
+                    val loadKg = row.targetWeightKg?.takeIf { repeated || it > 0.0 }
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                            .testTag(FilledLiftCardTags.plannedEntry(row.id)),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        DetailSectionLabel(
+                            if (repeated) "${SessionOrderCopy.PLANNED} · ${entry.originalPosition}"
+                            else SessionOrderCopy.PLANNED,
                         )
-                    }
-                    PlannedMetric(value = restClock, label = SessionOrderCopy.REST)
-                    if (loadKg != null) {
-                        PlannedMetric(
-                            value = WeightConverter.formatDisplayNumber(
-                                WeightConverter.toDisplayValue(loadKg, unit),
-                            ),
-                            label = SessionOrderCopy.LOAD,
-                            unit = unit.suffix,
-                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+                            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                        ) {
+                            if (repeated || row.targetSets > 0 || row.targetSeconds != null) {
+                                PlannedMetric(
+                                    value = SessionOrderCopy.workValue(
+                                        row.targetSets,
+                                        if (repeated) row.targetReps else row.targetReps.coerceAtLeast(1),
+                                        row.targetSeconds,
+                                        row.targetSecondsMax,
+                                    ),
+                                    label = SessionOrderCopy.WORK,
+                                )
+                            }
+                            PlannedMetric(value = RestTimer.formatClock(row.restSeconds), label = SessionOrderCopy.REST)
+                            if (loadKg != null) {
+                                PlannedMetric(
+                                    value = WeightConverter.formatDisplayNumber(
+                                        WeightConverter.toDisplayValue(loadKg, unit),
+                                    ),
+                                    label = SessionOrderCopy.LOAD,
+                                    unit = unit.suffix,
+                                )
+                            }
+                        }
                     }
                 }
             }

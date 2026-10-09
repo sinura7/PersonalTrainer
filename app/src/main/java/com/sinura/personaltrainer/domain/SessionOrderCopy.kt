@@ -169,4 +169,31 @@ object SessionOrderCopy {
         }
         if (planned.isNotEmpty()) append(". Planned: ${planned.joinToString(". ")}")
     }
+
+    /** Repeated plan rows share recorded sets, with no inferred completion denominator. */
+    fun filledGroupSpoken(
+        number: Int,
+        name: String,
+        muscleGroup: String,
+        workingLogged: Int,
+        plannedEntries: List<String>,
+    ): String = buildString {
+        append(filledSpoken(number, name, muscleGroup, workingLogged, 0, 0, null, null))
+        plannedEntries.forEach { append(". $it") }
+    }
+
+    /** Every repeated row says its original position and its own unchanged targets. */
+    fun filledPrescriptionSpoken(
+        originalPosition: Int,
+        sets: Int,
+        reps: Int,
+        restClock: String,
+        load: String?,
+        holdSeconds: Int? = null,
+        holdSecondsMax: Int? = null,
+    ): String = buildString {
+        append("Planned $originalPosition: Work ${workValue(sets, reps, holdSeconds, holdSecondsMax)}")
+        append(". Rest $restClock")
+        if (!load.isNullOrBlank()) append(". Load $load")
+    }
 }

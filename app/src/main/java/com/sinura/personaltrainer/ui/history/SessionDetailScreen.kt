@@ -81,8 +81,9 @@ internal fun sessionDeleteTitle(routineName: String?): String =
  * A finished session as a filled program sheet.
  *
  * The header is the same readout as the summary shown the moment it ended. Each
- * lift is the same card as the floor / program: still, number, name, the
- * prescribed Work / Rest / Load, and the sets written in. Repair still lives
+ * exact exercise is the same card as the floor / program: still, number, name,
+ * every original prescription and one list of saved sets. Repeated prescriptions
+ * keep their original program positions. Repair still lives
  * here — Edit opens the set sheet — but the page is no longer a grouped text
  * receipt.
  *

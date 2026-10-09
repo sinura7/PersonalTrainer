@@ -899,6 +899,109 @@ values LTR while retaining RTL card flow. The original targeted tests' green
 text assertions did not establish operand order. Fresh full/native gates and
 final reviews remain necessary; neither original failed run becomes a pass.
 
+**Fresh receipt gate, 9 October 2026 UTC:** Clean `c49b19ba`, tree
+`41c6c6bde06356854309b17ef5cdb09a65d72610`, passed `full02` from
+**17:59:41.9925100Z–18:16:55.6149836Z**: **3,939 app tests / 573 fresh suites**,
+zero failures/errors/skips, **1,685 standalone tests / 255 classes**, all four
+required Windows tasks and all 135 tasks executed. All **1,545 runtime inputs**
+and references remained unchanged and match the actual candidate Git blobs,
+with only the established `gradlew.bat` CRLF checkout filter. Summary SHA-256:
+`32E30AC0533861F3BF9D6EE9B249E62F0C759A4F4E9F841E22DBA44881BA3708`.
+Runtime manifest SHA-256:
+`78CFEEBFD9ADA78BDC0D62EC5C77EDBE6A2A189892E3964AD098B91D7C8F2AE7`.
+The fresh archive contains **2,139 PNGs / 3,595 files**, including all **400**
+receipt-profile and exact-artwork PNGs. Render manifest SHA-256:
+`6179D7CD07502680037AD4CD5350D8EAA7C59262F68D25F2ABD5F8EF7C68E5A4`.
+Actual RTL glyph evidence now shows ordered `3 × 5`; original failed runs remain.
+
+Candidate `native01` stopped at the unchanged cold-boot admission guard on a
+SystemUI `BOOT_COMPLETED` ANR before app installation: **zero tests and captures**,
+no native suite exit code. Its summary SHA-256 is
+`420D00B8BB516A5A4F5FD1CDD44E1CF07BC3565329FC05D4AF1EED7B19FAAC73`.
+The underlying system cause remains unknown. Empty packages, restored settings,
+collector cleanup and subsequent actual emulator-process absence were verified.
+An unchanged fresh cold boot, `native02`, passed **222 tests / 32 classes** from
+**18:20:56.0431468Z–18:27:33.1975217Z**, with zero failures/errors/skips,
+**85 device-hashed captures**, all **13 fixture restoration pairs**, offline
+admission before first app launch and verified network/settings/package cleanup.
+All 1,545 runtime inputs and references still matched. Summary SHA-256:
+`B64C0A05BB86726657D4A340B1F328D9D91A769194EEA8CE1CF263AE627252CE`.
+The actual same-session AppNav receipt and detail both retain **255 kg**, the
+exact corrected **85 kg × 3** set and corresponding exercise artwork; Detail
+qualifies **3 × 5 / 140 kg** as Planned. These are **pre-integration candidate**
+results; copied wrapper diagnostic labels do not establish postmerge evidence.
+
+**Confirmed recovery blockers, 9 October 2026 UTC:** `counter04` ran from
+**18:39:01.8727528Z–18:42:37.3732312Z**, against unchanged `c49b19ba` production
+and two test-file additions: **seven cases / two fresh suites / four failures**,
+zero errors/skips, exit 1, unchanged **1,546 runtime inputs**. Real BackupService
+prepare/commit accepted both serialized graphs, created its safety copy and
+completed its journal before shipping Detail inspection. A saved **45 kg × 6**
+set contributed to **270 kg / one set** but its original row/Edit was unreachable.
+Repeated exercise prescriptions crashed with a duplicate LazyColumn key while
+scrolling to the second prescription. Domain counters separately reproduced
+the omitted exercise and duplicated original SetLog. Every postrestore inventory
+remained byte-identical through teardown; no record loss or wrong write is inferred.
+Summary SHA-256:
+`64A7028B3EDE1740115C3948BE8D7A5603CB1E6FCD899ADE198A0878A2E9FED4`.
+The archive retains **eight PNGs / 28 files**; render manifest SHA-256:
+`4F279DEE9C2BBEC5AC37C7E970D1D5FC952A857C123BFB085AB3595967770451`.
+Both defects are high blockers for F9 / Q08 / UX23 / UX29 saved-work reachability.
+
+The pending display repair groups exact exercise IDs, retains every original
+prescription object and numbered program position, and exposes each original
+SetLog/Edit once, including saved-only exercises. Interleaved repeated exercises
+are grouped at first occurrence; original positions remain explicit and badges
+may have gaps. Repeated prescriptions have a recorded-only count, not an inferred
+completion denominator. Two independent 14-profile recovery render matrices
+retain validated restore, graph equality and native glyph/clip/touch checks.
+Fresh execution and complete gates must establish the repair. Final
+independent/adversarial approval, hosted verification and integration remain
+pending. Recovery takes priority over Summary hold refinement; the read-once
+return policy stays open. No broader UX23/UX29 or physical-device closure is claimed.
+
+`targeted03` retains the first repaired execution, **18:49:57.7847855Z–18:55:09.5603693Z**:
+**142 cases / 11 fresh suites / 28 failures**, zero errors/skips, exit 1 and stable
+1,546 inputs. All 26 non-RTL recovery renders passed original row, prescription
+and Edit reachability before a test expected `Selected` for InstrumentChip's
+actual `ToggleableState.On`. The two RTL cases stopped before restore because
+native resource direction was still LTR. These are demonstrated test setup/assertion
+defects; their correction must retain exact effort and real resource-direction
+checks. The other 114 cases passed. The run is not a gate pass. Summary SHA-256:
+`CB810612C9C37CF03FBEAE4E028094F9B459FA4A01C690447C7D65955F8F3BAF`.
+All **589 PNGs / 1,334 files** remain archived, render manifest SHA-256:
+`32C5B4A727F2F4B137B9C91ADC598C688DA5EE472F38F9D1FBADDC2DD20150BD`.
+
+`targeted04`, **19:00:12.9896143Z–19:04:56.3179451Z**, retains **142 cases /
+11 fresh suites / eight failures**, zero errors/skips and stable 1,546 inputs.
+Both real Hebrew-resource RTL cases pass; 20 recovery cases and all 114 adjacent
+cases pass. Eight RPE visibility inspections stop on the actual partially expanded
+sheet: its visible handle offers Expand, while the inner ScrollBy action cannot
+expand that anchored sheet. The next counter must perform the shipping Expand
+action, verify settled geometry and then retain the whole 48 dp action/native
+glyph checks. No production sheet defect or passing gate is inferred. Summary
+SHA-256: `B4987E2DBDE144131FE295267D6DA4B367732C6F84904590722A94E377472305`.
+The archive preserves **621 PNGs / 1,473 files**, render manifest SHA-256:
+`4979F9DE9588B9991A5858011DB7918F7A728700434C761939DC5207596372D1`.
+
+**Focused repaired execution:** `targeted05`,
+**19:08:52.4669440Z–19:13:39.4774753Z**, passed the same **142 cases / 11 fresh
+suites**, zero failures/errors/skips, all four named Windows tasks and unchanged
+**1,546 runtime inputs**. All **28 independent recovery renders** pass their
+validated full restore, original prescription/SetLog multiplicity, exact Edit
+prefill, native glyph/order/clip and 48 dp action checks. Default anchor captures
+remain; when offered, the actual Expand action must accept and settle the sheet
+fully inside its window before effort inspection. Every restored inventory
+remains unchanged through expansion, inspection, real Dismiss and teardown.
+Summary SHA-256: `153CE82D43CC44831232410476998F81DCA8A2EE08B7CC03BFBF223BD477763F`.
+Runtime manifest SHA-256:
+`4B8055DCACCF7B518363C2DB240B3A1BA8E141ADB16A119EBF8FDAD2579D38BC`.
+The archive contains **685 PNGs / 1,681 files**, render manifest SHA-256:
+`7C2C42C3C200E1D58F598E611FE6C841F1EA4B90642E2AFAD0B85F5BE2DD7DE6`.
+Root inspected the actual formerly hidden row and both preserved repeated targets.
+Original red runs stay red. This is a filtered pre-integration pass; standalone
+preflight, clean complete/native gates and both final reviews still remain.
+
 ### UX30 — Establish an evidence-led design delivery and regression process
 
 | Check | Priority | Fixtures | Expected outcome | Status |
