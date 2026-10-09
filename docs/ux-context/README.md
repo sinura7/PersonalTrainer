@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow is reviewed and integrated through #465, with fresh local, native and hosted verification on actual merged trunk. The immediate F6a/UX15/Q08 travel repair passes its complete local and connected gates and both final reviews; hosted verification and integration remain. Broader app UX phases and physical-phone acceptance remain.
+**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466, with fresh local, native and hosted verification on actual merged trunk. The active F9/W11/V12/Q08/UX23/UX29 packet improves exercise identity, planned/recorded clarity and restored saved-work reachability in Summary and session details. Broader app UX phases and physical-phone acceptance remain.
 
 **Audience:** Temper's owner and the next designer, engineer, or agent continuing this work.
 
@@ -57,6 +57,124 @@ these evidence records. Hosted checks and integration remain pending. The
 native suite provides adjacent workout/History regression evidence; the new
 travel interaction is real Repository/Room and mounted Compose JVM evidence.
 Wider app UX phases and physical-phone acceptance are not complete.
+
+**Travel integration closed, 9 October 2026 UTC:** [PR #466](https://github.com/sinura7/PersonalTrainer/pull/466)
+merged as `9fd21456`, tree `42029232fbffdc8ecc78790752a36e33a4eadcc4`, identical
+to reviewed `16521ef1`. Actual clean-trunk verification passed **3,915 app tests /
+572 suites**, **1,682 standalone tests / 255 classes**, all four required local
+tasks, and **222 native tests / 32 classes**. The fresh native execution retained
+85 device-hashed captures, all 13 fixture restoration pairs and unchanged
+runtime inputs. The preceding native attempt stopped at the cold-boot admission
+guard on a Launcher ANR before install and ran zero tests; its failed evidence
+remains separate. A fresh cold boot passed the identical guard and suite.
+[Actual-trunk hosted verification](https://github.com/sinura7/PersonalTrainer/actions/runs/37960635611)
+passed both jobs on that exact commit/tree, independently checked. A fresh
+integration review verified source, raw results, captures, restoration and
+emulator shutdown before feature-branch cleanup. This supersedes the pending
+integration status in the earlier dated snapshot above.
+
+**Current Summary/detail packet:** The same-session native receipt confirms
+missing Summary artwork and unqualified detail targets beside different recorded
+results. Apply O11's corresponding images, complete readable names and explicit
+Planned / Recorded sets sections, including hold targets. Exact IDs and metadata
+come from the same successful session read; custom and unknown lifts retain the
+existing fallback artwork. Calculation, persistence formats and captured identities,
+navigation and the current read-once Summary snapshot contract remain. The targeted
+gate passed 51 checks
+across eight fresh suites, including the 14-profile native-graphics matrix and
+exact artwork/fallback case, with 400 fresh PNGs and unchanged 1,545 runtime
+inputs. The first run's glyph-color assertion failure remains preserved; a
+pixel probe confirmed the annotated unit used a different color, and the
+corrected helper retains actual glyph/clip checks. Independent render inspection found
+RTL operands reversed despite correct semantic text; a new native glyph-order
+counter fails before the local direction fix. The first complete gate's one
+old spoken-label expectation is retained, and the corrected connected JVM
+journey passes with exact saved-set identity. Clean `c49b19ba` then passed the
+fresh complete gate: **3,939 app tests / 573 suites**, **1,685 standalone tests /
+255 classes**, all required build/lint tasks and unchanged 1,545 runtime inputs.
+The 2,139 archived native-graphics PNGs include all 400 receipt-profile frames.
+Fresh native execution passed **222 tests / 32 classes**, 85 device-hashed
+captures and all 13 fixture restoration pairs, with matching runtime inputs.
+The preceding startup attempt stopped on a SystemUI `BOOT_COMPLETED` ANR before
+app install and ran zero tests; that failed evidence remains separate.
+
+Final review withholds integration for reproduced restored-history defects.
+Supported backup inputs can contain a saved set outside a partially populated
+plan, or distinct prescription rows sharing an exercise ID. `counter04` executed
+real BackupService preview/commit, Room reads and shipping Detail: four failures
+in seven cases reproduced an unreachable original saved set and a duplicate-key
+crash while scrolling. All postrestore inventories remained byte-identical
+through teardown; the defects affect access, not stored record integrity.
+The display repair groups exact exercise IDs, preserves each original numbered
+prescription and exposes every saved SetLog once, including saved-only exercises.
+Both restored graphs now pass independent 14-profile render cases in `targeted05`:
+**142 cases / 11 fresh suites**, zero failures/errors/skips and unchanged 1,546
+runtime inputs, with **685 archived PNGs**. Original setup/workflow failures remain
+preserved; the counter now uses checked effort semantics, actual Hebrew resource
+RTL and the shipping sheet's Expand action. Complete clean gates, fresh native
+execution and nonauthor final reviews remain required before approval.
+Clean `9d988658` then ran the unfiltered `full03` gate: **3,976 app tests /
+574 fresh suites, one failure, zero errors/skips**; **1,694 standalone tests /
+255 classes passed**. The History retry assertion captured an old failed state
+after its trace boundary, although the separately awaited new request was loading.
+This remains a failed gate. A deterministic delayed-recorder counter will establish
+whether the cause is the test's observation boundary or application behavior before
+changing either. The 1,546 inputs stayed unchanged and all 2,413 fresh PNGs are
+archived. `counter06` stopped before tests on a new mixed argument call; the
+identical fully named fixture keeps the checker ceiling unchanged. `counter07`
+then executed **six cases / two suites, two failures**. Supported restore → Edit →
+rep +1 / effort 8 → Save changed an original weighted timed hold from zero to one
+rep and invented repetition volume. The untouched saved-only hold was explicitly
+refused; planned-hold controls remained correct. The delayed recorder independently
+appended its old failed state after the trace cut while the real new read remained
+pending. The unchanged old assertion failed although every state after the recorded
+new pending boundary passed. Both demonstrated causes are being repaired: preserve
+the original saved timed type and bind retry assertions to acknowledged recorder
+boundaries. All **32 counter PNGs** and full raw inventories/chronology are retained.
+Native03 remains deferred until fresh complete verification closes the repairs.
+The repaired `targeted06` pass executes **214 cases / 18 fresh suites**, zero
+failures/errors/skips, all four Windows tasks and unchanged **1,548 inputs**.
+All six full-restore/editor cases now require successful Save: zero-rep originals,
+the accepted literal -3 timed representation, and a rep nudge with all effort
+controls off preserve exact timed data. Seven Room correction controls retain
+stopwatch strength, strict refusals, explicit duration correction and every
+unrelated saved row. The original and delayed-recorder History tests pass without
+changing production History. All **733 PNGs** and inventories/chronology are
+archived. This filtered result precedes the clean complete gate, fresh native
+execution, final reviews and integration; it does not close the editor refinement.
+
+The dependent **Set Edit sheet identity and numeric controls** refinement remains
+open under F9/W11/V12/Q08/UX29: a long identity truncates at font 2.0, the default
+360 dp ±2.5 labels wrap, and hold-duration correction lacks its own control. RPE 10
+reflow at 320 dp/font 2.0 needs a complete reachability check. Exact original-row
+selection and prefill passed; these layout observations do not establish wrong
+increments or permanently unreachable effort. A demonstrated unsafe hold write
+would take priority in the current packet rather than wait for this refinement.
+Hidden saved work takes priority over the separate Summary
+hold-duration refinement. No broader UX29 or phone acceptance is claimed.
+Returning from a historical correction to the
+retained Summary still needs an actual AppNav counter and a snapshot-policy
+decision before changing that deliberate contract.
+
+**Complete packet verification and reviews closed, 9 October 2026 UTC:** Clean
+`f2504264`, tree `20b6d0c04fa0c9635fa3f9cc8027ba55a857b451`, passed fresh `full04`:
+**3,990 app tests / 576 fresh suites**, **1,694 standalone tests / 255 classes**,
+zero failures/errors/skips, all four required Windows tasks with `--rerun-tasks`
+and all 135 tasks executed. The archive preserves **2,461 fresh PNGs / 4,626 files**.
+Fresh `native03` passed **222 Android tests / 32 classes**, with **85 device-hashed
+captures**, all **13 fixture restoration pairs**, offline admission and verified
+network/settings/package/collector restoration. The same-session AppNav images
+show **85 kg × 3 / RPE 9**, **255 kg**, matching artwork and clearly qualified
+**3 × 5 / 140 kg** planned targets. Actual emulator-process absence was verified
+after shutdown. All **1,548 runtime inputs** match both closed gates and the actual
+committed Git blobs; the sole established checkout conversion is `gradlew.bat` CRLF.
+Fresh nonauthor independent and adversarial reviews approve the entire
+`9fd21456` → `f2504264` packet with no unresolved critical/high finding.
+[UX29 records the execution and review pins](../ux-program/UX-Acceptance-Matrix.md#ux29--make-activity-type-differences-explicit-in-details-and-receipts).
+Earlier failed runs remain failed evidence. This closes candidate verification;
+hosted verification, integration and fresh actual-trunk gates remain pending.
+The named editor refinement, hold Summary presentation, correction-return policy,
+broader app UX and physical-phone acceptance remain open. No Debug drop was requested.
 
 ## Owner decisions for this project
 

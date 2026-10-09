@@ -37,6 +37,8 @@ import com.sinura.personaltrainer.testutil.FailingPastBlocksDao
 import com.sinura.personaltrainer.testutil.ReadGate
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.insertTestExercise
+import java.io.File
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -474,15 +476,41 @@ class HistoryPeriodViewModelTest {
     @Test
     fun retryHasItsOwnIdentityAndAFailedReadCannotMasqueradeAsZeroOrOldSuccess() = runBlocking {
         seedProgress()
-        withModel { model ->
+        val armedPending = AtomicReference<CompletableDeferred<Unit>?>()
+        val recordedPending = AtomicReference<HistoryUiState?>()
+        val heldRequest = AtomicReference<PeriodHeldRead?>()
+        val readyRecorded = CompletableDeferred<Unit>()
+        val failedRecorded = CompletableDeferred<Unit>()
+        withModel(beforeRecord = { state ->
+            if (recordedPending.get() != null && heldRequest.get()?.release?.isCompleted == false) {
+                assertTrue("every recorded state after the acknowledged boundary stays loading: $state", state.progressLoading)
+                assertNull("every recorded state after the acknowledged boundary hides old progress: $state", state.horizonProgress)
+                assertFalse("every recorded state after the acknowledged boundary hides old failure: $state", state.progressFailed)
+            }
+            when {
+                state.progressLoading && state.horizonProgress == null && !state.progressFailed ->
+                    armedPending.getAndSet(null)?.also { recordedPending.set(state) }
+                !state.isLoading && !state.unavailable && !state.progressLoading &&
+                    !state.progressFailed && state.horizonProgress != null && !readyRecorded.isCompleted -> readyRecorded
+                state.progressFailed && !failedRecorded.isCompleted -> failedRecorded
+                else -> null
+            }
+        }) { model ->
             assertEquals(2, awaitReady(model).horizonProgress!!.recordsBroken)
-            val retry = trace(model).size
+            withTimeout(TestWaits.FLOW_MS) { readyRecorded.await() }
             val failedRead = reads.holdNext(fail = true)
+            heldRequest.set(failedRead)
+            val retryRecorded = CompletableDeferred<Unit>()
+            armedPending.set(retryRecorded)
             model.retryHistory()
             failedRead.awaitEntered()
             val pending = awaitState(model) { it.progressLoading }
             assertNull(pending.horizonProgress)
             assertFalse(pending.progressFailed)
+            withTimeout(TestWaits.FLOW_MS) { retryRecorded.await() }
+            val retryBoundary = checkNotNull(recordedPending.get())
+            val retry = trace(model).indexOfFirst { it === retryBoundary }
+            assertTrue("the new retry pending boundary was acknowledged after trace append", retry >= 0)
             assertPendingEmissions(model, retry) { true }
             failedRead.release.complete(Unit)
             val failed = awaitState(model) { it.progressFailed }
@@ -491,14 +519,22 @@ class HistoryPeriodViewModelTest {
             assertFalse(failed.progressLoading)
             assertNull(failed.horizonProgress)
             assertEquals(2, failed.horizonTotals!!.sessionCount)
+            withTimeout(TestWaits.FLOW_MS) { failedRecorded.await() }
 
             val recovery = reads.holdNext()
-            val recover = trace(model).size
+            recordedPending.set(null)
+            heldRequest.set(recovery)
+            val recoveryRecorded = CompletableDeferred<Unit>()
+            armedPending.set(recoveryRecorded)
             model.retryHistory()
             recovery.awaitEntered()
             val retrying = awaitState(model) { it.progressLoading }
             assertNull(retrying.horizonProgress)
             assertFalse(retrying.progressFailed)
+            withTimeout(TestWaits.FLOW_MS) { recoveryRecorded.await() }
+            val recoveryBoundary = checkNotNull(recordedPending.get())
+            val recover = trace(model).indexOfFirst { it === recoveryBoundary }
+            assertTrue("the new recovery pending boundary was acknowledged after trace append", recover >= 0)
             assertPendingEmissions(model, recover) { true }
             recovery.release.complete(Unit)
             val restored = awaitReady(model)
@@ -506,6 +542,140 @@ class HistoryPeriodViewModelTest {
             assertEquals(2, restored.horizonProgress!!.recordsBroken)
             assertEquals(failed.selection, restored.selection)
             assertEquals(failed.periodRange, restored.periodRange)
+        }
+    }
+
+    @Test
+    fun aDelayedPriorFailureRecorderDeterministicallyExposesTheRecoveryTraceCutRace() = runBlocking {
+        seedProgress()
+        val recorderRelease = CompletableDeferred<Unit>()
+        val failedAtRecorder = CompletableDeferred<HistoryUiState>()
+        val failedRecorded = CompletableDeferred<Unit>()
+        val pendingRecorded = CompletableDeferred<Unit>()
+        val firstFailure = AtomicBoolean(false)
+        val recoveryRequested = AtomicBoolean(false)
+        val pendingAcknowledgement = AtomicBoolean(false)
+        val recoveryRead = AtomicReference<PeriodHeldRead?>()
+        val chronology = CopyOnWriteArrayList<String>()
+        val chronologySequence = AtomicInteger()
+        fun note(event: String) {
+            chronology += "${chronologySequence.incrementAndGet()}: $event"
+        }
+        withModel(beforeRecord = { state ->
+            // Once the recorder has appended the new pending boundary, every later
+            // recorded state must stay pending until the real recovery read is released.
+            if (pendingAcknowledgement.get() && recoveryRead.get()?.release?.isCompleted == false) {
+                assertTrue("a recorded recovery state stays loading while its read is held: $state", state.progressLoading)
+                assertNull("a recorded recovery state has no old progress while its read is held: $state", state.horizonProgress)
+                assertFalse("a recorded recovery state has no old failure while its read is held: $state", state.progressFailed)
+            }
+            when {
+                state.progressFailed && firstFailure.compareAndSet(false, true) -> {
+                    note("recorder received the first old FAILED before append: $state")
+                    failedAtRecorder.complete(state)
+                    withTimeout(TestWaits.FLOW_MS) { recorderRelease.await() }
+                    note("recorder released the old FAILED for its original trace append")
+                    failedRecorded
+                }
+                recoveryRequested.get() && state.progressLoading && !state.progressFailed &&
+                    state.horizonProgress == null && pendingAcknowledgement.compareAndSet(false, true) -> {
+                    note("recorder received the new recovery pending boundary before append: $state")
+                    pendingRecorded
+                }
+                else -> null
+            }
+        }) { model ->
+            try {
+                val ready = awaitReady(model)
+                assertEquals(2, ready.horizonProgress!!.recordsBroken)
+                note("direct observer saw original ready: $ready")
+                val failedRead = reads.holdNext(fail = true)
+                model.retryHistory()
+                failedRead.awaitEntered()
+                note("first retry entered its held real full-log read")
+                val initialPending = awaitState(model) { it.progressLoading }
+                assertNull(initialPending.horizonProgress)
+                assertFalse(initialPending.progressFailed)
+                failedRead.release.complete(Unit)
+                val failed = awaitState(model) { it.progressFailed }
+                note("direct observer saw old FAILED while recorder is delayed: $failed")
+                val delayedFailure = withTimeout(TestWaits.FLOW_MS) { failedAtRecorder.await() }
+                assertTrue(delayedFailure.progressFailed)
+                assertFalse(delayedFailure.progressLoading)
+                assertNull(delayedFailure.horizonProgress)
+                assertFalse("the old FAILED has not yet been appended", failedRecorded.isCompleted)
+
+                val recovery = reads.holdNext()
+                recoveryRead.set(recovery)
+                val recover = trace(model).size
+                note("trace cut=$recover BEFORE requesting recovery; current public=$failed")
+                recoveryRequested.set(true)
+                model.retryHistory()
+                recovery.awaitEntered()
+                note("recovery entered its held real full-log read")
+                val publicPending = awaitState(model) { it.progressLoading }
+                assertNull(publicPending.horizonProgress)
+                assertFalse(publicPending.progressFailed)
+                assertFalse("the recovery query remains held", recovery.release.isCompleted)
+                assertFalse("the old FAILED still has not been appended", failedRecorded.isCompleted)
+                note("direct observer saw genuine new pending before recorder release: $publicPending")
+
+                recorderRelease.complete(Unit)
+                withTimeout(TestWaits.FLOW_MS) { failedRecorded.await() }
+                note("acknowledged original delayed FAILED trace append")
+                withTimeout(TestWaits.FLOW_MS) { pendingRecorded.await() }
+                note("acknowledged later new-pending trace append")
+                val captured = trace(model)
+                val failedIndex = captured.indices.first { it >= recover && captured[it] == delayedFailure }
+                val pendingIndex = captured.indices.first {
+                    it > failedIndex && captured[it].progressLoading && !captured[it].progressFailed &&
+                        captured[it].horizonProgress == null
+                }
+                assertEquals("the concrete delayed old FAILED is retained", delayedFailure, captured[failedIndex])
+                assertTrue("the new recorded pending boundary follows that old FAILED", pendingIndex > failedIndex)
+                val heldPending = captured.drop(pendingIndex)
+                assertTrue("a genuine new pending boundary was recorded", heldPending.isNotEmpty())
+                heldPending.forEach { state ->
+                    assertTrue("all recorded states after new pending remain loading while the read is held: $state", state.progressLoading)
+                    assertNull("all recorded states after new pending have no old progress: $state", state.horizonProgress)
+                    assertFalse("all recorded states after new pending have no old failure: $state", state.progressFailed)
+                }
+                assertFalse("the genuine recovery read has not been released", recovery.release.isCompleted)
+                assertFalse("the genuine recovery read has not returned", recovery.returned.get())
+                note("proved held recovery tail pending; oldFAILEDIndex=$failedIndex; newPendingIndex=$pendingIndex")
+                val artifact = File("build/screen-renders/history-retry-observer/${UUID.randomUUID()}")
+                check(artifact.isDirectory || artifact.mkdirs())
+                File(artifact, "delayed-recorder-chronology.txt").writeText(
+                    "counter=aDelayedPriorFailureRecorderDeterministicallyExposesTheRecoveryTraceCutRace\n" +
+                        "traceCut=$recover\noldFailedIndex=$failedIndex\nnewPendingIndex=$pendingIndex\n" +
+                        "recoveryEntered=${recovery.entered.isCompleted}\nrecoveryReleased=${recovery.release.isCompleted}\n" +
+                        "recoveryReturned=${recovery.returned.get()}\ndelayedFailure=$delayedFailure\n" +
+                        "directNewPending=$publicPending\nchronology:\n${chronology.joinToString("\n")}\n" +
+                        "fullRecordedTrace:\n${captured.mapIndexed { index, state -> "$index: $state" }.joinToString("\n")}\n",
+                )
+
+                // The acknowledged new pending boundary identifies the recovery window.
+                // The delayed old FAILED remains literal in the earlier chronology; every
+                // actual state from the new boundary is checked by the unchanged helper.
+                assertPendingEmissions(model, pendingIndex) { true }
+                recovery.release.complete(Unit)
+                val restored = awaitReady(model)
+                assertFalse(restored.stale)
+                assertEquals(2, restored.horizonProgress!!.recordsBroken)
+                assertEquals(failed.selection, restored.selection)
+                assertEquals(failed.periodRange, restored.periodRange)
+                assertEquals(failed.unit, restored.unit)
+                note("direct observer saw real recovery ready after releasing its read: $restored")
+                File(artifact, "recovered-recorder-chronology.txt").writeText(
+                    "traceCut=$recover\noldFailedIndex=$failedIndex\nnewPendingIndex=$pendingIndex\n" +
+                        "restored=$restored\nchronology:\n${chronology.joinToString("\n")}\n" +
+                        "fullRecordedTrace:\n${trace(model).mapIndexed { index, state -> "$index: $state" }.joinToString("\n")}\n",
+                )
+            } finally {
+                // Release the recorder before withModel clears/joins the VM, even on red.
+                recorderRelease.complete(Unit)
+                reads.releaseAll()
+            }
         }
     }
 
@@ -755,12 +925,19 @@ class HistoryPeriodViewModelTest {
 
     private suspend fun withModel(
         saved: SavedStateHandle = SavedStateHandle(),
+        beforeRecord: suspend (HistoryUiState) -> CompletableDeferred<Unit>? = { null },
         block: suspend (HistoryViewModel) -> Unit,
     ) = coroutineScope {
         val model = model(saved)
         val trace = CopyOnWriteArrayList<HistoryUiState>()
         emissions[model] = trace
-        val subscriber = launch(dispatcher) { model.uiState.collect { trace += it } }
+        val subscriber = launch(dispatcher) {
+            model.uiState.collect { state ->
+                val recorded = beforeRecord(state)
+                trace += state
+                recorded?.complete(Unit)
+            }
+        }
         try {
             block(model)
         } finally {

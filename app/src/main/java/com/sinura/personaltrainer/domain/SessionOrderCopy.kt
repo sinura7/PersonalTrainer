@@ -12,6 +12,9 @@ object SessionOrderCopy {
     const val WORK = "Work"
     const val REST = "Rest"
     const val LOAD = "Load"
+    const val PLANNED = "Planned"
+    const val RECORDED_SETS = "Recorded sets"
+    const val NO_RECORDED_SETS = "No recorded sets"
     const val ORDER = "Order"
     const val EMPTY_PREVIEW = "No lifts yet"
     const val READY = "Ready"
@@ -139,8 +142,8 @@ object SessionOrderCopy {
         if (holdSeconds != null) HoldWork.workLine(sets, holdSeconds, holdSecondsMax) else "$sets × $reps"
 
     /**
-     * TalkBack for a filled history card. Prescription language only when the
-     * lift had one; otherwise the logged count, never "0 by 0. Rest 0:00".
+     * TalkBack for a filled history card. Recorded working sets and planned
+     * targets are separate facts; a target never describes what was saved.
      */
     fun filledSpoken(
         number: Int,
@@ -156,13 +159,41 @@ object SessionOrderCopy {
     ): String = buildString {
         append("$number. $name")
         if (muscleGroup.isNotBlank()) append(". $muscleGroup")
-        append(". ${filledCount(workingLogged, targetSets)}")
-        if (targetSets > 0) {
-            append(". ${workValue(targetSets, targetReps.coerceAtLeast(1), holdSeconds, holdSecondsMax)}")
-        } else {
-            append(if (workingLogged == 1) " set" else " sets")
+        append(". Recorded: $workingLogged working ${if (workingLogged == 1) "set" else "sets"}")
+        val planned = buildList {
+            if (targetSets > 0 || holdSeconds != null) {
+                add("Work ${workValue(targetSets, targetReps.coerceAtLeast(1), holdSeconds, holdSecondsMax)}")
+            }
+            if (!restClock.isNullOrBlank()) add("Rest $restClock")
+            if (!load.isNullOrBlank()) add("Load $load")
         }
-        if (!restClock.isNullOrBlank()) append(". Rest $restClock")
-        if (!load.isNullOrBlank()) append(". $load")
+        if (planned.isNotEmpty()) append(". Planned: ${planned.joinToString(". ")}")
+    }
+
+    /** Repeated plan rows share recorded sets, with no inferred completion denominator. */
+    fun filledGroupSpoken(
+        number: Int,
+        name: String,
+        muscleGroup: String,
+        workingLogged: Int,
+        plannedEntries: List<String>,
+    ): String = buildString {
+        append(filledSpoken(number, name, muscleGroup, workingLogged, 0, 0, null, null))
+        plannedEntries.forEach { append(". $it") }
+    }
+
+    /** Every repeated row says its original position and its own unchanged targets. */
+    fun filledPrescriptionSpoken(
+        originalPosition: Int,
+        sets: Int,
+        reps: Int,
+        restClock: String,
+        load: String?,
+        holdSeconds: Int? = null,
+        holdSecondsMax: Int? = null,
+    ): String = buildString {
+        append("Planned $originalPosition: Work ${workValue(sets, reps, holdSeconds, holdSecondsMax)}")
+        append(". Rest $restClock")
+        if (!load.isNullOrBlank()) append(". Load $load")
     }
 }

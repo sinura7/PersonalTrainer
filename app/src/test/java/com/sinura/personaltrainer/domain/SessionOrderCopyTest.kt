@@ -157,17 +157,17 @@ class SessionOrderCopyTest {
     }
 
     @Test
-    fun filledCountAndSpokenMatchTheFloorCard() {
+    fun filledSpokenSeparatesRecordedWorkingSetsFromPlannedTargets() {
         assertEquals("3/3", SessionOrderCopy.filledCount(3, 3))
         assertEquals("4", SessionOrderCopy.filledCount(4, 0))
         assertEquals("3 × 5", SessionOrderCopy.workValue(3, 5))
         assertEquals(
-            "1. Squat. Quads. 3/3. 3 × 5. Rest 1:30. 100 kg",
+            "1. Squat. Quads. Recorded: 1 working set. Planned: Work 3 × 5. Rest 1:30. Load 100 kg",
             SessionOrderCopy.filledSpoken(
                 number = 1,
                 name = "Squat",
                 muscleGroup = "Quads",
-                workingLogged = 3,
+                workingLogged = 1,
                 targetSets = 3,
                 targetReps = 5,
                 restClock = "1:30",
@@ -175,7 +175,7 @@ class SessionOrderCopyTest {
             ),
         )
         assertEquals(
-            "2. Hang. 4 sets",
+            "2. Hang. Recorded: 4 working sets",
             SessionOrderCopy.filledSpoken(
                 number = 2,
                 name = "Hang",
@@ -188,7 +188,7 @@ class SessionOrderCopyTest {
             ),
         )
         assertEquals(
-            "3. Curl. 1 set",
+            "3. Curl. Recorded: 1 working set",
             SessionOrderCopy.filledSpoken(
                 number = 3,
                 name = "Curl",
@@ -199,6 +199,71 @@ class SessionOrderCopyTest {
                 restClock = null,
                 load = null,
             ),
+        )
+    }
+
+    @Test
+    fun recordedZeroDoesNotClaimAnUntouchedPrescriptionWasPerformed() {
+        assertEquals(
+            "1. Squat. Recorded: 0 working sets. Planned: Work 3 × 5. Rest 2:00. Load 140 kg",
+            SessionOrderCopy.filledSpoken(
+                number = 1, name = "Squat", muscleGroup = "", workingLogged = 0,
+                targetSets = 3, targetReps = 5, restClock = "2:00", load = "140 kg",
+            ),
+        )
+    }
+
+    @Test
+    fun filledHoldTargetsUseTheirSecondsAndRangeInsteadOfPlaceholderReps() {
+        assertEquals("3 × 30–45s", SessionOrderCopy.workValue(3, 1, 30, 45))
+        assertEquals("3 × 30s", SessionOrderCopy.workValue(3, 1, 30))
+        assertEquals(
+            "2. Dead Hang. Recorded: 1 working set. Planned: Work 3 × 30–45s. Rest 1:00",
+            SessionOrderCopy.filledSpoken(
+                number = 2, name = "Dead Hang", muscleGroup = "", workingLogged = 1,
+                targetSets = 3, targetReps = 1, restClock = "1:00", load = null,
+                holdSeconds = 30, holdSecondsMax = 45,
+            ),
+        )
+    }
+
+    @Test
+    fun partialPrescriptionStillQualifiesItsRestAndLoadWithoutInventingWork() {
+        assertEquals(
+            "1. Curl. Recorded: 2 working sets. Planned: Rest 1:00. Load 10 kg",
+            SessionOrderCopy.filledSpoken(
+                number = 1, name = "Curl", muscleGroup = "", workingLogged = 2,
+                targetSets = 0, targetReps = 0, restClock = "1:00", load = "10 kg",
+            ),
+        )
+    }
+
+    @Test
+    fun repeatedPrescriptionsSpeakOriginalPositionsAndTargetsWithRecordedCountOnce() {
+        val planned = listOf(
+            SessionOrderCopy.filledPrescriptionSpoken(1, 3, 5, "1:30", "100 kg"),
+            SessionOrderCopy.filledPrescriptionSpoken(3, 2, 8, "2:00", "80 kg"),
+        )
+        assertEquals(
+            "1. Squat. Quads. Recorded: 1 working set. Planned 1: Work 3 × 5. Rest 1:30. Load 100 kg" +
+                ". Planned 3: Work 2 × 8. Rest 2:00. Load 80 kg",
+            SessionOrderCopy.filledGroupSpoken(1, "Squat", "Quads", 1, planned),
+        )
+        // No single target or summed target is used as a recorded completion denominator.
+        assertEquals("1", SessionOrderCopy.filledCount(1, 0))
+    }
+
+    @Test
+    fun repeatedHoldAndEmptyTargetsAreNotReplacedWithAnotherPrescription() {
+        assertEquals(
+            "Planned 3: Work 2 × 20–30s. Rest 0:45. Load 0 kg",
+            SessionOrderCopy.filledPrescriptionSpoken(3, 2, 1, "0:45", "0 kg", 20, 30),
+        )
+        val empty = SessionOrderCopy.filledPrescriptionSpoken(4, 0, 0, "0:00", null)
+        assertEquals("Planned 4: Work 0 × 0. Rest 0:00", empty)
+        assertEquals(
+            "2. Hold. Recorded: 0 working sets. Planned 4: Work 0 × 0. Rest 0:00",
+            SessionOrderCopy.filledGroupSpoken(2, "Hold", "", 0, listOf(empty)),
         )
     }
 }

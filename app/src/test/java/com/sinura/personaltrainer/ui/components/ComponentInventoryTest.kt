@@ -6,7 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * D-08: the shared gym pieces exist, and the two set histories are one table.
+ * D-08: the shared gym pieces exist; detail reflows the shared set copy for review.
  */
 class ComponentInventoryTest {
     @Test
@@ -38,7 +38,7 @@ class ComponentInventoryTest {
     }
 
     @Test
-    fun workoutHistoryIsASecondarySheetAndHistoryKeepsItsReusableTable() {
+    fun workoutHistoryIsASecondarySheetAndHistoryKeepsSharedSetCopy() {
         // The floor shows today's sets as chips; the full labelled Edit/Delete list stays a
         // secondary sheet the strip's Edit button opens. Neither is a second table. What the
         // chips, their menu and the sheet show and do is rendered in the workout package
@@ -70,7 +70,7 @@ class ComponentInventoryTest {
         }
         val filled = readUi("history/FilledLiftCard.kt")
         assertTrue(filled.contains("LiftCard("))
-        assertTrue(filled.contains("SetTable("))
+        assertTrue(filled.contains("SetTableLine.fromLog"))
         val picker = readOwned("ExercisePickerSheet.kt")
         assertTrue(picker.contains("EquipmentChip("))
         assertFalse(picker.contains("private fun InstrumentTag("))

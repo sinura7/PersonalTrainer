@@ -19,7 +19,7 @@ class SessionDetailSheetTest {
 
         val card = readOwned("ui/history/FilledLiftCard.kt")
         assertTrue(card.contains("LiftCard("))
-        assertTrue(card.contains("SetTable("))
+        assertTrue(card.contains("RecordedSetRow("))
         assertTrue(card.contains("SetTableLine.fromLog"))
         assertTrue(card.contains("SessionOrderCopy.WORK"))
         assertTrue(card.contains("SessionOrderCopy.REST"))

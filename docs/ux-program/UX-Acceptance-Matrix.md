@@ -246,7 +246,7 @@ gap remains open separately from the direct-screen JVM geometry matrix.
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
 | UX15-AC01 | P1 | F05 | With years of synthetic history, a participant can reach lifetime records and the newest activity without an unbounded scroll. | Not executed |
-| UX15-AC02 | P1 | F05 | Changing a horizon produces one period across totals, calendar, progress and list; lifetime records and blocks are labeled secondary views. | Bounded #465 integration and machine checks completed below; captured-date travel visibility follow-up pending; participant acceptance not executed |
+| UX15-AC02 | P1 | F05 | Changing a horizon produces one period across totals, calendar, progress and list; lifetime records and blocks are labeled secondary views. | Bounded #465 and captured-date #466 integration and machine checks completed below; participant acceptance not executed |
 | UX15-AC03 | P1 | F05 | Editing a prior best refreshes visible results and record drill-down identifies the supporting session. | Not executed |
 
 **Verification follow-up (9 October 2026 UTC):** Home recovery merged through
@@ -476,6 +476,28 @@ feedback can depend on input order when chronology ties. This repair changes no
 production calculation or saved data. Resolve and verify that rule before
 presenting improved History statistics as trustworthy; this bounded fixture
 check does not close the wider UX15 acceptance tasks above.
+
+**Captured-date integration closure (9 October 2026 UTC):**
+[PR #466](https://github.com/sinura7/PersonalTrainer/pull/466) merged `9fd21456`,
+tree `42029232fbffdc8ecc78790752a36e33a4eadcc4`, identical to accepted `16521ef1`.
+Fresh clean-trunk `postmerge-full01` passed **3,915 app tests / 572 suites**,
+**1,682 standalone tests / 255 classes** and all four local tasks with all
+135 tasks executed. Its summary SHA-256 is
+`D8996FCF38CED74FC41D3D5BDF8070D79596A2BC6F12CEE3095D4A7E9B1CAFE9`.
+All 1,543 runtime inputs matched actual commit blobs. `postmerge-native01`
+failed cold-boot admission on a Launcher ANR before install, with zero tests;
+its cause remains unresolved. Fresh `postmerge-native02` passed the unchanged
+guard and all **222 native tests / 32 classes**, with 85 verified captures,
+all 13 fixture restoration pairs and verified settings/network/package cleanup
+and shutdown. Its summary SHA-256 is
+`60F8CA40BBEFDF351B8C8A1B3CD77EC569A6E2E9F645AA317EB8F86484EC86F5`.
+[Actual-trunk hosted run](https://github.com/sinura7/PersonalTrainer/actions/runs/37960635611)
+passed both jobs on that exact source/tree with the same app/native counts.
+Independent integration review verified raw XML, all input and capture hashes,
+hosted archives, restoration and failed-attempt classification; report SHA-256:
+`A2FDD2C96F0CE2DB16F65DA542E47BB17DE24506CA9B2E153B371575AE68E5DF`.
+Cleanup retained a recoverable feature bundle. This closes this packet's
+integration; prior failures and the wider UX15/phone limits above remain.
 
 ### UX16 — Make chart axes, comparisons and sparse data honest
 
@@ -820,6 +842,301 @@ open.
 | UX29-AC02 | P1 | F05, F08, F10 | Opening history detail does not replay a misleading new-save confirmation. | Not executed |
 | UX29-AC03 | P1 | F05, F08, F10 | Repeat/edit where supported preserves correct IDs, chronology and plan linkage and cannot silently convert one type to another. | Not executed |
 
+**Active bounded F9 / W11 / V12 / Q08 packet:** The connected native receipt
+shows Summary's missing lift artwork and unqualified planned detail metrics
+beside different saved results. Implement O11's matching identity, complete
+readable names, explicit Planned / Recorded sets and timed hold targets, with
+exact-ID real-store and native-graphics regressions. The targeted gate now
+passes; complete and connected verification and final reviews remain pending;
+this does not close all activity-type receipts, participant acceptance or the
+deliberate read-once Summary return-after-correction contract. That return path
+needs an actual AppNav counter and policy review before a refresh change.
+The existing Summary top-set model omits saved hold duration and can display
+zero reps for a pure hold. Detail's duration fix does not close that Summary
+issue; retain it for an actual hold counter and a separate display packet,
+without changing training calculations.
+
+**Receipt targeted verification (9 October 2026 UTC):** `targeted01` finalized
+37 cases / eight fresh suites with one failed native final-glyph assertion and
+zero errors/skips. The original six PNGs remain archived. An independent pixel
+probe of the exact final `g` in `140 kg` found zero TextPrimary and 92
+TextSecondary pixels: the annotated unit uses its own color. The corrected
+helper resolves actual span colors while retaining every-line ink, actual
+clipping, complete character layout and final-glyph assertions. It reveals the
+actual decorative image square without requiring an arbitrarily tall parent
+header to fit; action targets still require full visibility and 48 dp bounds.
+
+Fresh `targeted02` passed **51 tests / eight fresh suites**, zero
+failures/errors/skips, from **17:28:18.3478399Z–17:32:34.1321666Z**, with all
+**1,545 runtime inputs** and references unchanged. Its summary SHA-256 is
+`8EA946FF59F58F46D8076DCF36CCD5121E7E8853C4A413E81101CB95E45C961F`.
+The archived **400 fresh native-graphics PNGs / 800 files** cover 14 real
+resource profiles (360×640, 412 dp, landscape and 600 dp at fonts 1.0/1.6/2.0,
+plus 320 dp font 2.0 and RTL font 2.0) and independent artwork/fallback identity.
+The real-store tests exercise read faults and Retry; rendered read outcomes
+use controlled UI state and verify exact callbacks, not a simulated successful
+database retry. Read-only route/correction callback checks leave all synthetic
+rows unchanged. Complete local/native gates and final review must still execute.
+
+**Retained complete-gate failure and visual counter:** Clean `fc68ebb1`
+`full01` finalized **3,939 app cases / 573 fresh suites**, one failure and
+zero errors/skips, with **1,685 standalone tests / 255 classes** passing and
+1,545 unchanged runtime inputs. The connected JVM journey failed only its old
+detail spoken-label lookup after its exact saved-row checks. Its summary
+SHA-256 is `AE71156F2A107B1E76E9A1BC9CE0172A7F20032B28EEA5B8A996E36CDC821FB3`;
+2,139 fresh PNGs / 3,595 files remain archived. JVM and native journey
+expectations now require the explicit Recorded working label and the exact
+saved-set ancestor, retaining all value/write/navigation assertions.
+
+Independent targeted-render inspection also found semantic `3 × 5` visually
+drawn `5 × 3` in RTL. `counter03` finalized two cases / two fresh suites with
+one intentional operand-order failure, zero errors/skips and unchanged inputs;
+the corrected connected JVM journey passed. Summary SHA-256:
+`E2BB66EA3C5EDF33AAA2003F8B322D660DBAB09EC10C478D4AC2DAF89CAF45FE`.
+The new probe confirms real ink and clipping for each operand/operator before
+checking their measured order. The local planned metric now shapes mathematical
+values LTR while retaining RTL card flow. The original targeted tests' green
+text assertions did not establish operand order. Fresh full/native gates and
+final reviews remain necessary; neither original failed run becomes a pass.
+
+**Fresh receipt gate, 9 October 2026 UTC:** Clean `c49b19ba`, tree
+`41c6c6bde06356854309b17ef5cdb09a65d72610`, passed `full02` from
+**17:59:41.9925100Z–18:16:55.6149836Z**: **3,939 app tests / 573 fresh suites**,
+zero failures/errors/skips, **1,685 standalone tests / 255 classes**, all four
+required Windows tasks and all 135 tasks executed. All **1,545 runtime inputs**
+and references remained unchanged and match the actual candidate Git blobs,
+with only the established `gradlew.bat` CRLF checkout filter. Summary SHA-256:
+`32E30AC0533861F3BF9D6EE9B249E62F0C759A4F4E9F841E22DBA44881BA3708`.
+Runtime manifest SHA-256:
+`78CFEEBFD9ADA78BDC0D62EC5C77EDBE6A2A189892E3964AD098B91D7C8F2AE7`.
+The fresh archive contains **2,139 PNGs / 3,595 files**, including all **400**
+receipt-profile and exact-artwork PNGs. Render manifest SHA-256:
+`6179D7CD07502680037AD4CD5350D8EAA7C59262F68D25F2ABD5F8EF7C68E5A4`.
+Actual RTL glyph evidence now shows ordered `3 × 5`; original failed runs remain.
+
+Candidate `native01` stopped at the unchanged cold-boot admission guard on a
+SystemUI `BOOT_COMPLETED` ANR before app installation: **zero tests and captures**,
+no native suite exit code. Its summary SHA-256 is
+`420D00B8BB516A5A4F5FD1CDD44E1CF07BC3565329FC05D4AF1EED7B19FAAC73`.
+The underlying system cause remains unknown. Empty packages, restored settings,
+collector cleanup and subsequent actual emulator-process absence were verified.
+An unchanged fresh cold boot, `native02`, passed **222 tests / 32 classes** from
+**18:20:56.0431468Z–18:27:33.1975217Z**, with zero failures/errors/skips,
+**85 device-hashed captures**, all **13 fixture restoration pairs**, offline
+admission before first app launch and verified network/settings/package cleanup.
+All 1,545 runtime inputs and references still matched. Summary SHA-256:
+`B64C0A05BB86726657D4A340B1F328D9D91A769194EEA8CE1CF263AE627252CE`.
+The actual same-session AppNav receipt and detail both retain **255 kg**, the
+exact corrected **85 kg × 3** set and corresponding exercise artwork; Detail
+qualifies **3 × 5 / 140 kg** as Planned. These are **pre-integration candidate**
+results; copied wrapper diagnostic labels do not establish postmerge evidence.
+
+**Confirmed recovery blockers, 9 October 2026 UTC:** `counter04` ran from
+**18:39:01.8727528Z–18:42:37.3732312Z**, against unchanged `c49b19ba` production
+and two test-file additions: **seven cases / two fresh suites / four failures**,
+zero errors/skips, exit 1, unchanged **1,546 runtime inputs**. Real BackupService
+prepare/commit accepted both serialized graphs, created its safety copy and
+completed its journal before shipping Detail inspection. A saved **45 kg × 6**
+set contributed to **270 kg / one set** but its original row/Edit was unreachable.
+Repeated exercise prescriptions crashed with a duplicate LazyColumn key while
+scrolling to the second prescription. Domain counters separately reproduced
+the omitted exercise and duplicated original SetLog. Every postrestore inventory
+remained byte-identical through teardown; no record loss or wrong write is inferred.
+Summary SHA-256:
+`64A7028B3EDE1740115C3948BE8D7A5603CB1E6FCD899ADE198A0878A2E9FED4`.
+The archive retains **eight PNGs / 28 files**; render manifest SHA-256:
+`4F279DEE9C2BBEC5AC37C7E970D1D5FC952A857C123BFB085AB3595967770451`.
+Both defects are high blockers for F9 / Q08 / UX23 / UX29 saved-work reachability.
+
+The pending display repair groups exact exercise IDs, retains every original
+prescription object and numbered program position, and exposes each original
+SetLog/Edit once, including saved-only exercises. Interleaved repeated exercises
+are grouped at first occurrence; original positions remain explicit and badges
+may have gaps. Repeated prescriptions have a recorded-only count, not an inferred
+completion denominator. Two independent 14-profile recovery render matrices
+retain validated restore, graph equality and native glyph/clip/touch checks.
+Fresh execution and complete gates must establish the repair. Final
+independent/adversarial approval, hosted verification and integration remain
+pending. Recovery takes priority over Summary hold refinement; the read-once
+return policy stays open. No broader UX23/UX29 or physical-device closure is claimed.
+
+`targeted03` retains the first repaired execution, **18:49:57.7847855Z–18:55:09.5603693Z**:
+**142 cases / 11 fresh suites / 28 failures**, zero errors/skips, exit 1 and stable
+1,546 inputs. All 26 non-RTL recovery renders passed original row, prescription
+and Edit reachability before a test expected `Selected` for InstrumentChip's
+actual `ToggleableState.On`. The two RTL cases stopped before restore because
+native resource direction was still LTR. These are demonstrated test setup/assertion
+defects; their correction must retain exact effort and real resource-direction
+checks. The other 114 cases passed. The run is not a gate pass. Summary SHA-256:
+`CB810612C9C37CF03FBEAE4E028094F9B459FA4A01C690447C7D65955F8F3BAF`.
+All **589 PNGs / 1,334 files** remain archived, render manifest SHA-256:
+`32C5B4A727F2F4B137B9C91ADC598C688DA5EE472F38F9D1FBADDC2DD20150BD`.
+
+`targeted04`, **19:00:12.9896143Z–19:04:56.3179451Z**, retains **142 cases /
+11 fresh suites / eight failures**, zero errors/skips and stable 1,546 inputs.
+Both real Hebrew-resource RTL cases pass; 20 recovery cases and all 114 adjacent
+cases pass. Eight RPE visibility inspections stop on the actual partially expanded
+sheet: its visible handle offers Expand, while the inner ScrollBy action cannot
+expand that anchored sheet. The next counter must perform the shipping Expand
+action, verify settled geometry and then retain the whole 48 dp action/native
+glyph checks. No production sheet defect or passing gate is inferred. Summary
+SHA-256: `B4987E2DBDE144131FE295267D6DA4B367732C6F84904590722A94E377472305`.
+The archive preserves **621 PNGs / 1,473 files**, render manifest SHA-256:
+`4979F9DE9588B9991A5858011DB7918F7A728700434C761939DC5207596372D1`.
+
+**Focused repaired execution:** `targeted05`,
+**19:08:52.4669440Z–19:13:39.4774753Z**, passed the same **142 cases / 11 fresh
+suites**, zero failures/errors/skips, all four named Windows tasks and unchanged
+**1,546 runtime inputs**. All **28 independent recovery renders** pass their
+validated full restore, original prescription/SetLog multiplicity, exact Edit
+prefill, native glyph/order/clip and 48 dp action checks. Default anchor captures
+remain; when offered, the actual Expand action must accept and settle the sheet
+fully inside its window before effort inspection. Every restored inventory
+remains unchanged through expansion, inspection, real Dismiss and teardown.
+Summary SHA-256: `153CE82D43CC44831232410476998F81DCA8A2EE08B7CC03BFBF223BD477763F`.
+Runtime manifest SHA-256:
+`4B8055DCACCF7B518363C2DB240B3A1BA8E141ADB16A119EBF8FDAD2579D38BC`.
+The archive contains **685 PNGs / 1,681 files**, render manifest SHA-256:
+`7C2C42C3C200E1D58F598E611FE6C841F1EA4B90642E2AFAD0B85F5BE2DD7DE6`.
+Root inspected the actual formerly hidden row and both preserved repeated targets.
+Original red runs stay red. This is a filtered pre-integration pass; standalone
+preflight, clean complete/native gates and both final reviews still remain.
+
+**Complete repaired gate remains failed:** Clean `9d988658`, tree
+`edcb3af38115aff6f239e0dd09f671ab014e51f5`, ran `full03` from
+**19:15:39.8962642Z–19:33:25.7412982Z**. The complete standalone preflight passed
+**1,694 tests / 255 classes**; the unfiltered four-task Windows gate executed
+**3,976 app tests / 574 fresh suites, one failure, zero errors/skips**. Its failed
+History retry check includes a previous `progressFailed=true` snapshot after a
+trace index sampled before retry; the independently awaited new pending state
+passed. Application and test causes remain to be distinguished with a deliberately
+delayed recorder, preserving the original assertion and failed XML. No prior pass
+waives this failure. All **1,546 inputs** stayed unchanged. Summary SHA-256:
+`2C951F657577151628DF678DC460AB0A12A41851A7C5D021AE771B6DB3C79889`;
+execution seal: `D1A2C82642D65368948E644A166F974F10AF3AA575258F8A97CA9F6A404936B4`.
+All **2,413 PNGs / 4,465 render files** are preserved, manifest SHA-256:
+`1C23E4FD21E653176CD007C6FFB5F7E1F3E30D8DDF62BD2E3B491543C17A2283`.
+The new native run is deferred while a separate supported-restore/actual-editor
+counter tests the source-predicted conversion of an original weighted timed hold
+outside the prescription graph into repetition work. Planned holds are controls;
+the raw stored row, volume and full unrelated inventory are the safety oracles.
+No wrong write or safe correction is credited before executing that counter.
+
+**Executed causal counters:** `counter06` stopped before tests because one new
+`BackupSetLog` call mixed positional/named arguments and exceeded the existing
+182-skip ceiling. It has zero fresh XML/cases/frames; no pass is inferred from
+old results. Only that call became fully named with identical values, retaining
+all checker limits. Fresh `counter07`, **19:47:52.3585034Z–19:51:36.6384608Z**,
+executed **six cases / two fresh suites, two failures, zero errors/skips**, with
+**1,547 unchanged inputs**. The original retry test passed. The delayed recorder
+received the old FAILED before recovery, appended it at index 4 after the index-4
+cut, then acknowledged a genuine new pending state at index 5. The recovery query
+remained held/unreturned and every state from that new boundary passed the loading,
+null-result and no-failure assertions. The unchanged old-cut helper failed on the
+prior snapshot. This establishes a recorder observation error without a production
+History change; the original full03 failure remains failed evidence.
+
+The separate full supported-restore/shipping-editor hold counter confirmed a high
+wrong-type write: original **12.5 kg / reps 0 / 45 seconds / no effort** became
+**reps 1 / RPE 8**, retaining load/duration/ID/time, after actual +1/effort/Save.
+The stored row and resulting native receipt are retained before the failed type
+and teardown-inventory assertions. This invents **12.5 kg repetition volume**.
+Untouched saved-only Save explicitly refused `Reps must be at least 1`; both planned
+hold controls passed. Do not infer safe saving from the unchanged refused row.
+Summary SHA-256: `C8199D4F809C22873889041D8C4F15AB51C5211BF850C7F5D28B544B9D95AC9D`;
+input manifest: `76798765731DFBE8278CFE0BF513553DC2CB6445AC8AA931DFDD455B029A8183`;
+execution seal: `767F3C78D7F26FD12AFEC89BE57E4F830EFF78F7845B98FFCF8826166ED95AFF`.
+All **32 PNGs / 107 files**, including complete raw inventories and recorder
+chronology, are preserved; render manifest SHA-256:
+`7FCFA8CC6607C206254859E3171AAA61C0E2BC8C66AE7C0699CABA2AFA122CA9`.
+The repair uses the original saved positive-duration/nonpositive-rep distinction
+already used by work/copy, preserves its exact representation, retains the planned
+hold fallback and leaves strict load/weight rules unchanged. Positive-rep stopwatch
+controls and accepted older negative-rep timed backup preservation require fresh
+execution. No schema, validator, backup format or public API change is planned.
+
+**Fresh repaired focused pass:** `targeted06`,
+**19:59:18.7955314Z–20:04:41.6566426Z**, passed **214 cases / 18 fresh suites**,
+zero failures/errors/skips, all four required Windows tasks and unchanged
+**1,548 inputs**. All six independent supported full-restore/editor cases now
+require successful no-refusal Save. Original zero-rep and literal -3 timed rows
+retain their exact representation; +1 with effort 8 changes only effort, while
++1 with all effort controls off retains null effort and all original fields.
+Planned controls also pass. Every inventory from restore through teardown remains
+exact apart from the specifically requested original-row effort. Seven real-Room
+controls verify normal stopwatch strength, zero-rep strength refusal, unknown-load
+zero/invalid-weight refusal, explicit repository duration correction and unrelated
+saved-row/session preservation. Duration editing through the sheet remains open.
+
+All 22 History period checks pass, including original retry and delayed recorder
+with acknowledged recorded boundaries, strict held tails and actual recovery.
+Production History and its keyed ownership rules are unchanged. All 28 restored
+graph render cases and the existing Summary/detail matrix still pass. Summary
+SHA-256: `F22CF19CFF89F31F54858BFBF737F73983E01914BFDA44A241CF87F6DC05353A`;
+input manifest: `D2EC308FBC523208B99F5C79B82E560285BEC50C47F10AA512C8AD9A31967A2F`;
+execution seal: `BC314AFBD82B0DDA707473F3B5F8B52C9774DE50FEDFD1D7D9B7656BBB7AA61A`.
+The fresh archive preserves **733 PNGs / 1,842 files**, manifest SHA-256:
+`952E0F33E5843B003789DF9D7E217AC1EF7965E4F09511ED6FE3DEE5174DA7CE`.
+This remains filtered pre-integration evidence; complete standalone/unfiltered
+verification, fresh native execution and both nonauthor final reviews are pending.
+Original failed runs and their red causal evidence remain preserved.
+
+**Complete repaired candidate gate and final reviews closed:** Clean
+`f2504264ecb52f9bcd4baec231945ae71f06fa96`, tree
+`20b6d0c04fa0c9635fa3f9cc8027ba55a857b451`, passed fresh `full04` from
+**20:06:12.5372885Z–20:23:52.8194519Z** on 9 October 2026 UTC. The complete
+standalone preflight passed **1,694 tests / 255 classes**; the unfiltered four-task
+Windows command with `--rerun-tasks` passed **3,990 app tests / 576 fresh suites**,
+zero failures/errors/skips, with all **135 tasks executed**. All **1,548 inputs**
+and references stayed unchanged. Summary SHA-256:
+`9A292AA43863603069826A69A6A0766F0174540E373C2312415AAA5F24DBC136`;
+input map: `D2EC308FBC523208B99F5C79B82E560285BEC50C47F10AA512C8AD9A31967A2F`;
+execution seal: `A67B949FAE0A6BEF6EA616F613969D4E2874898822AE863733BAFC9E31BF29EA`.
+The archive contains **2,461 PNGs / 4,626 files**, manifest SHA-256:
+`B3B87E41C01120E4358D56B8967EFC02486F3EA2A88553DCA9543C4F9F79C52D`.
+The full run retains all 28 restored-graph cases, six successful actual hold saves,
+seven Room safety controls and 22 History period cases; every original failed
+execution and its causal evidence remain separate.
+
+Fresh unfiltered `native03`, **20:24:48.1680776Z–20:31:28.3699991Z**, passed
+**222 tests / 32 classes**, zero failures/errors/skips, one fresh device XML,
+**85 device-hashed captures** and all **13 fixture restoration pairs**. Offline
+admission, network/settings restoration, empty final packages, collector cleanup
+and the same 1,548 inputs were verified. Summary SHA-256:
+`3E395CB1CCE5251A25C9D3A25D00BC52793BD9AE94111868F85CCC425363E641`;
+execution seal: `715C8AC1187D12C43AE60023E95486627B4B1210AD6A0A4F2E39AC427EE0015D`.
+The connected AppNav Summary/detail images show the exact corrected
+**85 kg × 3 / RPE 9**, **255 kg** total, matching Squat artwork and explicit
+**3 × 5 / 140 kg** Planned targets. Actual emulator absence after shutdown was
+separately observed at **20:32:14.8060556Z**, receipt SHA-256:
+`E42C1AA2626A88EA170054F6722D5C602FF5FADD294821B5095A0475E5350C07`.
+Actual committed Git blobs match the complete runtime map with only the accepted
+`gradlew.bat` CRLF conversion; binding receipt SHA-256:
+`B76934C546F806EDBFE8ED8189F1157E650E78BF2C6C63FD793E0875EDE043A0`.
+
+Fresh nonauthor final reviews of the **entire 25-file `9fd21456` → `f2504264`
+packet** approve integration with no unresolved critical/high finding. The
+independent report SHA-256 is
+`F3AD606AA26E1A954AB64E793E3AE84B1C97448CC0C77240767F9C304719202E`;
+adversarial report SHA-256 is
+`9398B1C4FEB1A432B1D9C1621B61175FA335A95AE5039889725858BAAAEE83BC`.
+Both inspect source, raw results, original-row inventories, relevant current
+frames and actual cleanup. This is pre-integration development evidence: hosted
+checks, integration and actual clean-trunk full/native gates remain pending.
+The named medium editor refinement below, pure-hold Summary display,
+correction-return snapshot policy, broader UX23/UX29 and physical-phone acceptance
+remain open. There is no schema, backup format, validator, navigation, signer or
+version change, and no Obtainium drop was requested.
+
+**Named dependent refinement — Set Edit sheet identity and numeric controls
+(F9/W11/V12/Q08/UX29):** Fresh full03 frames show the identity kicker truncating
+at font 2.0 and the actual default 360 dp ±2.5 labels splitting into two lines.
+RPE 10 reflows at 320 dp/font 2.0, but the observed viewport alone does not prove
+permanent clipping. Holds have no dedicated duration correction control. Exact
+original row and value/effort prefill are verified by targeted05; no incorrect
+increment is inferred from label wrapping. Retain these observations for the next
+editor refinement, while any demonstrated wrong-type save blocks this packet.
+
 ### UX30 — Establish an evidence-led design delivery and regression process
 
 | Check | Priority | Fixtures | Expected outcome | Status |
@@ -896,10 +1213,12 @@ as `5c7f869b`, with completed reviews and clean-trunk verification recorded unde
 UX12. History's one-period/coherent-progress work integrated through
 [PR #465](https://github.com/sinura7/PersonalTrainer/pull/465) as `7a41c977`, with
 independently verified actual-trunk local, native and hosted gates recorded under
-UX15. Its immediate single active F6a/UX15/Q08 packet now repairs confirmed
-captured-date visibility after travel before Summary. Complete local/native
-gates and both final reviews pass; hosted checks and integration remain pending
-at this snapshot.
+UX15. Captured-date travel visibility then integrated through
+[PR #466](https://github.com/sinura7/PersonalTrainer/pull/466) as `9fd21456`, with
+fresh actual-trunk local, native and hosted gates and independent integration
+review recorded under UX15. The active single F9/W11/V12/Q08/UX29 packet now
+addresses Summary/detail identity and planned/recorded clarity; its verification
+remains pending.
 Legacy strength captured-date
 storage remains a separately specified dependency. These integrations do not
 close broader F4, UX23, UX24/UX25 or physical-phone acceptance.

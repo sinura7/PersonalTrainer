@@ -22,7 +22,6 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -49,6 +48,7 @@ import com.sinura.personaltrainer.ui.components.SessionLogTags
 import com.sinura.personaltrainer.ui.components.SetTableLine
 import com.sinura.personaltrainer.ui.history.HistoryScreen
 import com.sinura.personaltrainer.ui.history.HistoryViewModel
+import com.sinura.personaltrainer.ui.history.FilledLiftCardTags
 import com.sinura.personaltrainer.ui.history.SessionDetailScreen
 import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
 import com.sinura.personaltrainer.ui.history.SessionDetailViewModel
@@ -281,9 +281,11 @@ class ConnectedWorkoutJourneyTest {
         assertEquals(sessionId, detailSession.id)
         assertSet(detailSession.sets.single(), sessionId, original.id, 80.0, 11, 9)
         val tableRow = SetTableLine.fromLog(corrected, LoadClass.LOADED, WeightUnit.LBS)
-        val rowDescription = "${tableRow.extras}, ${tableRow.line}"
-        compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(hasContentDescription(rowDescription))
-        compose.onNodeWithContentDescription(rowDescription).assertIsDisplayed()
+        val rowDescription = "Recorded working ${tableRow.extras}, ${tableRow.line}"
+        val recordedRow = hasContentDescription(rowDescription) and
+            hasAnyAncestor(hasTestTag(FilledLiftCardTags.setRow(corrected.id)))
+        compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(recordedRow)
+        compose.onNode(recordedRow).assertIsDisplayed()
         compose.onNodeWithTag(SessionDetailTestTags.BACK).performClick()
         compose.awaitThat("detail returns to History", { destination }) { destination == Destination.HISTORY }
         assertNull(runBlocking { deps.workoutRepository.getInProgress() })

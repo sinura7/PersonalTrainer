@@ -855,7 +855,11 @@ class WorkoutRepository(
         // what stops an edit from re-dating a personal record or heating the wrong week.
         val timedSeconds = durationSeconds?.takeIf { it > 0 } ?: current.durationSeconds
         val session = workoutDao.getSession(current.sessionId)
-        val holdLift = session?.exercises?.any {
+        // A restored timed original may no longer have a prescription. Use the same
+        // saved-row distinction as work()/SetCopy: stopwatch strength still has reps.
+        // Classify before applying the draft, so its rep controls cannot change the type.
+        val storedHold = current.reps < 1 && (current.durationSeconds ?: 0) > 0
+        val holdLift = storedHold || session?.exercises?.any {
             it.exercise.id == current.exerciseId &&
                 HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
         } == true
@@ -876,7 +880,9 @@ class WorkoutRepository(
         workoutDao.updateSet(
             current.copy(
                 weightKg = safeWeight,
-                reps = if (holdLift) 0 else reps.coerceAtLeast(1),
+                // Supported older timed rows can carry negative reps; retain that exact
+                // representation rather than normalizing an unrelated field on correction.
+                reps = if (storedHold) current.reps else if (holdLift) 0 else reps.coerceAtLeast(1),
                 rpe = rpe,
                 isWarmup = isWarmup,
                 durationSeconds = timedSeconds,

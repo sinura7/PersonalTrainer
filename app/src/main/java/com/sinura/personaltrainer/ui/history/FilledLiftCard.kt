@@ -1,17 +1,31 @@
 package com.sinura.personaltrainer.ui.history
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.FilledSessionLift
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.RestTimer
@@ -20,24 +34,30 @@ import com.sinura.personaltrainer.domain.SetLog
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.LiftCard
-import com.sinura.personaltrainer.ui.components.MetricCluster
-import com.sinura.personaltrainer.ui.components.SetTable
+import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.SetTableLine
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
+import com.sinura.personaltrainer.ui.theme.RestCyan
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
-import com.sinura.personaltrainer.ui.theme.TextTertiary
+
+internal object FilledLiftCardTags {
+    fun planned(exerciseId: String) = "session-detail-planned-$exerciseId"
+    fun plannedEntry(prescriptionId: String) = "session-detail-planned-entry-$prescriptionId"
+    fun recorded(exerciseId: String) = "session-detail-recorded-$exerciseId"
+    fun setRow(setId: String) = "session-detail-set-$setId"
+    fun addSet(exerciseId: String) = "session-detail-add-set-$exerciseId"
+}
 
 /**
  * A finished lift in the same chrome as the program card and the floor card:
- * numbered badge, still, name, muscle, kit chip, `3/3`, then the Work / Rest / Load
- * prescription, then the sets written in.
- *
- * History used to be a grouped text list titled "Set N". That is a receipt,
- * not the sheet the session was logged on.
+ * numbered badge, still, complete name, muscle, kit chip, working-set count,
+ * then every original planned Work / Rest / Load entry and the recorded sets once.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 internal fun FilledLiftCard(
     lift: FilledSessionLift,
     loadClass: LoadClass,
@@ -46,29 +66,58 @@ internal fun FilledLiftCard(
     onEditSet: (SetLog) -> Unit,
     onAddSet: () -> Unit,
 ) {
-    val restClock = RestTimer.formatClock(lift.restSeconds)
-    val loadKg = lift.targetWeightKg?.takeIf { it > 0.0 }
-    val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
-    val spoken = SessionOrderCopy.filledSpoken(
-        number = lift.number,
-        name = lift.exercise.name,
-        muscleGroup = lift.exercise.muscleGroup,
-        workingLogged = lift.workingLogged,
-        targetSets = lift.targetSets,
-        targetReps = lift.targetReps,
-        restClock = restClock.takeIf { lift.hasPrescription },
-        load = loadDisplay,
-        holdSeconds = lift.targetSeconds,
-        holdSecondsMax = lift.targetSecondsMax,
-    )
-    val setsById = lift.sets.associateBy { it.id }
-    val headerTrailing = @Composable {
-        Text(
-            SessionOrderCopy.filledCount(lift.workingLogged, lift.targetSets),
-            style = InstrumentType.numeralSm,
-            color = TextPrimary,
-            maxLines = 1,
+    val repeated = lift.prescriptions.size > 1
+    val single = lift.prescriptions.singleOrNull()?.row
+    // Sets reference an exercise, so multiple prescriptions cannot each claim their completion.
+    val countTarget = single?.targetSets ?: 0
+    val spoken = if (repeated) {
+        SessionOrderCopy.filledGroupSpoken(
+            number = lift.number,
+            name = lift.exercise.name,
+            muscleGroup = lift.exercise.muscleGroup,
+            workingLogged = lift.workingLogged,
+            plannedEntries = lift.prescriptions.map { entry ->
+                val row = entry.row
+                SessionOrderCopy.filledPrescriptionSpoken(
+                    originalPosition = entry.originalPosition,
+                    sets = row.targetSets,
+                    reps = row.targetReps,
+                    restClock = RestTimer.formatClock(row.restSeconds),
+                    load = row.targetWeightKg?.let { WeightConverter.formatLabel(it, unit) },
+                    holdSeconds = row.targetSeconds,
+                    holdSecondsMax = row.targetSecondsMax,
+                )
+            },
         )
+    } else {
+        SessionOrderCopy.filledSpoken(
+            number = lift.number,
+            name = lift.exercise.name,
+            muscleGroup = lift.exercise.muscleGroup,
+            workingLogged = lift.workingLogged,
+            targetSets = countTarget,
+            targetReps = single?.targetReps ?: 0,
+            restClock = single?.let { RestTimer.formatClock(it.restSeconds) }
+                .takeIf { lift.hasPrescription },
+            load = single?.targetWeightKg?.takeIf { it > 0.0 }
+                ?.let { WeightConverter.formatLabel(it, unit) },
+            holdSeconds = single?.targetSeconds,
+            holdSecondsMax = single?.targetSecondsMax,
+        )
+    }
+    val headerTrailing = @Composable {
+        Column {
+            Text(
+                SessionOrderCopy.filledCount(lift.workingLogged, countTarget),
+                style = InstrumentType.numeralSm,
+                color = TextPrimary,
+            )
+            Text(
+                if (countTarget > 0) "Working sets: recorded / planned" else "Recorded working sets",
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+        }
     }
     LiftCard(
         exercise = lift.exercise,
@@ -76,78 +125,169 @@ internal fun FilledLiftCard(
         spoken = spoken,
         onClick = onOpen,
         cardTag = SessionDetailTestTags.liftCard(lift.exercise.id),
+        completeName = true,
         trailing = headerTrailing,
     ) {
-        if (lift.hasPrescription) {
-            Row(
+        if (lift.hasPrescription || repeated) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Metrics.space3),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    .padding(horizontal = Metrics.space3)
+                    .testTag(FilledLiftCardTags.planned(lift.exercise.id)),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                if (lift.targetSets > 0) {
-                    MetricCluster(
-                        value = SessionOrderCopy.workValue(lift.targetSets, lift.targetReps.coerceAtLeast(1)),
-                        label = SessionOrderCopy.WORK,
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.Start,
-                    )
-                }
-                MetricCluster(
-                    value = restClock,
-                    label = SessionOrderCopy.REST,
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
-                )
-                if (loadKg != null) {
-                    MetricCluster(
-                        value = WeightConverter.formatDisplayNumber(
-                            WeightConverter.toDisplayValue(loadKg, unit),
-                        ),
-                        label = SessionOrderCopy.LOAD,
-                        unit = unit.suffix,
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.Start,
-                    )
+                lift.prescriptions.forEach { entry ->
+                    val row = entry.row
+                    val loadKg = row.targetWeightKg?.takeIf { repeated || it > 0.0 }
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                            .testTag(FilledLiftCardTags.plannedEntry(row.id)),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        DetailSectionLabel(
+                            if (repeated) "${SessionOrderCopy.PLANNED} · ${entry.originalPosition}"
+                            else SessionOrderCopy.PLANNED,
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+                            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                        ) {
+                            if (repeated || row.targetSets > 0 || row.targetSeconds != null) {
+                                PlannedMetric(
+                                    value = SessionOrderCopy.workValue(
+                                        row.targetSets,
+                                        if (repeated) row.targetReps else row.targetReps.coerceAtLeast(1),
+                                        row.targetSeconds,
+                                        row.targetSecondsMax,
+                                    ),
+                                    label = SessionOrderCopy.WORK,
+                                )
+                            }
+                            PlannedMetric(value = RestTimer.formatClock(row.restSeconds), label = SessionOrderCopy.REST)
+                            if (loadKg != null) {
+                                PlannedMetric(
+                                    value = WeightConverter.formatDisplayNumber(
+                                        WeightConverter.toDisplayValue(loadKg, unit),
+                                    ),
+                                    label = SessionOrderCopy.LOAD,
+                                    unit = unit.suffix,
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
         Column(
-            modifier = Modifier.padding(
+            modifier = Modifier.testTag(FilledLiftCardTags.recorded(lift.exercise.id)).padding(
                 start = Metrics.space3,
                 end = Metrics.space3,
                 bottom = Metrics.space3,
             ),
             verticalArrangement = Arrangement.spacedBy(Metrics.kickerGap),
         ) {
+            DetailSectionLabel(SessionOrderCopy.RECORDED_SETS)
             if (lift.sets.isEmpty()) {
                 Text(
-                    "No sets",
+                    SessionOrderCopy.NO_RECORDED_SETS,
                     style = InstrumentType.caption,
-                    color = TextTertiary,
+                    color = TextSecondary,
                 )
             } else {
-                SetTable(
-                    rows = lift.sets.map { set ->
-                        SetTableLine.fromLog(set, loadClass, unit)
-                    },
-                ) { row ->
-                    val set = setsById[row.id]
-                    if (set != null) {
-                        TextButton(
-                            onClick = { onEditSet(set) },
-                            modifier = Modifier.testTag(SessionDetailTestTags.EDIT_SET),
-                        ) {
-                            Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
-                        }
+                GroupedList {
+                    lift.sets.forEachIndexed { index, set ->
+                        if (index > 0) HairlineDivider()
+                        RecordedSetRow(
+                            row = SetTableLine.fromLog(set, loadClass, unit),
+                            onEdit = { onEditSet(set) },
+                        )
                     }
                 }
             }
             TextButton(
                 onClick = onAddSet,
-                modifier = Modifier.heightIn(min = Metrics.touchMin),
+                modifier = Modifier.heightIn(min = Metrics.touchMin)
+                    .testTag(FilledLiftCardTags.addSet(lift.exercise.id)),
             ) {
                 Text("Add set", style = InstrumentType.bodyStrong, color = TextSecondary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailSectionLabel(label: String) {
+    Text(
+        label,
+        style = InstrumentType.bodyStrong,
+        color = TextSecondary,
+        modifier = Modifier.semantics { heading() },
+    )
+}
+
+/** Detail values may wrap; the shared compact metric keeps its existing line cap. */
+@Composable
+private fun PlannedMetric(value: String, label: String, unit: String? = null) {
+    val displayed = buildAnnotatedString {
+        append(value)
+        if (unit != null) withStyle(InstrumentType.unit.toSpanStyle().copy(color = TextSecondary)) {
+            append(" $unit")
+        }
+    }
+    Column(
+        modifier = Modifier.width(IntrinsicSize.Max).semantics(mergeDescendants = true) {
+            contentDescription = "${SessionOrderCopy.PLANNED} $label $displayed"
+        },
+    ) {
+        // Sets × reps is an ordered mathematical expression even in an RTL card.
+        Text(
+            displayed,
+            style = InstrumentType.numeralSm.copy(textDirection = TextDirection.Ltr),
+            color = TextPrimary,
+        )
+        Text(label.uppercase(), style = InstrumentType.kicker, color = TextSecondary)
+    }
+}
+
+/** Keep every saved value and the exact correction action readable at large system text. */
+@Composable
+private fun RecordedSetRow(row: SetTableLine, onEdit: () -> Unit) {
+    val fontScale = LocalDensity.current.fontScale
+    BoxWithConstraints(
+        modifier = Modifier.fillMaxWidth().padding(Metrics.space3)
+            .testTag(FilledLiftCardTags.setRow(row.id)),
+    ) {
+        val stack = fontScale >= 1.6f || maxWidth < 280.dp
+        val values = @Composable {
+            Column(
+                modifier = Modifier.semantics(mergeDescendants = true) {
+                    contentDescription = "Recorded ${if (row.isWarmup) "warm-up" else "working"} ${row.extras}, ${row.line}"
+                },
+                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                Text(row.line, style = InstrumentType.numeralSm, color = TextPrimary)
+                Text(row.extras, style = InstrumentType.caption, color = TextSecondary)
+                if (row.isWarmup) Text("Warm-up", style = InstrumentType.caption, color = RestCyan)
+            }
+        }
+        val edit = @Composable {
+            TextButton(
+                onClick = onEdit,
+                modifier = Modifier.sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
+                    .testTag(SessionDetailTestTags.EDIT_SET),
+            ) {
+                Text("Edit", style = InstrumentType.bodyStrong, color = TextSecondary)
+            }
+        }
+        if (stack) {
+            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                values()
+                edit()
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) { values() }
+                edit()
             }
         }
     }

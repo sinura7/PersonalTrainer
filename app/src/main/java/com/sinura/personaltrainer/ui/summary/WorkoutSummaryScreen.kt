@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -34,13 +36,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.ui.findActivity
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.EmptyScene
+import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.SessionHighlight
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.PersonalRecordCopy
 import com.sinura.personaltrainer.domain.WeightConverter
@@ -49,19 +52,19 @@ import com.sinura.personaltrainer.domain.SummaryCopy
 import com.sinura.personaltrainer.domain.SummaryHeadline
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.ui.components.EmptyState
+import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.OutlinedMarks
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.StatTile
+import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.GoldContainer
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
@@ -101,7 +104,6 @@ fun WorkoutSummaryScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
-    val summary = state.summary
 
     // The first moment this workout exists in a form a backup would contain, and one of the
     // few places an Activity is reachable — Drive authorization needs one. Fires once per
@@ -112,6 +114,25 @@ fun WorkoutSummaryScreen(
     // Back is Done. The workout behind this screen is finished and gone from the stack, so
     // there is nowhere else back could sensibly lead.
     BackHandler(enabled = !state.isLoading) { onDone() }
+
+    WorkoutSummaryContent(
+        state = state,
+        unit = unit,
+        onRetry = viewModel::retry,
+        onOpenSession = onOpenSession,
+        onDone = onDone,
+    )
+}
+
+@Composable
+internal fun WorkoutSummaryContent(
+    state: WorkoutSummaryUiState,
+    unit: WeightUnit,
+    onRetry: () -> Unit,
+    onOpenSession: (String) -> Unit,
+    onDone: () -> Unit,
+) {
+    val summary = state.summary
 
     Column(
         modifier = Modifier
@@ -126,7 +147,7 @@ fun WorkoutSummaryScreen(
             // one. Retry re-reads; it never writes.
             state.failed -> SummaryUnavailable(
                 savedConfirmed = state.savedConfirmed,
-                onRetry = viewModel::retry,
+                onRetry = onRetry,
                 onOpenSession = { onOpenSession(state.sessionId) },
                 onDone = onDone,
             )
@@ -138,7 +159,8 @@ fun WorkoutSummaryScreen(
                 actionLabel = SummaryCopy.DONE,
                 onAction = onDone,
                 actionTag = SummaryTags.DONE,
-                modifier = Modifier.padding(Metrics.gutter),
+                modifier = Modifier.testTag(SummaryTags.CONTENT)
+                    .verticalScroll(rememberScrollState()).padding(Metrics.gutter),
             )
 
             !summary.hasWork -> {
@@ -152,13 +174,14 @@ fun WorkoutSummaryScreen(
                     actionLabel = SummaryCopy.DONE,
                     onAction = onDone,
                     actionTag = SummaryTags.DONE,
-                    modifier = Modifier.padding(Metrics.gutter),
+                    modifier = Modifier.testTag(SummaryTags.CONTENT)
+                        .verticalScroll(rememberScrollState()).padding(Metrics.gutter),
                 )
             }
 
             else -> {
                 LazyColumn(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag(SummaryTags.CONTENT),
                     contentPadding = PaddingValues(
                         start = Metrics.gutter,
                         end = Metrics.gutter,
@@ -227,7 +250,9 @@ fun WorkoutSummaryScreen(
                     }
 
                     if (summary.recordCount > 0) {
-                        item(key = "records") { PersonalRecordPanel(summary = summary) }
+                        item(key = "records") {
+                            PersonalRecordPanel(summary = summary, exercises = state.highlightExercises)
+                        }
                     }
 
                     item(key = "lifts-label") {
@@ -236,7 +261,9 @@ fun WorkoutSummaryScreen(
                             modifier = Modifier.padding(top = Metrics.space2),
                         )
                     }
-                    item(key = "lifts") { LiftBreakdown(summary = summary, unit = unit) }
+                    item(key = "lifts") {
+                        LiftBreakdown(summary = summary, unit = unit, exercises = state.highlightExercises)
+                    }
 
                     if (summary.notes.isNotBlank()) {
                         item(key = "notes") {
@@ -330,8 +357,6 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
             summary.title,
             style = InstrumentType.title,
             color = TextPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
         Text(dateLabel, style = InstrumentType.caption, color = TextTertiary)
         Column(
@@ -384,6 +409,8 @@ private fun SummaryUnavailable(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .testTag(SummaryTags.CONTENT)
+            .verticalScroll(rememberScrollState())
             .padding(Metrics.gutter),
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
@@ -428,11 +455,14 @@ private fun SummaryUnavailable(
  * one paragraph while three landing in sequence read as three events.
  */
 @Composable
-private fun PersonalRecordPanel(summary: WorkoutSummary, modifier: Modifier = Modifier) {
+private fun PersonalRecordPanel(
+    summary: WorkoutSummary,
+    exercises: Map<String, Exercise>,
+    modifier: Modifier = Modifier,
+) {
     val lines = remember(summary) {
         summary.highlights
             .filter { it.records.isNotEmpty() }
-            .map { it.exerciseName to it.records.joinToString(" · ", transform = PersonalRecordCopy::celebration) }
     }
     var revealed by rememberSaveable { mutableIntStateOf(0) }
     val reduced = LocalReducedMotion.current
@@ -471,14 +501,18 @@ private fun PersonalRecordPanel(summary: WorkoutSummary, modifier: Modifier = Mo
                 color = PrGold,
             )
         }
-        lines.forEachIndexed { index, (name, detail) ->
+        lines.forEachIndexed { index, highlight ->
             AnimatedVisibility(
                 visible = index < revealed,
                 enter = recordEnter(),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                    Text(name, style = InstrumentType.bodyStrong, color = TextPrimary)
-                    Text(detail, style = InstrumentType.caption, color = PrGold)
+                    SummaryLiftIdentity(highlight, exercises, artTag = SummaryTags.recordArt(highlight.exerciseId))
+                    Text(
+                        highlight.records.joinToString(" · ", transform = PersonalRecordCopy::celebration),
+                        style = InstrumentType.caption,
+                        color = PrGold,
+                    )
                 }
             }
         }
@@ -486,54 +520,92 @@ private fun PersonalRecordPanel(summary: WorkoutSummary, modifier: Modifier = Mo
 }
 
 /**
- * Every lift of the session, as one instrument panel.
- *
- * One card per lift made six lifts look like six unrelated objects and set their numbers as
- * prose — "3 sets · 1,240 kg" in body text, where nothing lines up between rows. Here the two
- * numbers a lifter compares between lifts sit in fixed columns.
+ * The recorded receipt, with matching exercise identity and complete values.
+ * Names and values wrap independently of the artwork and metrics, so larger text does
+ * not turn a receipt into an abbreviation or crowd out its saved result.
  */
 @Composable
-private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit) {
+private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit, exercises: Map<String, Exercise>) {
     GroupedList {
         summary.highlights.forEachIndexed { index, highlight ->
             if (index > 0) HairlineDivider()
-            InstrumentRow(
-                title = highlight.exerciseName,
-                subtitle = highlight.topSet?.let { top ->
+            Column(
+                modifier = Modifier.fillMaxWidth().testTag(SummaryTags.lift(highlight.exerciseId))
+                    .padding(Metrics.space3),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                SummaryLiftIdentity(highlight, exercises, artTag = SummaryTags.art(highlight.exerciseId))
+                highlight.topSet?.let { top ->
                     // Through SetCopy, not raw tonnage: the highlight already knows how this
                     // lift is measured, and a set of push-ups read "Top set 0 kg × 20" here
                     // long after every other surface had stopped saying that.
-                    "Top set " + SetCopy.setLine(top.weightKg, top.reps, highlight.loadClass, unit)
-                },
-                leading = { RecordMark(record = highlight.records.isNotEmpty()) },
-            ) {
-                MetricCluster(value = highlight.workingSets.toString(), label = "sets")
+                    Text(
+                        "Top set " + SetCopy.setLine(top.weightKg, top.reps, highlight.loadClass, unit),
+                        style = InstrumentType.body,
+                        color = TextSecondary,
+                    )
+                }
+                if (highlight.records.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RecordMark(record = true)
+                        Text("Personal record", style = InstrumentType.caption, color = PrGold)
+                    }
+                }
                 val column = SetCopy.workColumn(highlight.work, unit)
-                MetricCluster(value = column.value, label = column.label)
+                Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space3)) {
+                    ReceiptMetric(highlight.workingSets.toString(), "sets", Modifier.weight(1f))
+                    ReceiptMetric(column.value, column.label, Modifier.weight(1f))
+                }
             }
         }
     }
 }
 
-/**
- * Which rows in the breakdown broke something.
- *
- * Transparent rather than absent when there is no record, so the lift names stay in one
- * column down the list instead of stepping in and out by the width of the dot.
- */
+@Composable
+private fun SummaryLiftIdentity(
+    highlight: SessionHighlight,
+    exercises: Map<String, Exercise>,
+    artTag: String,
+) {
+    val exercise = exercises[highlight.exerciseId]?.copy(name = highlight.exerciseName) ?: Exercise(
+        id = highlight.exerciseId,
+        name = highlight.exerciseName,
+        muscleGroup = "",
+        notes = "",
+        isCustom = true,
+    )
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Box(Modifier.testTag(artTag)) { ExerciseThumb(exercise, size = ThumbSize.header) }
+        Text(
+            highlight.exerciseName,
+            modifier = Modifier.weight(1f),
+            style = InstrumentType.bodyStrong,
+            color = TextPrimary,
+        )
+    }
+}
+
+@Composable
+private fun ReceiptMetric(value: String, label: String, modifier: Modifier) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+        Text(value, style = InstrumentType.numeralSm, color = TextPrimary)
+        Text(label, style = InstrumentType.kicker, color = TextTertiary)
+    }
+}
+
+/** Decorative accent beside the explicit, readable Personal record label. */
 @Composable
 private fun RecordMark(record: Boolean) {
     Box(
         modifier = Modifier
             .size(Metrics.space2)
             .background(if (record) PrGold else Color.Transparent)
-            .then(
-                if (record) {
-                    Modifier.semantics { contentDescription = "Personal record" }
-                } else {
-                    Modifier
-                },
-            ),
     )
 }
 
@@ -560,9 +632,13 @@ internal fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
 }
 
 object SummaryTags {
+    const val CONTENT = "summary-content"
     const val DONE = "summary-done"
     const val OPEN_SESSION = "summary-open-session"
     const val RETRY = "summary-retry"
+    fun lift(exerciseId: String) = "summary-lift-$exerciseId"
+    fun art(exerciseId: String) = "summary-art-$exerciseId"
+    fun recordArt(exerciseId: String) = "summary-record-art-$exerciseId"
 }
 
 

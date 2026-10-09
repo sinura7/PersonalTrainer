@@ -68,6 +68,7 @@ import com.sinura.personaltrainer.timer.AndroidPhoneCapabilities
 import com.sinura.personaltrainer.ui.components.NumberEntryTags
 import com.sinura.personaltrainer.ui.components.SessionLogTags
 import com.sinura.personaltrainer.ui.components.SetTableLine
+import com.sinura.personaltrainer.ui.history.FilledLiftCardTags
 import com.sinura.personaltrainer.ui.components.ThumbCache
 import com.sinura.personaltrainer.ui.components.keyedArtwork
 import com.sinura.personaltrainer.ui.history.SessionDetailTestTags
@@ -312,10 +313,12 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithText("255").assertIsDisplayed()
         compose.onNodeWithText("Working volume", ignoreCase = true).assertIsDisplayed()
         val tableRow = SetTableLine.fromLog(corrected, LoadClass.LOADED, WeightUnit.KG)
-        val rowDescription = "${tableRow.extras}, ${tableRow.line}"
+        val rowDescription = "Recorded working ${tableRow.extras}, ${tableRow.line}"
+        val recordedRow = hasContentDescription(rowDescription) and
+            hasAnyAncestor(hasTestTag(FilledLiftCardTags.setRow(corrected.id)))
         compose.onNodeWithTag(SessionDetailTestTags.CONTENT)
-            .performScrollToNode(hasContentDescription(rowDescription))
-        compose.onNodeWithContentDescription(rowDescription).assertIsDisplayed()
+            .performScrollToNode(recordedRow)
+        compose.onNode(recordedRow).assertIsDisplayed()
         assertEquals(corrected, session().sets.single())
         captureWindow("history-detail")
         compose.onNodeWithTag(SessionDetailTestTags.BACK).performClick()
