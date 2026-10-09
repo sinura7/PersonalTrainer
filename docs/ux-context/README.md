@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow is reviewed and integrated through #465, with fresh local, native and hosted verification on actual merged trunk. The immediate F6a/UX15/Q08 travel repair passes its complete local gate; connected verification, final reviews and integration remain. Broader app UX phases and physical-phone acceptance remain.
+**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow is reviewed and integrated through #465, with fresh local, native and hosted verification on actual merged trunk. The immediate F6a/UX15/Q08 travel repair passes its complete local and connected gates and both final reviews; hosted verification and integration remain. Broader app UX phases and physical-phone acceptance remain.
 
 **Audience:** Temper's owner and the next designer, engineer, or agent continuing this work.
 
@@ -48,9 +48,15 @@ ADR-011 captured-date attribution and ADR-026's coherent History range, without
 rewriting dates or introducing new product policy. The repair passes its complete
 local gate: 3,915 app tests / 572 suites and 1,682 standalone tests / 255
 classes passed with unchanged source, plus the required build/lint tasks.
-Connected Android verification, clean candidate reviews, hosted checks and
-integration remain pending. Wider app UX phases and physical-phone acceptance
-are not complete.
+Connected verification on clean candidate `dd82321f` passed all **222 Android
+tests / 32 classes**, with 85 device-hashed captures and verified fixture/settings
+restoration. Fresh independent and adversarial reviews approve this bounded
+repair with no new blocking findings. All 1,543 runtime inputs match the full
+local gate and native execution; the later documentation closure changes only
+these evidence records. Hosted checks and integration remain pending. The
+native suite provides adjacent workout/History regression evidence; the new
+travel interaction is real Repository/Room and mounted Compose JVM evidence.
+Wider app UX phases and physical-phone acceptance are not complete.
 
 ## Owner decisions for this project
 

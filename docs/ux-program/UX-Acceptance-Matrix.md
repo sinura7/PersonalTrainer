@@ -433,9 +433,43 @@ inputs and Git references remained unchanged. The existing 14-profile screen
 matrix and eight focused travel renders pass together; original failed attempts
 remain failed evidence. Full summary SHA-256:
 `CDA0E71160B93E27A8F9D3ED4A465BCBB5F3DF394DAE073033D058BE318A10E3`.
-The clean candidate must bind to these exact runtime bytes before connected
-verification and final review. Hosted checks and integration are still pending;
-no phone or whole-app acceptance is inferred.
+At that local-gate snapshot, clean candidate binding, connected verification
+and final review were pending. Their executed closure follows; hosted checks
+and integration remain subsequent work. No phone or whole-app acceptance is inferred.
+
+**Travel repair native and final-review closure:** Clean candidate
+`dd82321fe8b780b4ec8eec0440a11feca22781d3`, tree
+`09660cc24762e0b8014700d9c274060c789d627f`, binds all **1,543 runtime inputs**
+to the closed full gate. `native01` ran from **16:00:28.1099563Z** to
+**16:07:08.3710194Z** on the dedicated offline API-29 emulator and passed
+**222 tests / 32 classes**, zero failures/errors/skips. All **85 fresh captures**
+match their device hashes; all 13 fixture admission/restoration pairs, final
+settings/network, empty package inventories, collector stop and unchanged
+source/references were verified. Root's separate **16:08:24.2547147Z** process
+query confirmed emulator shutdown. Native summary SHA-256:
+`C5B515A679105E65C4C1619FC4536F115AEDB3AFF2BEF3905FC9049E509EB0F4`;
+artifact manifest SHA-256:
+`99EE6C4630D5A0F41A59C3E6F5E322E595961C38CE09104AD9BC3A11B554E0C9`.
+
+Fresh independent and adversarial reviewers approve that exact bounded
+candidate with no new blocking findings, independently checking raw XML,
+runtime blobs, render/capture hashes and selected changed frames. Their ignored
+reports are `build/ux-context/reviews/history-captured-independent-dd82321f.md`
+(SHA-256 `B17A75B9F8649DD4E015AE4930CDB697EB323C041FBC07C8287D543813E28247`)
+and `history-captured-adversarial-dd82321f.md`
+(SHA-256 `A0C0BA7DDA445CE466842401047A82C66E05193C71E72DDDE92D427F69CB9456`).
+The subsequent documentation-only closure must retain this runtime binding;
+native execution occurred on `dd82321f`, not on the later documentation tree.
+Hosted verification and integration are not yet complete at this snapshot.
+
+The new travel proof uses real Repository/Room data and mounted real Compose
+JVM renders. The inherited connected suite verifies adjacent workout/History
+behavior, including the same corrected **85 kg × 3 / 255 kg** saved result; it
+does not perform a new Android timezone-travel journey. The native History
+baseline remains permission-modal obscured. Primitive saved-selection recovery
+does not establish OS process-death recovery. Prior hosted IME-observation
+failure, legacy strength captured-date storage, equal-millisecond ordering,
+cross-store atomicity and physical-phone/performance acceptance remain open.
 
 Equal-timestamp record ordering remains a medium UX15 dependency: current record
 feedback can depend on input order when chronology ties. This repair changes no
@@ -863,7 +897,9 @@ UX12. History's one-period/coherent-progress work integrated through
 [PR #465](https://github.com/sinura7/PersonalTrainer/pull/465) as `7a41c977`, with
 independently verified actual-trunk local, native and hosted gates recorded under
 UX15. Its immediate single active F6a/UX15/Q08 packet now repairs confirmed
-captured-date visibility after travel before Summary; verification remains pending.
+captured-date visibility after travel before Summary. Complete local/native
+gates and both final reviews pass; hosted checks and integration remain pending
+at this snapshot.
 Legacy strength captured-date
 storage remains a separately specified dependency. These integrations do not
 close broader F4, UX23, UX24/UX25 or physical-phone acceptance.
