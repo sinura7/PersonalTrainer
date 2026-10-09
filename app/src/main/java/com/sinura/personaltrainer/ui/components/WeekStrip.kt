@@ -82,12 +82,13 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 
-/** Primitive geometry only: activity content must never recenter a user's exploration. */
+/** Date coordinates and display geometry; activity content must never recenter exploration. */
 internal data class WeekStripGeometry(
     val viewportPx: Int,
     val density: Float,
     val fontScale: Float,
     val rtl: Boolean,
+    val firstEpochDay: Long,
 )
 
 /** Owned before a caller's loading return, so a temporarily absent strip retains its position. */
@@ -118,10 +119,13 @@ class WeekStripState internal constructor(
                     geometry?.density ?: 0f,
                     geometry?.fontScale ?: 0f,
                     geometry?.rtl ?: false,
+                    geometry?.firstEpochDay ?: 0L,
                 )
             },
             restore = { values ->
-                val handled = values[1] as Boolean
+                // Older values retain their offset but have no date-coordinate identity.
+                // Admit a fresh reveal instead of trusting an origin we never saved.
+                val handled = values.size == 8 && (values[1] as Boolean)
                 WeekStripState(
                     scrollState = ScrollState(initial = values[0] as Int),
                     lastHandledSelected = if (handled) values[2] as Long else null,
@@ -131,6 +135,7 @@ class WeekStripState internal constructor(
                             density = values[4] as Float,
                             fontScale = values[5] as Float,
                             rtl = values[6] as Boolean,
+                            firstEpochDay = values[7] as Long,
                         )
                     } else null,
                 )
@@ -193,6 +198,7 @@ fun WeekStrip(
             density = density.density,
             fontScale = density.fontScale,
             rtl = direction == LayoutDirection.Rtl,
+            firstEpochDay = cells.firstOrNull()?.epochDay ?: 0L,
         )
         val fittingWidthPx = ((viewportPx - gapPx * (Weekday.DAYS_IN_WEEK - 1)) / Weekday.DAYS_IN_WEEK)
         val cellWidthPx = maxOf(baseWidthPx, fittingWidthPx).coerceAtMost(viewportPx)

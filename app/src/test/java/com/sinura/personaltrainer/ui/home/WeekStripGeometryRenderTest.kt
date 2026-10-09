@@ -423,6 +423,74 @@ class WeekStripGeometryRenderTest {
         }
     }
 
+    @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
+    fun homeChangedWeekOriginRevealsTheSameSelectedDate() = changedWeekOrigin(Screen.HOME)
+
+    @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
+    fun planChangedWeekOriginRevealsTheSameSelectedDate() = changedWeekOrigin(Screen.PLAN)
+
+    @Test @Config(qualifiers = "ldrtl-w360dp-h640dp-xhdpi", fontScale = 2f)
+    fun homeChangedWeekOriginRevealsTheSameSelectedDateInRtl() {
+        direction = LayoutDirection.Rtl
+        changedWeekOrigin(Screen.HOME)
+    }
+
+    @Test @Config(qualifiers = "ldrtl-w360dp-h640dp-xhdpi", fontScale = 2f)
+    fun planChangedWeekOriginRevealsTheSameSelectedDateInRtl() {
+        direction = LayoutDirection.Rtl
+        changedWeekOrigin(Screen.PLAN)
+    }
+
+    private fun changedWeekOrigin(targetScreen: Screen) {
+        profile = "${targetScreen.name.lowercase()}-changed-week-origin-$direction"
+        scale = 2f
+        graph()
+        screen = targetScreen
+        val restoration = StateRestorationTester(compose)
+        show(restoration)
+        awaitScreen()
+        boardTo(WeekStripTags.STRIP)
+        assertFullyVisible(cell(today))
+        assertSelected(today)
+        val stored = inventory()
+
+        // A successful new week snapshot shifts Monday to Sunday without changing
+        // this selected civil date. It changes cell coordinates, not activity content.
+        weekStart -= 1
+        insights.value = insights.value.copy(weekPlan = restWeek(weekStart).copy(
+            preferences = SchedulePreferences.DEFAULT.copy(weekStart = Weekday.SUNDAY),
+        ))
+        compose.awaitThat("new week origin reaches the actual $screen VM", {
+            if (screen == Screen.HOME) home!!.uiState.value.weekStartEpochDay
+            else plan.uiState.value.week?.weekStartEpochDay
+        }) {
+            if (screen == Screen.HOME) home!!.uiState.value.weekStartEpochDay == weekStart
+            else plan.uiState.value.week?.weekStartEpochDay == weekStart
+        }
+        drainLayout()
+        // Reveal only the board viewport; never scroll/tap the selected cell for this proof.
+        boardTo(WeekStripTags.STRIP)
+        capture("same-selection-after-week-origin-change")
+        assertFullyVisible(cell(today))
+        assertSelected(today)
+        assertDateHeading(today)
+        boardTo(WeekStripTags.STRIP)
+        restoration.emulateSavedInstanceStateRestore()
+        drainLayout()
+        assertFullyVisible(cell(today))
+        assertSelected(today)
+        // After the changed origin has been handled, deliberate exploration still
+        // survives restoration without changing the selected civil date.
+        boardTo(WeekStripTags.cell(weekStart))
+        val explored = stripOffset()
+        restoration.emulateSavedInstanceStateRestore()
+        drainLayout()
+        assertEquals("same shifted week restores manual exploration", explored, stripOffset(), 1f)
+        assertSelected(today)
+        assertEquals("receiving a new week does not start or save work", stored, inventory())
+        assertEquals(0, navigation)
+    }
+
     @Test @Config(qualifiers = "w320dp-h640dp-xhdpi", fontScale = 2f)
     fun actualHomeExtraHeaderKeepsFullTitleAndSeparatedCancel() {
         profile = "home-extra-header-320-font20"

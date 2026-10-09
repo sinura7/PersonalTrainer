@@ -153,8 +153,44 @@ four required Windows tasks with `--rerun-tasks` passed, **135 tasks executed**.
 Execution: **09:01:50.1432937Z–09:17:50.9527428Z**, with the same **1,529 stable
 runtime inputs** and stable references. Summary SHA-256:
 `669a3a9b2dc17cbf3b4329a8243dab58a09dd380a703e8177c0e6fe075a6140d`.
-Final reviews, connected verification and integration remain pending at this
-snapshot. Evidence is retained under `build/ux-context/runs/home-week-geometry/`.
+That gate belongs to initial candidate `2fa5bf7a`, not the later origin fix.
+Its two closed hosted runs passed the same 3,820 tests / 560 suites and 222
+native cases / 32 classes. Local `native03` passed those 222 cases, including
+the connected synthetic workout, with 85 hashed captures and 13 fixture
+restoration pairs. Earlier `native01`/`native02` failed before any application
+test on emulator readiness; their failures remain preserved.
+
+**Review finding and repair:** Independent review then found a reachable case
+where changing Settings' week start shifts the cell coordinates while the
+selected date remains the same. The initial handled-geometry identity omitted
+that origin, so the selected day could disappear. `week-origin-reproduction01`
+confirmed **four tests / four failures**, on actual Home/Plan in LTR and RTL,
+before the production fix. Summary SHA-256:
+`c75cc9fb4ddea79e0612e2a2e0389772b8250e9e8844dadab26f31086009e65f`.
+The identity now includes the first epoch day without depending on activity
+counts or proposals. Eight-field saved state keeps that identity and manual
+exploration; older seven-field state retains its offset but admits a fresh
+selection reveal rather than trusting an unknown origin. The older-format
+branch has source review, not an explicit executed legacy-format test.
+
+`week-origin-fix01` passed **24 tests / one fresh suite, zero failures/errors/
+skips**, all four required targeted tasks, and **1,529 unchanged runtime
+inputs**. The four new cases verify complete selected-day visibility after
+the origin shift, restoration and subsequent deliberate exploration, without
+scrolling the selected day into view for the assertion. Execution:
+**09:57:16.9108926Z–10:01:51.0198436Z**. Summary SHA-256:
+`c65518da04a7ce9c5d7e7cd559d124c7ffb433a926b4ac6954765f8574b60372`.
+The archive contains **254 fresh native-graphics PNGs** with matching hashes.
+Initial no-blocker reviews and green checks do not approve this changed
+candidate. Its fresh unfiltered `full-gate02` passed **3,824 tests / 560 fresh
+suites, zero failures/errors/skips**, and **1,659 standalone tests / 251
+classes**. All four required Windows tasks passed with **135 tasks executed**,
+**1,529 stable runtime inputs** and stable references. Execution:
+**10:04:06.6741953Z–10:20:07.5262972Z**. Summary SHA-256:
+`d4f30936eebf58c150ba87a184f280477b8712bb8b83eaf0298a1b799fedd0f2`.
+Renewed final reviews, connected verification, hosted checks and integration
+remain pending at this snapshot. Evidence is retained under
+`build/ux-context/runs/home-week-geometry/`.
 
 **Limits:** These are actual production screens/ViewModels on isolated stores,
 mounted without AppNav, its bars or system insets. Inventory equality covers
@@ -171,6 +207,10 @@ These are explicit UX12/UX24/UX25 dependencies for the already-next History
 period/calendar packet and later Body work. Their source is outside the changed
 headers; this evidence does not establish the original render cause. Phone IME/performance,
 N2 and W3 remain open; no broader criterion is closed here.
+Local `native03`'s Home/Plan baseline images are obscured by the Permissions
+required dialog. Passing underlying semantics and the connected workout do
+not supply an unobscured AppNav week/header visual acceptance. That evidence
+gap remains open separately from the direct-screen JVM geometry matrix.
 
 ### UX13 — Expose recurrence and ordering consequences without restoring clock clutter
 
