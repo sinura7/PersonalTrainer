@@ -50,6 +50,8 @@ import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NotesBlock
+import com.sinura.personaltrainer.ui.components.NotesLeaveDialog
+import com.sinura.personaltrainer.ui.components.NotesSaveState
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.domain.LiveBarCopy
@@ -101,10 +103,9 @@ fun SessionDetailScreen(
     val deletedSet by viewModel.deletedSet.collectAsStateWithLifecycle()
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
-    val leave = {
-        viewModel.persistNotesForExit()
-        onBack()
-    }
+    val notesExitRequested by viewModel.notesExitRequested.collectAsStateWithLifecycle()
+    val notesExitBlocked by viewModel.notesExitBlocked.collectAsStateWithLifecycle()
+    val leave = { viewModel.requestNotesExit() }
 
     BackHandler(onBack = leave)
     val session = state.session
@@ -116,6 +117,13 @@ fun SessionDetailScreen(
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var editingSetId by rememberSaveable { mutableStateOf<String?>(null) }
     var addingToExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(notesExitRequested) {
+        if (notesExitRequested) {
+            viewModel.onNotesExitHandled()
+            onBack()
+        }
+    }
 
     // Navigation is state, not a captured callback: the repeat writes a session row first, and
     // an Activity recreated in that window would leave the lambda pointing at a dead
@@ -227,9 +235,12 @@ fun SessionDetailScreen(
                                 workingSets = workingSets,
                                 durationMinutes = session.durationMinutes,
                                 notes = state.notes,
+                                notesSave = state.notesSave,
                                 notesExpanded = notesOpen,
+                                notesEnabled = !state.notesExiting,
                                 onToggleNotes = { notesOpen = !notesOpen },
                                 onNotesChange = viewModel::setNotes,
+                                onRetryNotes = viewModel::retryNotesSave,
                                 unit = unit,
                             )
                         }
@@ -283,6 +294,19 @@ fun SessionDetailScreen(
                 onDismissed = { viewModel.onUndoOfferHandled() },
             )
         }
+    }
+
+    if (notesExitBlocked) {
+        NotesLeaveDialog(
+            saveState = state.notesSave.copy(busy = state.notesSave.busy || state.notesExiting),
+            liveDraft = false,
+            onRetry = { viewModel.requestNotesExit() },
+            onKeepEditing = {
+                viewModel.keepEditingNotes()
+                notesOpen = true
+            },
+            onLeave = { viewModel.requestNotesExit(leaveWithoutChanges = true) },
+        )
     }
 
     val editing = editingSetId?.let { id -> session?.sets?.firstOrNull { it.id == id } }
@@ -384,9 +408,12 @@ private fun SessionReceipt(
     workingSets: Int,
     durationMinutes: Int,
     notes: String,
+    notesSave: NotesSaveState,
     notesExpanded: Boolean,
+    notesEnabled: Boolean,
     onToggleNotes: () -> Unit,
     onNotesChange: (String) -> Unit,
+    onRetryNotes: () -> Unit,
     unit: WeightUnit,
 ) {
     // The headline is whichever unit this session was actually done in. A calisthenics day
@@ -435,6 +462,9 @@ private fun SessionReceipt(
             expanded = notesExpanded,
             onToggle = onToggleNotes,
             onChange = onNotesChange,
+            saveState = notesSave,
+            onRetryNotes = onRetryNotes,
+            enabled = notesEnabled,
         )
     }
 }

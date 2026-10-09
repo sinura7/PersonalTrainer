@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.domain.RuleTrace
 import com.sinura.personaltrainer.domain.SetMicroRec
 import com.sinura.personaltrainer.domain.SetMicroRecCalculator
 import com.sinura.personaltrainer.domain.SetMicroRecCopy
+import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 
 /**
@@ -24,6 +25,11 @@ object TempoWhySheetCopy {
     const val LABEL_PLAN_TARGET_HINT = "Progression band on the lift card, not a cap on this set"
     const val LABEL_ALTERNATIVES = "Also considered"
     const val LABEL_REST = "Suggested rest"
+    const val LABEL_ADD_EFFORT = "Effort"
+    const val LABEL_ADD_COMPLETION = "Today's sets"
+    const val LABEL_ADD_COMPARISON = "Last session"
+    const val LABEL_ADD_WEEKLY = "Weekly volume"
+    const val LABEL_ADD_TIMING = "Recent volume"
     const val OPENS_STUDY = "Opens study link in browser"
     const val HEURISTIC_BADGE = "Heuristic"
 
@@ -75,7 +81,6 @@ object TempoWhySheetCopy {
         loadClass: LoadClass,
         unit: WeightUnit,
     ): SheetModel {
-        val suggestion = CoachEngine.fromMicroRec(seedRec)
         val callRaw = tip.seedRec.trace.facts.firstOrNull { it.name == "call" }?.value
             ?: SetMicroRecCopy.callLine(
                 seedRec.reasonCode,
@@ -93,23 +98,58 @@ object TempoWhySheetCopy {
                 verb = "Add 1 set",
                 numbers = SetMicroRecCopy.numbers(seedRec, loadClass, unit),
             ),
-            summary = buildString {
-                append(tip.tipShort)
-                append(" ")
-                append(
-                    "Tempo checked today's effort, weekly volume for this muscle, and your block week " +
-                        "before offering at most one extra working set.",
-                )
-                lastSet?.let {
-                    append(" Your last working set was $it.")
-                }
-            },
-            decisionRows = listOf(
-                DecisionRow(LABEL_LAST_SET, lastSet ?: "—"),
-                DecisionRow(LABEL_RULE, tip.tipShort),
-            ),
+            summary = tip.trace.fact("readinessCount")?.toIntOrNull()?.let { count ->
+                "Your planned sets are complete. $count of 5 readiness checks support one extra set."
+            } ?: tip.tipShort,
+            decisionRows = addASetDecisionRows(tip.trace, lastSet),
             evidenceIds = tip.evidenceIds,
         )
+    }
+
+    private fun RuleTrace.fact(name: String): String? = facts.firstOrNull { it.name == name }?.value
+
+    /** Present the frozen offer's actual signals, never re-evaluate the current draft. */
+    private fun addASetDecisionRows(trace: RuleTrace, lastSet: String?): List<DecisionRow> = buildList {
+        lastSet?.let { add(DecisionRow(LABEL_LAST_SET, it)) }
+        trace.fact("meanRpe")?.toDoubleOrNull()?.let { mean ->
+            val relation = if (trace.fact("effortSignal") == "true") "within" else "above"
+            add(DecisionRow(LABEL_ADD_EFFORT, "Average RPE ${WeightConverter.formatDisplayNumber(mean)} · $relation the 7.5 guide."))
+        }
+        trace.fact("completionSignal")?.let { signal ->
+            add(DecisionRow(LABEL_ADD_COMPLETION, if (signal == "true") {
+                "No failed or cut-short sets flagged."
+            } else {
+                "A failed or cut-short set reduced support."
+            }))
+        }
+        trace.fact("comparisonAvailable")?.let { available ->
+            add(DecisionRow(LABEL_ADD_COMPARISON, when {
+                available != "true" -> "No earlier session to compare."
+                trace.fact("performanceSignal") == "true" -> "Compared sets held their weight and reps."
+                else -> "Compared sets fell below last time."
+            }))
+        }
+        trace.fact("weeklySets")?.toDoubleOrNull()?.let { weekly ->
+            // Keep copy compact without rounding a below-guide value up to the guide.
+            // The full evaluated estimate remains in the trace.
+            val below = trace.fact("weeklyVolumeSignal") == "true"
+            val rounded = WeightConverter.formatDisplayNumber(weekly)
+            val estimate = if (below && rounded == "10") "just under 10" else rounded
+            val relation = if (below) "below" else "at or above"
+            add(DecisionRow(LABEL_ADD_WEEKLY, "Estimate $estimate sets · $relation the 10-set guide."))
+        }
+        trace.fact("trendOrBlockSignal")?.let {
+            add(DecisionRow(LABEL_ADD_TIMING, when {
+                trace.fact("trendSignal") == "true" ->
+                    "Steady or lower across three weeks, including this week."
+                trace.fact("blockSignal") == "true" &&
+                    trace.fact("blockComparisonSource") == AddASetTrace.CURRENT_PLAN_TARGET ->
+                    "Block week ${trace.fact("blockWeekIndex")} fits today's planned set count."
+                trace.fact("blockSignal") == "true" ->
+                    "Block week ${trace.fact("blockWeekIndex")} supports the set count."
+                else -> "No recent-volume or block-week support."
+            }))
+        }
     }
 
     fun doiUrl(doi: String): String = "https://doi.org/${doi.trim()}"

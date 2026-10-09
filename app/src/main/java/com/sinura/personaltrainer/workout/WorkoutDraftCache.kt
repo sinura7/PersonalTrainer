@@ -2,6 +2,11 @@ package com.sinura.personaltrainer.workout
 
 import com.sinura.personaltrainer.domain.DraftStore
 import com.sinura.personaltrainer.domain.WorkoutSetSave
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class WorkoutDraft(
     val sessionId: String,
@@ -29,6 +34,51 @@ data class WorkoutDraft(
 class WorkoutDraftCache {
     private val lock = Any()
     private val sessions = mutableMapOf<String, SessionDrafts>()
+    // These locks outlive cleared drafts: an older writer must never acquire a different
+    // lock for the same session after Finish removes its cache entry.
+    private val notesWriteLocks = mutableMapOf<String, Mutex>()
+    private val completedSessions = mutableSetOf<String>()
+    private val _finishing = MutableStateFlow<Set<String>>(emptySet())
+    val finishing: StateFlow<Set<String>> = _finishing.asStateFlow()
+
+    internal fun beginFinish(sessionId: String): Boolean = synchronized(lock) {
+        if (sessionId in _finishing.value) false else {
+            _finishing.value += sessionId
+            true
+        }
+    }
+
+    internal fun endFinish(sessionId: String) {
+        synchronized(lock) { _finishing.value -= sessionId }
+    }
+
+    internal fun finishConfirmed(sessionId: String) {
+        synchronized(lock) {
+            completedSessions += sessionId
+            sessions.remove(sessionId)
+        }
+    }
+
+    fun liveEntryLocked(sessionId: String): Boolean = synchronized(lock) {
+        sessionId in _finishing.value || sessionId in completedSessions
+    }
+
+    /** Editing and reserving Finish share one synchronous decision, before any suspension. */
+    internal fun editLiveNotes(sessionId: String, edit: () -> Unit) {
+        synchronized(lock) {
+            if (sessionId !in _finishing.value && sessionId !in completedSessions) edit()
+        }
+    }
+
+    /** History may edit finished notes, but cannot start a write during Finish's reservation. */
+    internal fun editSessionNotes(sessionId: String, edit: () -> Unit) {
+        synchronized(lock) { if (sessionId !in _finishing.value) edit() }
+    }
+
+    internal suspend fun <T> withNotesWrite(sessionId: String, write: suspend () -> T): T {
+        val writeLock = synchronized(lock) { notesWriteLocks.getOrPut(sessionId) { Mutex() } }
+        return writeLock.withLock { write() }
+    }
 
     fun editingOriginal(sessionId: String): WorkoutSetSave? = synchronized(lock) {
         sessions[sessionId]?.editingOriginal
@@ -80,12 +130,35 @@ class WorkoutDraftCache {
 
     /** Stages the session's notes with no lift's entry: a lift still loading, or none selected. */
     fun putSessionNotes(sessionId: String, notes: String) {
-        synchronized(lock) { sessions.getOrPut(sessionId) { SessionDrafts() }.notes = notes }
+        synchronized(lock) {
+            if (sessionId !in completedSessions) sessions.getOrPut(sessionId) { SessionDrafts() }.notes = notes
+        }
+    }
+
+    /** Live notes owners retain their barrier until their write is confirmed or Finish clears it. */
+    fun markNotesPending(sessionId: String, owner: Any, pending: Boolean, busy: Boolean, notes: String) {
+        synchronized(lock) {
+            if (sessionId in completedSessions) return
+            if (pending) sessions.getOrPut(sessionId) { SessionDrafts() }.notesOwners[owner] = busy
+            else sessions[sessionId]?.let { session ->
+                session.notesOwners.remove(owner)
+                // A reopened editor can confirm the preserved draft after an older owner
+                // was removed. Retire its settled protection, but keep every live writer.
+                if (session.notes?.trim() == notes.trim()) {
+                    session.notesOwners.entries.removeAll { !it.value }
+                }
+            }
+        }
+    }
+
+    fun hasPendingNotes(sessionId: String): Boolean = synchronized(lock) {
+        sessions[sessionId]?.notesOwners?.isNotEmpty() == true
     }
 
     /** Stages a lift's entry, selects it, and takes its notes as the session's. */
     fun put(value: WorkoutDraft) {
         synchronized(lock) {
+            if (value.sessionId in completedSessions) return
             val session = sessions.getOrPut(value.sessionId) { SessionDrafts() }
             val key = value.exerciseId.orEmpty()
             session.lifts[key] = value
@@ -100,10 +173,12 @@ class WorkoutDraftCache {
         selectedExerciseId: String?,
     ) {
         synchronized(lock) {
+            if (sessionId in completedSessions) return
             val session = SessionDrafts()
             session.pendingSave = sessions[sessionId]?.pendingSave
             session.editingOriginal = sessions[sessionId]?.editingOriginal
             session.notes = sessions[sessionId]?.notes
+            session.notesOwners.putAll(sessions[sessionId]?.notesOwners.orEmpty())
             session.selectedExerciseId = selectedExerciseId
             lifts.forEach { (id, draft) ->
                 if (id.isNotEmpty()) session.lifts[id] = draft.copy(sessionId = sessionId)
@@ -114,6 +189,7 @@ class WorkoutDraftCache {
 
     fun select(sessionId: String, exerciseId: String?) {
         synchronized(lock) {
+            if (sessionId in completedSessions) return
             val session = sessions.getOrPut(sessionId) { SessionDrafts() }
             session.selectedExerciseId = exerciseId
         }
@@ -142,6 +218,7 @@ class WorkoutDraftCache {
     fun clearAll() {
         synchronized(lock) {
             sessions.clear()
+            completedSessions.clear()
         }
     }
 
@@ -157,6 +234,7 @@ class WorkoutDraftCache {
         var pendingSave: WorkoutSetSave? = null
         var editingOriginal: WorkoutSetSave? = null
         var notes: String? = null
+        val notesOwners = mutableMapOf<Any, Boolean>()
         var selectedExerciseId: String? = null
         val lifts: MutableMap<String, WorkoutDraft> = mutableMapOf()
     }

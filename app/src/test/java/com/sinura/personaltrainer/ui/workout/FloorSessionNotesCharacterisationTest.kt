@@ -14,6 +14,7 @@ import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -71,6 +72,7 @@ class FloorSessionNotesCharacterisationTest {
 
     /** Every notes write that reached the DAO. */
     private val notesWrites = AtomicInteger(0)
+    private val notesWriteAt = AtomicLong(-1L)
 
     @Before
     fun setUp() {
@@ -125,20 +127,30 @@ class FloorSessionNotesCharacterisationTest {
         vm.awaitState { it.notes == "seeded" }
         awaitPrefillSave(sessionId)
         notesWrites.set(0)
+        notesWriteAt.set(-1L)
 
+        val typedAt = dispatcher.scheduler.currentTime
         vm.setNotes("first")
+        dispatcher.scheduler.runCurrent()
         dispatcher.scheduler.advanceTimeBy(399)
         assertEquals("no notes write before the typing pause", 0, notesWrites.get())
         dispatcher.scheduler.advanceTimeBy(1)
         dispatcher.scheduler.runCurrent()
-        // The repository calls the DAO before its first suspension, and the unconfined Main runs
-        // the pause's write inline, so the count is exact the moment the clock reaches 400 ms.
+        // The live-owner check reads the actual Room row before notes SQL. Wait for that
+        // real-thread read while pumping only current work: the typing clock stays at 400 ms.
+        pollUntil(what = "the first notes write reaches the DAO at the typing deadline", read = {
+            dispatcher.scheduler.runCurrent()
+            notesWrites.get()
+        }) { it >= 1 }
         assertEquals("one notes write at the typing pause", 1, notesWrites.get())
+        assertEquals("the DAO attempt was recorded at exactly 400 ms", typedAt + 400, notesWriteAt.get())
+        assertEquals("waiting for Room advanced no typing time", typedAt + 400, dispatcher.scheduler.currentTime)
         assertEquals(
             "and it carries the words typed",
             "first",
             unheld.awaitSession(sessionId) { it.notes == "first" }.notes,
         )
+        assertEquals("the exact row arrived without another typing pause", typedAt + 400, dispatcher.scheduler.currentTime)
     }
 
     @Test
@@ -273,6 +285,7 @@ class FloorSessionNotesCharacterisationTest {
             real.observeSession(id).onEach { sessionPaused.first { paused -> !paused } }
 
         override suspend fun updateSessionNotes(id: String, notes: String) {
+            notesWriteAt.set(dispatcher.scheduler.currentTime)
             notesWrites.incrementAndGet()
             real.updateSessionNotes(id, notes)
         }

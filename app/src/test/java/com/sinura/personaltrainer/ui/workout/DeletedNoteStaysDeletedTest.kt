@@ -143,8 +143,10 @@ class DeletedNoteStaysDeletedTest {
         assertEquals("the deleted note stays deleted on screen", "", shown.notes)
 
         pauseTyping()
-        assertEquals("the next pause writes the deletion, once", listOf(""), writesStarted.toList())
+        val pauseEndedAt = dispatcher.scheduler.currentTime
         awaitWriteLanded("")
+        assertEquals("settling Room I/O does not advance the typing clock", pauseEndedAt, dispatcher.scheduler.currentTime)
+        assertEquals("the next pause writes the deletion, once", listOf(""), writesStarted.toList())
         assertEquals("and the database holds it", "", unheld.getSession(sessionId)?.notes)
     }
 
@@ -229,8 +231,10 @@ class DeletedNoteStaysDeletedTest {
             awaitScreen(revived, "the row on the revived screen") { it.session != null }.notes,
         )
         pauseTyping()
-        assertEquals("the next pause writes them, once", listOf(NEW_WORDS), writesStarted.toList())
+        val pauseEndedAt = dispatcher.scheduler.currentTime
         awaitWriteLanded(NEW_WORDS)
+        assertEquals("settling Room I/O does not advance the typing clock", pauseEndedAt, dispatcher.scheduler.currentTime)
+        assertEquals("the next pause writes them, once", listOf(NEW_WORDS), writesStarted.toList())
         assertEquals("and the database holds them", NEW_WORDS, unheld.getSession(sessionId)?.notes)
     }
 
@@ -367,7 +371,7 @@ class DeletedNoteStaysDeletedTest {
         shows: (ActiveWorkoutUiState) -> Boolean,
     ): ActiveWorkoutUiState = runUntil(what = what, read = { vm.uiState.value }, done = shows)
 
-    /** Runs the notes writes' answers until [notes] has landed; the screen has taken that answer when this returns. */
+    /** Settles the fresh Room read and write after debounce, pumping current work without advancing time. */
     private suspend fun awaitWriteLanded(notes: String) {
         runUntil(
             what = "the notes write of \"$notes\" landing (writes started: $writesStarted)",

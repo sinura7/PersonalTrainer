@@ -38,12 +38,55 @@ object AddASetPolicy {
         val loadProgressionBlocked: Boolean,
         /** User chose Add another set after planned working sets were already in (ADR-004). */
         val manualExtraAfterLastPlanned: Boolean,
+        /** Explanation metadata only; never an eligibility input. */
+        val traceMetadata: AddASetTrace.Metadata? = null,
+        val blockComparisonSource: String = "UNSPECIFIED",
     )
+
+    /** Frozen explanation of the existing accepted decision, without retaining session rows. */
+    data class DecisionEvidence(
+        val goal: TrainingGoal,
+        val primaryMuscle: CanonicalMuscle?,
+        val targetSets: Int,
+        val workingLogged: Int,
+        val todayWorkingCount: Int,
+        val lighterWeek: Boolean,
+        val extraSetAlreadyAccepted: Boolean,
+        val dismissed: Boolean,
+        val manualExtra: Boolean,
+        val rpeLogged: Int,
+        val meanRpe: Double,
+        val weeklySets: Double,
+        val weeklySetsByWeek: List<Double>,
+        val comparisonAvailable: Boolean,
+        val effortSignal: Boolean,
+        val completionSignal: Boolean,
+        val performanceSignal: Boolean,
+        val weeklyVolumeSignal: Boolean,
+        val trendSignal: Boolean,
+        val blockSignal: Boolean,
+        val blockWeekIndex: Int,
+        val blockComparisonSets: Int,
+        val blockComparisonSource: String,
+        val preferLoad: Boolean,
+        val lastRpe: Int?,
+        val lastReps: Int,
+        val targetReps: Int,
+        val seedReason: String?,
+        val loadProgressionBlocked: Boolean,
+        val traceMetadata: AddASetTrace.Metadata?,
+    ) {
+        val trendOrBlockSignal: Boolean get() = trendSignal || blockSignal
+        val readinessCount: Int get() = listOf(
+            effortSignal, completionSignal, performanceSignal, weeklyVolumeSignal, trendOrBlockSignal,
+        ).count { it }
+    }
 
     data class Offer(
         val tipShort: String,
         val evidenceIds: List<String>,
         val heuristicEvidenceIds: List<String>,
+        val decision: DecisionEvidence,
     )
 
     fun evaluate(ctx: Context): Offer? {
@@ -57,8 +100,44 @@ object AddASetPolicy {
             tipShort = "Room for one more working set on this lift today.",
             evidenceIds = evidenceIds(),
             heuristicEvidenceIds = heuristicEvidenceIds(),
+            decision = decisionEvidence(ctx),
         )
     }
+
+    // The guards above remain authoritative. Capture their existing helpers' answers only
+    // after acceptance; explanation fields neither add a gate nor change a threshold.
+    private fun decisionEvidence(ctx: Context): DecisionEvidence = DecisionEvidence(
+        goal = ctx.goal,
+        primaryMuscle = ctx.primaryMuscle,
+        targetSets = ctx.targetSets,
+        workingLogged = ctx.workingLogged,
+        todayWorkingCount = ctx.todayWorking.size,
+        lighterWeek = ctx.lighterWeek,
+        extraSetAlreadyAccepted = ctx.extraSetAlreadyAccepted,
+        dismissed = ctx.addASetDismissedForExercise,
+        manualExtra = ctx.manualExtraAfterLastPlanned,
+        rpeLogged = ctx.todayWorking.count { it.rpe != null },
+        meanRpe = meanRpe(ctx.todayWorking),
+        weeklySets = ctx.weeklyHardSetsForMuscle,
+        weeklySetsByWeek = ctx.muscleWeeklySetsByWeek.toList(),
+        comparisonAvailable = ctx.lastSessionMatchingSets.isNotEmpty(),
+        effortSignal = meanRpe(ctx.todayWorking) <= MEAN_RPE_CEILING,
+        completionSignal = !failedOrCutShortToday(ctx),
+        performanceSignal = loadOrRepsHeldOrRose(ctx.todayWorking, ctx.lastSessionMatchingSets),
+        weeklyVolumeSignal = ctx.weeklyHardSetsForMuscle < SOFT_WEEKLY_SET_TARGET,
+        trendSignal = volumeFlatOrDown(ctx.muscleWeeklySetsByWeek),
+        blockSignal = blockWeekTimingAllows(ctx.blockWeekIndex, ctx.workingLogged, ctx.blockOpenerSetsForLift),
+        blockWeekIndex = ctx.blockWeekIndex,
+        blockComparisonSets = ctx.blockOpenerSetsForLift,
+        blockComparisonSource = ctx.blockComparisonSource,
+        preferLoad = preferLoadFirst(ctx),
+        lastRpe = ctx.lastWorkingSet.rpe,
+        lastReps = ctx.lastWorkingSet.reps,
+        targetReps = ctx.targetReps,
+        seedReason = ctx.extraSetReasonCode,
+        loadProgressionBlocked = ctx.loadProgressionBlocked,
+        traceMetadata = ctx.traceMetadata,
+    )
 
     internal fun atLastPlannedWorkingSet(ctx: Context): Boolean =
         ctx.targetSets > 0 &&

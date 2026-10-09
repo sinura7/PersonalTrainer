@@ -3,8 +3,8 @@
   "packet": "Native Quiet workout composition under O12 and ADR-027 amendment",
   "baseHead": "e2d13e74cdda9da2a323aeff5719555054570829",
   "publishedPolicyHead": "a1f47d1a0d41d1e0264d4457407391cf7d4af92e",
-  "status": "Native Quiet implemented and automated gates passed; fresh reviews and trunk integration pending",
-  "sourceState": "Verified source inputs are captured by executed diffs and source hashes. Hosted checks before this push cover the earlier remote head.",
+  "status": "Quiet packet complete: fresh clean-context reviews passed; PR460 merged; clean-trunk local and full native gates passed. UX23 workout-truth and W3 evidence follow-up precedes Home/History.",
+  "sourceState": "Original premerge evidence below retains its executed revision/diff. Frozen reviewed head 78ca67729b479d126f89236f91b03b483e8b75ef and merged trunk 9b7a7f5a1b3f2904ab8a62c893c4728cbebeb1d6 have identical whole trees.",
   "fullLocalGate": {
     "trunk": "24936a5bf13566b4d082df32f207a1ac1226aeac",
     "head": "e2d13e74cdda9da2a323aeff5719555054570829",
@@ -216,9 +216,25 @@
   ],
   "reviews": {
     "dependency": "Completed baseline policy/dependency review; published policy/data equality rechecked. Earlier bounded-recovery reviews retain their narrower scope.",
-    "freshIndependent": "Incomplete: review agent hit account usage limit. Its reported completion-copy and density precondition findings were addressed, but no final review passed.",
-    "freshAdversarial": "Incomplete: review agent hit account usage limit. Its reported offscreen-Why precondition finding was addressed, but no final review passed.",
-    "merge": "Pending fresh mandatory reviews under ADR-002; draft PR460 stacked on PR457."
+    "freshIndependent": {
+      "verdict": "PASS scoped Quiet integration; no critical/high findings",
+      "reviewedHead": "78ca67729b479d126f89236f91b03b483e8b75ef",
+      "rawReport": "build/ux-context/reviews/quiet-independent-final-78ca6772.md",
+      "sha256": "efb7e9c6b287a25c1acafd7bb5d5abd17562d4820183243242204c6e2f853980"
+    },
+    "freshAdversarial": {
+      "verdict": "PASS scoped Quiet integration; no critical/high findings",
+      "reviewedHead": "78ca67729b479d126f89236f91b03b483e8b75ef",
+      "rawReport": "build/ux-context/reviews/quiet-adversarial-final-78ca6772.md",
+      "sha256": "092c00cfe38b973ac0359fb942264e93eee15d329ac1065b9c2aa12207563874"
+    },
+    "merge": {
+      "pr": "https://github.com/sinura7/PersonalTrainer/pull/460",
+      "mergedAtUtc": "2026-10-08T20:03:38Z",
+      "trunk": "9b7a7f5a1b3f2904ab8a62c893c4728cbebeb1d6",
+      "includedDependency": "PR457 published Debug124 tip included by PR460; PR457 closed; both remote vehicle branches removed"
+    },
+    "priorQuotaAttempts": "Earlier fresh review attempts were incomplete after usage-limit errors; their findings were repaired. They are not passes."
   },
   "limitations": [
     "Synthetic API29 and JVM evidence does not establish owner-phone usability, touch feel, timing, sound/haptics or physical-device performance.",
@@ -236,5 +252,510 @@
     "native-suite-attempt02/gradle.log": "9bdc320654ee15fae4fcd8c201bab17423d96a9b72505cdca1664523e8b363f5",
     "native-suite-attempt02/live-logcat.txt": "14a430ec96298e052e7ee5f328ad44fa5d3cebd8909192d7ced09d49588bbda6",
     "full-gate-attempt04/executed.diff": "7c74c6e6bea1f744d9ed76c6dcce34b458ed059928134a9cc2047fb094edcd32"
+  },
+  "postMergeVerification": {
+    "completeLocalGate": {
+      "archive": "build/ux-context/runs/quiet-native/postmerge-full-gate",
+      "summarySha256": "52b4f51bf950bb35271a5df5d276e8a6de1b07d9fb04cd2734d7639135ac87d1",
+      "summary": {
+        "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest --rerun-tasks",
+        "head": "9b7a7f5a1b3f2904ab8a62c893c4728cbebeb1d6",
+        "trunk": "9b7a7f5a1b3f2904ab8a62c893c4728cbebeb1d6",
+        "startedAtUtc": "2026-10-08T20:04:17.4831498Z",
+        "endedAtUtc": "2026-10-08T20:14:46.0208218Z",
+        "exit": 0,
+        "sourceStable": true,
+        "counts": {
+          "failures": 0,
+          "skipped": 0,
+          "tests": 3625,
+          "errors": 0
+        },
+        "xmlFiles": 546,
+        "allXmlFresh": true,
+        "unitTaskExecuted": true,
+        "result": "complete required local gate passed"
+      }
+    },
+    "completeNativeRunner": {
+      "archive": "build/ux-context/runs/quiet-native/postmerge-native-suite",
+      "summarySha256": "78252c852b96cd814175f84d5c4e2b381e503a46b00654ba701b72e0cc8d54bb",
+      "summary": {
+        "startedAtUtc": "2026-10-08T20:18:32.0414575Z",
+        "endedAtUtc": "2026-10-08T20:24:55.9579498Z",
+        "exit": 0,
+        "tests": 212,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "captures": 73,
+        "sourceHashesUnchanged": true,
+        "nativeCollectorStopped": true,
+        "suiteNetworkRestoration": "CI_SYNTHETIC_NETWORK_RESTORED wifi=1 data=1 default=active",
+        "result": "212 native tests executed and passed"
+      }
+    },
+    "equalSourceInputs": 1509
+  },
+  "nextPacket": {
+    "existingBacklogId": "UX23",
+    "scope": "Truthful notes-save states, retry and write ordering; Add-a-set trace explains actual unchanged decision; factual missing-session copy; named coach-dismiss action; W3/TS-3 permanent actual-five-tab renders",
+    "status": "Fixture synchronization repair freshly verified in Full11; amended immutable pin, fresh reviews and hosted checks/integration pending. N2 and phone/broader UX remain open.",
+    "ordering": "Before Home and History; phone and Recents-removal evidence retain separate scope",
+    "evidence": {
+      "finalReviewAndIntegration": "New amended pin and fresh reviews, updated hosted checks and integration pending",
+      "nativeFinal": "Native04 passed all 222 tests on the final full-entry precondition",
+      "portableFrames": [
+        {
+          "generator": "NotesTruthMatrixRenderTest.landscapeFont20",
+          "file": "N14-live-notes-guard-landscape-font20.png",
+          "sha256": "51319dd519c0851948184ed0e4edcff4bb85788aed7c4d9cfd11845bcbc62ae5",
+          "bytes": 57209,
+          "lane": "Robolectric native graphics, API35, actual OS font2.0; not physical phone",
+          "id": "N14",
+          "fullGateSummarySha256": "1d554478034a334326e2c65d44efa1b99727148b1ea61a56ab2def581e336a96",
+          "state": "Full live exit warning and all three actions, actual modal; synthetic fixture",
+          "origin": "app/build/screen-renders/workout-notes-truth/93ddf45c-62cd-4522-8c42-798033072575/800x360-font2.0/live-guard-session-notes-exit-retry-body-modal.png"
+        },
+        {
+          "generator": "NotesTruthMatrixRenderTest.landscapeFont20",
+          "file": "N15-history-notes-guard-landscape-font20.png",
+          "sha256": "2f6e980daf68a52032716a14f459c67ce7ee7ef28d47a77181365213dba92136",
+          "bytes": 56346,
+          "lane": "Robolectric native graphics, API35, actual OS font2.0; not physical phone",
+          "id": "N15",
+          "fullGateSummarySha256": "1d554478034a334326e2c65d44efa1b99727148b1ea61a56ab2def581e336a96",
+          "state": "Actual failed History exit warning and all three actions; synthetic Room fixture",
+          "origin": "app/build/screen-renders/workout-notes-truth/93ddf45c-62cd-4522-8c42-798033072575/800x360-font2.0/history-real-exit-guard-body-modal.png"
+        },
+        {
+          "generator": "WorkoutMissingSessionRenderTest",
+          "file": "N16-missing-workout-font20.png",
+          "sha256": "a3681bf7f6f1116ccb25483500f37626f1fe1e385df547c2da64e63588999314",
+          "bytes": 52881,
+          "lane": "Robolectric native graphics, API35, actual OS font2.0; not physical phone",
+          "id": "N16",
+          "fullGateSummarySha256": "1d554478034a334326e2c65d44efa1b99727148b1ea61a56ab2def581e336a96",
+          "state": "Missing workout, factual conditional History copy, reached Back to home; synthetic fixture",
+          "origin": "app/build/screen-renders/workout-missing-truth/6de3e862-a79a-4c30-93bd-4f6da6a2bab6/360x640-font20/missing-workout.png"
+        },
+        {
+          "generator": "AddASetWhyJourneyRenderTest",
+          "file": "N17-extra-set-explanation-landscape-font20.png",
+          "sha256": "7af4509c8d6bf49891a0cf3a37d7e6822e907f4be777f1795c54d17e21ca98b8",
+          "bytes": 76957,
+          "lane": "Robolectric native graphics, API35, actual OS font2.0; not physical phone",
+          "id": "N17",
+          "fullGateSummarySha256": "1d554478034a334326e2c65d44efa1b99727148b1ea61a56ab2def581e336a96",
+          "state": "Reached complete four-of-five explanation with fixed draft-only actions; earlier callout partly scrolled out; synthetic fixture",
+          "origin": "app/build/screen-renders/ux23-add-a-set-why/b46d5916-385b-4cab-90d5-912f6f258983/640x360-land-font20/summary-modal-window.png"
+        },
+        {
+          "bytes": 131933,
+          "file": "N18-native-notes-failed-retry-font20-ime.png",
+          "origin": "build\\ux-context\\runs\\workout-truth\\native-suite-attempt04\\captures\\ac975e18-7aa0-403e-8b03-aac05c446a0b-ux23-notes-failed-retry-font2-ime-api29.png",
+          "nativeSummarySha256": "0187020a853f5ce35a5efe3ff0b8e979366c51750ed2bd161719a016afa2c8fb",
+          "id": "N18",
+          "sha256": "7e8c4d47b03202f2324838d42f0d92e6b619cea0e5f3efe957d730835337f709",
+          "lane": "Owned synthetic API29 emulator, actual OS font2.0; not physical phone",
+          "state": "Actual API29 failed notes with IME visible and reached Retry; not full modal reachability proof"
+        },
+        {
+          "bytes": 170712,
+          "file": "N19-native-extra-set-why-font20.png",
+          "origin": "build\\ux-context\\runs\\workout-truth\\native-suite-attempt04\\captures\\ac975e18-7aa0-403e-8b03-aac05c446a0b-ux23-add-a-set-why-use-font2-api29.png",
+          "nativeSummarySha256": "0187020a853f5ce35a5efe3ff0b8e979366c51750ed2bd161719a016afa2c8fb",
+          "id": "N19",
+          "sha256": "2fca31bb93c12f6d5069e0f88e379a201e3959c043901308aed65ecc7a0cbed0",
+          "lane": "Owned synthetic API29 emulator, actual OS font2.0; not physical phone",
+          "state": "Actual API29 reached explanation facts and draft-only actions; inherited Drag handle tooltip overlaps title, so not proof of unobscured full title"
+        }
+      ],
+      "fullGateSummarySha256": "1d554478034a334326e2c65d44efa1b99727148b1ea61a56ab2def581e336a96",
+      "runtimeInputManifestSha256": "ce85b25783fc00e7146eea9882d4a8114cfa4202c4e4a64b057928ce07d7008d",
+      "fullGate": {
+        "sourceFiles": 1521,
+        "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest --rerun-tasks",
+        "startedAtUtc": "2026-10-09T00:08:02.1849942Z",
+        "endProbe": false,
+        "exit": 0,
+        "fullGate": true,
+        "result": "complete required local gate passed",
+        "freshXmlFiles": 554,
+        "counts": {
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "tests": 3702
+        },
+        "allXmlFresh": true,
+        "endedAtUtc": "2026-10-09T00:18:37.9961652Z",
+        "xmlFiles": 554,
+        "head": "9b7a7f5a1b3f2904ab8a62c893c4728cbebeb1d6",
+        "sourceStable": true
+      },
+      "phoneAcceptance": "Unexecuted; development proceeds under O12",
+      "fullGateArchive": "build/ux-context/runs/workout-truth/full-gate-attempt08",
+      "preservedNative03": {
+        "tests": 222,
+        "summarySha256": "7b458a2e59a46c7193e76daa4aa33bad842016cd2306d6a86caeea9b3b210e65",
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0,
+        "cause": "Fixture captured partial draft before reps and effort settled; complete manual precondition repaired, post-Keep equality and no-SQL/no-rest assertions retained",
+        "archive": "build/ux-context/runs/workout-truth/native-suite-attempt03"
+      },
+      "nativeFixtureGate": {
+        "summarySha256": "7ea19a47305f54376a6eb13cd294f5cfe43183004dac752023a51e3f556283fe",
+        "summary": {
+          "priorFreshJvmSummarySha256": "1D554478034A334326E2C65D44EFA1B99727148B1EA61A56AB2DEF581E336A96",
+          "jvmResultsReused": true,
+          "sourceStable": true,
+          "freshXmlFiles": 0,
+          "jvmStoredCounts": {
+            "skipped": 0,
+            "failures": 0,
+            "errors": 0,
+            "tests": 3702
+          },
+          "startedAtUtc": "2026-10-09T00:30:41.6546001Z",
+          "result": "Required gate tasks passed; see exact executed/reused task and JVM evidence states",
+          "nativeFixtureOldSha256": "8EAD3CD9106DF0BD1934A34656130ECD7FB433466AF815076976EFDAF7684E18",
+          "exit": 0,
+          "xmlFiles": 554,
+          "priorFreshJvmArchive": "full-gate-attempt08",
+          "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+          "changedFromFull08": [
+            "app/src/androidTest/java/com/sinura/personaltrainer/ui/workout/WorkoutTruthInstrumentedTest.kt"
+          ],
+          "newlyExecutedJvmTests": 0,
+          "scope": "Required complete task command after native-test-only synchronization fix; cached unchanged JVM results explicitly retain Full08 evidence. Native04 must execute final native source. Clean trunk postmerge full rerun remains required.",
+          "taskStates": {
+            "lintDebug": "EXECUTED",
+            "assembleDebug": "EXECUTED",
+            "assembleDebugAndroidTest": "EXECUTED",
+            "testDebugUnitTest": "UP-TO-DATE"
+          },
+          "sourceFiles": 1521,
+          "reusedXmlByteIdentical": true,
+          "nativeFixtureNewSha256": "51E2F3899E8F67F728F00E2C346D45813BF0EB359207D1CE08DD3B372A7A40CD",
+          "unchangedProductionAndJvmInputs": true,
+          "endedAtUtc": "2026-10-09T00:33:58.6825999Z"
+        },
+        "archive": "build/ux-context/runs/workout-truth/full-gate-attempt09"
+      },
+      "nativeGate": {
+        "summary": {
+          "errors": 0,
+          "sourceState": "UX23 workout-truth candidate on merged Quiet base with frozen source inputs; not owner-phone acceptance",
+          "endedAtUtc": "2026-10-09T00:41:09.9617529Z",
+          "failures": 0,
+          "installedVersionObservations": [
+            "10-08 20:36:45.228  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:36:56.258  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:37:00.929  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:23.800  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:27.888  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:30.484  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:32.756  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:36.227  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:39.883  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:43.848  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:46.516  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:50.368  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)",
+            "10-08 20:40:52.588  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE avd=temper-tests-api29 api=29 versionCode=124 versionName=1.0.0+debug.124 offline=true capabilities=PhoneCapabilitySnapshot(sdkInt=29, notificationsEnabled=true, restDoneChannelEnabled=true, postNotificationsGranted=true, canScheduleExactAlarms=true, canUseFullScreenIntent=true, canDrawOverlays=true, batteryUnrestricted=true, hasVibrator=false)"
+          ],
+          "failedCases": [],
+          "captures": 85,
+          "fixtureRestorations": [
+            "10-08 20:36:55.909  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:36:59.637  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:37:24.338  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:27.440  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:30.002  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:32.219  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:35.798  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:39.415  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:43.482  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:46.118  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:49.993  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:52.138  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false",
+            "10-08 20:40:55.675  3561  3584 I System.out: NATIVE_WORKOUT_FIXTURE_RESTORED settings={window_animation_scale=0, transition_animation_scale=0, animator_duration_scale=0, wifi_on=0, mobile_data=0} appOps={SYSTEM_ALERT_WINDOW=default} postNotificationsGranted=true batteryUnrestricted=false"
+          ],
+          "startedAtUtc": "2026-10-09T00:34:27.7143907Z",
+          "classes": [
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.data.backup.BackupEnvelopeInstrumentedTest"
+            },
+            {
+              "tests": 2,
+              "class": "com.sinura.personaltrainer.data.backup.BackupPolicyInstrumentedTest"
+            },
+            {
+              "tests": 3,
+              "class": "com.sinura.personaltrainer.data.local.MigrationDeviceTest"
+            },
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.data.local.SchemaV1BaselineDeviceTest"
+            },
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.data.local.TemperMigrationDeviceTest"
+            },
+            {
+              "tests": 4,
+              "class": "com.sinura.personaltrainer.data.repository.ScheduleRepositoryInstrumentedTest"
+            },
+            {
+              "tests": 6,
+              "class": "com.sinura.personaltrainer.data.repository.WorkoutRepositoryInstrumentedTest"
+            },
+            {
+              "tests": 2,
+              "class": "com.sinura.personaltrainer.InstrumentationSmokeTest"
+            },
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.SdkTargetInstrumentedTest"
+            },
+            {
+              "tests": 2,
+              "class": "com.sinura.personaltrainer.timer.ExactAlarmCapabilityInstrumentedTest"
+            },
+            {
+              "tests": 10,
+              "class": "com.sinura.personaltrainer.ui.components.FrontendControlsInstrumentedTest"
+            },
+            {
+              "tests": 4,
+              "class": "com.sinura.personaltrainer.ui.components.IdentityBeforeMetricsInstrumentedTest"
+            },
+            {
+              "tests": 2,
+              "class": "com.sinura.personaltrainer.ui.history.HistoryPassInstrumentedTest"
+            },
+            {
+              "tests": 27,
+              "class": "com.sinura.personaltrainer.ui.home.HomePassInstrumentedTest"
+            },
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.ui.library.LibraryPassInstrumentedTest"
+            },
+            {
+              "tests": 25,
+              "class": "com.sinura.personaltrainer.ui.navigation.FrontendShellInstrumentedTest"
+            },
+            {
+              "tests": 3,
+              "class": "com.sinura.personaltrainer.ui.plan.PlanPassInstrumentedTest"
+            },
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.ui.preview.FoundationStateGalleryInstrumentedTest"
+            },
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.ui.preview.FrontendBaselineCaptureTest"
+            },
+            {
+              "tests": 12,
+              "class": "com.sinura.personaltrainer.ui.ProductionScreensPassInstrumentedTest"
+            },
+            {
+              "tests": 4,
+              "class": "com.sinura.personaltrainer.ui.progress.BodyPassInstrumentedTest"
+            },
+            {
+              "tests": 8,
+              "class": "com.sinura.personaltrainer.ui.RemainingPagesPassInstrumentedTest"
+            },
+            {
+              "tests": 2,
+              "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutJourneyInstrumentedTest"
+            },
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.ui.workout.ActiveWorkoutNotificationDenialInstrumentedTest"
+            },
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyInstrumentedTest"
+            },
+            {
+              "tests": 21,
+              "class": "com.sinura.personaltrainer.ui.workout.RestCompletionLayoutInstrumentedTest"
+            },
+            {
+              "tests": 3,
+              "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionJourneyInstrumentedTest"
+            },
+            {
+              "tests": 15,
+              "class": "com.sinura.personaltrainer.ui.workout.WorkoutCompletionLayoutInstrumentedTest"
+            },
+            {
+              "tests": 9,
+              "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryJourneyInstrumentedTest"
+            },
+            {
+              "tests": 38,
+              "class": "com.sinura.personaltrainer.ui.workout.WorkoutEntryLayoutInstrumentedTest"
+            },
+            {
+              "tests": 1,
+              "class": "com.sinura.personaltrainer.ui.workout.WorkoutTimerOverlayInstrumentedTest"
+            },
+            {
+              "tests": 10,
+              "class": "com.sinura.personaltrainer.ui.workout.WorkoutTruthInstrumentedTest"
+            }
+          ],
+          "exit": 0,
+          "captureDeviceHashesMatch": true,
+          "suiteNetworkAdmission": [
+            "CI_SYNTHETIC_NETWORK serial=emulator-5554 avd=temper-tests-api29 api=29 target=com.sinura.personaltrainer.debug originalWifi=1 originalData=1 originalDefault=active",
+            "CI_SYNTHETIC_NETWORK_OFFLINE verified before Gradle/first app launch",
+            "CI_SYNTHETIC_NETWORK_RESTORED wifi=1 data=1 default=active"
+          ],
+          "skipped": 0,
+          "sourceHashesUnchanged": true,
+          "suiteNetworkRestoration": "CI_SYNTHETIC_NETWORK_RESTORED wifi=1 data=1 default=active",
+          "tests": 222,
+          "adaptiveModalObservations": [
+            "10-08 20:38:27.547  3561  3584 I System.out: NATIVE_ADAPTIVE_FONT osFont=2.0 floorFont=1.0",
+            "10-08 20:38:28.164  3561  3584 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+            "10-08 20:38:29.463  3561  3584 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+            "10-08 20:38:30.964  3561  3584 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+            "10-08 20:38:32.763  3561  3584 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-use bounds=Rect.fromLTRB(42.0, 1416.0, 1038.0, 1584.0) size=996 x 168 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+            "10-08 20:38:32.846  3561  3584 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0",
+            "10-08 20:38:33.814  3561  3584 I System.out: NATIVE_WHY_ACTION tag=workout-tempo-why-keep bounds=Rect.fromLTRB(42.0, 1605.0, 1038.0, 1731.0) size=996 x 126 dialog=Rect.fromLTRB(0.0, 0.0, 1080.0, 1920.0) density=2.625 nodeFont=2.0 osFont=2.0"
+          ],
+          "changedSources": [],
+          "result": "222 native tests executed and passed",
+          "nativeCollectorStopped": true
+        },
+        "summarySha256": "0187020a853f5ce35a5efe3ff0b8e979366c51750ed2bd161719a016afa2c8fb",
+        "archive": "build/ux-context/runs/workout-truth/native-suite-attempt04"
+      },
+      "runtimeInputManifestArchive": "build/ux-context/runs/workout-truth/full-gate-attempt11/source-hashes-before.json",
+      "boundedInterruption": {
+        "status": "Incomplete before editing: live AppNav starts foreground service, so the experiment no-FGS precondition correctly rejected",
+        "recentsRemovalPerformed": false,
+        "scope": "N2 timing, natural process death and owner-phone acceptance remain open; separate named controller tests do not add to the 222-test native suite",
+        "initialPreparation": "Catalog timeout after registering partial owned fixture; exact cleanup and seven preference restore passed",
+        "archive": "build/ux-context/runs/workout-truth/n2-runtime01",
+        "summarySha256": "e3c149cd9b54231e17170d50bdcf5ed9671b0d6627e69868d4fc91a1a84fd85c",
+        "intervalUnder400msEstablished": false,
+        "retryPreparation": "Normal idempotent startup catalog seed awaited in ignored controller; separate rebuild and named setup passed",
+        "n2PassClaimed": false,
+        "cleanup": "Exact registered synthetic session and seven raw/mapped preference keys restored; original overlay/default and wifi/data1/1 active restored; only three hash-verified fresh local APK packages uninstalled",
+        "actualFieldClearPerformed": false,
+        "readback": "Same synthetic session and set, payload, start/date/live/no-rest and original notes unchanged"
+      },
+      "finalRepositoryGate": {
+        "archive": "build/ux-context/runs/workout-truth/full-gate-attempt11",
+        "summary": {
+          "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest --rerun-tasks",
+          "startedAtUtc": "2026-10-09T01:27:17.3770067Z",
+          "endedAtUtc": "2026-10-09T01:38:04.0240231Z",
+          "head": "f8943ae587158e4a96b4d638f462837a9d7d019c",
+          "nativeExitCode": 0,
+          "exit": 0,
+          "buildSuccessful": true,
+          "requestedTaskExecuted": {
+            "testDebugUnitTest": true,
+            "assembleDebug": true,
+            "lintDebug": true,
+            "assembleDebugAndroidTest": true
+          },
+          "counts": {
+            "tests": 3702,
+            "failures": 0,
+            "errors": 0,
+            "skipped": 0
+          },
+          "xmlFiles": 554,
+          "allXmlFresh": true,
+          "sourceFiles": 1521,
+          "sourceStable": true,
+          "verificationErrors": [],
+          "result": "Fresh complete four-task gate passed after notes fixture synchronization repair."
+        },
+        "summarySha256": "dc00702c2787049f1fecc1c99cfe673b32dcdef1bd7c979e97ed9a720599dc0d",
+        "nativeScope": "All production and Android inputs still match Native04; only DeletedNoteStaysDeletedTest.kt changed from Full10. Postmerge native rerun remains required."
+      },
+      "formattingGate": {
+        "archive": "build/ux-context/runs/workout-truth/full-gate-attempt10",
+        "summary": {
+          "priorFreshJvmSummarySha256": "1D554478034A334326E2C65D44EFA1B99727148B1EA61A56AB2DEF581E336A96",
+          "jvmFixtureOldSha256": "D483C783113B3B738C5B3740ECE4EC7F2CDB809E429617C3D563AAE351A4A750",
+          "result": "Required gate tasks passed; see exact executed/reused task and JVM evidence states",
+          "sourceStable": true,
+          "scope": "Required complete task command after exactly one JVM fixture CRLF-to-LF repair. All production/Android inputs remain byte-identical to Native04/Full09; every JVM source text is unchanged after line-ending normalization. Exact task/cache states are reported. Clean trunk postmerge full fresh rerun remains required.",
+          "jvmFixtureNewSha256": "4ECD33DD895D7DC9319DC6363B4B45BB4A19C3CAC84E2864AF73F24188C11265",
+          "unchangedProductionAndAndroidInputs": true,
+          "exit": 0,
+          "startedAtUtc": "2026-10-09T00:58:11.161372Z",
+          "changedFromFull09": [
+            "app/src/test/java/com/sinura/personaltrainer/ui/workout/SessionNotesSaveStateTest.kt"
+          ],
+          "freshXmlFiles": 0,
+          "reusedXmlByteIdentical": true,
+          "xmlFiles": 554,
+          "newlyExecutedJvmTests": 0,
+          "sourceFiles": 1521,
+          "priorFreshJvmArchive": "full-gate-attempt08",
+          "command": "./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest",
+          "jvmStoredCounts": {
+            "failures": 0,
+            "tests": 3702,
+            "skipped": 0,
+            "errors": 0
+          },
+          "taskStates": {
+            "testDebugUnitTest": "UP-TO-DATE",
+            "assembleDebug": "EXECUTED",
+            "lintDebug": "EXECUTED",
+            "assembleDebugAndroidTest": "EXECUTED"
+          },
+          "jvmFixtureOnlyCrLfToLf": true,
+          "endedAtUtc": "2026-10-09T01:01:43.9540153Z",
+          "jvmResultsReused": true
+        },
+        "nativeScope": "All production/Android bytes match Native04; sole subsequent JVM fixture change is exactly CRLF-to-LF",
+        "summarySha256": "c549d8413f8d1cb0d41e59df5fadbb66bffe7f6b21192cced079280ef3567975"
+      },
+      "ciFixtureRepair": {
+        "preRepairCandidate": "f8943ae587158e4a96b4d638f462837a9d7d019c",
+        "failedPushRun": 37867942005,
+        "failedPushCounts": {
+          "tests": 3702,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "xmlFiles": 554
+        },
+        "passingPrRun": 37867945752,
+        "passingPrCounts": {
+          "tests": 3702,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "xmlFiles": 554
+        },
+        "archive": "build/ux-context/runs/workout-truth/hosted-ci-diagnosis",
+        "diagnosisSha256": "71a64b00c0e58b8db97846762925fbeafe7917e4102b0cf29089e482580f1dd1",
+        "changedPath": "app/src/test/java/com/sinura/personaltrainer/ui/workout/DeletedNoteStaysDeletedTest.kt",
+        "sourceSha256": "db30b3b777966b58d3a6e9182770605acaf6c5577de09eb68a36987088cc2d9e",
+        "cause": "Immediate DAO-entry assertion preceded the existing bounded real Room write-completion wait; the fresh transactional live-row read could still be pending after virtual debounce.",
+        "repair": "Both positive cases settle existing bounded Room writes before exact-once assertions and assert no virtual clock advancement. Negative and exact 399/400 ms checks remain.",
+        "verification": "Full11 freshly passed 3702/554, all135tasks executed, restore7/7 and Move24/24; original failed hosted run remains failed.",
+        "amendedHostedChecks": "Pending new candidate push",
+        "integration": "Pending new immutable pin and fresh reviews, then hosted checks and clean-trunk gate/native journey."
+      }
+    }
   }
 }

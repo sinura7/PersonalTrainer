@@ -1,127 +1,253 @@
 package com.sinura.personaltrainer.ui.workout
 
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.ui.components.NotesSaveState
+import com.sinura.personaltrainer.ui.components.NotesSaveStatus
 import com.sinura.personaltrainer.util.runCatchingCancellable
+import com.sinura.personaltrainer.workout.FinishOutcome
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-/** A typing pause, not a keystroke, is what commits notes to the database. */
 private const val NOTES_WRITE_DEBOUNCE_MS = 400L
 
-/**
- * The workout floor's session notes ([ActiveWorkoutViewModel]): the words as typed, the one-time
- * fill from the session row, what the database already holds, and the two writes, one at a typing
- * pause and one at Back.
- *
- * A write waits until the row has been read, so the empty field a screen opens with never goes
- * over notes it has not seen, and it happens only when the words differ from what the database
- * holds. The row fills the field once, and only an empty one that the draft did not restore: an
- * empty note restored is one the owner deleted, and stays deleted (N2).
- *
- * What the notes are to the rest of the floor is the ViewModel's: every keystroke is saved with its
- * draft (the cache for this run, the saved state for when Android stops the app), the draft brings
- * them back when the screen is rebuilt, and Finish takes them to History. So this class takes the
- * session and the database write, owns no scope and launches nothing, like [FloorUndoOffers] and
- * [FloorSetSaves]: the ViewModel launches both writes in its own scope, where it always did, so its
- * `init` starts things in the same order.
- */
+/** Ordered notes writes and their actual result. Raw text remains the existing draft's. */
 internal class FloorSessionNotes(
     private val sessionId: String,
-    /** Writes the session row's notes. */
     private val write: suspend (String) -> Unit,
+    private val readStored: suspend () -> String?,
+    private val onUnconfirmed: (Boolean, Boolean, String) -> Unit = { _, _, _ -> },
 ) {
     private val _text = MutableStateFlow("")
-
-    /** The words as typed, restored, or filled once from the row. */
     val text: StateFlow<String> = _text.asStateFlow()
-
-    /** What the database already holds, so a re-seed or a no-op edit does not re-write it. */
+    private val _saveState = MutableStateFlow(NotesSaveState())
+    val saveState: StateFlow<NotesSaveState> = _saveState.asStateFlow()
+    private val writeLock = Mutex()
+    private val writeRequest = MutableStateFlow(0L)
+    private var revision = 0L
     private var lastPersisted: String? = null
     private var hydrated = false
+    private var hasUserDraft = false
+    private var writingRevision: Long? = null
+    private var failedRevision: Long? = null
+    private var pausedDiscardRevision: Long? = null
+    private var missing = false
+    private var cleared = false
+    private var retryQueued = false
+    private var terminal = false
 
-    /** The words typed. Nothing is written until a pause or Back. */
     fun edit(value: String) {
+        if (terminal || value == _text.value) return
+        revision += 1
+        hasUserDraft = true
+        failedRevision = null
         _text.value = value
+        writeRequest.value += 1
+        publish()
     }
 
-    /**
-     * The words the draft kept, brought back when the screen is rebuilt, an empty note included:
-     * that is one deleted. They stand for the field's fill, so the row does not fill it again. What
-     * the database holds stays unknown, so nothing is written until the row has been read.
-     */
     fun restore(value: String) {
-        _text.value = value
+        revision += 1
+        hasUserDraft = true
         hydrated = true
+        _text.value = value
+        writeRequest.value += 1
+        publish()
     }
 
-    /**
-     * The session row was read, holding [stored]: what the database has now and, the first time
-     * only, what fills an empty field the draft did not [restore]. The ViewModel calls this on
-     * every row, before it selects a lift or saves its draft, so both carry what the row filled in.
-     */
     fun sessionRead(stored: String) {
-        lastPersisted = stored
-        // Hydrate once. "Field is empty" cannot tell not-yet-seeded from
-        // deliberately-cleared, and re-seeding on a later emission restored
-        // notes the user had just deleted mid-debounce.
+        val wasUnknown = lastPersisted == null
+        lastPersisted = stored.trim()
+        missing = false
+        if (_text.value.trim() == lastPersisted) failedRevision = null
         if (!hydrated) {
             hydrated = true
-            if (_text.value.isEmpty() && stored.isNotEmpty()) {
-                _text.value = stored
-            }
+            if (_text.value.isEmpty() && stored.isNotEmpty()) _text.value = stored
         }
+        // A restored draft's pause may have ended before the first row arrived. Reading that
+        // row schedules its ordinary pause again; unrelated row updates do not restart it.
+        if (wasUnknown) writeRequest.value += 1
+        publish()
     }
 
-    /**
-     * Writes the words at every typing pause, for as long as the caller's scope lives.
-     *
-     * Notes used to launch an independent write per keystroke. Room's writes are not
-     * ordered against each other, so a shorter earlier string could land after a longer
-     * later one and the user's last characters would silently disappear on the next read
-     * — while a paragraph of notes cost a database write per character.
-     *
-     * collectLatest cancels the pending delay on every keystroke, so only a typing pause
-     * writes; and because it awaits the previous block's cancellation before starting the
-     * next, the writes it does perform are strictly ordered. NonCancellable means a write
-     * that has already begun finishes rather than being torn in half by the next keystroke.
-     */
+    fun sessionMissing() {
+        missing = true
+        lastPersisted = null
+        if (hasUserDraft) failedRevision = revision
+        publish()
+    }
+
     suspend fun writeOnTypingPause() {
-        _text.collectLatest { value ->
+        writeRequest.collectLatest { request ->
+            val requestedRevision = revision
             delay(NOTES_WRITE_DEBOUNCE_MS)
-            writeIfChanged(value)
-        }
-    }
-
-    /** Writes the words now: leaving must not drop the words typed in the last 400 ms. */
-    suspend fun writeNow() {
-        writeIfChanged(_text.value)
-    }
-
-    private suspend fun writeIfChanged(value: String) {
-        if (sessionId.isBlank()) return
-        // Null means the session row has not been read yet, so what is on disk is unknown.
-        // Writing here would push the empty initial value over real notes whenever the first
-        // query took longer than the debounce — exactly the case on a cold start.
-        val known = lastPersisted ?: return
-        if (value == known) return
-        withContext(NonCancellable) {
-            runCatchingCancellable {
-                write(value)
-                lastPersisted = value
-            }.onFailure { thrown ->
-                AppLog.w(TAG, "Writing the session notes failed", thrown)
-                // Notes stay in the draft cache, and the next keystroke retries.
+            writeLock.withLock {
+                if (request == writeRequest.value && requestedRevision == revision && requestedRevision != pausedDiscardRevision) writeCurrent()
             }
         }
+    }
+
+    suspend fun writeNow(): Boolean = writeLock.withLock { writeCurrent() }
+
+    fun beginRetry(): Boolean {
+        if (!_saveState.value.canRetry || retryQueued) return false
+        retryQueued = true
+        publish()
+        return true
+    }
+
+    suspend fun retryNow() {
+        try {
+            writeNow()
+        } finally {
+            retryQueued = false
+            publish()
+        }
+    }
+
+    /** History's explicit discard choice cannot race an ordinary pause after navigation. */
+    fun abandonPendingWrites(): Boolean {
+        if (_saveState.value.busy) return false
+        terminal = true
+        publish()
+        return true
+    }
+
+    /** Forward navigation retains History's entry. Explicit discard reloads its real row,
+     * cancels the old pause and leaves this same owner ready for later edits on return. */
+    suspend fun discardDraftForForward(): Boolean = writeLock.withLock {
+        revision += 1
+        writeRequest.value += 1
+        terminal = true
+        retryQueued = true
+        publish()
+        try {
+            val stored = runCatchingCancellable { readStored() }.getOrElse { thrown ->
+                AppLog.w(TAG, "Reloading notes after an explicit discard failed", thrown)
+                failedRevision = revision
+                // The read's new pause must not save words the user just chose to discard.
+                // A new edit has a new revision; an explicit Retry uses writeNow directly.
+                pausedDiscardRevision = revision
+                return@withLock false
+            }
+            _text.value = stored.orEmpty()
+            lastPersisted = stored?.trim()
+            hydrated = true
+            hasUserDraft = false
+            failedRevision = null
+            cleared = false
+            missing = stored == null
+            true
+        } finally {
+            terminal = false
+            retryQueued = false
+            publish()
+        }
+    }
+
+    /** Finish keeps its original use-case order; no older notes write can follow it. */
+    suspend fun finishWithLatest(block: suspend (String) -> FinishOutcome): FinishOutcome =
+        writeLock.withLock {
+            val finalRevision = revision
+            val finalNotes = _text.value
+            writingRevision = finalRevision
+            publish()
+            try {
+                val outcome = block(finalNotes)
+                if (outcome is FinishOutcome.Finished) {
+                    terminal = true
+                    failedRevision = null
+                    // Finished can also mean the existing idempotent already-finished path.
+                    // Only a read of its actual row establishes which notes are saved.
+                    runCatchingCancellable { readStored() }.onSuccess { stored ->
+                        if (stored == null) {
+                            missing = true
+                            if (revision == finalRevision) failedRevision = finalRevision
+                        } else {
+                            lastPersisted = stored.trim()
+                            cleared = finalNotes.trim().isEmpty() && lastPersisted!!.isEmpty()
+                        }
+                    }.onFailure { AppLog.w(TAG, "Confirming final session notes failed", it) }
+                } else if (outcome is FinishOutcome.Failed && revision == finalRevision && finalNotes.trim() != lastPersisted) {
+                    failedRevision = finalRevision
+                } else if (outcome is FinishOutcome.SessionMissing) {
+                    sessionMissing()
+                }
+                outcome
+            } finally {
+                writingRevision = null
+                publish()
+            }
+        }
+
+    private suspend fun writeCurrent(): Boolean {
+        if (terminal) return true
+        if (sessionId.isBlank()) return !hasUserDraft
+        val known = lastPersisted ?: return !hasUserDraft
+        val value = _text.value
+        val canonical = value.trim()
+        if (canonical == known && failedRevision == null) {
+            publish()
+            return true
+        }
+        val writing = revision
+        writingRevision = writing
+        publish()
+        try {
+            withContext(NonCancellable) {
+                runCatchingCancellable {
+                    write(value)
+                    val observed = readStored()
+                    if (observed == null) {
+                        missing = true
+                        error("The session no longer exists")
+                    }
+                    lastPersisted = observed.trim()
+                    check(lastPersisted == canonical) { "The notes write was not confirmed" }
+                    cleared = canonical.isEmpty()
+                    if (failedRevision == writing) failedRevision = null
+                }.onFailure { thrown ->
+                    AppLog.w(TAG, "Writing the session notes failed", thrown)
+                    if (revision == writing && (missing || lastPersisted != canonical)) failedRevision = writing
+                }
+            }
+        } finally {
+            writingRevision = null
+            publish()
+        }
+        return _saveState.value.status == NotesSaveStatus.SAVED
+    }
+
+    private fun publish() {
+        val busy = writingRevision != null || retryQueued
+        val status = when {
+            missing && hasUserDraft -> NotesSaveStatus.FAILED
+            writingRevision == revision -> NotesSaveStatus.SAVING
+            failedRevision == revision -> NotesSaveStatus.FAILED
+            lastPersisted == null -> NotesSaveStatus.UNKNOWN
+            busy -> NotesSaveStatus.PENDING
+            _text.value.trim() == lastPersisted -> NotesSaveStatus.SAVED
+            else -> NotesSaveStatus.PENDING
+        }
+        _saveState.value = NotesSaveState(
+            status = status,
+            busy = busy,
+            canRetry = status == NotesSaveStatus.FAILED && !busy && !missing && !terminal,
+            cleared = cleared && _text.value.trim().isEmpty(),
+            missing = missing,
+        )
+        // A surface without this editor must not clear an authored or in-flight draft.
+        // Busy also protects a reverted value that currently equals the stored row.
+        onUnconfirmed(!terminal && (busy || (hasUserDraft && status != NotesSaveStatus.SAVED)), busy, _text.value)
     }
 
     private companion object {
-        /** The ViewModel's, so the diagnostics read as they did before the move. */
-        const val TAG = "PT/ActiveWorkoutVM"
+        const val TAG = "PT/SessionNotes"
     }
 }

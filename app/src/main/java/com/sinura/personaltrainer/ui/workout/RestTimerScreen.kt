@@ -112,7 +112,7 @@ fun RestTimerScreen(
                     actionLabel = "Retry",
                     onAction = viewModel::retrySession,
                     compact = true,
-                    modifier = Modifier.padding(padding).padding(Metrics.gutter),
+                    modifier = Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(Metrics.gutter),
                 )
             }
             SessionLoadState.LOADING -> {
@@ -121,14 +121,14 @@ fun RestTimerScreen(
             SessionLoadState.MISSING -> {
                 EmptyState(
                     scene = EmptyScene.GONE,
-                    title = "Workout missing",
-                    body = "This session was finished, discarded, or replaced by a restore. " +
-                        "Nothing was lost from your history.",
+                    title = "Workout not live",
+                    body = "This workout is not running. If you finished it, look in History.",
                     actionLabel = "Back",
                     onAction = onClose,
                     compact = true,
                     modifier = Modifier
                         .padding(padding)
+                        .verticalScroll(rememberScrollState())
                         .padding(Metrics.gutter),
                 )
             }
