@@ -46,7 +46,7 @@ class FilledSessionLiftTest {
         assertEquals("Row", lifts[0].exercise.name)
         assertFalse(lifts[0].hasPrescription)
         assertEquals(
-            "1. Row. 1 set",
+            "1. Row. Recorded: 1 working set",
             SessionOrderCopy.filledSpoken(
                 number = 1,
                 name = "Row",

@@ -246,7 +246,7 @@ gap remains open separately from the direct-screen JVM geometry matrix.
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
 | UX15-AC01 | P1 | F05 | With years of synthetic history, a participant can reach lifetime records and the newest activity without an unbounded scroll. | Not executed |
-| UX15-AC02 | P1 | F05 | Changing a horizon produces one period across totals, calendar, progress and list; lifetime records and blocks are labeled secondary views. | Bounded #465 integration and machine checks completed below; captured-date travel visibility follow-up pending; participant acceptance not executed |
+| UX15-AC02 | P1 | F05 | Changing a horizon produces one period across totals, calendar, progress and list; lifetime records and blocks are labeled secondary views. | Bounded #465 and captured-date #466 integration and machine checks completed below; participant acceptance not executed |
 | UX15-AC03 | P1 | F05 | Editing a prior best refreshes visible results and record drill-down identifies the supporting session. | Not executed |
 
 **Verification follow-up (9 October 2026 UTC):** Home recovery merged through
@@ -476,6 +476,28 @@ feedback can depend on input order when chronology ties. This repair changes no
 production calculation or saved data. Resolve and verify that rule before
 presenting improved History statistics as trustworthy; this bounded fixture
 check does not close the wider UX15 acceptance tasks above.
+
+**Captured-date integration closure (9 October 2026 UTC):**
+[PR #466](https://github.com/sinura7/PersonalTrainer/pull/466) merged `9fd21456`,
+tree `42029232fbffdc8ecc78790752a36e33a4eadcc4`, identical to accepted `16521ef1`.
+Fresh clean-trunk `postmerge-full01` passed **3,915 app tests / 572 suites**,
+**1,682 standalone tests / 255 classes** and all four local tasks with all
+135 tasks executed. Its summary SHA-256 is
+`D8996FCF38CED74FC41D3D5BDF8070D79596A2BC6F12CEE3095D4A7E9B1CAFE9`.
+All 1,543 runtime inputs matched actual commit blobs. `postmerge-native01`
+failed cold-boot admission on a Launcher ANR before install, with zero tests;
+its cause remains unresolved. Fresh `postmerge-native02` passed the unchanged
+guard and all **222 native tests / 32 classes**, with 85 verified captures,
+all 13 fixture restoration pairs and verified settings/network/package cleanup
+and shutdown. Its summary SHA-256 is
+`60F8CA40BBEFDF351B8C8A1B3CD77EC569A6E2E9F645AA317EB8F86484EC86F5`.
+[Actual-trunk hosted run](https://github.com/sinura7/PersonalTrainer/actions/runs/37960635611)
+passed both jobs on that exact source/tree with the same app/native counts.
+Independent integration review verified raw XML, all input and capture hashes,
+hosted archives, restoration and failed-attempt classification; report SHA-256:
+`A2FDD2C96F0CE2DB16F65DA542E47BB17DE24506CA9B2E153B371575AE68E5DF`.
+Cleanup retained a recoverable feature bundle. This closes this packet's
+integration; prior failures and the wider UX15/phone limits above remain.
 
 ### UX16 — Make chart axes, comparisons and sparse data honest
 
@@ -820,6 +842,42 @@ open.
 | UX29-AC02 | P1 | F05, F08, F10 | Opening history detail does not replay a misleading new-save confirmation. | Not executed |
 | UX29-AC03 | P1 | F05, F08, F10 | Repeat/edit where supported preserves correct IDs, chronology and plan linkage and cannot silently convert one type to another. | Not executed |
 
+**Active bounded F9 / W11 / V12 / Q08 packet:** The connected native receipt
+shows Summary's missing lift artwork and unqualified planned detail metrics
+beside different saved results. Implement O11's matching identity, complete
+readable names, explicit Planned / Recorded sets and timed hold targets, with
+exact-ID real-store and native-graphics regressions. The targeted gate now
+passes; complete and connected verification and final reviews remain pending;
+this does not close all activity-type receipts, participant acceptance or the
+deliberate read-once Summary return-after-correction contract. That return path
+needs an actual AppNav counter and policy review before a refresh change.
+The existing Summary top-set model omits saved hold duration and can display
+zero reps for a pure hold. Detail's duration fix does not close that Summary
+issue; retain it for an actual hold counter and a separate display packet,
+without changing training calculations.
+
+**Receipt targeted verification (9 October 2026 UTC):** `targeted01` finalized
+37 cases / eight fresh suites with one failed native final-glyph assertion and
+zero errors/skips. The original six PNGs remain archived. An independent pixel
+probe of the exact final `g` in `140 kg` found zero TextPrimary and 92
+TextSecondary pixels: the annotated unit uses its own color. The corrected
+helper resolves actual span colors while retaining every-line ink, actual
+clipping, complete character layout and final-glyph assertions. It reveals the
+actual decorative image square without requiring an arbitrarily tall parent
+header to fit; action targets still require full visibility and 48 dp bounds.
+
+Fresh `targeted02` passed **51 tests / eight fresh suites**, zero
+failures/errors/skips, from **17:28:18.3478399Z–17:32:34.1321666Z**, with all
+**1,545 runtime inputs** and references unchanged. Its summary SHA-256 is
+`8EA946FF59F58F46D8076DCF36CCD5121E7E8853C4A413E81101CB95E45C961F`.
+The archived **400 fresh native-graphics PNGs / 800 files** cover 14 real
+resource profiles (360×640, 412 dp, landscape and 600 dp at fonts 1.0/1.6/2.0,
+plus 320 dp font 2.0 and RTL font 2.0) and independent artwork/fallback identity.
+The real-store tests exercise read faults and Retry; rendered read outcomes
+use controlled UI state and verify exact callbacks, not a simulated successful
+database retry. Read-only route/correction callback checks leave all synthetic
+rows unchanged. Complete local/native gates and final review must still execute.
+
 ### UX30 — Establish an evidence-led design delivery and regression process
 
 | Check | Priority | Fixtures | Expected outcome | Status |
@@ -896,10 +954,12 @@ as `5c7f869b`, with completed reviews and clean-trunk verification recorded unde
 UX12. History's one-period/coherent-progress work integrated through
 [PR #465](https://github.com/sinura7/PersonalTrainer/pull/465) as `7a41c977`, with
 independently verified actual-trunk local, native and hosted gates recorded under
-UX15. Its immediate single active F6a/UX15/Q08 packet now repairs confirmed
-captured-date visibility after travel before Summary. Complete local/native
-gates and both final reviews pass; hosted checks and integration remain pending
-at this snapshot.
+UX15. Captured-date travel visibility then integrated through
+[PR #466](https://github.com/sinura7/PersonalTrainer/pull/466) as `9fd21456`, with
+fresh actual-trunk local, native and hosted gates and independent integration
+review recorded under UX15. The active single F9/W11/V12/Q08/UX29 packet now
+addresses Summary/detail identity and planned/recorded clarity; its verification
+remains pending.
 Legacy strength captured-date
 storage remains a separately specified dependency. These integrations do not
 close broader F4, UX23, UX24/UX25 or physical-phone acceptance.

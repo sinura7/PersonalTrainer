@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow is reviewed and integrated through #465, with fresh local, native and hosted verification on actual merged trunk. The immediate F6a/UX15/Q08 travel repair passes its complete local and connected gates and both final reviews; hosted verification and integration remain. Broader app UX phases and physical-phone acceptance remain.
+**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466, with fresh local, native and hosted verification on actual merged trunk. The active F9/W11/V12/Q08/UX29 packet improves exercise identity and planned/recorded clarity in Summary and session details. Broader app UX phases and physical-phone acceptance remain.
 
 **Audience:** Temper's owner and the next designer, engineer, or agent continuing this work.
 
@@ -57,6 +57,38 @@ these evidence records. Hosted checks and integration remain pending. The
 native suite provides adjacent workout/History regression evidence; the new
 travel interaction is real Repository/Room and mounted Compose JVM evidence.
 Wider app UX phases and physical-phone acceptance are not complete.
+
+**Travel integration closed, 9 October 2026 UTC:** [PR #466](https://github.com/sinura7/PersonalTrainer/pull/466)
+merged as `9fd21456`, tree `42029232fbffdc8ecc78790752a36e33a4eadcc4`, identical
+to reviewed `16521ef1`. Actual clean-trunk verification passed **3,915 app tests /
+572 suites**, **1,682 standalone tests / 255 classes**, all four required local
+tasks, and **222 native tests / 32 classes**. The fresh native execution retained
+85 device-hashed captures, all 13 fixture restoration pairs and unchanged
+runtime inputs. The preceding native attempt stopped at the cold-boot admission
+guard on a Launcher ANR before install and ran zero tests; its failed evidence
+remains separate. A fresh cold boot passed the identical guard and suite.
+[Actual-trunk hosted verification](https://github.com/sinura7/PersonalTrainer/actions/runs/37960635611)
+passed both jobs on that exact commit/tree, independently checked. A fresh
+integration review verified source, raw results, captures, restoration and
+emulator shutdown before feature-branch cleanup. This supersedes the pending
+integration status in the earlier dated snapshot above.
+
+**Current Summary/detail packet:** The same-session native receipt confirms
+missing Summary artwork and unqualified detail targets beside different recorded
+results. Apply O11's corresponding images, complete readable names and explicit
+Planned / Recorded sets sections, including hold targets. Exact IDs and metadata
+come from the same successful session read; custom and unknown lifts retain the
+existing fallback artwork. Calculation, persistence, navigation and the current
+read-once Summary snapshot contract remain. The targeted gate passed 51 checks
+across eight fresh suites, including the 14-profile native-graphics matrix and
+exact artwork/fallback case, with 400 fresh PNGs and unchanged 1,545 runtime
+inputs. The first run's glyph-color assertion failure remains preserved; a
+pixel probe confirmed the annotated unit used a different color, and the
+corrected helper retains actual glyph/clip checks. The complete gate, connected
+execution and final reviews remain. No broader UX29 acceptance is claimed.
+Returning from a historical correction to the
+retained Summary still needs an actual AppNav counter and a snapshot-policy
+decision before changing that deliberate contract.
 
 ## Owner decisions for this project
 

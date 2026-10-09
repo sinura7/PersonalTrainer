@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -40,6 +42,7 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
  * list, not a card.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun LiftCard(
     exercise: Exercise,
     modifier: Modifier = Modifier,
@@ -48,6 +51,7 @@ fun LiftCard(
     spoken: String? = null,
     onClick: (() -> Unit)? = null,
     cardTag: String? = null,
+    completeName: Boolean = false,
     trailing: @Composable () -> Unit = {},
     content: @Composable () -> Unit = {},
 ) {
@@ -83,7 +87,7 @@ fun LiftCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                if (number != null) {
+                if (number != null && !completeName) {
                     CountBadge(number = number, selected = selected)
                 }
                 ExerciseThumb(
@@ -95,10 +99,28 @@ fun LiftCard(
                         exercise.name,
                         style = InstrumentType.title,
                         color = TextPrimary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        maxLines = if (completeName) Int.MAX_VALUE else 2,
+                        overflow = if (completeName) TextOverflow.Clip else TextOverflow.Ellipsis,
                     )
-                    Row(
+                    if (completeName) {
+                        // Review cards can spend height on identity. Keep the still beside the
+                        // full name; the order/count and equipment reflow below those words.
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                        ) {
+                            if (number != null) CountBadge(number = number, selected = selected)
+                            if (exercise.muscleGroup.isNotBlank()) {
+                                Text(
+                                    exercise.muscleGroup,
+                                    style = InstrumentType.caption,
+                                    color = TextSecondary,
+                                )
+                            }
+                            EquipmentChip(exercise.equipment)
+                            trailing()
+                        }
+                    } else Row(
                         horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -115,7 +137,7 @@ fun LiftCard(
                         EquipmentChip(exercise.equipment)
                     }
                 }
-                trailing()
+                if (!completeName) trailing()
             }
         }
         content()

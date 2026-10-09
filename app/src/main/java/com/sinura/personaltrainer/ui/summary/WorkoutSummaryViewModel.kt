@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
 import com.sinura.personaltrainer.logging.AppLog
@@ -41,6 +42,8 @@ data class WorkoutSummaryUiState(
     val failed: Boolean = false,
     val savedConfirmed: Boolean = false,
     val summary: WorkoutSummary = WorkoutSummary(),
+    /** Identity from the same session read, keyed by ID rather than a possibly duplicate name. */
+    val highlightExercises: Map<String, Exercise> = emptyMap(),
     /** One quiet line about the unattended Drive copy, or null when there is nothing to say. */
     val autoBackup: String? = null,
 )
@@ -93,6 +96,7 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
         failed: Boolean = false,
         savedConfirmed: Boolean = false,
         summary: WorkoutSummary = WorkoutSummary(),
+        highlightExercises: Map<String, Exercise> = emptyMap(),
     ) {
         // update, not read-then-write: the backup's line arrives from its own thread and must
         // not be lost to a settle landing at the same moment, or overwrite one.
@@ -104,6 +108,7 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                 failed = failed,
                 savedConfirmed = savedConfirmed,
                 summary = summary,
+                highlightExercises = highlightExercises,
                 autoBackup = current.autoBackup,
             )
         }
@@ -138,7 +143,17 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
                     WorkoutSummaryBuilder.build(session, prior)
                 }
             }.onSuccess { summary ->
-                settle(savedConfirmed = saved, summary = summary)
+                val readExercises = session.exercises.associate { it.exercise.id to it.exercise }
+                val identities = summary.highlights.associate { highlight ->
+                    highlight.exerciseId to (readExercises[highlight.exerciseId] ?: Exercise(
+                        id = highlight.exerciseId,
+                        name = highlight.exerciseName,
+                        muscleGroup = "",
+                        notes = "",
+                        isCustom = true,
+                    ))
+                }
+                settle(savedConfirmed = saved, summary = summary, highlightExercises = identities)
             }.onFailure { thrown ->
                 AppLog.w(TAG, "Building the workout summary failed", thrown)
                 // Never strand the user on a spinner because a summary would not compute — but
