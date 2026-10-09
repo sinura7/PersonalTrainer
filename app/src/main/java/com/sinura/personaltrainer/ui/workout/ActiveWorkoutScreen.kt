@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
@@ -69,6 +72,7 @@ import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.FloorSection
 import com.sinura.personaltrainer.ui.components.NotesBlock
+import com.sinura.personaltrainer.ui.components.NotesLeaveDialog
 import com.sinura.personaltrainer.ui.components.PersonalRecordBanner
 import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
@@ -212,6 +216,7 @@ private fun ActiveWorkoutContent(
     val exerciseHistory by viewModel.exerciseHistory.collectAsStateWithLifecycle()
     val extraSetRequested by viewModel.extraSetRequested.collectAsStateWithLifecycle()
     val exitRequested by viewModel.exitRequested.collectAsStateWithLifecycle()
+    val notesExitBlocked by viewModel.notesExitBlocked.collectAsStateWithLifecycle()
     val personalRecord by viewModel.personalRecord.collectAsStateWithLifecycle()
     val undoEntries by viewModel.undoEntries.collectAsStateWithLifecycle()
     val undoDwellMs by viewModel.undoDwellMs.collectAsStateWithLifecycle()
@@ -305,14 +310,14 @@ private fun ActiveWorkoutContent(
                 onFinished(reason.sessionId)
             }
             WorkoutExit.Discarded -> onExit()
+            WorkoutExit.Kept -> onExit()
         }
     }
 
     // Back goes Home with the session still live. Finish is the explicit end
     // (save as is / leave without saving). Both flush the draft.
     fun keepAndExit() {
-        viewModel.persistDraftForExit()
-        onExit()
+        viewModel.requestNotesExit()
     }
     BackHandler(enabled = state.session != null) { keepAndExit() }
 
@@ -623,7 +628,7 @@ private fun ActiveWorkoutContent(
                     actionLabel = "Retry",
                     onAction = viewModel::retrySession,
                     compact = true,
-                    modifier = Modifier.padding(padding).padding(Metrics.gutter),
+                    modifier = Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(Metrics.gutter),
                 )
             }
 
@@ -638,13 +643,12 @@ private fun ActiveWorkoutContent(
                 // branch behind a spinner that never resolved.
                 EmptyState(
                     scene = EmptyScene.GONE,
-                    title = "Workout missing",
-                    body = "This session was finished, discarded, or replaced by a restore. " +
-                        "Nothing was lost from your history.",
+                    title = "Workout not live",
+                    body = "This workout is not running. If you finished it, look in History.",
                     actionLabel = "Back to home",
                     onAction = onExit,
                     compact = true,
-                    modifier = Modifier.padding(padding).padding(Metrics.gutter),
+                    modifier = Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(Metrics.gutter),
                 )
             }
 
@@ -976,14 +980,30 @@ private fun ActiveWorkoutContent(
                     expanded = true,
                     onToggle = { notesOpen = false },
                     onChange = viewModel::setNotes,
-                    modifier = Modifier.testTag(WorkoutTestTags.SESSION_NOTES),
+                    saveState = state.notesSave,
+                    onRetryNotes = viewModel::retryNotesSave,
+                    enabled = !state.mutating && !state.finished,
+                    modifier = Modifier.testTag(WorkoutTestTags.SESSION_NOTES).verticalScroll(rememberScrollState()),
                 )
             },
             confirmButton = {
-                TextButton(onClick = { notesOpen = false }) {
+                TextButton(onClick = { notesOpen = false }, modifier = Modifier.heightIn(min = Metrics.touchMin)) {
                     Text("Done", style = InstrumentType.bodyStrong)
                 }
             },
+        )
+    }
+
+    if (notesExitBlocked) {
+        NotesLeaveDialog(
+            saveState = state.notesSave,
+            liveDraft = true,
+            onRetry = { viewModel.requestNotesExit() },
+            onKeepEditing = {
+                viewModel.keepEditingNotes()
+                notesOpen = true
+            },
+            onLeave = { viewModel.requestNotesExit(leaveWithDraft = true) },
         )
     }
 
@@ -1019,6 +1039,9 @@ private fun ActiveWorkoutContent(
             notesExpanded = finishNotesOpen,
             onToggleNotes = { finishNotesOpen = !finishNotesOpen },
             onNotesChange = viewModel::setNotes,
+            notesSave = state.notesSave,
+            onRetryNotes = viewModel::retryNotesSave,
+            notesEnabled = !state.mutating && !state.finished,
             onSave = {
                 confirmEnd = false
                 viewModel.finishWorkout()

@@ -190,6 +190,232 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 
 ### UX23 — Create a shared language for loading, failure, saving and retry
 
+**8 October workout follow-up:** Quiet #460 is reviewed, integrated and reverified.
+Before Home/History design, `codex/workout-truth-recovery` addresses truthful live
+and saved-session notes feedback, reachable retry and serialized exit/finish saves;
+factual missing-session copy; and an Add-a-set explanation tied to its existing
+decision. This extends AC01–AC03 within the workout, without closing their broader
+cross-app scope. Frozen source, including later review corrections, passed the
+complete local gate, including the notes-guard text-proof repair across nine
+profiles. The corrected 222-test native rerun passed both previously failing
+Why cases; the original failures remain preserved. The subsequent missing-workout
+message edit passed the fresh Full08 complete local gate across nine profiles.
+Native03 then exposed an incomplete draft snapshot in its Why fixture. That
+fixture's synchronization repair compiled under the required Full09 command,
+which reused unchanged Full08 JVM results. Native04 then passed all 222 native
+tests on the corrected source; final pinned reviews and integration remain pending.
+Fresh provisional reviews added forward History Repeat/Resume and outside-editor
+Finish to that same notes-safety acceptance: protected Back/Repeat/Resume requires
+a notes save or explicit recovery choice before leaving or starting another
+workout, and an unresolved kept draft or live writer cannot be cleared by Finish
+from the bar. Explicit forward discard
+leaves the retained History editor usable on return. Exercise Details and Rest
+pushes retain the editor/cache owner. The later review corrections passed the
+local mechanical checks below.
+
+**Retained targeted failure, 8 October:** `targeted-attempt08` executed 182 tests
+across 32 fresh suites with 18 failures, zero errors/skips and 1,521 unchanged
+source inputs. Nine failures exposed real 40 dp compact recovery targets;
+their minimum is now 48 dp with bounds/scroll checks retained. Nine other
+failures came from render/focus fixtures addressing the wrong native window;
+those fixtures are repaired. The later failing rerun and complete passing gate
+are recorded separately below.
+
+Further provisional review found stale-snapshot and post-check notes-write
+races in outside-editor Finish. The current repair reserves the session before
+its first read, shares the notes-write gate through actual Finish/cache clear,
+and holds the editor lock for that interval. Failed Finish unlocks without
+discarding the authored draft. History Repeat/Resume stays queued behind the
+notes barrier. A failed forward-discard reload pauses autosave for the exact
+draft revision until a new edit or explicit Retry. Three Room-backed Finish
+regressions and a failed-discard regression cover these repairs. Their source
+passed the complete gates below, including later corrections; complete native
+verification and reviews remain pending. These internal Finish/cache repairs add no schema,
+backup format, public API or coaching-rule change.
+
+`targeted-attempt09` ended incomplete with zero fresh XML and no completed test
+count. Its old XML, notes-render scroll/idle loop, worker dump and identity-checked
+termination of the owned worker are preserved; all 1,521 inputs were unchanged.
+`targeted-attempt10` freshly executed **187 tests across 32 suites: eight
+failures, zero errors/skips**, with 32 fresh XML files and 1,521 unchanged inputs.
+Seven failures assumed immediate DAO entry before the real Room prewrite read;
+the repaired fixtures await actual entry while preserving the 400 ms deadline
+and notes assertions. All seven cases passed in `full-gate-attempt05`.
+
+The eighth failure was the landscape/font-2.0 End workout notes toggle: the
+unscrolled touch did not expand its field. `end-landscape-probe01` then freshly
+ran **one test, one failure, zero errors/skips**, with unchanged 1,521 inputs.
+Its `f7778a13-e615-4173-8057-e313ba488829/800x360-font2.0` geometry shows the
+toggle fully clipped one pixel below the 236 px text viewport while Save/Leave
+without saving remain fully visible at 56 dp. A bounded-scroll/actual-touch
+driver repair preserves the clipping, target and exact-record checks; all nine
+notes profiles then passed. These failures remain archived under
+`build/ux-context/runs/workout-truth/`.
+
+`full-gate-attempt05` freshly passed **3,701 tests across 554 suites, zero
+failures/errors/skips**, with all 554 XML files fresh and 1,521 stable source
+inputs. From `2026-10-08T23:13:30.6250547Z` to `2026-10-08T23:24:09.8255104Z`, the
+four required tasks ran with `--rerun-tasks`; all **135 actionable tasks executed**
+with builds, lint, Android test assembly and static checks passing. The seven
+Room-timing cases and nine each Notes/Why/Missing profiles passed. The Q01 record
+pins the archived uncommitted source and summary hash; no final candidate commit
+is pinned yet.
+
+Three subsequent **P2 corrections passed in `full-gate-attempt06`**: protected Back
+must allow a confirmed finished session despite stale exit intent in both
+same-process and cold-cache cases; a queued kept-draft live exit must reject late
+IME edits; and the live notes Leave guard must state its current-app-run retention
+limit. The copy executed in this attempt was: “Notes are not saved. This draft is kept while the app
+runs and may be lost if the app closes.” After popping the editor, failed raw notes
+are in process cache; no durable-store/process-death guarantee is claimed.
+
+`full-gate-attempt06` freshly passed **3,702 tests across 554 suites, zero
+failures/errors/skips**, with all 554 XML files fresh and 1,521 stable source
+inputs. The required four tasks ran with `--rerun-tasks` from
+`2026-10-08T23:27:22.0464651Z` to `2026-10-08T23:37:53.4235623Z`; all **135
+actionable tasks executed**, with builds, lint, Android test assembly and static
+checks passing. The new stale-finished-route Room case, held queued-Back/late-IME
+case, all nine changed Notes-guard/nine Why/nine Missing profiles and five loaded
+shipping-tab renders passed their then-current assertions. The Q01 record pins
+the summary and stable source manifest hashes for that uncommitted executed
+source.
+
+After that gate, the landscape/font-2.0 notes-guard capture showed its last line
+below the text viewport. The fixture compared the scrolling Text node's viewport
+with its visible bounds, which did not prove the whole message was exposed.
+This is a verification gap, not proof that scrolling cannot reach the line. The
+live/History copy and full text-layout/per-line glyph checks were subsequently
+repaired and passed the new complete gate below. The original capture and
+executed source remain preserved; the earlier pass does not gain that proof
+retroactively.
+
+The owned, unfiltered, offline API-29 `native-suite-attempt01` completed **222
+tests across 32 classes: two failures, zero errors/skips**, with all **1,521
+source inputs unchanged** and **83 host/device-hash-matched captures**. The eight
+new notes and missing/failed-read recovery cases and the connected workout
+journey passed. Both new Why cases stopped at an exact summary assertion that
+expected only a fragment of the actual full sentence. Their subsequent facts,
+Keep/Use actions and no-write assertions were not reached; the fixture was
+corrected to check the full sentence for the next run. This is a failing native suite, not a pass
+or a demonstrated coaching-decision defect. The Q01 record pins its preserved
+summary, source and original failures. The collector stopped, packages were
+removed and network settings restored.
+
+`full-gate-attempt07` freshly passed **3,702 tests across 554 suites, zero
+failures/errors/skips**, with all **554 XML files fresh** and **1,521 stable
+source inputs**. The required four tasks ran with `--rerun-tasks` from
+`2026-10-08T23:50:13.2875720Z` to `2026-10-09T00:00:54.5239809Z`; all **135
+actionable tasks executed**, with builds, lint, Android test assembly and static
+checks passing. Both shorter, truthful notes warnings now have full-text,
+final-character, unclipped-line/no-ellipsis and per-line rendered-glyph proof at
+the actual OS font across all **nine notes profiles**, alongside retained real
+touch/action-size/exact-record checks. Nine each Why/Missing profiles and the
+five loaded shipping tabs also passed. The agent visually reviewed complete
+live/History messages and actions at landscape/font 2.0; the Q01 record identifies
+the native-graphics JVM captures and pins the preserved summary/source.
+
+The owned, unfiltered, offline API-29 `native-suite-attempt02` completed **222
+tests across 32 classes, zero failures/errors/skips**, with **1,521 stable source
+inputs** and **85 host/device-hash-matched captures**. Both corrected Why cases
+reached their facts, Keep/Use actions and draft-only/no-write/no-rest assertions;
+the eight new notes/read-recovery cases and connected workout journey passed
+again. The Q01 record pins the preserved summary/source/XML/log/capture hashes.
+The collector stopped, packages were removed and network settings restored.
+Native01's original failures remain preserved.
+
+After visual review, the agent clarified the missing-workout body on the live
+floor and Rest screen to “This workout is not running. If you finished it, look
+in History.” The two production strings and matching JVM/native expectations
+changed; recovery actions and data contracts did not. These edits postdate
+Full07/Native02 and passed the fresh complete local gate below; prior passes do
+not certify the later source edits.
+
+`full-gate-attempt08` freshly passed **3,702 tests across 554 suites, zero
+failures/errors/skips**, with all **554 XML files fresh** and **1,521 stable
+source inputs**. The required four tasks ran with `--rerun-tasks` from
+`2026-10-09T00:08:02.1849942Z` to `2026-10-09T00:18:37.9961652Z`; all **135
+actionable tasks executed**, including required builds, lint, Android test
+assembly and static checks. All **nine Missing-session profiles** passed with
+the clarified copy and retained full-text/glyph, bounds, scroll/touch-target and
+exact-record checks. The nine-profile Notes/Why matrices and loaded shipping-tab
+smoke coverage also passed. The Q01 record pins the preserved summary/source.
+
+Portable Full08 evidence is linked in the Q01 record: [live notes guard
+N14](../ux-context/studies/q01/assets/N14-live-notes-guard-landscape-font20.png),
+[failed History guard N15](../ux-context/studies/q01/assets/N15-history-notes-guard-landscape-font20.png),
+[missing workout N16](../ux-context/studies/q01/assets/N16-missing-workout-font20.png)
+and [reached extra-set explanation N17](../ux-context/studies/q01/assets/N17-extra-set-explanation-landscape-font20.png).
+All are synthetic native-graphics JVM/font-2.0 captures with origin/copy hashes
+matched; N17's earlier callout is partly scrolled out. They establish their
+recorded fixture frames, not physical-phone acceptance.
+
+The owned, unfiltered, offline API-29 `native-suite-attempt03` completed **222
+tests across 32 classes: one failure, zero errors/skips**, with **1,521 stable
+source inputs** and **85 host/device-hash-matched captures**. The Why Keep case
+snapshotted **87.5 kg × 10 with no effort** before the full manual draft arrived;
+after Keep, equality observed the intended **87.5 kg × 12 at effort 8**. The
+failure is an incomplete fixture precondition, not demonstrated mutation of a
+complete draft by Keep. Its raw failure is preserved; Q01 pins the summary.
+Collector, package and network cleanup completed.
+
+The sole subsequent source change waits for all three draft values and asserts
+the complete precondition before Why. Post-Keep equality, stored-row/no-SQL and
+no-rest checks remain. Production and JVM inputs are byte-identical to Full08.
+`full-gate-attempt09` completed the normal required four-task command: builds,
+lint and Android test assembly executed, while `testDebugUnitTest` was
+**UP-TO-DATE**. Of 135 actionable tasks, **11 executed and 124 were up-to-date**.
+With **1,521 stable source inputs**, it executed **zero new JVM tests** and reused
+all **554 byte-identical XML files** from the fresh Full08 **3,702-test pass**.
+This is explicitly reused evidence, not a new JVM execution. Q01 pins the
+preserved summary/task log/source comparison.
+
+The owned, unfiltered, offline API-29 `native-suite-attempt04` completed **222
+tests across 32 classes, zero failures/errors/skips**, with **1,521 stable source
+inputs** and **85 host/device-hash-matched captures**. Both Why cases passed with
+the complete intended draft precondition and retained equality/stored-row/no-SQL/
+no-rest assertions; notes/read recovery and the connected workout journey passed
+again. Q01 pins the preserved summary/source/XML/log/capture hashes. The collector
+stopped, packages were removed and network settings restored. Native03's original
+failure remains preserved separately.
+
+A clean-trunk full rerun and affected connected journey remain required after
+integration. The separate ignored N2 driver APK build passed `assembleDebug` and
+`lintDebug` with 43 executed tasks; the separate controller compiled and packaged
+with 50 executed tasks. The first setup timed out awaiting the fresh catalog
+after registering a partial session and before writing a set; its exact cleanup
+passed and restored seven raw preference keys. The ignored controller's normal
+idempotent catalog-seed prerequisite was then repaired, the separate builds
+freshly passed again and one named setup method passed. Actual UI traversal used
+battery **Not now**, then overlay **Open settings**, enabled it and returned.
+
+N2 `measure01` ended **incomplete before editing**: actual live AppNav started
+foreground `RestTimerService` with `EXTERIOR_SYNC` despite no running rest, so
+the driver's no-foreground-service precondition rejected the branch. No notes
+clear or Recents task removal occurred; no `<400 ms`, process-death or deletion
+pass is established. No service, timing threshold or driver guard was changed.
+A separate passing inspect method verified the same session/set/date/start/
+exercise records, no running rest and unchanged notes. A separate passing
+cleanup method removed only the registered fixture and verified all seven raw
+preference presences/values and mapped settings restored. Root restored overlay
+default and original Wi-Fi/data `1/1`, retained the active default-network `104`
+capture, verified the three owned APK identities and removed only those packages.
+Q01 pins the preserved runtime summary and phase evidence. Experiment builds and
+named runtime methods are excluded from the permanent 222-test native count;
+unchanged readback after the rejected precondition does not close N2 recovery.
+
+The scoped candidate is ready for an immutable commit and fresh pinned
+independent/adversarial reviews. Those reviews, integration and post-merge
+verification remain pending; N2 and physical-phone acceptance remain open.
+No final candidate commit, owner-phone test or Debug drop is recorded for this
+development work.
+
+See the [Q01 follow-up record](../ux-context/studies/q01/README.md#latest-targeted-verification-and-pending-repairs--8-october-2026)
+for the attempt boundaries. These updates do not mark UX23-AC01–AC03, the
+related UX24/UX25 recovery-target coverage, or any broader matrix complete.
+Quiet's earlier post-merge 3,625-test local and 212-test native passes remain
+valid for that completed packet only; broader work and phone acceptance remain
+open.
+
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
 | UX23-AC01 | P0 | F08, F11 | Injected initial/later load failures, invalid fields and post-commit side-effect failures produce the defined states. | Partially: summary read/compute faults, composer save faults, finish outcomes distinguished; injected load faults on other screens remain open (see UX23 residue) |
@@ -251,3 +477,14 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 | UX30-AC01 | P1 | F01, F02, F03, F05, F11, F12 | Each implemented UX item has acceptance evidence, source/commit links and limitations. | Not executed |
 | UX30-AC02 | P1 | F01, F02, F03, F05, F11, F12 | Global-navigation changes follow the repository's current comparative task gate; no extra tab appears from taste alone. | Not executed |
 | UX30-AC03 | P1 | F01, F02, F03, F05, F11, F12 | Required device/accessibility gaps remain visibly open until actually tested. | Not executed |
+
+**Final repository formatting gate (8 October 2026):** The staged check exposed
+CRLF in one new JVM fixture; exact CRLF-to-LF normalization preserved its entire
+source text and assertions. Full10 passed the normal required gate (24 executed,
+2 cached, 109 up-to-date tasks), reporting zero new JVM tests and 554 XML files
+byte-identical to Full08's fresh 3,702-test pass. All 1,521 inputs remained stable;
+production/Android inputs still match Native04. Summary SHA-256:
+`c549d8413f8d1cb0d41e59df5fadbb66bffe7f6b21192cced079280ef3567975`.
+Final immutable-commit reviews/integration and clean-trunk fresh verification
+remain required; N2 and broader acceptance remain open. This formatting pass
+does not add executed tests or close an acceptance criterion.

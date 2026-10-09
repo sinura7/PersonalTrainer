@@ -113,7 +113,7 @@ features are not cancelled, and sync activation retains its separate owner gate.
 | 12h | P1 | Section frames, the first packet of [the owner's 29 September plan](owner-eight-plan-2026-09-29.md): a `SectionEdge` token (white at 22%); `GymCard`, `GroupedList`, `LiftCard` and the rest card take it (the recessed numeral well keeps its hairline); the floor's five blocks sit in filled `FloorSection` panels in place of hairline rules; block gap 12 → 8 dp; the effort row's width estimate corrected so five chips stay one row at font 2.0 inside the frame; the compact Next line stacks at large text; entry loop 852 dp against the 868 ceiling, ceiling lowered. In plain terms: each part of the workout screen sits in its own outlined box, and the boxes on Home, History and Settings got the same clearer outline | V | Done — #444, merged 2 Oct 2026 (Obtainium 108) |
 | 12i | P2a | Effort required on a working set (owner decision of 29 September; the eight-asks plan's second packet): `SetLogRules.requiresEffort` / `validateEffort` in domain; Log disabled with "Pick your effort first" until a working set has one; History's corrections refuse too; `RpeCopy` heading "Effort", spoken as needed; ADR-026 d.3 amended, W1b's "optional" superseded; an effort no longer marks the entry typed (ADR-029). In plain terms: you pick how hard the set felt before Log turns on; warm-ups and planks don't ask | V | Done — #445, merged 2 Oct 2026 (Obtainium 109) |
 | 12j | P2b | GET READY before a hold (owner decision of 29 September; the eight-asks plan's third packet): `HoldTimerUiState` gains the lead-in (its tap time and seconds left), `FloorWorkClocks.startHold` counts it before the hold clock, `FloorTimedMode.HOLD_LEAD_IN` outranks the hold, `WorkoutPrimaryKind.GET_READY` is disabled, `durationToLog` is null during it, Cancel in the bar's Stop slot, cues `LeadInTick` / `LeadInDone`, saved state carries the tap time so a restore mid-countdown resumes and a reboot still clears; `RestTimerPreferences.leadInSeconds` 3 / 5 / 10, device-local, on the Rest timer page. In plain terms: a plank gives you five seconds to get down before its clock starts | V | Done — #446, merged 2 Oct 2026 (Obtainium 110) |
-| 13 | W3 | Floor renders across the ADR-032 matrix, with reachability assertions, become the floor's gate; start from audit X6's harness (`design-audit/2026-09-25/evidence/AuditRenderTest.kt.txt`) and make it the permanent render matrix; every tab drawn at least once on the gate (TS-3) | V | Pending — Milestone A |
+| 13 | W3 | Permanent floor renders across the ADR-032 matrix with reachability assertions; every main tab drawn at least once on the gate (TS-3) | V | Partial — workout matrix passes on merged Quiet #460; permanent actual five-tab smoke renders in development. Physical Milestone A acceptance remains separate. |
 | 14 | S1 | Outbox in the save's transaction; enrolled user id; delete callers; tombstone time; poison-row quarantine; restore/sign-out reset cursors → unpause; plus (audit X6): a skipped child re-pulled when its parent lands; per-row isolation on pull; cursors, metadata and "last synced" reset on sign-out and account switch; `NetworkError` as signed-in-offline; timeouts, `disconnect()` and the IO dispatcher on the REST client (moved forward from S4); restore resets the sync tables and re-queues what it rewrote; the outbox hook inventory made uniform; error text redacted before the screen and the log | V | Pending |
 | 14a | X8 | Test lanes: the plain-JVM lane compiles again (TS-2); coverage checked in the deterministic hosted job (TS-1); lint tied to the local gate (BR-8); the timer floor raised to its reading | Q | Pending |
 | 14b | X9 | Docs truth: `DEVELOPMENT.md`'s schema section (DC-1) and the eight smaller drifts (DC-2 … DC-9); PRIVACY.md and ADR-012 amended per audit X6 decisions 2 and 3; the seven soft keys; the lift count (143, not ~98) | Q | Pending |
@@ -155,13 +155,16 @@ features are not cancelled, and sync activation retains its separate owner gate.
 
 Order ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)): session
 header with `Exercise n of N · x of y sets` and one progress segment per lift,
-Finish and the overflow (Switch, Skip, Swap, Remove, notes, summary); 112 dp
-image-led exercise identity (tap to switch) with Details and Working | Warm-up;
-Last set · Best set · Volume (this exercise); weight and reps (or hold time) as
+Finish and the overflow (Switch, Skip, Swap, Remove, notes, summary); 64 dp
+matching exercise image beside the complete name (tap to switch), with Details
+and Working | Warm-up; weight and reps (or hold time) as
 two hero numerals with round − / + plates, side by side until large text stacks
-them; optional RPE 6–10 with Easy / Max effort ends and help; Next set with
-Why and Apply; today's sets as chips (current ringed, Add set once the plan is
-met, Edit opens the labelled sheet); the dock. Keep session totals out of
+them; required working-repetition effort 6–10 with Easy / Max effort ends, help
+and visible logging readiness; today's sets as chips (current ringed, Add set
+once the plan is met, Edit opens the labelled sheet); inline Tempo with Why and
+Apply; Last set · Best set · Volume (this exercise); the anchored 72 dp primary
+action and dock. The complete 852 dp density budget includes coaching and stats.
+Keep session totals out of
 exercise-specific telemetry. Preserve load meanings (lifted, added, assistance,
 bodyweight, hold) and existing numeric validation.
 
@@ -169,8 +172,9 @@ Tap-to-type is visibly available; entry confirms an absolute value and Cancel
 preserves the draft. Large steppers and long press remain. Presets say Use
 <weight> with the percentage secondary, set a warm-up draft and never log.
 Warm-ups do not count as working sets. New saves clear RPE and return from
-warm-up to Working with visible context. Optional RPE remains removable and
-its help is always available.
+warm-up to Working with visible context. Effort remains removable from the draft;
+working repetition sets require a selected effort to log. Warm-ups and holds
+retain their exemptions, and effort help is always available.
 
 Primary action is derived from existing durable/session/draft state: Add
 exercise, Log set, Log warm-up, Saving, Retry save, Save changes, Start hold,

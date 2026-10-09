@@ -8,6 +8,7 @@ import com.sinura.personaltrainer.domain.ActivityWrite
 import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.toCompleteTrainingOutcome
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.timer.CardioTimerPersistence
@@ -40,6 +41,10 @@ class CompleteTraining(
             CompleteTrainingOutcome.RuledOut(reason = NOTHING_LOGGED)
         FinishOutcome.SessionMissing ->
             CompleteTrainingOutcome.RuledOut(reason = DataHealthCopy.FINISH_NOT_FOUND)
+        FinishOutcome.NotesPending ->
+            CompleteTrainingOutcome.RuledOut(reason = EndWorkoutCopy.BAR_NOTES_PENDING)
+        FinishOutcome.InProgress ->
+            CompleteTrainingOutcome.RuledOut(reason = EndWorkoutCopy.FINISHING)
         is FinishOutcome.Failed ->
             CompleteTrainingOutcome.Failed(message = DataHealthCopy.FINISH_FAILED)
     }

@@ -12,24 +12,22 @@ import com.sinura.personaltrainer.domain.CompletedTrainingDetailLoad
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.ui.components.NotesSaveState
+import com.sinura.personaltrainer.ui.workout.FloorSessionNotes
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
 
 private const val TAG = "PT/SessionDetailViewModel"
@@ -38,15 +36,14 @@ private const val TAG = "PT/SessionDetailViewModel"
 private const val ERR_REPEAT = "repeat"
 private const val ERR_DETAIL = "detail"
 
-/** Long enough that a sentence is one write, short enough that leaving the screen is safe. */
-private const val NOTES_WRITE_DEBOUNCE_MS = 400L
-
 data class SessionDetailUiState(
     val isLoading: Boolean = true,
     val missing: Boolean = false,
     val failed: Boolean = false,
     val session: WorkoutSession? = null,
     val notes: String = "",
+    val notesSave: NotesSaveState = NotesSaveState(),
+    val notesExiting: Boolean = false,
 )
 
 /**
@@ -82,11 +79,23 @@ class SessionDetailViewModel @JvmOverloads constructor(
             initialValue = CompletedTrainingDetailLoad.loading(),
         )
 
-    private val notes = MutableStateFlow("")
-
-    /** What the database already holds. Null until the row has been read — see [writeNotes]. */
-    private var lastPersistedNotes: String? = null
-    private var notesHydrated = false
+    private val notesOwner = Any()
+    private val sessionNotes = FloorSessionNotes(
+        sessionId = sessionId,
+        write = { notes ->
+            container.workoutDraftCache.withNotesWrite(sessionId) {
+                container.workoutRepository.updateSessionNotes(sessionId, notes)
+            }
+        },
+        readStored = { container.workoutRepository.getSession(sessionId)?.notes },
+        onUnconfirmed = { pending, busy, notes ->
+            val live = load.value.value?.isFinished != true
+            if (live && pending) container.workoutDraftCache.putSessionNotes(sessionId, notes)
+            container.workoutDraftCache.markNotesPending(
+                sessionId = sessionId, owner = notesOwner, pending = live && pending, busy = busy, notes = notes,
+            )
+        },
+    )
 
     private val errors = ErrorSlot()
     val error: StateFlow<String?> = errors.messages
@@ -103,15 +112,25 @@ class SessionDetailViewModel @JvmOverloads constructor(
     private val _deletedSet = MutableStateFlow<WorkoutRepository.DeletedSet?>(null)
     private val mutating = AtomicBoolean(false)
     val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> = _deletedSet.asStateFlow()
+    private val notesExitPending = MutableStateFlow(false)
+    private val _notesExitRequested = MutableStateFlow(false)
+    val notesExitRequested: StateFlow<Boolean> = _notesExitRequested.asStateFlow()
+    private val notesExiting = combine(notesExitPending, _notesExitRequested, _navigateToSession) { pending, back, target ->
+        pending || back || target != null
+    }
 
-    val uiState: StateFlow<SessionDetailUiState> = combine(load, notes) { load, typed ->
+    val uiState: StateFlow<SessionDetailUiState> = combine(load, sessionNotes.text, sessionNotes.saveState, notesExiting) { load, typed, save, exiting ->
         SessionDetailUiState(
             isLoading = load.isLoading,
             missing = load.missing,
             failed = load.failed,
             session = load.value,
             notes = typed,
+            notesSave = save,
+            notesExiting = exiting,
         )
+    }.combine(container.workoutDraftCache.finishing) { state, finishing ->
+        state.copy(notesExiting = state.notesExiting || sessionId in finishing)
     }
         .stateIn(
             scope = viewModelScope,
@@ -122,60 +141,95 @@ class SessionDetailViewModel @JvmOverloads constructor(
     init {
         viewModelScope.launch {
             load.collect { load ->
+                if (load.missing) sessionNotes.sessionMissing()
                 val current = load.value ?: return@collect
-                lastPersistedNotes = current.notes
-                // Hydrate once — see the live workout's collector: re-seeding on a
-                // later emission restored notes the user had just cleared.
-                if (!notesHydrated) {
-                    notesHydrated = true
-                    if (notes.value.isEmpty() && current.notes.isNotEmpty()) {
-                        notes.value = current.notes
-                    }
-                }
+                sessionNotes.sessionRead(current.notes)
             }
         }
-        // The same debounce contract as the live workout's notes field, and for the same
-        // reason: Room does not order concurrent writes against each other, so a write per
-        // keystroke can land a shorter earlier string on top of a longer later one.
-        viewModelScope.launch {
-            notes.collectLatest { value ->
-                delay(NOTES_WRITE_DEBOUNCE_MS)
-                writeNotes(value)
-            }
-        }
+        viewModelScope.launch { sessionNotes.writeOnTypingPause() }
     }
 
     fun setNotes(value: String) {
-        notes.value = value
-        // The database write is not launched here. See the debounce collector in init.
+        if (notesExitIsActive()) return
+        container.workoutDraftCache.editSessionNotes(sessionId) { sessionNotes.edit(value) }
     }
 
     /** Flushes the debounce tail before this back-stack entry is removed. */
     fun persistNotesForExit() {
-        viewModelScope.launch { writeNotes(notes.value) }
+        viewModelScope.launch { sessionNotes.writeNow() }
+    }
+
+    fun retryNotesSave() {
+        if (sessionNotes.beginRetry()) viewModelScope.launch { sessionNotes.retryNow() }
+    }
+
+    private val _notesExitBlocked = MutableStateFlow(false)
+    val notesExitBlocked: StateFlow<Boolean> = _notesExitBlocked.asStateFlow()
+    private var pendingNotesExit: NotesExitIntent? = null
+
+    private sealed class NotesExitIntent {
+        object Back : NotesExitIntent()
+        object Repeat : NotesExitIntent()
+        data class Resume(val sessionId: String) : NotesExitIntent()
+    }
+
+    fun requestNotesExit(leaveWithoutChanges: Boolean = false) {
+        beginNotesExit(pendingNotesExit ?: NotesExitIntent.Back, leaveWithoutChanges)
+    }
+
+    private fun notesExitIsActive(): Boolean =
+        notesExitPending.value || _notesExitRequested.value || _navigateToSession.value != null
+
+    private fun canBeginNotesExit(): Boolean = !notesExitIsActive() && !mutating.get()
+
+    /** Retry keeps the original destination; no new session or navigation precedes notes. */
+    private fun beginNotesExit(intent: NotesExitIntent, leaveWithoutChanges: Boolean = false) {
+        if (!canBeginNotesExit()) return
+        if (leaveWithoutChanges && sessionNotes.saveState.value.busy) return
+        if (leaveWithoutChanges && intent == NotesExitIntent.Back) {
+            if (!sessionNotes.abandonPendingWrites()) return
+            pendingNotesExit = null
+            _notesExitBlocked.value = false
+            _notesExitRequested.value = true
+            return
+        }
+        pendingNotesExit = intent
+        _notesExitBlocked.value = false
+        notesExitPending.value = true
+        viewModelScope.launch {
+            try {
+                val ready = if (leaveWithoutChanges) sessionNotes.discardDraftForForward()
+                    else sessionNotes.writeNow()
+                if (ready) {
+                    pendingNotesExit = null
+                    when (intent) {
+                        NotesExitIntent.Back -> _notesExitRequested.value = true
+                        NotesExitIntent.Repeat -> repeatAfterNotes()
+                        is NotesExitIntent.Resume -> _navigateToSession.value = intent.sessionId
+                    }
+                } else {
+                    _notesExitBlocked.value = true
+                }
+            } finally {
+                notesExitPending.value = false
+            }
+        }
+    }
+
+    fun onNotesExitHandled() {
+        _notesExitRequested.value = false
+    }
+
+    fun keepEditingNotes() {
+        if (notesExitPending.value) return
+        pendingNotesExit = null
+        _notesExitBlocked.value = false
     }
 
     /** Re-subscribe after a failed load. A no-op unless the last read actually threw. */
     fun retry() {
         if (!load.value.failed) return
         retryNonce.value += 1
-    }
-
-    private suspend fun writeNotes(value: String) {
-        if (sessionId.isBlank()) return
-        // Null means the row has not been read yet, so what is on disk is unknown. Writing
-        // here would push the empty initial value over real notes on a cold start.
-        val known = lastPersistedNotes ?: return
-        if (value == known) return
-        withContext(NonCancellable) {
-            runCatchingCancellable {
-                container.workoutRepository.updateSessionNotes(sessionId, value)
-                lastPersistedNotes = value
-            }.onFailure { thrown ->
-                AppLog.w(TAG, "Writing the session notes failed", thrown)
-                // No error UI: the next keystroke retries.
-            }
-        }
     }
 
     fun updateSet(setId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
@@ -257,29 +311,33 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun repeatSession() {
+        if (pendingNotesExit != null) return
+        beginNotesExit(NotesExitIntent.Repeat)
+    }
+
+    private suspend fun repeatAfterNotes() {
         if (!mutating.compareAndSet(false, true)) return
-        viewModelScope.launch {
-            try {
-                runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
-                    .onSuccess { outcome ->
-                        when (outcome) {
-                            is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
-                            is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
-                            is RepeatOutcome.Failed ->
-                                errors.fail(source = ERR_REPEAT, message = outcome.message)
-                        }
+        try {
+            runCatchingCancellable { container.workoutRepository.repeatSession(sessionId) }
+                .onSuccess { outcome ->
+                    when (outcome) {
+                        is RepeatOutcome.Started -> _navigateToSession.value = outcome.sessionId
+                        is RepeatOutcome.Blocked -> _blockedRepeat.value = outcome
+                        is RepeatOutcome.Failed ->
+                            errors.fail(source = ERR_REPEAT, message = outcome.message)
                     }
-                    .onFailure { report(it, "Could not repeat that workout. Try again.") }
-            } finally {
-                mutating.set(false)
-            }
+                }
+                .onFailure { report(it, "Could not repeat that workout. Try again.") }
+        } finally {
+            mutating.set(false)
         }
     }
 
     fun resumeBlockedSession() {
         val blocked = _blockedRepeat.value ?: return
+        if (pendingNotesExit != null || !canBeginNotesExit()) return
         _blockedRepeat.value = null
-        _navigateToSession.value = blocked.inProgressSessionId
+        beginNotesExit(NotesExitIntent.Resume(blocked.inProgressSessionId))
     }
 
     fun dismissBlockedRepeat() {

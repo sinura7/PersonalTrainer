@@ -21,7 +21,7 @@ object TempoCoach {
             return TempoCoachTip.AddASet(
                 offer = addOffer,
                 seedRec = extraSetRec,
-                trace = extraSetRec.trace,
+                trace = AddASetTrace.from(addOffer, extraSetRec.trace),
             )
         }
         val nextRec = when {

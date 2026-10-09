@@ -5,6 +5,7 @@ import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.ui.components.NotesSaveState
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
@@ -21,6 +22,7 @@ import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.CoachPreferences
 import com.sinura.personaltrainer.domain.DataHealthCopy
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.FloorTimerCue
 import com.sinura.personaltrainer.domain.FloorTimerSurface
@@ -147,6 +149,9 @@ sealed interface WorkoutExit {
 
     /** Session row was deleted. */
     data object Discarded : WorkoutExit
+
+    /** Leave the current workout running after keeping its draft. */
+    data object Kept : WorkoutExit
 }
 
 data class ActiveWorkoutUiState(
@@ -161,6 +166,7 @@ data class ActiveWorkoutUiState(
     val searchResults: List<Exercise> = emptyList(),
     val showExercisePicker: Boolean = false,
     val notes: String = "",
+    val notesSave: NotesSaveState = NotesSaveState(),
     val error: String? = null,
     val finished: Boolean = false,
     val editingSetId: String? = null,
@@ -309,12 +315,26 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * at Back (audit W2d-3b). Built before `init` restores the words; the draft that carries them,
      * and Finish, stay here.
      */
+    private val notesOwner = Any()
     private val sessionNotes = FloorSessionNotes(
         sessionId = sessionId,
-        write = { notes -> container.workoutRepository.updateSessionNotes(sessionId, notes) },
+        write = { notes ->
+            draftCache.withNotesWrite(sessionId) {
+                check(container.workoutRepository.getSession(sessionId)?.isFinished == false) {
+                    "This workout is no longer live."
+                }
+                container.workoutRepository.updateSessionNotes(sessionId, notes)
+            }
+        },
+        readStored = { container.workoutRepository.getSession(sessionId)?.notes },
+        onUnconfirmed = { pending, busy, notes ->
+            draftCache.markNotesPending(sessionId = sessionId, owner = notesOwner, pending = pending, busy = busy, notes = notes)
+        },
     )
     private val error = ErrorSlot()
     private val finished = MutableStateFlow(false)
+    private val _exitRequested = MutableStateFlow<WorkoutExit?>(null)
+    val exitRequested: StateFlow<WorkoutExit?> = _exitRequested.asStateFlow()
     private val editingSetId = MutableStateFlow<String?>(null)
     private val liftReadiness = MutableStateFlow(LiftEntryReadiness.NONE)
     private val suggestionUnavailable = MutableStateFlow(false)
@@ -475,12 +495,14 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // it was last written, and one left behind by a swap is restored as the selected lift
         // once the workout has no lifts (N1). The cache's are the freshest while the process
         // lives; saved state's single key is what survives its death, and is read when the
-        // cache has none, or an empty copy. An empty note in the cache is not trusted: it can be
+        // cache has none, or an unmarked empty copy. An unmarked empty cache is not trusted: it can be
         // the unfilled field Back stages while the row is still loading, or a real deletion, and
         // the two look alike. In saved state an empty note is one deleted, restored as such so
         // the row does not fill it again; a missing key means nothing was saved, and the row
         // fills the field (N2).
-        val restoredNotes = draftCache.sessionNotes(sessionId)?.ifEmpty { null } ?: savedDraft.sessionNotesIfSaved()
+        val cachedNotes = draftCache.sessionNotes(sessionId)
+        val restoredNotes = cachedNotes?.takeIf { it.isNotEmpty() || draftCache.hasPendingNotes(sessionId) }
+            ?: savedDraft.sessionNotesIfSaved()
         if (restoredNotes != null) sessionNotes.restore(restoredNotes)
         // After a process death the cache is rebuilt above from saved state's entries, which
         // carry no session notes. Staged here, the words saved state brought back outlive this
@@ -504,8 +526,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             // The flow is guarded at the repository, but the body below is not — a failure
             // here would otherwise kill the collector and freeze the screen silently.
             runCatchingCancellable {
-                session.collect { current ->
-                    if (current == null) return@collect
+                sessionReader.observations.collect { read ->
+                    if (read.loadState == SessionLoadState.MISSING) sessionNotes.sessionMissing()
+                    val current = read.session ?: return@collect
                     // Read before a selection saves the notes. applySelection writes the field to
                     // saved state, and on a workout finished elsewhere the save below returns early,
                     // so an unfilled field saved there would come back after a process death as a
@@ -755,8 +778,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             combine(restTotal, searchQuery, showPicker) { total, query, picker ->
                 Triple(total, query, picker)
             },
-            combine(sessionNotes.text, error.messages, finished, editingSetId) { notes, err, done, editing ->
-                EditorMeta(notes, err, done, editing)
+            combine(
+                combine(sessionNotes.text, sessionNotes.saveState) { notes, save -> notes to save },
+                error.messages, finished, editingSetId,
+            ) { notes, err, done, editing ->
+                EditorMeta(notes.first, notes.second, err, done, editing)
             },
         ) { first, second ->
             WorkoutExtras(
@@ -764,6 +790,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 query = first.second,
                 showPicker = first.third,
                 notes = second.notes,
+                notesSave = second.notesSave,
                 error = second.error,
                 finished = second.finished,
                 editingSetId = second.editingSetId,
@@ -781,6 +808,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             searchResults = emptyList(),
             showExercisePicker = extras.showPicker,
             notes = extras.notes,
+            notesSave = extras.notesSave,
             error = extras.error,
             finished = extras.finished,
             editingSetId = extras.editingSetId,
@@ -828,7 +856,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             suggestion = suggested?.first?.takeUnless { alreadyPresent },
             suggestionReason = suggested?.second?.takeUnless { alreadyPresent },
         )
-    }.combine(mutating) { state, busy ->
+    }.combine(combine(mutating, draftCache.finishing) { busy, finishing -> busy || sessionId in finishing }) { state, busy ->
         state.copy(mutating = busy)
     }.combine(saves.operation) { state, operation ->
         state.copy(
@@ -1285,8 +1313,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun setNotes(value: String) {
-        sessionNotes.edit(value)
-        persistDraft()
+        if (terminalExit || _exitRequested.value != null || mutating.value || finished.value ||
+            sessionReader.observations.value.session?.isFinished == true
+        ) return
+        draftCache.editLiveNotes(sessionId) {
+            sessionNotes.edit(value)
+            persistDraft()
+        }
         // The database write is not launched here. See FloorSessionNotes.writeOnTypingPause, launched in init.
     }
 
@@ -1502,7 +1535,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     private fun canChangeEntry(): Boolean =
-        !terminalExit && !saves.inFlight.value && !mutating.value && !saves.pending &&
+        !terminalExit && !draftCache.liveEntryLocked(sessionId) && _exitRequested.value == null && !saves.inFlight.value && !mutating.value && !saves.pending &&
             sessionReader.observations.value.loadState == SessionLoadState.FOUND &&
             sessionReader.observations.value.session?.isFinished == false
 
@@ -2045,9 +2078,6 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
      * Pops ack BEFORE navigating (forward navigations ack after) — a duplicate pop would eat
      * an extra screen, which is worse than the vanishingly narrow window it guards against.
      */
-    private val _exitRequested = MutableStateFlow<WorkoutExit?>(null)
-    val exitRequested: StateFlow<WorkoutExit?> = _exitRequested.asStateFlow()
-
     fun onExitHandled() {
         _exitRequested.value = null
     }
@@ -2063,7 +2093,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         cancelPendingRest()
         val started = error.mark()
         launchEntryMutation(source = ERR_FINISH) {
-            when (val outcome = container.finishWorkout(sessionId, sessionNotes.text.value)) {
+            when (val outcome = sessionNotes.finishWithLatest { notes -> container.finishWorkout(sessionId, notes) }) {
                 is FinishOutcome.Finished -> {
                     PendingOccurrence.complete(container, outcome.sessionId)
                     error.clearFrom(source = ERR_FINISH, before = started)
@@ -2097,6 +2127,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                         source = ERR_FINISH,
                         message = DataHealthCopy.FINISH_NOT_FOUND,
                     )
+
+                FinishOutcome.NotesPending ->
+                    error.fail(source = ERR_FINISH, message = EndWorkoutCopy.BAR_NOTES_PENDING)
+
+                FinishOutcome.InProgress ->
+                    error.fail(source = ERR_FINISH, message = EndWorkoutCopy.FINISHING)
 
                 is FinishOutcome.Failed ->
                     error.fail(
@@ -2199,8 +2235,55 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     /** Flushes the debounce tail: leaving must not drop the words typed in the last 400 ms. */
     fun persistDraftForExit() {
+        if (draftCache.liveEntryLocked(sessionId)) return
         persistDraft()
         viewModelScope.launch { sessionNotes.writeNow() }
+    }
+
+    fun retryNotesSave() {
+        if (draftCache.liveEntryLocked(sessionId)) return
+        if (sessionNotes.beginRetry()) viewModelScope.launch { sessionNotes.retryNow() }
+    }
+
+    private val _notesExitBlocked = MutableStateFlow(false)
+    val notesExitBlocked: StateFlow<Boolean> = _notesExitBlocked.asStateFlow()
+    private var notesExitPending = false
+
+    fun requestNotesExit(leaveWithDraft: Boolean = false) {
+        if (terminalExit || _exitRequested.value != null || mutating.value || notesExitPending ||
+            sessionId in draftCache.finishing.value
+        ) return
+        // A stale route can reopen a confirmed finished row. It has no live notes to flush,
+        // and the completed cache marker must keep rejecting edits without trapping Back.
+        if (sessionReader.observations.value.session?.isFinished == true || draftCache.liveEntryLocked(sessionId)) {
+            _notesExitBlocked.value = false
+            _exitRequested.value = WorkoutExit.Kept
+            return
+        }
+        if (leaveWithDraft && sessionNotes.saveState.value.busy) return
+        persistDraft()
+        _notesExitBlocked.value = false
+        if (leaveWithDraft) {
+            _exitRequested.value = WorkoutExit.Kept
+            return
+        }
+        notesExitPending = true
+        // One exit intent owns the controls until its write settles. A later Finish/discard
+        // cannot race the Kept navigation and cancel a queued terminal operation.
+        mutating.value = true
+        viewModelScope.launch {
+            try {
+                if (sessionNotes.writeNow()) _exitRequested.value = WorkoutExit.Kept
+                else _notesExitBlocked.value = true
+            } finally {
+                notesExitPending = false
+                mutating.value = false
+            }
+        }
+    }
+
+    fun keepEditingNotes() {
+        _notesExitBlocked.value = false
     }
 
     private fun persistDraft() {
@@ -2283,6 +2366,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         val query: String,
         val showPicker: Boolean,
         val notes: String,
+        val notesSave: NotesSaveState,
         val error: String?,
         val finished: Boolean,
         val editingSetId: String?,
@@ -2290,6 +2374,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     private data class EditorMeta(
         val notes: String,
+        val notesSave: NotesSaveState,
         val error: String?,
         val finished: Boolean,
         val editingSetId: String?,

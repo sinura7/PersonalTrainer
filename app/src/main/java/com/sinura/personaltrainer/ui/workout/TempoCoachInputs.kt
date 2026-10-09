@@ -12,6 +12,7 @@ import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.coach.AddASetMuscleStats
 import com.sinura.personaltrainer.domain.coach.AddASetPolicy
+import com.sinura.personaltrainer.domain.coach.AddASetTrace
 import com.sinura.personaltrainer.domain.coach.TempoCoach
 import com.sinura.personaltrainer.domain.coach.TempoCoachTip
 
@@ -109,6 +110,13 @@ internal data class TempoCoachSnapshot(
             extraSetReasonCode = extra.reasonCode,
             loadProgressionBlocked = extra.reasonCode in holdCodes,
             manualExtraAfterLastPlanned = manualExtraAfterLastPlanned,
+            traceMetadata = AddASetTrace.Metadata(
+                generatedAtMs = nowMs,
+                todayEpochDay = time.civilDate(nowMs, zone).epochDay,
+                currentWeekStartEpochDay = time.civilDate(nowMs, zone).previousOrSame(weekStart).epochDay,
+                zoneId = zone,
+            ),
+            blockComparisonSource = AddASetTrace.CURRENT_PLAN_TARGET,
         )
     }
 

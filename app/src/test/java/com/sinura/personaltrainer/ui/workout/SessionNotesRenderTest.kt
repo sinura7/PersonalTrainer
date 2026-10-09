@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
+import android.database.sqlite.SQLiteFullException
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -19,9 +20,13 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.ui.components.NotesSaveStatus
+import com.sinura.personaltrainer.ui.components.NotesTestTags
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
@@ -31,6 +36,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -43,7 +50,7 @@ import org.robolectric.annotation.GraphicsMode
  * The session's notes, tapped through the real screen and ViewModel. They are not in the set
  * loop: the lift's ⋮ options offer Session notes, which opens the session's notes as they stand,
  * and what is typed there becomes the session's notes. End workout carries the same notes,
- * saying on its closed toggle that some are saved, and what is typed there becomes the session's
+ * carrying the confirmed write state beside its neutral toggle, and what is typed there becomes the session's
  * notes too.
  *
  * These were lines of ActiveWorkoutScreen.kt, WorkoutOverflowMenu.kt and EndWorkoutDialog.kt
@@ -62,12 +69,25 @@ import org.robolectric.annotation.GraphicsMode
 class SessionNotesRenderTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private lateinit var deps: FakeAppDependencies
+    private val dispatcher = UnconfinedTestDispatcher(scheduler = TestCoroutineScheduler())
+    private val failNextNotes = AtomicBoolean(false)
     private val viewModels = mutableListOf<ActiveWorkoutViewModel>()
 
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher(scheduler = TestCoroutineScheduler()))
-        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        Dispatchers.setMain(dispatcher)
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            workoutDaoDecorator = { real ->
+                object : WorkoutDao by real {
+                    override suspend fun updateSessionNotes(id: String, notes: String) {
+                        if (failNextNotes.compareAndSet(true, false)) throw SQLiteFullException("Injected notes failure")
+                        real.updateSessionNotes(id, notes)
+                    }
+                }
+            },
+        )
         runBlocking {
             deps.preferencesRepository.setWeightUnit(WeightUnit.LBS)
             deps.preferencesRepository.markRestBatteryHintShown()
@@ -101,6 +121,7 @@ class SessionNotesRenderTest {
         }
         compose.onNodeWithTag(WorkoutTestTags.SESSION_NOTES).assertDoesNotExist()
         compose.awaitThat(what = "the typed notes became the session's", now = vm.uiState::value) { vm.uiState.value.notes == EDITED }
+        awaitConfirmedNotes(vm, EDITED)
     }
 
     @Test
@@ -108,9 +129,10 @@ class SessionNotesRenderTest {
         val vm = openWithNotes()
         compose.onNodeWithTag(WorkoutTestTags.FINISH).performClick()
         compose.onNodeWithText(EndWorkoutCopy.TITLE).assertIsDisplayed()
-        // Closed, the toggle says notes are already written; open, they are the session's.
+        compose.onNodeWithTag(NotesTestTags.STATUS).assert(hasText("Notes saved"))
+        // Text alone is never a saved toggle; the adjacent state reports the confirmed write.
         compose.holdingTheClock {
-            compose.onNodeWithText(SAVED_TOGGLE).assertIsDisplayed().performClick()
+            compose.onNodeWithText(CurrentLiftCopy.SESSION_NOTES).assertIsDisplayed().performClick()
             compose.settle()
             compose.onNode(hasSetTextAction() and hasText(NOTES)).performTextReplacement(EDITED)
             compose.settle()
@@ -118,8 +140,41 @@ class SessionNotesRenderTest {
             compose.settle()
         }
         compose.awaitThat(what = "End workout's notes became the session's", now = vm.uiState::value) { vm.uiState.value.notes == EDITED }
+        awaitConfirmedNotes(vm, EDITED)
         assertTrue("writing notes is not finishing", vm.uiState.value.session?.finishedAt == null)
         compose.onNodeWithText(EndWorkoutCopy.TITLE).assertIsDisplayed()
+    }
+
+    @Test
+    fun aFailedWriteIsVisibleInTheRealNotesEditorAndRetryPersistsTheSameText() {
+        val vm = openWithNotes()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.waitForIdle()
+        compose.holdingTheClock {
+            compose.onNodeWithText(CurrentLiftCopy.SESSION_NOTES).performClick()
+            compose.settle()
+            failNextNotes.set(true)
+            compose.onNode(inNotes(hasSetTextAction())).performTextReplacement(EDITED)
+            dispatcher.scheduler.advanceTimeBy(401)
+            dispatcher.scheduler.runCurrent()
+            compose.awaitThat("the notes failure is published", vm.uiState::value) {
+                vm.uiState.value.notesSave.status == NotesSaveStatus.FAILED
+            }
+            compose.settle()
+            compose.onNodeWithTag(NotesTestTags.STATUS).assert(hasText("Notes not saved. Your text is kept here."))
+            assertEquals(NOTES, runBlocking { deps.workoutRepository.getSession(vm.uiState.value.session!!.id)!!.notes })
+            assertNull(vm.uiState.value.error)
+            compose.onNodeWithTag(NotesTestTags.RETRY).assertIsDisplayed().performClick()
+            compose.awaitThat("Retry confirmed the exact edited notes", vm.uiState::value) {
+                vm.uiState.value.notesSave.status == NotesSaveStatus.SAVED
+            }
+            compose.settle()
+            compose.onNodeWithTag(NotesTestTags.STATUS).assert(hasText("Notes saved"))
+            compose.onNode(inNotes(hasSetTextAction())).assert(hasText(EDITED))
+            assertEquals(EDITED, runBlocking { deps.workoutRepository.getSession(vm.uiState.value.session!!.id)!!.notes })
+            compose.onNodeWithText(DONE).performClick()
+            compose.settle()
+        }
     }
 
     /** A leg extension with one set saved and the session's notes already written. */
@@ -127,7 +182,10 @@ class SessionNotesRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = floorSets(1))
         compose.showWorkoutScreen(vm)
         vm.setNotes(NOTES)
-        compose.awaitThat(what = "the session's notes are written", now = vm.uiState::value) { vm.uiState.value.notes == NOTES }
+        vm.persistDraftForExit()
+        compose.awaitThat(what = "the session's notes are confirmed", now = vm.uiState::value) {
+            vm.uiState.value.notes == NOTES && vm.uiState.value.notesSave.status == NotesSaveStatus.SAVED
+        }
         compose.waitForIdle()
         return vm
     }
@@ -137,11 +195,19 @@ class SessionNotesRenderTest {
 
     private fun hasAnyDescendantText(text: String) = hasAnyDescendant(hasText(text))
 
+    private fun awaitConfirmedNotes(vm: ActiveWorkoutViewModel, expected: String) {
+        dispatcher.scheduler.advanceTimeBy(401)
+        dispatcher.scheduler.runCurrent()
+        compose.awaitThat("the edited notes are actually confirmed", vm.uiState::value) {
+            vm.uiState.value.notesSave.status == NotesSaveStatus.SAVED
+        }
+        assertEquals(expected, runBlocking { deps.workoutRepository.getSession(vm.uiState.value.session!!.id)!!.notes })
+    }
+
     private companion object {
         const val NOTES = "Seat on 4"
         const val EDITED = "Seat on 5, knee fine"
         const val DONE = "Done"
         const val HIDE = "Hide notes"
-        const val SAVED_TOGGLE = "Session notes · saved"
     }
 }

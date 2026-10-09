@@ -11,13 +11,20 @@ import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.LiftEntryReadiness
+import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestWaits
+import com.sinura.personaltrainer.testutil.awaitFirst
+import com.sinura.personaltrainer.ui.components.NotesSaveStatus
+import com.sinura.personaltrainer.ui.navigation.LiveSessionBarViewModel
 import com.sinura.personaltrainer.workout.SavedStateWorkoutDraft
 import com.sinura.personaltrainer.workout.WorkoutDraft
+import com.sinura.personaltrainer.workout.FinishOutcome
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -37,6 +44,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -51,7 +59,7 @@ import org.robolectric.annotation.Config
  * or at Back; a cleared note is saved; the one-time fill from the row does not bring back a note
  * deleted inside a typing pause; a lift's load that ends after Back, keeping its entry or failing,
  * saves the last words; a write already underway lands before the next one starts; a failed write
- * is tried again, and shows no error; Finish inside a typing pause keeps the last words. The first
+ * is tried again with its own failure state; Finish inside a typing pause keeps the last words. The first
  * five were the adversarial T3 review's probes pb, pf, pg, ph and pi.
  *
  * Built as FloorSessionNotesCharacterisationTest builds it (real in-memory Room, a real
@@ -90,6 +98,7 @@ class FloorSessionNotesMoveCharacterisationTest {
 
     /** Every notes write that reached the DAO, in order. */
     private val writesStarted = CopyOnWriteArrayList<String>()
+    private val writesStartedAt = CopyOnWriteArrayList<Long>()
 
     /** Every notes write the database took, in order, as its answer reached the screen. */
     private val writesLanded = CopyOnWriteArrayList<String>()
@@ -101,6 +110,14 @@ class FloorSessionNotesMoveCharacterisationTest {
 
     /** Armed, the next notes write fails as a full disk fails it. */
     private val failNextWrite = AtomicBoolean(false)
+    private val finishesStarted = AtomicInteger(0)
+    private val holdNextSessionRead = AtomicBoolean(false)
+    private val sessionReadHeld = CompletableDeferred<Unit>()
+    private val releaseSessionRead = CompletableDeferred<Unit>()
+    private val holdNextFinishStart = AtomicBoolean(false)
+    private val finishStartHeld = CompletableDeferred<Unit>()
+    private val releaseFinishStart = CompletableDeferred<Unit>()
+    private val failFinishStart = AtomicBoolean(false)
 
     @Before
     fun setUp() {
@@ -121,6 +138,8 @@ class FloorSessionNotesMoveCharacterisationTest {
     fun tearDown() {
         releaseHistory.complete(Unit)
         releaseWrite.complete(Unit)
+        releaseSessionRead.complete(Unit)
+        releaseFinishStart.complete(Unit)
         sessionPaused.value = false
         if (::dispatcher.isInitialized) runBlocking { viewModels.toList().forEach { end(it) } }
         viewModels.clear()
@@ -161,12 +180,17 @@ class FloorSessionNotesMoveCharacterisationTest {
 
         vm.setNotes("abc")
         pauseTyping()
+        awaitNotesWritesStarted(1)
         assertEquals("the pause writes the words", listOf("abc"), writesStarted.toList())
         // Its answer runs on this thread: the screen knows "abc" is stored before the next key.
         awaitWriteLanded("abc")
+        awaitScreen(vm, "the first notes write is confirmed before the next key") {
+            it.notesSave.status == NotesSaveStatus.SAVED && !it.notesSave.busy
+        }
 
         vm.setNotes("") // the owner clears the note
         pauseTyping()
+        awaitNotesWritesStarted(2)
         assertEquals("the pause writes the cleared note", listOf("abc", ""), writesStarted.toList())
         awaitWriteLanded("")
         assertEquals("the row holds the empty note", "", unheld.getSession(sessionId)?.notes)
@@ -201,6 +225,7 @@ class FloorSessionNotesMoveCharacterisationTest {
         assertEquals("the deleted note stays deleted on screen", "", shown.notes)
 
         pauseTyping()
+        awaitNotesWritesStarted(1)
         assertEquals("the pause writes the deleted note", listOf(""), writesStarted.toList())
         awaitWriteLanded("")
         assertEquals("and the row holds it", "", unheld.getSession(sessionId)?.notes)
@@ -291,6 +316,7 @@ class FloorSessionNotesMoveCharacterisationTest {
         holdNextWrite.set(true)
         vm.setNotes("a")
         pauseTyping()
+        awaitHeldNotesWrite()
         assertTrue("the pause's write is underway, held at the database's door", writeHeld.isCompleted)
 
         vm.setNotes("ab") // the next keystroke comes while that write is underway
@@ -303,6 +329,11 @@ class FloorSessionNotesMoveCharacterisationTest {
 
         releaseWrite.complete(Unit)
         awaitWriteLanded("a")
+        // SQL landing precedes the read that confirms it. collectLatest cannot start the
+        // newer pause until that NonCancellable confirmation and cancellation have ended.
+        awaitScreen(vm, "the older write confirmed while the newer words remain pending") {
+            it.notes == "ab" && it.notesSave.status == NotesSaveStatus.PENDING && !it.notesSave.busy
+        }
         pauseTyping()
         awaitWriteLanded("ab")
         assertEquals(
@@ -314,7 +345,298 @@ class FloorSessionNotesMoveCharacterisationTest {
     }
 
     @Test
-    fun aFailedNotesWriteIsTriedAgainWithNoErrorShown() = runBlocking<Unit> {
+    fun anExitFlushWaitsForAnOlderTypingPauseWrite() = runBlocking<Unit> {
+        val sessionId = seedLegExtension(deps = deps, loggedSets = emptyList())
+        unheld.updateSessionNotes(sessionId, "seeded")
+        val vm = viewModel(handleFor(sessionId))
+        awaitScreen(vm, "the stored notes on screen") { it.notes == "seeded" }
+
+        holdNextWrite.set(true)
+        vm.setNotes("older")
+        pauseTyping()
+        awaitHeldNotesWrite()
+        assertTrue("the older pause is held before its SQL write", writeHeld.isCompleted)
+        vm.setNotes("latest")
+        vm.persistDraftForExit()
+        dispatcher.scheduler.runCurrent()
+        assertEquals("the exit flush cannot race the older writer", listOf("older"), writesStarted.toList())
+
+        releaseWrite.complete(Unit)
+        awaitWriteLanded("latest")
+        assertEquals("the latest exit text wins", "latest", unheld.getSession(sessionId)?.notes)
+    }
+
+    @Test
+    fun finishingCannotBeOverwrittenByAnOlderHeldNotesWrite() = runBlocking<Unit> {
+        val sessionId = seedLegExtension(deps = deps, loggedSets = floorSets(1))
+        unheld.updateSessionNotes(sessionId, "seeded")
+        val vm = viewModel(handleFor(sessionId))
+        awaitScreen(vm, "the stored notes and a finishable workout") { it.notes == "seeded" && it.canFinish }
+
+        holdNextWrite.set(true)
+        vm.setNotes("older")
+        pauseTyping()
+        awaitHeldNotesWrite()
+        assertTrue("the older notes write is held", writeHeld.isCompleted)
+        vm.setNotes("final words")
+        vm.finishWorkout()
+        dispatcher.scheduler.runCurrent()
+        assertEquals("Finish waits outside its use case while an older writer is held", 0, finishesStarted.get())
+        assertNull("the held writer has not allowed Finish to commit", unheld.getSession(sessionId)?.finishedAt)
+        releaseWrite.complete(Unit)
+        runUntil(what = "Finish committed after the older writer completed", read = {
+            runBlocking { unheld.getSession(sessionId) }
+        }) { it?.finishedAt != null }
+        assertEquals(1, finishesStarted.get())
+        assertEquals("an older notes write cannot replace final notes", "final words", unheld.getSession(sessionId)?.notes)
+        pauseTyping()
+        assertEquals("no delayed notes writer follows Finish", listOf("older"), writesStarted.toList())
+        assertEquals("the finished row still has the final words", "final words", unheld.getSession(sessionId)?.notes)
+    }
+
+    @Test
+    fun failedClearKeptOnExitBlocksBarFinishAndRestoresAsEmptyUntilConfirmed() = runBlocking<Unit> {
+        val sessionId = seedLegExtension(deps = deps, loggedSets = floorSets(1))
+        unheld.updateSessionNotes(sessionId, "stored note")
+        val vm = viewModel(handleFor(sessionId))
+        awaitScreen(vm, "stored note loaded") { it.notes == "stored note" && it.canFinish }
+        failNextWrite.set(true)
+        vm.setNotes("")
+        vm.persistDraftForExit()
+        awaitScreen(vm, "clear failed without losing its empty draft") { it.notesSave.status == NotesSaveStatus.FAILED }
+        vm.requestNotesExit(leaveWithDraft = true)
+        assertEquals(WorkoutExit.Kept, vm.exitRequested.value)
+        assertTrue(deps.workoutDraftCache.hasPendingNotes(sessionId))
+        val before = checkNotNull(unheld.getSession(sessionId))
+        deps.restTimerController.start(90, sessionId)
+        val bar = LiveSessionBarViewModel(ApplicationProvider.getApplicationContext(), deps)
+        try {
+            bar.uiState.awaitFirst { it?.canFinish == true }
+            bar.finishFromBar()
+            assertEquals(EndWorkoutCopy.BAR_NOTES_PENDING, bar.actionError.awaitFirst { it != null })
+            assertNull(bar.finishedNavigation.value)
+            assertEquals(before, unheld.getSession(sessionId))
+            assertTrue(deps.restTimerStore.current().running)
+            assertEquals("", deps.workoutDraftCache.sessionNotes(sessionId))
+            end(vm)
+
+            val reopened = viewModel(handleFor(sessionId))
+            awaitScreen(reopened, "failed clear restored with actual row") {
+                it.canFinish && it.session?.notes == "stored note" && it.notes.isEmpty() &&
+                    it.notesSave.status == NotesSaveStatus.PENDING
+            }
+            reopened.persistDraftForExit()
+            awaitScreen(reopened, "clear confirmed after return") {
+                it.notesSave.status == NotesSaveStatus.SAVED && it.notesSave.cleared && !it.notesSave.busy
+            }
+            assertEquals(before.copy(notes = ""), unheld.getSession(sessionId))
+            assertFalse("confirmed reopen retires the older settled guard", deps.workoutDraftCache.hasPendingNotes(sessionId))
+            bar.finishFromBar()
+            assertEquals(sessionId, bar.finishedNavigation.awaitFirst { it != null })
+            val finished = checkNotNull(unheld.getSession(sessionId))
+            assertEquals("", finished.notes)
+            assertEquals(before.sets, finished.sets)
+            assertEquals(before.startedAt, finished.startedAt)
+            assertTrue(finished.isFinished)
+            assertFalse(deps.restTimerStore.current().running)
+            assertNull(deps.workoutDraftCache.sessionNotes(sessionId))
+        } finally {
+            val job = checkNotNull(bar.viewModelScope.coroutineContext[Job])
+            job.cancel()
+            runUntil(what = "bar coroutines ended", read = { job.isCompleted }) { it }
+        }
+    }
+
+    @Test
+    fun revertingToStoredTextWhileAnOlderWriteIsHeldStillBlocksOutsideFinish() = runBlocking<Unit> {
+        val sessionId = seedLegExtension(deps = deps, loggedSets = floorSets(1))
+        unheld.updateSessionNotes(sessionId, "stored")
+        val vm = viewModel(handleFor(sessionId))
+        awaitScreen(vm, "stored notes loaded") { it.notes == "stored" && it.canFinish }
+        val before = checkNotNull(unheld.getSession(sessionId))
+        deps.restTimerController.start(90, sessionId)
+        holdNextWrite.set(true)
+        vm.setNotes("intermediate")
+        pauseTyping()
+        awaitHeldNotesWrite()
+        assertTrue(writeHeld.isCompleted)
+        vm.setNotes("stored")
+        assertEquals("stored", deps.workoutDraftCache.sessionNotes(sessionId))
+        assertTrue(deps.workoutDraftCache.hasPendingNotes(sessionId))
+        assertEquals(com.sinura.personaltrainer.workout.FinishOutcome.NotesPending, deps.finishWorkout(sessionId))
+        assertEquals(before, unheld.getSession(sessionId))
+        assertTrue(deps.restTimerStore.current().running)
+        assertEquals(0, finishesStarted.get())
+        releaseWrite.complete(Unit)
+        awaitScreen(vm, "older writer confirmed before explicit Finish") {
+            !it.notesSave.busy && it.notes == "stored" && it.notesSave.status == NotesSaveStatus.PENDING
+        }
+        vm.finishWorkout()
+        runUntil(what = "explicit Finish used the latest notes", read = { vm.exitRequested.value }) {
+            it == WorkoutExit.Finished(sessionId)
+        }
+        val finished = checkNotNull(unheld.getSession(sessionId))
+        assertEquals("stored", finished.notes)
+        assertEquals(before.sets, finished.sets)
+        assertEquals(before.startedAt, finished.startedAt)
+        pauseTyping()
+        assertEquals(finished, unheld.getSession(sessionId))
+        assertFalse(deps.workoutDraftCache.hasPendingNotes(sessionId))
+    }
+
+    @Test
+    fun outsideFinishReservesTheEditorBeforeItsSuspendedSessionSnapshot() = runBlocking<Unit> {
+        val sessionId = seedLegExtension(deps = deps, loggedSets = floorSets(1))
+        unheld.updateSessionNotes(sessionId, "confirmed")
+        val vm = viewModel(handleFor(sessionId))
+        awaitScreen(vm, "confirmed editor before outside Finish") { it.notes == "confirmed" && it.canFinish }
+        val before = checkNotNull(unheld.getSession(sessionId))
+        deps.restTimerController.start(90, sessionId)
+        holdNextSessionRead.set(true)
+        val finish = async { deps.finishWorkout(sessionId) }
+        runUntil(what = "outside Finish suspended after capturing its session", read = { sessionReadHeld.isCompleted }) { it }
+        awaitScreen(vm, "shared Finish reservation is visible") { it.entryLocked && it.mutating }
+        vm.setNotes("words during Finish")
+        vm.persistDraftForExit()
+        vm.requestNotesExit()
+        pauseTyping()
+        assertEquals("the disabled editor accepted no unrecorded text", "confirmed", vm.uiState.value.notes)
+        assertEquals(before, unheld.getSession(sessionId))
+        assertEquals(emptyList<String>(), writesStarted.toList())
+        assertNull(vm.exitRequested.value)
+        assertTrue(deps.restTimerStore.current().running)
+        assertEquals(FinishOutcome.InProgress, deps.finishWorkout(sessionId))
+        releaseSessionRead.complete(Unit)
+        assertEquals(FinishOutcome.Finished(sessionId), finish.await())
+        val finished = checkNotNull(unheld.getSession(sessionId))
+        assertEquals("confirmed", finished.notes)
+        assertEquals(before.sets, finished.sets)
+        assertEquals(before.startedAt, finished.startedAt)
+        assertTrue(finished.isFinished)
+        assertFalse(deps.restTimerStore.current().running)
+        assertNull(deps.workoutDraftCache.sessionNotes(sessionId))
+        vm.setNotes("late row emission")
+        pauseTyping()
+        assertEquals(finished, unheld.getSession(sessionId))
+        assertNull("a stale owner cannot recreate the completed draft", deps.workoutDraftCache.sessionNotes(sessionId))
+        assertEquals(1, finishesStarted.get())
+    }
+
+    @Test
+    fun outsideFinishKeepsItsReservationThroughThePostCheckSqlSuspension() = runBlocking<Unit> {
+        val sessionId = seedLegExtension(deps = deps, loggedSets = floorSets(1))
+        val vm = viewModel(handleFor(sessionId))
+        awaitScreen(vm, "ready notes editor") { it.canFinish && it.notesSave.status == NotesSaveStatus.SAVED }
+        vm.setNotes("latest confirmed")
+        vm.persistDraftForExit()
+        awaitScreen(vm, "authored text confirmed before Finish") { it.notesSave.status == NotesSaveStatus.SAVED && !it.notesSave.busy }
+        val before = checkNotNull(unheld.getSession(sessionId))
+        holdNextFinishStart.set(true)
+        val finish = async { deps.finishWorkout(sessionId) }
+        runUntil(what = "Finish passed its guards and suspended at SQL setup", read = { finishStartHeld.isCompleted }) { it }
+        awaitScreen(vm, "Finish keeps draft controls locked") { it.entryLocked && it.mutating }
+        vm.setNotes("late words")
+        vm.retryNotesSave()
+        vm.persistDraftForExit()
+        pauseTyping()
+        assertEquals(before, unheld.getSession(sessionId))
+        assertEquals("latest confirmed", vm.uiState.value.notes)
+        assertEquals(listOf("latest confirmed"), writesStarted.toList())
+        releaseFinishStart.complete(Unit)
+        assertEquals(FinishOutcome.Finished(sessionId), finish.await())
+        val finished = checkNotNull(unheld.getSession(sessionId))
+        assertEquals(before.notes, finished.notes)
+        assertEquals(before.sets, finished.sets)
+        assertEquals(before.startedAt, finished.startedAt)
+        pauseTyping()
+        assertEquals(finished, unheld.getSession(sessionId))
+        assertEquals(1, finishesStarted.get())
+        assertFalse(deps.workoutDraftCache.hasPendingNotes(sessionId))
+    }
+
+    @Test
+    fun failedOutsideFinishReleasesTheEditorWithoutClearingItsDraft() = runBlocking<Unit> {
+        val sessionId = seedLegExtension(deps = deps, loggedSets = floorSets(1))
+        unheld.updateSessionNotes(sessionId, "confirmed")
+        val vm = viewModel(handleFor(sessionId))
+        awaitScreen(vm, "confirmed editor") { it.notes == "confirmed" && it.canFinish }
+        val before = checkNotNull(unheld.getSession(sessionId))
+        holdNextFinishStart.set(true)
+        failFinishStart.set(true)
+        val finish = async { deps.finishWorkout(sessionId) }
+        runUntil(what = "held Finish before simulated SQL failure", read = { finishStartHeld.isCompleted }) { it }
+        releaseFinishStart.complete(Unit)
+        assertTrue(finish.await() is FinishOutcome.Failed)
+        awaitScreen(vm, "failed Finish unlocked editor") { !it.mutating && !it.entryLocked }
+        assertEquals(before, unheld.getSession(sessionId))
+        assertEquals("confirmed", deps.workoutDraftCache.sessionNotes(sessionId))
+        vm.setNotes("recovery words")
+        vm.persistDraftForExit()
+        awaitScreen(vm, "new words saved after Finish failure") { it.notes == "recovery words" && it.notesSave.status == NotesSaveStatus.SAVED }
+        assertEquals(before.copy(notes = "recovery words"), unheld.getSession(sessionId))
+        assertEquals(FinishOutcome.Finished(sessionId), deps.finishWorkout(sessionId))
+        assertEquals("recovery words", unheld.getSession(sessionId)?.notes)
+    }
+
+    @Test
+    fun aHeldGuardedExitOwnsItsIntentUntilSavedAndCannotRaceFinishOrDiscard() = runBlocking<Unit> {
+        val sessionId = seedLegExtension(deps = deps, loggedSets = floorSets(1))
+        val handle = handleFor(sessionId)
+        val saved = SavedStateWorkoutDraft(handle)
+        val vm = viewModel(handle)
+        awaitScreen(vm, "ready workout with confirmed notes") {
+            it.canFinish && it.liftReadiness == LiftEntryReadiness.READY && it.notesSave.status == NotesSaveStatus.SAVED
+        }
+        val before = checkNotNull(unheld.getSession(sessionId))
+        holdNextWrite.set(true)
+        vm.setNotes("exit words")
+        vm.requestNotesExit()
+        runUntil(what = "guarded exit holds the actual notes write", read = { writeHeld.isCompleted }) { it }
+        awaitScreen(vm, "exit locks terminal controls") { it.entryLocked && it.mutating }
+        vm.finishWorkout()
+        vm.discardWorkout()
+        vm.requestNotesExit()
+        assertEquals(0, finishesStarted.get())
+        assertNull(vm.exitRequested.value)
+        assertEquals(before, unheld.getSession(sessionId))
+        releaseWrite.complete(Unit)
+        runUntil(what = "one kept navigation after confirmed notes", read = { vm.exitRequested.value }) { it == WorkoutExit.Kept }
+        awaitScreen(vm, "Kept is queued after its write released the mutation guard") {
+            vm.exitRequested.value == WorkoutExit.Kept && it.notes == "exit words" &&
+                !it.mutating && !it.notesSave.busy && it.notesSave.status == NotesSaveStatus.SAVED
+        }
+        assertEquals(listOf("exit words"), writesStarted.toList())
+        assertEquals(listOf("exit words"), writesLanded.toList())
+        assertEquals(before.copy(notes = "exit words"), unheld.getSession(sessionId))
+        val cachedDraft = deps.workoutDraftCache.get(sessionId)
+        val cachedLifts = deps.workoutDraftCache.all(sessionId)
+        val cachedSelection = deps.workoutDraftCache.selectedExerciseId(sessionId)
+        val cachedNotes = deps.workoutDraftCache.sessionNotes(sessionId)
+        assertEquals("exit words", cachedNotes)
+        assertEquals("exit words", saved.sessionNotes())
+        vm.setNotes("late IME words before Kept is acknowledged")
+        vm.finishWorkout()
+        vm.discardWorkout()
+        vm.requestNotesExit()
+        pauseTyping()
+        assertEquals("queued Kept rejects a late text callback", "exit words", vm.uiState.value.notes)
+        assertEquals("the late callback cannot replace saved-state words", "exit words", saved.sessionNotes())
+        assertEquals(cachedDraft, deps.workoutDraftCache.get(sessionId))
+        assertEquals(cachedLifts, deps.workoutDraftCache.all(sessionId))
+        assertEquals(cachedSelection, deps.workoutDraftCache.selectedExerciseId(sessionId))
+        assertEquals(cachedNotes, deps.workoutDraftCache.sessionNotes(sessionId))
+        assertFalse(deps.workoutDraftCache.hasPendingNotes(sessionId))
+        assertEquals(listOf("exit words"), writesStarted.toList())
+        assertEquals(listOf("exit words"), writesLanded.toList())
+        assertEquals(WorkoutExit.Kept, vm.exitRequested.value)
+        assertEquals(0, finishesStarted.get())
+        assertEquals(before.copy(notes = "exit words"), unheld.getSession(sessionId))
+        vm.onExitHandled()
+        assertNull(vm.exitRequested.value)
+    }
+
+    @Test
+    fun aFailedNotesWriteHasItsOwnStateAndCanRetryWithoutAnotherKeystroke() = runBlocking<Unit> {
         val sessionId = seedLegExtension(deps = deps, loggedSets = emptyList())
         unheld.updateSessionNotes(sessionId, "seeded")
         val vm = viewModel(handleFor(sessionId))
@@ -324,32 +646,51 @@ class FloorSessionNotesMoveCharacterisationTest {
         failNextWrite.set(true)
         vm.setNotes("abc")
         pauseTyping()
+        awaitNotesWritesStarted(1)
         assertEquals("the pause tried to write", listOf("abc"), writesStarted.toList())
         assertEquals("the failed write left the row as it was", "seeded", unheld.getSession(sessionId)?.notes)
-        val afterFailure = awaitScreen(vm, "the words on screen") { it.notes == "abc" }
-        assertNull("a notes write that fails shows no error", afterFailure.error)
+        val afterFailure = awaitScreen(vm, "the failed notes, kept with reachable Retry") {
+            it.notes == "abc" && it.notesSave.status == NotesSaveStatus.FAILED && it.notesSave.canRetry
+        }
+        assertNull("a notes failure does not pollute the set error", afterFailure.error)
+        vm.retryNotesSave()
+        vm.retryNotesSave()
+        awaitScreen(vm, "the explicit Retry confirmed the same words") {
+            it.notesSave.status == NotesSaveStatus.SAVED
+        }
+        assertEquals("an explicit double Retry is one write", listOf("abc", "abc"), writesStarted.toList())
+        assertEquals("Retry preserved the exact notes", "abc", unheld.getSession(sessionId)?.notes)
 
         // The next keystroke's pause writes.
         vm.setNotes("abcd")
         pauseTyping()
-        assertEquals("the next pause tries again", listOf("abc", "abcd"), writesStarted.toList())
+        awaitNotesWritesStarted(3)
+        assertEquals("the next pause tries again", listOf("abc", "abc", "abcd"), writesStarted.toList())
         awaitWriteLanded("abcd")
+        awaitScreen(vm, "the next pause is confirmed before the final keystroke") {
+            it.notesSave.status == NotesSaveStatus.SAVED && !it.notesSave.busy
+        }
         assertEquals("the next pause writes the words", "abcd", unheld.getSession(sessionId)?.notes)
 
         // A failed pause, then Back with the same words: Back tries them again.
         failNextWrite.set(true)
         vm.setNotes("leave now")
         pauseTyping()
+        awaitNotesWritesStarted(4)
+        awaitScreen(vm, "the last pause actually failed before Back retries it") {
+            it.notesSave.status == NotesSaveStatus.FAILED && it.notesSave.canRetry
+        }
         assertEquals("precondition: the pause's write of the last words failed", "abcd", unheld.getSession(sessionId)?.notes)
         vm.persistDraftForExit()
+        awaitNotesWritesStarted(5)
         assertEquals(
             "Back tries the words the failed pause could not write",
-            listOf("abc", "abcd", "leave now", "leave now"),
+            listOf("abc", "abc", "abcd", "leave now", "leave now"),
             writesStarted.toList(),
         )
         awaitWriteLanded("leave now")
         assertEquals("and they reach the row", "leave now", unheld.getSession(sessionId)?.notes)
-        assertNull("still no error", vm.uiState.value.error)
+        assertNull("the set error remains separate", vm.uiState.value.error)
     }
 
     @Test
@@ -435,13 +776,20 @@ class FloorSessionNotesMoveCharacterisationTest {
         val vm = viewModel(handleFor(sessionId))
         awaitScreen(vm, "the stored notes on screen") { it.notes == "seeded" }
 
+        val typedAt = dispatcher.scheduler.currentTime
         vm.setNotes("first")
+        dispatcher.scheduler.runCurrent()
         dispatcher.scheduler.advanceTimeBy(399)
         dispatcher.scheduler.runCurrent() // what is due at 399 ms runs too
         assertEquals("no notes write 399 ms after the last key", emptyList<String>(), writesStarted.toList())
         dispatcher.scheduler.advanceTimeBy(1)
         dispatcher.scheduler.runCurrent()
+        awaitNotesWritesStarted(1)
         assertEquals("exactly one notes write at 400 ms, with the words typed", listOf("first"), writesStarted.toList())
+        assertEquals("the DAO entry itself was at exactly 400 ms", listOf(typedAt + 400), writesStartedAt.toList())
+        awaitWriteLanded("first")
+        assertEquals("that deadline's exact words reached Room", "first", unheld.getSession(sessionId)?.notes)
+        assertEquals("Room completion required no later typing time", typedAt + 400, dispatcher.scheduler.currentTime)
     }
 
     @Test
@@ -467,6 +815,68 @@ class FloorSessionNotesMoveCharacterisationTest {
         )
         val shown = awaitScreen(vm, "the finished row on screen") { it.session != null }
         assertEquals("and on screen", "restored words", shown.notes)
+    }
+
+    @Test
+    fun aStaleFinishedRouteCanLeaveWithoutNotesWritesBeforeAndAfterTheCompletedCacheIsLost() = runBlocking<Unit> {
+        val sessionId = seedLegExtension(deps = deps, loggedSets = floorSets(1))
+        unheld.updateSessionNotes(sessionId, "confirmed finished words")
+        val before = checkNotNull(unheld.getSession(sessionId))
+        assertEquals(FinishOutcome.Finished(sessionId), deps.finishWorkout(sessionId))
+        val finished = checkNotNull(unheld.getSession(sessionId))
+        assertTrue(finished.isFinished)
+        assertEquals(before.notes, finished.notes)
+        assertEquals(before.sets, finished.sets)
+        assertEquals(before.startedAt, finished.startedAt)
+        assertEquals(1, finishesStarted.get())
+
+        for (clearCompletedCache in listOf(false, true)) {
+            val route = if (clearCompletedCache) "cold finished route" else "completed-cache finished route"
+            if (clearCompletedCache) deps.workoutDraftCache.clearAll()
+            assertEquals(!clearCompletedCache, deps.workoutDraftCache.liveEntryLocked(sessionId))
+            val handle = handleFor(sessionId)
+            val saved = SavedStateWorkoutDraft(handle)
+            val vm = viewModel(handle)
+            awaitScreen(vm, "$route has read its actual finished row") {
+                it.session == finished && it.notes == finished.notes && !it.notesSave.busy &&
+                    it.notesSave.status == NotesSaveStatus.SAVED && it.liftReadiness == LiftEntryReadiness.READY
+            }
+            val cachedDraft = deps.workoutDraftCache.get(sessionId)
+            val cachedLifts = deps.workoutDraftCache.all(sessionId)
+            val cachedSelection = deps.workoutDraftCache.selectedExerciseId(sessionId)
+            val cachedNotes = deps.workoutDraftCache.sessionNotes(sessionId)
+            val savedNotes = saved.sessionNotes()
+            if (!clearCompletedCache) {
+                assertNull(cachedDraft)
+                assertTrue(cachedLifts.isEmpty())
+                assertNull(cachedSelection)
+                assertNull(cachedNotes)
+            }
+            assertFalse(deps.workoutDraftCache.hasPendingNotes(sessionId))
+            vm.setNotes("a stale finished editor callback")
+            dispatcher.scheduler.runCurrent()
+            assertEquals("$route rejects edits before Back", finished.notes, vm.uiState.value.notes)
+            vm.requestNotesExit()
+            runUntil(what = "$route queues truthful Back", read = { vm.exitRequested.value }) { it == WorkoutExit.Kept }
+            vm.setNotes("a late callback while finished Back is queued")
+            pauseTyping()
+            assertEquals("$route keeps its stored words", finished.notes, vm.uiState.value.notes)
+            assertEquals("$route leaves saved state unchanged", savedNotes, saved.sessionNotes())
+            assertEquals("$route leaves the complete Room row unchanged", finished, unheld.getSession(sessionId))
+            assertEquals("$route performs no notes DAO entry", emptyList<String>(), writesStarted.toList())
+            assertEquals("$route lands no notes write", emptyList<String>(), writesLanded.toList())
+            assertEquals(cachedDraft, deps.workoutDraftCache.get(sessionId))
+            assertEquals(cachedLifts, deps.workoutDraftCache.all(sessionId))
+            assertEquals(cachedSelection, deps.workoutDraftCache.selectedExerciseId(sessionId))
+            assertEquals(cachedNotes, deps.workoutDraftCache.sessionNotes(sessionId))
+            assertFalse(deps.workoutDraftCache.hasPendingNotes(sessionId))
+            assertFalse(vm.notesExitBlocked.value)
+            assertEquals(WorkoutExit.Kept, vm.exitRequested.value)
+            assertEquals(1, finishesStarted.get())
+            vm.onExitHandled()
+            assertNull(vm.exitRequested.value)
+            end(vm)
+        }
     }
 
     @Test
@@ -513,6 +923,21 @@ class FloorSessionNotesMoveCharacterisationTest {
     private fun pauseTyping() {
         dispatcher.scheduler.advanceTimeBy(TYPING_PAUSE_MS)
         dispatcher.scheduler.runCurrent()
+    }
+
+    /** Room's live-owner read precedes DAO entry; wait for it without moving typing time. */
+    private suspend fun awaitNotesWritesStarted(count: Int) {
+        val frozenAt = dispatcher.scheduler.currentTime
+        runUntil(what = "$count notes writes reach the DAO at virtual time $frozenAt", read = { writesStarted.toList() }) {
+            it.size >= count
+        }
+        assertEquals("waiting for actual DAO entry advances no typing time", frozenAt, dispatcher.scheduler.currentTime)
+    }
+
+    private suspend fun awaitHeldNotesWrite() {
+        val frozenAt = dispatcher.scheduler.currentTime
+        runUntil(what = "the actual notes DAO entry is held at virtual time $frozenAt", read = { writeHeld.isCompleted }) { it }
+        assertEquals("waiting for the held DAO entry advances no typing time", frozenAt, dispatcher.scheduler.currentTime)
     }
 
     /** Runs what waits for the test thread until the screen shows what [shows] accepts; bounded. */
@@ -573,6 +998,29 @@ class FloorSessionNotesMoveCharacterisationTest {
      * [testThread], and a record of the notes writes.
      */
     private inner class Doors(private val real: WorkoutDao) : WorkoutDao by real {
+        override suspend fun getSession(id: String): SessionWithDetails? {
+            val row = real.getSession(id)
+            if (holdNextSessionRead.compareAndSet(true, false)) {
+                sessionReadHeld.complete(Unit)
+                releaseSessionRead.await()
+            }
+            return row
+        }
+
+        override suspend fun sessionStartedAt(id: String): Long? {
+            if (holdNextFinishStart.compareAndSet(true, false)) {
+                finishStartHeld.complete(Unit)
+                releaseFinishStart.await()
+                if (failFinishStart.compareAndSet(true, false)) throw SQLiteFullException("finish setup failed (test)")
+            }
+            return real.sessionStartedAt(id)
+        }
+
+        override suspend fun finishSession(id: String, notes: String, durationMinutes: Int, finishedAt: Long): Int {
+            finishesStarted.incrementAndGet()
+            return real.finishSession(id, notes, durationMinutes, finishedAt)
+        }
+
         override suspend fun finishedWorkingSetsForExercises(
             exerciseIds: List<String>,
         ): List<FinishedWorkingSetRow> {
@@ -591,6 +1039,7 @@ class FloorSessionNotesMoveCharacterisationTest {
             }
 
         override suspend fun updateSessionNotes(id: String, notes: String) {
+            writesStartedAt.add(dispatcher.scheduler.currentTime)
             writesStarted.add(notes)
             if (failNextWrite.compareAndSet(true, false)) {
                 throw SQLiteFullException("database or disk is full (test)")

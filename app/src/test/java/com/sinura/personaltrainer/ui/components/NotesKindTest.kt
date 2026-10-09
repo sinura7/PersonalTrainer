@@ -8,7 +8,7 @@ class NotesKindTest {
     fun sessionAndProgramKeepTheirOwnWords() {
         assertEquals("Session notes", notesToggleLabel(NotesKind.SESSION, notes = "", expanded = false))
         assertEquals(
-            "Session notes · saved",
+            "Session notes",
             notesToggleLabel(NotesKind.SESSION, notes = "felt strong", expanded = false),
         )
         assertEquals("Add notes", notesToggleLabel(NotesKind.PROGRAM, notes = "", expanded = false))

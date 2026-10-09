@@ -26,6 +26,11 @@ object EndWorkoutCopy {
     const val BAR_EDIT_OPEN =
         "A set you logged is open for changes. Go to the session to save or cancel it, then finish."
 
+    const val BAR_NOTES_PENDING =
+        "Notes are not saved yet. Open the workout to save or retry them before finishing."
+
+    const val FINISHING = "Finishing this workout. Wait a moment."
+
     fun body(loggedSets: Int): String =
         if (loggedSets > 0) {
             "Save keeps the ${setWord(loggedSets)} you logged as a finished session. " +

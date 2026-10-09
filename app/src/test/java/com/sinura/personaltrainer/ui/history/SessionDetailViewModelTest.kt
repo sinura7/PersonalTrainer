@@ -2,9 +2,11 @@ package com.sinura.personaltrainer.ui.history
 
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.FailingObserveSessionDao
@@ -13,10 +15,18 @@ import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.WorkoutReadGate
 import com.sinura.personaltrainer.testutil.awaitFirst
 import com.sinura.personaltrainer.testutil.seedTestWorkout
+import com.sinura.personaltrainer.ui.components.NotesSaveStatus
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -138,21 +148,104 @@ class SessionDetailViewModelTest {
 
     @Test
     fun notesDebounceAndExitFlushBothPersist() = runBlocking {
+        // Room still runs on real worker threads. Only this timing test queues Main on the
+        // test thread, so observing hydration cannot race collectLatest arming its pause.
+        deps.close()
+        val notesWrites = CopyOnWriteArrayList<Pair<String, Long>>()
+        deps = FakeAppDependencies(
+            context = ApplicationProvider.getApplicationContext(),
+            scheduler = dispatcher,
+            workoutDaoDecorator = { real ->
+                object : WorkoutDao by real {
+                    override suspend fun updateSessionNotes(id: String, notes: String) {
+                        notesWrites.add(notes to dispatcher.scheduler.currentTime)
+                        real.updateSessionNotes(id, notes)
+                    }
+                }
+            },
+        )
         val fixture = seedFinished()
+        val main = StandardTestDispatcher(scheduler = dispatcher.scheduler, name = "notes timing Main")
+        Dispatchers.setMain(main)
         val vm = createViewModel(fixture.id)
-        vm.uiState.awaitFirst { !it.isLoading }
+        val subscriber = launch(main) { vm.uiState.collect { } }
 
-        vm.setNotes("debounced")
-        dispatcher.scheduler.advanceTimeBy(399)
-        assertEquals("", deps.workoutRepository.getSession(fixture.id)?.notes)
-        dispatcher.scheduler.advanceTimeBy(2)
-        dispatcher.scheduler.runCurrent()
-        awaitSession(fixture.id) { it.notes == "debounced" }
+        // Pump queued Main answers while Room runs, never advancing the typing clock.
+        suspend fun <T> awaitOnMain(what: String, read: suspend () -> T, done: (T) -> Boolean): T {
+            var last: Any? = null
+            return try {
+                withTimeout(TestWaits.FLOW_MS) {
+                    dispatcher.scheduler.runCurrent()
+                    var current = read()
+                    last = current
+                    while (!done(current)) {
+                        delay(10)
+                        dispatcher.scheduler.runCurrent()
+                        current = read()
+                        last = current
+                    }
+                    current
+                }
+            } catch (timedOut: TimeoutCancellationException) {
+                throw AssertionError("$what never came; last read: $last; notes DAO calls: $notesWrites", timedOut)
+            }
+        }
 
-        vm.setNotes("leave immediately")
-        vm.persistNotesForExit()
-        val flushed = awaitSession(fixture.id) { it.notes == "leave immediately" }
-        assertEquals("leave immediately", flushed.notes)
+        try {
+            awaitOnMain(what = "confirmed notes hydration", read = { vm.uiState.value }) {
+                !it.isLoading && it.session?.id == fixture.id &&
+                    it.notesSave.status == NotesSaveStatus.SAVED && !it.notesSave.busy
+            }
+            assertEquals(emptyList<Pair<String, Long>>(), notesWrites.toList())
+            val editedAt = dispatcher.scheduler.currentTime
+            vm.setNotes("debounced")
+            dispatcher.scheduler.runCurrent()
+            dispatcher.scheduler.advanceTimeBy(399)
+            dispatcher.scheduler.runCurrent()
+            assertEquals("no DAO write before 400 ms", emptyList<Pair<String, Long>>(), notesWrites.toList())
+            assertEquals("", deps.workoutRepository.getSession(fixture.id)?.notes)
+            assertEquals(editedAt + 399, dispatcher.scheduler.currentTime)
+
+            dispatcher.scheduler.advanceTimeBy(1)
+            dispatcher.scheduler.runCurrent()
+            assertEquals("one exact notes write at the deadline", listOf("debounced" to editedAt + 400), notesWrites.toList())
+            val debounced = awaitOnMain(
+                what = "the exact debounced notes row",
+                read = { deps.workoutRepository.getSession(fixture.id) },
+            ) { it?.notes == "debounced" }
+            assertEquals(fixture.copy(notes = "debounced"), debounced)
+            awaitOnMain(what = "confirmed debounced notes", read = { vm.uiState.value }) {
+                it.notes == "debounced" && it.notesSave.status == NotesSaveStatus.SAVED && !it.notesSave.busy
+            }
+
+            val timeBeforeExit = dispatcher.scheduler.currentTime
+            vm.setNotes("leave immediately")
+            vm.persistNotesForExit()
+            dispatcher.scheduler.runCurrent()
+            val flushed = awaitOnMain(
+                what = "the exact exit-flushed notes row",
+                read = { deps.workoutRepository.getSession(fixture.id) },
+            ) { it?.notes == "leave immediately" }
+            awaitOnMain(what = "confirmed exit-flushed notes", read = { vm.uiState.value }) {
+                it.notes == "leave immediately" && it.notesSave.status == NotesSaveStatus.SAVED && !it.notesSave.busy
+            }
+            assertEquals(fixture.copy(notes = "leave immediately"), flushed)
+            assertEquals(
+                listOf("debounced" to editedAt + 400, "leave immediately" to timeBeforeExit),
+                notesWrites.toList(),
+            )
+            assertEquals("exit flush did not wait for another virtual typing pause", timeBeforeExit, dispatcher.scheduler.currentTime)
+        } finally {
+            val job = checkNotNull(vm.viewModelScope.coroutineContext[Job])
+            job.cancel()
+            subscriber.cancel()
+            try {
+                awaitOnMain(what = "notes VM and subscriber teardown", read = { job.isCompleted && subscriber.isCompleted }) { it }
+            } finally {
+                viewModel = null
+                Dispatchers.setMain(dispatcher)
+            }
+        }
     }
 
     @Test

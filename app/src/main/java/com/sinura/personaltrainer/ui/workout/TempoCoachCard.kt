@@ -122,7 +122,8 @@ internal fun TempoCoachCard(
             enabled = enabled,
             modifier = Modifier
                 .heightIn(min = touchMin)
-                .testTag(WorkoutTestTags.TEMPO_COACH_DISMISS),
+                .testTag(WorkoutTestTags.TEMPO_COACH_DISMISS)
+                .semantics { contentDescription = "Dismiss Tempo suggestion" },
         ) {
             Text("×", style = InstrumentType.bodyStrong, color = TextSecondary)
         }

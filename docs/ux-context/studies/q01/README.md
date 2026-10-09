@@ -2,15 +2,15 @@
 
 **Date:** 8 October 2026
 
-**Status:** Native Quiet is implemented under O12 on the reviewed Debug-124 stack, with passing complete local and Android gates. Fresh mandatory reviews and trunk integration remain pending. The connected Debug-122/124 baselines, bounded repairs and browser proposals below retain their original evidence scope. Physical-phone acceptance remains unclaimed.
+**Status:** Native Quiet is reviewed, merged and reverified on trunk under O12. Its completed packet remains separate from the UX23 workout-truth follow-up. Full08 freshly passed the complete local gate. Native03 exposed an incomplete draft snapshot in the Why fixture; its synchronization repair compiled under the required Full09 task command, reusing unchanged Full08 JVM results. Native04 then passed all 222 native tests on that corrected source. The separate N2 runtime attempt ended incomplete before editing because its no-foreground-service precondition was not met; exact readback and cleanup passed separately. The scoped candidate is ready for an immutable commit and fresh pinned reviews; integration and post-merge verification remain pending. All original failures and the earlier guard-proof limitation remain preserved. The connected Debug-122/124 baselines, bounded repairs and browser proposals below retain their original evidence scope. N2 recovery, broader app UX work and physical-phone acceptance remain open.
 
 **Original study baseline:** `eae6517845ee560ceb9695bf2f92788e2b4339cc`, Debug 122. Later Debug-124 repairs and the new native implementation direction are recorded separately below.
 
-The later source reconciliation confirms published Live 124 comes from open PR
-#457's Tempo UI branch. The owner screenshot's installed version remains unknown.
+The later source reconciliation established that published Live 124 came from
+then-open PR #457's Tempo UI branch. The owner screenshot's installed version remains unknown.
 This comparison isolates readiness on trunk 122; it does not reproduce that
 branch's complete layout. The later Debug-124 follow-up reconciles that source;
-the open stack still needs resolution before trunk integration.
+Quiet subsequently integrated it through PR #460, after which #457 was closed.
 
 The owner subsequently reports currently using Debug 124 and finding the
 workflow clunky. The requested direction is a sophisticated but simple front
@@ -527,10 +527,11 @@ snapshot case without assuming that every hosted failure is a host issue.
 The bounded fixes and native drivers are verified on the Debug-124 stack; their
 complete gate, real runner execution and independent/adversarial review results
 are retained in the [portable follow-up record](debug124-followup.json).
-Integration is pending because the stack also contains open PR #457's existing
-Tempo/coaching work. O12 authorizes native Quiet development on that reviewed
-stack, preserving the existing recommendation policy. Reconcile the dependency
-before trunk integration. This packet adds no coaching algorithms, changes no
+At that stage, integration awaited reconciliation of PR #457's existing
+Tempo/coaching work. Quiet subsequently carried that published Debug-124 tip
+through PR #460; #457 was closed after its tip reached trunk. O12 authorizes
+native Quiet on that reviewed stack, preserving the recommendation policy.
+The bounded repairs add no coaching algorithms, change no
 database/backup format and does not prepare a Debug drop. The new implementation
 receives its own verification below; the preceding results belong to the bounded repairs.
 
@@ -566,10 +567,446 @@ source hashes match both the before/after gate snapshots and the native repeat.
 The compact [Quiet follow-up](quiet-native-followup.json) separates these attempts from the
 earlier bounded-repair evidence.
 
-Fresh independent and adversarial reviewers hit the account usage limit before
-completing their reports. Their reported completion-copy, density-precondition and
-offscreen-Why findings are addressed, but neither fresh review has passed. Under
-ADR-002 decision 8, PR #460 remains a draft pending those reviews and integration.
-The existing baseline reviews do not cover Quiet. Broader app UX phases and
-physical-phone acceptance remain separate; O12 does not require owner testing
-during development. No Debug drop is prepared by this packet.
+The first fresh review attempts stopped at the account usage limit. Subsequent
+independent and adversarial clean-context reviews both passed the frozen candidate
+`78ca67729b479d126f89236f91b03b483e8b75ef`, with no critical/high findings.
+[PR #460](https://github.com/sinura7/PersonalTrainer/pull/460) merged as
+`9b7a7f5a1b3f2904ab8a62c893c4728cbebeb1d6`; the whole merged tree equals the
+reviewed tree. The included published Debug-124 dependency [PR #457](https://github.com/sinura7/PersonalTrainer/pull/457)
+was closed after the tip merged, and both remote vehicle branches were removed.
+
+Clean-trunk post-merge verification freshly passed the complete local gate:
+**3,625 tests across 546 suites, zero failures/errors/skips**, plus all builds,
+lint and static checks. The complete owned API-29 native runner then passed
+**212 tests across 31 classes, zero failures/errors/skips** and 73 device-hashed
+captures. All 1,509 source inputs matched between both runs and remained unchanged;
+synthetic packages were removed and network/display settings restored. Raw results
+remain under `build/ux-context/runs/quiet-native/postmerge-full-gate` and
+`postmerge-native-suite`; `integration-complete.json` pins their summaries and reviews.
+
+Quiet's implementation packet is complete. Reviews identified inherited notes-save
+truth/recovery and Add-a-set explanation issues for the existing UX23 follow-up;
+W3's permanent five-tab render evidence is also required before Home and History.
+Broader app UX phases and physical-phone acceptance remain separate. O12 does not
+require owner testing during development. No Debug drop was prepared.
+
+### UX23 workout-truth follow-up — in development
+
+Base: merged Quiet `9b7a7f5a`. Preserve this packet's completed acceptance and its
+original failure archives. The next bounded packet precedes Home and History:
+
+| Existing concern | Change and acceptance task |
+|---|---|
+| UX23 / notes truth and recovery | Distinguish pending, saving, confirmed saved and failed notes in the live floor and saved-session editor. Retry the latest authored text; hold overlapping writes and verify that exit/Finish retains the latest durable notes. Preserve raw draft/trim, empty deletion, restore hydration and the 400 ms debounce unless a measured interruption demonstrates a separate defect. |
+| Q02 / existing Add-a-set explanation | Keep eligibility, thresholds, seed numbers and Apply-as-draft behavior. Explain the actual readiness inputs/window in its own trace; a fallback with no comparison must not claim observed improvement. Keep/Use controls remain reachable and write no set by themselves. |
+| UX23/UX25 / truthful recovery and spoken actions | Missing-session copy reports only what the missing read proves; failed reads retain Retry. Coach dismiss has a meaningful spoken purpose and remains disabled during a pending write. |
+| W3 / TS-3 development evidence | Permanently draw loaded Home, Body, Plan, History and Settings screens in the native-graphics JVM gate. Capture actual content; do not treat a navigation label/component fixture as a whole-tab draw. This is smoke coverage, not whole-app adaptive or phone acceptance. |
+
+One initial notes-probe attempt failed to compile before executing tests. Its
+source and log remain in `build/ux-context/runs/workout-truth/notes-race-baseline`;
+that attempt provides no application-behavior evidence. The corrected attempt
+`notes-race-baseline-attempt02` executed two tests against unchanged production
+`9b7a7f5a`: both failed, with zero errors/skips and unchanged source hashes.
+Exit started both `older` and `latest` writes while the older write was held;
+after Finish committed `final words`, releasing the older write replaced the
+durable notes with `older`. These observed races justify serialized notes writes
+and a Finish barrier. Fixed-source results will be appended separately.
+
+The intermediate `full-gate-attempt03` freshly passed 3,664 tests across 553
+suites with no failures/errors/skips, plus all required builds/lint/static checks.
+That source predates the required notes/Why/recovery matrices and the subsequent
+review fixes; it is not final acceptance for this packet. Attempt 04 and targeted
+attempt 06 stalled inside the JVM notes-render fixture. Their thread dumps,
+identity-checked worker termination, unchanged source hashes and incomplete
+results remain archived; neither produced fresh XML or a passing gate. The
+fixtures now check the actual saving message, centered text width, correct dialog
+focus ownership and explicit held-clock frames without removing clipping,
+touch-target or exact-record assertions. The reached notes-dialog Done target
+measured below 48 dp, so its native minimum height is corrected.
+
+Fresh provisional independent and adversarial reviews found two additional
+notes exits: History Repeat/Resume could navigate before failed notes were
+resolved, and Finish from the live bar could clear a kept draft. The same UX23
+packet now protects Back and gates History Repeat/Resume before starting another
+workout, replays the intended destination on Retry, and reloads the actual saved
+row after an explicit discard while leaving History editable on return. These
+navigation claims cover the protected Back/Repeat/Resume paths. Exercise Details
+and Rest push another screen while retaining the editor and cache owner.
+Outside-editor Finish refuses an unresolved draft or live notes writer before stopping rest or
+changing records; ordinary confirmed notes retain the existing finish path.
+A failed clear restores as an authored empty draft rather than an unfilled field.
+The guarded live exit owns its intent while saving, preventing a competing
+Finish/discard from racing its navigation. These implementation changes passed
+the complete local gates below, including the later review corrections. Native04
+subsequently passed as recorded below; final pinned reviews and integration
+remain pending. These changes introduce no database/backup format or coaching
+algorithm.
+
+#### Latest targeted verification and pending repairs — 8 October 2026
+
+`targeted-attempt08` freshly executed **182 tests across 32 suites: 18 failures,
+zero errors/skips**. All 32 XML files were fresh and all **1,521 source inputs**
+remained unchanged. Its summary and original failures remain under
+`build/ux-context/runs/workout-truth/targeted-attempt08/`. This was a failing
+targeted run, not a full gate or completed matrix acceptance.
+
+Nine failures exposed actual compact recovery targets measuring **40 dp**,
+below the 48 dp minimum. Their implementation now uses the 48 dp minimum;
+regressions retain bounds and scroll-reachability checks. The other nine
+failures concerned render/focus fixtures observing the wrong native window.
+Those fixtures now address the correct window. The later failing attempt below
+records their rerun separately; source inspection alone is not a passing profile.
+
+Further provisional review found that the first outside-editor Finish guard
+could read a stale draft snapshot, and a notes write could still race after
+that check while Finish reached SQL. The current repair reserves the session
+before Finish's first read and shares the notes-write gate through actual
+completion and cache clearing. The editor stays locked during that reservation.
+A failed Finish releases the lock and keeps the authored draft available for
+recovery. These internal Finish/cache contracts are necessary to protect the
+same notes, rather than extending the product's workout behaviour.
+
+The History forward-navigation barrier keeps Repeat/Resume queued until notes
+are resolved. If explicit forward discard cannot reload the saved row, autosave
+is paused for that exact draft revision until a new edit or explicit Retry, so
+the text being discarded cannot later write itself back. Three Room-backed
+regressions cover the Finish interleavings, and a separate failed-discard
+regression covers that History recovery path. The complete gates below verify
+that source and the subsequent review corrections. Complete native verification and final
+pinned reviews remain pending.
+
+`targeted-attempt09` ended incomplete with **zero fresh XML and no completed
+test count**. Its 32 retained XML files are older results, not results from this
+attempt. All 1,521 source inputs stayed unchanged. The stalled notes-render
+scroll/idle loop, worker thread dump and identity-checked termination of the
+owned worker remain under
+`build/ux-context/runs/workout-truth/targeted-attempt09/`; this is not a pass.
+
+`targeted-attempt10` then freshly executed **187 tests across 32 suites: eight
+failures, zero errors/skips**, with all 32 XML files fresh and all **1,521 source
+inputs unchanged**. Preserve its summary, executed source and original failures
+under `build/ux-context/runs/workout-truth/targeted-attempt10/`. Seven failures
+were in the older floor-notes fixtures: they assumed immediate DAO entry at the
+typing deadline while the current write path first reads the real Room session.
+The fixtures now wait for that read and actual DAO entry with virtual typing
+time held fixed, preserving the exact 400 ms deadline, write ordering, latest
+durable text and empty-deletion assertions. All seven formerly failing cases
+passed in `full-gate-attempt05`, recorded below.
+
+The eighth failure was `NotesTruthMatrixRenderTest.landscapeFont20`: an
+unscrolled End workout dialog's Session notes toggle was tapped without opening
+the text field, so the subsequent text-input assertion found no `SetText` node.
+The separate `end-landscape-probe01` freshly executed **one test, one failure,
+zero errors/skips**, with one fresh XML file and all **1,521 source inputs
+unchanged**. Its captures and semantics at
+`app/build/screen-renders/workout-notes-truth/f7778a13-e615-4173-8057-e313ba488829/800x360-font2.0/`
+show the toggle fully clipped, starting **one pixel below** the text viewport.
+The dialog retains a **236 px** scrollable text slot and fully visible **56 dp**
+Save/Leave without saving controls; the attempted touch did not expand notes.
+The driver repair adds a bounded scroll and actual touch before checking
+the expanded field, without removing clipping, touch-target or exact-record
+checks. Its nine-profile notes matrix passed in `full-gate-attempt05`. The failed
+probe's source, log, XML and summary remain under
+`build/ux-context/runs/workout-truth/end-landscape-probe01/`.
+
+The earlier targeted failures remain archived even though their repairs passed
+the subsequent complete gate. `full-gate-attempt05` freshly passed **3,701 tests
+across 554 suites, zero failures/errors/skips**, with all **554 XML files fresh**
+and all **1,521 source inputs unchanged**. It ran
+`./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest --rerun-tasks`
+from **2026-10-08T23:13:30.6250547Z** to **2026-10-08T23:24:09.8255104Z**.
+All **135 actionable tasks executed**, including the required builds, lint,
+Android test assembly and static checks. The seven Room-timing cases and all
+nine Notes, nine Why and nine Missing-session profiles passed.
+
+The summary and executed source remain under
+`build/ux-context/runs/workout-truth/full-gate-attempt05/`. The summary's SHA-256 is
+`aa938a634758d2566ad4ff4e4ca9c7fca6c4a5e0eec7aa7fbf2ddfefaf2f59e9`.
+This pins the archived uncommitted source and its before/after hashes; HEAD is
+still the merged Quiet base, and no final candidate commit is pinned yet.
+
+Fresh provisional reviews after that gate found **three P2 corrections**, now
+implemented and mechanically verified in `full-gate-attempt06`:
+
+- Allow protected Back after confirmed Finish when the exit intent is stale,
+  covering both same-process and cold-cache restoration.
+- Reject late IME edits while a kept-draft live exit is queued, so the queued
+  revision cannot change after the leave decision.
+- Make the live notes Leave guard describe current-app-run retention accurately.
+  Popping the editor removes its `SavedStateHandle`; failed unsaved raw text is
+  retained in the process cache while the app stays running. The copy executed
+  in this attempt was:
+  “Notes are not saved. This draft is kept while the app runs and may be lost if
+  the app closes.” This does not promise a durable draft store or process-death
+  recovery after that exit.
+
+These corrections postdate `full-gate-attempt05`. That frozen source's
+`full-gate-attempt06` freshly passed **3,702 tests across 554 suites, zero
+failures/errors/skips**, with all **554 XML files fresh** and all **1,521 source
+inputs unchanged**. The same four-task command above ran with `--rerun-tasks`
+from **2026-10-08T23:27:22.0464651Z** to **2026-10-08T23:37:53.4235623Z**;
+all **135 actionable tasks executed**, with required builds, lint, Android test
+assembly and static checks passing. The new Room case covers a stale finished
+route before and after losing the completed cache. The held queued-Back case
+covers the late IME rejection. All **nine changed Notes-guard profiles, nine Why
+profiles, nine Missing-session profiles and five loaded shipping-tab renders**
+also passed their then-current assertions. This establishes the two exit repairs
+mechanically on that source. The guard-text proof limitation discovered after
+this gate is recorded below; the passing count does not prove its full message
+was visible.
+
+The frozen-source local evidence is retained under
+`build/ux-context/runs/workout-truth/full-gate-attempt06/`. The summary SHA-256 is
+`c21e487bf1b61139b832675d28b5f578c28ec40ccccc5acd37d2eb99c8bcdc88`;
+the before-run source manifest SHA-256 is
+`2fe65d8624da86c193fd2c76bd3bf23a0bdbd93f039246d5bd2a92d44dd546d6`.
+The executed source remains uncommitted at this update; these archive hashes pin
+the local result, not a final candidate commit.
+
+After that gate, inspection of the landscape/font-2.0 notes guard showed its last
+line, “app closes.”, below the visible text viewport. The fixture compared the
+scrolling Text node's viewport size with its visible bounds, so it could pass
+without proving that every message line was exposed. This is a verification gap;
+the capture alone does not prove that scrolling cannot reach the line. The same
+packet subsequently shortened the live and History messages and added full
+text-layout and per-line rendered-glyph checks. That repair postdates
+`full-gate-attempt06` and passed the new complete gate recorded below. The
+original capture and executed source remain retained; the earlier passing count
+is not retroactively strengthened.
+
+The owned, unfiltered, offline API-29 `native-suite-attempt01` then completed
+**222 tests across 32 classes: two failures, zero errors/skips**, with all
+**1,521 source inputs unchanged**. It ran from
+**2026-10-08T23:38:06.6669725Z** to **2026-10-08T23:46:59.9747135Z**, preserving
+**83 captures whose host/device hashes match**. The eight new notes and
+missing/failed-read recovery cases passed, including held/latest writes,
+failed-save Retry, Finish, and History correction/clear. The connected workout
+journey also passed in this run.
+
+Both new Add-a-set Why cases failed at the summary assertion. The actual text
+was “Your planned sets are complete. 4 of 5 readiness checks support one extra
+set.”; the fixture used an exact-match assertion with only the latter fragment.
+The cases stopped before their fact traversal and Keep/Use actions, so this run
+does not verify those actions or their no-write assertions. The fixture was
+corrected to assert the full sentence for the next run. This is a failing native suite, not a
+pass or evidence of a different coaching decision.
+
+The original XML, source, log, capture hashes and summary remain under
+`build/ux-context/runs/workout-truth/native-suite-attempt01/`. Its summary SHA-256
+is `ec95bd34149dfa0f62be4b1a5c2f10e34ac05cfabc1fc994ed76b0ff96f9624f`.
+The collector stopped, test packages were removed and the runner restored the
+device's network settings.
+
+`full-gate-attempt07` freshly passed **3,702 tests across 554 suites, zero
+failures/errors/skips**, with all **554 XML files fresh** and all **1,521 source
+inputs unchanged**. The required four-task command with `--rerun-tasks` ran from
+**2026-10-08T23:50:13.2875720Z** to **2026-10-09T00:00:54.5239809Z**; all **135
+actionable tasks executed**, including required builds, lint, Android test
+assembly and static checks.
+
+The live guard now reads “Notes are not saved. Closing the app may lose this
+draft.” The History guard reads “Notes are not saved. Leaving discards these
+changes.” Both retain their recovery choices. Across all **nine notes profiles**,
+the strengthened fixture checks the actual OS font, full expected text through
+its final character, unclipped text-layout bounds without ellipsis, initial
+self-scroll position and actual rendered glyph ink on every line in the measured
+Android modal. The existing real-touch, action-size and exact-record assertions
+remain. The nine Why and nine Missing-session profiles and five loaded shipping
+tabs also passed.
+
+The agent visually reviewed the complete live/History warnings and actions at
+landscape/font 2.0 in
+`app/build/screen-renders/workout-notes-truth/c8c0db77-f775-432a-8f70-f662c056ece0/800x360-font2.0/`.
+These are native-graphics JVM captures, not physical-phone acceptance. Full07's
+summary and frozen executed source remain under
+`build/ux-context/runs/workout-truth/full-gate-attempt07/`; the summary SHA-256 is
+`a27ea8a4d68b8bd5087c9b7333d3cea745e0c950944e4de7138b661bf3a3ce58`.
+No final candidate commit is pinned yet.
+
+The owned, unfiltered, offline API-29 `native-suite-attempt02` completed
+**222 tests across 32 classes, zero failures/errors/skips**, with all **1,521
+source inputs unchanged** and **85 captures whose host/device hashes match**.
+It ran from **2026-10-09T00:01:03.6776496Z** to
+**2026-10-09T00:07:47.9438441Z**. Both corrected Why cases reached their facts and
+Keep/Use actions and passed their draft-only/no-write/no-rest assertions. The
+eight new notes/read-recovery cases and connected workout journey passed again.
+The original Native01 failures remain preserved separately.
+
+Native02's summary, executed source, XML, log and capture hashes remain under
+`build/ux-context/runs/workout-truth/native-suite-attempt02/`; its summary SHA-256
+is `b3a5b1a00eac0a473a9dddb02bcb2a0822a0dcdc4df00af27d0fbe0494e37b80`.
+The collector stopped, test packages were removed and network settings restored.
+This pass applies to that frozen source and owned emulator fixture.
+
+After visually reviewing that evidence, the agent clarified the missing-workout
+body on the live floor and Rest screen to: “This workout is not running. If you
+finished it, look in History.” The matching JVM constant and native expectation
+were updated; these are four literal-copy edits, with no recovery-action or data
+contract change. They postdate Full07/Native02 and were verified in the fresh
+complete local gate below; the earlier passes do not certify these later edits.
+
+`full-gate-attempt08` freshly passed **3,702 tests across 554 suites, zero
+failures/errors/skips**, with all **554 XML files fresh** and all **1,521 source
+inputs unchanged**. The required four-task command with `--rerun-tasks` ran from
+**2026-10-09T00:08:02.1849942Z** to **2026-10-09T00:18:37.9961652Z**; all **135
+actionable tasks executed**, with required builds, lint, Android test assembly
+and static checks passing. All **nine Missing-session profiles** passed with the
+clarified copy, preserving full-text/glyph, bounds, scroll/touch-target and
+exact-record checks. The passing gate also retains the nine-profile Notes/Why
+matrices and loaded shipping-tab smoke coverage.
+
+Full08's summary, XML, log and frozen executed source remain under
+`build/ux-context/runs/workout-truth/full-gate-attempt08/`; its summary SHA-256 is
+`1d554478034a334326e2c65d44efa1b99727148b1ea61a56ab2def581e336a96`.
+No final candidate commit is pinned yet.
+
+The portable Full08 frames below match their original generator files and the
+hashes in [the follow-up manifest](quiet-native-followup.json). All are synthetic
+native-graphics JVM captures at the actual OS font 2.0, not physical-phone
+acceptance or an Android-device screenshot suite.
+
+| ID / portable capture | Recorded scope |
+|---|---|
+| [N14: live notes exit guard](assets/N14-live-notes-guard-landscape-font20.png) | Landscape, 800×360: complete live warning and all three recovery actions in the actual modal. |
+| [N15: failed History notes exit](assets/N15-history-notes-guard-landscape-font20.png) | Landscape, 800×360: actual Room-backed failed exit, complete warning and all three recovery actions. |
+| [N16: missing workout](assets/N16-missing-workout-font20.png) | 360×640: factual conditional History message and reached Back to home action. |
+| [N17: extra-set explanation](assets/N17-extra-set-explanation-landscape-font20.png) | Landscape, 640×360: reached four-of-five explanation and fixed draft-only Keep/Use actions; the earlier callout is partly scrolled out. |
+
+The owned, unfiltered, offline API-29 `native-suite-attempt03` completed **222
+tests across 32 classes: one failure, zero errors/skips**, with all **1,521 source
+inputs unchanged** and **85 host/device-hash-matched captures**. It ran from
+**2026-10-09T00:18:50.6946985Z** to **2026-10-09T00:28:21.690272Z**. The Why Keep
+fixture captured a partial manual draft, **87.5 kg × 10 with no effort**, after
+waiting only for the weight. Its post-Keep equality assertion then observed the
+completed intended draft, **87.5 kg × 12 at effort 8**. This is a failed fixture
+precondition; the result does not demonstrate Keep changing a complete draft.
+The original failure remains under
+`build/ux-context/runs/workout-truth/native-suite-attempt03/`, with summary SHA-256
+`7b458a2e59a46c7193e76daa4aa33bad842016cd2306d6a86caeea9b3b210e65`.
+The collector stopped, test packages were removed and network settings restored.
+
+The sole subsequent source change makes that native fixture wait for weight,
+repetitions and effort together, then explicitly asserts the complete draft
+before opening Why. Post-Keep equality, stored-row/no-SQL and no-rest assertions
+remain. Production and JVM source inputs are byte-identical to Full08.
+
+`full-gate-attempt09` completed the normal required command
+`./tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest`
+from **2026-10-09T00:30:41.6546001Z** to **2026-10-09T00:33:58.6825999Z**, with
+**1,521 stable source inputs**. `assembleDebug`, `lintDebug` and
+`assembleDebugAndroidTest` executed; `testDebugUnitTest` was **UP-TO-DATE**. Across
+the command, **11 actionable tasks executed and 124 were up-to-date**. It executed
+**zero new JVM tests**: all **554 XML files are byte-identical reused results**
+from the fresh Full08 **3,702-test, zero-failure/error/skip** run. This is required
+task-command success plus explicitly reused unchanged JVM evidence, not another
+fresh 3,702-test execution.
+
+Full09's summary, task log, source comparison and reused XML evidence remain
+under `build/ux-context/runs/workout-truth/full-gate-attempt09/`; its summary
+SHA-256 is `7ea19a47305f54376a6eb13cd294f5cfe43183004dac752023a51e3f556283fe`.
+The owned, unfiltered, offline API-29 `native-suite-attempt04` completed **222
+tests across 32 classes, zero failures/errors/skips**, with all **1,521 source
+inputs unchanged** and **85 host/device-hash-matched captures**. It ran from
+**2026-10-09T00:34:27.7143907Z** to **2026-10-09T00:41:09.9617529Z**. Both Why
+cases passed with the complete intended draft precondition, retained post-Keep
+equality and stored-row/no-SQL/no-rest checks. The notes/read-recovery cases and
+connected workout journey also passed. Native03's original failure remains
+preserved; this result applies to the corrected native source.
+
+Native04's summary, XML, log, executed source and capture hashes remain under
+`build/ux-context/runs/workout-truth/native-suite-attempt04/`; the summary SHA-256
+is `0187020a853f5ce35a5efe3ff0b8e979366c51750ed2bd161719a016afa2c8fb`.
+The collector stopped, test packages were removed and network settings restored.
+A clean-trunk full rerun and affected connected journey remain required after
+integration.
+
+The selected portable Native04 frames below match the preserved device captures
+and manifest hashes. The agent inspected both originals. These are actual owned
+synthetic API29/font-2.0 emulator frames, distinct from N14–N17's JVM lane; they
+retain the following visual limits.
+
+| ID / portable native capture | Recorded scope and limit |
+|---|---|
+| [N18: failed notes, keyboard and Retry](assets/N18-native-notes-failed-retry-font20-ime.png) | Authored failed notes with the IME visible and Retry reached. This frame does not prove the whole modal or Done action is reachable. |
+| [N19: extra-set Why facts and draft actions](assets/N19-native-extra-set-why-font20.png) | Explanation facts and draft-only actions reached. The inherited Material 3 “Drag handle” tooltip overlaps the title; this frame does not prove an unobscured complete title. |
+
+N19's tooltip behaviour is also present in the prior frontend lane and does not
+come from a changed Why-sheet component in this packet. Its overlap remains
+visible in the preserved capture and evidence scope. Neither frame establishes
+physical-phone acceptance.
+
+The separate ignored N2 driver APK's `assembleDebug` and `lintDebug` build
+passed with **43 executed tasks**; the separate controller compiled and packaged
+with **50 executed tasks**. The first setup timed out waiting for the fresh
+install's exercise catalog after registering a partial session, before writing
+a set. Its separately named cleanup passed and restored the original seven raw
+preference keys. The ignored controller then awaited the normal idempotent
+catalog seed; fresh driver/controller builds passed again, followed by one
+passing setup method. No production source changed for that prerequisite repair.
+
+Actual first-launch UI traversal dismissed **Unrestricted battery** with
+**Not now**, then used **Open settings**, enabled the overlay permission and
+returned to Temper. Its UI XML is retained. The real live AppNav started
+`RestTimerService` with `EXTERIOR_SYNC` even though no rest had been started.
+`measure01` recorded `servicesBefore.isForeground=true` and rejected the
+no-foreground-service precondition **before clearing the notes field or removing
+the task from Recents**. This attempt ended **incomplete before editing**; it
+establishes no `<400 ms` interval, process death or deletion success. The service,
+driver guard and timing threshold were not changed to manufacture a pass.
+
+A separate passing inspect method verified the same session
+`421448df-0365-49ed-af65-3a739bb83bdd`, set, date/start and exercise records, no
+running rest and unchanged original notes. This is unchanged readback after a
+rejected precondition, not successful deletion recovery. A separate passing
+cleanup method removed only the registered synthetic session and restored all
+seven raw preference presences/values, including profile/display timestamps,
+with mapped verification. The root logcat retains the `10650/10681`
+`N2_FIXTURE_PREFERENCES_RESTORED` marker. Root restored the overlay app-op to
+default and Wi-Fi/data to their original `1/1`; the restoration capture records
+active default network `104`. All three known local APK identities were verified
+before removing only the owned target, controller and driver packages.
+
+The bounded runtime outcome, original setup timeout, separate named-method
+results, UI and restoration evidence remain under
+`build/ux-context/runs/workout-truth/n2-runtime01/`; its summary SHA-256 is
+`e3c149cd9b54231e17170d50bdcf5ed9671b0d6627e69868d4fc91a1a84fd85c`.
+Experiment builds and named setup/inspect/cleanup methods are excluded from the
+permanent **222-test** native-suite count. N2 remains an explicit recovery gap.
+
+The scoped candidate is ready for an immutable commit and fresh independent/
+adversarial reviews against that pin. Those reviews, integration and the
+clean-trunk full rerun/affected connected journey remain pending. The passing
+local/native runs and bounded N2 attempt do not close UX23, the broader roadmap
+or physical-phone acceptance. No schema, backup format, public API or new
+coaching rule is introduced; the internal Finish/cache changes preserve the
+existing notes-safety contract. No owner-phone testing or Debug drop is requested
+for this development work.
+
+Quiet's merged `9b7a7f5a` packet remains complete with its separately recorded
+post-merge **3,625-test local gate and 212-test native suite**. Those earlier
+passes do not certify this follow-up, close the broader roadmap, or establish
+physical-phone acceptance.
+
+#### Final repository formatting gate — 8 October 2026
+
+The staged-file check caught CRLF line endings in the new
+`SessionNotesSaveStateTest.kt`. The original bytes and failed check are retained
+under `build/ux-context/runs/workout-truth/line-ending-finalization/`. Replacing
+only CRLF with LF reproduces the final file exactly; test logic and all other
+1,520 runtime inputs are unchanged. The staged whitespace check now passes.
+
+`full-gate-attempt10` passed the normal required four-task command with **24
+executed, 2 cached and 109 up-to-date tasks**. Builds, lint and Android test
+assembly executed; `testDebugUnitTest` was **UP-TO-DATE**, with **zero newly
+executed JVM tests** and all **554 XML files byte-identical** to Full08's fresh
+**3,702-test pass**. All **1,521 inputs remained stable**. Its summary SHA-256 is
+`c549d8413f8d1cb0d41e59df5fadbb66bffe7f6b21192cced079280ef3567975`;
+final runtime-manifest SHA-256 is
+`cb033c80d8ed63730ccd7cba8588d6870ff3c7b4ce999c5d7ac448ddb341dbc8`.
+
+Native04's production and Android sources remain byte-identical; the sole
+subsequent change is that JVM fixture's line endings. Its 222-test result retains
+that scope. Final immutable-commit reviews and integration remain pending at
+this candidate snapshot. Clean-trunk verification must freshly execute the full
+required gate and affected native journey. N2, owner-phone acceptance and the
+broader UX criteria remain open.

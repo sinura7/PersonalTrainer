@@ -15,6 +15,11 @@ sealed interface FinishOutcome {
 
     data object SessionMissing : FinishOutcome
 
+    /** A notes-less surface must return to the writer rather than drop its draft. */
+    data object NotesPending : FinishOutcome
+
+    data object InProgress : FinishOutcome
+
     data class Failed(val message: String) : FinishOutcome
 }
 
@@ -44,6 +49,32 @@ class FinishWorkout(
      *   [WorkoutRepository.finishSession] writes the value it is given.
      */
     suspend operator fun invoke(sessionId: String, notes: String? = null): FinishOutcome {
+        // Reserve before the first read, not after a snapshot has already been taken.
+        // The editor disables changes for this entire operation, including suspended SQL.
+        if (!draftCache.beginFinish(sessionId)) return FinishOutcome.InProgress
+        try {
+            // An already-running notes write owns the shared write lock. A notes-less
+            // surface must return promptly to that editor rather than wait behind it.
+            if (notes == null && draftCache.hasPendingNotes(sessionId)) {
+                val session = runCatchingCancellable { workoutRepository.getSession(sessionId) }
+                    .getOrElse { thrown ->
+                        AppLog.w(TAG, "Reading the session failed", thrown)
+                        return FinishOutcome.Failed("Could not finish this workout. Try again.")
+                    } ?: return FinishOutcome.SessionMissing
+                if (session.isFinished) {
+                    draftCache.finishConfirmed(sessionId)
+                    return FinishOutcome.Finished(sessionId)
+                }
+                if (session.sets.isEmpty()) return FinishOutcome.NothingLogged
+                return FinishOutcome.NotesPending
+            }
+            return draftCache.withNotesWrite(sessionId) { finishReserved(sessionId, notes) }
+        } finally {
+            draftCache.endFinish(sessionId)
+        }
+    }
+
+    private suspend fun finishReserved(sessionId: String, notes: String?): FinishOutcome {
         // The full session, not the in-progress summary: the summary carries no sets, and the
         // zero-set guard is the whole point of reading it.
         val session = runCatchingCancellable { workoutRepository.getSession(sessionId) }
@@ -52,13 +83,17 @@ class FinishWorkout(
                 return FinishOutcome.Failed("Could not finish this workout. Try again.")
             } ?: return FinishOutcome.SessionMissing
 
-        if (session.isFinished) return FinishOutcome.Finished(sessionId)
+        if (session.isFinished) {
+            draftCache.finishConfirmed(sessionId)
+            return FinishOutcome.Finished(sessionId)
+        }
         if (session.sets.isEmpty()) return FinishOutcome.NothingLogged
+        if (notes == null && draftCache.hasPendingNotes(sessionId)) return FinishOutcome.NotesPending
 
         return runCatchingCancellable {
             restTimer.stop()
             workoutRepository.finishSession(sessionId, notes ?: session.notes)
-            draftCache.clear(sessionId)
+            draftCache.finishConfirmed(sessionId)
             FinishOutcome.Finished(sessionId)
         }.getOrElse { thrown ->
             AppLog.w(TAG, "Finishing the workout failed", thrown)

@@ -2,6 +2,8 @@ package com.sinura.personaltrainer.workout
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**
@@ -103,6 +105,53 @@ class WorkoutDraftCacheSessionNotesTest {
 
         assertEquals("session a keeps its notes", "morning", cache.sessionNotes("a"))
         assertEquals("session b keeps its notes", "evening", cache.sessionNotes("b"))
+    }
+
+    @Test
+    fun confirmedReopenRetiresSettledOwnersButNeverAnOlderActiveWriter() {
+        val cache = WorkoutDraftCache()
+        val older = Any()
+        val newer = Any()
+        cache.putSessionNotes("s1", "latest")
+        cache.markNotesPending("s1", older, pending = true, busy = true, notes = "older")
+        cache.markNotesPending("s1", newer, pending = true, busy = false, notes = "latest")
+        cache.markNotesPending("s1", newer, pending = false, busy = false, notes = "latest")
+        assertTrue("confirming new text does not forget an older write", cache.hasPendingNotes("s1"))
+        cache.markNotesPending("s1", older, pending = true, busy = false, notes = "older")
+        cache.markNotesPending("s1", newer, pending = false, busy = false, notes = "latest")
+        assertFalse("the reopened confirmed draft retires settled protection", cache.hasPendingNotes("s1"))
+    }
+
+    @Test
+    fun unrelatedStoredTextCannotClearTheCurrentFailedDraftsProtection() {
+        val cache = WorkoutDraftCache()
+        cache.putSessionNotes("s1", "authored")
+        cache.markNotesPending("s1", Any(), pending = true, busy = false, notes = "authored")
+        cache.markNotesPending("s1", Any(), pending = false, busy = false, notes = "stored")
+        assertTrue(cache.hasPendingNotes("s1"))
+        cache.replaceAll("s1", emptyMap(), null)
+        assertTrue("restoring lift entries keeps the session's notes barrier", cache.hasPendingNotes("s1"))
+        cache.clear("s1")
+        assertFalse(cache.hasPendingNotes("s1"))
+    }
+
+    @Test
+    fun restoringAnEarlierLiveBackupAllowsItsPreviouslyFinishedSessionIdToBeEdited() {
+        val cache = WorkoutDraftCache()
+        cache.put(entry(exerciseId = "squat", notes = "before finish"))
+        assertTrue(cache.beginFinish("s1"))
+        cache.finishConfirmed("s1")
+        cache.endFinish("s1")
+        cache.editLiveNotes("s1") { cache.putSessionNotes("s1", "stale editor") }
+        assertNull("the old editor cannot recreate the finished draft", cache.sessionNotes("s1"))
+
+        // Restore clears process drafts before opening the earlier live row with this ID.
+        cache.clearAll()
+        cache.put(entry(exerciseId = "squat", notes = "restored live note"))
+        cache.editLiveNotes("s1") { cache.putSessionNotes("s1", "new words after restore") }
+        assertFalse("a prior finish does not lock a restored live row", cache.liveEntryLocked("s1"))
+        assertEquals("new words after restore", cache.sessionNotes("s1"))
+        assertEquals("squat", cache.selectedExerciseId("s1"))
     }
 
     private fun entry(exerciseId: String, notes: String, sessionId: String = "s1") = WorkoutDraft(

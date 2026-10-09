@@ -36,6 +36,9 @@ fun EndWorkoutDialog(
     onToggleNotes: () -> Unit = {},
     onNotesChange: (String) -> Unit = {},
     editOpen: Boolean = false,
+    notesSave: NotesSaveState = NotesSaveState(),
+    onRetryNotes: () -> Unit = {},
+    notesEnabled: Boolean = true,
 ) {
     val canSave = EndWorkoutCopy.canSave(loggedSets)
     AlertDialog(
@@ -73,6 +76,9 @@ fun EndWorkoutDialog(
                     expanded = notesExpanded,
                     onToggle = onToggleNotes,
                     onChange = onNotesChange,
+                    saveState = notesSave,
+                    onRetryNotes = onRetryNotes,
+                    enabled = notesEnabled,
                 )
             }
         },
