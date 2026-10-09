@@ -28,6 +28,27 @@ data class HorizonTotals(
 )
 
 object HorizonMath {
+    /** History resolves the selected civil period once; goals retain the legacy API below. */
+    fun totals(
+        horizon: AnalyticsHorizon,
+        projections: List<DailyProjection>,
+        range: HistoryPeriodRange,
+    ): HorizonTotals {
+        val slice = projections.filter { it.localEpochDay in range }
+        return HorizonTotals(
+            horizon = horizon,
+            startEpochDay = range.startEpochDay,
+            endEpochDay = range.endEpochDay,
+            sessionCount = slice.sumOf { it.sessionCount },
+            trainedDays = slice.count { it.sessionCount > 0 },
+            workingSets = slice.sumOf { it.workingSets },
+            volumeKg = slice.sumOf { it.volumeKg },
+            activeMinutes = slice.sumOf { it.activeMinutes },
+            cardioSeconds = slice.sumOf { it.cardioSeconds },
+            cardioDistanceMeters = slice.sumOf { it.cardioDistanceMeters },
+        )
+    }
+
     fun range(
         horizon: AnalyticsHorizon,
         today: CivilDate,

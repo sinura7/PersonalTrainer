@@ -7,11 +7,13 @@ import org.junit.Test
 
 class HistoryCopyTest {
     @Test
-    fun horizonCaptionDoesNotClaimAViewSwitch() {
+    fun captionNamesTheSharedPeriodAndKeepsHeatAndBodyMeaningsSeparate() {
         val caption = HistoryCopy.HORIZON_CAPTION
         assertTrue(caption.contains("Totals"))
         assertFalse(caption.contains("filter", ignoreCase = true))
-        assertTrue(caption.contains("all history"))
+        assertTrue(caption.contains("calendar"))
+        assertTrue(caption.contains("sessions"))
+        assertTrue(caption.contains("selected period"))
         assertTrue(HistoryCopy.CALENDAR_HEAT.contains("sets that month"))
         assertFalse(HistoryCopy.CALENDAR_HEAT.contains("muscle", ignoreCase = true))
         assertEquals("Today", HistoryCopy.windowTitle(AnalyticsHorizon.DAY))
@@ -33,5 +35,15 @@ class HistoryCopyTest {
         assertTrue(BodyHeatCopy.EMPTY_LOG.startsWith("Tap a muscle"))
         assertTrue(BodyHeatCopy.EMPTY_LOG.contains("Finished sets light the figure"))
         assertFalse(BodyHeatCopy.WINDOW_CAPTION.contains("Start", ignoreCase = true))
+    }
+
+    @Test
+    fun activeDurationUsesHoursWithoutLosingRemainderMinutes() {
+        assertEquals("0 min", HistoryCopy.activeDuration(-1))
+        assertEquals("0 min", HistoryCopy.activeDuration(0))
+        assertEquals("59 min", HistoryCopy.activeDuration(59))
+        assertEquals("1 h", HistoryCopy.activeDuration(60))
+        assertEquals("1 h 20 min", HistoryCopy.activeDuration(80))
+        assertEquals("24 h 1 min", HistoryCopy.activeDuration(1_441))
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasTestTag
@@ -20,9 +21,11 @@ import androidx.lifecycle.ViewModel
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
-import com.sinura.personaltrainer.domain.PlanDayCopy
+import com.sinura.personaltrainer.domain.AnalyticsHorizon
 import com.sinura.personaltrainer.domain.HeatWindow
+import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.MuscleLoadCalculator
+import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.history.HistoryScreen
@@ -41,6 +44,7 @@ import com.sinura.personaltrainer.ui.settings.SettingsTags
 import com.sinura.personaltrainer.ui.settings.SettingsViewModel
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.testutil.SteppingTime
 import java.io.File
 import java.util.UUID
@@ -52,6 +56,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -77,11 +82,13 @@ class ShippingTabsRenderTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private lateinit var deps: FakeAppDependencies
     private val models = mutableListOf<ViewModel>()
+    private var today = 0L
     private val app: Application get() = ApplicationProvider.getApplicationContext()
 
     @Before fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val clock = SteppingTime(nowMs = 1_791_446_400_000L, zoneId = "UTC")
+        today = clock.civilDate(clock.nowMillis()).epochDay
         val emptyHistory = MuscleLoadCalculator.snapshot(
             sessions = emptyList(), window = HeatWindow.CURRENT_WEEK,
             nowMs = clock.nowMillis(), time = clock,
@@ -141,15 +148,25 @@ class ShippingTabsRenderTest {
         capture("plan", compose.onNodeWithText(PlanDayCopy.EMPTY))
     }
 
-    @Test fun historyDrawsItsLoadedEmptyLog() {
+    @Test fun historyDrawsItsLoadedEmptyCurrentMonth() {
         val vm = HistoryViewModel(app, deps).also(models::add)
         compose.showFloor {
-            HistoryScreen(onOpenSession = {}, onOpenExercise = {}, onOpenActiveSession = {}, viewModel = vm)
+            CompositionLocalProvider(LocalTodayEpochDay provides today) {
+                HistoryScreen(onOpenSession = {}, onOpenExercise = {}, onOpenActiveSession = {}, viewModel = vm)
+            }
         }
-        compose.awaitThat("History's loaded empty log", vm.uiState::value) { !vm.uiState.value.isLoading }
+        compose.awaitThat("History's loaded empty current Month", vm.uiState::value) {
+            !vm.uiState.value.isLoading && !vm.uiState.value.progressLoading
+        }
         assertTrue(!vm.uiState.value.unavailable && !vm.uiState.value.stale)
+        assertEquals(AnalyticsHorizon.MONTH, vm.uiState.value.horizon)
+        assertEquals(today, vm.uiState.value.today.epochDay)
+        assertEquals(today + 1, checkNotNull(vm.uiState.value.periodRange).endExclusiveEpochDay)
+        assertEquals(0, checkNotNull(vm.uiState.value.horizonTotals).sessionCount)
         compose.waitForIdle()
         compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag(HistoryTags.EMPTY))
+        compose.onNodeWithText(HistoryCopy.EMPTY_PERIOD_TITLE).assertTextEquals(HistoryCopy.EMPTY_PERIOD_TITLE)
+        compose.onNodeWithText(HistoryCopy.EMPTY_PERIOD).assertTextEquals(HistoryCopy.EMPTY_PERIOD)
         capture("history", compose.onNodeWithTag(HistoryTags.EMPTY))
     }
 

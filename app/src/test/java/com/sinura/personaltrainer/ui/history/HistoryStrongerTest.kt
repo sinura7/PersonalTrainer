@@ -1,38 +1,39 @@
 package com.sinura.personaltrainer.ui.history
 
-import java.io.File
+import android.app.Application
+import androidx.compose.ui.test.performClick
+import com.sinura.personaltrainer.domain.AnalyticsHorizon
+import com.sinura.personaltrainer.domain.HistoryKind
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
-class HistoryStrongerTest {
-    @Test
-    fun horizonPickerLivesInTheListAndCalendarStartsAsAWeek() {
-        val screen = readOwned("ui/history/HistoryScreen.kt")
-        val lazy = screen.indexOf("LazyColumn(")
-        val picker = screen.indexOf("HorizonPicker(")
-        assertTrue("LazyColumn must still be composed", lazy >= 0)
-        assertTrue("HorizonPicker must still be composed", picker >= 0)
-        assertTrue("HorizonPicker must sit inside the scrolling list", picker > lazy)
-        assertTrue(screen.contains("instrumentAnimateItem()"))
-        assertTrue(screen.contains("monthExpanded"))
-        assertTrue(screen.contains("showMonth = monthExpanded"))
-        assertTrue(screen.contains("progress = state.horizonProgress"))
-        assertTrue(screen.contains("HistoryTags.MOVED_MOST"))
-        assertTrue(screen.contains("EmptyScene.LOG"))
-        assertTrue(screen.contains("HistoryCopy.EMPTY_TITLE"))
-
-        val calendar = readOwned("ui/history/TrainingCalendarCard.kt")
-        assertTrue(calendar.contains("showMonth"))
-        assertTrue(calendar.contains("HistoryCopy.CALENDAR_MONTH"))
-        assertTrue(calendar.contains("weekContaining("))
-        assertTrue(calendar.contains("weeksToShow"))
-    }
-
-    private fun readOwned(relative: String): String {
-        val roots = listOf(
-            File("app/src/main/java/com/sinura/personaltrainer"),
-            File("../app/src/main/java/com/sinura/personaltrainer"),
-        )
-        return roots.map { File(it, relative) }.first { it.isFile }.readText()
+/** Approved period behavior replaces the obsolete source-shape/independent-month guard. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(application = Application::class, qualifiers = "w360dp-h640dp-xhdpi")
+class HistoryStrongerTest : HistoryPeriodTestHost() {
+    @Test fun previousPeriodMovesTotalsCalendarAndListTogether() = evidence("coherent-previous") {
+        graph()
+        show()
+        awaitLoaded()
+        val stored = inventory()
+        reachTag(HistoryTags.PREVIOUS).performClick()
+        awaitLoaded()
+        assertEquals(AnalyticsHorizon.MONTH, history.uiState.value.horizon)
+        assertScoped(setOf(HistoryKind.WORKOUT to HistoryPeriodTestHost.OLD_ID))
+        assertRange()
+        capture("previous-month")
+        reachTag(HistoryTags.CURRENT).performClick()
+        awaitLoaded()
+        assertScoped(setOf(HistoryKind.WORKOUT to HistoryPeriodTestHost.CURRENT_ID,
+            HistoryKind.WORKOUT to HistoryPeriodTestHost.START_ID, HistoryKind.ACTIVITY to HistoryPeriodTestHost.CURRENT_ID))
+        assertTrue(history.uiState.value.selection.followToday)
+        assertEquals(stored, inventory())
+        assertTrue(routes.isEmpty())
     }
 }

@@ -96,11 +96,23 @@ class CompletedTrainingParityTest {
     fun chronologyAppearsOnceOnTheLocalDate() = runBlocking {
         val fixtures = seedFour()
         val vm = openHistory()
-        val state = vm.uiState.awaitFirst { it.summaries.size == 4 && !it.isLoading }
+        vm.setHorizon(AnalyticsHorizon.ALL_TIME)
+        val state = vm.uiState.awaitFirst {
+            it.horizon == AnalyticsHorizon.ALL_TIME && it.summaries.size == 4 && !it.isLoading
+        }
 
         val ids = state.summaries.map { it.id }
         assertEquals(4, ids.toSet().size)
         assertTrue(ids.containsAll(fixtures.ids))
+        assertEquals(
+            setOf(
+                HistoryKind.WORKOUT to fixtures.strengthId,
+                HistoryKind.ACTIVITY to fixtures.backdatedId,
+                HistoryKind.ACTIVITY to fixtures.cardioId,
+                HistoryKind.ACTIVITY to fixtures.mixedId,
+            ),
+            state.summaries.map { it.kind to it.id }.toSet(),
+        )
 
         assertEquals(fixtures.strengthDay, summary(state, fixtures.strengthId).localEpochDay)
         assertEquals(fixtures.backdatedDay, summary(state, fixtures.backdatedId).localEpochDay)
@@ -122,11 +134,43 @@ class CompletedTrainingParityTest {
         }
         assertTrue(todayCell.sessionIds.contains(fixtures.strengthId))
 
-        vm.showPreviousMonth()
+        vm.setHorizon(AnalyticsHorizon.MONTH)
+        vm.uiState.awaitFirst { it.horizon == AnalyticsHorizon.MONTH && !it.isLoading }
+        vm.showPreviousPeriod()
         val previous = vm.uiState.awaitFirst {
+            it.horizon == AnalyticsHorizon.MONTH &&
             it.calendar.month == previousMonth &&
                 it.calendar.weeks.flatten().any { day -> day.activityIds.contains(fixtures.backdatedId) }
         }
+        val previousRange = checkNotNull(previous.periodRange)
+        assertEquals(previousMonth.atDay(1).epochDay, previousRange.startEpochDay)
+        assertEquals(previousMonth.plusMonths(1).atDay(1).epochDay, previousRange.endExclusiveEpochDay)
+        val expectedPrevious = state.summaries.filter { it.localEpochDay in previousRange }
+        assertEquals(
+            expectedPrevious.map { it.kind to it.id }.toSet(),
+            previous.summaries.map { it.kind to it.id }.toSet(),
+        )
+        assertEquals(
+            expectedPrevious.map { it.kind to it.id }.toSet(),
+            previous.calendar.weeks.flatten().flatMap { day ->
+                day.sessionIds.map { HistoryKind.WORKOUT to it } +
+                    day.activityIds.map { HistoryKind.ACTIVITY to it }
+            }.toSet(),
+        )
+        val previousTotals = checkNotNull(previous.horizonTotals)
+        assertEquals(expectedPrevious.size, previousTotals.sessionCount)
+        assertEquals(expectedPrevious.sumOf { it.workingSets }, previousTotals.workingSets)
+        assertEquals(expectedPrevious.sumOf { it.volumeKg }, previousTotals.volumeKg, 0.0001)
+        assertEquals(expectedPrevious.sumOf { it.cardioSeconds }, previousTotals.cardioSeconds)
+        assertEquals(
+            expectedPrevious.sumOf { it.cardioDistanceMeters ?: 0.0 },
+            previousTotals.cardioDistanceMeters,
+            0.0001,
+        )
+        assertFalse(
+            "the current strength session does not appear beneath a previous Month",
+            previous.summaries.any { it.id == fixtures.strengthId },
+        )
         val backdatedCell = previous.calendar.weeks.flatten().single {
             it.date.epochDay == fixtures.backdatedDay && it.inMonth
         }
@@ -344,14 +388,19 @@ class CompletedTrainingParityTest {
             ApplicationProvider.getApplicationContext<Application>(),
             deps,
         ).also { history = it }
-        val stale = historyVm.uiState.awaitFirst { !it.isLoading && it.stale }
+        historyVm.setHorizon(AnalyticsHorizon.ALL_TIME)
+        val stale = historyVm.uiState.awaitFirst {
+            it.horizon == AnalyticsHorizon.ALL_TIME && !it.isLoading && it.stale
+        }
         assertTrue(stale.stale)
         assertFalse(stale.unavailable)
         assertEquals(1, stale.summaries.filter { it.id == historyFixtures.strengthId }.size)
 
         historyGate.shouldFail = false
         historyVm.retryHistory()
-        val recovered = historyVm.uiState.awaitFirst { !it.isLoading && !it.stale && it.summaries.size == 4 }
+        val recovered = historyVm.uiState.awaitFirst {
+            it.horizon == AnalyticsHorizon.ALL_TIME && !it.isLoading && !it.stale && it.summaries.size == 4
+        }
         assertEquals(4, recovered.summaries.map { it.id }.toSet().size)
         assertEquals(3, deps.activityRepository.all().size)
         assertNotNull(deps.workoutRepository.getSession(historyFixtures.strengthId))

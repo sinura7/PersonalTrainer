@@ -133,14 +133,22 @@ object TrainingCalendarBuilder {
         month: CivilYearMonth,
         summaries: List<SessionSummary>,
         weekStart: Weekday = Weekday.MONDAY,
+        range: HistoryPeriodRange? = null,
     ): TrainingMonth {
-        val byDate = summaries.groupBy { CivilDate.fromEpochDay(it.localEpochDay) }
+        val contextByDate = summaries.groupBy { CivilDate.fromEpochDay(it.localEpochDay) }
+        val byDate = if (range == null) contextByDate else contextByDate.filterKeys { it.epochDay in range }
         val inMonthDates = byDate.keys
             .filter { CivilYearMonth.from(it) == month }
             .toSet()
-        val busiest = inMonthDates.maxOfOrNull { date ->
-            byDate[date].orEmpty().sumOf { it.workingSets }
+        val busiest = contextByDate.keys.filter { CivilYearMonth.from(it) == month }.maxOfOrNull { date ->
+            contextByDate[date].orEmpty().sumOf { it.workingSets }
         } ?: 0
+        // A narrowed Day/Week keeps the original full-month scale. A cross-month strip
+        // uses each date's corresponding month; it never renormalizes from the filtered slice.
+        // The unscoped legacy builder retains its existing padding-day behavior.
+        val monthlyBusiest = if (range == null) emptyMap() else contextByDate.entries
+            .groupBy { CivilYearMonth.from(it.key) }
+            .mapValues { (_, days) -> days.maxOf { (_, rows) -> rows.sumOf { it.workingSets } } }
 
         val first = month.atDay(1).previousOrSame(weekStart)
         val lastDayOfMonth = month.atEndOfMonth()
@@ -151,6 +159,7 @@ object TrainingCalendarBuilder {
                 val date = cursor.plusDays(offset.toLong())
                 val dayRows = byDate[date].orEmpty()
                 val sets = dayRows.sumOf { it.workingSets }
+                val denominator = if (range == null) busiest else monthlyBusiest[CivilYearMonth.from(date)] ?: 0
                 CalendarDay(
                     date = date,
                     inMonth = CivilYearMonth.from(date) == month,
@@ -160,8 +169,8 @@ object TrainingCalendarBuilder {
                         volumeKg = dayRows.sumOf { it.volumeKg },
                         bodyweightReps = 0,
                     ),
-                    intensity = if (busiest > 0) {
-                        (sets.toDouble() / busiest).toFloat().coerceIn(0f, 1f)
+                    intensity = if (denominator > 0) {
+                        (sets.toDouble() / denominator).toFloat().coerceIn(0f, 1f)
                     } else {
                         0f
                     },

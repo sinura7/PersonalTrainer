@@ -188,9 +188,22 @@ classes**. All four required Windows tasks passed with **135 tasks executed**,
 **1,529 stable runtime inputs** and stable references. Execution:
 **10:04:06.6741953Z–10:20:07.5262972Z**. Summary SHA-256:
 `d4f30936eebf58c150ba87a184f280477b8712bb8b83eaf0298a1b799fedd0f2`.
-Renewed final reviews, connected verification, hosted checks and integration
-remain pending at this snapshot. Evidence is retained under
-`build/ux-context/runs/home-week-geometry/`.
+Renewed independent and adversarial reviews accepted final candidate `588e2683`.
+[PR #464](https://github.com/sinura7/PersonalTrainer/pull/464) integrated that
+exact tree as `5c7f869b`. Fresh clean-trunk `postmerge-full01` passed **3,824
+tests / 560 suites, zero failures/errors/skips**, the complete **1,659 tests /
+251 classes** standalone preflight and all four required Windows tasks with
+**135 tasks rerun**. Its runtime inputs and references stayed unchanged.
+`native06` passed **222 cases / 32 classes**, including the connected workout,
+with **85 hashed captures / 13 restored fixture pairs**. Actual-trunk hosted
+run `37919469965` passed independently checked matching unit/native counts.
+Integration review confirmed those source/evidence bindings; the owned emulator
+was stopped and removed from running processes. Summary record SHA-256:
+`a9bcc2bdd31b1dd6ee52cc356d8979a7b2fbbb7f54b2c980e410aa3087c31b59`.
+Original failed attempts remain failures. Evidence is retained under
+`build/ux-context/runs/home-week-geometry/`, including
+`integration-complete-5c7f869b.json` and the independent integration addendum.
+This closes this bounded packet's integration, with the limits below retained.
 
 **Limits:** These are actual production screens/ViewModels on isolated stores,
 mounted without AppNav, its bars or system insets. Inventory equality covers
@@ -233,7 +246,7 @@ gap remains open separately from the direct-screen JVM geometry matrix.
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
 | UX15-AC01 | P1 | F05 | With years of synthetic history, a participant can reach lifetime records and the newest activity without an unbounded scroll. | Not executed |
-| UX15-AC02 | P1 | F05 | Changing a horizon produces exactly the documented scope across totals/list/records. | Not executed |
+| UX15-AC02 | P1 | F05 | Changing a horizon produces one period across totals, calendar, progress and list; lifetime records and blocks are labeled secondary views. | Bounded machine checks below; participant acceptance not executed |
 | UX15-AC03 | P1 | F05 | Editing a prior best refreshes visible results and record drill-down identifies the supporting session. | Not executed |
 
 **Verification follow-up (9 October 2026 UTC):** Home recovery merged through
@@ -250,10 +263,74 @@ tests in two fresh suites, with zero failures/errors/skips, plus build and lint.
 The subsequent unfiltered four-task gate with `--rerun-tasks` passed all 3,770
 app tests / 557 fresh suites and 1,656 standalone tests / 251 classes, plus
 Debug/release build, lint and instrumented-source assembly. All 1,525 runtime
-inputs and Git references stayed unchanged. Final independent reviews,
-corrected hosted verification and post-merge acceptance remain pending.
+inputs and Git references stayed unchanged. At that verification point, final
+reviews, corrected hosted verification and post-merge acceptance were pending;
+the subsequent integration is recorded below.
 The first diagnostic attempt failed its fixture-integrity assertion after a
 replace removed child rows; it is preserved and is not credited as a tie proof.
+
+**Current packet status (9 October 2026 UTC):** The chronology fixture repair
+subsequently integrated through [PR #463](https://github.com/sinura7/PersonalTrainer/pull/463)
+as `c58110d1`; later verified trunk `5c7f869b` includes it. The preceding failed
+hosted run remains a failed historical result. F6a implements one saved civil
+period for History's list, calendar, totals and keyed progress; full-log records
+and blocks are explicitly activated lifetime views. Current Month is the default;
+Day/Week strips, Month, Year month choices and All chronology retain full civil
+dates, reachable controls and exact workout/activity identity. Summary/detail
+clarity is a following packet.
+
+**F6a executed local evidence (9 October 2026 UTC):** The targeted run passed
+289 tests / 52 fresh suites. The subsequent complete standalone preflight and
+unfiltered four-task gate with `--rerun-tasks` passed **3,894 app tests / 569 fresh
+suites** and **1,675 standalone tests / 254 classes**, with zero failures, errors
+or skips, plus Debug/release build, lint and instrumented-source assembly. All
+1,540 runtime inputs and Git references remained unchanged. The full gate includes
+the final strengthened recovery waits; the targeted result precedes those two
+test-only refinements. Full-run summary SHA-256:
+`2F92E9742DC1EAFD0CD2661C7A0483074CF07394A5457F0F95DE438283B42485`;
+runtime-input manifest:
+`9B02443DD1C8CC60F96552F2A9BA8AA6D0EAEB75496A3A1EE6FD6E7C996B81CF`.
+
+Actual supported backup restores reproduced stale activity and workout readouts
+when individual weights changed but IDs, dates, counts and total work did not.
+Those failed runs are preserved. The repaired activity projection digest and
+typed finished-work content token now pass those same real restore cases. The
+workout projection retains empty sessions, excludes live sessions, preserves raw
+Double precision and avoids set-by-planned-lift multiplication. Pending and failed
+unit-change cases also pass: a review cannot carry labels from the previous unit;
+a same-unit failed refresh may retain a visibly stale verified review. Three
+subsequent recovery-fixture failures sampled the newly explicit Loading stage
+before recovery finished. Terminal waits now require the relevant reads to finish,
+with original value/health/layout assertions and timeouts retained; public trace
+checks forbid presenting an intermediate empty list as successful recovery.
+
+Mounted JVM checks cover the real period/range controls, exact routes, populated
+and empty lifetime views, failed refresh/Retry, long names/durations, 48 dp targets,
+full glyph/native ink and Year/Week reachability across the 14-profile matrix
+(including 320 dp/font 2.0, 360 dp, 412 dp, landscape, adaptive 600 dp and RTL).
+Range boundaries, late reads, correction/Delete/Undo, owner SavedState restoration
+and mounted midnight/resume zone changes also passed. JVM pixels and factory
+restoration do not establish physical-phone use, TalkBack, OS process death,
+performance or atomic cross-store snapshots. Final clean candidate reviews,
+hosted checks and integration remain pending at this snapshot.
+
+**F6a native evidence (9 October 2026 UTC):** The owned offline API-29
+`history-period-coherence/native01` passed **222 tests / 32 classes**, one fresh
+XML, zero failures/errors/skips, from **14:06:31.4826414Z** to
+**14:13:06.5487553Z** on clean candidate `8a1da0031383ffaba229d5a4678dd5199ec424a7`
+(tree `34ae1a1046a0c126e10387efe7c948d210cc7fa2`). All 1,540 runtime inputs match
+the full local gate and remain unchanged; references remained stable. All 85
+fresh captures matched device/host hashes, all 13 fixture restoration pairs and
+network/settings restoration passed, and the final package inventory was empty.
+The connected AppNav journey retains one corrected set, 85 kg × 3, in Summary
+and History with 255 kg total work. The baseline History screenshot is obscured
+by the existing permissions modal; it does not establish unobscured native
+period-layout acceptance. Mounted JVM coverage supplies the period-layout
+matrix. Native summary SHA-256:
+`2CC5E6FB50C98116F8AB53A11FFFF9E574D5C6D76619721126BDE2F3A1E7A165`.
+Later documentation-only pins must bind to the same verified runtime bytes;
+these tests executed the candidate above, not a later Git tree. Physical-phone,
+TalkBack, OS process-death and performance limits remain open.
 
 Equal-timestamp record ordering remains a medium UX15 dependency: current record
 feedback can depend on input order when chronology ties. This repair changes no
@@ -562,7 +639,7 @@ open.
 |---|---|---|---|---|
 | UX24-AC01 | P1 | F06, F11 | Two long similarly named variants can be distinguished before selection. | Not executed |
 | UX24-AC02 | P1 | F06, F11 | At font 2.0, primary actions and full values/units are readable and not clipped. | Partial JVM evidence for Home/Plan week content and Plan day/picker questions/actions; broader value/unit and content clipping remain open (see UX12 packet). |
-| UX24-AC03 | P1 | F06, F11 | Shared component changes preserve all callers and do not reduce touch targets. | Partial JVM evidence: week/picker geometry, Plan day Back and actual Body/History entry controls retain measured 48 dp targets; final review/integration and broader caller acceptance remain open. |
+| UX24-AC03 | P1 | F06, F11 | Shared component changes preserve all callers and do not reduce touch targets. | Partial JVM evidence: week/picker geometry, Plan day Back and actual Body/History entry controls retain measured 48 dp targets; bounded Home/Plan review/integration complete through #464, broader caller acceptance open. |
 
 ### UX25 — Validate complete-screen accessibility, not just component tags
 
@@ -670,13 +747,18 @@ Candidate and actual-trunk hosted reports also passed independently verified cou
 [Q01 records the exact pins and limits](../ux-context/studies/q01/README.md#workout-follow-up-integration--9-october-2026-utc).
 This completes that packet's integration, not the broader criteria above.
 
-**Current Home development:** Required-read/Retry recovery integrated through
+**Current development:** Required-read/Retry recovery integrated through
 [PR #462](https://github.com/sinura7/PersonalTrainer/pull/462) as `60c01a0b`,
 followed by the bounded History chronology-fixture repair in
 [PR #463](https://github.com/sinura7/PersonalTrainer/pull/463) as `c58110d1`.
-Earlier attempts below retain their dated evidence boundaries. The active packet
-is Home/Plan week geometry under UX12/F4 and the affected UX24/UX25 checks above.
-History's one-period/coherent-progress work follows. Legacy strength captured-date
+Earlier attempts below retain their dated evidence boundaries. Home/Plan week
+geometry integrated through [PR #464](https://github.com/sinura7/PersonalTrainer/pull/464)
+as `5c7f869b`, with completed reviews and clean-trunk verification recorded under
+UX12. The active packet is History's one-period/coherent-progress work under
+F6a/UX15 and the affected UX12/UX24/UX25 checks. Its complete local and native
+gates are now passed as recorded under UX15; final review, hosted checks and
+integration remain pending.
+Legacy strength captured-date
 storage remains a separately specified dependency. These integrations do not
 close broader F4, UX23, UX24/UX25 or physical-phone acceptance.
 

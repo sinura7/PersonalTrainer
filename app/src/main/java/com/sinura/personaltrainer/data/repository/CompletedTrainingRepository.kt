@@ -2,10 +2,13 @@ package com.sinura.personaltrainer.data.repository
 
 import com.sinura.personaltrainer.domain.CompletedTraining
 import com.sinura.personaltrainer.domain.ExerciseSetEntry
+import com.sinura.personaltrainer.domain.RecordSet
+import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.TimePort
 import com.sinura.personaltrainer.domain.toCompletedTraining
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import java.security.MessageDigest
 
 /**
  * Read model over both completed-training stores (completed-training-convergence.md).
@@ -55,9 +58,67 @@ class CompletedTrainingRepository(
         val recordRows = records.presentValue().orEmpty()
         listOf(
             workoutRevision.presentValue().orEmpty(),
-            summaries.size.toString(),
-            (summaries.maxOfOrNull { it.finishedAt ?: it.date } ?: 0L).toString(),
-            recordRows.size.toString(),
+            activityContentRevision(summaries, recordRows),
         ).joinToString("/")
     }
+
+    /**
+     * Restore can replace individual sets without changing IDs, timestamps or aggregate
+     * volume. Use the existing cheap projections' actual contents, including non-best
+     * sets, rather than a count or calculated standing best. This remains an opaque
+     * read-model token; no saved row or backup format changes.
+     */
+    private fun activityContentRevision(
+        summaries: List<SessionSummary>,
+        records: List<RecordSet>,
+    ): String {
+        val digest = ReadContentRevision()
+        digest.part(summaries.size)
+        summaries.forEach { row ->
+            with(digest) {
+                part(row.kind.name)
+                part(row.id)
+                part(row.routineId)
+                part(row.routineName)
+                part(row.date)
+                part(row.finishedAt)
+                part(row.durationMinutes)
+                part(row.workingSets)
+                part(row.volumeKg)
+                part(row.localEpochDay)
+                part(row.cardioSeconds)
+                part(row.cardioDistanceMeters)
+            }
+        }
+        digest.part(records.size)
+        records.forEach { row ->
+            with(digest) {
+                part(row.exerciseId)
+                part(row.exerciseName)
+                part(row.loadClass.name)
+                part(row.set.setId)
+                part(row.set.sessionId)
+                part(row.set.weightKg)
+                part(row.set.reps)
+                part(row.set.completedAt)
+                part(row.set.rpe)
+            }
+        }
+        return digest.token()
+    }
+}
+
+/** Internal read token only: no durable format, counters or calculation rules. */
+internal class ReadContentRevision {
+    private val digest = MessageDigest.getInstance("SHA-256")
+
+    fun part(value: Any?) {
+        val bytes = value?.toString()?.toByteArray(Charsets.UTF_8)
+        // Byte-length framing distinguishes null, empty and delimiter-bearing names.
+        digest.update((bytes?.size ?: -1).toString().toByteArray(Charsets.US_ASCII))
+        digest.update(0.toByte())
+        if (bytes != null) digest.update(bytes)
+    }
+
+    fun token(): String = digest.digest().joinToString(separator = "") { byte -> "%02x".format(byte) }
 }

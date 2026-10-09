@@ -15,7 +15,7 @@ import com.sinura.personaltrainer.data.mapper.toRecordSet
 import com.sinura.personaltrainer.data.mapper.toSummary
 import com.sinura.personaltrainer.data.local.dao.FinishedWorkingSetRow
 import com.sinura.personaltrainer.data.local.entity.ExerciseRecordPriorsRow
-import com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration
+import com.sinura.personaltrainer.data.local.entity.FinishedWorkContentRow
 import com.sinura.personaltrainer.domain.RecordSet
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
@@ -140,13 +140,13 @@ class WorkoutRepository(
      * the documented leftover until a freeze-legal ADR-011 column exists on
      * `workout_sessions`. Do not "fix" it by switching to [SessionSummary.finishedAt].
      *
-     * Gated on [com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration]:
+     * Gated on the exact typed finished-work read token:
      * logging a set on an in-progress session must not re-aggregate every
      * finished session.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun observeSessionSummaries(): Flow<List<SessionSummary>> =
-        workoutDao.observeFinishedWorkGeneration()
+        observeFinishedWorkRevision()
             .distinctUntilChanged()
             .mapLatest {
                 val stills = workoutDao.sessionStills().toHistoryStills()
@@ -174,7 +174,7 @@ class WorkoutRepository(
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeFinishedLastLoggedHealth(): Flow<DataHealth<Map<String, Long>>> =
-        workoutDao.observeFinishedWorkGeneration()
+        observeFinishedWorkRevision()
             .distinctUntilChanged()
             .mapLatest {
                 workoutDao.finishedLastLogged().associate { it.exerciseId to it.lastLoggedAt }
@@ -192,7 +192,7 @@ class WorkoutRepository(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeFinishedSinceHealth(minDateMs: Long): Flow<DataHealth<List<WorkoutSession>>> =
-        workoutDao.observeFinishedWorkGeneration()
+        observeFinishedWorkRevision()
             .distinctUntilChanged()
             .mapLatest {
                 workoutDao.getFinishedSessionsSince(minDateMs).map { it.toDomain() }
@@ -208,20 +208,18 @@ class WorkoutRepository(
     /**
      * The finished-work fingerprint as an opaque revision token.
      *
-     * Moves when a finished session is added or removed, when a finished working set is
-     * logged, deleted or restored, and — through the volume and rep sums — when one is
-     * edited, which changes neither a count nor a timestamp. A screen that keys a recompute
-     * on this recomputes exactly when finished work changed. History used to key its horizon
-     * readout on list size and newest session id, and its past-block reviews on the last
-     * weigh-in, so a corrected weight in last week's session never reached either.
+     * Hashes raw typed session, set, planned-lift and referenced catalog fields. Restore
+     * can replace individual weights while preserving every ID, date, count and total,
+     * so aggregate sums cannot identify the contents. Live sessions are excluded by the
+     * DAO; logging a live set still does not reread all finished session graphs.
      *
      * A string rather than the entity so callers outside the data layer do not learn the
      * fingerprint's shape; equality is the whole contract.
      */
     private fun observeFinishedWorkRevision(): Flow<String> =
-        workoutDao.observeFinishedWorkGeneration()
+        workoutDao.observeFinishedWorkContents()
+            .map { rows -> rows.revisionToken() }
             .distinctUntilChanged()
-            .map { it.revisionToken() }
 
     /** The only way out of the revision read, as for the summaries (audit DB-1, UI-17). */
     fun observeFinishedWorkRevisionHealth(): Flow<DataHealth<String>> =
@@ -230,28 +228,74 @@ class WorkoutRepository(
     /**
      * Every finished working set with its lift's name and class, for the lifetime records
      * list. Gated on the same fingerprint, so a live set does not re-read the whole log; a
-     * renamed lift shows its old name here until finished work next changes, which is the
-     * trade the summaries already make.
+     * renamed lift and restored values move the same typed content token.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observeRecordSetsHealth(): Flow<DataHealth<List<RecordSet>>> =
-        workoutDao.observeFinishedWorkGeneration()
+        observeFinishedWorkRevision()
             .distinctUntilChanged()
             .mapLatest {
                 workoutDao.finishedWorkingSetRecords().mapNotNull { it.toRecordSet() }
             }
             .observeHealth("standing records")
 
-    private fun FinishedWorkGeneration.revisionToken(): String =
-        listOf(
-            finishedSessionCount,
-            durationSum,
-            lastFinishedAt ?: 0L,
-            finishedWorkingSetCount,
-            lastFinishedSetAt ?: 0L,
-            finishedWorkingVolumeKg,
-            finishedWorkingRepCount,
-        ).joinToString("|")
+    private fun List<FinishedWorkContentRow>.revisionToken(): String {
+        val digest = ReadContentRevision()
+        digest.part(size)
+        forEach { row ->
+            with(digest) {
+                part(row.session.id)
+                part(row.session.routineId)
+                part(row.session.routineName)
+                part(row.session.date)
+                part(row.session.notes)
+                part(row.session.durationMinutes)
+                part(row.session.startedAt)
+                part(row.session.finishedAt)
+                part(row.set != null)
+                row.set?.let { set ->
+                    part(set.id)
+                    part(set.sessionId)
+                    part(set.exerciseId)
+                    part(set.setNumber)
+                    part(set.weightKg)
+                    part(set.reps)
+                    part(set.rpe)
+                    part(set.isWarmup)
+                    part(set.completedAt)
+                    part(set.durationSeconds)
+                }
+                part(row.slot != null)
+                row.slot?.let { slot ->
+                    part(slot.id)
+                    part(slot.sessionId)
+                    part(slot.exerciseId)
+                    part(slot.sortOrder)
+                    part(slot.targetSets)
+                    part(slot.targetReps)
+                    part(slot.targetWeightKg)
+                    part(slot.restSeconds)
+                    part(slot.targetSeconds)
+                    part(slot.targetSecondsMax)
+                }
+                part(row.exercise != null)
+                row.exercise?.let { exercise ->
+                    part(exercise.id)
+                    part(exercise.name)
+                    part(exercise.muscleGroup)
+                    part(exercise.notes)
+                    part(exercise.isCustom)
+                    part(exercise.equipment)
+                    part(exercise.loadType)
+                    part(exercise.movementKey)
+                    part(exercise.imageKey)
+                    part(exercise.nameKey)
+                    part(exercise.updatedAtMs)
+                }
+            }
+        }
+        return digest.token()
+    }
 
     fun observeSession(id: String): Flow<WorkoutSession?> =
         workoutDao.observeSession(id).map { it?.toDomain() }

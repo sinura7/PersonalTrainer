@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -468,12 +470,12 @@ object SessionLogTags {
 /**
  * A finished session, as a readout rather than a receipt.
  *
- * Identity (title, date) owns the first line. Lift stills sit under the
- * name so a session reads as a floor, not a receipt (I-01). Metrics live
- * on a later line with fixed columns so they still compare down a list —
- * they wrap before a 360 dp row can erase the workout's name (FND-006).
+ * Identity (title, date) comes first, followed by keyed lift stills and metrics.
+ * The default metric columns retain Home's aligned recent-session readout.
+ * History opts into full wrapping values and a minimum identity touch target.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun SessionLogRow(
     title: String,
     dateLabel: String,
@@ -485,9 +487,11 @@ fun SessionLogRow(
     unit: WeightUnit = LocalWeightUnit.current,
     onRepeat: (() -> Unit)? = null,
     stills: List<Exercise> = emptyList(),
+    reflowContent: Boolean = false,
+    durationLabel: String? = null,
 ) {
     var menuOpen by rememberSaveable(title, dateLabel) { mutableStateOf(false) }
-    val spoken = sessionRowSpoken(title, dateLabel, workingSets, work, durationMinutes, unit)
+    val spoken = sessionRowSpoken(title, dateLabel, workingSets, work, durationMinutes, unit, durationLabel)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -508,7 +512,8 @@ fun SessionLogRow(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(onClick = onClick)
+                    .then(if (reflowContent) Modifier.heightIn(min = Metrics.touchMin) else Modifier)
+                    .clickable(role = Role.Button, onClick = onClick)
                     .testTag(SessionLogTags.ROW)
                     .semantics(mergeDescendants = true) { contentDescription = spoken },
                 verticalArrangement = Arrangement.spacedBy(Metrics.space1),
@@ -518,16 +523,16 @@ fun SessionLogRow(
                     modifier = Modifier.testTag(SessionLogTags.TITLE),
                     style = InstrumentType.title,
                     color = TextPrimary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = if (reflowContent) Int.MAX_VALUE else 2,
+                    overflow = if (reflowContent) TextOverflow.Clip else TextOverflow.Ellipsis,
                 )
                 Text(
                     dateLabel,
                     modifier = Modifier.testTag(SessionLogTags.DATE),
                     style = InstrumentType.caption,
                     color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = if (reflowContent) Int.MAX_VALUE else 1,
+                    overflow = if (reflowContent) TextOverflow.Clip else TextOverflow.Ellipsis,
                 )
                 if (stills.isNotEmpty()) {
                     Row(
@@ -564,7 +569,24 @@ fun SessionLogRow(
                 }
             }
         }
-        Row(
+        if (reflowContent) {
+            val column = SetCopy.workColumn(work, unit)
+            FlowRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = Metrics.touchMin)
+                    .clickable(role = Role.Button, onClick = onClick)
+                    .padding(horizontal = Metrics.space4, vertical = Metrics.space3)
+                    .testTag(SessionLogTags.METRICS)
+                    .semantics(mergeDescendants = true) { contentDescription = spoken },
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space5),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+            ) {
+                SessionRowMetric(workingSets.toString(), "sets")
+                SessionRowMetric(column.value, column.label)
+                SessionRowMetric(durationLabel ?: "$durationMinutes min", "active time")
+            }
+        } else Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onClick)
@@ -598,6 +620,15 @@ fun SessionLogRow(
     }
 }
 
+/** History's essential values wrap instead of being confined to a fixed numeral column. */
+@Composable
+private fun SessionRowMetric(value: String, label: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+        Text(value, style = InstrumentType.numeralSm, color = TextPrimary)
+        Text(label, style = InstrumentType.caption, color = TextSecondary)
+    }
+}
+
 /** Column widths for [SessionLogRow], so its three metrics line up down a list. */
 private val COUNT_COLUMN = 48.dp
 private val VOLUME_COLUMN = 88.dp
@@ -609,10 +640,11 @@ fun sessionRowSpoken(
     work: SetWork,
     durationMinutes: Int,
     unit: WeightUnit,
+    durationLabel: String? = null,
 ): String {
     val column = SetCopy.workColumn(work, unit)
     return "$title, $dateLabel, $workingSets sets, ${column.value} ${column.label}, " +
-        "$durationMinutes min"
+        (durationLabel ?: "$durationMinutes min")
 }
 
 /**

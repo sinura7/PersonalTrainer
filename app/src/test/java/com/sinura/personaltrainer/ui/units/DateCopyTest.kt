@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.units
 
 import com.sinura.personaltrainer.domain.ClockFormat
+import com.sinura.personaltrainer.domain.HistoryPeriodRange
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
@@ -11,6 +12,30 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DateCopyTest {
+    @Test
+    fun selectedPeriodPrintsBothYearsAndTheInclusiveLastDay() {
+        val first = LocalDate.of(2026, 12, 29).toEpochDay()
+        val endExclusive = LocalDate.of(2027, 1, 5).toEpochDay()
+        assertEquals("29 December 2026 – 4 January 2027", DateCopy.periodRange(HistoryPeriodRange(first, endExclusive)))
+        assertEquals("29 December 2026", DateCopy.periodRange(HistoryPeriodRange(first, first + 1)))
+        val leap = LocalDate.of(2024, 2, 29).toEpochDay()
+        assertEquals("29 February 2024", DateCopy.civilDate(leap))
+    }
+
+    @Test
+    fun capturedCivilDayDoesNotShiftWhenTheReadingZoneChanges() {
+        val captured = LocalDate.of(2026, 1, 2).toEpochDay()
+        val original = java.util.TimeZone.getDefault()
+        try {
+            listOf("Pacific/Kiritimati", "America/Los_Angeles", "UTC").forEach { zone ->
+                java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone(zone))
+                assertEquals("2 January 2026", DateCopy.civilDate(captured))
+            }
+        } finally {
+            java.util.TimeZone.setDefault(original)
+        }
+    }
+
     @Test
     fun fullCivilDatesDisambiguateYearWithoutChangingHistoryCopy() {
         val december = LocalDate.of(2026, 12, 31)
