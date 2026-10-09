@@ -132,6 +132,31 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 | UX15-AC02 | P1 | F05 | Changing a horizon produces exactly the documented scope across totals/list/records. | Not executed |
 | UX15-AC03 | P1 | F05 | Editing a prior best refreshes visible results and record drill-down identifies the supporting session. | Not executed |
 
+**Verification follow-up (9 October 2026 UTC):** Home recovery merged through
+PR #462 as `60c01a0b`. Its clean-trunk local gate passed 3,770 tests / 557 fresh
+suites and its native journey passed 222 tests / 32 classes. The actual-trunk
+[required hosted run](https://github.com/sinura7/PersonalTrainer/actions/runs/37891704902)
+remains failed: one existing History test expected zero records but observed two
+before its edit. A controlled, persisted timestamp tie reproduces that initial
+mismatch; the original hosted timestamps were not captured. The repair fixes the
+synthetic fixture's calendar anchor and chronology while retaining actual
+repository writes, the original zero-record baseline and exact correction/row
+assertions. The corrected targeted gate passed all 20 History/record-calculation
+tests in two fresh suites, with zero failures/errors/skips, plus build and lint.
+The subsequent unfiltered four-task gate with `--rerun-tasks` passed all 3,770
+app tests / 557 fresh suites and 1,656 standalone tests / 251 classes, plus
+Debug/release build, lint and instrumented-source assembly. All 1,525 runtime
+inputs and Git references stayed unchanged. Final independent reviews,
+corrected hosted verification and post-merge acceptance remain pending.
+The first diagnostic attempt failed its fixture-integrity assertion after a
+replace removed child rows; it is preserved and is not credited as a tie proof.
+
+Equal-timestamp record ordering remains a medium UX15 dependency: current record
+feedback can depend on input order when chronology ties. This repair changes no
+production calculation or saved data. Resolve and verify that rule before
+presenting improved History statistics as trustworthy; this bounded fixture
+check does not close the wider UX15 acceptance tasks above.
+
 ### UX16 — Make chart axes, comparisons and sparse data honest
 
 | Check | Priority | Fixtures | Expected outcome | Status |
