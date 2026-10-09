@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Status:** Native Quiet workout and its bounded UX23 follow-up were reviewed, merged into `trunk` through PRs #460 and #461, and verified again on clean merged source. Home required-read/Retry recovery is implemented with completed local and native checks; remaining Home geometry and History follow its reviewed integration. Broader app UX phases remain.
+**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464, with fresh local, native and hosted verification on clean merged source. History's one-period workflow passes its complete local and native gates; final review, hosted checks and integration are the active work. Broader app UX phases and physical-phone acceptance remain.
 
 **Audience:** Temper's owner and the next designer, engineer, or agent continuing this work.
 
@@ -25,7 +25,11 @@ Fresh independent and adversarial clean-context reviews subsequently passed;
 PR #460 merged as `9b7a7f5a`, and both complete gates passed again on clean trunk.
 The bounded workout-truth follow-up then integrated through PR #461; its exact
 verification pins and remaining limits are recorded in [Q01](studies/q01/README.md#workout-follow-up-integration--9-october-2026-utc).
-Home required-read recovery now precedes the remaining Home geometry and History work.
+Home required-read recovery and week geometry are integrated. History's shared-period
+work passes 3,894 app tests / 569 suites and 1,675 standalone tests / 254 classes,
+plus the complete local build/lint gate and all 222 native tests / 32 classes.
+[UX15 records the exact scope and limits](../ux-program/UX-Acceptance-Matrix.md#ux15--make-historys-scope-and-deeper-sections-reachable);
+final review, hosted checks and integration verification remain in progress.
 The wider app UX phases and physical-phone acceptance are not complete.
 
 ## Owner decisions for this project

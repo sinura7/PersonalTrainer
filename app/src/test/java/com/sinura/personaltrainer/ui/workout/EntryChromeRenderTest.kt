@@ -23,6 +23,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasTestTag
@@ -53,6 +54,7 @@ import com.sinura.personaltrainer.ui.progress.BodyTags
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
 import com.sinura.personaltrainer.ui.progress.ProgressViewModel
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import java.io.File
@@ -298,15 +300,45 @@ class EntryChromeRenderTest {
     }
 
     private fun assertHistoryContent() {
-        val control = reachTag(HistoryTags.CALENDAR_MONTH).assertIsEnabled()
-        assertTarget(control)
-        assertWords(wordsInside(HistoryTags.CALENDAR_MONTH, HistoryCopy.CALENDAR_MONTH), HistoryCopy.CALENDAR_MONTH)
-        capture("calendar-control")
+        val range = checkNotNull(history.uiState.value.periodRange)
+        assertEquals(
+            "current Month starts on its first civil day",
+            LocalDate.ofEpochDay(today).withDayOfMonth(1).toEpochDay(),
+            range.startEpochDay,
+        )
+        assertEquals("current Month stops after today", today + 1, range.endExclusiveEpochDay)
+        val rangeTitle = reachTag(HistoryTags.RANGE_TITLE, unmerged = true)
+        assertWords(rangeTitle, DateCopy.periodRange(range))
+        assertTrue(
+            "the shared period is an accessible heading",
+            rangeTitle.fetchSemanticsNode().config.contains(SemanticsProperties.Heading),
+        )
+        capture("shared-range-title")
+        for ((tag, label, enabled) in listOf(
+            Triple(HistoryTags.PREVIOUS, "Previous", true),
+            Triple(HistoryTags.NEXT, "Next", false),
+            Triple(HistoryTags.CURRENT, "Current", true),
+        )) {
+            val control = reachTag(tag)
+            if (enabled) control.assertIsEnabled() else control.assertIsNotEnabled()
+            assertTarget(control, Role.Button)
+            assertWords(wordsInside(tag, label), label)
+        }
+        capture("period-controls")
+        for ((tag, label) in listOf(
+            HistoryTags.LIFETIME_RECORDS to HistoryCopy.LIFETIME_RECORDS,
+            HistoryTags.LIFETIME_BLOCKS to HistoryCopy.LIFETIME_BLOCKS,
+        )) {
+            val control = reachTag(tag).assertIsEnabled()
+            assertTarget(control, Role.Button)
+            assertWords(wordsInside(tag, label), label)
+        }
+        capture("lifetime-actions")
         // Compose the lazy empty-state item, then reveal its meaningful labels
         // separately. Its decorative illustration need not fit with both labels.
         findTag(HistoryTags.EMPTY)
-        assertWords(wordsInside(HistoryTags.EMPTY, HistoryCopy.EMPTY_TITLE), HistoryCopy.EMPTY_TITLE)
-        assertWords(wordsInside(HistoryTags.EMPTY, HistoryCopy.EMPTY_LOG), HistoryCopy.EMPTY_LOG)
+        assertWords(wordsInside(HistoryTags.EMPTY, HistoryCopy.EMPTY_PERIOD_TITLE), HistoryCopy.EMPTY_PERIOD_TITLE)
+        assertWords(wordsInside(HistoryTags.EMPTY, HistoryCopy.EMPTY_PERIOD), HistoryCopy.EMPTY_PERIOD)
         capture("empty-content")
     }
 

@@ -1,36 +1,49 @@
 package com.sinura.personaltrainer.ui.history
 
-import java.io.File
-import org.junit.Assert.assertFalse
+import android.app.Application
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import com.sinura.personaltrainer.domain.HistoryKind
+import com.sinura.personaltrainer.ui.components.SessionLogTags
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
-/**
- * I-01: History list cards picture the first three lifts. They are not
- * a title-and-numbers receipt.
- */
-class HistoryListThumbsTest {
-    @Test
-    fun historyListRowsPictureTheFirstThreeLifts() {
-        val screen = readOwned("ui/history/HistoryScreen.kt")
-        assertTrue(screen.contains("stills = entry.stills"))
-        assertTrue(screen.contains("stills = summary.stills"))
-        assertTrue(screen.contains("SessionLogRow("))
-
-        val row = readOwned("ui/components/GymSurfaces.kt")
-        val sessionLog = row.substringAfter("fun SessionLogRow(")
-            .substringBefore("\nfun sessionRowSpoken")
-        assertTrue(sessionLog.contains("stills: List<Exercise>"))
-        assertTrue(sessionLog.contains("ExerciseThumb("))
-        assertTrue(sessionLog.contains("SessionLogTags.STILLS"))
-        assertFalse(sessionLog.contains("InstrumentRow("))
-    }
-
-    private fun readOwned(relative: String): String {
-        val roots = listOf(
-            File("app/src/main/java/com/sinura/personaltrainer"),
-            File("../app/src/main/java/com/sinura/personaltrainer"),
-        )
-        return roots.map { File(it, relative) }.first { it.isFile }.readText()
+/** Runtime identity and native artwork replace the old source-string row mirror. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(application = Application::class, qualifiers = "w360dp-h640dp-xhdpi")
+class HistoryListThumbsTest : HistoryPeriodTestHost() {
+    @Test fun selectedHistoryRowPicturesItsFirstThreeActualLifts() = evidence("history-stills") {
+        graph()
+        show()
+        awaitLoaded()
+        val entry = history.uiState.value.monthGroups.flatMap { it.entries }
+            .single { it.kind == HistoryKind.WORKOUT && it.id == HistoryPeriodTestHost.CURRENT_ID }
+        assertEquals(listOf("period-lift-1", "period-lift-2", "period-lift-3"), entry.stills.map { it.id })
+        findTag(HistoryTags.row(HistoryKind.WORKOUT, HistoryPeriodTestHost.CURRENT_ID))
+        val strip = reach(compose.onNode(
+            hasTestTag(SessionLogTags.STILLS) and hasAnyAncestor(hasTestTag(HistoryTags.row(HistoryKind.WORKOUT, HistoryPeriodTestHost.CURRENT_ID))),
+            useUnmergedTree = true,
+        ))
+        val thumbs = strip.fetchSemanticsNode().children
+        assertEquals("three decorative thumbnail roots are actually mounted", 3, thumbs.size)
+        val bitmap = drawWindow()
+        try {
+            thumbs.forEach { thumb ->
+                val bounds = thumb.boundsInWindow.intersect(this.windowBounds())
+                val colors = mutableSetOf<Int>()
+                for (y in bounds.top.toInt() until bounds.bottom.toInt()) {
+                    for (x in bounds.left.toInt() until bounds.right.toInt()) colors += bitmap.getPixel(x, y)
+                }
+                assertTrue("actual native thumb has artwork beyond a blank two-color frame", colors.size > 6)
+            }
+        } finally { bitmap.recycle() }
+        capture("three-lift-native-artwork")
+        assertTrue(routes.isEmpty())
     }
 }

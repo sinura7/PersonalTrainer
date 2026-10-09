@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.data.local.TrainerDatabase
 import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
 import com.sinura.personaltrainer.domain.DataHealth
@@ -18,6 +19,8 @@ import com.sinura.personaltrainer.domain.RoutineExercise
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.TestWaits
 import java.util.concurrent.Executors
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -28,6 +31,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -176,6 +180,143 @@ class WorkoutRepositoryInsightsQueriesTest {
             isWarmup = false,
         )
         assertNotEquals(before, repository.observeFinishedWorkRevisionHealth().presentValues().first())
+    }
+
+    @Test
+    fun finishedContentRowsKeepAbsentSetAndSlotGroupsNull() = runBlocking {
+        insertFinishedSession(id = "empty", finishedAt = START + 1, sets = emptyList())
+        insertFinishedSession(
+            id = "set-only",
+            finishedAt = START + 2,
+            sets = listOf(Triple(SQUAT, 100.0, 5)),
+        )
+        insertFinishedSession(id = "slot-only", finishedAt = START + 3, sets = emptyList())
+        val slot = sessionExerciseRow(sessionId = "slot-only", exerciseId = BENCH)
+        database.workoutDao().insertSessionExercises(listOf(slot))
+
+        val rows = database.workoutDao().observeFinishedWorkContents().first()
+        assertEquals(4, rows.size)
+        val empty = rows.single { it.session.id == "empty" }
+        assertNull(empty.set)
+        assertNull(empty.slot)
+        assertNull(empty.exercise)
+
+        val setOnly = rows.single { it.session.id == "set-only" }
+        assertEquals("set-only-$SQUAT-0", checkNotNull(setOnly.set).id)
+        assertEquals(SQUAT, checkNotNull(setOnly.exercise).id)
+        assertNull(setOnly.slot)
+
+        val slotOnlyRows = rows.filter { it.session.id == "slot-only" }
+        assertEquals(2, slotOnlyRows.size)
+        assertTrue(slotOnlyRows.all { it.set == null })
+        val placeholder = slotOnlyRows.single { it.slot == null }
+        assertNull(placeholder.exercise)
+        val planned = slotOnlyRows.single { it.slot != null }
+        assertEquals(slot, planned.slot)
+        assertEquals(exerciseRow(BENCH), planned.exercise)
+    }
+
+    @Test
+    fun finishedContentRowsAreLinearAndExcludeLiveSetsAndSlots() = runBlocking {
+        insertFinishedSession(
+            id = "done",
+            finishedAt = START + 1,
+            sets = listOf(Triple(SQUAT, 100.0, 5), Triple(BENCH, 60.0, 8)),
+        )
+        val doneSlots = listOf(
+            sessionExerciseRow(sessionId = "done", exerciseId = SQUAT),
+            sessionExerciseRow(sessionId = "done", exerciseId = BENCH).copy(sortOrder = 1),
+        )
+        database.workoutDao().insertSessionExercises(doneSlots)
+        insertLiveSession("live")
+        database.workoutDao().insertSessionExercises(
+            listOf(
+                sessionExerciseRow(sessionId = "live", exerciseId = SQUAT),
+                sessionExerciseRow(sessionId = "live", exerciseId = BENCH).copy(sortOrder = 1),
+            ),
+        )
+        repository.logSet(
+            sessionId = "live", exerciseId = SQUAT, weightKg = 120.0, reps = 5,
+            rpe = null, isWarmup = false,
+        )
+        repository.logSet(
+            sessionId = "live", exerciseId = BENCH, weightKg = 80.0, reps = 8,
+            rpe = null, isWarmup = false,
+        )
+
+        val rows = database.workoutDao().observeFinishedWorkContents().first()
+        assertEquals("two sets plus two slots, without a Cartesian product", 4, rows.size)
+        assertTrue(rows.all { it.session.id == "done" })
+        assertTrue(rows.all { (it.set != null) != (it.slot != null) })
+        assertEquals(
+            listOf("done-$SQUAT-0", "done-$BENCH-1").sorted(),
+            rows.mapNotNull { it.set?.id }.sorted(),
+        )
+        assertEquals(doneSlots.map { it.id }.sorted(), rows.mapNotNull { it.slot?.id }.sorted())
+        rows.forEach { row ->
+            assertEquals(row.set?.exerciseId ?: row.slot?.exerciseId, checkNotNull(row.exercise).id)
+        }
+    }
+
+    @Test
+    fun aOneUlpFinishedWeightCorrectionChangesTheRetainedRevision() = runBlocking {
+        insertFinishedSession(
+            id = "done",
+            finishedAt = START + 1,
+            sets = listOf(Triple(SQUAT, 100.0, 5)),
+        )
+        val original = checkNotNull(database.workoutDao().getSet("done-$SQUAT-0"))
+        val corrected = original.copy(weightKg = Math.nextUp(100.0))
+        assertNotEquals(original.weightKg.toRawBits(), corrected.weightKg.toRawBits())
+
+        withRevisionCollector { emissions ->
+            val before = emissions.value.last()
+            database.workoutDao().updateSet(corrected)
+            assertEquals(corrected, database.workoutDao().getSet(original.id))
+            val rows = database.workoutDao().observeFinishedWorkContents().first()
+            assertEquals(corrected.weightKg.toRawBits(), checkNotNull(rows.single().set).weightKg.toRawBits())
+            val updated = withTimeout(TestWaits.FLOW_MS) {
+                emissions.first { it.last() != before }.last()
+            }
+            assertNotEquals(before, updated)
+        }
+    }
+
+    @Test
+    fun referencedCatalogAndPlannedSlotChangesInvalidateTheRetainedRevision() = runBlocking {
+        insertFinishedSession(
+            id = "done",
+            finishedAt = START + 1,
+            sets = listOf(Triple(SQUAT, 100.0, 5)),
+        )
+        val originalSlot = sessionExerciseRow(sessionId = "done", exerciseId = BENCH)
+        database.workoutDao().insertSessionExercises(listOf(originalSlot))
+
+        withRevisionCollector { emissions ->
+            val beforeCatalog = emissions.value.last()
+            // This lift is referenced only by a planned slot, not by a recorded set.
+            val renamed = exerciseRow(BENCH).copy(name = "Renamed press", notes = "Updated instructions")
+            database.exerciseDao().update(renamed)
+            val afterCatalog = withTimeout(TestWaits.FLOW_MS) {
+                emissions.first { it.last() != beforeCatalog }.last()
+            }
+            assertNotEquals(beforeCatalog, afterCatalog)
+            val catalogRows = database.workoutDao().observeFinishedWorkContents().first()
+            assertEquals(renamed, catalogRows.single { it.slot != null }.exercise)
+
+            val changedSlot = originalSlot.copy(targetSeconds = 30, targetSecondsMax = 45)
+            database.workoutDao().upsertSessionExercise(changedSlot)
+            val afterSlot = withTimeout(TestWaits.FLOW_MS) {
+                emissions.first { it.last() != afterCatalog }.last()
+            }
+            assertNotEquals(afterCatalog, afterSlot)
+            val slotRows = database.workoutDao().observeFinishedWorkContents().first()
+            assertEquals(changedSlot, slotRows.single { it.slot != null }.slot)
+            assertEquals(
+                listOf(checkNotNull(catalogRows.single { it.set != null }.set)),
+                slotRows.mapNotNull { it.set },
+            )
+        }
     }
 
     /**
@@ -381,6 +522,34 @@ class WorkoutRepositoryInsightsQueriesTest {
         notes = "",
         isCustom = false,
     )
+
+    private fun sessionExerciseRow(sessionId: String, exerciseId: String) = SessionExerciseEntity(
+        id = "$sessionId-slot-$exerciseId",
+        sessionId = sessionId,
+        exerciseId = exerciseId,
+        sortOrder = 0,
+        targetSets = 3,
+        targetReps = 5,
+        targetWeightKg = 100.0,
+        restSeconds = 90,
+    )
+
+    private suspend fun withRevisionCollector(
+        block: suspend (MutableStateFlow<List<String>>) -> Unit,
+    ) = coroutineScope {
+        val emissions = MutableStateFlow<List<String>>(emptyList())
+        val job = launch {
+            repository.observeFinishedWorkRevisionHealth().presentValues().collect { revision ->
+                emissions.update { it + revision }
+            }
+        }
+        try {
+            withTimeout(TestWaits.FLOW_MS) { emissions.first { it.isNotEmpty() } }
+            block(emissions)
+        } finally {
+            job.cancelAndJoin()
+        }
+    }
 
     private suspend fun insertLiveSession(id: String) {
         database.workoutDao().upsertSession(

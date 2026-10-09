@@ -9,6 +9,7 @@ import androidx.room.Update
 import com.sinura.personaltrainer.data.local.entity.ExerciseRecencyRow
 import com.sinura.personaltrainer.data.local.entity.ExerciseRecordPriorsRow
 import com.sinura.personaltrainer.data.local.entity.FinishedWorkGeneration
+import com.sinura.personaltrainer.data.local.entity.FinishedWorkContentRow
 import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
 import com.sinura.personaltrainer.data.local.entity.SessionSummaryRow
 import com.sinura.personaltrainer.data.local.entity.SessionStillRow
@@ -72,11 +73,13 @@ interface WorkoutDao {
     suspend fun sessionStills(): List<SessionStillRow>
 
     /**
-     * Cheap fingerprint of finished work. Mentions `set_logs`, so Room still
+     * Legacy aggregate readout of finished work. Mentions `set_logs`, so Room still
      * re-runs it on every log; the result is equal until a finished session
      * actually changes.
      *
-     * The two sums are what makes "actually changes" include an *edit*.
+     * The two sums include ordinary single-set edits, but cannot identify a restore that
+     * preserves aggregates. Repository invalidation uses [observeFinishedWorkContents].
+     * This projection remains available for callers that need aggregate values.
      * `updateSet` deliberately leaves `completedAt` and `setNumber` alone, so
      * correcting a mistyped weight moved nothing in the count-and-timestamp
      * fingerprint this used to be: the screen you edited on updated, and
@@ -114,6 +117,105 @@ interface WorkoutDao {
         """,
     )
     fun observeFinishedWorkGeneration(): Flow<FinishedWorkGeneration>
+
+    /**
+     * Exact typed finished contents. Aggregate-preserving restores must invalidate reads,
+     * while writes to a live workout leave these rows equal. UNION keeps sets and planned
+     * lifts linear instead of joining each set against every planned lift.
+     */
+    @Query(
+        """
+        SELECT ws.id AS session_id,
+               ws.routineId AS session_routineId,
+               ws.routineName AS session_routineName,
+               ws.date AS session_date,
+               ws.notes AS session_notes,
+               ws.durationMinutes AS session_durationMinutes,
+               ws.startedAt AS session_startedAt,
+               ws.finishedAt AS session_finishedAt,
+               sl.id AS set_id,
+               sl.sessionId AS set_sessionId,
+               sl.exerciseId AS set_exerciseId,
+               sl.setNumber AS set_setNumber,
+               sl.weightKg AS set_weightKg,
+               sl.reps AS set_reps,
+               sl.rpe AS set_rpe,
+               sl.isWarmup AS set_isWarmup,
+               sl.completedAt AS set_completedAt,
+               sl.durationSeconds AS set_durationSeconds,
+               NULL AS slot_id,
+               NULL AS slot_sessionId,
+               NULL AS slot_exerciseId,
+               NULL AS slot_sort_order,
+               NULL AS slot_targetSets,
+               NULL AS slot_targetReps,
+               NULL AS slot_targetWeightKg,
+               NULL AS slot_restSeconds,
+               NULL AS slot_targetSeconds,
+               NULL AS slot_targetSecondsMax,
+               e.id AS exercise_id,
+               e.name AS exercise_name,
+               e.muscleGroup AS exercise_muscleGroup,
+               e.notes AS exercise_notes,
+               e.isCustom AS exercise_isCustom,
+               e.equipment AS exercise_equipment,
+               e.loadType AS exercise_loadType,
+               e.movementKey AS exercise_movementKey,
+               e.imageKey AS exercise_imageKey,
+               e.nameKey AS exercise_nameKey,
+               e.updatedAtMs AS exercise_updatedAtMs
+        FROM workout_sessions ws
+        LEFT JOIN set_logs sl ON sl.sessionId = ws.id
+        LEFT JOIN exercises e ON e.id = sl.exerciseId
+        WHERE ws.finishedAt IS NOT NULL
+        UNION ALL
+        SELECT ws.id AS session_id,
+               ws.routineId AS session_routineId,
+               ws.routineName AS session_routineName,
+               ws.date AS session_date,
+               ws.notes AS session_notes,
+               ws.durationMinutes AS session_durationMinutes,
+               ws.startedAt AS session_startedAt,
+               ws.finishedAt AS session_finishedAt,
+               NULL AS set_id,
+               NULL AS set_sessionId,
+               NULL AS set_exerciseId,
+               NULL AS set_setNumber,
+               NULL AS set_weightKg,
+               NULL AS set_reps,
+               NULL AS set_rpe,
+               NULL AS set_isWarmup,
+               NULL AS set_completedAt,
+               NULL AS set_durationSeconds,
+               se.id AS slot_id,
+               se.sessionId AS slot_sessionId,
+               se.exerciseId AS slot_exerciseId,
+               se.sort_order AS slot_sort_order,
+               se.targetSets AS slot_targetSets,
+               se.targetReps AS slot_targetReps,
+               se.targetWeightKg AS slot_targetWeightKg,
+               se.restSeconds AS slot_restSeconds,
+               se.targetSeconds AS slot_targetSeconds,
+               se.targetSecondsMax AS slot_targetSecondsMax,
+               e.id AS exercise_id,
+               e.name AS exercise_name,
+               e.muscleGroup AS exercise_muscleGroup,
+               e.notes AS exercise_notes,
+               e.isCustom AS exercise_isCustom,
+               e.equipment AS exercise_equipment,
+               e.loadType AS exercise_loadType,
+               e.movementKey AS exercise_movementKey,
+               e.imageKey AS exercise_imageKey,
+               e.nameKey AS exercise_nameKey,
+               e.updatedAtMs AS exercise_updatedAtMs
+        FROM workout_sessions ws
+        INNER JOIN session_exercises se ON se.sessionId = ws.id
+        INNER JOIN exercises e ON e.id = se.exerciseId
+        WHERE ws.finishedAt IS NOT NULL
+        ORDER BY session_id, set_id, slot_id
+        """,
+    )
+    fun observeFinishedWorkContents(): Flow<List<FinishedWorkContentRow>>
 
     @Transaction
     @Query("SELECT * FROM workout_sessions WHERE finishedAt IS NOT NULL AND date >= :minDateMs ORDER BY date DESC")

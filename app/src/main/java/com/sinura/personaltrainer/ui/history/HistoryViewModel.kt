@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.history
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
@@ -16,6 +17,9 @@ import com.sinura.personaltrainer.domain.DailyProjection
 import com.sinura.personaltrainer.domain.DailyProjectionBuilder
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.HistoryMonthGroup
+import com.sinura.personaltrainer.domain.HistoryPeriodMath
+import com.sinura.personaltrainer.domain.HistoryPeriodRange
+import com.sinura.personaltrainer.domain.HistoryPeriodSelection
 import com.sinura.personaltrainer.domain.HorizonMath
 import com.sinura.personaltrainer.domain.HorizonProgress
 import com.sinura.personaltrainer.domain.HorizonTotals
@@ -33,8 +37,9 @@ import com.sinura.personaltrainer.domain.toHistoryEntry
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
-import com.sinura.personaltrainer.util.toCivilYearMonth
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -44,10 +49,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.YearMonth
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** [ErrorSlot] families: a success may clear only its own family's refusal. */
@@ -66,10 +71,23 @@ data class HistoryUiState(
      * a stronger lift older than a month vanished and a weaker recent set wore the label.
      */
     val records: List<PrSummaryRow> = emptyList(),
+    val recordsLoading: Boolean = true,
+    val recordsUnavailable: Boolean = false,
+    val recordsStale: Boolean = false,
     val calendar: TrainingMonth = TrainingMonth(month = CivilYearMonth(1970, 1)),
     val weekStart: Weekday = Weekday.MONDAY,
     val pastBlocks: List<FinishedBlock> = emptyList(),
+    val blocksLoading: Boolean = true,
+    val blocksUnavailable: Boolean = false,
+    val blocksStale: Boolean = false,
     val horizon: AnalyticsHorizon = AnalyticsHorizon.MONTH,
+    val selection: HistoryPeriodSelection = HistoryPeriodSelection(AnalyticsHorizon.MONTH, 0L, true),
+    val periodRange: HistoryPeriodRange? = null,
+    val canGoNext: Boolean = false,
+    val progressLoading: Boolean = false,
+    val progressFailed: Boolean = false,
+    /** The same unit that keyed the period's computed progress. */
+    val unit: WeightUnit = WeightUnit.KG,
     val horizonTotals: HorizonTotals? = null,
     val horizonProgress: HorizonProgress? = null,
     val today: CivilDate = CivilDate.of(1970, 1, 1),
@@ -83,10 +101,23 @@ data class FinishedBlock(
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistoryViewModel @JvmOverloads constructor(
     application: Application,
+    private val savedStateHandle: SavedStateHandle?,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
-    private val visibleMonth = MutableStateFlow(yearMonthOf(civilToday()))
-    private val horizon = MutableStateFlow(AnalyticsHorizon.MONTH)
+    /** Legacy callers keep in-memory selection; only an owner-provided handle persists it. */
+    constructor(application: Application, container: AppDependencies) :
+        this(application, null, container)
+
+    constructor(application: Application) :
+        this(application, null, application.appContainer())
+
+    private val initialToday = civilToday()
+    private val today = MutableStateFlow(initialToday)
+    private val periodSelection = MutableStateFlow(restoredSelection(initialToday))
+
+    init {
+        saveSelection(periodSelection.value)
+    }
 
     private val _navigateToSession = MutableStateFlow<String?>(null)
     val navigateToSession: StateFlow<String?> = _navigateToSession.asStateFlow()
@@ -113,31 +144,53 @@ class HistoryViewModel @JvmOverloads constructor(
 
     /** The reviews last built, shown while a later read fails (the sidecar rule). */
     @Volatile
-    private var lastPastBlocks: List<FinishedBlock> = emptyList()
+    private var lastPastBlocks: CachedBlockReviews? = null
 
     /**
      * Every read here is guarded. The blocks, the weigh-ins and the full log each threw
      * through the catalog and closed the app (audit UI-17); a failed one now marks the page
      * behind. When the full log fails, the section keeps what it last showed for the blocks
-     * it still has; a block list that cannot be read shows none.
+     * it still has; an unread block list retains a previously verified review as stale.
      */
-    private val pastBlockReviews = combine(
-        container.preferencesRepository.pastBlocksHealth,
-        container.preferencesRepository.weightUnit,
-        container.preferencesRepository.bodyweightLogHealth,
-        revision,
-    ) { blocks, unit, log, finishedWork ->
-        PastBlockInputs(
-            blocks = blocks.presentValue().orEmpty(),
-            unit = unit,
-            bodyweightLog = log.presentValue().orEmpty(),
-            revision = finishedWork,
-            readsBehind = blocks !is DataHealth.Available || log !is DataHealth.Available,
-        )
+    private val pastBlockInputs = historyRetry.flatMapLatest { attempt ->
+        combine(
+            container.preferencesRepository.pastBlocksHealth,
+            container.preferencesRepository.weightUnit,
+            container.preferencesRepository.bodyweightLogHealth,
+            revision,
+        ) { blocks, unit, log, finishedWork ->
+            PastBlockInputs(
+                blocks = blocks.presentValue().orEmpty(),
+                unit = unit,
+                bodyweightLog = log.presentValue().orEmpty(),
+                revision = finishedWork,
+                attempt = attempt,
+                readsBehind = blocks !is DataHealth.Available || log !is DataHealth.Available,
+                blocksUnavailable = blocks is DataHealth.Unavailable,
+                weightsUnavailable = log is DataHealth.Unavailable,
+            )
+        }
     }
         .distinctUntilChanged()
+        .flowOn(container.computeDispatcher)
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    private val pastBlockReviews = pastBlockInputs
         .flatMapLatest { inputs ->
             flow {
+                emit(PastBlockRead(inputs = inputs, status = BlockReadStatus.LOADING))
+                // Unknown is not a successful empty list. Keep a prior review while required
+                // inputs cannot be read, and do not invent the weigh-ins for a new review.
+                if (inputs.blocksUnavailable || (inputs.blocks.isNotEmpty() && inputs.weightsUnavailable)) {
+                    val retained = retainedBlockReviews(inputs)
+                    emit(PastBlockRead(
+                        inputs = inputs, status = BlockReadStatus.FAILED,
+                        value = retained.orEmpty(),
+                        stale = true,
+                        unavailable = retained == null,
+                    ))
+                    return@flow
+                }
                 // With no finished block there is nothing to review, so the whole log is
                 // not read at all.
                 val reviews = if (inputs.blocks.isEmpty()) {
@@ -161,21 +214,38 @@ class HistoryViewModel @JvmOverloads constructor(
                             .filterNot { it.review.isEmpty }
                     }
                 }
+                // A cancelled noncancellable DAO return must not overwrite the fallback cache.
+                currentCoroutineContext().ensureActive()
                 reviews
-                    .onSuccess { built -> lastPastBlocks = built }
+                    .onSuccess { built -> lastPastBlocks = CachedBlockReviews(inputs.unit, built) }
                     .onFailure { thrown -> AppLog.e(TAG, "Reading past blocks failed", thrown) }
+                val retained = if (reviews.isFailure) retainedBlockReviews(inputs) else null
                 emit(
-                    HistorySidecar(
+                    PastBlockRead(
+                        inputs = inputs,
+                        status = if (reviews.isFailure) BlockReadStatus.FAILED else BlockReadStatus.READY,
                         // Only reviews of blocks still in the list: a restore can replace them
                         // while this screen lives.
                         value = reviews.getOrElse {
-                            lastPastBlocks.filter { shown -> shown.block in inputs.blocks }
+                            retained.orEmpty()
                         },
                         stale = inputs.readsBehind || reviews.isFailure,
+                        unavailable = reviews.isFailure && retained == null,
                     ),
                 )
             }
         }
+        .flowOn(container.computeDispatcher)
+
+    /** Hide a prior result even in the interval before the new read publishes Loading. */
+    private val currentPastBlockRead = combine(pastBlockInputs, pastBlockReviews) { inputs, read ->
+        read.takeIf { it.inputs == inputs } ?: PastBlockRead(inputs, BlockReadStatus.LOADING)
+    }
+
+    private fun retainedBlockReviews(inputs: PastBlockInputs): List<FinishedBlock>? {
+        val cached = lastPastBlocks?.takeIf { it.unit == inputs.unit } ?: return null
+        return cached.value.filter { shown -> inputs.blocksUnavailable || shown.block in inputs.blocks }
+    }
 
     private val catalog = historyRetry.flatMapLatest {
         combine(
@@ -190,13 +260,10 @@ class HistoryViewModel @JvmOverloads constructor(
             ) { workouts, activities -> RecordReads(workouts, activities) },
             combine(
                 container.preferencesRepository.schedulePreferences,
-                pastBlockReviews,
+                currentPastBlockRead,
             ) { preferences, reviews -> preferences to reviews },
         ) { reads, recordReads, settings ->
             val list = historyListFromHealth(reads.health)
-            if (list.unavailable) {
-                return@combine HistoryCatalog(unavailable = true)
-            }
             val activities = sidecarFromHealth(reads.activitySummaries)
             val workoutRecords = sidecarFromHealth(recordReads.workouts)
             val activityRecords = sidecarFromHealth(recordReads.activities)
@@ -204,130 +271,234 @@ class HistoryViewModel @JvmOverloads constructor(
             val preferences = settings.first
             val pastBlocks = settings.second
             HistoryCatalog(
-                unavailable = false,
+                unavailable = list.unavailable,
                 stale = list.stale || activities.stale || workoutRecords.stale ||
                     activityRecords.stale || pastBlocks.stale,
                 summaries = allSummaries,
-                monthGroups = groupHistoryByMonth(allSummaries.map { it.toHistoryEntry() }),
                 records = RecordsCalculator.standing(workoutRecords.value + activityRecords.value),
+                recordsUnavailable = recordReads.workouts is DataHealth.Unavailable ||
+                    recordReads.activities is DataHealth.Unavailable,
+                recordsStale = recordReads.workouts is DataHealth.Degraded ||
+                    recordReads.activities is DataHealth.Degraded,
                 weekStart = preferences.weekStart,
-                pastBlocks = pastBlocks.value,
-                projections = DailyProjectionBuilder.project(allSummaries),
-                today = civilToday(),
+                blockRead = pastBlocks,
                 revision = reads.revision,
             )
         }
     }
         .flowOn(container.computeDispatcher)
-        // Two collectors (uiState and horizonProgress) used to mean two copies of every
+        // Two collectors (uiState and progress) used to mean two copies of every
         // upstream subscription and two assemblies of the same catalog per change. Shared
         // once within the ViewModel; WhileSubscribed matches uiState so nothing runs while
         // the screen is off, and replay hands a late collector the current catalog.
         .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
-    private val horizonProgress = combine(
+    /** One request owns both the visible period and the identity of its full-log read. */
+    private val periodRequest = combine(
         catalog,
-        horizon,
+        periodSelection,
+        today,
         container.preferencesRepository.weightUnit,
         historyRetry,
-    ) { cat, selectedHorizon, unit, attempt ->
-        if (cat.unavailable) {
-            null
-        } else {
-            val earliest = cat.summaries.minOfOrNull { it.localEpochDay }
-            val (start, end) = HorizonMath.range(
-                selectedHorizon,
-                cat.today,
-                cat.weekStart,
-                earliest,
-            )
-            HorizonProgressKey(
-                startEpochDay = start,
-                endEpochDay = end,
-                unit = unit,
-                revision = cat.revision,
-                attempt = attempt,
-            )
-        }
+    ) { cat, selection, currentToday, unit, attempt ->
+        val range = if (cat.unavailable) null else HistoryPeriodMath.resolve(
+            selection = selection,
+            today = currentToday,
+            weekStart = cat.weekStart,
+            earliestEpochDay = cat.summaries.minOfOrNull { it.localEpochDay },
+        )
+        val scoped = if (range == null) emptyList() else cat.summaries.filter { it.localEpochDay in range }
+        PeriodRequest(
+            catalog = cat,
+            selection = selection,
+            today = currentToday,
+            range = range,
+            summaries = scoped,
+            projections = DailyProjectionBuilder.project(scoped),
+            unit = unit,
+            attempt = attempt,
+            key = range?.let { HorizonProgressKey(it, unit, cat.revision, attempt) },
+        )
     }
+        .flowOn(container.computeDispatcher)
+        .shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    private val horizonProgress = periodRequest
+        .map { it.key }
         .distinctUntilChanged()
         .flatMapLatest { key ->
             flow {
                 if (key == null) {
-                    emit(HorizonRead(progress = null, failed = false))
+                    emit(HorizonRead(key = null, status = ProgressStatus.UNAVAILABLE))
                     return@flow
                 }
+                emit(HorizonRead(key = key, status = ProgressStatus.LOADING))
                 // As for past blocks: a failed read hides the readout and marks the page
                 // behind instead of closing the app (audit UI-17).
                 val progress = runCatchingCancellable {
                     BlockReviewBuilder.overRange(
-                        startEpochDay = key.startEpochDay,
-                        endExclusiveEpochDay = key.endEpochDay + 1,
+                        startEpochDay = key.range.startEpochDay,
+                        endExclusiveEpochDay = key.range.endExclusiveEpochDay,
                         items = container.completedTrainingRepository.all(),
                         unit = key.unit,
                     )
                 }
                 progress.onFailure { thrown -> AppLog.e(TAG, "Reading the period's history failed", thrown) }
-                emit(HorizonRead(progress = progress.getOrNull(), failed = progress.isFailure))
+                emit(HorizonRead(
+                    key = key,
+                    status = if (progress.isFailure) ProgressStatus.FAILED else ProgressStatus.READY,
+                    progress = progress.getOrNull(),
+                ))
             }
         }
         .flowOn(container.computeDispatcher)
 
     val uiState: StateFlow<HistoryUiState> = combine(
-        catalog,
-        visibleMonth,
-        horizon,
+        periodRequest,
         horizonProgress,
-    ) { cat, month, selectedHorizon, progress ->
-        if (cat.unavailable) {
-            return@combine HistoryUiState(isLoading = false, unavailable = true)
+    ) { request, progress ->
+        val cat = request.catalog
+        val selection = request.selection
+        val anchor = if (selection.followToday) request.today.epochDay
+            else minOf(selection.anchorEpochDay, request.today.epochDay)
+        val month = CivilYearMonth.from(CivilDate.fromEpochDay(anchor))
+        // Preferences and the catalog can publish before the block-input flow catches up.
+        // Only reviews formatted and computed for this visible request may be exposed.
+        val blocks = cat.blockRead?.takeIf { read ->
+            read.inputs.unit == request.unit && read.inputs.revision == cat.revision &&
+                read.inputs.attempt == request.attempt
         }
+        val blocksLoading = blocks == null || blocks.status == BlockReadStatus.LOADING
+        if (cat.unavailable) {
+            return@combine HistoryUiState(
+                isLoading = false, unavailable = true, selection = selection,
+                horizon = selection.horizon, today = request.today, unit = request.unit,
+                calendar = TrainingMonth(month),
+                stale = cat.stale,
+                records = cat.records, recordsLoading = false,
+                recordsUnavailable = cat.recordsUnavailable, recordsStale = cat.recordsStale,
+                pastBlocks = blocks?.value.orEmpty(), blocksLoading = blocksLoading,
+                blocksUnavailable = blocks?.unavailable == true, blocksStale = blocks?.stale == true,
+            )
+        }
+        // A new request can arrive before flatMapLatest publishes Loading. Never attach
+        // the previous period/unit/revision/retry result during that interval.
+        val matching = progress.takeIf { it.key == request.key }
+        val range = checkNotNull(request.range)
+        val failed = matching?.status == ProgressStatus.FAILED
         HistoryUiState(
             isLoading = false,
-            stale = cat.stale || progress.failed,
-            summaries = cat.summaries,
-            monthGroups = cat.monthGroups,
+            stale = cat.stale || failed,
+            summaries = request.summaries,
+            monthGroups = groupHistoryByMonth(request.summaries.map { it.toHistoryEntry() }),
             records = cat.records,
+            recordsLoading = false,
+            recordsUnavailable = cat.recordsUnavailable,
+            recordsStale = cat.recordsStale,
             calendar = TrainingCalendarBuilder.buildSummaries(
-                month = month.toCivilYearMonth(),
+                month = month,
                 summaries = cat.summaries,
                 weekStart = cat.weekStart,
+                range = range,
             ),
             weekStart = cat.weekStart,
-            pastBlocks = cat.pastBlocks,
-            horizon = selectedHorizon,
+            pastBlocks = blocks?.value.orEmpty(),
+            blocksLoading = blocksLoading,
+            blocksUnavailable = blocks?.unavailable == true,
+            blocksStale = blocks?.stale == true,
+            horizon = selection.horizon,
+            selection = selection,
+            periodRange = range,
+            canGoNext = HistoryPeriodMath.next(selection, request.today, cat.weekStart) != null,
+            progressLoading = matching == null || matching.status == ProgressStatus.LOADING,
+            progressFailed = failed,
+            unit = request.unit,
             horizonTotals = HorizonMath.totals(
-                horizon = selectedHorizon,
-                projections = cat.projections,
-                today = cat.today,
-                weekStart = cat.weekStart,
+                horizon = selection.horizon,
+                projections = request.projections,
+                range = range,
             ),
-            horizonProgress = progress.progress,
-            today = cat.today,
+            horizonProgress = matching?.progress.takeIf { matching?.status == ProgressStatus.READY },
+            today = request.today,
         )
     }
+        .flowOn(container.computeDispatcher)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = HistoryUiState(),
+            initialValue = HistoryUiState(
+                selection = periodSelection.value,
+                horizon = periodSelection.value.horizon,
+                today = initialToday,
+                calendar = TrainingMonth(CivilYearMonth.from(CivilDate.fromEpochDay(
+                    if (periodSelection.value.followToday) initialToday.epochDay
+                    else minOf(periodSelection.value.anchorEpochDay, initialToday.epochDay),
+                ))),
+            ),
         )
 
-    fun showPreviousMonth() {
-        visibleMonth.value = visibleMonth.value.minusMonths(1)
+    fun updateToday(epochDay: Long) {
+        if (!supportedDay(epochDay)) return
+        today.value = CivilDate.fromEpochDay(epochDay)
     }
 
-    fun showNextMonth() {
-        val next = visibleMonth.value.plusMonths(1)
-        if (next <= yearMonthOf(civilToday())) visibleMonth.value = next
+    fun selectDay(epochDay: Long) {
+        if (!supportedDay(epochDay) || epochDay > today.value.epochDay) return
+        setSelection(HistoryPeriodSelection(AnalyticsHorizon.DAY, epochDay, false))
     }
 
-    fun showCurrentMonth() {
-        visibleMonth.value = yearMonthOf(civilToday())
+    fun selectMonth(month: CivilYearMonth) {
+        val anchor = month.atDay(1).epochDay
+        if (!supportedDay(anchor) || anchor > today.value.epochDay) return
+        setSelection(HistoryPeriodSelection(AnalyticsHorizon.MONTH, anchor, false))
+    }
+
+    fun showPreviousPeriod() {
+        HistoryPeriodMath.previous(periodSelection.value, today.value, uiState.value.weekStart)?.let(::setSelection)
+    }
+
+    fun showNextPeriod() {
+        HistoryPeriodMath.next(periodSelection.value, today.value, uiState.value.weekStart)?.let(::setSelection)
+    }
+
+    fun showCurrentPeriod() {
+        setSelection(HistoryPeriodMath.current(periodSelection.value, today.value))
     }
 
     fun setHorizon(value: AnalyticsHorizon) {
-        horizon.value = value
+        setSelection(periodSelection.value.copy(horizon = value))
     }
+
+    // Existing callers still page the same selection; there is no independent month cursor.
+    fun showPreviousMonth() = showPreviousPeriod()
+    fun showNextMonth() = showNextPeriod()
+    fun showCurrentMonth() = showCurrentPeriod()
+
+    private fun setSelection(selection: HistoryPeriodSelection) {
+        saveSelection(selection)
+        periodSelection.value = selection
+    }
+
+    private fun saveSelection(selection: HistoryPeriodSelection) {
+        val handle = savedStateHandle ?: return
+        handle[SAVED_HORIZON] = selection.horizon.name
+        handle[SAVED_ANCHOR] = selection.anchorEpochDay
+        handle[SAVED_FOLLOW_TODAY] = selection.followToday
+    }
+
+    private fun restoredSelection(currentToday: CivilDate): HistoryPeriodSelection {
+        val handle = savedStateHandle
+        val restored = runCatching {
+            val name = handle?.get<Any?>(SAVED_HORIZON) as? String ?: return@runCatching null
+            val anchor = handle.get<Any?>(SAVED_ANCHOR) as? Long ?: return@runCatching null
+            val follow = handle.get<Any?>(SAVED_FOLLOW_TODAY) as? Boolean ?: return@runCatching null
+            HistoryPeriodSelection(AnalyticsHorizon.valueOf(name), anchor, follow)
+        }.getOrNull()
+        return restored ?: HistoryPeriodSelection(AnalyticsHorizon.MONTH, currentToday.epochDay, true)
+    }
+
+    private fun supportedDay(epochDay: Long): Boolean =
+        epochDay in MIN_CIVIL_EPOCH_DAY..MAX_CIVIL_EPOCH_DAY
 
     fun repeatSession(sessionId: String) {
         if (!repeating.compareAndSet(false, true)) return
@@ -390,8 +561,7 @@ class HistoryViewModel @JvmOverloads constructor(
      * still ignored content would have been the same bug with more fields.
      */
     private data class HorizonProgressKey(
-        val startEpochDay: Long,
-        val endEpochDay: Long,
+        val range: HistoryPeriodRange,
         val unit: WeightUnit,
         val revision: String,
         /** Retry reads the period again, even when nothing it keys on moved. */
@@ -404,10 +574,25 @@ class HistoryViewModel @JvmOverloads constructor(
         val revision: String,
     )
 
-    /** The period readout, and whether the read behind it failed. */
+    private enum class ProgressStatus { LOADING, READY, FAILED, UNAVAILABLE }
+
+    /** Every stage carries the full request identity, including Loading and failure. */
     private data class HorizonRead(
-        val progress: HorizonProgress?,
-        val failed: Boolean,
+        val key: HorizonProgressKey?,
+        val status: ProgressStatus,
+        val progress: HorizonProgress? = null,
+    )
+
+    private data class PeriodRequest(
+        val catalog: HistoryCatalog,
+        val selection: HistoryPeriodSelection,
+        val today: CivilDate,
+        val range: HistoryPeriodRange?,
+        val summaries: List<SessionSummary>,
+        val projections: List<DailyProjection>,
+        val unit: WeightUnit,
+        val attempt: Int,
+        val key: HorizonProgressKey?,
     )
 
     private data class RecordReads(
@@ -424,24 +609,37 @@ class HistoryViewModel @JvmOverloads constructor(
         val unit: WeightUnit,
         val bodyweightLog: List<BodyweightEntry>,
         val revision: String,
+        val attempt: Int,
         /** The blocks or the weigh-ins came from a failed read: what they last had, or none. */
         val readsBehind: Boolean,
+        val blocksUnavailable: Boolean,
+        val weightsUnavailable: Boolean,
+    )
+
+    private enum class BlockReadStatus { LOADING, READY, FAILED }
+
+    private data class CachedBlockReviews(val unit: WeightUnit, val value: List<FinishedBlock>)
+
+    private data class PastBlockRead(
+        val inputs: PastBlockInputs,
+        val status: BlockReadStatus,
+        val value: List<FinishedBlock> = emptyList(),
+        val stale: Boolean = false,
+        val unavailable: Boolean = false,
     )
 
     private data class HistoryCatalog(
         val unavailable: Boolean = false,
         val stale: Boolean = false,
         val summaries: List<SessionSummary> = emptyList(),
-        val monthGroups: List<HistoryMonthGroup> = emptyList(),
         val records: List<PrSummaryRow> = emptyList(),
+        val recordsUnavailable: Boolean = false,
+        val recordsStale: Boolean = false,
         val weekStart: Weekday = Weekday.MONDAY,
-        val pastBlocks: List<FinishedBlock> = emptyList(),
-        val projections: List<DailyProjection> = emptyList(),
-        val today: CivilDate = CivilDate.of(1970, 1, 1),
+        val blockRead: PastBlockRead? = null,
         val revision: String = "",
     )
 
-    private fun yearMonthOf(date: CivilDate): YearMonth = YearMonth.of(date.year, date.month)
 }
 
 internal data class HistoryListState(
@@ -490,3 +688,8 @@ internal fun <T> sidecarFromHealth(health: DataHealth<List<T>>): HistorySidecar<
     )
 
 private const val TAG = "PT/HistoryViewModel"
+private const val SAVED_HORIZON = "history.period.horizon"
+private const val SAVED_ANCHOR = "history.period.anchor"
+private const val SAVED_FOLLOW_TODAY = "history.period.follow-today"
+private const val MIN_CIVIL_EPOCH_DAY = -365243219162L
+private const val MAX_CIVIL_EPOCH_DAY = 365241780471L

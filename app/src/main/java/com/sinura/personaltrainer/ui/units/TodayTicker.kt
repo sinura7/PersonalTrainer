@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,24 +40,27 @@ fun millisUntilNextLocalMidnight(
 
 @Composable
 fun rememberTodayEpochDay(time: TimePort = JvmTime): Long {
-    val zoneId = time.defaultZoneId()
-    var today by remember {
-        mutableLongStateOf(todayEpochDay(nowMs = time.nowMillis(), time = time, zoneId = zoneId))
+    var today by remember(time) {
+        mutableLongStateOf(todayEpochDay(nowMs = time.nowMillis(), time = time, zoneId = time.defaultZoneId()))
     }
+    var resumeGeneration by remember(time) { mutableIntStateOf(0) }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, time) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                today = todayEpochDay(nowMs = time.nowMillis(), time = time, zoneId = zoneId)
+                today = todayEpochDay(nowMs = time.nowMillis(), time = time, zoneId = time.defaultZoneId())
+                // The same civil date can now have a different next-midnight deadline.
+                // Reschedule even when rereading today did not change its state value.
+                resumeGeneration += 1
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    LaunchedEffect(today, time) {
+    LaunchedEffect(today, time, resumeGeneration) {
         while (true) {
-            delay(millisUntilNextLocalMidnight(time.nowMillis(), time, zoneId))
-            today = todayEpochDay(nowMs = time.nowMillis(), time = time, zoneId = zoneId)
+            delay(millisUntilNextLocalMidnight(time.nowMillis(), time))
+            today = todayEpochDay(nowMs = time.nowMillis(), time = time, zoneId = time.defaultZoneId())
         }
     }
     return today

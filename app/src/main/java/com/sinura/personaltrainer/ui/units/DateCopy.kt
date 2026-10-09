@@ -2,6 +2,7 @@ package com.sinura.personaltrainer.ui.units
 
 import com.sinura.personaltrainer.domain.ClockCopy
 import com.sinura.personaltrainer.domain.ClockFormat
+import com.sinura.personaltrainer.domain.HistoryPeriodRange
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -35,6 +36,8 @@ object DateCopy {
         DateTimeFormatter.ofPattern("EEE d MMM yyyy", LOCALE)
     private val DAY_MONTH_YEAR: DateTimeFormatter =
         DateTimeFormatter.ofPattern("d MMM yyyy", LOCALE)
+    private val CIVIL_DATE: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("d MMMM yyyy", LOCALE)
 
     fun dateTime(
         millis: Long,
@@ -58,4 +61,13 @@ object DateCopy {
     fun weekdayFullDate(day: LocalDate): String = WEEKDAY_FULL_DATE.format(day)
 
     fun weekdayShort(day: LocalDate): String = WEEKDAY_SHORT.format(day)
+
+    /** Uses the available attributed date, without inventing a captured clock time. */
+    fun civilDate(epochDay: Long): String = CIVIL_DATE.format(LocalDate.ofEpochDay(epochDay))
+
+    fun periodRange(range: HistoryPeriodRange): String = if (range.startEpochDay == range.endEpochDay) {
+        civilDate(range.startEpochDay)
+    } else {
+        "${civilDate(range.startEpochDay)} – ${civilDate(range.endEpochDay)}"
+    }
 }

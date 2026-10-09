@@ -3,13 +3,13 @@ package com.sinura.personaltrainer.domain
 /**
  * Honesty for History chips and the calendar heat ramp.
  *
- * Day / Week / Month / Year / All only retotal. The calendar still pages
- * months; the session list is still all history. Body uses the same
+ * Day / Week / Month / Year / All share one selected civil range.
+ * Lifetime records and completed blocks remain explicitly separate. Body uses the same
  * [com.sinura.personaltrainer.ui.theme.heatColor] ramp for a different quantity.
  */
 object HistoryCopy {
     const val HORIZON_CAPTION =
-        "Totals for this window. Calendar and the list stay all history."
+        "Totals, calendar and sessions for the selected period."
 
     /**
      * A later read failed and the list below is the last one that loaded. Says what is
@@ -23,6 +23,13 @@ object HistoryCopy {
 
     const val EMPTY_TITLE = "No sessions yet"
     const val EMPTY_LOG = "Finished sessions land here."
+
+    const val EMPTY_PERIOD_TITLE = "No sessions in this period"
+    const val EMPTY_PERIOD = "Choose another period, or log a new session."
+    const val LIFETIME_RECORDS = "Lifetime records"
+    const val LIFETIME_BLOCKS = "Completed blocks · lifetime"
+    const val PROGRESS_LOADING = "Calculating records and progress…"
+    const val PROGRESS_FAILED = "Records and progress could not be loaded."
 
     const val CALENDAR_MONTH = "Month"
 
@@ -38,4 +45,15 @@ object HistoryCopy {
 
     fun sessionsLabel(count: Int): String =
         if (count == 1) "session" else "sessions"
+
+    fun activeDuration(minutes: Int): String {
+        val safe = minutes.coerceAtLeast(0)
+        val hours = safe / 60
+        val remainder = safe % 60
+        return when {
+            hours == 0 -> "$safe min"
+            remainder == 0 -> "$hours h"
+            else -> "$hours h $remainder min"
+        }
+    }
 }

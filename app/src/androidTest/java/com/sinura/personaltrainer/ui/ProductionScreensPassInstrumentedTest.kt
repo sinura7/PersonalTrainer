@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -44,6 +45,7 @@ import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilDateTime
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -150,7 +152,9 @@ class ProductionScreensPassInstrumentedTest {
             )
         }
         awaitTag(HistoryTags.READOUT)
+        scrollPageTo(hasTestTag(HistoryTags.READOUT))
         compose.onNodeWithTag(HistoryTags.READOUT).assertIsDisplayed()
+        scrollPageTo(hasTestTag(HistoryTags.DAY))
         compose.onNodeWithTag(HistoryTags.DAY).assertIsDisplayed()
         compose.onNodeWithTag(HistoryTags.ALL).assertIsDisplayed()
 
@@ -158,10 +162,12 @@ class ProductionScreensPassInstrumentedTest {
         compose.waitUntil(15_000) {
             viewModel.uiState.value.records.any { it.valueKg == 120.0 }
         }
-        // The header is a GymSectionHeader, whose Kicker uppercases at the call site
-        // (ADR-005: tracked caps, never tracked mixed case), so the drawn text is RECORDS.
-        scrollPageTo(hasText("Records", ignoreCase = true))
-        compose.onNodeWithText("Records", ignoreCase = true).assertIsDisplayed()
+        scrollPageTo(hasTestTag(HistoryTags.LIFETIME_RECORDS))
+        compose.onNodeWithTag(HistoryTags.LIFETIME_RECORDS).assertIsDisplayed().performClick()
+        awaitTag(HistoryTags.SECONDARY_CLOSE)
+        compose.onNode(hasText(HistoryCopy.LIFETIME_RECORDS) and
+            hasAnyAncestor(hasTestTag(HistoryTags.SECONDARY_LIST))).assertIsDisplayed()
+        compose.onNodeWithTag(HistoryTags.SECONDARY_CLOSE).assertIsDisplayed().performClick()
 
         scrollPageTo(hasTestTag(SessionLogTags.ROW))
         compose.onAllNodesWithTag(SessionLogTags.ROW).onFirst().assertIsDisplayed()
@@ -180,12 +186,17 @@ class ProductionScreensPassInstrumentedTest {
             )
         }
         awaitTag(HistoryTags.READOUT)
+        scrollPageTo(hasTestTag(HistoryTags.YEAR))
         compose.onNodeWithTag(HistoryTags.YEAR).performClick()
         compose.waitUntil(15_000) {
-            viewModel.uiState.value.horizonTotals?.sessionCount?.let { it >= 4 } == true
+            viewModel.uiState.value.horizonTotals?.sessionCount?.let { it >= 4 } == true &&
+                !viewModel.uiState.value.progressLoading && !viewModel.uiState.value.progressFailed
         }
+        scrollPageTo(hasTestTag(HistoryTags.READOUT))
         compose.onNodeWithTag(HistoryTags.READOUT).assertIsDisplayed()
+        scrollPageTo(hasTestTag(HistoryTags.ALL))
         compose.onNodeWithTag(HistoryTags.ALL).performClick()
+        scrollPageTo(hasTestTag(HistoryTags.READOUT))
         compose.onNodeWithTag(HistoryTags.READOUT).assertIsDisplayed()
     }
 
