@@ -180,6 +180,7 @@ for c in "check-internal-imports.py" \
          "check-cancellation.py" \
          "test_policy_move.py" \
          "test_checker_skips.py" \
+         "test_when_exhaustive.py" \
          "test_lambda_arity.py" \
          "test_unbounded_waits.py" \
          "test_cancellation.py" \

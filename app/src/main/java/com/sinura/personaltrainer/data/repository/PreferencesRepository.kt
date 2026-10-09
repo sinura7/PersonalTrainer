@@ -68,6 +68,7 @@ import com.sinura.personaltrainer.domain.OnboardingAnswers
 import com.sinura.personaltrainer.domain.ReminderPreferences
 import com.sinura.personaltrainer.domain.RestTimerPreferences
 import com.sinura.personaltrainer.domain.SchedulePreferences
+import com.sinura.personaltrainer.domain.SplitStyle
 import com.sinura.personaltrainer.domain.TrainingAge
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.domain.TrainingEmphasis
@@ -102,6 +103,17 @@ data class AutoBackupSettings(
     val lastBackedUpSessionId: String?,
     /** The signed-in Drive account, read in the same snapshot as the switch it guards. */
     val driveAccount: String? = null,
+)
+
+/** One settings read for Home and insights; defaults cannot outrun a separate health read. */
+internal data class HomePreferencesSnapshot(
+    val schedulePreferences: SchedulePreferences,
+    val weightUnit: WeightUnit,
+    val coachPreferences: CoachPreferences,
+    val lighterWeekStartEpochDay: Long?,
+    val preferredDays: Set<Weekday>,
+    val bodyweightCheckInWeekday: Weekday?,
+    val onboardingComplete: Boolean,
 )
 
 /**
@@ -448,6 +460,27 @@ class PreferencesRepository(
         .distinctUntilChanged()
 
     val onboardingComplete: Flow<Boolean> = onboardingCompleteHealth.presentValues()
+
+    internal fun observeHomePreferencesHealth(): Flow<DataHealth<HomePreferencesSnapshot>> =
+        dataStore.data.map { prefs ->
+            HomePreferencesSnapshot(
+                schedulePreferences = SchedulePreferences(
+                    trainingDaysPerWeek = prefs[TRAINING_DAYS] ?: SchedulePreferences.DEFAULT_DAYS,
+                    splitStyle = SplitStyle.fromStorage(prefs[SPLIT_STYLE]),
+                    weekStart = SchedulePreferences.weekStartFromStorage(prefs[WEEK_START]),
+                ).sanitized(),
+                weightUnit = WeightUnit.fromStorage(prefs[WEIGHT_UNIT]),
+                coachPreferences = CoachPreferences(
+                    goal = TrainingGoal.fromStorage(prefs[TRAINING_GOAL]),
+                    availableEquipment = prefs[AVAILABLE_EQUIPMENT].orEmpty(),
+                    emphasis = TrainingEmphasis.fromStorage(prefs[TRAINING_EMPHASIS]),
+                ),
+                lighterWeekStartEpochDay = prefs[LIGHTER_WEEK_START],
+                preferredDays = preferredDaysFrom(prefs[PREFERRED_DAYS]),
+                bodyweightCheckInWeekday = Weekday.fromStorage(prefs[BODYWEIGHT_CHECK_IN_WEEKDAY]),
+                onboardingComplete = prefs[ONBOARDING_COMPLETE] ?: false,
+            )
+        }.observeHealth("settings").distinctUntilChanged()
 
     suspend fun setOnboardingComplete(complete: Boolean) {
         dataStore.edit { prefs -> prefs[ONBOARDING_COMPLETE] = complete }

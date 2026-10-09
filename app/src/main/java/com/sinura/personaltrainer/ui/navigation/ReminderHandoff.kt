@@ -29,7 +29,12 @@ internal sealed interface TapVerdict {
 
 /** The tap Home may act on: handed over only once nothing was found live. */
 @Immutable
-internal data class HomeTap(val startId: String?, val deliveryId: String?, val reviewId: String?)
+internal data class HomeTap(
+    val startId: String?,
+    val deliveryId: String?,
+    val reviewId: String?,
+    val requestId: String? = null,
+)
 
 /** Where Home stands once a tap with nothing live has asked for it. */
 internal enum class HomeReach {
@@ -113,9 +118,10 @@ internal fun ReminderHandoffHost(
     handToHome: (HomeTap?) -> Unit,
     onStartConsumed: () -> Unit,
     onReviewConsumed: () -> Unit,
+    openRequestId: String? = null,
 ) {
     var held by rememberSaveable { mutableStateOf<HeldTap?>(null) }
-    LaunchedEffect(openStartId, openDeliveryId, openReviewId) {
+    LaunchedEffect(openStartId, openDeliveryId, openReviewId, openRequestId) {
         handToHome(null)
         val tapped = openStartId ?: openReviewId ?: return@LaunchedEffect
         val found = verdict(tapped)
@@ -126,7 +132,14 @@ internal fun ReminderHandoffHost(
                 TapVerdict.NothingLive -> {
                     val reach = bringHomeForward()
                     if (reach == HomeReach.IN_FRONT) {
-                        handToHome(HomeTap(startId = openStartId, deliveryId = openDeliveryId, reviewId = openReviewId))
+                        handToHome(
+                            HomeTap(
+                                startId = openStartId,
+                                deliveryId = openDeliveryId,
+                                reviewId = openReviewId,
+                                requestId = openRequestId,
+                            ),
+                        )
                     } else {
                         held = if (openStartId != null) HeldTap.EDIT_START else HeldTap.EDIT_REVIEW
                         if (openStartId != null) onStartConsumed()

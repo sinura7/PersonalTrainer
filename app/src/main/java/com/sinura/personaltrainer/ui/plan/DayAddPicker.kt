@@ -55,6 +55,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 
 enum class DayPicker { NONE, KIND, WORKOUT, CARDIO, AUX, KEEP }
@@ -276,6 +277,7 @@ fun DayAddPicker(
 internal fun CardioPickCard(
     type: CardioType,
     onClick: () -> Unit,
+    enabled: Boolean = true,
 ) {
     val view = LocalView.current
     val shape = RoundedCornerShape(Radius.md)
@@ -286,7 +288,7 @@ internal fun CardioPickCard(
             .clip(shape)
             .background(Surface2)
             .border(Metrics.hairline, Hairline, shape)
-            .clickable(role = Role.Button, onClick = {
+            .clickable(enabled = enabled, role = Role.Button, onClick = {
                 Haptics.tick(view)
                 onClick()
             })
@@ -303,7 +305,7 @@ internal fun CardioPickCard(
         Text(
             label,
             style = InstrumentType.bodyStrong,
-            color = TextPrimary,
+            color = if (enabled) TextPrimary else TextDisabled,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

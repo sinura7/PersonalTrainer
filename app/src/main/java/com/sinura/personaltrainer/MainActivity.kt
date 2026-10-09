@@ -29,11 +29,13 @@ import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.theme.systemReduceMotion
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private var openSessionId by mutableStateOf<String?>(null)
     private var openOccurrenceId by mutableStateOf<String?>(null)
     private var openDeliveryId by mutableStateOf<String?>(null)
+    private var openOccurrenceRequestId by mutableStateOf<String?>(null)
     private var reviewOccurrenceId by mutableStateOf<String?>(null)
     private var reduceMotion by mutableStateOf(false)
 
@@ -48,7 +50,7 @@ class MainActivity : ComponentActivity() {
         openOccurrenceId = if (savedInstanceState == null) {
             ReminderNotifications.consumeOccurrenceId(intent)
         } else {
-            null
+            savedInstanceState.getString(PENDING_OCCURRENCE)?.takeIf { it.isNotBlank() }
         }
         reviewOccurrenceId = if (savedInstanceState == null) {
             ReminderNotifications.consumeReviewOccurrenceId(intent)
@@ -58,7 +60,13 @@ class MainActivity : ComponentActivity() {
         openDeliveryId = if (savedInstanceState == null) {
             ReminderNotifications.consumeStartedDeliveryId(intent)
         } else {
-            null
+            savedInstanceState.getString(PENDING_DELIVERY).takeIf { openOccurrenceId != null }
+        }
+        // Keep only a handoff Home has not yet accepted or refused. The creating intent has
+        // already been stripped; rereading it would replay a consumed tap after rotation.
+        openOccurrenceRequestId = openOccurrenceId?.let {
+            savedInstanceState?.getString(PENDING_REQUEST)?.takeIf { id -> id.isNotBlank() }
+                ?: UUID.randomUUID().toString()
         }
         // Both bars transparent, both pinned to light icons. The default picks icon colour
         // from the system's light/dark setting, which is the wrong signal for an app that
@@ -87,9 +95,11 @@ class MainActivity : ComponentActivity() {
                             onOpenSessionConsumed = { openSessionId = null },
                             openOccurrenceId = openOccurrenceId,
                             openDeliveryId = openDeliveryId,
+                            openOccurrenceRequestId = openOccurrenceRequestId,
                             onOpenOccurrenceConsumed = {
                                 openOccurrenceId = null
                                 openDeliveryId = null
+                                openOccurrenceRequestId = null
                             },
                             reviewOccurrenceId = reviewOccurrenceId,
                             onReviewOccurrenceConsumed = { reviewOccurrenceId = null },
@@ -149,14 +159,44 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        consumeSessionId(intent)?.let { openSessionId = it }
+        consumeSessionId(intent)?.let {
+            openSessionId = it
+            clearPendingOccurrenceStart()
+            reviewOccurrenceId = null
+        }
         ReminderNotifications.consumeOccurrenceId(intent)?.let { occurrenceId ->
+            openSessionId = null
+            reviewOccurrenceId = null
             openOccurrenceId = occurrenceId
             // Always replaced with the start it came with: a Start carries its delivery, and
             // anything else that names a start carries none.
             openDeliveryId = ReminderNotifications.consumeStartedDeliveryId(intent)
+            // The same still-pending delivery can be tapped intentionally again after a
+            // read refusal. It is a new request, rather than an automatic retry of the old one.
+            openOccurrenceRequestId = UUID.randomUUID().toString()
         }
-        ReminderNotifications.consumeReviewOccurrenceId(intent)?.let { reviewOccurrenceId = it }
+        ReminderNotifications.consumeReviewOccurrenceId(intent)?.let {
+            // A body tap asks to inspect. It replaces a still-waiting Start rather than
+            // allowing that older request to start once Home's required reads recover.
+            clearPendingOccurrenceStart()
+            openSessionId = null
+            reviewOccurrenceId = it
+        }
+    }
+
+    private fun clearPendingOccurrenceStart() {
+        openOccurrenceId = null
+        openDeliveryId = null
+        openOccurrenceRequestId = null
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        if (openOccurrenceId != null) {
+            outState.putString(PENDING_OCCURRENCE, openOccurrenceId)
+            outState.putString(PENDING_DELIVERY, openDeliveryId)
+            outState.putString(PENDING_REQUEST, openOccurrenceRequestId)
+        }
+        super.onSaveInstanceState(outState)
     }
 
     /**
@@ -172,3 +212,6 @@ class MainActivity : ComponentActivity() {
 }
 
 private const val TAG = "PT/MainActivity"
+private const val PENDING_OCCURRENCE = "temper.pending-occurrence-start"
+private const val PENDING_DELIVERY = "temper.pending-occurrence-delivery"
+private const val PENDING_REQUEST = "temper.pending-occurrence-request"

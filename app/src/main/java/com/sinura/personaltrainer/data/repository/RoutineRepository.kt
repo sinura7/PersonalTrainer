@@ -7,6 +7,7 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.data.sync.SyncAuthoring
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.Routine
@@ -23,9 +24,11 @@ class RoutineRepository(
     private suspend fun notifyRoutinesSync() {
         syncAuthoring?.onRoutinesChanged()
     }
-    fun observeAll(): Flow<List<Routine>> = routineDao.observeAll().map { list ->
+    fun observeAllHealth(): Flow<DataHealth<List<Routine>>> = routineDao.observeAll().map { list ->
         list.map { it.toDomain() }
-    }.observeHealth("routines").presentValues()
+    }.observeHealth("routines")
+
+    fun observeAll(): Flow<List<Routine>> = observeAllHealth().presentValues()
 
     fun observeById(id: String): Flow<Routine?> = routineDao.observeById(id).map { it?.toDomain() }
         .observeHealth("a routine").presentValues()

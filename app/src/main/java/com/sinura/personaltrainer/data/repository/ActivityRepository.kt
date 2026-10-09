@@ -38,11 +38,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
-import kotlinx.coroutines.flow.shareIn
 
 class ActivityRepository(
     private val database: TemperDatabase,
@@ -89,7 +87,11 @@ class ActivityRepository(
      * values-only view of the same flow, so a failure stops it rather than crashing whoever
      * combined it.
      */
-    private val liveHealth: Flow<DataHealth<ActivitySession?>> =
+    private val liveHealth = SharedReadRecovery(
+        scope = sharedScope,
+        graceMs = SHARE_GRACE_MS,
+        what = "the live activity",
+    ) {
         dao.observeLive()
             // The row before the graph. Room re-emits on any write to activity_sessions, so
             // without this a set logged into a live session re-read its whole graph for every
@@ -97,13 +99,11 @@ class ActivityRepository(
             .distinctUntilChanged()
             .map { row -> row?.let { dao.getSessionGraph(it.id)?.toDomain() } }
             .observeHealth("the live activity")
-            .shareIn(
-                scope = sharedScope,
-                started = SharingStarted.WhileSubscribed(SHARE_GRACE_MS),
-                replay = 1,
-            )
+    }
 
-    fun observeLiveHealth(): Flow<DataHealth<ActivitySession?>> = liveHealth
+    fun observeLiveHealth(): Flow<DataHealth<ActivitySession?>> = liveHealth.observe()
+
+    fun retryLiveHealth(): Flow<DataHealth<ActivitySession?>> = liveHealth.retry()
 
     fun observeLive(): Flow<ActivitySession?> = observeLiveHealth().presentValues()
 
@@ -144,10 +144,12 @@ class ActivityRepository(
             .observeHealth("the activity history for this exercise")
             .presentValues()
 
-    fun observeCompletedGraphsSince(minPerformedAtMs: Long): Flow<List<ActivitySession>> =
+    fun observeCompletedGraphsSinceHealth(minPerformedAtMs: Long): Flow<DataHealth<List<ActivitySession>>> =
         dao.observeCompletedGraphsSince(minPerformedAtMs).map { rows -> rows.map { it.toDomain() } }
             .observeHealth("the activity history")
-            .presentValues()
+
+    fun observeCompletedGraphsSince(minPerformedAtMs: Long): Flow<List<ActivitySession>> =
+        observeCompletedGraphsSinceHealth(minPerformedAtMs).presentValues()
 
     suspend fun onLocalDate(localEpochDay: Long): List<ActivitySession> =
         dao.graphsOnLocalDate(localEpochDay).map { it.toDomain() }

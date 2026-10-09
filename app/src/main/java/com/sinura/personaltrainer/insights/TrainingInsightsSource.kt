@@ -6,7 +6,11 @@ import com.sinura.personaltrainer.data.repository.PreferencesRepository
 import com.sinura.personaltrainer.data.repository.ScheduleRepository
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
+import com.sinura.personaltrainer.data.repository.SharedReadRecovery
+import com.sinura.personaltrainer.data.repository.combineHealth
+import com.sinura.personaltrainer.data.repository.mapHealthCatching
 import com.sinura.personaltrainer.data.repository.presentValues
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.SessionSummary
 import com.sinura.personaltrainer.domain.windowedInsightHistory
 import com.sinura.personaltrainer.domain.Exercise
@@ -36,16 +40,11 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
-import kotlinx.coroutines.flow.shareIn
 
 private const val TAG = "PT/InsightsSource"
 
@@ -110,7 +109,15 @@ class TrainingInsightsSource(
      * next to it already knew.
      */
     override fun observeShared(includeWeekPlan: Boolean): Flow<TrainingInsights> =
-        assembled(includeWeekPlan).map { retarget(it, HeatWindow.CURRENT_WEEK) }
+        observeSharedHealth(includeWeekPlan).presentValues()
+
+    override fun observeSharedHealth(includeWeekPlan: Boolean): Flow<DataHealth<TrainingInsights>> =
+        assembled(includeWeekPlan).observe()
+            .mapHealthCatching("the training summary") { retarget(it, HeatWindow.CURRENT_WEEK) }
+
+    override fun retrySharedHealth(includeWeekPlan: Boolean): Flow<DataHealth<TrainingInsights>> =
+        assembled(includeWeekPlan).retry()
+            .mapHealthCatching("the training summary") { retarget(it, HeatWindow.CURRENT_WEEK) }
 
     /**
      * Logs, as the application scope does. Without a handler a throw that escaped the
@@ -127,25 +134,19 @@ class TrainingInsightsSource(
     private val hintLock = Any()
     private var hintCache: Pair<HintCacheKey, List<ProgressionHint>?>? = null
 
-    private val assembledWithPlan: Flow<Assembled> by lazy { shareAssembled(includeWeekPlan = true) }
-    private val assembledWithoutPlan: Flow<Assembled> by lazy { shareAssembled(includeWeekPlan = false) }
+    private val assembledWithPlan by lazy { shareAssembled(includeWeekPlan = true) }
+    private val assembledWithoutPlan by lazy { shareAssembled(includeWeekPlan = false) }
 
-    private fun assembled(includeWeekPlan: Boolean): Flow<Assembled> =
+    private fun assembled(includeWeekPlan: Boolean): SharedReadRecovery<Assembled> =
         if (includeWeekPlan) assembledWithPlan else assembledWithoutPlan
 
-    /**
-     * A throw ends this pass quietly: screens keep the summary they had, if any, and the next
-     * subscription after the grace period assembles again. An uncaught one used to close the
-     * app and leave nothing to restart (audit DB-1, AR-1).
-     */
-    private fun shareAssembled(includeWeekPlan: Boolean): Flow<Assembled> =
+    private fun shareAssembled(includeWeekPlan: Boolean) = SharedReadRecovery(
+        scope = sharedScope,
+        graceMs = shareGraceMs,
+        what = "the training summary",
+    ) {
         assemble(includeWeekPlan)
-            .catch { thrown -> AppLog.e(TAG, "Assembling the training summary failed", thrown) }
-            .shareIn(
-                scope = sharedScope,
-                started = SharingStarted.WhileSubscribed(shareGraceMs),
-                replay = 1,
-            )
+    }
 
     /**
      * @param window which heat window to summarise; Progress lets the user change it.
@@ -158,104 +159,105 @@ class TrainingInsightsSource(
         refresh: Flow<Any?>,
         includeWeekPlan: Boolean,
     ): Flow<TrainingInsights> = combine(
-        assembled(includeWeekPlan),
+        assembled(includeWeekPlan).observe(),
         window,
         refreshNudgesCore(refresh),
-    ) { assembled, heatWindow, _ ->
+    ) { health, heatWindow, _ ->
+        when (health) {
+            is DataHealth.Available -> DataHealth.Available(health.value to heatWindow)
+            is DataHealth.Degraded -> DataHealth.Degraded(health.lastValue to heatWindow, health.what)
+            is DataHealth.Unavailable -> health
+        }
+    }.mapHealthCatching("the training summary") { (assembled, heatWindow) ->
         retarget(assembled, heatWindow)
-    }.flowOn(computeDispatcher)
+    }.presentValues().flowOn(computeDispatcher)
 
     private fun refreshNudgesCore(refresh: Flow<Any?>): Flow<Any?> = flow {
         var first = true
         refresh.collect { value ->
-            if (!first) coreNudge.value = nowMs()
+            if (!first) synchronized(hintLock) { coreNudge.value += 1L }
             first = false
             emit(value)
         }
     }
 
-    private fun assemble(includeWeekPlan: Boolean): Flow<Assembled> {
-        // Every input is a guarded read: one that fails after its first value holds that value
-        // instead of throwing through the combine (audit DB-1). One that fails before it has
-        // nothing to hold, so the summary waits, and Home stays on its spinner, until the next
-        // visit reads again; F4 turns that wait into a read-error state.
-        val activitySummaries = activityRepository?.observeCompletedSummariesHealth()?.presentValues()
-            ?: flowOf(emptyList())
+    private fun assemble(includeWeekPlan: Boolean): Flow<DataHealth<Assembled>> {
+        val activitySummaries = activityRepository?.observeCompletedSummariesHealth()
+            ?: flowOf(DataHealth.Available(emptyList()))
         val windowStart = nowMs() - WINDOW_MS
-        // Slot flow and retry nudge sit outside the five-way combine: typed overloads stop at five.
-        return combine(
-            combine(
-                combine(
-                    combine(
-                        workoutRepository.observeSessionSummariesHealth().presentValues(),
-                        activitySummaries,
-                    ) { summaries, activities ->
-                        summaries + activities
-                    },
-                    combine(
-                        workoutRepository.observeFinishedSince(windowStart),
-                        activityRepository?.observeCompletedGraphsSince(windowStart)
-                            ?: flowOf(emptyList()),
-                    ) { sessions, activities ->
-                        windowedInsightHistory(
-                            sessions = sessions,
-                            activities = activities,
-                            minPerformedAtMs = nowMs() - WINDOW_MS,
-                        )
-                    },
-                ) { summaries, windowed -> summaries to windowed },
-                routineRepository.observeAll(),
-                combine(
-                    exerciseRepository.observeAll(),
-                    workoutRepository.observeFinishedLastLogged(),
-                ) { exercises, lastLogged ->
-                    exercises.associateBy { it.id } to lastLogged
-                },
-                preferencesRepository.schedulePreferences,
-                preferencesRepository.weightUnit,
-            ) { historyAndSummaries, routines, catalogAndRecency, preferences, unit ->
-                Sources(
-                    history = historyAndSummaries.second,
-                    summaries = historyAndSummaries.first,
-                    routines = routines,
-                    exercises = catalogAndRecency.first,
-                    lastLoggedAtByExerciseId = catalogAndRecency.second,
-                    preferences = preferences,
-                    unit = unit,
-                )
+        val summaries = combineHealth(
+            workoutRepository.observeSessionSummariesHealth(),
+            activitySummaries,
+        ) { workouts, activities -> workouts + activities }
+        val history = combineHealth(
+            workoutRepository.observeFinishedSinceHealth(windowStart),
+            activityRepository?.observeCompletedGraphsSinceHealth(windowStart)
+                ?: flowOf(DataHealth.Available(emptyList())),
+        ) { sessions, activities ->
+            windowedInsightHistory(
+                sessions = sessions,
+                activities = activities,
+                minPerformedAtMs = nowMs() - WINDOW_MS,
+            )
+        }
+        val historyAndRoutines = combineHealth(
+            combineHealth(summaries, history) { totals, recent -> totals to recent },
+            routineRepository.observeAllHealth(),
+        ) { historyAndSummaries, routines -> historyAndSummaries to routines }
+        val catalogAndRecency = combineHealth(
+            exerciseRepository.observeAllHealth(),
+            workoutRepository.observeFinishedLastLoggedHealth(),
+        ) { exercises, recency -> exercises.associateBy { it.id } to recency }
+        val preferencesHealth = preferencesRepository.observeHomePreferencesHealth()
+        val core = combineHealth(
+            historyAndRoutines,
+            combineHealth(catalogAndRecency, preferencesHealth) { catalog, preferences ->
+                catalog to preferences
             },
-            scheduleRepository.observeSlots(),
-            combine(
-                preferencesRepository.coachPreferences,
-                preferencesRepository.lighterWeekStartEpochDay,
-            ) { coachPrefs, marked -> coachPrefs to marked },
-        ) { sources, slots, coachAndMarked ->
+        ) { historyAndRoutinesValue, catalogAndPreferences ->
+            val (historyAndSummaries, routines) = historyAndRoutinesValue
+            val (catalog, preferences) = catalogAndPreferences
+            Sources(
+                history = historyAndSummaries.second,
+                summaries = historyAndSummaries.first,
+                routines = routines,
+                exercises = catalog.first,
+                lastLoggedAtByExerciseId = catalog.second,
+                preferences = preferences.schedulePreferences,
+                unit = preferences.weightUnit,
+                coachPrefs = preferences.coachPreferences,
+                lighterWeekStartEpochDay = preferences.lighterWeekStartEpochDay,
+            )
+        }
+        val sources = combineHealth(core, scheduleRepository.observeSlotsHealth()) { value, slots ->
+            value.copy(slots = slots)
+        }.mapHealthCatching("the training summary") { value ->
             val today = Instant.ofEpochMilli(nowMs()).atZone(zone()).toLocalDate()
             val thisWeek = LighterWeek.weekStartEpochDay(
                 com.sinura.personaltrainer.domain.CivilDate.fromEpochDay(today.toEpochDay()),
-                sources.preferences.weekStart,
+                value.preferences.weekStart,
             )
-            sources.copy(
-                slots = slots,
-                coachPrefs = coachAndMarked.first,
-                lighterWeek = LighterWeek.isCurrent(coachAndMarked.second, thisWeek),
+            value.copy(
+                lighterWeek = LighterWeek.isCurrent(value.lighterWeekStartEpochDay, thisWeek),
+                lighterWeekStartEpochDay = null,
             )
-        }.distinctUntilChanged()
-            .combine(coreNudge) { sources, _ -> sources }
-            .mapLatest { sources ->
-                val hints = cachedHints(sources)
+        }
+        return sources.distinctUntilChanged()
+            .combine(coreNudge) { value, _ -> value }
+            .mapHealthCatching("the training summary") { value ->
+                val hints = cachedHints(value)
                 val insights = compute(
                     TrainingInsightsInput(
-                        history = sources.history,
-                        summaries = sources.summaries,
-                        routines = sources.routines,
-                        exerciseCatalog = sources.exercises,
-                        lastLoggedAtByExerciseId = sources.lastLoggedAtByExerciseId,
+                        history = value.history,
+                        summaries = value.summaries,
+                        routines = value.routines,
+                        exerciseCatalog = value.exercises,
+                        lastLoggedAtByExerciseId = value.lastLoggedAtByExerciseId,
                         hints = hints,
-                        preferences = sources.preferences,
-                        unit = sources.unit,
-                        slots = sources.slots,
-                        coachPrefs = sources.coachPrefs,
+                        preferences = value.preferences,
+                        unit = value.unit,
+                        slots = value.slots,
+                        coachPrefs = value.coachPrefs,
                         window = HeatWindow.CURRENT_WEEK,
                         nowMs = nowMs(),
                         time = time,
@@ -263,7 +265,7 @@ class TrainingInsightsSource(
                         includeWeekPlan = includeWeekPlan,
                     ),
                 )
-                Assembled(sources, insights)
+                Assembled(value, insights)
             }.flowOn(computeDispatcher)
     }
 
@@ -329,6 +331,7 @@ class TrainingInsightsSource(
         val slots: List<ScheduleSlot> = emptyList(),
         val coachPrefs: CoachPreferences = CoachPreferences.DEFAULT,
         val lighterWeek: Boolean = false,
+        val lighterWeekStartEpochDay: Long? = null,
     )
 
     private data class Assembled(

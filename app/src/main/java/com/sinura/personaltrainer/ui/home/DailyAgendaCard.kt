@@ -79,6 +79,11 @@ fun DailyAgendaCard(
     summariesById: Map<String, SessionSummary> = emptyMap(),
     onOpenSession: (String) -> Unit = {},
     onOpenActivity: (String) -> Unit = {},
+    mutationEnabled: Boolean = true,
+    onStartOccurrenceAccepted: ((String) -> Boolean)? = null,
+    recoveryContent: (@Composable () -> Unit)? = null,
+    /** Home owns its modal outside the virtualized board; standalone callers stay local. */
+    onOpenStartConfirm: ((String) -> Unit)? = null,
 ) {
     val catalog = items + stillOpen
     var pendingOccurrenceId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -115,10 +120,15 @@ fun DailyAgendaCard(
             confirmLabel = confirm.confirmLabel,
             onConfirm = {
                 val id = pendingItem.occurrence.id
-                pendingOccurrenceId = null
-                onStartOccurrence(id)
+                val accepted = onStartOccurrenceAccepted?.invoke(id) ?: run {
+                    onStartOccurrence(id)
+                    true
+                }
+                if (accepted) pendingOccurrenceId = null
             },
             onDismiss = { pendingOccurrenceId = null },
+            confirmEnabled = mutationEnabled,
+            recoveryContent = recoveryContent,
         )
     }
 
@@ -155,10 +165,14 @@ fun DailyAgendaCard(
                         index = index,
                         lastIndex = items.lastIndex,
                         onMove = onMoveOccurrence,
-                        onOpen = { pendingOccurrenceId = item.occurrence.id },
+                        onOpen = {
+                            onOpenStartConfirm?.invoke(item.occurrence.id)
+                                ?: run { pendingOccurrenceId = item.occurrence.id }
+                        },
                         summariesById = summariesById,
                         onOpenSession = onOpenSession,
                         onOpenActivity = onOpenActivity,
+                        mutationEnabled = mutationEnabled,
                     )
                 }
             }
@@ -185,11 +199,15 @@ fun DailyAgendaCard(
                         index = index,
                         lastIndex = stillOpen.lastIndex,
                         onMove = { _, _ -> },
-                        onOpen = { pendingOccurrenceId = item.occurrence.id },
+                        onOpen = {
+                            onOpenStartConfirm?.invoke(item.occurrence.id)
+                                ?: run { pendingOccurrenceId = item.occurrence.id }
+                        },
                         onSkip = { onSkipOccurrence(item.occurrence.id) },
                         summariesById = summariesById,
                         onOpenSession = onOpenSession,
                         onOpenActivity = onOpenActivity,
+                        mutationEnabled = mutationEnabled,
                     )
                 }
             }
@@ -252,6 +270,7 @@ private fun AgendaRow(
     summariesById: Map<String, SessionSummary> = emptyMap(),
     onOpenSession: (String) -> Unit = {},
     onOpenActivity: (String) -> Unit = {},
+    mutationEnabled: Boolean = true,
 ) {
     val routineId = item.rule?.routineId
     val lifts = sessionLifts(routineId, routines)
@@ -303,6 +322,7 @@ private fun AgendaRow(
             else -> null
         },
         modifier = Modifier.testTag(HomeTags.agendaRow(item.occurrence.id)),
+        enabled = !canStart || mutationEnabled,
         controls = if (!showSkip && !showReorder) {
             null
         } else {
@@ -310,6 +330,7 @@ private fun AgendaRow(
                 if (showSkip && onSkip != null) {
                     TextButton(
                         onClick = onSkip,
+                        enabled = mutationEnabled,
                         contentPadding = PaddingValues(0.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -333,6 +354,7 @@ private fun AgendaRow(
                         index = index,
                         lastIndex = lastIndex,
                         onMove = onMove,
+                        enabled = mutationEnabled,
                     )
                 }
             }

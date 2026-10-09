@@ -37,6 +37,7 @@ class ReminderHandoffHostTest {
     private var start by mutableStateOf<String?>(null)
     private var delivery by mutableStateOf<String?>(null)
     private var review by mutableStateOf<String?>(null)
+    private var request by mutableStateOf<String?>(null)
     private var verdict: suspend (String) -> TapVerdict = { TapVerdict.NothingLive }
     private var forHome: HomeTap? = null
     private var reach = HomeReach.IN_FRONT
@@ -50,6 +51,7 @@ class ReminderHandoffHostTest {
                 openStartId = start,
                 openDeliveryId = delivery,
                 openReviewId = review,
+                openRequestId = request,
                 verdict = { verdict(it) },
                 bringHomeForward = {
                     tabs += Route.Home.path
@@ -116,6 +118,25 @@ class ReminderHandoffHostTest {
         assertEquals(HomeTap(startId = "occ-1", deliveryId = "rem-occ-1", reviewId = null), forHome)
         assertEquals("Home consumes it when it starts", "occ-1", start)
         compose.onNodeWithText(ReminderCopy.LIVE_TITLE).assertDoesNotExist()
+    }
+
+    @Test
+    fun aNewIntentionalTapOfTheSameDeliveryHasItsOwnHandoffIdentity() {
+        host()
+        request = "first-request"
+        tapStart()
+        assertEquals("first-request", forHome?.requestId)
+        assertEquals(1, tabs.size)
+
+        // The prior request is still held by Home. Equal occurrence/delivery IDs alone
+        // cannot distinguish a new intentional tap from that earlier request.
+        request = "second-request"
+        compose.waitForIdle()
+        assertEquals("second-request", forHome?.requestId)
+        assertEquals(2, tabs.size)
+        assertEquals("occ-1", forHome?.startId)
+        assertEquals("rem-occ-1", forHome?.deliveryId)
+        assertTrue("handoff does not mark a delivery started", used.isEmpty())
     }
 
     /**

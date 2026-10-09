@@ -2,7 +2,7 @@
 
 **Date:** 8 October 2026
 
-**Status:** Native Quiet is reviewed, merged and reverified on trunk under O12. Its completed packet remains separate from the UX23 workout-truth follow-up. Full08 freshly passed the complete local gate. Native03 exposed an incomplete draft snapshot in the Why fixture; its synchronization repair compiled under the required Full09 task command, reusing unchanged Full08 JVM results. Native04 then passed all 222 native tests on that corrected source. The separate N2 runtime attempt ended incomplete before editing because its no-foreground-service precondition was not met; exact readback and cleanup passed separately. Draft [PR #461](https://github.com/sinura7/PersonalTrainer/pull/461) records the committed pre-repair candidate `f8943ae5`. A hosted deterministic CI failure exposed a JVM fixture synchronization assumption; its test-only repair freshly passed Full11. An amended immutable pin, fresh independent/adversarial reviews and updated hosted checks remain required before integration and post-merge verification. All original failures and the earlier guard-proof limitation remain preserved. The connected Debug-122/124 baselines, bounded repairs and browser proposals below retain their original evidence scope. N2 recovery, broader app UX work and physical-phone acceptance remain open.
+**Status:** Native Quiet (#460) and the bounded workout-truth follow-up (#461) are independently reviewed, merged and reverified on trunk. The follow-up's reviewed candidate `473fff3a` and merged `c2384951` have the same tree. Fresh post-merge verification passed 3,702 JVM tests and 222 native tests; all 85 native captures were verified through a separately reviewed archive recovery after a helper parsing failure. The original failed archive and earlier failures remain preserved. Home required-read recovery is implemented with completed local and native checks; remaining Home geometry and History follow its reviewed integration. N2 interruption recovery, broader UX23/W3 criteria, phone acceptance and the inherited native Why-title tooltip limitation remain open. The historical baselines, prototypes and verification snapshots below retain their original scope.
 
 **Original study baseline:** `eae6517845ee560ceb9695bf2f92788e2b4339cc`, Debug 122. Later Debug-124 repairs and the new native implementation direction are recorded separately below.
 
@@ -1057,6 +1057,35 @@ The only runtime-input delta from Full10 is `DeletedNoteStaysDeletedTest.kt`
 all production and Android bytes still match Native04. This pass verifies that
 repair and preserves the original failed push result. An amended immutable pin,
 fresh independent/adversarial reviews and updated hosted deterministic checks
-remain required before integration, followed by the clean-trunk full rerun and
-affected connected journey. N2, UX23-AC01–AC03's broader scope, related UX24/UX25
+were still required at that snapshot. They subsequently passed, followed by the
+clean-trunk full rerun and affected connected journey recorded below. N2, UX23-AC01–AC03's broader scope, related UX24/UX25
 coverage and physical-phone acceptance remain open; no Debug drop is recorded.
+
+#### Workout follow-up integration — 9 October 2026 UTC
+
+[PR #461](https://github.com/sinura7/PersonalTrainer/pull/461) merged as
+`c238495172858d24ecc1c94353544eb602a9d6a0`, tree
+`dacb74e747f0a720b613d873ad590a90657903ae`, identical to the reviewed candidate
+`473fff3ae3033229e61ff810f254e37cec35eb23`. Both final source reviews passed with
+no blocking findings. Clean-trunk `--rerun-tasks` verification executed all 135
+tasks and **3,702 tests / 554 fresh XML suites**, with zero failures/errors/skips
+and all **1,521 inputs unchanged**. The unfiltered native run passed **222 tests /
+32 classes**, including the connected workout, with 13 fixture restoration pairs.
+
+The native archive initially failed: its PowerShell helper indexed a scalar digest
+string rather than splitting the completed command result. The unchanged original
+run remains archive exit **1**, native exit **0**. A minimal parenthesis correction
+and separate reviewed recovery verified exactly the original **85 captures** against
+raw device hashes and host bytes, original XML/log/source identity and restored
+device posture. Recovery executed **zero new tests** and preserved the failed archive.
+The root also inspected the recovered manual-entry, notes-Retry/IME, Why and History
+frames. Both amended candidate hosted runs and actual-trunk run
+[37872983280](https://github.com/sinura7/PersonalTrainer/actions/runs/37872983280)
+passed; raw hosted reports independently confirmed the same counts and source tree.
+
+The ignored `build/ux-context/runs/workout-truth/integration-complete-c2384951.json`
+pins the reports and execution summaries (SHA-256
+`9dba3a5abcbde8f02a58e4b9a9fb126dea421ab36931ea447f031a59174c5284`).
+The separately preserved reviewed Git bundle retains the deleted feature branch.
+This completes integration of the bounded packet, not all UX23, W3, N2 or phone
+acceptance. No distribution/version/signer change or Debug drop was made.

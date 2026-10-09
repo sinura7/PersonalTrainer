@@ -3,6 +3,7 @@ package com.sinura.personaltrainer
 import android.Manifest
 import android.app.NotificationManager
 import android.content.Intent
+import android.os.Bundle
 import android.os.PowerManager
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
@@ -31,6 +32,8 @@ import com.sinura.personaltrainer.util.JvmTime
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -200,6 +203,76 @@ class ReminderTapDuringAWorkoutTest {
 
         assertNotNull("the planned session opened", runBlocking { app.container.workoutRepository.getInProgress() })
         assertFalse("its Snooze, Move and Skip must leave the shade", reminderShown(planned.id))
+    }
+
+    @Test
+    fun anUnconsumedStartSurvivesRecreationButAHandledStartIsNotReplayed() {
+        val planned = plannedEarlierToday()
+        ReminderNotifications.show(app, planned, DELIVERY, "Push")
+        val creatingIntent = ReminderNotifications.startLaunchIntent(app, planned.id, DELIVERY)
+
+        // CREATED is below the lifecycle at which Home collects. Recreate before any Home
+        // admission rather than racing a database read with an arbitrary sleep.
+        controller = Robolectric.buildActivity(MainActivity::class.java, creatingIntent).create()
+        assertNull(runBlocking { app.container.workoutRepository.getInProgress() })
+        val waiting = Bundle()
+        controller!!.saveInstanceState(waiting).destroy()
+        assertEquals(planned.id, waiting.getString("temper.pending-occurrence-start"))
+        assertEquals(DELIVERY, waiting.getString("temper.pending-occurrence-delivery"))
+        assertNotNull(waiting.getString("temper.pending-occurrence-request"))
+        assertTrue("waiting has not consumed the notification", reminderShown(planned.id))
+
+        controller = Robolectric.buildActivity(MainActivity::class.java, creatingIntent)
+            .create(waiting).start().resume().visible()
+        awaitTag(WorkoutTestTags.CONTENT)
+        val opened = runBlocking { checkNotNull(app.container.workoutRepository.getInProgress()) }
+        assertEquals(planned.id, runBlocking { PendingOccurrence.followedBy(app.container, opened.id) })
+        assertFalse(reminderShown(planned.id))
+
+        val handled = Bundle()
+        controller!!.pause().saveInstanceState(handled).stop().destroy()
+        assertNull("a consumed handoff is not saved", handled.getString("temper.pending-occurrence-start"))
+        assertNull(handled.getString("temper.pending-occurrence-delivery"))
+        assertNull(handled.getString("temper.pending-occurrence-request"))
+        controller = Robolectric.buildActivity(MainActivity::class.java, creatingIntent)
+            .create(handled).start().resume().visible()
+        awaitTag(WorkoutTestTags.CONTENT)
+        assertEquals(opened.id, runBlocking { app.container.workoutRepository.getInProgress() }?.id)
+        assertNeverShown(ReminderCopy.LIVE_TITLE)
+        compose.onNodeWithText(HOME_IN_PROGRESS).assertDoesNotExist()
+    }
+
+    @Test
+    fun aLaterReviewTapReplacesAStartThatIsStillWaitingForHome() {
+        val planned = plannedEarlierToday()
+        ReminderNotifications.show(app, planned, DELIVERY, "Push")
+        controller = Robolectric.buildActivity(
+            MainActivity::class.java,
+            ReminderNotifications.startLaunchIntent(app, planned.id, DELIVERY),
+        ).create()
+        val waiting = Bundle()
+        controller!!.saveInstanceState(waiting)
+        assertEquals(planned.id, waiting.getString("temper.pending-occurrence-start"))
+        assertNull(runBlocking { app.container.workoutRepository.getInProgress() })
+
+        controller!!.newIntent(
+            Intent(app, MainActivity::class.java)
+                .putExtra(ReminderNotifications.EXTRA_REVIEW_OCCURRENCE_ID, planned.id),
+        )
+        val replaced = Bundle()
+        controller!!.saveInstanceState(replaced)
+        assertNull(replaced.getString("temper.pending-occurrence-start"))
+        assertNull(replaced.getString("temper.pending-occurrence-delivery"))
+        assertNull(replaced.getString("temper.pending-occurrence-request"))
+        controller!!.start().resume().visible()
+        awaitTag(ConfirmActionTags.CONFIRM)
+        assertNull("Review only opens the confirmation", runBlocking {
+            app.container.workoutRepository.getInProgress()
+        })
+        assertTrue("a superseded Start leaves its reminder unused", reminderShown(planned.id))
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertDoesNotExist()
+        assertNull(runBlocking { app.container.workoutRepository.getInProgress() })
     }
 
     /** A real planned day, at midnight so that no reminder is scheduled for it. */

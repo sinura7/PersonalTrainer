@@ -65,8 +65,13 @@ fun HomeStartSheet(
     onStartCardio: (CardioType) -> Unit,
     onStartExtra: (String) -> Unit,
     suggestedKit: ExtraEquipment = ExtraEquipment.MIXED,
+    mutationEnabled: Boolean = true,
+    recoveryContent: (@Composable () -> Unit)? = null,
 ) {
     var picking by rememberSaveable { mutableStateOf(HomeStartPage.KIND.name) }
+    // Popup content has its own registry. Keep both page and equipment with the sheet's
+    // outer owner so recreation during a held Retry restores the exact draft choices.
+    var kitName by rememberSaveable { mutableStateOf<String?>(null) }
     val page = runCatching { HomeStartPage.valueOf(picking) }.getOrNull()
         ?: HomeStartPage.KIND
     val named = remember(routines) { HomeStart.namedRoutines(routines) }
@@ -81,21 +86,25 @@ fun HomeStartSheet(
                 .padding(bottom = Metrics.space7),
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
+            recoveryContent?.invoke()
             when (page) {
                 HomeStartPage.KIND -> KindPage(
                     onStartFree = onStartFree,
                     onRoutines = { picking = HomeStartPage.ROUTINES.name },
                     onCardio = { picking = HomeStartPage.CARDIO.name },
                     onExtra = { picking = HomeStartPage.AUX.name },
+                    mutationEnabled = mutationEnabled,
                 )
                 HomeStartPage.ROUTINES -> RoutinePage(
                     routines = named,
                     onBack = { picking = HomeStartPage.KIND.name },
                     onStartRoutine = onStartRoutine,
+                    mutationEnabled = mutationEnabled,
                 )
                 HomeStartPage.CARDIO -> CardioPage(
                     onBack = { picking = HomeStartPage.KIND.name },
                     onStartCardio = onStartCardio,
+                    mutationEnabled = mutationEnabled,
                 )
                 HomeStartPage.AUX -> AuxiliaryPackList(
                     usedPackIds = emptySet(),
@@ -103,6 +112,9 @@ fun HomeStartSheet(
                     onCancel = { picking = HomeStartPage.KIND.name },
                     suggestedKit = suggestedKit,
                     modifier = Modifier.testTag(HomeStartTags.EXTRA_PAGE),
+                    pickEnabled = mutationEnabled,
+                    equipment = kitName?.let { ExtraEquipment.fromStorage(it) },
+                    onEquipmentChanged = { kitName = it?.name },
                 )
             }
         }
@@ -115,6 +127,7 @@ private fun KindPage(
     onRoutines: () -> Unit,
     onCardio: () -> Unit,
     onExtra: () -> Unit,
+    mutationEnabled: Boolean,
 ) {
     Text(
         SessionOrderCopy.FREE_WORKOUT,
@@ -130,6 +143,7 @@ private fun KindPage(
                 .testTag(HomeStartTags.FREE)
                 .semantics { contentDescription = HomeStartCopy.FREE },
             onClick = onStartFree,
+            enabled = mutationEnabled,
         )
         HairlineDivider()
         InstrumentRow(
@@ -166,6 +180,7 @@ private fun RoutinePage(
     routines: List<Routine>,
     onBack: () -> Unit,
     onStartRoutine: (String) -> Unit,
+    mutationEnabled: Boolean,
 ) {
     SheetBackKicker(
         title = HomeStartCopy.PICK_ROUTINE,
@@ -195,6 +210,7 @@ private fun RoutinePage(
                     .testTag(HomeStartTags.routine(routine.id))
                     .semantics { contentDescription = routine.name },
                 onClick = if (empty) null else ({ onStartRoutine(routine.id) }),
+                enabled = mutationEnabled,
             )
         }
     }
@@ -204,6 +220,7 @@ private fun RoutinePage(
 private fun CardioPage(
     onBack: () -> Unit,
     onStartCardio: (CardioType) -> Unit,
+    mutationEnabled: Boolean,
 ) {
     SheetBackKicker(
         title = HomeStartCopy.CARDIO,
@@ -217,6 +234,7 @@ private fun CardioPage(
             CardioPickCard(
                 type = type,
                 onClick = { onStartCardio(type) },
+                enabled = mutationEnabled,
             )
         }
     }

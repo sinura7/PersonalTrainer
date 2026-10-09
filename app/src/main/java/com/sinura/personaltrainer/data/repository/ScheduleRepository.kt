@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.data.repository
 import com.sinura.personaltrainer.data.local.dao.ScheduleDao
 import com.sinura.personaltrainer.data.local.entity.ScheduleSlotEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.ScheduleSlot
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
@@ -24,9 +25,11 @@ import kotlinx.coroutines.flow.map
  */
 class ScheduleRepository(private val scheduleDao: ScheduleDao) {
 
-    fun observeSlots(): Flow<List<ScheduleSlot>> = scheduleDao.observeAll()
+    fun observeSlotsHealth(): Flow<DataHealth<List<ScheduleSlot>>> = scheduleDao.observeAll()
         .map { rows -> rows.mapNotNull { it.toDomain() } }
-        .observeHealth("schedule slots").presentValues()
+        .observeHealth("schedule slots")
+
+    fun observeSlots(): Flow<List<ScheduleSlot>> = observeSlotsHealth().presentValues()
 
     suspend fun slots(): List<ScheduleSlot> = scheduleDao.getAll().mapNotNull { it.toDomain() }
 

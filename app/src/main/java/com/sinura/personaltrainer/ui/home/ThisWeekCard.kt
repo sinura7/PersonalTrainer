@@ -62,6 +62,11 @@ fun ThisWeekCard(
     routines: List<Routine> = emptyList(),
     quietStart: Boolean = false,
     setupComplete: Boolean = true,
+    mutationEnabled: Boolean = true,
+    onPrimaryAccepted: (() -> Boolean)? = null,
+    recoveryContent: (@Composable () -> Unit)? = null,
+    /** Home owns its modal outside the virtualized board; standalone callers stay local. */
+    onOpenStartConfirm: (() -> Unit)? = null,
 ) {
     val trainingToday = day?.takeUnless { it.isRest }
     var startPending by rememberSaveable { mutableStateOf(false) }
@@ -76,10 +81,15 @@ fun ThisWeekCard(
             body = confirm.body,
             confirmLabel = confirm.confirmLabel,
             onConfirm = {
-                startPending = false
-                onPrimary()
+                val accepted = onPrimaryAccepted?.invoke() ?: run {
+                    onPrimary()
+                    true
+                }
+                if (accepted) startPending = false
             },
             onDismiss = { startPending = false },
+            confirmEnabled = mutationEnabled,
+            recoveryContent = recoveryContent,
         )
     }
     val hasPlan = trainingToday != null || nextDay != null
@@ -166,7 +176,8 @@ fun ThisWeekCard(
                 .semantics { contentDescription = "Start today's planned session" }
             if (quietStart) {
                 TextButton(
-                    onClick = { startPending = true },
+                    onClick = { onOpenStartConfirm?.invoke() ?: run { startPending = true } },
+                    enabled = mutationEnabled,
                     modifier = sessionModifier.fillMaxWidth().heightIn(min = Metrics.touchMin),
                     contentPadding = PaddingValues(0.dp),
                 ) {
@@ -181,7 +192,8 @@ fun ThisWeekCard(
             } else {
                 SecondaryGymButton(
                     text = "Start this session",
-                    onClick = { startPending = true },
+                    onClick = { onOpenStartConfirm?.invoke() ?: run { startPending = true } },
+                    enabled = mutationEnabled,
                     modifier = sessionModifier,
                     height = Metrics.touchMin,
                 )

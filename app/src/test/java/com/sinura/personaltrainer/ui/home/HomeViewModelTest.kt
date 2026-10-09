@@ -21,9 +21,6 @@ import com.sinura.personaltrainer.domain.ProgressionAction
 import com.sinura.personaltrainer.domain.ProgressionHint
 import com.sinura.personaltrainer.domain.RecommendationPriority
 import com.sinura.personaltrainer.domain.ReminderDeliveryStatus
-import com.sinura.personaltrainer.domain.ScheduleConfidence
-import com.sinura.personaltrainer.domain.SessionFocusKind
-import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.TrainingRecommendation
 import com.sinura.personaltrainer.domain.Weekday
@@ -110,7 +107,8 @@ class HomeViewModelTest {
 
     /**
      * Audit DB-1: Home read the weigh-in log raw, so one failed read closed the app, and
-     * Home is the first screen. It now keeps the log it had and goes on updating.
+     * Home is the first screen. It now retains the whole last complete board and explains
+     * that required reads are stale, rather than mixing a new recommendation with old data.
      */
     @Test
     fun aWeighInReadThatFailsKeepsHomeUpInsteadOfClosingTheApp() = runBlocking {
@@ -118,7 +116,7 @@ class HomeViewModelTest {
         val insights = MutableStateFlow(TrainingInsights())
         deps = graph(insights = insights, bodyweightDaoDecorator = { FailingWeighInsDao(it, gate) })
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
-        viewModel!!.uiState.awaitFirst { !it.isLoading }
+        val before = viewModel!!.uiState.awaitFirst { it.readState == HomeReadState.CURRENT }
 
         var updated: HomeUiState? = null
         val crash = catchingUncaught {
@@ -128,12 +126,12 @@ class HomeViewModelTest {
                 while (gate.refusals.get() == 0) delay(10)
             }
             insights.value = TrainingInsights(recommendations = listOf(rec("coverage-chest")))
-            updated = withTimeoutOrNull(TestWaits.FLOW_MS) {
-                viewModel!!.uiState.first { state -> state.recommendations.any { it.id == "coverage-chest" } }
-            }
+            updated = viewModel!!.uiState.awaitFirst { it.readState == HomeReadState.STALE }
         }
         assertNull("a failed weigh-in read closed the app", crash)
-        assertNotNull("Home stopped updating after one failed weigh-in read", updated)
+        assertNotNull("Home did not report the failed required read", updated)
+        assertEquals(before, checkNotNull(updated).copy(readState = HomeReadState.CURRENT, readProblem = null))
+        assertFalse(checkNotNull(updated).mutationEnabled)
     }
 
     /**
@@ -268,7 +266,10 @@ class HomeViewModelTest {
         viewModel = HomeViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
         viewModel!!.uiState.awaitFirst { !it.isLoading }
 
-        viewModel!!.startSuggestedDay(plannedDay(today, weekday, routine.id, routine.name))
+        // The current Home planned row starts its actual occurrence; an unrendered
+        // suggested day is not a fallback confirmation from the current week plan.
+        val plannedOccurrence = deps.plannerRepository.occurrencesBetween(today, today).single()
+        assertTrue(viewModel!!.startOccurrence(plannedOccurrence.id))
         val sessionId = viewModel!!.navigateToSession.awaitFirst { it != null }!!
         PendingOccurrence.complete(deps, sessionId)
 
@@ -868,24 +869,6 @@ class HomeViewModelTest {
         suggestedWeightKg = 102.5,
         action = ProgressionAction.INCREASE,
         loadType = LoadType.EXTERNAL,
-    )
-
-    private fun plannedDay(
-        today: Long,
-        weekday: Weekday,
-        routineId: String,
-        routineName: String,
-    ) = SuggestedTrainingDay(
-        epochDay = today,
-        dayOfWeek = weekday,
-        isRest = false,
-        focusKind = SessionFocusKind.PUSH,
-        focusTitle = "Push",
-        routineId = routineId,
-        routineName = routineName,
-        reason = "Planned.",
-        emphasisMuscles = emptyList(),
-        confidence = ScheduleConfidence.HIGH,
     )
 
     private fun rec(id: String) = TrainingRecommendation(

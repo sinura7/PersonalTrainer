@@ -300,10 +300,10 @@
   "nextPacket": {
     "existingBacklogId": "UX23",
     "scope": "Truthful notes-save states, retry and write ordering; Add-a-set trace explains actual unchanged decision; factual missing-session copy; named coach-dismiss action; W3/TS-3 permanent actual-five-tab renders",
-    "status": "Fixture synchronization repair freshly verified in Full11; amended immutable pin, fresh reviews and hosted checks/integration pending. N2 and phone/broader UX remain open.",
+    "status": "Bounded workout-truth packet reviewed, merged as c2384951 and freshly reverified; original archive failure recovered separately. Home read recovery now has a bounded implementation and executed evidence; remaining Home geometry and History follow its reviewed integration. N2 and phone/broader UX remain open.",
     "ordering": "Before Home and History; phone and Recents-removal evidence retain separate scope",
     "evidence": {
-      "finalReviewAndIntegration": "New amended pin and fresh reviews, updated hosted checks and integration pending",
+      "finalReviewAndIntegration": "Candidate 473fff3a and squash c2384951 have identical tree dacb74e7; both final reviews passed, all hosted jobs passed, and clean-trunk checks passed 3,702 JVM / 222 native tests, with a separately reviewed recovery of 85 captures. Integration record SHA256 9dba3a5abcbde8f02a58e4b9a9fb126dea421ab36931ea447f031a59174c5284.",
       "nativeFinal": "Native04 passed all 222 tests on the final full-entry precondition",
       "portableFrames": [
         {
@@ -753,8 +753,8 @@
         "cause": "Immediate DAO-entry assertion preceded the existing bounded real Room write-completion wait; the fresh transactional live-row read could still be pending after virtual debounce.",
         "repair": "Both positive cases settle existing bounded Room writes before exact-once assertions and assert no virtual clock advancement. Negative and exact 399/400 ms checks remain.",
         "verification": "Full11 freshly passed 3702/554, all135tasks executed, restore7/7 and Move24/24; original failed hosted run remains failed.",
-        "amendedHostedChecks": "Pending new candidate push",
-        "integration": "Pending new immutable pin and fresh reviews, then hosted checks and clean-trunk gate/native journey."
+        "amendedHostedChecks": "Push run 37871218803 and PR run 37871222144 passed both jobs; actual-trunk run 37872983280 also passed. Raw reports independently verified 3,702 JVM / 222 native tests on the exact tree.",
+        "integration": "Merged PR #461 as c2384951 after final scoped reviews; clean-trunk fresh gate passed 3,702 tests and native execution passed 222. Original native archive exit 1 is preserved; separate recovery exit 0 validates all 85 captures and executes zero new tests. N2, phone and broader acceptance remain open."
       }
     }
   }

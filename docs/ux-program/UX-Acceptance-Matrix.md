@@ -525,8 +525,105 @@ executed**. Restore **7/7** and Move **24/24**, including the dedicated
 `dc00702c2787049f1fecc1c99cfe673b32dcdef1bd7c979e97ed9a720599dc0d`.
 Only `DeletedNoteStaysDeletedTest.kt` differs from Full10's runtime inputs;
 production and Android bytes still match Native04. The original failed push
-remains failed. An amended immutable pin, fresh independent/adversarial reviews,
-updated hosted deterministic checks, integration and post-merge verification
-remain pending. See the [Q01 hosted CI record](../ux-context/studies/q01/README.md#hosted-ci-failure-and-fresh-fixture-verification--8-october-2026)
+remains failed. Final reviews, hosted checks, integration and post-merge verification
+were pending at that snapshot; the completed packet is recorded below. See the [Q01 hosted CI record](../ux-context/studies/q01/README.md#hosted-ci-failure-and-fresh-fixture-verification--8-october-2026)
 for the source/manifest hashes. N2, UX23-AC01–AC03, related UX24/UX25 coverage and
 physical-phone acceptance remain open.
+
+**Bounded workout integration (9 October 2026 UTC):** [PR #461](https://github.com/sinura7/PersonalTrainer/pull/461)
+merged `c2384951`, the same tree as independently/adversarially accepted `473fff3a`.
+Fresh clean-trunk checks passed **3,702 JVM tests / 554 suites** and **222 native
+tests / 32 classes**, all zero failures/errors/skips, with 1,521 stable inputs.
+The original native archive failed on a PowerShell digest-parser bug; its exit 1
+is preserved. A separately reviewed exit-0 recovery verified all 85 original
+captures, unchanged raw execution/source and restoration, executing zero new tests.
+Candidate and actual-trunk hosted reports also passed independently verified counts.
+[Q01 records the exact pins and limits](../ux-context/studies/q01/README.md#workout-follow-up-integration--9-october-2026-utc).
+This completes that packet's integration, not the broader criteria above.
+
+**Current Home development:** F4 / UX23 required-read recovery, with UX22 reminder
+handoff continuity and relevant UX24/UX25 layout/accessibility checks. Initial failed
+reads must show Retry; later failure must retain a labeled last complete board.
+Retry must restart shared reads, refuse durable actions until a complete fresh result,
+and preserve open confirms/sheets/numeric text. Waiting reminder taps survive rotation;
+refused requests cannot start automatically after Retry. Bounded implementation and
+candidate execution have passed the local and native checks recorded below; final
+review/integration follows the packet protocol. WeekStrip geometry remains the
+separate UX12/F4 packet, followed by History's one-period/coherent-progress work.
+Legacy strength captured-date storage remains a separately specified dependency.
+Broader F4, UX23 and physical-phone acceptance are not closed by this packet.
+
+The first executed Home attempt (`targeted04`) passed its static checks but failed
+the screen tests: an open planned-start confirmation disappeared when recovery
+content was inserted, and an Extra equipment choice reset during saved-state
+restoration. Held weight-save checks also failed synchronization. Two thread
+captures then showed the Undo test looping in a scrolling helper with its frame
+clock frozen; only that owned test worker was stopped. The attempt remains failed
+and incomplete: console diagnostics reported 144 completed, 8 failed and 1 skipped,
+but no fresh XML was finalized, so no test passes are credited. Its 1,525 runtime
+inputs and Git references remained unchanged. Corrections and a fresh run are
+required before Home acceptance.
+
+`targeted05` finalized 31 fresh XML suites: **225 tests, 32 failures, zero errors
+or skips**, with the same 1,525 unchanged inputs and stable references. Shared-read
+producer suites passed on that pin; the overall attempt remains failed. Sixteen
+Home safety cases stopped in fixture setup because a rule created today cannot
+produce yesterday's occurrence. Screen failures separately identified undersized
+numeric action targets, held-frame synchronization, cached offscreen rows mistaken
+for uncomposed rows, the encoded occurrence/session binding, invalid RTL qualifier
+order, and the font-2.0 write-error layout transition. Corrected setup and fresh
+execution must verify those contracts; none is dismissed as a Windows limitation.
+
+`targeted06` stopped before tests when the static import check found an undefined
+test reference; it has zero fresh test results. After correcting that reference
+and seeding a valid current suggested day in the refusal matrix, `targeted07`
+finalized two fresh suites: **31 tests, five failures, zero errors or skips**,
+with 1,525 unchanged inputs and stable references. All 18 Home safety cases passed;
+the 13 selected screen cases include four bounded pending-layout failures after
+a failed weight write and one navigation observation while the frame clock is
+held. At that point those failures awaited diagnosis and fresh execution; the
+complete gate, full screen matrix and native journey had not passed the packet.
+
+The next two attempts stopped before tests on the new test-call syntax; the
+original checker ceilings were retained. Corrected `targeted10` passed all **43
+Home safety/render cases**, with two fresh suites and unchanged inputs/references.
+Its 112 fresh native-graphics frames include the complete size/font matrix and
+RTL/reduced-motion states; explicit JVM focus/traversal remains separate from
+phone IME evidence. The unfiltered `full-gate01` subsequently passed the complete
+standalone preflight (**1,656 tests**) but failed the app suite: **3,770 tests /
+557 fresh suites, one failure, zero errors or skips**, all 135 tasks executed.
+The sole failed check required a weight dialog to close before awaiting the
+actual write; its captured screen truthfully showed the exact value and Saving
+weight. That pin required a corrected completion wait and equivalent restoration
+boundary before a fresh unfiltered run; the original attempt remains failed.
+
+**Fresh bounded Home verification (9 October 2026 UTC):** `full-gate02` passed the
+complete standalone preflight (**1,656 tests / 251 classes**) and the unfiltered
+four-task Windows gate with `--rerun-tasks`: **3,770 tests / 557 fresh suites,
+zero failures/errors/skips**, all **135 tasks executed**. It ran from
+**04:46:41.7694127Z** to **05:02:07.4378197Z**, with **1,525 unchanged runtime
+inputs** and stable references. Actual save completion precedes the retained
+dialog-close/acknowledgment assertions; refusal preserves exact draft and zero
+write attempts, and success preserves exactly one intended row/write. Its
+**112 fresh JVM frames** cover the required size/font matrix and RTL/reduced
+motion, with explicit host focus/traversal separate from phone IME acceptance.
+Summary SHA-256: `51f859d953a65afdaa3c4fffea17b159064fece925173e43760159eca6a60fde`.
+Runtime manifest SHA-256: `9c14515decc42fa0d3e8ec2b076eb6063e8f4b9d4e025e024b70aeee4c2efa78`.
+
+The first native attempt, `native01`, remains **failed: 222 tests / 25 failures /
+zero errors or skips**. Its raw logs identify a SystemUI `BOOT_COMPLETED` ANR
+and the resulting system dialog intercepting all 25 shell Back assertions.
+The focused launcher startup check had not established completed boot receivers.
+A separate host wrapper checked idle actual broadcast queues, launcher focus and
+the entire boot log for ANRs before app installation, with bounded reads and
+two completed samples. It retains real Back, permissions and every suite check.
+
+Unchanged-source `native02` then passed **222 tests / 32 classes**, one fresh XML,
+zero failures/errors/skips, from **05:22:36.6583977Z** to **05:29:16.4728453Z**.
+All **85 fresh captures** matched device/host SHA-256; all **13 fixture pairs**,
+network/settings restoration, empty final package inventory and collector cleanup
+were verified. All 1,525 inputs still match the full-gate manifest. Summary SHA-256:
+`018886134e0966b4cd6e0f89ae640ff8429beae1b2e2c00dedb1cff21e5b4e6a`.
+The original failed run and its restoration evidence remain preserved. These
+results cover this Home recovery packet and the affected connected journey;
+they do not close existing WeekStrip/header geometry, N2, W3 or phone evidence.

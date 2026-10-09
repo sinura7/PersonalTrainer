@@ -5,6 +5,7 @@ import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilDateTime
 import com.sinura.personaltrainer.domain.DayBlockOrder
@@ -47,20 +48,23 @@ class PlannerRepository(
         syncAuthoring?.onScheduleChanged()
     }
 
-    fun observeRules(): Flow<List<ScheduleRule>> =
+    fun observeRulesHealth(): Flow<DataHealth<List<ScheduleRule>>> =
         dao.observeRules().map { rows -> rows.map { it.toDomain() } }
             .observeHealth("the schedule rules")
-            .presentValues()
 
-    fun observeOccurrences(): Flow<List<ScheduleOccurrence>> =
+    fun observeRules(): Flow<List<ScheduleRule>> = observeRulesHealth().presentValues()
+
+    fun observeOccurrencesHealth(): Flow<DataHealth<List<ScheduleOccurrence>>> =
         dao.observeOccurrences().map { rows -> rows.map { it.toDomain() } }
             .observeHealth("the planned week")
-            .presentValues()
 
-    fun observeDecisions(): Flow<List<MissedWorkDecision>> =
+    fun observeOccurrences(): Flow<List<ScheduleOccurrence>> = observeOccurrencesHealth().presentValues()
+
+    fun observeDecisionsHealth(): Flow<DataHealth<List<MissedWorkDecision>>> =
         dao.observeDecisions().map { rows -> rows.map { it.toDomain() } }
             .observeHealth("the missed-work decisions")
-            .presentValues()
+
+    fun observeDecisions(): Flow<List<MissedWorkDecision>> = observeDecisionsHealth().presentValues()
 
     suspend fun rules(): List<ScheduleRule> = dao.getRules().map { it.toDomain() }
 

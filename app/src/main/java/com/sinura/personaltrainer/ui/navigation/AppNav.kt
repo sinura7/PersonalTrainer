@@ -331,6 +331,8 @@ fun PersonalTrainerNav(
     openOccurrenceId: String? = null,
     /** The delivery behind a reminder's Start, handed to Home with [openOccurrenceId]. */
     openDeliveryId: String? = null,
+    /** Identity of an unconsumed Start tap, preserved while Home is still waiting to read. */
+    openOccurrenceRequestId: String? = null,
     onOpenOccurrenceConsumed: () -> Unit = {},
     reviewOccurrenceId: String? = null,
     onReviewOccurrenceConsumed: () -> Unit = {},
@@ -487,6 +489,7 @@ fun PersonalTrainerNav(
     ReminderHandoffHost(
         openStartId = openOccurrenceId,
         openDeliveryId = openDeliveryId,
+        openRequestId = openOccurrenceRequestId,
         openReviewId = reviewOccurrenceId,
         verdict = { occurrenceId -> ReminderHandoff.verdict(container, occurrenceId) },
         bringHomeForward = { navController.bringHomeForward() },
@@ -562,6 +565,7 @@ fun PersonalTrainerNav(
                     HomeScreen(
                         pendingOccurrenceStartId = homeTap?.startId,
                         pendingOccurrenceDeliveryId = homeTap?.deliveryId,
+                        pendingOccurrenceRequestId = homeTap?.requestId,
                         onPendingOccurrenceConsumed = onOpenOccurrenceConsumed,
                         pendingOccurrenceReviewId = homeTap?.reviewId,
                         onPendingOccurrenceReviewConsumed = onReviewOccurrenceConsumed,

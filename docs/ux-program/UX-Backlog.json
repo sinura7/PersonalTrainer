@@ -1195,7 +1195,14 @@
         "R10"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Core states implemented for summary, composer, finish outcomes and History wording; 33 further audit findings recorded as residue",
+      "status": "Core states implemented for summary, composer, finish outcomes and History wording; bounded workout notes/Why recovery reviewed, merged and reverified in PR461. Home required-read/Retry recovery is implemented and mechanically verified; scoped review/integration follows the packet protocol. Broader residue remains open.",
+      "currentDevelopment": {
+        "packet": "F4 / Home required-read recovery",
+        "problem": "Required failures can disappear behind values-only feeds, loading can continue indefinitely, and recollection can replay a terminated shared producer.",
+        "direction": "One guarded raw preference snapshot, explicit unavailable/stale states, retained complete board, fresh shared Retry, guarded writes and preserved drafts/reminder handoff.",
+        "verification": "Full-gate02 passed complete standalone preflight (1,656 tests / 251 classes) and the fresh unfiltered Windows gate: 3,770 tests / 557 suites, zero failures/errors/skips, all 135 tasks executed and 1,525 stable inputs/references; 112 fresh JVM frames cover the required matrix and RTL/reduced motion. Exact completion-before-close assertions retain refusal inventories, single-write/value and acknowledgment checks. Native01 remains failed with 222 tests / 25 shell Back failures intercepted by a recorded SystemUI boot ANR. After bounded actual boot readiness, unchanged-source native02 passed all 222 tests / 32 classes, 85 SHA-matched fresh captures and 13 fixture/restoration pairs, with network/settings/collector cleanup and empty packages verified. Final pinned review/integration follows the packet protocol. Broader F4/UX23, WeekStrip/header geometry, N2, W3 and phone acceptance remain open; original failures are preserved.",
+        "record": "docs/ux-program/UX-Acceptance-Matrix.md"
+      },
       "fixtures": [
         "F08",
         "F11"

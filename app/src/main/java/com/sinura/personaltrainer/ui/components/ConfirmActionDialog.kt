@@ -17,6 +17,7 @@ import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
+import com.sinura.personaltrainer.ui.theme.TextDisabled
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
 
@@ -29,6 +30,8 @@ fun GymDialog(
     onDismiss: () -> Unit,
     dismissLabel: String? = "Cancel",
     destructive: Boolean = false,
+    confirmEnabled: Boolean = true,
+    recoveryContent: (@Composable () -> Unit)? = null,
 ) {
     val view = LocalView.current
     val dismiss = dismissLabel
@@ -44,10 +47,12 @@ fun GymDialog(
             ) {
                 Text(title, style = InstrumentType.title, color = TextPrimary)
                 Text(body, style = InstrumentType.body, color = TextSecondary)
+                recoveryContent?.invoke()
             }
         },
         confirmButton = {
             TextButton(
+                enabled = confirmEnabled,
                 onClick = {
                     Haptics.tickLight(view)
                     onConfirm()
@@ -57,7 +62,11 @@ fun GymDialog(
                 Text(
                     confirmLabel,
                     style = InstrumentType.bodyStrong,
-                    color = if (destructive) Danger else Volt,
+                    color = when {
+                        !confirmEnabled -> TextDisabled
+                        destructive -> Danger
+                        else -> Volt
+                    },
                 )
             }
         },
@@ -86,6 +95,8 @@ fun ConfirmActionDialog(
     onDismiss: () -> Unit,
     dismissLabel: String? = "Cancel",
     destructive: Boolean = false,
+    confirmEnabled: Boolean = true,
+    recoveryContent: (@Composable () -> Unit)? = null,
 ) = GymDialog(
     title = title,
     body = body,
@@ -94,6 +105,8 @@ fun ConfirmActionDialog(
     onDismiss = onDismiss,
     dismissLabel = dismissLabel,
     destructive = destructive,
+    confirmEnabled = confirmEnabled,
+    recoveryContent = recoveryContent,
 )
 
 object ConfirmActionTags {

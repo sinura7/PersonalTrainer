@@ -50,9 +50,16 @@ fun AuxiliaryPackList(
     modifier: Modifier = Modifier,
     title: String = PlanDayCopy.PICK_AUX,
     suggestedKit: ExtraEquipment = ExtraEquipment.MIXED,
+    pickEnabled: Boolean = true,
+    equipment: ExtraEquipment? = null,
+    /** A popup owner can retain the choice in its outer saveable registry. */
+    onEquipmentChanged: ((ExtraEquipment?) -> Unit)? = null,
 ) {
     var kitName by rememberSaveable { mutableStateOf<String?>(null) }
-    val kit = kitName?.let { ExtraEquipment.fromStorage(it) }
+    val kit = if (onEquipmentChanged != null) equipment else kitName?.let { ExtraEquipment.fromStorage(it) }
+    val changeKit: (ExtraEquipment?) -> Unit = { choice ->
+        if (onEquipmentChanged != null) onEquipmentChanged(choice) else kitName = choice?.name
+    }
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Metrics.space3),
@@ -61,7 +68,7 @@ fun AuxiliaryPackList(
             ExtraEquipmentList(
                 title = ExtraEquipment.PICK,
                 suggestedKit = suggestedKit,
-                onPick = { kitName = it.name },
+                onPick = changeKit,
                 onCancel = onCancel,
             )
         } else {
@@ -71,7 +78,7 @@ fun AuxiliaryPackList(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Kicker(text = title, modifier = Modifier.weight(1f))
                 TextButton(
-                    onClick = { kitName = null },
+                    onClick = { changeKit(null) },
                     contentPadding = PaddingValues(0.dp),
                     modifier = Modifier.heightIn(min = Metrics.touchMin),
                 ) {
@@ -91,11 +98,11 @@ fun AuxiliaryPackList(
             } else {
                 if (warmups.isNotEmpty()) {
                     Kicker(PlanDayCopy.WARM_UP)
-                    PackGroup(warmups, onPick)
+                    PackGroup(warmups, onPick, pickEnabled)
                 }
                 if (mobility.isNotEmpty()) {
                     Kicker(PlanDayCopy.MOBILITY)
-                    PackGroup(mobility, onPick)
+                    PackGroup(mobility, onPick, pickEnabled)
                 }
             }
         }
@@ -150,6 +157,7 @@ private fun ExtraEquipmentList(
 private fun PackGroup(
     packs: List<AuxiliaryPack>,
     onPick: (String) -> Unit,
+    pickEnabled: Boolean,
 ) {
     GroupedList {
         packs.forEachIndexed { index, pack ->
@@ -168,6 +176,7 @@ private fun PackGroup(
                     )
                 },
                 onClick = { onPick(pack.id) },
+                enabled = pickEnabled,
             )
         }
     }
