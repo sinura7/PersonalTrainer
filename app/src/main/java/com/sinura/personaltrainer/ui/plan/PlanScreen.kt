@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,12 +32,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
@@ -49,7 +51,6 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.StartOptionsCopy
 import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.WeekTwoCopy
-import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
@@ -66,10 +67,10 @@ import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeekStrip
+import com.sinura.personaltrainer.ui.components.rememberWeekStripState
 import com.sinura.personaltrainer.ui.workout.StartSheetOpener
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
-import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -80,8 +81,11 @@ import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TrainingBlock
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Volt
+import com.sinura.personaltrainer.ui.units.DateCopy
+import java.time.LocalDate
 import java.text.DateFormat
 import java.util.Date
+import java.util.Locale
 
 /**
  * Where you are in the block, and — at the end of it — what to do about that.
@@ -276,6 +280,7 @@ fun PlanScreen(
 
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
+    val weekStripState = rememberWeekStripState()
     var routinesOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(navigateToEditor) {
@@ -289,9 +294,8 @@ fun PlanScreen(
             .fillMaxSize()
             .background(Pit),
     ) {
-        PlanHeader(onOpenLibrary = onOpenLibrary, onOpenStartSheet = onOpenStartSheet)
-
         if (state.isLoading) {
+            PlanHeader(onOpenLibrary = onOpenLibrary, onOpenStartSheet = onOpenStartSheet)
             ScreenLoading()
             return@Column
         }
@@ -317,11 +321,8 @@ fun PlanScreen(
         }
         val hasProposals = state.proposals.isNotEmpty()
         val addSessionVolt = !hasProposals && !state.missedWorkPrompt
-        val selectedTitle = if (selectedEpochDay == today) {
-            "Today"
-        } else {
-            PlanDayCopy.weekdayTitle(Weekday.fromEpochDay(selectedEpochDay))
-        }
+        val selectedDate = DateCopy.weekdayFullDate(LocalDate.ofEpochDay(selectedEpochDay))
+        val selectedTitle = if (selectedEpochDay == today) "Today · $selectedDate" else selectedDate
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -333,6 +334,15 @@ fun PlanScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
+            item(key = "header") {
+                // At large text sizes, fixed chrome can leave less room than one complete
+                // dated target. Keep these full labels in the same scrollable page.
+                PlanHeader(
+                    onOpenLibrary = onOpenLibrary,
+                    onOpenStartSheet = onOpenStartSheet,
+                    horizontalPadding = 0.dp,
+                )
+            }
             state.error?.let { message ->
                 item(key = "error") { GymErrorBanner(message, onDismiss = viewModel::dismissError) }
             }
@@ -383,6 +393,7 @@ fun PlanScreen(
                     selected = selectedEpochDay,
                     onSelectDay = { selectedEpochDay = it },
                     proposals = proposalsByDay,
+                    stripState = weekStripState,
                 )
             }
             item(key = "summary") {
@@ -509,41 +520,31 @@ fun PlanScreen(
 internal fun PlanHeader(
     onOpenLibrary: () -> Unit,
     onOpenStartSheet: () -> Unit = {},
+    horizontalPadding: Dp = Metrics.gutter,
 ) {
-    val stacked = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
-    Column(
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(Pit)
             .padding(
-                start = Metrics.gutter,
-                end = Metrics.gutter,
+                start = horizontalPadding,
+                end = horizontalPadding,
                 top = Metrics.space2,
                 bottom = Metrics.space3,
             ),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "Plan",
-                modifier = Modifier.weight(1f),
-                style = InstrumentType.display,
-                color = TextPrimary,
-            )
-            if (!stacked) {
-                PlanHeaderActions(
-                    onOpenLibrary = onOpenLibrary,
-                    onOpenStartSheet = onOpenStartSheet,
-                )
-            }
-        }
-        if (stacked) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                PlanHeaderActions(
-                    onOpenLibrary = onOpenLibrary,
-                    onOpenStartSheet = onOpenStartSheet,
-                )
-            }
-        }
+        Text(
+            "Plan",
+            modifier = Modifier.testTag(PlanTags.TITLE).semantics { heading() },
+            style = InstrumentType.display,
+            color = TextPrimary,
+        )
+        PlanHeaderActions(
+            onOpenLibrary = onOpenLibrary,
+            onOpenStartSheet = onOpenStartSheet,
+        )
     }
 }
 
@@ -567,8 +568,6 @@ private fun PlanHeaderActions(
             "Library",
             style = InstrumentType.bodyStrong,
             color = TextSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -594,7 +593,15 @@ private fun PlanSelectedDayBoard(
     onOpenDay: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-        Kicker(title)
+        Text(
+            text = title.uppercase(Locale.ENGLISH),
+            style = InstrumentType.kicker,
+            color = TextSecondary,
+            modifier = Modifier.testTag(PlanTags.SELECTED_DATE).semantics {
+                heading()
+                contentDescription = title
+            },
+        )
         if (empty) {
             Text(
                 PlanDayCopy.EMPTY,
@@ -804,6 +811,8 @@ private fun RecoveryCommand(
 }
 
 object PlanTags {
+    const val TITLE = "plan-heading"
+    const val SELECTED_DATE = "plan-selected-date"
     const val LIBRARY = "plan-library"
     const val START_SHEET = "plan-start-sheet"
     const val REPLAY = "plan-replay"

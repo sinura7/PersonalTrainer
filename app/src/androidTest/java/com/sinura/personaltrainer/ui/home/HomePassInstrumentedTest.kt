@@ -389,13 +389,13 @@ class HomePassInstrumentedTest {
         }
         compose.onNodeWithTag(
             com.sinura.personaltrainer.ui.components.WeekStripTags.cell(saturday),
-        ).assertIsDisplayed()
+        ).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag(
             com.sinura.personaltrainer.ui.components.WeekStripTags.cell(saturday),
         ).assertTextContains("Rest", substring = true)
         compose.onNodeWithTag(
             com.sinura.personaltrainer.ui.components.WeekStripTags.cell(friday),
-        ).assertTextContains("Workout", substring = true)
+        ).performScrollTo().assertIsDisplayed().assertTextContains("Workout", substring = true)
     }
 
     @Test

@@ -104,9 +104,73 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
-| UX12-AC01 | P1 | F02, F09, F11 | At 320/360/412 dp, date targets are measurable and usable without overlapping ambiguous activation regions, or an equivalent accessible selector is supplied. | Not executed |
-| UX12-AC02 | P1 | F02, F09, F11 | A week containing done, skipped, missed, future and rest days has unambiguous spoken and visible detail. | Not executed |
-| UX12-AC03 | P1 | F02, F09, F11 | Selecting a neighboring-month date opens the correct civil date; today remains distinguishable from selection. | Not executed |
+| UX12-AC01 | P1 | F02, F09, F11 | At 320/360/412 dp, date targets are measurable and usable without overlapping ambiguous activation regions, or an equivalent accessible selector is supplied. | Partial JVM evidence: fourteen actual Home/Plan profiles verify complete 48 dp targets, separation and pointer selection; whole-app viewport and phone acceptance remain open. |
+| UX12-AC02 | P1 | F02, F09, F11 | A week containing done, skipped, missed, future and rest days has unambiguous spoken and visible detail. | Partial JVM evidence: full status text and civil-date semantics distinguish completed, skipped, missed, planned and rest in the stress fixture; connected status transitions and physical TalkBack remain open. |
+| UX12-AC03 | P1 | F02, F09, F11 | Selecting a neighboring-month date opens the correct civil date; today remains distinguishable from selection. | Partial JVM evidence: actual pointer selection crosses December/January with exact date headings and distinct today/selected cues; whole-app and phone acceptance remain open. |
+
+**Week geometry packet (9 October 2026 UTC):** The former seven equal cells
+fell below 48 dp at small widths. Full labels/statuses now wrap in measured,
+separate targets; the strip scrolls horizontally rather than shrinking them,
+as allowed by [ADR-026](../architecture/ADR-026-frontend-redesign.md). Ordinary
+360 dp renders show three complete day cards: more scrolling and a taller row
+are explicit tradeoffs, not measured usability improvements. Widths remain
+stable on count/proposal refresh. A changed selection or geometry reveals the
+selected day; same-geometry restoration preserves manual exploration. Counts
+separate completed activities from skipped occurrences without changing the
+resolved-fill rule. Full civil dates remove month/year ambiguity.
+
+Picker questions and a separate Cancel reflow when they cannot share a row.
+Loaded Plan's header scrolls with the page and reflows its actions, exchanging
+a pinned header for reachable full labels. Loading retains its header. Native
+caller review also exposed narrow Body/History titles fragmented by a weighted
+title beside the entry button. Only those title/action rows now reflow; main
+titles retain their whole word and heading role. Their data/filter behavior is
+unchanged. The shared entry label stays complete.
+
+**Retained failures and fresh targeted evidence:** Geometry `targeted01`–`04`
+and `06` stopped before tests on static checks or compilation. `targeted05`
+finalized **74 tests / 32 failures**. `targeted07` finalized **74 tests / one
+failure**: the Home Extra method stopped at a Windows-invalid `?` screenshot
+filename before completing cancellation. All fourteen Home/Plan profiles and
+fourteen Plan picker profiles passed separately. The first image manifest was
+empty because a PowerShell UTC conversion lost its date kind; recovery verified
+all **486 original PNG hashes**, executing **zero new tests**, and preserved
+the original empty manifest. `targeted08` finalized **83 tests / nine failures**:
+the fixture polled History before settling its screen switch. Later stages
+loaded it and exposed the title fragmentation. No failed attempt is a pass.
+
+After correcting the filename, settling the actual switch before the unchanged
+20-second wait, and fixing the two headers, `targeted09` passed **83 tests / six
+fresh suites, zero failures/errors/skips**, with **1,529 stable runtime inputs**
+and stable references. The four-task targeted command returned exit 0 and
+BUILD SUCCESSFUL; **579 fresh native-graphics PNGs** were archived with matching
+hashes. Execution: **08:54:56.0859381Z–09:00:00.0786359Z**. Summary SHA-256:
+`287a6ac0628d62fe8bb5eb3dbce0012c998b9a71949f0c212ba6252b4052748b`.
+The unfiltered `full-gate01` then passed **3,820 tests / 560 fresh suites, zero
+failures/errors/skips**, including all twelve shared-caller display profiles.
+The complete standalone preflight passed **1,659 tests / 251 classes**; all
+four required Windows tasks with `--rerun-tasks` passed, **135 tasks executed**.
+Execution: **09:01:50.1432937Z–09:17:50.9527428Z**, with the same **1,529 stable
+runtime inputs** and stable references. Summary SHA-256:
+`669a3a9b2dc17cbf3b4329a8243dab58a09dd380a703e8177c0e6fe075a6140d`.
+Final reviews, connected verification and integration remain pending at this
+snapshot. Evidence is retained under `build/ux-context/runs/home-week-geometry/`.
+
+**Limits:** These are actual production screens/ViewModels on isolated stores,
+mounted without AppNav, its bars or system insets. Inventory equality covers
+checked rows/preferences, not zero SQL attempts or the entire database. Seeded
+statuses are a stress fixture, not a connected completed workout. Saved-state
+restoration/constraint changes are not Activity rotation or OS process death.
+Semantics do not prove TalkBack speech, focus order or touch feel. KEEP remains
+untraversed; Suggested Rest is component-only because Plan filters those
+proposals. Body legend/explanation and History metric labels remain clipped in
+the reviewed narrow/large-text frames. History calendar dates 10 and 11 also
+appear as 1 and 1 at 320 dp/font 2.0 (frame SHA-256
+`16fee37760e00ebee4216bb3cf92b65d00f17feb54093aabd07027a0e3ef7583`).
+These are explicit UX12/UX24/UX25 dependencies for the already-next History
+period/calendar packet and later Body work. Their source is outside the changed
+headers; this evidence does not establish the original render cause. Phone IME/performance,
+N2 and W3 remain open; no broader criterion is closed here.
 
 ### UX13 — Expose recurrence and ordering consequences without restoring clock clutter
 
@@ -457,8 +521,8 @@ open.
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
 | UX24-AC01 | P1 | F06, F11 | Two long similarly named variants can be distinguished before selection. | Not executed |
-| UX24-AC02 | P1 | F06, F11 | At font 2.0, primary actions and full values/units are readable and not clipped. | Not executed |
-| UX24-AC03 | P1 | F06, F11 | Shared component changes preserve all callers and do not reduce touch targets. | Not executed |
+| UX24-AC02 | P1 | F06, F11 | At font 2.0, primary actions and full values/units are readable and not clipped. | Partial JVM evidence for Home/Plan week content and Plan day/picker questions/actions; broader value/unit and content clipping remain open (see UX12 packet). |
+| UX24-AC03 | P1 | F06, F11 | Shared component changes preserve all callers and do not reduce touch targets. | Partial JVM evidence: week/picker geometry, Plan day Back and actual Body/History entry controls retain measured 48 dp targets; final review/integration and broader caller acceptance remain open. |
 
 ### UX25 — Validate complete-screen accessibility, not just component tags
 
@@ -466,7 +530,7 @@ open.
 |---|---|---|---|---|
 | UX25-AC01 | P1 | F11 | Physical TalkBack can complete planned start, set log/edit, cardio finish, routine create, history correction and export review. | Not executed |
 | UX25-AC02 | P1 | F11 | Search and routine-name fields announce their purpose when empty and populated. | Not executed |
-| UX25-AC03 | P1 | F11 | Large text/IME does not hide essential actions; measured issues have production-screen regression coverage. | Not executed |
+| UX25-AC03 | P1 | F11 | Large text/IME does not hide essential actions; measured issues have production-screen regression coverage. | Partial JVM evidence for bounded week/picker and shared-header reachability; AppNav/insets, phone IME and broader accessibility remain open. |
 
 ### UX26 — Tune feedback timing without adding decorative motion
 
@@ -566,17 +630,15 @@ Candidate and actual-trunk hosted reports also passed independently verified cou
 [Q01 records the exact pins and limits](../ux-context/studies/q01/README.md#workout-follow-up-integration--9-october-2026-utc).
 This completes that packet's integration, not the broader criteria above.
 
-**Current Home development:** F4 / UX23 required-read recovery, with UX22 reminder
-handoff continuity and relevant UX24/UX25 layout/accessibility checks. Initial failed
-reads must show Retry; later failure must retain a labeled last complete board.
-Retry must restart shared reads, refuse durable actions until a complete fresh result,
-and preserve open confirms/sheets/numeric text. Waiting reminder taps survive rotation;
-refused requests cannot start automatically after Retry. Bounded implementation and
-candidate execution have passed the local and native checks recorded below; final
-review/integration follows the packet protocol. WeekStrip geometry remains the
-separate UX12/F4 packet, followed by History's one-period/coherent-progress work.
-Legacy strength captured-date storage remains a separately specified dependency.
-Broader F4, UX23 and physical-phone acceptance are not closed by this packet.
+**Current Home development:** Required-read/Retry recovery integrated through
+[PR #462](https://github.com/sinura7/PersonalTrainer/pull/462) as `60c01a0b`,
+followed by the bounded History chronology-fixture repair in
+[PR #463](https://github.com/sinura7/PersonalTrainer/pull/463) as `c58110d1`.
+Earlier attempts below retain their dated evidence boundaries. The active packet
+is Home/Plan week geometry under UX12/F4 and the affected UX24/UX25 checks above.
+History's one-period/coherent-progress work follows. Legacy strength captured-date
+storage remains a separately specified dependency. These integrations do not
+close broader F4, UX23, UX24/UX25 or physical-phone acceptance.
 
 The first executed Home attempt (`targeted04`) passed its static checks but failed
 the screen tests: an open planned-start confirmation disappeared when recovery

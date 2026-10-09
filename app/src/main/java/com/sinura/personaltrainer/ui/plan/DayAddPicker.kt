@@ -5,16 +5,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,7 +27,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.ExtraEquipment
@@ -44,7 +39,6 @@ import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.ui.components.GroupedList
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentRow
-import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.PickerStill
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.components.cardioPickerArtwork
@@ -121,30 +115,17 @@ fun DayAddPicker(
 
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
         if (picking != DayPicker.AUX && picking != DayPicker.NONE) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Kicker(
-                    when (picking) {
-                        DayPicker.KIND -> PlanDayCopy.PICK_KIND
-                        DayPicker.CARDIO -> PlanDayCopy.PICK_CARDIO
-                        DayPicker.AUX -> PlanDayCopy.PICK_AUX
-                        DayPicker.WORKOUT -> PlanDayCopy.PICK_WORKOUT
-                        DayPicker.KEEP -> PlanDayCopy.KEEP
-                        DayPicker.NONE -> PlanDayCopy.ADD_SESSION
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(
-                    onClick = onCancel,
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.heightIn(min = Metrics.touchMin),
-                ) {
-                    Text(
-                        PlanDayCopy.CANCEL,
-                        style = InstrumentType.bodyStrong,
-                        color = TextSecondary,
-                    )
-                }
-            }
+            PickerHeader(
+                title = when (picking) {
+                    DayPicker.KIND -> PlanDayCopy.PICK_KIND
+                    DayPicker.CARDIO -> PlanDayCopy.PICK_CARDIO
+                    DayPicker.AUX -> PlanDayCopy.PICK_AUX
+                    DayPicker.WORKOUT -> PlanDayCopy.PICK_WORKOUT
+                    DayPicker.KEEP -> PlanDayCopy.KEEP
+                    DayPicker.NONE -> PlanDayCopy.ADD_SESSION
+                },
+                onCancel = onCancel,
+            )
         }
         when (picking) {
             DayPicker.NONE -> Unit

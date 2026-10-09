@@ -12,6 +12,16 @@ import org.junit.Test
 
 class DateCopyTest {
     @Test
+    fun fullCivilDatesDisambiguateYearWithoutChangingHistoryCopy() {
+        val december = LocalDate.of(2026, 12, 31)
+        val january = LocalDate.of(2027, 1, 1)
+        assertEquals("Thursday 31 December 2026", DateCopy.weekdayFullDate(december))
+        assertEquals("Friday 1 January 2027", DateCopy.weekdayFullDate(january))
+        assertEquals("Thursday 31 December", DateCopy.weekdayLong(december))
+        assertEquals("Thu 31 Dec 2026", DateCopy.weekdayShort(december))
+    }
+
+    @Test
     fun hoursChoicePrintsEnglishDayMonthNotUsMonthFirst() {
         val millis = Instant.parse("2026-01-02T18:30:00Z").toEpochMilli()
         val utc = ZoneId.of("UTC")

@@ -43,6 +43,9 @@ data class WeekBoardCell(
     val caption: String,
     val plannedCount: Int,
     val resolvedCount: Int,
+    val completedCount: Int,
+    val skippedCount: Int,
+    val missedCount: Int,
 )
 
 object WeekBoard {
@@ -68,31 +71,40 @@ object WeekBoard {
             caption = caption(items),
             plannedCount = items.size,
             resolvedCount = resolved,
+            completedCount = items.count { it.occurrence.status == OccurrenceStatus.DONE },
+            skippedCount = items.count { it.occurrence.status == OccurrenceStatus.SKIPPED },
+            missedCount = items.count { it.occurrence.status == OccurrenceStatus.MISSED },
         )
     }
 
     fun caption(items: List<AgendaItem>): String = when (items.size) {
         0 -> REST
         1 -> items.single().kindCaption
-        else -> items.size.toString()
+        else -> "${items.size} activities"
     }
 
     fun summary(cells: List<WeekBoardCell>): String {
         val planned = cells.sumOf { it.plannedCount }
-        val done = cells.sumOf { it.resolvedCount }
-        val plannedLabel = if (planned == 1) "1 planned" else "$planned planned"
-        val doneLabel = if (done == 1) "1 done this week" else "$done done this week"
-        return "$plannedLabel · $doneLabel"
+        val completed = cells.sumOf { it.completedCount }
+        val skipped = cells.sumOf { it.skippedCount }
+        return "$planned planned · $completed completed · $skipped skipped this week"
+    }
+
+    /** Resolved scheduling includes skipped work; it must not be called completed exercise. */
+    fun status(cell: WeekBoardCell): String {
+        if (cell.fill == DayFill.EMPTY) return REST
+        val remaining = cell.plannedCount - cell.completedCount - cell.skippedCount - cell.missedCount
+        return buildList {
+            if (cell.completedCount > 0) add("${cell.completedCount} completed")
+            if (cell.skippedCount > 0) add("${cell.skippedCount} skipped")
+            if (cell.missedCount > 0) add("${cell.missedCount} missed")
+            if (remaining > 0) add("$remaining planned")
+        }.joinToString(" · ")
     }
 
     fun spoken(cell: WeekBoardCell, today: Long, selected: Long): String {
         val name = CustomWeekPolicy.routineName(cell.weekday)
-        val fill = when (cell.fill) {
-            DayFill.EMPTY -> "rest"
-            DayFill.NONE -> "${cell.caption}, none done"
-            DayFill.PARTIAL -> "${cell.caption}, some done"
-            DayFill.ALL -> "${cell.caption}, complete"
-        }
+        val fill = if (cell.fill == DayFill.EMPTY) REST else "${cell.caption}, ${status(cell)}"
         val extra = buildList {
             if (cell.epochDay == selected) add("selected")
             if (cell.epochDay == today) add("today")

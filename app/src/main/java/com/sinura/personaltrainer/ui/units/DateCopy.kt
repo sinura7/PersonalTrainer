@@ -29,6 +29,8 @@ object DateCopy {
         DateTimeFormatter.ofPattern("MMM yyyy", LOCALE)
     private val WEEKDAY_LONG: DateTimeFormatter =
         DateTimeFormatter.ofPattern("EEEE d MMMM", LOCALE)
+    private val WEEKDAY_FULL_DATE: DateTimeFormatter =
+        DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", LOCALE)
     private val WEEKDAY_SHORT: DateTimeFormatter =
         DateTimeFormatter.ofPattern("EEE d MMM yyyy", LOCALE)
     private val DAY_MONTH_YEAR: DateTimeFormatter =
@@ -52,6 +54,8 @@ object DateCopy {
     fun monthYearShort(day: LocalDate): String = MONTH_YEAR_SHORT.format(day)
 
     fun weekdayLong(day: LocalDate): String = WEEKDAY_LONG.format(day)
+
+    fun weekdayFullDate(day: LocalDate): String = WEEKDAY_FULL_DATE.format(day)
 
     fun weekdayShort(day: LocalDate): String = WEEKDAY_SHORT.format(day)
 }

@@ -48,10 +48,10 @@ class WeekBoardTest {
     }
 
     @Test
-    fun twoBlocksCaptionIsTheCount() {
+    fun twoBlocksCaptionCountsActivities() {
         val walk = item("c", OccurrenceStatus.PLANNED, ScheduleModality.CARDIO)
         val lift = item("s", OccurrenceStatus.PLANNED, ScheduleModality.STRENGTH)
-        assertEquals("2", WeekBoard.caption(listOf(walk, lift)))
+        assertEquals("2 activities", WeekBoard.caption(listOf(walk, lift)))
     }
 
     @Test
@@ -169,7 +169,7 @@ class WeekBoardTest {
             status = OccurrenceStatus.DONE,
         )
         val cells = WeekBoard.forWeek(weekStart, listOf(planned, done), listOf(rule))
-        assertEquals("2 planned · 1 done this week", WeekBoard.summary(cells))
+        assertEquals("2 planned · 1 completed · 0 skipped this week", WeekBoard.summary(cells))
     }
 
     @Test
@@ -203,7 +203,7 @@ class WeekBoardTest {
         val cells = WeekBoard.forWeek(weekStart, listOf(moved, relocated), listOf(rule))
         // One block in the week, not two — and the vacated Friday reads rest,
         // never a permanently red "none done".
-        assertEquals("1 planned · 0 done this week", WeekBoard.summary(cells))
+        assertEquals("1 planned · 0 completed · 0 skipped this week", WeekBoard.summary(cells))
         assertEquals(DayFill.EMPTY, cells[4].fill)
         assertEquals(WeekBoard.REST, cells[4].caption)
         assertEquals(DayFill.NONE, cells[5].fill)
@@ -225,6 +225,66 @@ class WeekBoardTest {
         val movedLift = cardio.copy(id = "s", ruleId = "rs", status = OccurrenceStatus.MOVED, hour = 18)
         assertEquals(setOf(day), DailyAgenda.twoADayEpochDays(listOf(cardio, movedLift, movedLift.copy(id = "s2", status = OccurrenceStatus.PLANNED))))
         assertEquals(emptySet<Long>(), DailyAgenda.twoADayEpochDays(listOf(cardio, movedLift)))
+    }
+
+    @Test
+    fun resolvedBlocksKeepCompletedAndSkippedExerciseDistinct() {
+        val items = listOf(item("done", OccurrenceStatus.DONE), item("skip", OccurrenceStatus.SKIPPED))
+        val cells = WeekBoard.forWeek(
+            weekStartEpochDay = 20_000L,
+            occurrences = items.map { it.occurrence },
+            rules = items.mapNotNull { it.rule },
+        )
+        val day = cells.first()
+        assertEquals(DayFill.ALL, day.fill)
+        assertEquals(2, day.plannedCount)
+        assertEquals(2, day.resolvedCount)
+        assertEquals(1, day.completedCount)
+        assertEquals(1, day.skippedCount)
+        assertEquals(0, day.missedCount)
+        assertEquals("2 activities", day.caption)
+        assertEquals("1 completed · 1 skipped", WeekBoard.status(day))
+        assertEquals("2 planned · 1 completed · 1 skipped this week", WeekBoard.summary(cells))
+    }
+
+    @Test
+    fun allSkippedIsResolvedWithoutClaimingCompletedExercise() {
+        val items = listOf(item("skip-a", OccurrenceStatus.SKIPPED), item("skip-b", OccurrenceStatus.SKIPPED))
+        val cells = WeekBoard.forWeek(
+            weekStartEpochDay = 20_000L,
+            occurrences = items.map { it.occurrence },
+            rules = items.mapNotNull { it.rule },
+        )
+        val day = cells.first()
+        assertEquals(DayFill.ALL, day.fill)
+        assertEquals(2, day.resolvedCount)
+        assertEquals(0, day.completedCount)
+        assertEquals("2 skipped", WeekBoard.status(day))
+        assertEquals("2 planned · 0 completed · 2 skipped this week", WeekBoard.summary(cells))
+    }
+
+    @Test
+    fun missedAndRemainingWorkStayUnresolvedWhileMovedWorkVacatesTheCount() {
+        val items = listOf(
+            item("missed", OccurrenceStatus.MISSED),
+            item("remaining", OccurrenceStatus.PLANNED),
+            item("moved", OccurrenceStatus.MOVED),
+        )
+        val cells = WeekBoard.forWeek(
+            weekStartEpochDay = 20_000L,
+            occurrences = items.map { it.occurrence },
+            rules = items.mapNotNull { it.rule },
+        )
+        val day = cells.first()
+        assertEquals(DayFill.NONE, day.fill)
+        assertEquals(2, day.plannedCount)
+        assertEquals(0, day.resolvedCount)
+        assertEquals(0, day.completedCount)
+        assertEquals(0, day.skippedCount)
+        assertEquals(1, day.missedCount)
+        assertEquals("1 missed · 1 planned", WeekBoard.status(day))
+        assertEquals("2 planned · 0 completed · 0 skipped this week", WeekBoard.summary(cells))
+        assertEquals(WeekBoard.REST, WeekBoard.status(cells[1]))
     }
 
     private fun item(
