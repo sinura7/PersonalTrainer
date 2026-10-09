@@ -551,7 +551,7 @@ class HomeReadRecoveryRenderTest {
         insights.value = insights.value.copy(weekPlan = plan)
         show()
         awaitFallbackPlan(plan = plan)
-        val oldSecondCell = compose.onNodeWithTag(WeekStripTags.cell(secondDay))
+        val oldSecondCell = scrollTo(WeekStripTags.cell(secondDay))
             .assertIsEnabled().fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         scrollTo(HomeTags.SESSION).performClick()
         val oldConfirm = compose.onNodeWithTag(ConfirmActionTags.CONFIRM)
@@ -799,7 +799,7 @@ class HomeReadRecoveryRenderTest {
         val restoration = StateRestorationTester(compose)
         show(restoration)
         await(HomeReadState.CURRENT)
-        compose.onNodeWithTag(WeekStripTags.cell(firstDay)).performClick()
+        scrollTo(WeekStripTags.cell(firstDay)).performClick()
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertExists()
         scrollTo(HomeTags.START).performClick()
         compose.onNodeWithTag(HomeStartTags.EXTRA).performClick()
@@ -832,7 +832,7 @@ class HomeReadRecoveryRenderTest {
         await(HomeReadState.CURRENT)
         failRead()
         proveRecovery("stale-rtl")
-        compose.onNodeWithTag(WeekStripTags.cell(vm.uiState.value.weekStartEpochDay)).performClick()
+        scrollTo(WeekStripTags.cell(vm.uiState.value.weekStartEpochDay)).performClick()
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertIsEnabled().performClick()
         scrollTo(HomeTags.START).assertIsEnabled().performClick()
         compose.onNodeWithTag(HomeStartTags.FREE).assertIsNotEnabled()
@@ -874,7 +874,7 @@ class HomeReadRecoveryRenderTest {
                 LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
                 LocalReducedMotion provides reducedMotion,
             ) {
-                PersonalTrainerTheme {
+                PersonalTrainerTheme(reduceMotion = reducedMotion) {
                     Surface(modifier = Modifier.fillMaxSize(), color = Pit) {
                         Box(Modifier.fillMaxSize()) {
                             HomeScreen(onResumeWorkout = { openedSession = it }, onOpenPlan = {}, viewModel = vm)
@@ -1006,23 +1006,34 @@ class HomeReadRecoveryRenderTest {
             var moved = false
             while (parent != null) {
                 val candidate = parent
-                val axis = candidate.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
                 val scroll = candidate.config.getOrNull(SemanticsActions.ScrollBy)?.action
-                if (axis != null && scroll != null) {
+                if (scroll != null) {
                     val viewport = candidate.boundsInWindow.intersect(window)
-                    val delta = when {
-                        full.top < viewport.top - 1f -> full.top - viewport.top
-                        full.bottom > viewport.bottom + 1f -> full.bottom - viewport.bottom
-                        else -> 0f
-                    }
-                    val amount = if (axis.reverseScrolling) -delta else delta
-                    if (amount < -1f && axis.value() > 0f || amount > 1f && axis.value() < axis.maxValue()) {
-                        if (compose.runOnUiThread { scroll(0f, amount) }) {
+                    val axes = listOf(
+                        true to candidate.config.getOrNull(SemanticsProperties.HorizontalScrollAxisRange),
+                        false to candidate.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange),
+                    )
+                    for ((horizontal, axis) in axes) {
+                        if (axis == null) continue
+                        val low = if (horizontal) full.left else full.top
+                        val high = if (horizontal) full.right else full.bottom
+                        val start = if (horizontal) viewport.left else viewport.top
+                        val end = if (horizontal) viewport.right else viewport.bottom
+                        val delta = when {
+                            low < start - 1f -> low - start
+                            high > end + 1f -> high - end
+                            else -> 0f
+                        }
+                        val reversed = axis.reverseScrolling xor (horizontal && target.layoutInfo.layoutDirection == LayoutDirection.Rtl)
+                        val amount = if (reversed) -delta else delta
+                        if (amount < -1f && axis.value() > 0f || amount > 1f && axis.value() < axis.maxValue()) {
+                            if (!compose.runOnUiThread { scroll(if (horizontal) amount else 0f, if (horizontal) 0f else amount) }) continue
                             compose.settle()
                             moved = true
                             break
                         }
                     }
+                    if (moved) break
                 }
                 parent = candidate.parent
             }

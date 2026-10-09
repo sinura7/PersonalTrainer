@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -61,6 +62,7 @@ import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeekStrip
+import com.sinura.personaltrainer.ui.components.rememberWeekStripState
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -68,10 +70,11 @@ import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.update.DebugUpdateBanner
 import com.sinura.personaltrainer.ui.update.rememberDebugUpdatePort
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.UUID
 
 @Composable
@@ -149,6 +152,7 @@ fun HomeScreen(
     }
     val today = LocalTodayEpochDay.current
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
+    val weekStripState = rememberWeekStripState()
     var lastToday by rememberSaveable { mutableLongStateOf(today) }
     var startSheet by rememberSaveable { mutableStateOf(false) }
     // Modal ownership must outlive a LazyColumn item leaving composition. Inserting the
@@ -458,6 +462,7 @@ fun HomeScreen(
                     today = today,
                     selected = selectedEpochDay,
                     onSelectDay = { selectedEpochDay = it },
+                    stripState = weekStripState,
                 )
             }
         }
@@ -729,7 +734,7 @@ internal fun HomeMasthead(
     onBackToToday: (() -> Unit)? = null,
 ) {
     val dateLine = remember(epochDay) {
-        DateTimeFormatter.ofPattern(DATE_LINE_PATTERN).format(LocalDate.ofEpochDay(epochDay))
+        DateCopy.weekdayFullDate(LocalDate.ofEpochDay(epochDay))
     }
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -742,7 +747,18 @@ internal fun HomeMasthead(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Kicker(text = dateLine, modifier = Modifier.align(Alignment.CenterVertically))
+            Text(
+                text = dateLine.uppercase(Locale.ENGLISH),
+                style = InstrumentType.kicker,
+                color = TextSecondary,
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .testTag(HomeTags.DATE)
+                    .semantics {
+                        heading()
+                        contentDescription = dateLine
+                    },
+            )
             if (onBackToToday != null) {
                 TextButton(
                     onClick = onBackToToday,
@@ -771,9 +787,9 @@ internal fun HomeMasthead(
     }
 }
 
-// The separator is quoted: everything outside quotes in a pattern is a format field.
 object HomeTags {
     const val BOARD = "home-board"
+    const val DATE = "home-selected-date"
     const val READ_PROBLEM = "home-read-problem"
     const val RETRY = "home-read-retry"
     const val BACK_TO_TODAY = "home-back-to-today"
@@ -793,5 +809,4 @@ object HomeTags {
     fun loggedSession(sessionId: String): String = "home-logged-$sessionId"
 }
 
-private const val DATE_LINE_PATTERN = "EEEE '·' d MMM"
 private const val NO_VALUE = "—"

@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.domain.SlotRuleImport
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.sessionLiftNames
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.GroupedList
@@ -52,7 +53,6 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 /**
  * One weekday as a schedule page. Add and delete blocks here. Start lives
@@ -97,7 +97,7 @@ fun PlanDayScreen(
     ) {
         PlanDayHeader(
             title = PlanDayCopy.weekdayTitle(weekday),
-            dateCaption = DATE_CAPTION.format(LocalDate.ofEpochDay(epochDay)),
+            dateCaption = DateCopy.weekdayFullDate(LocalDate.ofEpochDay(epochDay)),
             onBack = onBack,
         )
         when {
@@ -350,5 +350,3 @@ object PlanDayTags {
 
     fun moveDown(occurrenceId: String): String = "plan-move-down-$occurrenceId"
 }
-
-private val DATE_CAPTION: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")

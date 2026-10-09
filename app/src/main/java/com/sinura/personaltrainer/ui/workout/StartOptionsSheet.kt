@@ -426,8 +426,6 @@ fun StartSheetOpener(
             StartOptionsCopy.OPEN,
             style = InstrumentType.bodyStrong,
             color = TextSecondary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
         )
     }
 }

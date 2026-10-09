@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Icon
@@ -67,7 +68,9 @@ fun ScreenHeader(
         if (onBack != null) {
             IconButton(
                 onClick = onBack,
-                modifier = if (backTag != null) Modifier.testTag(backTag) else Modifier,
+                modifier = Modifier
+                    .sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
+                    .then(if (backTag != null) Modifier.testTag(backTag) else Modifier),
             ) {
                 Icon(backIcon, contentDescription = backDescription, tint = TextSecondary)
             }

@@ -2,27 +2,21 @@ package com.sinura.personaltrainer.ui.plan
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AuxiliaryKind
 import com.sinura.personaltrainer.domain.AuxiliaryPack
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
@@ -39,7 +33,6 @@ import com.sinura.personaltrainer.ui.components.extraPackArtwork
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
-import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.Volt
 
 @Composable
@@ -75,20 +68,7 @@ fun AuxiliaryPackList(
             val visible = AuxiliaryPacks.visibleFor(kit, usedPackIds)
             val warmups = visible.filter { it.kind == AuxiliaryKind.WARMUP }
             val mobility = visible.filter { it.kind == AuxiliaryKind.MOBILITY }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Kicker(text = title, modifier = Modifier.weight(1f))
-                TextButton(
-                    onClick = { changeKit(null) },
-                    contentPadding = PaddingValues(0.dp),
-                    modifier = Modifier.heightIn(min = Metrics.touchMin),
-                ) {
-                    Text(
-                        PlanDayCopy.CANCEL,
-                        style = InstrumentType.bodyStrong,
-                        color = TextSecondary,
-                    )
-                }
-            }
+            PickerHeader(title = title, onCancel = { changeKit(null) })
             if (warmups.isEmpty() && mobility.isEmpty()) {
                 Text(
                     PlanDayCopy.AUX_ALREADY,
@@ -116,20 +96,7 @@ private fun ExtraEquipmentList(
     onPick: (ExtraEquipment) -> Unit,
     onCancel: () -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Kicker(text = title, modifier = Modifier.weight(1f))
-        TextButton(
-            onClick = onCancel,
-            contentPadding = PaddingValues(0.dp),
-            modifier = Modifier.heightIn(min = Metrics.touchMin),
-        ) {
-            Text(
-                PlanDayCopy.CANCEL,
-                style = InstrumentType.bodyStrong,
-                color = TextSecondary,
-            )
-        }
-    }
+    PickerHeader(title = title, onCancel = onCancel)
     GroupedList(
         modifier = Modifier
             .testTag(ExtraEquipmentTags.PAGE)
