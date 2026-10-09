@@ -78,8 +78,9 @@ missing Summary artwork and unqualified detail targets beside different recorded
 results. Apply O11's corresponding images, complete readable names and explicit
 Planned / Recorded sets sections, including hold targets. Exact IDs and metadata
 come from the same successful session read; custom and unknown lifts retain the
-existing fallback artwork. Calculation, persistence, navigation and the current
-read-once Summary snapshot contract remain. The targeted gate passed 51 checks
+existing fallback artwork. Calculation, persistence formats and captured identities,
+navigation and the current read-once Summary snapshot contract remain. The targeted
+gate passed 51 checks
 across eight fresh suites, including the 14-profile native-graphics matrix and
 exact artwork/fallback case, with 400 fresh PNGs and unchanged 1,545 runtime
 inputs. The first run's glyph-color assertion failure remains preserved; a
@@ -154,6 +155,26 @@ hold-duration refinement. No broader UX29 or phone acceptance is claimed.
 Returning from a historical correction to the
 retained Summary still needs an actual AppNav counter and a snapshot-policy
 decision before changing that deliberate contract.
+
+**Complete packet verification and reviews closed, 9 October 2026 UTC:** Clean
+`f2504264`, tree `20b6d0c04fa0c9635fa3f9cc8027ba55a857b451`, passed fresh `full04`:
+**3,990 app tests / 576 fresh suites**, **1,694 standalone tests / 255 classes**,
+zero failures/errors/skips, all four required Windows tasks with `--rerun-tasks`
+and all 135 tasks executed. The archive preserves **2,461 fresh PNGs / 4,626 files**.
+Fresh `native03` passed **222 Android tests / 32 classes**, with **85 device-hashed
+captures**, all **13 fixture restoration pairs**, offline admission and verified
+network/settings/package/collector restoration. The same-session AppNav images
+show **85 kg × 3 / RPE 9**, **255 kg**, matching artwork and clearly qualified
+**3 × 5 / 140 kg** planned targets. Actual emulator-process absence was verified
+after shutdown. All **1,548 runtime inputs** match both closed gates and the actual
+committed Git blobs; the sole established checkout conversion is `gradlew.bat` CRLF.
+Fresh nonauthor independent and adversarial reviews approve the entire
+`9fd21456` → `f2504264` packet with no unresolved critical/high finding.
+[UX29 records the execution and review pins](../ux-program/UX-Acceptance-Matrix.md#ux29--make-activity-type-differences-explicit-in-details-and-receipts).
+Earlier failed runs remain failed evidence. This closes candidate verification;
+hosted verification, integration and fresh actual-trunk gates remain pending.
+The named editor refinement, hold Summary presentation, correction-return policy,
+broader app UX and physical-phone acceptance remain open. No Debug drop was requested.
 
 ## Owner decisions for this project
 

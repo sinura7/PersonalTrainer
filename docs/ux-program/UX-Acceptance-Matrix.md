@@ -1081,6 +1081,53 @@ This remains filtered pre-integration evidence; complete standalone/unfiltered
 verification, fresh native execution and both nonauthor final reviews are pending.
 Original failed runs and their red causal evidence remain preserved.
 
+**Complete repaired candidate gate and final reviews closed:** Clean
+`f2504264ecb52f9bcd4baec231945ae71f06fa96`, tree
+`20b6d0c04fa0c9635fa3f9cc8027ba55a857b451`, passed fresh `full04` from
+**20:06:12.5372885Z–20:23:52.8194519Z** on 9 October 2026 UTC. The complete
+standalone preflight passed **1,694 tests / 255 classes**; the unfiltered four-task
+Windows command with `--rerun-tasks` passed **3,990 app tests / 576 fresh suites**,
+zero failures/errors/skips, with all **135 tasks executed**. All **1,548 inputs**
+and references stayed unchanged. Summary SHA-256:
+`9A292AA43863603069826A69A6A0766F0174540E373C2312415AAA5F24DBC136`;
+input map: `D2EC308FBC523208B99F5C79B82E560285BEC50C47F10AA512C8AD9A31967A2F`;
+execution seal: `A67B949FAE0A6BEF6EA616F613969D4E2874898822AE863733BAFC9E31BF29EA`.
+The archive contains **2,461 PNGs / 4,626 files**, manifest SHA-256:
+`B3B87E41C01120E4358D56B8967EFC02486F3EA2A88553DCA9543C4F9F79C52D`.
+The full run retains all 28 restored-graph cases, six successful actual hold saves,
+seven Room safety controls and 22 History period cases; every original failed
+execution and its causal evidence remain separate.
+
+Fresh unfiltered `native03`, **20:24:48.1680776Z–20:31:28.3699991Z**, passed
+**222 tests / 32 classes**, zero failures/errors/skips, one fresh device XML,
+**85 device-hashed captures** and all **13 fixture restoration pairs**. Offline
+admission, network/settings restoration, empty final packages, collector cleanup
+and the same 1,548 inputs were verified. Summary SHA-256:
+`3E395CB1CCE5251A25C9D3A25D00BC52793BD9AE94111868F85CCC425363E641`;
+execution seal: `715C8AC1187D12C43AE60023E95486627B4B1210AD6A0A4F2E39AC427EE0015D`.
+The connected AppNav Summary/detail images show the exact corrected
+**85 kg × 3 / RPE 9**, **255 kg** total, matching Squat artwork and explicit
+**3 × 5 / 140 kg** Planned targets. Actual emulator absence after shutdown was
+separately observed at **20:32:14.8060556Z**, receipt SHA-256:
+`E42C1AA2626A88EA170054F6722D5C602FF5FADD294821B5095A0475E5350C07`.
+Actual committed Git blobs match the complete runtime map with only the accepted
+`gradlew.bat` CRLF conversion; binding receipt SHA-256:
+`B76934C546F806EDBFE8ED8189F1157E650E78BF2C6C63FD793E0875EDE043A0`.
+
+Fresh nonauthor final reviews of the **entire 25-file `9fd21456` → `f2504264`
+packet** approve integration with no unresolved critical/high finding. The
+independent report SHA-256 is
+`F3AD606AA26E1A954AB64E793E3AE84B1C97448CC0C77240767F9C304719202E`;
+adversarial report SHA-256 is
+`9398B1C4FEB1A432B1D9C1621B61175FA335A95AE5039889725858BAAAEE83BC`.
+Both inspect source, raw results, original-row inventories, relevant current
+frames and actual cleanup. This is pre-integration development evidence: hosted
+checks, integration and actual clean-trunk full/native gates remain pending.
+The named medium editor refinement below, pure-hold Summary display,
+correction-return snapshot policy, broader UX23/UX29 and physical-phone acceptance
+remain open. There is no schema, backup format, validator, navigation, signer or
+version change, and no Obtainium drop was requested.
+
 **Named dependent refinement — Set Edit sheet identity and numeric controls
 (F9/W11/V12/Q08/UX29):** Fresh full03 frames show the identity kicker truncating
 at font 2.0 and the actual default 360 dp ±2.5 labels splitting into two lines.
