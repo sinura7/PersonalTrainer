@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
@@ -160,19 +162,36 @@ private fun FocusExerciseIdentity(
     ) {
         DetailsStill(lift, enabled, onDetails)
         Column(
-            modifier = Modifier.weight(1f).heightIn(min = Metrics.workoutIdentityImage)
-                .clip(RoundedCornerShape(Radius.sm))
-                .clickable(enabled = enabled, role = Role.Button, onClickLabel = CurrentLiftCopy.SWITCH, onClick = onOpenSwitcher)
-                .testTag(WorkoutTestTags.LIFT_SWITCH),
+            modifier = Modifier.weight(1f).heightIn(min = Metrics.workoutIdentityImage),
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             Text(lift.exercise.name, style = InstrumentType.workoutTitle, color = TextPrimary)
-            Text(setContext, modifier = Modifier.testTag(WorkoutTestTags.SET_CONTEXT),
-                style = InstrumentType.caption, color = TextSecondary)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                Text(CurrentLiftCopy.switchLabel(number, total), style = InstrumentType.caption, color = TextSecondary)
-                Icon(TemperIcons.ChevronDown, contentDescription = null, tint = TextSecondary,
-                    modifier = Modifier.size(Metrics.chevron))
+            val switch: @Composable () -> Unit = {
+                Row(
+                    modifier = Modifier.heightIn(min = Metrics.touchMin)
+                        .clip(RoundedCornerShape(Radius.sm))
+                        .clickable(enabled = enabled, role = Role.Button,
+                            onClickLabel = CurrentLiftCopy.SWITCH, onClick = onOpenSwitcher)
+                        .testTag(WorkoutTestTags.LIFT_SWITCH)
+                        .padding(horizontal = Metrics.space2, vertical = Metrics.space1),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+                ) {
+                    Text(CurrentLiftCopy.switchLabel(number, total), style = InstrumentType.caption, color = TextSecondary)
+                    Icon(TemperIcons.ChevronDown, contentDescription = null, tint = TextSecondary,
+                        modifier = Modifier.size(Metrics.chevron))
+                }
+            }
+            if (LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)) {
+                Text(setContext, modifier = Modifier.testTag(WorkoutTestTags.SET_CONTEXT),
+                    style = InstrumentType.caption, color = TextSecondary)
+                switch()
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(setContext, modifier = Modifier.weight(1f).testTag(WorkoutTestTags.SET_CONTEXT),
+                        style = InstrumentType.caption, color = TextSecondary)
+                    switch()
+                }
             }
         }
     }

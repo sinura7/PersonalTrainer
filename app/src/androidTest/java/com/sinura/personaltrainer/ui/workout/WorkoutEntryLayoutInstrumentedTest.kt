@@ -12,6 +12,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
@@ -110,20 +112,23 @@ class WorkoutEntryLayoutInstrumentedTest(
         assertTrue("scroll content clears dock", content.bottom <= compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).fetchSemanticsNode().boundsInRoot.top + 1)
         assertTrue("entry retains usable scrolling space", content.height / density >= 48)
         if (width == 360 && height == 800 && font == 1f && scenario == "working") {
-            // The baseline profile shows the whole log loop without a scroll: the header's
-            // progress line, identity with the set-type toggle, the stats row, both hero
-            // numerals and the RPE track. The progress line is drawn in the kicker voice,
-            // which is upper case (ADR-027), and spoken in sentence case.
+            // Focus puts the identity, progress, actual numerals and effort on the
+            // initial floor. Set type remains an explicit selected control in Set options.
+            // The visible and spoken progress both retain the complete counts.
             compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).assertIsDisplayed()
-                .assertTextEquals("1 OF 1 EXERCISE · 0 OF 12 SETS")
+                .assertTextEquals("1 of 1 exercise · 0 of 12 sets")
                 .assertContentDescriptionEquals("1 of 1 exercise · 0 of 12 sets")
-            compose.onNodeWithTag(WorkoutTestTags.SET_TYPE).assertIsDisplayed()
             // Past performance is secondary; the initial viewport prioritizes entry.
             compose.onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_COACH_CARD) and
                 !hasAnyAncestor(hasTestTag(WorkoutTestTags.CONTENT))).assertCountEquals(0)
             compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER).assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+            compose.onNodeWithText("Set options").performClick()
+            compose.onNodeWithTag(WorkoutTestTags.SET_TYPE).assertIsDisplayed()
+            compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
+            compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_DONE).performClick()
         }
         // The companion slot carries the state that needs the room: a failed action's
         // details, or the undo offer for a deleted set.

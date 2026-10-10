@@ -13,18 +13,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.ProgressSegment
@@ -75,6 +79,22 @@ internal fun WorkoutHeader(
     // room the log needs.
     val largeText = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val titleLines = if (compact || largeText) 1 else 2
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
+    val measurer = rememberTextMeasurer()
+    val endActionPadding = ButtonDefaults.TextButtonContentPadding
+    // Discard becoming Finish must not unwrap the routine title after saving.
+    // Reserve both labels at the actual current font and button padding.
+    val endActionWidth = remember(focused, density, direction, measurer, endActionPadding) {
+        if (focused) {
+            val labelWidth = maxOf(
+                measurer.measure(EndWorkoutCopy.HEADER_DISCARD, style = InstrumentType.bodyStrong).size.width,
+                measurer.measure(EndWorkoutCopy.HEADER_FINISH, style = InstrumentType.bodyStrong).size.width,
+            )
+            maxOf(Metrics.headerActMin, with(density) { labelWidth.toDp() } +
+                endActionPadding.calculateLeftPadding(direction) + endActionPadding.calculateRightPadding(direction))
+        } else Metrics.headerActMin
+    }
     val headline = WorkoutProgressCalculator.headline(progress)
     val spoken = WorkoutProgressCalculator.spoken(progress)
     // The compact landscape header is the one row LandscapeChrome budgets: the plan's
@@ -117,8 +137,9 @@ internal fun WorkoutHeader(
                 if (showDiscard) {
                     TextButton(
                         onClick = onDiscard,
+                        contentPadding = endActionPadding,
                         modifier = Modifier
-                            .widthIn(min = Metrics.headerActMin)
+                            .widthIn(min = endActionWidth)
                             .heightIn(min = Metrics.touchMin)
                             .testTag(WorkoutTestTags.DISCARD),
                     ) {
@@ -131,9 +152,10 @@ internal fun WorkoutHeader(
                 } else {
                     TextButton(
                         onClick = onFinish,
+                        contentPadding = endActionPadding,
                         enabled = canFinish,
                         modifier = Modifier
-                            .widthIn(min = Metrics.headerActMin)
+                            .widthIn(min = endActionWidth)
                             .heightIn(min = Metrics.touchMin)
                             .testTag(WorkoutTestTags.FINISH)
                             .semantics {

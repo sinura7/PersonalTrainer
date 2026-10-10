@@ -72,6 +72,7 @@ class ExerciseHeaderRenderTest {
         number: Int = 1,
         total: Int = 2,
         setContext: String = SET_CONTEXT,
+        focused: Boolean = false,
     ) {
         compose.showFloor(fontScale = fontScale) {
             ExerciseHeader(
@@ -84,8 +85,40 @@ class ExerciseHeaderRenderTest {
                 onOpenSwitcher = { switched += 1 },
                 onDetails = { details += 1 },
                 enabled = enabled,
+                focused = focused,
             )
         }
+    }
+
+    @Test
+    fun focusedLongNameAtFontTwoKeepsTheSwitchSeparateFromItsFullIdentity() {
+        showHeader(lift = floorLift(targetSets = 3, name = LONG_NAME), fontScale = 2f, focused = true)
+        val name = compose.onNodeWithText(LONG_NAME, useUnmergedTree = true).assertIsDisplayed()
+        name.assert(!hasClickAction())
+        val layout = name.textLayout()
+        assertEquals(LONG_NAME.length, layout.getLineEnd(layout.lineCount - 1, visibleEnd = true))
+        for (line in 0 until layout.lineCount) assertFalse(layout.isLineEllipsized(line))
+        compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT).assertIsDisplayed().assert(!hasClickAction())
+        val switch = compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).assertIsDisplayed()
+            .assertHeightIsAtLeast(Metrics.touchMin)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        assertEquals(listOf(CurrentLiftCopy.switchLabel(1, 2)), switch.mergedTexts())
+        assertTrue("The switch is a leaf control, not the long identity", switch.getBoundsInRoot().let { it.bottom - it.top } < Metrics.touchMin * 2)
+        switch.performClick()
+        assertEquals(1, switched)
+        assertEquals(0, details)
+        still().performClick()
+        assertEquals(1, details)
+        assertEquals(1, switched)
+    }
+
+    @Test
+    fun aLockedFocusedIdentityLocksBothIndependentTargets() {
+        showHeader(enabled = false, focused = true)
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).assertIsNotEnabled().performClick()
+        still().assertIsNotEnabled().performClick()
+        assertEquals(0, switched)
+        assertEquals(0, details)
     }
 
     private fun identity() = compose.onNodeWithTag(WorkoutTestTags.liftCard("leg-ext"))
