@@ -618,13 +618,16 @@ integration; prior failures and the wider UX15/phone limits above remain.
 visible during an accepted update, admits one write at a time, and exposes an
 exact-action Retry for workout additions, removal and ordering. Retry retains
 the accepted routine, slot/rule and hour; a pin changes only its own imported
-rule. Future-day additions also publish the selected week. New-workout editor
-navigation and picker close follow successful completion. The 115 targeted
-checks passed; the final-source complete local gate freshly passed **4,124 app
-tests / 582 suites** and **1,697 standalone tests**, build, lint and instrumented
-APK assembly. The changed states render across **12 profiles / 36 frames**.
-Original checker failures and the two corrected fixture failures remain recorded.
-Native/review/integration evidence is reported with the packet. This extends
+rule. Future-day additions also publish the selected week. Retry freezes the
+acceptance instant and chosen hour and verifies the accepted rule/day before
+completion, including midnight, week rollover and date-changing zone shifts.
+Existing terminal rows, unrelated rules and ordinary anti-backfill behavior stay
+intact; recovered past work does not receive an overdue reminder. New-workout
+editor navigation and picker close follow successful completion. The repaired
+source passed **62 targeted checks** and **12 profiles / 36 frames**. Original
+checker and fixture failures, plus three demonstrated rollover failures, remain
+recorded. Final-source gate, native, review and integration evidence is reported
+with [the packet](https://github.com/sinura7/PersonalTrainer/pull/477). This extends
 AC02 rather than closing cross-app UX23: cardio/auxiliary helper recovery,
 read-health failures, durable pending-action receipts after process death and
 physical-phone experience remain separate acceptance work.

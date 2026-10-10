@@ -10,6 +10,7 @@ import com.sinura.personaltrainer.data.repository.DayBlocks
 import com.sinura.personaltrainer.domain.AgendaItem
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
 import com.sinura.personaltrainer.domain.CardioType
+import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CustomWeekPolicy
 import com.sinura.personaltrainer.domain.DailyAgenda
@@ -58,7 +59,8 @@ private class PendingPlanWrite(
     val isAdd: Boolean,
     val retryable: Boolean,
     val onSuccess: () -> Unit,
-    val block: suspend () -> Unit,
+    val acceptedAt: CapturedCivilTime,
+    val block: suspend (CapturedCivilTime) -> Unit,
 )
 
 /**
@@ -120,13 +122,8 @@ class PlanDayViewModel @JvmOverloads constructor(
     fun pinRoutine(epochDay: Long, routineId: String, hour: Int = SlotRuleImport.DEFAULT_STRENGTH_HOUR) {
         var acceptedSlotId: String? = null
         var acceptedHour: Int? = null
-        write("Could not finish adding this workout.", isAdd = true, retryable = true) {
-            val clamped = acceptedHour ?: SlotRuleImport.hourOnDay(
-                preferredHour = hour,
-                epochDay = epochDay,
-                todayEpochDay = todayEpochDay(),
-                nowMinutes = currentMinutesOfDay(),
-            ).also { acceptedHour = it }
+        write("Could not finish adding this workout.", isAdd = true, retryable = true) { acceptedAt ->
+            val clamped = acceptedHour ?: hourAtAcceptance(epochDay, hour, acceptedAt).also { acceptedHour = it }
             if (acceptedSlotId == null) {
                 acceptedSlotId = container.scheduleRepository.pin(
                     routineId = routineId,
@@ -136,6 +133,7 @@ class PlanDayViewModel @JvmOverloads constructor(
             }
             refreshPlanner(epochDay)
             applyHourToSlot(epochDay, checkNotNull(acceptedSlotId), clamped)
+            finishWorkoutDay(epochDay, SlotRuleImport.ruleIdForSlot(checkNotNull(acceptedSlotId)), acceptedAt)
         }
     }
 
@@ -146,7 +144,7 @@ class PlanDayViewModel @JvmOverloads constructor(
         write(
             "Could not finish creating this workout.", isAdd = true, retryable = true,
             onSuccess = { _navigateToEditor.value = acceptedRoutineId },
-        ) {
+        ) { acceptedAt ->
             val weekday = dayOfWeekFor(epochDay)
             val routineId = acceptedRoutineId ?: run {
                 val name = CustomWeekPolicy.routineName(weekday)
@@ -156,12 +154,7 @@ class PlanDayViewModel @JvmOverloads constructor(
                 }
                 (reusable?.id ?: container.routineRepository.create(name).id).also { acceptedRoutineId = it }
             }
-            val clamped = acceptedHour ?: SlotRuleImport.hourOnDay(
-                preferredHour = hour,
-                epochDay = epochDay,
-                todayEpochDay = todayEpochDay(),
-                nowMinutes = currentMinutesOfDay(),
-            ).also { acceptedHour = it }
+            val clamped = acceptedHour ?: hourAtAcceptance(epochDay, hour, acceptedAt).also { acceptedHour = it }
             if (acceptedSlotId == null) {
                 acceptedSlotId = container.scheduleRepository.pin(
                     routineId = routineId,
@@ -171,6 +164,7 @@ class PlanDayViewModel @JvmOverloads constructor(
             }
             refreshPlanner(epochDay)
             applyHourToSlot(epochDay, checkNotNull(acceptedSlotId), clamped)
+            finishWorkoutDay(epochDay, SlotRuleImport.ruleIdForSlot(checkNotNull(acceptedSlotId)), acceptedAt)
         }
     }
 
@@ -191,29 +185,27 @@ class PlanDayViewModel @JvmOverloads constructor(
     }
 
     fun addLaterSession(epochDay: Long, routineId: String, hour: Int? = null) {
-        var ruleAdded = false
-        write("Could not finish adding this workout.", isAdd = true, retryable = true) {
+        var acceptedRuleId: String? = null
+        var acceptedHour: Int? = null
+        write("Could not finish adding this workout.", isAdd = true, retryable = true) { acceptedAt ->
             val weekday = dayOfWeekFor(epochDay)
-            if (!ruleAdded) {
+            if (acceptedRuleId == null) {
                 val hours = container.plannerRepository.rules()
                     .filter { it.weekday == weekday }
                     .map { it.hour }
-                val preferred = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23)
-                container.plannerRepository.addTimedRule(
+                val clamped = acceptedHour ?: hourAtAcceptance(
+                    epochDay, (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23), acceptedAt,
+                ).also { acceptedHour = it }
+                acceptedRuleId = container.plannerRepository.addTimedRule(
                     weekday = weekday,
-                    hour = SlotRuleImport.hourOnDay(
-                        preferredHour = preferred,
-                        epochDay = epochDay,
-                        todayEpochDay = todayEpochDay(),
-                        nowMinutes = currentMinutesOfDay(),
-                    ),
+                    hour = clamped,
                     minute = 0,
                     modality = ScheduleModality.STRENGTH,
                     routineId = routineId,
-                )
-                ruleAdded = true
+                ).id
             }
             refreshPlanner(epochDay)
+            finishWorkoutDay(epochDay, checkNotNull(acceptedRuleId), acceptedAt)
         }
     }
 
@@ -251,11 +243,12 @@ class PlanDayViewModel @JvmOverloads constructor(
 
     fun composeLaterSession(epochDay: Long, hour: Int? = null) {
         var acceptedRoutineId: String? = null
-        var ruleAdded = false
+        var acceptedRuleId: String? = null
+        var acceptedHour: Int? = null
         write(
             "Could not finish creating this workout.", isAdd = true, retryable = true,
             onSuccess = { _navigateToEditor.value = acceptedRoutineId },
-        ) {
+        ) { acceptedAt ->
             val weekday = dayOfWeekFor(epochDay)
             val routineId = acceptedRoutineId ?: run {
                 val name = CustomWeekPolicy.extraRoutineName(weekday)
@@ -265,26 +258,23 @@ class PlanDayViewModel @JvmOverloads constructor(
                 }
                 (reusable?.id ?: container.routineRepository.create(name).id).also { acceptedRoutineId = it }
             }
-            if (!ruleAdded) {
+            if (acceptedRuleId == null) {
                 val hours = container.plannerRepository.rules()
                     .filter { it.weekday == weekday }
                     .map { it.hour }
-                val preferred = (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23)
-                container.plannerRepository.addTimedRule(
+                val clamped = acceptedHour ?: hourAtAcceptance(
+                    epochDay, (hour ?: SlotRuleImport.nextLaterHour(hours)).coerceIn(0, 23), acceptedAt,
+                ).also { acceptedHour = it }
+                acceptedRuleId = container.plannerRepository.addTimedRule(
                     weekday = weekday,
-                    hour = SlotRuleImport.hourOnDay(
-                        preferredHour = preferred,
-                        epochDay = epochDay,
-                        todayEpochDay = todayEpochDay(),
-                        nowMinutes = currentMinutesOfDay(),
-                    ),
+                    hour = clamped,
                     minute = 0,
                     modality = ScheduleModality.STRENGTH,
                     routineId = routineId,
-                )
-                ruleAdded = true
+                ).id
             }
             refreshPlanner(epochDay)
+            finishWorkoutDay(epochDay, checkNotNull(acceptedRuleId), acceptedAt)
         }
     }
 
@@ -310,14 +300,14 @@ class PlanDayViewModel @JvmOverloads constructor(
         isAdd: Boolean = false,
         retryable: Boolean = false,
         onSuccess: () -> Unit = {},
-        block: suspend () -> Unit,
+        block: suspend (CapturedCivilTime) -> Unit,
     ) {
         // Admission is synchronous, before launch or Room can suspend. A failed
         // resumable update owns the page until its exact action finishes.
         if (pendingWrite != null || writeState.value.saving) return
         pendingWrite = PendingPlanWrite(
             failureMessage = failureMessage, isAdd = isAdd, retryable = retryable,
-            onSuccess = onSuccess, block = block,
+            onSuccess = onSuccess, acceptedAt = time.captureNow(), block = block,
         )
         runPendingWrite()
     }
@@ -327,7 +317,7 @@ class PlanDayViewModel @JvmOverloads constructor(
         writeState.value = writeState.value.copy(saving = true, canRetry = false, error = null)
         viewModelScope.launch {
             try {
-                runCatchingCancellable { pending.block() }
+                runCatchingCancellable { pending.block(pending.acceptedAt) }
                     .onSuccess {
                         pendingWrite = null
                         writeState.value = writeState.value.copy(
@@ -355,6 +345,18 @@ class PlanDayViewModel @JvmOverloads constructor(
     private fun currentMinutesOfDay(): Int {
         val now = time.captureNow()
         return time.wallMinutesOfDay(now.instantMillis, now.zoneId)
+    }
+
+    private fun hourAtAcceptance(epochDay: Long, preferred: Int, acceptedAt: CapturedCivilTime): Int =
+        SlotRuleImport.hourOnDay(
+            preferredHour = preferred, epochDay = epochDay, todayEpochDay = acceptedAt.localEpochDay,
+            nowMinutes = time.wallMinutesOfDay(acceptedAt.instantMillis, acceptedAt.zoneId),
+        )
+
+    private suspend fun finishWorkoutDay(epochDay: Long, ruleId: String, acceptedAt: CapturedCivilTime) {
+        if (epochDay >= acceptedAt.localEpochDay) {
+            container.plannerRepository.ensureAcceptedRuleDay(ruleId, epochDay, acceptedAt)
+        }
     }
 
     private suspend fun refreshPlanner(epochDay: Long) {

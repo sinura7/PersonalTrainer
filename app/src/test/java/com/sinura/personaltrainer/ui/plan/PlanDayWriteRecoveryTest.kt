@@ -10,7 +10,8 @@ import com.sinura.personaltrainer.data.local.entity.ScheduleRuleEntity
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.Weekday
-import com.sinura.personaltrainer.testutil.FrozenTime
+import com.sinura.personaltrainer.domain.TimePort
+import com.sinura.personaltrainer.util.JvmTime
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import java.io.IOException
@@ -43,6 +44,7 @@ import org.robolectric.annotation.Config
 class PlanDayWriteRecoveryTest {
     private val dispatcher = UnconfinedTestDispatcher()
     private val faults = PlanWriteFaults()
+    private val clock = PlanRetryClock()
     private lateinit var deps: FakeAppDependencies
     private lateinit var vm: PlanDayViewModel
     private val today = LocalDate.of(2026, 12, 31).toEpochDay()
@@ -51,7 +53,7 @@ class PlanDayWriteRecoveryTest {
         Dispatchers.setMain(dispatcher)
         deps = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher,
-            time = FrozenTime(Instant.parse("2026-12-31T12:00:00Z").toEpochMilli(), "UTC"),
+            time = clock,
             plannerDaoDecorator = faults::decorate,
         )
         vm = PlanDayViewModel(ApplicationProvider.getApplicationContext(), deps)
@@ -268,8 +270,145 @@ class PlanDayWriteRecoveryTest {
         assertTrue(deps.scheduleRepository.slots().isEmpty())
     }
 
+    @Test fun laterRetryAfterMidnightFinishesTheAcceptedDayWithoutAnotherRule() = runBlocking {
+        val routine = deps.routineRepository.create("Midnight later")
+        faults.rejectPublication = true
+        vm.addLaterSession(today, routine.id)
+        failed()
+        val rule = deps.database.plannerDao().getRules().single()
+        clock.nowMs = Instant.parse("2027-01-01T00:01:00Z").toEpochMilli()
+        faults.rejectPublication = false
+        vm.retryWrite()
+        added()
+        assertEquals(listOf(rule), deps.database.plannerDao().getRules())
+        assertEquals(listOf(rule.id), deps.plannerRepository.occurrencesBetween(today, today).map { it.ruleId })
+        val row = deps.plannerRepository.occurrencesBetween(today, today).single()
+        assertEquals("UTC", row.captured.zoneId)
+        assertEquals(clock.nowMs, row.createdAtMs)
+        assertTrue(deps.database.plannerDao().getDeliveriesForOccurrence(row.id).isEmpty())
+    }
+
+    @Test fun pinRetryAfterWeekRolloverKeepsTheAcceptedDayAndCurrentWeek() = runBlocking {
+        val routine = deps.routineRepository.create("Rollover pin")
+        faults.rejectPublication = true
+        vm.pinRoutine(today, routine.id)
+        failed()
+        val slot = deps.scheduleRepository.slots().single()
+        clock.nowMs = Instant.parse("2027-01-04T12:00:00Z").toEpochMilli()
+        faults.rejectPublication = false
+        vm.retryWrite()
+        added()
+        assertEquals(listOf(slot), deps.scheduleRepository.slots())
+        assertEquals(listOf("rule-${slot.id}"), deps.plannerRepository.occurrencesBetween(today, today).map { it.ruleId })
+        assertEquals(listOf("rule-${slot.id}"), deps.plannerRepository.occurrencesBetween(today + 7, today + 7).map { it.ruleId })
+    }
+
+    @Test fun newWorkoutRetryAfterZoneDateChangesKeepsItsAcceptedDayBeforeEditorHandoff() = runBlocking {
+        faults.rejectPublication = true
+        vm.buildDay(today)
+        failed()
+        val routine = deps.routineRepository.observeAll().awaitFirst { it.size == 1 }.single()
+        val slot = deps.scheduleRepository.slots().single()
+        clock.zoneId = "Pacific/Kiritimati"
+        faults.rejectPublication = false
+        vm.retryWrite()
+        added()
+        vm.navigateToEditor.awaitFirst { it == routine.id }
+        assertEquals(listOf(slot), deps.scheduleRepository.slots())
+        assertEquals(listOf("rule-${slot.id}"), deps.plannerRepository.occurrencesBetween(today, today).map { it.ruleId })
+        assertEquals("UTC", deps.plannerRepository.occurrencesBetween(today, today).single().captured.zoneId)
+    }
+
+    @Test fun failedInsertRetryKeepsTheAcceptedHourWhenTheSameDayClockAdvances() = runBlocking {
+        val routine = deps.routineRepository.create("Accepted hour")
+        faults.rejectRuleInsert = true
+        vm.addLaterSession(today, routine.id, hour = 17)
+        failed()
+        clock.nowMs = Instant.parse("2026-12-31T22:00:00Z").toEpochMilli()
+        faults.rejectRuleInsert = false
+        vm.retryWrite()
+        added()
+        assertEquals(17, deps.database.plannerDao().getRules().single().hour)
+        assertEquals(17, deps.plannerRepository.occurrencesBetween(today, today).single().hour)
+    }
+
+    @Test fun rolloverRetryDoesNotBackfillAnUnrelatedRuleCreatedAfterAcceptance() = runBlocking {
+        val routine = deps.routineRepository.create("Exact day only")
+        faults.rejectPublication = true
+        vm.addLaterSession(today, routine.id)
+        failed()
+        val accepted = deps.database.plannerDao().getRules().single()
+        clock.nowMs = Instant.parse("2027-01-01T12:00:00Z").toEpochMilli()
+        val unrelated = deps.plannerRepository.addTimedRule(Weekday.FRIDAY, 18, 0, ScheduleModality.CARDIO)
+        clock.nowMs = Instant.parse("2027-01-04T12:00:00Z").toEpochMilli()
+        faults.rejectPublication = false
+        vm.retryWrite()
+        added()
+        assertEquals(listOf(accepted.id), deps.plannerRepository.occurrencesBetween(today, today).map { it.ruleId })
+        assertTrue(deps.plannerRepository.occurrencesBetween(today + 1, today + 1).isEmpty())
+        assertNotNull(deps.plannerRepository.getRule(unrelated.id))
+    }
+
+    @Test fun rolloverRetryPreservesAnAlreadySkippedAcceptedOccurrence() = runBlocking {
+        val routine = deps.routineRepository.create("Preserve skipped")
+        faults.rejectPublication = true
+        vm.addLaterSession(today, routine.id)
+        failed()
+        faults.rejectPublication = false
+        deps.plannerRepository.publishPinnedWeek(Weekday.MONDAY, today)
+        val row = deps.plannerRepository.occurrencesBetween(today, today).single()
+        deps.plannerRepository.skipOccurrence(row.id)
+        val skipped = deps.plannerRepository.getOccurrence(row.id)
+        val deliveries = deps.database.plannerDao().getDeliveriesForOccurrence(row.id)
+        clock.nowMs = Instant.parse("2027-01-01T00:01:00Z").toEpochMilli()
+        vm.retryWrite()
+        added()
+        assertEquals(skipped, deps.plannerRepository.getOccurrence(row.id))
+        assertEquals(deliveries, deps.database.plannerDao().getDeliveriesForOccurrence(row.id))
+    }
+
+    @Test fun acceptedDayInsertFailureKeepsRetryAndDoesNotClaimSuccess() = runBlocking {
+        val routine = deps.routineRepository.create("Second fault")
+        faults.rejectPublication = true
+        vm.addLaterSession(today, routine.id)
+        failed()
+        val rule = deps.database.plannerDao().getRules().single()
+        clock.nowMs = Instant.parse("2027-01-01T00:01:00Z").toEpochMilli()
+        faults.rejectPublication = false
+        faults.rejectOrder = true
+        vm.retryWrite()
+        failed()
+        assertEquals(0L, vm.uiState.value.completedAdd)
+        assertTrue(deps.plannerRepository.occurrencesBetween(today, today).isEmpty())
+        assertEquals(listOf(rule), deps.database.plannerDao().getRules())
+        faults.rejectOrder = false
+        vm.retryWrite()
+        added()
+        assertEquals(listOf(rule.id), deps.plannerRepository.occurrencesBetween(today, today).map { it.ruleId })
+    }
+
+    @Test fun sameDayZoneChangePreservesTheOccurrenceZoneUsedByNormalPublication() = runBlocking {
+        val routine = deps.routineRepository.create("Follow device")
+        faults.rejectPublication = true
+        vm.addLaterSession(today, routine.id)
+        failed()
+        clock.zoneId = "America/New_York"
+        faults.rejectPublication = false
+        vm.retryWrite()
+        added()
+        assertEquals("America/New_York", deps.plannerRepository.occurrencesBetween(today, today).single().captured.zoneId)
+    }
+
     private suspend fun failed() = vm.uiState.awaitFirst { !it.isSaving && it.canRetryWrite && it.error != null }
     private suspend fun added() = vm.uiState.awaitFirst { !it.isSaving && it.completedAdd == 1L && it.error == null }
+}
+
+private class PlanRetryClock : TimePort by JvmTime {
+    var nowMs = Instant.parse("2026-12-31T12:00:00Z").toEpochMilli()
+    var zoneId = "UTC"
+    override fun nowMillis(): Long = nowMs
+    override fun defaultZoneId(): String = zoneId
+    override fun captureNow(zoneId: String) = capture(nowMs, zoneId)
 }
 
 /** Faults sit on real DAO boundaries; they never replace the application's write code. */
