@@ -104,6 +104,34 @@ class NumericEntryTest {
         assertEquals(NumericEntry.MINUTES_RULE, NumericEntry.typedWhole(input = "2.5", min = 1, rule = NumericEntry.MINUTES_RULE).messageOrNull)
     }
 
+    @Test
+    fun savedDurationWholeSecondsKeepShortLongAndLargestCapturedValues() {
+        val rule = "Enter time as whole seconds, at least 1."
+        listOf(1, 2, 3, 4, 45, 1801, Int.MAX_VALUE).forEach { seconds ->
+            assertEquals(
+                "saved duration $seconds is not a live countdown prescription",
+                seconds,
+                NumericEntry.typedWhole(input = " $seconds ", min = 1, rule = rule).valueOrNull,
+            )
+        }
+    }
+
+    @Test
+    fun invalidSavedDurationTextNeverBecomesAnAcceptedDifferentNumber() {
+        val rule = "Enter time as whole seconds, at least 1."
+        listOf("", "   ").forEach { text ->
+            val result = NumericEntry.typedWhole(input = text, min = 1, rule = rule)
+            assertEquals(NumericEntry.Typed.Blank, result)
+            assertNull(result.valueOrNull)
+        }
+        listOf("0", "-3", "1.5", "1,5", "1:30", "8e2", "45s", "abc", "2147483648").forEach { text ->
+            val result = NumericEntry.typedWhole(input = text, min = 1, rule = rule)
+            assertTrue(text, result is NumericEntry.Typed.Invalid)
+            assertEquals(text, rule, result.messageOrNull)
+            assertNull(text, result.valueOrNull)
+        }
+    }
+
     // UX06-AC03: a stored kilogram value shown in the display unit and typed straight back
     // lands within that unit's display precision of where it started, for every half-kilo up
     // to 300. The precision is the one WeightConverter.toDisplayValue/formatDisplayNumber

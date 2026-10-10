@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.NumericEntry
+import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.ui.components.StepperButton
 import com.sinura.personaltrainer.ui.history.SetEditSheet
@@ -41,12 +42,14 @@ import org.robolectric.annotation.GraphicsMode
  * These were lines of SetEditSheet.kt and SetEntryPanel.kt read as text (`SetEntryPanel(` in the
  * sheet, and `NumeralWell(`, `NumberEntryDialog(` and `"Type a weight"` from `fun WeightStepper`
  * on). The floor draws its own numerals (WeightRepsEditorRenderTest); this is the other place a
- * set's numbers are typed. The panel's step actions for TalkBack live only on its compact path,
- * which nothing composes, so the history sheet offers its plates and the keypad instead.
+ * set's numbers are typed. History's typed wells expose a Button role and their entry action;
+ * signed plates remain separate controls with the keypad as the direct-entry path.
  *
  * Those plates are StepperButton's own, drawn by its defaults: a 12 dp squared plate with the
  * plate's own numeral type, where the floor's plates ask for round ones in the commit's type.
- * Those defaults were lines of StepperButton.kt read as text (`shape: Shape =
+ * History deliberately supplies bodyStrong for its signed labels. The separate default-plate
+ * comparison protects the defaults used by other consumers. Those defaults were lines of
+ * StepperButton.kt read as text (`shape: Shape =
  * RoundedCornerShape(Radius.sm)`, `textStyle: TextStyle? = null`); a plate no caller shapes or
  * styles is now drawn beside one asked for exactly that, and must match it pixel for pixel.
  */
@@ -60,11 +63,15 @@ class HistorySetEntryRenderTest {
 
     @Test
     fun theHistorysSetSheetTypesItsWeightAndRepsWithTheKeypad() {
-        val onSave: (Double, Int, Int?, Boolean) -> Unit = { weightKg, reps, _, _ -> saved += weightKg to reps }
+        val original = floorSet(number = 2, weightKg = FLOOR_KG70, reps = 10, rpe = 8)
+        val onSave: (Double, Int, Int?, Boolean, Int?) -> Unit = { weightKg, reps, _, _, duration ->
+            assertEquals("strength correction does not author a duration", null, duration)
+            saved += weightKg to reps
+        }
         compose.showFloor {
             SetEditSheet(
-                exerciseName = "Leg Extension",
-                initial = floorSet(number = 2, weightKg = FLOOR_KG70, reps = 10, rpe = 8),
+                exercise = Exercise(id = original.exerciseId, name = "Leg Extension", muscleGroup = "Quads", notes = "", isCustom = true),
+                initial = original,
                 onSave = onSave,
                 onDelete = null,
                 onDismiss = {},

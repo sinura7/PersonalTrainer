@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
+import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.insertTestExercise
@@ -57,6 +58,38 @@ class WorkoutSavedHoldCorrectionTest {
     }
 
     @Test
+    fun plannedHoldMetadataCannotReclassifyASavedStopwatchStrengthCorrection() = runBlocking {
+        val fixture = seedTestWorkout(
+            deps = deps, exerciseId = "hold-original-lift", exerciseName = "Original weighted static hold",
+            routineId = "hold-original-routine", finish = true,
+            notes = "Preserve this captured stopwatch strength result",
+        )
+        assertTrue(HoldWork.isHold(fixture.exercise))
+        val original = SetLogEntity(
+            id = "planned-hold-stopwatch-original", sessionId = fixture.session.id,
+            exerciseId = fixture.exercise.id, setNumber = 4, weightKg = 12.5,
+            reps = 8, rpe = 8, isWarmup = false, completedAt = fixture.session.startedAt,
+            durationSeconds = 45,
+        )
+        dao.insertSet(original)
+        seedTestWorkout(
+            deps = deps, exerciseId = "sentinel-exercise", routineId = "sentinel-routine",
+            loggedSets = listOf(TestSetInput(35.0, 5, 8)), finish = true,
+            notes = "Preserve this unrelated saved session and set",
+        )
+        assertEquals(2, dao.getAllSets().size)
+        val before = inventory()
+
+        // This is a real accepted correction, not a refusal masking a destructive update.
+        repository.updateSet(original.id, original.weightKg, original.reps, 9, original.isWarmup)
+
+        val expected = original.copy(rpe = 9)
+        assertOnlyOriginalChanged(before, expected)
+        assertEquals(expected, dao.getSet(original.id))
+        assertEquals(100.0, checkNotNull(repository.getSession(original.sessionId)).work().volumeKg, 0.0)
+    }
+
+    @Test
     fun submittedZeroRepsCannotReclassifyStopwatchStrengthAsAHold() = runBlocking {
         val original = savedOnlyRow(reps = 6)
         val before = inventory()
@@ -106,6 +139,64 @@ class WorkoutSavedHoldCorrectionTest {
         assertEquals(original.copy(rpe = 8), dao.getSet(original.id))
         assertOnlyOriginalChanged(before, original.copy(rpe = 8))
         assertEquals(0.0, checkNotNull(repository.getSession(original.sessionId)).work().volumeKg, 0.0)
+    }
+
+    @Test
+    fun untouchedCapturedDurationBoundariesKeepExactNonpositiveRepresentations() = runBlocking {
+        val fixture = savedOnlyRow(reps = 0)
+        for (reps in listOf(0, -3)) {
+            for (seconds in listOf(1, 2, 3, 4, 1801, Int.MAX_VALUE)) {
+                // Author the isolated captured fixture before the correction baseline.
+                val original = fixture.copy(reps = reps, durationSeconds = seconds)
+                dao.updateSet(original)
+                val before = inventory()
+                repository.updateSet(original.id, original.weightKg, original.reps, null, false, seconds)
+                assertEquals("untouched $reps reps / $seconds seconds", before, inventory())
+                repository.updateSet(original.id, original.weightKg, original.reps, null, false)
+                assertEquals("omitted duration retains $seconds seconds", before, inventory())
+                assertEquals(original, dao.getSet(original.id))
+            }
+        }
+    }
+
+    @Test
+    fun explicitFiveSecondCorrectionKeepsLiteralZeroAndNegativeReps() = runBlocking {
+        val fixture = savedOnlyRow(reps = 0)
+        for (reps in listOf(0, -3)) {
+            val original = fixture.copy(reps = reps)
+            dao.updateSet(original)
+            val before = inventory()
+            repository.updateSet(original.id, original.weightKg, original.reps, null, false, 50)
+            assertOnlyOriginalChanged(before, original.copy(durationSeconds = 50))
+            assertEquals(original.copy(durationSeconds = 50), dao.getSet(original.id))
+        }
+    }
+
+    @Test
+    fun zeroRepSubmissionCannotReclassifyStopwatchStrengthUnderPlannedHoldMetadata() = runBlocking {
+        val fixture = seedTestWorkout(
+            deps = deps, exerciseId = "hold-original-lift", exerciseName = "Original weighted static hold",
+            routineId = "hold-original-routine", finish = true,
+        )
+        assertTrue(HoldWork.isHold(fixture.exercise))
+        val original = SetLogEntity(
+            id = "planned-hold-stopwatch-original", sessionId = fixture.session.id,
+            exerciseId = fixture.exercise.id, setNumber = 4, weightKg = 12.5,
+            reps = 8, rpe = 8, isWarmup = false, completedAt = fixture.session.startedAt,
+            durationSeconds = 45,
+        )
+        dao.insertSet(original)
+        seedTestWorkout(
+            deps = deps, exerciseId = "sentinel-exercise", routineId = "sentinel-routine",
+            loggedSets = listOf(TestSetInput(35.0, 5, 8)), finish = true,
+        )
+        val before = inventory()
+        val failure = runCatching {
+            repository.updateSet(original.id, original.weightKg, 0, 8, false, 50)
+        }.exceptionOrNull()
+        assertTrue(failure is IllegalStateException)
+        assertEquals(SetLogRules.INVALID_REPS, failure?.message)
+        assertEquals(before, inventory())
     }
 
     private suspend fun savedOnlyRow(reps: Int, weightKg: Double = 12.5): SetLogEntity {

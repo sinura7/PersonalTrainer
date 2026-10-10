@@ -1,5 +1,33 @@
 # Temper UX acceptance matrix — updated 7 September 2026
 
+**Current packet update, 9 October 2026 UTC:** Summary/detail's bounded
+F9/W11/V12/Q08/UX23/UX29 work integrated through [PR #467](https://github.com/sinura7/PersonalTrainer/pull/467)
+as `755a2df9`, with the exact reviewed tree, final independent integration review
+and fresh actual-trunk local (**3,990 app / 1,694 standalone**) and native
+(**222 tests / 32 classes**) gates. A first hosted trunk attempt hit the aggregate
+30-minute limit and remains failed; one complete unchanged retry passed. Earlier
+dated pending statements below retain their original evidence scope. The active
+single packet is the named **Set Edit sheet identity and numeric controls**
+refinement. It does not close pure-hold Summary representation, Summary's retained
+return policy, the wider UX roadmap or physical-phone acceptance.
+
+The named editor cases passed in `full02`, but that complete gate **failed**
+one old thumbnail test's IO-worker recomposition. Its scoped Compose v2/cold-decode
+repair passed both cases in `targeted04`. The repaired `full03` closed **PASS on
+10 October UTC**: **4,049 app / 578 fresh suites**, **1,696 standalone / 255
+classes**, all four Windows tasks, zero failures/errors/skips and unchanged
+**1,550 runtime inputs**. Current graphics review passes; final commit binding,
+reviews, integration and connected Android verification remain pending.
+Original counters and failed runs remain archived, never relabelled as passes.
+
+| Existing scope | Set-editor acceptance task | Current evidence |
+|---|---|---|
+| F9 / W11 / UX29 | Complete exact exercise identity/art and numeric values; expanded default sheet, effort 10 and all 48 dp actions reachable across the native size/font matrix and relevant RTL/reduced motion. | All 25 actual modal cases passed, including fourteen profiles and native glyph/target/identity checks; current-production graphics reviewed. |
+| V12 / Q08 / UX29 | Correct an accepted restored timed original through the shipping editor without changing its literal reps, identity, timestamps or unrelated records; preserve positive-rep stopwatch results even under hold metadata. | Room counter01 proved saved reps 8 became 0. Repaired Room, VM and actual restored Edit/Save cases pass with exact row/export and unrelated-record inventories. |
+| F9 / Q08 / UX29 | Type or nudge captured seconds; preserve untouched 1–4, 1801 and maximum-integer seconds; refuse invalid/overflowing text without a write. | Parser, Room, VM and actual keypad/nudge/Save cases pass; restored boundary originals and invalid/cancelled drafts retain exact records. |
+| F9 / Q08 / UX29 | Correct accepted historical reps without the new-entry guard changing the intended result; keep new-entry limits and refuse invalid text. | Counter03 proved 101 +1 submitted 100. Repaired actual callback and restored durable correction require 102, while new Add retains 100; whole-text/max/invalid cases pass. Counter02's zero-test fixture failure remains distinct. |
+| F9 / UX29 | Cancel, dismiss, keypad cancel and set-ID changes preserve the appropriate drafts/records; Delete/Undo restores the exact original; unavailable-read/Retry retains the authored Add draft, while removal clears its owner. | All 26 restored UI cases pass. Counter04's draft reset is repaired: 17.5 kg / 9 reps / RPE 9 / warm-up survive actual Retry without a write; Cancel/removal reopen fresh defaults. Timed Undo reads 45s, meets 48 dp and restores the exact inventory. |
+
 Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/file-visibility-check-jraqc2` (trunk `28f485f` carries R01–R19). Candidate commit: `f528299` on `claude/file-visibility-check-jraqc2`, merged with trunk `d77ca8c` at `76ef74f`. Earlier versions of this line named `8967888`, a commit the same branch documents as not compiling; do not read acceptance against it.
 
 **Status vocabulary.** *Executed (JVM lane)* — a JUnit test ran on this host and passed. *Written, not executed* — a Robolectric or instrumented test exists on the branch but no Android SDK, Gradle, emulator or device was available here. **As of 10 September CI runs `testDebugUnitTest` on this branch and it passes, so a row still marked this way is stale rather than blocked — see handoff §6.2.** *Implemented, device check pending* — behaviour changed; only a device can close it. *Not executed* — untouched. Nothing below is marked passed from source reading alone.

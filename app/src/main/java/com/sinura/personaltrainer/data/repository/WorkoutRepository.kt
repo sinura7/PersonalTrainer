@@ -859,10 +859,13 @@ class WorkoutRepository(
         // saved-row distinction as work()/SetCopy: stopwatch strength still has reps.
         // Classify before applying the draft, so its rep controls cannot change the type.
         val storedHold = current.reps < 1 && (current.durationSeconds ?: 0) > 0
-        val holdLift = storedHold || session?.exercises?.any {
+        val storedStopwatchStrength = current.reps > 0 && (current.durationSeconds ?: 0) > 0
+        // A supported restored repetition result can sit under a hold prescription.
+        // The plan must not turn its saved reps into zero when only effort is corrected.
+        val holdLift = storedHold || (!storedStopwatchStrength && session?.exercises?.any {
             it.exercise.id == current.exerciseId &&
                 HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
-        } == true
+        } == true)
         if (!holdLift && reps < 1) error("Reps must be at least 1.")
         val load = liftLoadOf(session, current.exerciseId)
         val violation = SetLogRules.validate(
