@@ -222,6 +222,10 @@ class PlanRoutineActionsInstrumentedTest {
         val weekday = Weekday.fromEpochDay(java.time.LocalDate.now().toEpochDay())
         container.scheduleRepository.pin(routine.id, null, weekday)
         container.scheduleRepository.pin(other.id, null, weekday)
+        container.plannerRepository.publishPinnedWeek(
+            container.preferencesRepository.schedulePreferences.first().weekStart,
+            java.time.LocalDate.now().toEpochDay(),
+        )
     }
 
     private fun history() = read {
