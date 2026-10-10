@@ -25,4 +25,12 @@ class PlanDayCopyTest {
         assertEquals("Remove Push?", PlanDayCopy.removeTitle("Push"))
         assertTrue(PlanDayCopy.REMOVE_BODY.contains("Past sessions stay in History"))
     }
+
+    @Test
+    fun removalNamesTheRecurringWeekdayButDoesNotInventRecurrenceForOneOffWork() {
+        assertEquals("Additions repeat every Friday.", PlanDayCopy.addScope(Weekday.FRIDAY))
+        assertTrue(PlanDayCopy.removeBody(Weekday.FRIDAY, recurring = true).contains("every Friday"))
+        assertTrue(PlanDayCopy.removeBody(Weekday.MONDAY, recurring = true).contains("every Monday"))
+        assertEquals(PlanDayCopy.REMOVE_BODY, PlanDayCopy.removeBody(Weekday.FRIDAY, recurring = false))
+    }
 }

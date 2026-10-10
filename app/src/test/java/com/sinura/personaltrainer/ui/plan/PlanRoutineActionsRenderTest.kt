@@ -6,12 +6,16 @@ import android.graphics.Canvas
 import android.view.inspector.WindowInspector
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -22,15 +26,21 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.test.core.app.ApplicationProvider
+import androidx.lifecycle.SavedStateHandle
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.TrainingInsights
+import com.sinura.personaltrainer.domain.PlanDayCopy
+import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWorkoutFixture
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
+import com.sinura.personaltrainer.ui.routines.RoutineEditorScreen
+import com.sinura.personaltrainer.ui.routines.RoutineEditorTags
+import com.sinura.personaltrainer.ui.routines.RoutineEditorViewModel
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
@@ -72,6 +82,10 @@ class PlanRoutineActionsRenderTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private lateinit var deps: FakeAppDependencies
     private lateinit var vm: PlanViewModel
+    private lateinit var dayVm: PlanDayViewModel
+    private lateinit var editorVm: RoutineEditorViewModel
+    private val route = mutableStateOf("plan")
+    private val dayOffset = mutableStateOf(0L)
     private lateinit var fixture: TestWorkoutFixture
     private lateinit var otherId: String
     private val opened = mutableListOf<String>()
@@ -81,7 +95,13 @@ class PlanRoutineActionsRenderTest {
 
     @Before fun setUp() { Dispatchers.setMain(UnconfinedTestDispatcher()) }
     @After fun tearDown() {
-        try { if (::vm.isInitialized) runBlocking { vm.clearAndJoinForTest() } }
+        try {
+            runBlocking {
+                if (::vm.isInitialized) vm.clearAndJoinForTest()
+                if (::dayVm.isInitialized) dayVm.clearAndJoinForTest()
+                if (::editorVm.isInitialized) editorVm.clearAndJoinForTest()
+            }
+        }
         finally { if (::deps.isInitialized) deps.close(); Dispatchers.resetMain() }
     }
 
@@ -126,8 +146,14 @@ class PlanRoutineActionsRenderTest {
             otherId = deps.routineRepository.create(NAME).id
             deps.scheduleRepository.pin(fixture.routine.id, null, Weekday.THURSDAY)
             deps.scheduleRepository.pin(otherId, null, Weekday.THURSDAY)
+            deps.plannerRepository.publishPinnedWeek(Weekday.MONDAY, today)
         }
         vm = PlanViewModel(ApplicationProvider.getApplicationContext(), deps)
+        dayVm = PlanDayViewModel(ApplicationProvider.getApplicationContext(), deps)
+        editorVm = RoutineEditorViewModel(
+            ApplicationProvider.getApplicationContext(),
+            SavedStateHandle(mapOf("routineId" to fixture.routine.id)), deps,
+        )
         compose.setContent {
             CompositionLocalProvider(
                 LocalTodayEpochDay provides today,
@@ -135,10 +161,23 @@ class PlanRoutineActionsRenderTest {
                 LocalReducedMotion provides rtl,
             ) {
                 PersonalTrainerTheme(reduceMotion = rtl) {
-                    PlanScreen(
-                        onOpenRoutine = { opened += it }, onOpenLibrary = {}, onOpenDay = { _, _ -> },
-                        viewModel = vm,
-                    )
+                    when (route.value) {
+                        "day" -> PlanDayScreen(
+                            epochDay = today + dayOffset.value, startInAdd = true,
+                            onBack = { route.value = "plan" },
+                            onOpenRoutine = { id ->
+                                assertEquals(fixture.routine.id, id)
+                                route.value = "editor"
+                            }, viewModel = dayVm,
+                        )
+                        "editor" -> RoutineEditorScreen(
+                            onBack = { route.value = "day" }, viewModel = editorVm,
+                        )
+                        else -> PlanScreen(
+                            onOpenRoutine = { opened += it }, onOpenLibrary = {}, onOpenDay = { _, _ -> },
+                            viewModel = vm,
+                        )
+                    }
                 }
             }
         }
@@ -182,6 +221,104 @@ class PlanRoutineActionsRenderTest {
             .performTouchInput { longClick(center) }
         compose.settle()
         compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals(before, inventory())
+
+        // Actual weekly day → cancellation → routine editor → Save, with the same stored result.
+        compose.runOnUiThread { route.value = "day" }
+        compose.settle()
+        compose.awaitThat("weekly day loaded", dayVm.uiState::value) { !dayVm.uiState.value.isLoading }
+        words(PlanDayCopy.addScope(Weekday.THURSDAY))
+        capture("weekly-add-scope")
+        compose.onNodeWithTag(PickerHeaderTags.CANCEL).performScrollTo().performClick()
+        compose.settle()
+        val rule = dayVm.uiState.value.rules.single { it.routineId == fixture.routine.id }
+        tap(compose.onNodeWithTag(PlanDayTags.remove(rule.id)).performScrollTo())
+        words(PlanDayCopy.removeBody(Weekday.THURSDAY, recurring = true))
+        val confirm = compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsDisplayed().fetchSemanticsNode()
+        val minTouch = Metrics.touchMin.value * confirm.layoutInfo.density.density
+        assertTrue("confirmation touch width: ${confirm.touchBoundsInRoot}", confirm.touchBoundsInRoot.width >= minTouch - 1f)
+        assertTrue("confirmation touch height: ${confirm.touchBoundsInRoot}", confirm.touchBoundsInRoot.height >= minTouch - 1f)
+        capture("weekly-remove-scope")
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals("weekly remove cancellation preserves exact data", before, inventory())
+        val occurrence = dayVm.uiState.value.occurrences.single {
+            it.ruleId == rule.id && it.localEpochDay == today
+        }
+        tap(compose.onNodeWithTag(PlanDayTags.block(occurrence.id)).performScrollTo())
+        compose.awaitThat("routine editor loaded", editorVm.uiState::value) { !editorVm.uiState.value.isLoading }
+        words(RoutineSaveCopy.SCOPE)
+        compose.onNodeWithTag(RoutineEditorTags.SAVE).assertIsDisplayed()
+        capture("routine-editor-scope")
+        val beforeSwap = inventory()
+        editorVm.requestSwap(editorVm.uiState.value.routine!!.exercises.single().id)
+        compose.settle()
+        words(RoutineSaveCopy.SWAP_SCOPE)
+        capture("routine-swap-scope")
+        editorVm.dismissSwap()
+        compose.settle()
+        assertEquals("opening and dismissing swap does not write", beforeSwap, inventory())
+        val savedBefore = history()
+        val slotsBefore = runBlocking { deps.scheduleRepository.slots() }
+        compose.onNode(hasSetTextAction() and hasText(NAME)).performTextReplacement("$NAME revised")
+        compose.onNodeWithTag(RoutineEditorTags.SAVE).performClick()
+        compose.settle()
+        compose.awaitThat("returned to weekly day after Save", { route.value }) { route.value == "day" }
+        assertEquals("$NAME revised", runBlocking { deps.routineRepository.getById(fixture.routine.id) }?.name)
+        assertEquals("routine edit preserves captured results", savedBefore, history())
+        assertEquals("routine edit preserves schedule ownership", slotsBefore, runBlocking { deps.scheduleRepository.slots() })
+        assertEquals(NAME, runBlocking { deps.routineRepository.getById(otherId) }?.name)
+        capture("routine-editor-return")
+    }
+
+    @Test
+    fun pastDayKeepsRecordContextAndNoScheduleAddControls() {
+        show()
+        val before = inventory()
+        compose.runOnUiThread { dayOffset.value = -1; route.value = "day" }
+        compose.settle()
+        compose.awaitThat("past day loaded", dayVm.uiState::value) { !dayVm.uiState.value.isLoading }
+        compose.onNodeWithText(PlanDayCopy.PAST).assertIsDisplayed()
+        compose.onNodeWithTag(PlanDayTags.SCOPE).assertDoesNotExist()
+        compose.onNodeWithTag(PlanDayTags.ADD).assertDoesNotExist()
+        assertEquals(before, inventory())
+        capture("past-read-only")
+    }
+
+    @Test
+    fun disabledOneOffRuleDoesNotClaimRecurringRemoval() {
+        show()
+        val rule = runBlocking { deps.plannerRepository.rules().single { it.routineId == fixture.routine.id } }
+        runBlocking { deps.plannerRepository.setRuleEnabled(rule.id, false) }
+        val before = inventory()
+        compose.runOnUiThread { route.value = "day" }
+        compose.settle()
+        compose.onNodeWithTag(PickerHeaderTags.CANCEL).performScrollTo().performClick()
+        compose.settle()
+        tap(compose.onNodeWithTag(PlanDayTags.remove(rule.id)).performScrollTo())
+        compose.onNodeWithText(PlanDayCopy.REMOVE_BODY).assertIsDisplayed()
+        compose.onNodeWithText(PlanDayCopy.removeBody(Weekday.THURSDAY, true)).assertDoesNotExist()
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals(before, inventory())
+    }
+
+    @Test
+    fun movedBlockRemovalNamesItsRuleWeekdayRatherThanTheSelectedDate() {
+        show()
+        val rule = runBlocking { deps.plannerRepository.rules().single { it.routineId == fixture.routine.id } }
+        runBlocking {
+            val occurrence = deps.plannerRepository.occurrencesBetween(today, today).single { it.ruleId == rule.id }
+            assertTrue(deps.plannerRepository.moveOccurrenceToDay(occurrence.id, today + 2) != null)
+        }
+        val before = inventory()
+        compose.runOnUiThread { dayOffset.value = 2; route.value = "day" }
+        compose.settle()
+        compose.onNodeWithTag(PickerHeaderTags.CANCEL).performScrollTo().performClick()
+        compose.settle()
+        words(PlanDayCopy.addScope(Weekday.SATURDAY))
+        tap(compose.onNodeWithTag(PlanDayTags.remove(rule.id)).performScrollTo())
+        compose.onNodeWithText(PlanDayCopy.removeBody(Weekday.THURSDAY, true)).assertIsDisplayed()
+        compose.onNodeWithText(PlanDayCopy.removeBody(Weekday.SATURDAY, true)).assertDoesNotExist()
         compose.onNodeWithText("Cancel").performClick()
         assertEquals(before, inventory())
     }

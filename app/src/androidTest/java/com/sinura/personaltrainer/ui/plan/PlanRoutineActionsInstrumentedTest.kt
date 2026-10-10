@@ -91,6 +91,9 @@ class PlanRoutineActionsInstrumentedTest {
         compose.waitUntil(15_000) {
             compose.onAllNodesWithTag(RoutineEditorTags.SAVE).fetchSemanticsNodes().isNotEmpty()
         }
+        compose.onNodeWithTag(RoutineEditorTags.SCOPE).assertIsDisplayed()
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.RoutineSaveCopy.SCOPE).assertIsDisplayed()
+        capture("plan-routine-editor-scope-font20")
         val renamed = "${routine.name} revised"
         compose.onNode(hasSetTextAction() and hasText(routine.name)).performTextReplacement(renamed)
         tap(RoutineEditorTags.SAVE)
@@ -131,6 +134,44 @@ class PlanRoutineActionsInstrumentedTest {
         assertTrue(read { container.scheduleRepository.slots() }.none { it.routineId == routine.id })
         assertNull(read { container.workoutRepository.getInProgress() })
         capture("plan-routine-delete-return-font20")
+    }
+
+    @Test
+    fun weeklyRemoveExplainsScopeAndKeepsRoutineAndCapturedWorkout() {
+        openRoutines()
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.ADD_SESSION))
+        tap(PlanTags.ADD_SESSION)
+        val weekday = Weekday.fromEpochDay(java.time.LocalDate.now().toEpochDay())
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.PlanDayCopy.addScope(weekday)).assertIsDisplayed()
+        capture("plan-weekly-add-scope-font20")
+        compose.onNodeWithTag(PickerHeaderTags.CANCEL).performScrollTo()
+        tap(PickerHeaderTags.CANCEL)
+        val before = inventory()
+        val rule = read { container.plannerRepository.rules().single { it.routineId == routine.id } }
+        val removeTag = PlanDayTags.remove(rule.id)
+        compose.onNodeWithTag(removeTag).performScrollTo()
+        tap(removeTag)
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.PlanDayCopy.removeBody(weekday, true)).assertIsDisplayed()
+        capture("plan-weekly-remove-scope-font20")
+        compose.onNodeWithText("Cancel").performTouchInput { click(center) }
+        assertEquals(before, inventory())
+        val historyBefore = history()
+        val routinesBefore = read { container.routineRepository.observeAll().first() }
+        val otherPins = read { container.scheduleRepository.slots().filter { it.routineId == other.id } }
+        compose.onNodeWithTag(removeTag).performScrollTo()
+        tap(removeTag)
+        tap(ConfirmActionTags.CONFIRM)
+        compose.waitUntil(15_000) {
+            read { container.scheduleRepository.slots().none { it.routineId == routine.id } }
+        }
+        assertEquals(historyBefore, history())
+        assertEquals(routinesBefore, read { container.routineRepository.observeAll().first() })
+        assertEquals(otherPins, read { container.scheduleRepository.slots().filter { it.routineId == other.id } })
+        assertTrue(read { container.plannerRepository.rules() }.none { it.id == rule.id && it.enabled })
+        assertTrue(read { container.plannerRepository.observeOccurrences().first() }.none {
+            it.ruleId == rule.id && it.status == com.sinura.personaltrainer.domain.OccurrenceStatus.PLANNED
+        })
+        capture("plan-weekly-remove-return-font20")
     }
 
     private fun openRoutines() {
@@ -178,8 +219,9 @@ class PlanRoutineActionsInstrumentedTest {
         savedId = session.id
         container.workoutRepository.logSet(session.id, exercise.id, 72.5, 9, 8, false)
         container.workoutRepository.finishSession(session.id, "Synthetic preserved result")
-        container.scheduleRepository.pin(routine.id, null, Weekday.THURSDAY)
-        container.scheduleRepository.pin(other.id, null, Weekday.THURSDAY)
+        val weekday = Weekday.fromEpochDay(java.time.LocalDate.now().toEpochDay())
+        container.scheduleRepository.pin(routine.id, null, weekday)
+        container.scheduleRepository.pin(other.id, null, weekday)
     }
 
     private fun history() = read {

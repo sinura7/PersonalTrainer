@@ -99,6 +99,7 @@ fun PlanDayScreen(
             title = PlanDayCopy.weekdayTitle(weekday),
             dateCaption = DateCopy.weekdayFullDate(LocalDate.ofEpochDay(epochDay)),
             onBack = onBack,
+            weeklyScope = if (isPast) null else PlanDayCopy.addScope(weekday),
         )
         when {
             state.isLoading -> ScreenLoading()
@@ -195,9 +196,13 @@ fun PlanDayScreen(
     }
 
     pendingRemoveRuleId?.let { ruleId ->
+        val rule = state.rules.firstOrNull { it.id == ruleId }
         ConfirmActionDialog(
             title = PlanDayCopy.removeTitle(pendingRemoveTitle),
-            body = PlanDayCopy.REMOVE_BODY,
+            body = PlanDayCopy.removeBody(
+                day = rule?.weekday ?: weekday,
+                recurring = rule?.enabled == true,
+            ),
             confirmLabel = PlanDayCopy.REMOVE,
             destructive = true,
             onConfirm = {
@@ -214,13 +219,27 @@ internal fun PlanDayHeader(
     title: String,
     dateCaption: String,
     onBack: () -> Unit,
+    weeklyScope: String? = null,
 ) {
-    ScreenHeader(
-        title = title,
-        subtitle = dateCaption,
-        onBack = onBack,
-        backTag = PlanDayTags.BACK,
-    )
+    Column {
+        ScreenHeader(
+            title = title,
+            subtitle = dateCaption,
+            onBack = onBack,
+            backTag = PlanDayTags.BACK,
+        )
+        weeklyScope?.let { scope ->
+            Text(
+                text = scope,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                modifier = Modifier
+                    .padding(horizontal = Metrics.gutter)
+                    .padding(bottom = Metrics.space2)
+                    .testTag(PlanDayTags.SCOPE),
+            )
+        }
+    }
 }
 
 @Composable
@@ -246,6 +265,7 @@ private fun SessionBlocks(
             ) {
                 InstrumentRow(
                     title = item.title,
+                    modifier = Modifier.testTag(PlanDayTags.block(item.occurrence.id)),
                     subtitle = SessionOrderCopy.occurrenceLine(
                         item.occurrence.status,
                         names,
@@ -261,7 +281,9 @@ private fun SessionBlocks(
                             TextButton(
                                 onClick = { onRemove(ruleId, item.title) },
                                 contentPadding = PaddingValues(0.dp),
-                                modifier = Modifier.heightIn(min = Metrics.touchMin),
+                                modifier = Modifier
+                                    .heightIn(min = Metrics.touchMin)
+                                    .testTag(PlanDayTags.remove(ruleId)),
                             ) {
                                 Text(
                                     PlanDayCopy.REMOVE,
@@ -345,6 +367,11 @@ internal fun ReorderRow(
 object PlanDayTags {
     const val BACK = "plan-day-back"
     const val ADD = "plan-day-add"
+    const val SCOPE = "plan-day-scope"
+
+    fun block(occurrenceId: String): String = "plan-day-block-$occurrenceId"
+
+    fun remove(ruleId: String): String = "plan-day-remove-$ruleId"
 
     fun moveUp(occurrenceId: String): String = "plan-move-up-$occurrenceId"
 

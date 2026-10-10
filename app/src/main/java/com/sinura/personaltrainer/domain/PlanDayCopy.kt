@@ -17,7 +17,7 @@ object PlanDayCopy {
     const val EMPTY_BODY = "Add a workout, cardio, or a warm-up / stretch block."
     const val REMOVE = "Remove"
     const val REMOVE_BODY =
-        "This day loses that block. Past sessions stay in History."
+        "This removes the scheduled block. Past sessions stay in History."
     const val WORKOUT = "Workout"
     const val CARDIO = "Cardio"
     const val AUXILIARY = "Extra"
@@ -43,6 +43,14 @@ object PlanDayCopy {
     fun weekdayTitle(day: Weekday): String = CustomWeekPolicy.routineName(day)
 
     fun everyWeekday(day: Weekday): String = "Every ${day.titleLabel()}"
+
+    fun addScope(day: Weekday): String = "Additions repeat every ${day.titleLabel()}."
+
+    fun removeBody(day: Weekday, recurring: Boolean): String = if (recurring) {
+        "This removes the block from every ${day.titleLabel()}. Past sessions stay in History."
+    } else {
+        REMOVE_BODY
+    }
 
     fun moveUp(title: String): String = "Move $title up"
 
