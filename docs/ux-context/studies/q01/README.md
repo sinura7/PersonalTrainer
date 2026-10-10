@@ -1154,3 +1154,49 @@ Representative actual Compose renders from `full02`:
 Android captures and physical-phone evidence retain separate roles. The 852 dp
 floor ceiling, recording/timer contracts and distribution identity are unchanged.
 This closes bounded development evidence, not the whole roadmap or phone acceptance.
+
+#### Idle rest lifecycle follow-up — 10 October 2026
+
+The next bounded N2/UX23 packet follows compact Focus's merged `c7181554`.
+The earlier real-app N2 experiment rejected its no-foreground-service
+precondition: an `EXTERIOR_SYNC` refresh had claimed foreground with no running
+rest and retained the service. Fresh regression tests reproduce the defect:
+24 service cases executed, with the two idle/post-completion cases failing and
+the active-rest identity/deadline case passing. The original failed archive is
+retained under `build/ux-context/runs/idle-rest-lifecycle/targeted-red01/`.
+
+An exterior refresh with no running rest now removes the running foreground
+card and stops non-sticky after satisfying Android's foreground-start contract.
+It does not mutate timer state or dismiss completed-rest feedback. Running
+refresh behavior, timer generations/deadlines, alarm ownership and recorded
+work are unchanged. Verification must cover the full local gate, the connected
+workout and an actual native idle refresh, followed by independent/adversarial
+review and clean-trunk verification. This service repair alone does not close
+N2's under-400 ms note-clear/Recents/process-death acceptance, physical-phone
+experience or the inherited Why-title tooltip limitation. No distribution,
+schema, backup format or navigation change is part of this packet.
+
+Development verification executed unchanged source `91c58f95`:
+
+| Evidence | Executed result |
+|---|---|
+| `full01`: complete Windows preflight and all four local tasks, with Release assembly | **4,077 app tests / 579 fresh XML suites**, **1,696 standalone tests / 255 classes**, no failures/errors/skips; lint and builds passed. All 24 service cases passed. |
+| `native01`: unfiltered, owned API 29 emulator suite, offline before first app launch | **222 tests**, no failures/errors/skips, including the connected workout and leave/resume journeys; 85 capture hashes, 13 fixture/restoration pairs, source/ref stability and device/network/package/collector cleanup verified. |
+| `probe03`: real cold launch and Home with no rest | The target process actually claims a foreground notification and removes its exact notification key on both transitions. No rest service remains after either six-second observation window; no target crash/ANR. The owned package is uninstalled and device settings are unchanged. |
+
+`probe01` remains a rejected admission before installation: PowerShell's
+UTC timestamp was incorrectly reparsed as local time. `probe02` remains
+incomplete: the API 29 image did not emit the service debug event tags.
+`probe03` uses Android's actual foreground-notification enqueue/cancellation
+events, matched by target PID, package, UID and notification ID, plus service
+and crash/ANR observations. It does not claim service debug events were emitted.
+These harness limitations are separate from the reproduced application defect.
+
+Closed evidence is under ignored `build/ux-context/runs/idle-rest-lifecycle/`.
+Summary SHA-256: `1FE9417AC0D6BE7CD35A2EACBAE2CCFB5839A1BD0240340CA650F58DF68589F8`
+(`full01`), `BFD87A87EF647856A6493E494E77DA4E064F0245B1A99A43D0DBA3626758A6AE`
+(`native01`); probe result SHA-256
+`17AFC8009C37D75F2A8C2D8930BA4D77AFFB06DBAE78062D92E9F15CAC770190`.
+Review and integration still require closure. N2 timing/process-death, the
+Why-title tooltip and physical-phone acceptance remain open; no Debug drop
+has been published.
