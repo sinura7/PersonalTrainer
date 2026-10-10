@@ -614,6 +614,21 @@ integration; prior failures and the wider UX15/phone limits above remain.
 
 ### UX23 — Create a shared language for loading, failure, saving and retry
 
+**10 October Plan write recovery (UX11 / AC02):** Plan now keeps the picker
+visible during an accepted update, admits one write at a time, and exposes an
+exact-action Retry for workout additions, removal and ordering. Retry retains
+the accepted routine, slot/rule and hour; a pin changes only its own imported
+rule. Future-day additions also publish the selected week. New-workout editor
+navigation and picker close follow successful completion. The 115 targeted
+checks passed; the final-source complete local gate freshly passed **4,124 app
+tests / 582 suites** and **1,697 standalone tests**, build, lint and instrumented
+APK assembly. The changed states render across **12 profiles / 36 frames**.
+Original checker failures and the two corrected fixture failures remain recorded.
+Native/review/integration evidence is reported with the packet. This extends
+AC02 rather than closing cross-app UX23: cardio/auxiliary helper recovery,
+read-health failures, durable pending-action receipts after process death and
+physical-phone experience remain separate acceptance work.
+
 **8 October workout follow-up:** Quiet #460 is reviewed, integrated and reverified.
 Before Home/History design, `codex/workout-truth-recovery` addresses truthful live
 and saved-session notes feedback, reachable retry and serialized exit/finish saves;
@@ -848,7 +863,7 @@ open.
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
 | UX23-AC01 | P0 | F08, F11 | Injected initial/later load failures, invalid fields and post-commit side-effect failures produce the defined states. | Partially: summary read/compute faults, composer save faults, finish outcomes distinguished; injected load faults on other screens remain open (see UX23 residue) |
-| UX23-AC02 | P0 | F08, F11 | Users can locate the error and retry at the point of action without losing authored data. | Implemented for the composer (error above Save, field errors inline); device/IME check pending |
+| UX23-AC02 | P0 | F08, F11 | Users can locate the error and retry at the point of action without losing authored data. | Composer and Plan workout writes implemented; Plan's saving/error/exact Retry and data preservation pass the local gate and render matrix above. Physical-phone acceptance and other surfaces remain open. |
 | UX23-AC03 | P0 | F08, F11 | Missing, empty and unavailable never share a misleading generic success or start-new-workout remedy. | Implemented for summary, finish and History stale wording; remaining conflations listed in UX23 residue |
 
 ### UX24 — Apply responsive type and layout rules to actual content

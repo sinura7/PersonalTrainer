@@ -27,7 +27,7 @@ import java.util.Locale
 
 /** Keep the complete question and a separate, reachable Cancel on every picker page. */
 @Composable
-internal fun PickerHeader(title: String, onCancel: () -> Unit) {
+internal fun PickerHeader(title: String, onCancel: () -> Unit, enabled: Boolean = true) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val density = LocalDensity.current
         val measurer = rememberTextMeasurer()
@@ -51,6 +51,7 @@ internal fun PickerHeader(title: String, onCancel: () -> Unit) {
         val cancel: @Composable () -> Unit = {
             TextButton(
                 onClick = onCancel,
+                enabled = enabled,
                 contentPadding = PaddingValues(horizontal = Metrics.space2, vertical = 0.dp),
                 modifier = Modifier
                     .width(with(density) { cancelWidth.toDp() })

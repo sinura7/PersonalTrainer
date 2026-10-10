@@ -58,6 +58,7 @@ fun ScreenHeader(
     ),
     leading: (@Composable RowScope.() -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
+    backEnabled: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -69,6 +70,7 @@ fun ScreenHeader(
         if (onBack != null) {
             IconButton(
                 onClick = onBack,
+                enabled = backEnabled,
                 modifier = Modifier
                     .sizeIn(minWidth = Metrics.touchMin, minHeight = Metrics.touchMin)
                     .then(if (backTag != null) Modifier.testTag(backTag) else Modifier),

@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer.ui.plan
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -83,6 +86,18 @@ fun PlanDayScreen(
     }
     var pendingRemoveRuleId by rememberSaveable(epochDay) { mutableStateOf<String?>(null) }
     var pendingRemoveTitle by rememberSaveable(epochDay) { mutableStateOf("") }
+    var seenCompletedAdd by rememberSaveable(epochDay) { mutableStateOf(state.completedAdd) }
+    val scroll = rememberScrollState()
+    val actionsEnabled = !state.isSaving && !state.canRetryWrite
+
+    BackHandler(enabled = state.isSaving) { /* Finish the accepted write before leaving. */ }
+    LaunchedEffect(state.completedAdd) {
+        if (state.completedAdd > seenCompletedAdd) picking = DayPicker.NONE
+        seenCompletedAdd = state.completedAdd
+    }
+    LaunchedEffect(state.error) {
+        if (state.error != null) scroll.scrollTo(0)
+    }
 
     LaunchedEffect(navigateToEditor) {
         val id = navigateToEditor ?: return@LaunchedEffect
@@ -99,6 +114,7 @@ fun PlanDayScreen(
             title = PlanDayCopy.weekdayTitle(weekday),
             dateCaption = DateCopy.weekdayFullDate(LocalDate.ofEpochDay(epochDay)),
             onBack = onBack,
+            backEnabled = !state.isSaving,
             weeklyScope = if (isPast) null else PlanDayCopy.addScope(weekday),
         )
         when {
@@ -107,12 +123,25 @@ fun PlanDayScreen(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .verticalScroll(rememberScrollState())
+                        .verticalScroll(scroll)
                         .padding(horizontal = Metrics.gutter)
                         .padding(bottom = Metrics.space4),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space4),
                 ) {
-                    state.error?.let { GymErrorBanner(it, onDismiss = viewModel::dismissError) }
+                    state.error?.let { error ->
+                        if (state.canRetryWrite) {
+                            Column(
+                                modifier = Modifier.testTag(PlanDayTags.WRITE_ERROR)
+                                    .semantics { liveRegion = LiveRegionMode.Polite },
+                                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                            ) {
+                                Text(error, style = InstrumentType.bodyStrong, color = Danger)
+                                Text(PlanDayCopy.RETRY_SCOPE, style = InstrumentType.caption, color = TextSecondary)
+                            }
+                        } else {
+                            GymErrorBanner(error, onDismiss = viewModel::dismissError)
+                        }
+                    }
                     if (isPast) {
                         Text(
                             PlanDayCopy.PAST,
@@ -132,6 +161,7 @@ fun PlanDayScreen(
                             occurrences = occurrences,
                             routines = state.routines,
                             isPast = isPast,
+                            enabled = actionsEnabled,
                             onOpenRoutine = onOpenRoutine,
                             onRemove = { ruleId, title ->
                                 pendingRemoveRuleId = ruleId
@@ -150,10 +180,10 @@ fun PlanDayScreen(
                             occurrences = occurrences,
                             routines = state.routines,
                             askKeep = false,
+                            enabled = actionsEnabled,
                             onPickKind = { picking = it },
                             onCancel = { picking = DayPicker.NONE },
                             onAddWorkout = { routineId, _ ->
-                                picking = DayPicker.NONE
                                 if (pinned) {
                                     viewModel.addLaterSession(epochDay, routineId)
                                 } else {
@@ -161,7 +191,6 @@ fun PlanDayScreen(
                                 }
                             },
                             onNewWorkout = { _ ->
-                                picking = DayPicker.NONE
                                 if (pinned) {
                                     viewModel.composeLaterSession(epochDay)
                                 } else {
@@ -169,18 +198,32 @@ fun PlanDayScreen(
                                 }
                             },
                             onAddCardio = { type, _ ->
-                                picking = DayPicker.NONE
                                 viewModel.addCardio(epochDay, type)
                             },
                             onAddAux = { packId, _ ->
-                                picking = DayPicker.NONE
                                 viewModel.addAuxiliary(epochDay, packId)
                             },
                             suggestedKit = state.suggestedExtraEquipment,
                         )
                     }
                 }
-                if (!isPast && picking == DayPicker.NONE) {
+                if (state.isSaving) {
+                    Text(
+                        PlanDayCopy.UPDATING,
+                        style = InstrumentType.bodyStrong,
+                        color = TextSecondary,
+                        modifier = Modifier.padding(horizontal = Metrics.gutter, vertical = Metrics.space3)
+                            .testTag(PlanDayTags.SAVING)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                } else if (state.canRetryWrite) {
+                    PrimaryGymButton(
+                        text = PlanDayCopy.RETRY_UPDATE,
+                        onClick = viewModel::retryWrite,
+                        modifier = Modifier.padding(horizontal = Metrics.gutter)
+                            .padding(bottom = Metrics.space5).testTag(PlanDayTags.RETRY),
+                    )
+                } else if (!isPast && picking == DayPicker.NONE) {
                     PrimaryGymButton(
                         text = PlanDayCopy.ADD_SESSION,
                         onClick = { picking = DayPicker.KIND },
@@ -205,6 +248,7 @@ fun PlanDayScreen(
             ),
             confirmLabel = PlanDayCopy.REMOVE,
             destructive = true,
+            confirmEnabled = actionsEnabled,
             onConfirm = {
                 viewModel.deleteSession(epochDay, ruleId)
                 pendingRemoveRuleId = null
@@ -220,12 +264,14 @@ internal fun PlanDayHeader(
     dateCaption: String,
     onBack: () -> Unit,
     weeklyScope: String? = null,
+    backEnabled: Boolean = true,
 ) {
     Column {
         ScreenHeader(
             title = title,
             subtitle = dateCaption,
             onBack = onBack,
+            backEnabled = backEnabled,
             backTag = PlanDayTags.BACK,
         )
         weeklyScope?.let { scope ->
@@ -247,6 +293,7 @@ private fun SessionBlocks(
     occurrences: List<AgendaItem>,
     routines: List<Routine>,
     isPast: Boolean,
+    enabled: Boolean,
     onOpenRoutine: (String) -> Unit,
     onRemove: (String, String) -> Unit,
     onMove: (String, Int) -> Unit,
@@ -276,10 +323,12 @@ private fun SessionBlocks(
                     } else {
                         null
                     },
+                    enabled = enabled,
                     trailing = if (!isPast && ruleId != null) {
                         {
                             TextButton(
                                 onClick = { onRemove(ruleId, item.title) },
+                                enabled = enabled,
                                 contentPadding = PaddingValues(0.dp),
                                 modifier = Modifier
                                     .heightIn(min = Metrics.touchMin)
@@ -303,6 +352,7 @@ private fun SessionBlocks(
                         index = index,
                         lastIndex = occurrences.lastIndex,
                         onMove = onMove,
+                        enabled = enabled,
                         modifier = Modifier.padding(horizontal = Metrics.space4),
                     )
                 }
@@ -368,6 +418,9 @@ object PlanDayTags {
     const val BACK = "plan-day-back"
     const val ADD = "plan-day-add"
     const val SCOPE = "plan-day-scope"
+    const val SAVING = "plan-day-saving"
+    const val WRITE_ERROR = "plan-day-write-error"
+    const val RETRY = "plan-day-retry"
 
     fun block(occurrenceId: String): String = "plan-day-block-$occurrenceId"
 

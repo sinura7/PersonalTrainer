@@ -52,6 +52,7 @@ class PlanRoutineActionsInstrumentedTest {
     private lateinit var other: Routine
     private var savedId: String? = null
     private var originalFont: String? = null
+    private val extraRoutineIds = mutableListOf<String>()
     private val environment = NativeWorkoutFixtureEnvironment(PREFIX)
     private val seedRule = object : ExternalResource() {
         override fun before() {
@@ -174,6 +175,65 @@ class PlanRoutineActionsInstrumentedTest {
         capture("plan-weekly-remove-return-font20")
     }
 
+    @Test
+    fun workoutAddDuplicateTouchSavesOnceAndReturnsFromItsExactRoutineEditor() {
+        openRoutines()
+        val added = read {
+            val created = container.routineRepository.create("Plan recovery ${UUID.randomUUID().toString().take(8)}")
+            extraRoutineIds += created.id
+            container.routineRepository.addExercise(created.id, routine.exercises.single().exercise, 3, 8, 50.0, 90)
+            checkNotNull(container.routineRepository.getById(created.id))
+        }
+        val historyBefore = history()
+        val slotsBefore = read { container.scheduleRepository.slots() }
+        val today = java.time.LocalDate.now().toEpochDay()
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.ADD_SESSION))
+        tap(PlanTags.ADD_SESSION)
+        compose.onNodeWithText(com.sinura.personaltrainer.domain.PlanDayCopy.WORKOUT).performScrollTo()
+            .performTouchInput { click(center) }
+        compose.waitForIdle()
+        val choice = compose.onNodeWithText(added.name).performScrollTo().assertIsDisplayed()
+        assertEquals(2f, choice.fetchSemanticsNode().layoutInfo.density.fontScale, .001f)
+        choice.performTouchInput { click(center); click(center) }
+        compose.waitUntil(15_000) {
+            read {
+                val matches = container.plannerRepository.rules().filter { it.routineId == added.id }
+                matches.size == 1 && container.plannerRepository.occurrencesBetween(today, today)
+                    .count { it.ruleId == matches.single().id } == 1
+            } && compose.onAllNodesWithTag(PlanDayTags.ADD).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithTag(PickerHeaderTags.CANCEL).fetchSemanticsNodes().isEmpty()
+        }
+        val rule = read { container.plannerRepository.rules().single { it.routineId == added.id } }
+        val occurrence = read { container.plannerRepository.occurrencesBetween(today, today).single { it.ruleId == rule.id } }
+        assertEquals(slotsBefore, read { container.scheduleRepository.slots() })
+        assertEquals(historyBefore, history())
+        assertNull(read { container.workoutRepository.getInProgress() })
+        capture("plan-workout-add-completed-font20")
+        compose.onNodeWithTag(PlanDayTags.block(occurrence.id)).performScrollTo()
+        tap(PlanDayTags.block(occurrence.id))
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag(RoutineEditorTags.SAVE).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNode(hasSetTextAction() and hasText(added.name)).assertIsDisplayed()
+        tap(RoutineEditorTags.SAVE)
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag(PlanDayTags.ADD).fetchSemanticsNodes().isNotEmpty()
+        }
+        val after = read { checkNotNull(container.routineRepository.getById(added.id)) }
+        assertEquals(added.id, after.id)
+        assertEquals(added.name, after.name)
+        assertEquals(added.exercises, after.exercises)
+        assertEquals(added.notes, after.notes)
+        assertEquals(rule.id, read { container.plannerRepository.rules().single { it.routineId == added.id } }.id)
+        assertEquals(historyBefore, history())
+        capture("plan-workout-editor-return-font20")
+        tap(PlanDayTags.ADD)
+        compose.onNodeWithTag(PickerHeaderTags.CANCEL).performScrollTo()
+        tap(PickerHeaderTags.CANCEL)
+        assertEquals(1, read { container.plannerRepository.rules().count { it.routineId == added.id } })
+        assertEquals(historyBefore, history())
+    }
+
     private fun openRoutines() {
         compose.waitUntil(15_000) {
             compose.onAllNodesWithTag("navigation-routines").fetchSemanticsNodes().isNotEmpty()
@@ -241,6 +301,7 @@ class PlanRoutineActionsInstrumentedTest {
         try {
             if (::container.isInitialized) read {
                 savedId?.let { container.workoutRepository.deleteFinishedSession(it) }
+                extraRoutineIds.forEach { container.routineRepository.delete(it) }
                 if (::routine.isInitialized) container.routineRepository.delete(routine.id)
                 if (::other.isInitialized) container.routineRepository.delete(other.id)
             }

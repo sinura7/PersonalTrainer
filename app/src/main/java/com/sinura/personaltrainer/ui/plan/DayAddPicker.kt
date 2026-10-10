@@ -75,6 +75,7 @@ fun DayAddPicker(
     onAddCardio: (CardioType, Boolean) -> Unit,
     onAddAux: (String, Boolean) -> Unit,
     suggestedKit: ExtraEquipment = ExtraEquipment.MIXED,
+    enabled: Boolean = true,
 ) {
     var pendingKind by rememberSaveable { mutableStateOf(PendingKeep.NONE.name) }
     var pendingWorkoutId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -125,6 +126,7 @@ fun DayAddPicker(
                     DayPicker.NONE -> PlanDayCopy.ADD_SESSION
                 },
                 onCancel = onCancel,
+                enabled = enabled,
             )
         }
         when (picking) {
@@ -134,18 +136,21 @@ fun DayAddPicker(
                     title = PlanDayCopy.WORKOUT,
                     subtitle = PlanDayCopy.WORKOUT_SUBTITLE,
                     onClick = { onPickKind(DayPicker.WORKOUT) },
+                    enabled = enabled,
                 )
                 HairlineDivider()
                 InstrumentRow(
                     title = PlanDayCopy.CARDIO,
                     subtitle = if (hasCardio) PlanDayCopy.CARDIO_ALREADY else SessionOrderCopy.CARDIO_ON_THIS_DAY,
                     onClick = if (hasCardio) null else ({ onPickKind(DayPicker.CARDIO) }),
+                    enabled = enabled,
                 )
                 HairlineDivider()
                 InstrumentRow(
                     title = PlanDayCopy.AUXILIARY,
                     subtitle = PlanDayCopy.AUX_SUBTITLE,
                     onClick = { onPickKind(DayPicker.AUX) },
+                    enabled = enabled,
                 )
             }
             DayPicker.CARDIO -> {
@@ -160,6 +165,7 @@ fun DayAddPicker(
                         items(ScheduleKind.planCardioTypes, key = { it.name }) { type ->
                             CardioPickCard(
                                 type = type,
+                                enabled = enabled,
                                 onClick = {
                                     keepOr(
                                         runWeekly = { onAddCardio(type, false) },
@@ -187,6 +193,8 @@ fun DayAddPicker(
                 },
                 onCancel = onCancel,
                 suggestedKit = suggestedKit,
+                pickEnabled = enabled,
+                navigationEnabled = enabled,
             )
             DayPicker.WORKOUT -> {
                 GroupedList {
@@ -203,6 +211,7 @@ fun DayAddPicker(
                                 arm = { pendingKind = PendingKeep.NEW_WORKOUT.name },
                             )
                         },
+                        enabled = enabled,
                     )
                 }
                 if (laterChoices.isEmpty()) {
@@ -232,6 +241,7 @@ fun DayAddPicker(
                                         },
                                     )
                                 },
+                                enabled = enabled,
                             )
                         }
                     }
@@ -242,12 +252,14 @@ fun DayAddPicker(
                     title = PlanDayCopy.JUST_TODAY,
                     subtitle = PlanDayCopy.JUST_TODAY_BODY,
                     onClick = { commit(once = true) },
+                    enabled = enabled,
                 )
                 HairlineDivider()
                 InstrumentRow(
                     title = PlanDayCopy.everyWeekday(weekday),
                     subtitle = PlanDayCopy.EVERY_WEEKDAY_BODY,
                     onClick = { commit(once = false) },
+                    enabled = enabled,
                 )
             }
         }
