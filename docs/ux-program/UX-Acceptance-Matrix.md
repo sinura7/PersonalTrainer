@@ -125,8 +125,8 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
 | UX11-AC01 | P1 | F02, F06 | A participant can state the scope before saving a swap or schedule edit. | Not executed |
-| UX11-AC02 | P1 | F02, F06 | Routine management is reachable without relying solely on long press, or documented usability evidence supports retaining the existing affordance. | Development candidate: actual Plan menu touch, exact routine IDs, cancellation, final guidance and retained long-press pass in the 12-profile JVM matrix; native journey, full gate and reviews remain pending. |
-| UX11-AC03 | P1 | F02, F06 | Deleting a routine preserves history and accurately explains its impact on scheduled days. | Development candidate: confirmed deletion preserves exact saved session/exercise/set fields apart from the existing nullable template FK, keeps the identically named other routine and its pin, and removes the selected pin. Native verification and integration remain pending. |
+| UX11-AC02 | P1 | F02, F06 | Routine management is reachable without relying solely on long press, or documented usability evidence supports retaining the existing affordance. | Automated evidence: actual Plan menu touch, exact routine IDs, cancellation, final guidance and retained long-press pass in the 12-profile JVM matrix. Both real MainActivity Plan journeys pass at system font 2. Review and integration record: [PR #475](https://github.com/sinura7/PersonalTrainer/pull/475). Physical usability acceptance remains unobserved. |
+| UX11-AC03 | P1 | F02, F06 | Deleting a routine preserves history and accurately explains its impact on scheduled days. | Automated evidence: JVM and native confirmed deletion preserve exact captured workout fields apart from the existing nullable template FK, keep the identically named other routine and its same-day pin, and remove the selected pin. Native Edit/Save preserves the captured workout; Cancel preserves saved state. Review/integration: PR #475; physical acceptance remains unobserved. |
 
 **Plan routine management follow-up — 10 October 2026:** the current source still
 required a long press to discover deletion. Each routine now has a quiet 48 dp
@@ -147,8 +147,15 @@ real Room fixtures including two routines sharing a name. The final concise
 guidance passed all 13 new checks again (36 actual window-composited frames).
 Android test compilation also passes after correcting the test to read public
 repositories rather than the container's private database; the failed compile
-is retained. The new MainActivity → Plan → editor/delete journeys, full local
-gate, both reviews and clean-trunk verification remain pending.
+is retained. The complete local gate passed **1,696 standalone tests and 4,096
+app tests**, Debug/release assembly, lint and Android test assembly at unchanged
+runtime inputs. The hosted native report passed **all 226 tests**, including
+both new MainActivity → Plan → editor/delete journeys at system font 2, on the
+same implementation tree. A separate push-job failure resolving JUnit from
+Google Maven with HTTP 502 remains failed and archived; it did not execute the
+unit suite. Review, clean-trunk gate and affected journey closure are recorded
+in [PR #475](https://github.com/sinura7/PersonalTrainer/pull/475). These automated
+results do not claim physical-phone or participant usability acceptance.
 
 ### UX12 — Make calendar dates and statuses distinguishable at small widths
 
