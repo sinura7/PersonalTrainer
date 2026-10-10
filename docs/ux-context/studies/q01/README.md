@@ -1200,3 +1200,44 @@ Summary SHA-256: `1FE9417AC0D6BE7CD35A2EACBAE2CCFB5839A1BD0240340CA650F58DF68589
 Review and integration still require closure. N2 timing/process-death, the
 Why-title tooltip and physical-phone acceptance remain open; no Debug drop
 has been published.
+
+#### UX23 / N2 rapid notes clear — 10 October 2026
+
+The idle-service repair is integrated in [PR #472](https://github.com/sinura7/PersonalTrainer/pull/472)
+at `9db6d9d6`: clean-trunk local gate, native lifecycle probe, both reviews and
+both hosted jobs passed. The owned emulator's subsequent real notes experiment
+demonstrated a separate lost edit. The actual editor accepted an empty clear;
+its exact task was removed by a real Recents swipe within **397 ms**. On return,
+the editor and durable row both held the original nonempty notes. The same
+session identity, exercise and set rows were unchanged; no rest was started.
+Android's events identify the target process kill reason as `remove task`.
+Actual process death inside 400 ms is **not** established. A repeated battery
+explanation blocked the first return observation; root used its actual Not now
+action and observed the same fixture separately. Original evidence is preserved.
+
+This measured defect activates UX23's existing exception to preserving the
+400 ms debounce. Clear operations now enter the existing ordered writer without
+that delay, after the real row is known. Nonempty typing still waits 400 ms;
+readback, narrow updates, hydration, write serialization, Retry and Finish remain
+authoritative. This also applies to the shared saved-session notes editor.
+No schema, backup format, public API or distribution change is proposed.
+Acceptance requires immediate-clear regression coverage, the complete local
+gate, a new real clear/Recents/return/readback experiment, both reviews and
+clean-trunk verification. It does not guarantee survival of a failed or
+unfinished write after an arbitrary instantaneous process kill.
+
+Reproduced failure: ignored `build/ux-context/runs/workout-truth/n2-runtime02/`;
+failure manifest SHA-256 `9457AFC4FD5B4EA6E1361A456CFE47121D81D81EB70A8D8C450E2A7855951E76`.
+Its incomplete preparation/early-clear-observation attempts remain separate.
+Before the production repair, all four new scheduling regressions failed while
+the ten existing save-state cases passed. The Why-title tooltip and physical
+phone acceptance remain open; no Debug drop is included.
+
+Focused verification now passes **75 cases across eight fresh XML suites**
+(`rapid-notes-recovery/recovery02`). The first broader run's four failures are
+retained: two old delayed-clear expectations, a synthetic Room scheduler that
+was not pumped while Finish awaited the new clear, and an extra explicit flush
+that retried the injected one-shot failure. Revised cases preserve hydration
+and exact rows, hold the resumed clear explicitly, and verify one Finish after
+a held clear despite duplicate taps. The original 399/400 ms nonempty-typing
+checks remain unchanged. Complete-gate and native verification still follow.

@@ -83,10 +83,11 @@ internal class FloorSessionNotes(
         publish()
     }
 
+    /** Typing is debounced; an intentional clear must not wait before reaching storage. */
     suspend fun writeOnTypingPause() {
         writeRequest.collectLatest { request ->
             val requestedRevision = revision
-            delay(NOTES_WRITE_DEBOUNCE_MS)
+            if (!hasUserDraft || _text.value.trim().isNotEmpty()) delay(NOTES_WRITE_DEBOUNCE_MS)
             writeLock.withLock {
                 if (request == writeRequest.value && requestedRevision == revision && requestedRevision != pausedDiscardRevision) writeCurrent()
             }
