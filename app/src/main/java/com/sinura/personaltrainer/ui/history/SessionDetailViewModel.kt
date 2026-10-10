@@ -232,7 +232,14 @@ class SessionDetailViewModel @JvmOverloads constructor(
         retryNonce.value += 1
     }
 
-    fun updateSet(setId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
+    fun updateSet(
+        setId: String,
+        weightKg: Double,
+        reps: Int,
+        rpe: Int?,
+        isWarmup: Boolean,
+        durationSeconds: Int? = null,
+    ) {
         // Effort follows the original timed type, even if the generic rep editor was
         // nudged. Supported older timed rows can have a nonpositive rep representation.
         val original = uiState.value.session?.sets?.firstOrNull { it.id == setId }
@@ -249,6 +256,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
                     reps = reps,
                     rpe = rpe,
                     isWarmup = isWarmup,
+                    durationSeconds = durationSeconds,
                 )
             }.onFailure { report(it, "Could not save that set. Try again.") }
         }

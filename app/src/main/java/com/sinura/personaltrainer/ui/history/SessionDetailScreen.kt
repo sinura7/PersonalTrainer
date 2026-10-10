@@ -20,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -118,6 +119,17 @@ fun SessionDetailScreen(
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var editingSetId by rememberSaveable { mutableStateOf<String?>(null) }
     var addingToExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
+    var addingSessionId by rememberSaveable { mutableStateOf<String?>(null) }
+    val addDrafts = rememberSaveableStateHolder()
+    val discardAddDraft = {
+        val exerciseId = addingToExerciseId
+        val sessionId = addingSessionId
+        if (exerciseId != null && sessionId != null) {
+            addDrafts.removeState(addSetDraftKey(sessionId, exerciseId))
+        }
+        addingToExerciseId = null
+        addingSessionId = null
+    }
 
     LaunchedEffect(notesExitRequested) {
         if (notesExitRequested) {
@@ -262,7 +274,11 @@ fun SessionDetailScreen(
                                 unit = unit,
                                 onOpen = { onOpenExercise(lift.exercise.id) },
                                 onEditSet = { editingSetId = it.id },
-                                onAddSet = { addingToExerciseId = lift.exercise.id },
+                                onAddSet = {
+                                    discardAddDraft()
+                                    addingSessionId = session.id
+                                    addingToExerciseId = lift.exercise.id
+                                },
                             )
                         }
                     }
@@ -282,10 +298,11 @@ fun SessionDetailScreen(
             GymUndoHost(
                 message = UndoHostCopy.setDeleted(
                     SetCopy.setLine(
-                        removed.weightKg,
-                        removed.reps,
-                        session?.loadClassOf(removed.exerciseId) ?: LoadClass.LOADED,
-                        unit,
+                        weightKg = removed.weightKg,
+                        reps = removed.reps,
+                        loadClass = session?.loadClassOf(removed.exerciseId) ?: LoadClass.LOADED,
+                        unit = unit,
+                        durationSeconds = removed.durationSeconds,
                     ),
                 ),
                 modifier = Modifier
@@ -313,9 +330,11 @@ fun SessionDetailScreen(
     val editing = editingSetId?.let { id -> session?.sets?.firstOrNull { it.id == id } }
     if (editing != null && session != null) {
         SetEditSheet(
-            exerciseName = editing.exerciseName,
+            exercise = session.filledLifts().first { it.exercise.id == editing.exerciseId }.exercise.let { projected ->
+                projected.copy(name = editing.exerciseName.ifBlank { projected.name })
+            },
             initial = editing,
-            onSave = { weightKg, reps, rpe, isWarmup ->
+            onSave = { weightKg, reps, rpe, isWarmup, durationSeconds ->
                 editingSetId = null
                 viewModel.updateSet(
                     setId = editing.id,
@@ -323,6 +342,7 @@ fun SessionDetailScreen(
                     reps = reps,
                     rpe = rpe,
                     isWarmup = isWarmup,
+                    durationSeconds = durationSeconds,
                 )
             },
             onDelete = {
@@ -336,33 +356,45 @@ fun SessionDetailScreen(
     }
 
     val adding = addingToExerciseId
-    if (adding != null && session != null) {
+    val addingExercise = session?.filledLifts()?.firstOrNull { it.exercise.id == adding }?.exercise
+    LaunchedEffect(adding, addingSessionId, addingExercise?.id, session?.id, state.isLoading, state.failed) {
+        if (adding != null && !state.isLoading && !state.failed &&
+            (addingExercise == null || session?.id != addingSessionId)) {
+            discardAddDraft()
+        }
+    }
+    // A degraded read can retain the last session. Expose Retry while unavailable,
+    // retaining the exact owner and its draft until a successful read confirms removal.
+    if (adding != null && session != null && session.id == addingSessionId && addingExercise != null &&
+        !state.isLoading && !state.failed) {
         // A new set almost always continues the last one, so it opens on those numbers rather
         // than on zero — the same courtesy the live logger extends.
         val previous = session.setsFor(adding).lastOrNull()
         val name = session.exercises.firstOrNull { it.exercise.id == adding }?.exercise?.name
             ?: session.sets.firstOrNull { it.exerciseId == adding }?.exerciseName
             ?: "Exercise"
-        SetEditSheet(
-            exerciseName = name,
-            initial = null,
-            onSave = { weightKg, reps, rpe, isWarmup ->
-                addingToExerciseId = null
-                viewModel.addSet(
-                    exerciseId = adding,
-                    weightKg = weightKg,
-                    reps = reps,
-                    rpe = rpe,
-                    isWarmup = isWarmup,
-                )
-            },
-            onDelete = null,
-            onDismiss = { addingToExerciseId = null },
-            prefillWeightKg = previous?.weightKg ?: 0.0,
-            prefillReps = previous?.reps ?: DEFAULT_ADD_REPS,
-            loadClass = session.loadClassOf(adding),
-            plated = session.isBarbell(adding),
-        )
+        addDrafts.SaveableStateProvider(key = addSetDraftKey(session.id, adding)) {
+            SetEditSheet(
+                exercise = addingExercise.copy(name = name),
+                initial = null,
+                onSave = { weightKg, reps, rpe, isWarmup, _ ->
+                    discardAddDraft()
+                    viewModel.addSet(
+                        exerciseId = adding,
+                        weightKg = weightKg,
+                        reps = reps,
+                        rpe = rpe,
+                        isWarmup = isWarmup,
+                    )
+                },
+                onDelete = null,
+                onDismiss = discardAddDraft,
+                prefillWeightKg = previous?.weightKg ?: 0.0,
+                prefillReps = previous?.reps ?: DEFAULT_ADD_REPS,
+                loadClass = session.loadClassOf(adding),
+                plated = session.isBarbell(adding),
+            )
+        }
     }
 
     if (confirmDelete && session != null) {
@@ -472,5 +504,9 @@ private fun SessionReceipt(
 
 private fun WorkoutSession.isBarbell(exerciseId: String): Boolean =
     exercises.any { it.exercise.id == exerciseId && it.exercise.equipment == EquipmentType.BARBELL }
+
+// Length-prefix the session so arbitrary imported IDs cannot alias another owner.
+private fun addSetDraftKey(sessionId: String, exerciseId: String): String =
+    "${sessionId.length}:$sessionId:$exerciseId"
 
 private const val DEFAULT_ADD_REPS = 5

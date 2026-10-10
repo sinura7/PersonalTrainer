@@ -11,12 +11,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
+import com.sinura.personaltrainer.ui.components.ThumbCache
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import org.junit.Assert.assertEquals
@@ -50,6 +51,8 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(application = Application::class, qualifiers = "w360dp-h800dp-xhdpi")
 class ExerciseThumbRenderTest {
+    // Queue recomposition after the real IO decode; the legacy unconfined rule can
+    // apply image layout on the decoder's worker rather than the Android UI thread.
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
@@ -75,6 +78,7 @@ class ExerciseThumbRenderTest {
 
     @Test
     fun aStillIsFittedWholeIntoItsBoxNeverCroppedStretchedOrDrawnAtItsOwnSize() {
+        ThumbCache.clear()
         val lunge = catalogLift(LUNGE)
         compose.showFloor {
             Row(modifier = Modifier.background(Pit)) {

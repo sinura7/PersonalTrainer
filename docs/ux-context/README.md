@@ -2,7 +2,58 @@
 
 **Created:** 8 October 2026
 
-**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466, with fresh local, native and hosted verification on actual merged trunk. The active F9/W11/V12/Q08/UX23/UX29 packet improves exercise identity, planned/recorded clarity and restored saved-work reachability in Summary and session details. Broader app UX phases and physical-phone acceptance remain.
+**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are reviewed and integrated through #467, with fresh local, native and hosted verification on actual merged trunk. The active single F9/W11/V12/Q08/UX29 packet is the named Set Edit sheet identity and numeric controls refinement. Broader app UX phases and physical-phone acceptance remain.
+
+**Summary/detail integration closed, 9 October 2026 UTC:** [PR #467](https://github.com/sinura7/PersonalTrainer/pull/467)
+merged as `755a2df9`, exact reviewed tree `f7628c17`. Actual clean-trunk full
+verification passed **3,990 app tests / 576 fresh suites** and **1,694 standalone
+tests / 255 classes**; local API 29 passed **222 tests / 32 classes** with the
+connected workout → Summary → History/detail journey, 85 hashed captures and
+verified synthetic-state restoration. Independent/adversarial packet reviews
+and final independent integration review passed. The temporary branch was
+removed after verifying its recoverable bundle. The first trunk hosted attempt
+remains **failed by its enclosing 30-minute job limit**; one complete unchanged
+retry passed the required build gate and the supplemental native job. The
+render archive's separately recorded caller error remains distinct from its
+verified stored files. Pure-hold Summary representation, retained Summary
+return policy, broader UX and phone acceptance remain open; no Debug drop occurred.
+
+**Set editor candidate, 9 October 2026 UTC:** The existing F9/W11/V12/Q08/UX29
+refinement now implements full exercise names and matching artwork, an expanded
+sheet, readable values and signed controls, reachable effort/actions, explicit
+Cancel and captured-time correction. Historical repetitions retain their
+accepted range; live/new-entry limits retain their existing rule. Add drafts
+keep their exact session/exercise owner through unavailable-read/Retry, while
+Cancel and successful owner removal clear that draft. Timed Delete/Undo copy
+shows seconds and its action meets the 48 dp target.
+
+Three actual failing counters remain separate evidence: `counter01` changed an
+8-rep/45-second original to zero reps under hold metadata; `counter03` submitted
+100 after an accepted 101-rep original and +1; `counter04` reset authored Add
+reps 9 to 8 after Retry without losing a saved row. The repaired focused run
+`targeted03` passed **67 cases / 3 fresh suites**, including exact restored rows,
+draft recovery, Cancel/removal, identity, time/repetition boundaries and native
+layout checks. It predates the subsequent timed Undo-copy assertion.
+
+The earlier `full01` passed **4,049 app / 1,696 standalone** tests at its prior
+source. Current-source `full02` ran **4,049 cases / 578 fresh suites** with one
+failure: the old thumbnail test's unconfined Compose scheduler applied layout
+from its IO worker. All new editor cases passed, but the complete gate **failed**.
+The test now uses the installed Compose v2 scheduler with a cold real decode,
+retaining every original fit/badge/pixel assertion and bounded wait; `targeted04`
+passed both actual thumbnail cases. No app loader or check was weakened.
+`counter02` had zero executed tests from fixture compilation/static errors;
+the original failed runs and 2,694 full02 PNGs remain archived under
+`build/ux-context/runs/set-editor-identity-time/`. The repaired `full03` complete
+gate closed **PASS on 10 October UTC**: **4,049 app cases / 578 fresh suites**,
+**1,696 standalone tests / 255 classes**, zero failures/errors/skips, all four
+required Windows tasks and unchanged **1,550 runtime inputs**. Native graphics
+review accepts the changed identity, controls, footer, timed Undo and draft
+recovery; the thumbnail repair keeps real IO and every original assertion.
+Final commit binding/reviews, integration and connected Android verification
+remain pending.
+Broader failed-save recovery, pure-hold Summary display and phone acceptance
+are separate open work.
 
 **Audience:** Temper's owner and the next designer, engineer, or agent continuing this work.
 

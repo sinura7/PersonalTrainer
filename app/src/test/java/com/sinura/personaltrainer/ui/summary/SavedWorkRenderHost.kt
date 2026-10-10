@@ -143,7 +143,7 @@ internal class SavedWorkRenderHost(
         drain()
     }
 
-    fun readable(interaction: SemanticsNodeInteraction, expected: String) {
+    fun readable(interaction: SemanticsNodeInteraction, expected: String, singleLine: Boolean = false) {
         reach(interaction)
         val node = interaction.fetchSemanticsNode()
         assertTrue("$expected has an actual measured text area", node.size.width > 0 && node.size.height > 0)
@@ -166,6 +166,7 @@ internal class SavedWorkRenderHost(
             constraints = input.constraints.copy(minWidth = 0, maxWidth = node.size.width),
         )
         assertEquals("actual rendered words", expected, measured.layoutInput.text.text)
+        if (singleLine) assertEquals("the complete numeric label stays on one actual line: $expected", 1, measured.lineCount)
         assertEquals("actual-width paragraph keeps the reported line count", reported.lineCount, measured.lineCount)
         assertEquals("last character is laid out", expected.length, measured.getLineEnd(measured.lineCount - 1, visibleEnd = true))
         val frame = draw()
@@ -192,6 +193,11 @@ internal class SavedWorkRenderHost(
             // An annotated unit can have a smaller font and a different color from the
             // numeral. Its actual glyph box and resolved span color remain mandatory.
             assertTrue("native final glyph is visible: $expected", frame.count(finalGlyph.intersect(visible), colorAt(expected.lastIndex)) > 0)
+            if (singleLine) expected.indices.filter { !expected[it].isWhitespace() }.forEach { offset ->
+                val glyph = measured.getBoundingBox(offset)
+                val actual = SavedWorkRect(origin.x + glyph.left, origin.y + glyph.top, origin.x + glyph.right, origin.y + glyph.bottom)
+                assertTrue("native sign/digit/unit ink is visible at $offset: $expected", frame.count(actual.intersect(visible), colorAt(offset)) > 0)
+            }
         } finally { frame.recycle() }
     }
 
@@ -323,7 +329,7 @@ internal class SavedWorkRenderHost(
         return SavedWorkRect(origin.x, origin.y, origin.x + node.size.width, origin.y + node.size.height)
     }
 
-    private fun decor(): View = ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }?.window?.decorView
+    private fun decor(): View = ShadowDialog.getShownDialogs().lastOrNull { it.isShowing }?.window?.decorView
         ?: compose.activity.window.decorView
 
     private fun window(): SavedWorkRect = compose.runOnUiThread {

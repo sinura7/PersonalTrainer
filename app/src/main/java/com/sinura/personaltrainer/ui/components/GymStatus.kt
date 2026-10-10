@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -96,7 +97,11 @@ private fun InstrumentBanner(
                 Text(body, style = InstrumentType.body, color = TextSecondary)
             }
             if (actionLabel != null && onAction != null) {
-                TextButton(onClick = onAction, contentPadding = PaddingValues(0.dp)) {
+                TextButton(
+                    onClick = onAction,
+                    modifier = Modifier.heightIn(min = Metrics.touchMin),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
                     Text(actionLabel, style = InstrumentType.bodyStrong, color = accent)
                 }
             }
@@ -336,4 +341,3 @@ fun GymNoticeBanner(
         onDismiss = onDismiss,
     )
 }
-
