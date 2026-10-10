@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,6 +63,10 @@ import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.InstrumentRow
+import com.sinura.personaltrainer.ui.components.InstrumentMenu
+import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
+import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.components.MetricCluster
@@ -76,6 +82,7 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.domain.BlockReview
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TrainingBlock
@@ -325,7 +332,7 @@ fun PlanScreen(
         val selectedTitle = if (selectedEpochDay == today) "Today · $selectedDate" else selectedDate
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().testTag(PlanTags.CONTENT),
             contentPadding = PaddingValues(
                 start = Metrics.gutter,
                 end = Metrics.gutter,
@@ -462,7 +469,7 @@ fun PlanScreen(
                     InstrumentRow(
                         title = if (routinesOpen) "Hide routines" else "Show routines",
                         subtitle = if (routinesOpen) {
-                            "Long-press a routine to delete it."
+                            "Edit or manage routines."
                         } else if (count == 1) {
                             "1 program"
                         } else {
@@ -503,8 +510,8 @@ fun PlanScreen(
         val pendingName = state.routines.firstOrNull { it.id == id }?.name ?: "this routine"
         ConfirmActionDialog(
             title = "Delete $pendingName?",
-            body = "This cannot be undone. Past workout history stays saved, and any day it " +
-                "was pinned to becomes open.",
+            body = "This cannot be undone. Past workout history stays saved. " +
+                "This routine is removed from your plan.",
             confirmLabel = "Delete",
             destructive = true,
             onConfirm = {
@@ -631,8 +638,8 @@ private fun PlanSelectedDayBoard(
 /**
  * A routine as a program rather than as a document.
  *
- * Moved from the Routines tab unchanged. Deleting is a long press: as a trailing icon it sat
- * inside the row's own tap target, one slip away from destroying a program.
+ * Tap edits the reusable routine. A quiet menu exposes management without requiring
+ * a guessed gesture; long-press remains a shortcut to the same delete confirmation.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -643,11 +650,13 @@ private fun RoutineRow(
     onDelete: () -> Unit,
 ) {
     val view = LocalView.current
+    var menuOpen by remember(routine.id) { mutableStateOf(false) }
     val preview = SessionOrderCopy.numberedPreview(routine.exercises.map { it.exercise.name })
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
+            .testTag(PlanTags.routine(routine.id))
             .combinedClickable(
                 onLongClickLabel = "Delete ${routine.name}",
                 onLongClick = {
@@ -678,11 +687,52 @@ private fun RoutineRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (updatedLabel != null) {
-                Kicker(updatedLabel, color = TextTertiary)
+            Text(
+                buildString {
+                    append(routine.exercises.size)
+                    append(if (routine.exercises.size == 1) " lift" else " lifts")
+                    updatedLabel?.let { append(" · "); append(it) }
+                },
+                style = InstrumentType.caption,
+                color = TextTertiary,
+            )
+        }
+        Box {
+            IconButton(
+                onClick = { menuOpen = true },
+                modifier = Modifier
+                    .size(Metrics.touchMin)
+                    .testTag(PlanTags.routineOptions(routine.id)),
+            ) {
+                Icon(
+                    OutlinedMarks.MoreVert,
+                    contentDescription = "Options for ${routine.name}",
+                    tint = TextSecondary,
+                )
+            }
+            InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                InstrumentMenuItem(
+                    spokenLabel = "Edit routine",
+                    leadingIcon = TemperIcons.Edit,
+                    modifier = Modifier.testTag(PlanTags.routineEdit(routine.id)),
+                    onClick = {
+                        menuOpen = false
+                        onOpen()
+                    },
+                )
+                InstrumentMenuItem(
+                    spokenLabel = "Delete routine",
+                    leadingIcon = TemperIcons.Delete,
+                    textColor = Danger,
+                    iconTint = Danger,
+                    modifier = Modifier.testTag(PlanTags.routineDelete(routine.id)),
+                    onClick = {
+                        menuOpen = false
+                        onDelete()
+                    },
+                )
             }
         }
-        MetricCluster(value = routine.exercises.size.toString(), label = "lifts")
     }
 }
 
@@ -811,6 +861,7 @@ private fun RecoveryCommand(
 }
 
 object PlanTags {
+    const val CONTENT = "plan-content"
     const val TITLE = "plan-heading"
     const val SELECTED_DATE = "plan-selected-date"
     const val LIBRARY = "plan-library"
@@ -823,6 +874,10 @@ object PlanTags {
     const val LIGHTER = "plan-lighter"
     const val LIBRARY_SPOKEN = "Library"
     const val ROUTINES = "plan-routines"
+    fun routine(id: String): String = "plan-routine-$id"
+    fun routineOptions(id: String): String = "plan-routine-options-$id"
+    fun routineEdit(id: String): String = "plan-routine-edit-$id"
+    fun routineDelete(id: String): String = "plan-routine-delete-$id"
 }
 
 /** Thicker than a hairline so the filled portion reads as a position, thin enough not to be a bar. */
