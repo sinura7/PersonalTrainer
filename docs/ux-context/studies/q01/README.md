@@ -1241,3 +1241,30 @@ that retried the injected one-shot failure. Revised cases preserve hydration
 and exact rows, hold the resumed clear explicitly, and verify one Finish after
 a held clear despite duplicate taps. The original 399/400 ms nonempty-typing
 checks remain unchanged. Complete-gate and native verification still follow.
+
+#### N19 / Why title clarity — 10 October 2026
+
+The rapid notes repair is integrated in [PR #473](https://github.com/sinura7/PersonalTrainer/pull/473)
+at `20f00b27`. Both reviews, the candidate and clean-trunk local gates
+(4,081 app / 1,696 standalone checks), native verification and both hosted
+jobs passed. The bounded clear/Recents/return experiment retained empty notes
+and exact records. Its timing misses and blocked return observations remain
+separate from the candidate's 375 ms task-absence result; actual process death
+within 400 ms and physical-phone acceptance are not established.
+
+N19's current native frame still shows Material 3's “Drag handle” tooltip over
+the explanation title at font 2.0. Why now uses its own 48 dp grip/close target
+inside the sheet content, retaining the former handle's height and appearance
+without that tooltip. It announces “Close explanation” and supports touch and
+the accessibility Dismiss action. Sheet dragging, Back, outside dismissal and
+the fixed 64 dp Use / 48 dp Keep actions retain the existing modal behavior.
+No extra title controls or screen height are added; no coaching rules change.
+
+Focused verification passes 22 cases: the existing nine-size/font matrices,
+complete title glyphs and new touch/accessibility close cases preserve manual
+values, exact saved rows and rest. The first verification attempt stopped at
+the static named-argument checker before tests; equivalent positional syntax
+passes without changing or bypassing the checker. Evidence is archived under
+ignored `build/ux-context/runs/why-title-clarity/`. Complete-gate, native,
+review and integration evidence follow. This is a bounded N19 repair; broader
+workout/phone acceptance and app-wide UX work remain open. No drop is included.

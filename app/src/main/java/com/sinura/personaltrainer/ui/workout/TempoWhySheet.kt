@@ -2,10 +2,13 @@ package com.sinura.personaltrainer.ui.workout
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -13,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
@@ -31,7 +35,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.dismiss
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,6 +78,9 @@ internal fun TempoWhySheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Surface3,
+        // Material's handle tooltip can cover the explanation title at large text.
+        // Keep the same 48 dp grip/close target inside the content, without a tooltip.
+        dragHandle = null,
     ) {
         CompositionLocalProvider(LocalDensity provides density, LocalLayoutDirection provides direction) {
             Column(
@@ -81,6 +90,20 @@ internal fun TempoWhySheet(
                     .padding(bottom = Metrics.space6)
                     .testTag(WorkoutTestTags.TEMPO_WHY_SHEET),
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Metrics.touchMin)
+                        .testTag(WorkoutTestTags.TEMPO_WHY_CLOSE)
+                        .clickable(role = Role.Button, onClickLabel = "Close explanation", onClick = onDismiss)
+                        .semantics {
+                            contentDescription = "Close explanation"
+                            dismiss("Close explanation") { onDismiss(); true }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BottomSheetDefaults.DragHandle(modifier = Modifier.clearAndSetSemantics {})
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

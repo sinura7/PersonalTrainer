@@ -148,6 +148,7 @@ class AddASetWhyJourneyRenderTest {
         }
         compose.waitForIdle()
         openWhy()
+        renderedText(profile, "title", "Why Tempo suggests an extra set", TextPrimary, false)
         renderedText(profile, "summary", "Your planned sets are complete. 4 of 5 readiness checks support one extra set.", TextSecondary)
         val decisions = listOf(
             TempoWhySheetCopy.LABEL_LAST_SET to checkNotNull(facts["lastSet"]),
