@@ -10,10 +10,18 @@ import com.sinura.personaltrainer.data.repository.RepeatOutcome
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.CompletedTrainingDetailLoad
 import com.sinura.personaltrainer.domain.SetLogRules
+import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.FinishedSessionEdits
+import com.sinura.personaltrainer.domain.WorkoutSetSave
+import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.components.NotesSaveState
 import com.sinura.personaltrainer.ui.workout.FloorSessionNotes
+import com.sinura.personaltrainer.ui.workout.FloorSetSaves
+import com.sinura.personaltrainer.ui.workout.WorkoutSaveState
+import com.sinura.personaltrainer.workout.SavedStateWorkoutSave
+import com.sinura.personaltrainer.workout.WorkoutDraftCache
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,12 +37,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.UUID
 
 private const val TAG = "PT/SessionDetailViewModel"
 
 /** [ErrorSlot] families: a success may clear only its own family's refusal. */
 private const val ERR_REPEAT = "repeat"
 private const val ERR_DETAIL = "detail"
+private const val ERR_SET_SAVE = "set-save"
 
 data class SessionDetailUiState(
     val isLoading: Boolean = true,
@@ -112,6 +122,28 @@ class SessionDetailViewModel @JvmOverloads constructor(
     private val _deletedSet = MutableStateFlow<WorkoutRepository.DeletedSet?>(null)
     private val mutating = AtomicBoolean(false)
     val deletedSet: StateFlow<WorkoutRepository.DeletedSet?> = _deletedSet.asStateFlow()
+    // History has its own operation owner; it never borrows a live workout's pending save.
+    private val savedSetExit = SavedStateWorkoutSave(savedStateHandle, "history.setExit.v1")
+    private val _setEditorExit = MutableStateFlow(savedSetExit.read(sessionId))
+    internal val setEditorExit: StateFlow<WorkoutSetSave?> = _setEditorExit.asStateFlow()
+    private var cancelPendingSet = false
+    private val savedEditOriginal = SavedStateWorkoutSave(savedStateHandle, "history.editorOriginal.v1")
+    private val _editorOriginal = MutableStateFlow(savedEditOriginal.read(sessionId))
+    internal val editorOriginal: StateFlow<WorkoutSetSave?> = _editorOriginal.asStateFlow()
+    private val historySaves: FloorSetSaves = FloorSetSaves(
+        sessionId = sessionId,
+        cache = WorkoutDraftCache(),
+        saved = SavedStateWorkoutSave(savedStateHandle, "history.pendingSet.v1"),
+        write = container.workoutRepository::saveFinishedSet,
+        inspect = container.workoutRepository::inspectFinishedSetSave,
+        // Inspection establishes the finished owner from Room, and the write checks
+        // it again transactionally. A degraded display observer cannot block Retry.
+        sessionFound = { true },
+        onSaved = { command, _, _ -> finishSetEditor(command) },
+        onReleased = { command, conflict -> if (cancelPendingSet || conflict) finishSetEditor(command) },
+        onRejected = {},
+    )
+    internal val setSave: StateFlow<WorkoutSaveState> = historySaves.operation
     private val notesExitPending = MutableStateFlow(false)
     private val _notesExitRequested = MutableStateFlow(false)
     val notesExitRequested: StateFlow<Boolean> = _notesExitRequested.asStateFlow()
@@ -139,6 +171,12 @@ class SessionDetailViewModel @JvmOverloads constructor(
         )
 
     init {
+        val completed = _setEditorExit.value
+        if (completed != null) historySaves.clear(completed)
+        else historySaves.keepRestored()?.let { command ->
+            // Inspect on recreation; restoring state never silently repeats a write.
+            viewModelScope.launch { historySaves.reconcile(command, retryWrite = false) }
+        }
         viewModelScope.launch {
             load.collect { load ->
                 if (load.missing) sessionNotes.sessionMissing()
@@ -180,7 +218,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
     private fun notesExitIsActive(): Boolean =
         notesExitPending.value || _notesExitRequested.value || _navigateToSession.value != null
 
-    private fun canBeginNotesExit(): Boolean = !notesExitIsActive() && !mutating.get()
+    private fun canBeginNotesExit(): Boolean = !notesExitIsActive() && !mutating.get() && !setOperationOwned()
 
     /** Retry keeps the original destination; no new session or navigation precedes notes. */
     private fun beginNotesExit(intent: NotesExitIntent, leaveWithoutChanges: Boolean = false) {
@@ -232,6 +270,106 @@ class SessionDetailViewModel @JvmOverloads constructor(
         retryNonce.value += 1
     }
 
+    internal fun saveCorrection(
+        setId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean, durationSeconds: Int?,
+    ) {
+        if (!canSaveSet()) return
+        val displayed = uiState.value.session?.sets?.firstOrNull { it.id == setId }
+        val snapshot = _editorOriginal.value?.takeIf { it.setId == setId }
+        val original = displayed?.let { row -> snapshot?.let { frozen ->
+            row.copy(sessionId = frozen.sessionId, exerciseId = frozen.exerciseId,
+                weightKg = frozen.values.weightKg, reps = frozen.values.reps, rpe = frozen.values.rpe,
+                isWarmup = frozen.values.isWarmup, completedAt = frozen.completedAt, durationSeconds = frozen.values.durationSeconds)
+        } ?: row }
+        if (original == null) {
+            errors.fail(ERR_SET_SAVE, "That set is no longer available.")
+            return
+        }
+        val timed = original.reps < 1 && (original.durationSeconds ?: 0) > 0
+        if (!validEditorEffort(rpe, isWarmup, timed || reps == 0)) return
+        startSetSave(WorkoutSetSave(
+            sessionId = sessionId, exerciseId = original.exerciseId, setId = original.id, completedAt = original.completedAt,
+            values = WorkoutSetValues(weightKg, if (timed) original.reps else reps, rpe, isWarmup, durationSeconds ?: original.durationSeconds),
+            original = WorkoutSetValues.from(original),
+        ))
+    }
+
+    /** Freeze the row the editor actually opened, before any later observation replaces it. */
+    internal fun beginSetEdit(set: SetLog) {
+        if (!canSaveSet() || set.sessionId != sessionId) return
+        val original = WorkoutSetSave(set.sessionId, set.exerciseId, set.id, set.completedAt, WorkoutSetValues.from(set))
+        savedEditOriginal.write(original)
+        _editorOriginal.value = original
+    }
+
+    internal fun dismissSetEdit(setId: String) {
+        if (historySaves.pending || _editorOriginal.value?.setId != setId) return
+        savedEditOriginal.clear()
+        _editorOriginal.value = null
+        errors.clearFrom(ERR_SET_SAVE)
+    }
+
+    internal fun saveAdditionalSet(exerciseId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
+        if (!canSaveSet()) return
+        val session = uiState.value.session?.takeIf { it.isFinished } ?: return
+        if (!validEditorEffort(rpe, isWarmup, isHold = false)) return
+        startSetSave(WorkoutSetSave(
+            sessionId, exerciseId, UUID.randomUUID().toString(),
+            FinishedSessionEdits.timestampForAddedSet(session.startedAt, checkNotNull(session.finishedAt), session.sets.maxOfOrNull { it.completedAt }),
+            WorkoutSetValues(weightKg, reps, rpe, isWarmup, null),
+        ))
+    }
+
+    private fun canSaveSet(): Boolean = !historySaves.pending && _setEditorExit.value == null &&
+        !mutating.get() && !notesExitIsActive()
+
+    private fun setOperationOwned(): Boolean = historySaves.pending || _setEditorExit.value != null
+
+    private fun validEditorEffort(rpe: Int?, isWarmup: Boolean, isHold: Boolean): Boolean {
+        val violation = SetLogRules.validateEffort(rpe, isWarmup, isHold) ?: return true
+        errors.fail(ERR_SET_SAVE, violation)
+        return false
+    }
+
+    private fun startSetSave(command: WorkoutSetSave) {
+        errors.clearFrom(ERR_SET_SAVE)
+        cancelPendingSet = false
+        historySaves.freeze(command)
+        viewModelScope.launch { historySaves.persist(command) }
+    }
+
+    internal fun retrySetSave() {
+        val command = historySaves.beginRetry() ?: return
+        cancelPendingSet = false
+        viewModelScope.launch { historySaves.reconcile(command, retryWrite = true) }
+    }
+
+    /** Cancel/Edit first establish whether the frozen write already committed. */
+    internal fun releaseSetSave(cancel: Boolean) {
+        val command = historySaves.beginEdit() ?: return
+        cancelPendingSet = cancel
+        viewModelScope.launch { historySaves.reconcile(command, retryWrite = false, releaseUnwritten = true) }
+    }
+
+    private fun finishSetEditor(command: WorkoutSetSave) {
+        // Persist acknowledgement before clearing the pending command: recreation in this
+        // window must close the same editor rather than insert an additional set again.
+        savedSetExit.write(command)
+        _setEditorExit.value = command
+        historySaves.clear(command)
+        errors.clearFrom(ERR_SET_SAVE)
+    }
+
+    internal fun onSetEditorExitHandled(command: WorkoutSetSave) {
+        if (_setEditorExit.value != command) return
+        savedSetExit.clear()
+        _setEditorExit.value = null
+        if (_editorOriginal.value?.setId == command.setId) {
+            savedEditOriginal.clear()
+            _editorOriginal.value = null
+        }
+    }
+
     fun updateSet(
         setId: String,
         weightKg: Double,
@@ -240,6 +378,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
         isWarmup: Boolean,
         durationSeconds: Int? = null,
     ) {
+        if (setOperationOwned()) return
         // Effort follows the original timed type, even if the generic rep editor was
         // nudged. Supported older timed rows can have a nonpositive rep representation.
         val original = uiState.value.session?.sets?.firstOrNull { it.id == setId }
@@ -263,6 +402,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun addSet(exerciseId: String, weightKg: Double, reps: Int, rpe: Int?, isWarmup: Boolean) {
+        if (setOperationOwned()) return
         SetLogRules.validateEffort(rpe = rpe, isWarmup = isWarmup, isHold = reps == 0)?.let { missing ->
             report(IllegalArgumentException(missing), missing)
             return
@@ -287,6 +427,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun deleteSet(setId: String) {
+        if (setOperationOwned()) return
         viewModelScope.launch {
             runCatchingCancellable { container.workoutRepository.deleteSet(setId) }
                 .onSuccess { _deletedSet.value = it }
@@ -295,6 +436,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun undoDeleteSet() {
+        if (setOperationOwned()) return
         val pending = _deletedSet.value ?: return
         _deletedSet.value = null
         viewModelScope.launch {
@@ -308,6 +450,7 @@ class SessionDetailViewModel @JvmOverloads constructor(
     }
 
     fun deleteSession() {
+        if (setOperationOwned()) return
         if (!mutating.compareAndSet(false, true)) return
         viewModelScope.launch {
             try {

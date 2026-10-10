@@ -24,10 +24,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.ui.components.InstrumentChip
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.ThumbSize
@@ -40,6 +44,9 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.rememberFullSheetState
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.workout.WorkoutSaveState
+import com.sinura.personaltrainer.ui.workout.WorkoutSavePhase
 
 object SetEditTestTags {
     const val DELETE = "set-edit-delete"
@@ -79,25 +86,30 @@ fun SetEditSheet(
     prefillReps: Int = DEFAULT_REPS,
     loadClass: LoadClass = LoadClass.LOADED,
     plated: Boolean = false,
+    saveState: WorkoutSaveState = WorkoutSaveState(),
+    validationMessage: String? = null,
+    onRetry: () -> Unit = {},
+    onEditValues: () -> Unit = {},
 ) {
     // Keyed on the set being edited: the sheet is one composable serving every row, so without
     // the key, opening set 2 after set 1 would show set 1's numbers.
     val draftKey = initial?.id ?: "$ADD_MODE_KEY:${exercise.id}"
-    var weightKg by rememberSaveable(draftKey) { mutableDoubleStateOf(initial?.weightKg ?: prefillWeightKg) }
-    var reps by rememberSaveable(draftKey) { mutableIntStateOf(initial?.reps ?: prefillReps) }
-    var rpe by rememberSaveable(draftKey) { mutableStateOf(initial?.rpe) }
-    var isWarmup by rememberSaveable(draftKey) { mutableStateOf(initial?.isWarmup ?: false) }
+    val submitted = saveState.command?.values
+    var weightKg by rememberSaveable(draftKey) { mutableDoubleStateOf(submitted?.weightKg ?: initial?.weightKg ?: prefillWeightKg) }
+    var reps by rememberSaveable(draftKey) { mutableIntStateOf(submitted?.reps ?: initial?.reps ?: prefillReps) }
+    var rpe by rememberSaveable(draftKey) { mutableStateOf(if (submitted != null) submitted.rpe else initial?.rpe) }
+    var isWarmup by rememberSaveable(draftKey) { mutableStateOf(submitted?.isWarmup ?: initial?.isWarmup ?: false) }
     // The saved measurement determines the editor. A timed repetition set still edits reps;
     // neither planned hold metadata nor a draft change may reclassify the original result.
     val timedOriginal = initial != null && initial.reps < 1 && (initial.durationSeconds ?: 0) > 0
-    var durationSeconds by rememberSaveable(draftKey) { mutableIntStateOf(initial?.durationSeconds ?: 1) }
+    var durationSeconds by rememberSaveable(draftKey) { mutableIntStateOf(submitted?.durationSeconds ?: initial?.durationSeconds ?: 1) }
     // Accepted history may exceed the new-entry fumble guard. Both typing and nudging
     // must correct the captured measurement rather than reduce it to that guard.
     val repLimit = if (initial == null) NumericEntry.MAX_REPS else Int.MAX_VALUE
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberFullSheetState(LocalReducedMotion.current),
+        onDismissRequest = { if (!saveState.pending) onDismiss() },
+        sheetState = rememberFullSheetState(LocalReducedMotion.current) { !saveState.pending },
     ) {
         Column(
             modifier = Modifier
@@ -137,7 +149,15 @@ fun SetEditSheet(
             }
             // Key child keypad state too: switching rows must not carry an open draft or
             // typing dialog from the preceding set into this one's save payload.
-            key(draftKey) {
+            if (submitted != null) {
+                Text(
+                    SetCopy.setLine(weightKg = submitted.weightKg, reps = submitted.reps, loadClass = loadClass,
+                        unit = LocalWeightUnit.current, durationSeconds = submitted.durationSeconds, entryPrecision = true) +
+                        (submitted.rpe?.let { " · RPE $it" } ?: "") + (if (submitted.isWarmup) " · Warm-up" else ""),
+                    style = InstrumentType.title, color = TextPrimary,
+                    modifier = Modifier.testTag("set-edit-submitted-values"),
+                )
+            } else key(draftKey) {
                 SetEntryPanel(
                     weightKg = weightKg,
                     reps = reps,
@@ -162,7 +182,8 @@ fun SetEditSheet(
                     RPE_VALUES.forEach { value ->
                         InstrumentChip(
                             label = value.toString(),
-                            selected = rpe == value,
+                            selected = (if (submitted != null) submitted.rpe else rpe) == value,
+                            enabled = !saveState.pending,
                             // Clear a mistaken selection. Working repetition sets require
                             // effort; timed originals and warm-ups may leave it unrecorded.
                             onClick = { rpe = if (rpe == value) null else value },
@@ -172,13 +193,24 @@ fun SetEditSheet(
             }
             InstrumentChip(
                 label = "Warm-up",
-                selected = isWarmup,
+                selected = submitted?.isWarmup ?: isWarmup,
+                enabled = !saveState.pending,
                 onClick = { isWarmup = !isWarmup },
             )
+            (saveState.message ?: validationMessage)?.let { message ->
+                Text(message, style = InstrumentType.body, color = Danger,
+                    modifier = Modifier.testTag("set-edit-save-error").semantics { liveRegion = LiveRegionMode.Polite })
+            }
             PrimaryGymButton(
-                text = "Save",
+                text = when {
+                    saveState.phase == WorkoutSavePhase.CHECKING -> "Checking saved set…"
+                    saveState.busy -> "Saving…"
+                    saveState.pending -> "Retry save"
+                    else -> "Save"
+                },
+                enabled = !saveState.busy && saveState.phase != WorkoutSavePhase.CONFLICT,
                 onClick = {
-                    onSave(
+                    if (saveState.pending) onRetry() else onSave(
                         weightKg,
                         if (timedOriginal) checkNotNull(initial).reps else reps,
                         rpe,
@@ -187,9 +219,15 @@ fun SetEditSheet(
                     )
                 },
             )
+            if (saveState.pending && !saveState.busy) {
+                TextButton(onClick = onEditValues, modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin)) {
+                    Text(if (saveState.phase == WorkoutSavePhase.CONFLICT) "Review saved sets" else "Edit values", style = InstrumentType.bodyStrong, color = TextPrimary)
+                }
+            }
             if (onDelete != null) {
                 TextButton(
                     onClick = onDelete,
+                    enabled = !saveState.pending,
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = Metrics.touchMin)
@@ -200,6 +238,7 @@ fun SetEditSheet(
             }
             TextButton(
                 onClick = onDismiss,
+                enabled = !saveState.busy,
                 modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin).testTag(SetEditTestTags.CANCEL),
             ) {
                 Text("Cancel", style = InstrumentType.bodyStrong, color = TextPrimary)

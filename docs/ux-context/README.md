@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are reviewed and integrated through #467, with fresh local, native and hosted verification on actual merged trunk. The active single F9/W11/V12/Q08/UX29 packet is the named Set Edit sheet identity and numeric controls refinement. Broader app UX phases and physical-phone acceptance remain.
+**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are integrated through #467. Set Edit identity and numeric controls are integrated through #468. The active single F9/W11/V12/Q08/UX29 packet is History saved-set save recovery. Broader app UX phases and physical-phone acceptance remain.
 
 **Summary/detail integration closed, 9 October 2026 UTC:** [PR #467](https://github.com/sinura7/PersonalTrainer/pull/467)
 merged as `755a2df9`, exact reviewed tree `f7628c17`. Actual clean-trunk full
@@ -50,10 +50,44 @@ gate closed **PASS on 10 October UTC**: **4,049 app cases / 578 fresh suites**,
 required Windows tasks and unchanged **1,550 runtime inputs**. Native graphics
 review accepts the changed identity, controls, footer, timed Undo and draft
 recovery; the thumbnail repair keeps real IO and every original assertion.
-Final commit binding/reviews, integration and connected Android verification
-remain pending.
-Broader failed-save recovery, pure-hold Summary display and phone acceptance
-are separate open work.
+**Set editor integration closed, 10 October 2026 UTC:**
+[PR #468](https://github.com/sinura7/PersonalTrainer/pull/468) merged as
+`09ff23d5`, exact reviewed tree `307db5c3`. The actual clean-trunk complete
+gate passed **4,049 app cases / 578 fresh suites** and **1,696 standalone
+tests / 255 classes**, with zero failures/errors/skips. Local API 29 passed
+**222 cases / 32 classes**, including the connected workout → Summary →
+History/detail journey. Both hosted jobs passed on that exact trunk commit.
+Independent/adversarial packet reviews and the final independent integration
+review passed; recoverable feature refs and the owned emulator were cleaned up.
+The sealed receipt is `build/ux-context/runs/set-editor-identity-time/integration-complete-09ff23d5.json`.
+No Debug drop or phone acceptance is claimed.
+
+**History save recovery, 10 October UTC:** Save now retains a History editor
+until acknowledgement; failed submissions keep their fixed identity and exact
+values for Retry. Retry inspects first, and Cancel/Edit first settle an unknown
+outcome. Task-restored pending submissions inspect without automatically writing.
+The editor also keeps the original opening snapshot so a newer correction cannot
+be overwritten by an older draft's first Save. This uses the existing saved-state
+codec and save engine with a separate History owner; no schema or backup format
+changes are planned. It is task restoration, not a crash journal.
+
+The original `counter02` reproduced draft loss after a refused write. Actual
+`targeted03` ran **13 cases / 2 fresh suites, 2 failures**: a stale open editor
+overwrote a newer correction, and a selector failed. `targeted04` ran **79 cases /
+4 fresh suites, 2 failures**: the zero-loaded-working-weight refusal was bypassed
+by an unchanged-row acknowledgement, and the test's discover-before-absence
+helper failed after a successful Retry. Those are preserved failures, not passes.
+The repaired `targeted05` passed **80 cases / 4 fresh suites**. The subsequent
+`targeted06` tested two review findings: Retry during a degraded display read,
+and refusal of an unchanged invalid original through Retry/Edit. It ran **12
+cases / 2 fresh suites, 1 failure**, from an incorrect spoken-label expectation
+after the invalid submission was correctly retained and released. The narrow
+fixture correction's `targeted07` passed the complete invalid-row native path,
+including an intentional valid correction and exact stored/exported inventory.
+Source review accepts both recovery repairs. These focused results do not replace
+the packet's complete gate, native journey and integration review, whose executed
+results belong in the implementation PR and its archived verification receipt.
+Pure-hold Summary display, broader UX and phone acceptance remain separate work.
 
 **Audience:** Temper's owner and the next designer, engineer, or agent continuing this work.
 
