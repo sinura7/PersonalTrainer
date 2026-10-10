@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectableGroup
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -31,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SessionExercise
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
@@ -70,7 +73,12 @@ internal fun ExerciseHeader(
     onDetails: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    focused: Boolean = false,
 ) {
+    if (focused) {
+        FocusExerciseIdentity(lift, number, total, setContext, onOpenSwitcher, onDetails, modifier, enabled)
+        return
+    }
     val meaning = LoadClass.of(lift.exercise.loadType).weightMeaning
     val equipment = CurrentLiftCopy.secondaryLine(lift.exercise.equipment.label, meaning)
     Box(
@@ -130,6 +138,63 @@ internal fun ExerciseHeader(
                 onWarmup = onWarmup,
             )
         }
+    }
+}
+
+/** A labelled switch target beside, rather than around, the independent Details image. */
+@Composable
+private fun FocusExerciseIdentity(
+    lift: SessionExercise,
+    number: Int,
+    total: Int,
+    setContext: String,
+    onOpenSwitcher: () -> Unit,
+    onDetails: () -> Unit,
+    modifier: Modifier,
+    enabled: Boolean,
+) {
+    Box(modifier.fillMaxWidth().testTag(WorkoutTestTags.CURRENT_LIFT)) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .testTag(WorkoutTestTags.liftCard(lift.exercise.id)).semantics { isTraversalGroup = true },
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        DetailsStill(lift, enabled, onDetails)
+        Column(
+            modifier = Modifier.weight(1f).heightIn(min = Metrics.workoutIdentityImage),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
+            Text(lift.exercise.name, style = InstrumentType.workoutTitle, color = TextPrimary)
+            val switch: @Composable () -> Unit = {
+                Row(
+                    modifier = Modifier.heightIn(min = Metrics.touchMin)
+                        .clip(RoundedCornerShape(Radius.sm))
+                        .clickable(enabled = enabled, role = Role.Button,
+                            onClickLabel = CurrentLiftCopy.SWITCH, onClick = onOpenSwitcher)
+                        .testTag(WorkoutTestTags.LIFT_SWITCH)
+                        .padding(horizontal = Metrics.space2, vertical = Metrics.space1),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+                ) {
+                    Text(CurrentLiftCopy.switchLabel(number, total), style = InstrumentType.caption, color = TextSecondary)
+                    Icon(TemperIcons.ChevronDown, contentDescription = null, tint = TextSecondary,
+                        modifier = Modifier.size(Metrics.chevron))
+                }
+            }
+            if (LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)) {
+                Text(setContext, modifier = Modifier.testTag(WorkoutTestTags.SET_CONTEXT),
+                    style = InstrumentType.caption, color = TextSecondary)
+                switch()
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(setContext, modifier = Modifier.weight(1f).testTag(WorkoutTestTags.SET_CONTEXT),
+                        style = InstrumentType.caption, color = TextSecondary)
+                    switch()
+                }
+            }
+        }
+    }
     }
 }
 

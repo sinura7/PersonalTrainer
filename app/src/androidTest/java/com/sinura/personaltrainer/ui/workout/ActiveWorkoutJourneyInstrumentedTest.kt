@@ -225,18 +225,18 @@ class ActiveWorkoutJourneyInstrumentedTest {
         } finally {
             compose.mainClock.autoAdvance = autoAdvance
         }
-        // Quiet keeps advice in the scrolling floor, after the entry and saved work.
-        // Reveal the actual control before checking it; advice may start below the fold.
-        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_APPLY)
+        // Focus keeps the Tempo shortcut beside saved work; its explanation owns Apply.
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_WHY)
         awaitCondition("inline Tempo suggestion displayed") {
             compose.waitForIdle()
             runCatching {
                 compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
-                compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed()
+                compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed()
             }.isSuccess
         }
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_USE).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_KEEP).assertIsDisplayed().performClick()
         compose.waitUntil(10_000) {
             compose.onAllNodes(hasTestTag(WorkoutTestTags.FINISH) and isEnabled())
                 .fetchSemanticsNodes().isNotEmpty()

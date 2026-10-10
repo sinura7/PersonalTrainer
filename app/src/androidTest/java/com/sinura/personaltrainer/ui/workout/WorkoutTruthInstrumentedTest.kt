@@ -16,6 +16,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -247,7 +249,10 @@ class WorkoutTruthInstrumentedTest {
         capture("live-read-failed-font2")
         fixture.failReads.set(false)
         compose.onNodeWithText("Retry").performTouchInput { click() }
-        compose.waitUntil(15_000) { vm.uiState.value.session?.id == fixture.sessionId && vm.uiState.value.loadState == SessionLoadState.FOUND }
+        compose.waitUntil(15_000) {
+            val recovered = vm.uiState.value
+            recovered.session?.id == fixture.sessionId && recovered.loadState == SessionLoadState.FOUND && recovered.notes == original.notes
+        }
         assertEquals("Stored original", vm.uiState.value.notes)
         assertEquals(original, fixture.stored())
         capture("live-read-recovered-font2")
@@ -275,13 +280,14 @@ class WorkoutTruthInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().performTouchInput { click() }
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SUMMARY).performScrollTo()
             .assertTextContains("Your planned sets are complete. 4 of 5 readiness checks support one extra set.")
+        val inWhy = hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET))
         for (label in listOf("Effort", "Today's sets", "Last session", "Weekly volume", "Recent volume")) {
-            compose.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+            compose.onNode(hasText(label) and inWhy).performScrollTo().assertIsDisplayed()
         }
-        compose.onNodeWithText("No earlier session to compare.").performScrollTo().assertIsDisplayed()
+        compose.onNode(hasText("No earlier session to compare.") and inWhy).performScrollTo().assertIsDisplayed()
         for (fact in listOf("Average RPE 7 · within the 7.5 guide.", "No failed or cut-short sets flagged.",
             "Estimate 2 sets · below the 10-set guide.", "No recent-volume or block-week support.")) {
-            compose.onNodeWithText(fact).performScrollTo().assertIsDisplayed()
+            compose.onNode(hasText(fact) and inWhy).performScrollTo().assertIsDisplayed()
         }
         val keep = compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_KEEP)
         val apply = compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_USE)

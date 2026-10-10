@@ -60,6 +60,8 @@ internal fun RpeSelector(
     recommendedRpe: Int?,
     onRpe: (Int?) -> Unit,
     modifier: Modifier = Modifier,
+    focused: Boolean = false,
+    optional: Boolean = false,
 ) {
     var helpOpen by rememberSaveable { mutableStateOf(false) }
     val measurer = rememberTextMeasurer()
@@ -68,7 +70,14 @@ internal fun RpeSelector(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
-        BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (focused) {
+            Row(Modifier.fillMaxWidth()) {
+                Text(RpeCopy.SHORT_LABEL, style = InstrumentType.bodyStrong, color = TextSecondary)
+                Spacer(Modifier.weight(1f))
+                Text(if (warmup) "Warm-up" else rpe?.let { "Selected $it" } ?: if (optional) "Optional" else "Choose one",
+                    style = InstrumentType.caption, color = TextSecondary)
+            }
+        } else BoxWithConstraints(Modifier.fillMaxWidth()) {
             // The full heading only where it fits beside the help mark and Clear, whether or not
             // Clear is showing, so choosing a value never rewords or reflows the row. Large text
             // and small phones read "Effort"; Clear keeps its width and its one line.
@@ -125,7 +134,8 @@ internal fun RpeSelector(
         }
         if (warmup) {
             Text(
-                "Effort is recorded for working sets. Warm-ups leave RPE blank.",
+                if (rpe != null) "Recorded effort: RPE $rpe is kept for this warm-up."
+                else "Effort is recorded for working sets. Warm-ups leave RPE blank.",
                 modifier = Modifier.testTag(WorkoutTestTags.RPE_WARMUP_REASON),
                 style = InstrumentType.caption,
                 color = TextSecondary,

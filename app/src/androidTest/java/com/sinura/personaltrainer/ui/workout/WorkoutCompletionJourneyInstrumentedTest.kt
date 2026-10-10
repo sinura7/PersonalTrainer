@@ -19,8 +19,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.sinura.personaltrainer.domain.SetOrdinalCopy
-import com.sinura.personaltrainer.domain.SetRowCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.GoldenCapture
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
@@ -106,12 +104,13 @@ class WorkoutCompletionJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(1)
         val original = session().sets.single()
-        // The saved chip in the set history is the row itself: its menu carries Revise / Delete.
-        val chip = hasTestTag(WorkoutTestTags.setChip(original.id))
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(chip)
-        compose.onNode(chip).assertIsDisplayed().performClick()
-        // The chip's menu names the chip's own ordinal (Set 1 of 1 here).
-        compose.onNodeWithText(SetRowCopy.delete(SetOrdinalCopy.working(1, 1))).performClick()
+        // Latest edits in one tap; All exposes destructive actions for the exact saved ID.
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.VIEW_SETS))
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.VIEW_SETS)
+        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).assertIsDisplayed().performClick()
+        compose.onNodeWithTag("workout-saved-sets-list").performScrollToNode(hasTestTag(WorkoutTestTags.setOptions(original.id)))
+        compose.onNodeWithTag(WorkoutTestTags.setOptions(original.id)).assertIsDisplayed().performClick()
+        compose.onNodeWithText("Delete set").performClick()
         awaitSets(0)
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         compose.onNodeWithText("Undo").performClick()

@@ -49,6 +49,7 @@ fun ScreenHeader(
     titleModifier: Modifier = Modifier,
     kickerTitle: Boolean = false,
     subtitle: String? = null,
+    subtitleModifier: Modifier = Modifier,
     paintBackground: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(
         start = Metrics.space2,
@@ -97,6 +98,7 @@ fun ScreenHeader(
             if (subtitle != null) {
                 Text(
                     subtitle,
+                    modifier = subtitleModifier,
                     style = InstrumentType.caption,
                     color = TextSecondary,
                 )

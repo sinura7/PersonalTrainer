@@ -54,6 +54,8 @@ fun QuietButton(
     plain: Boolean = false,
     /** What "double-tap to …" says when the visible words name a thing, not the act. */
     onClickLabel: String? = null,
+    /** Disclosure sheets may wrap complete labels at large text sizes. */
+    maxLines: Int = 1,
 ) {
     val view = LocalView.current
     // An accented control reports a state (Applied), so it keeps its ink while disabled.
@@ -83,7 +85,7 @@ fun QuietButton(
         if (leading != null) {
             Icon(leading, contentDescription = null, tint = ink, modifier = Modifier.size(Metrics.chevron))
         }
-        Text(text, style = InstrumentType.bodyStrong, color = ink, maxLines = 1)
+        Text(text, style = InstrumentType.bodyStrong, color = ink, maxLines = maxLines)
         if (trailing != null) {
             Icon(trailing, contentDescription = null, tint = ink, modifier = Modifier.size(Metrics.chevron))
         }

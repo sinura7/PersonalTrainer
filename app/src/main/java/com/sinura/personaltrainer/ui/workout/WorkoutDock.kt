@@ -213,6 +213,7 @@ internal fun WorkoutDock(
                 onEditDuration = { durationSheet = true },
                 onStartSetClock = events.onStartSetClock,
                 onOpenRest = events.onOpenRest,
+                focused = true,
             )
         }
     }
@@ -229,6 +230,8 @@ internal fun WorkoutDock(
         ) { Text(clockLabel, style = InstrumentType.caption, color = TextPrimary) }
     }
     PinnedDock(
+        hairline = false,
+        verticalPadding = Metrics.space2,
         prelude = {
             Box(
                 modifier = Modifier

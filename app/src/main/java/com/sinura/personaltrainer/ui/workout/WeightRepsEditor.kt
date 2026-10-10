@@ -108,6 +108,7 @@ internal fun WeightRepsEditor(
     modifier: Modifier = Modifier,
     plannedKg: Double? = null,
     lastKg: Double? = null,
+    focused: Boolean = false,
 ) {
     val meaning = loadClass.weightMeaning
     val showWeight = meaning != WeightMeaning.NONE
@@ -136,7 +137,8 @@ internal fun WeightRepsEditor(
             availableWidth = columnWidth,
             style = heroStyle,
             enabled = enabled,
-            below = quickFills.takeIf { it.isNotEmpty() }?.let { fills ->
+            fieldLabel = if (focused) meaning.fieldLabel else null,
+            below = quickFills.takeIf { !focused && it.isNotEmpty() }?.let { fills ->
                 {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -195,6 +197,7 @@ internal fun WeightRepsEditor(
                 onType = { typingHold = true },
                 caption = null,
                 tag = WorkoutTestTags.HOLD_STEPPER,
+                fieldLabel = if (focused) "Time" else null,
             )
         } else {
             HeroNumeral(
@@ -213,6 +216,7 @@ internal fun WeightRepsEditor(
                 onType = { typingReps = true },
                 caption = null,
                 tag = WorkoutTestTags.REPS_STEPPER,
+                fieldLabel = if (focused) "Reps" else null,
             )
         }
     }
@@ -228,7 +232,7 @@ internal fun WeightRepsEditor(
         // hold) fits the column: decided from fixed samples, so the size never jumps as the
         // value changes, and a 102.5 lbs never crosses the divider on a narrow phone. Only a
         // value wider than the sample steps down from it (HeroNumeral), on the sample's line.
-        val heroStyle = remember(columnWidth, density, hold, unit) {
+        val heroStyle = remember(columnWidth, density, hold, unit, focused) {
             val textWidth = columnWidth - Metrics.space1 * 2
             val unitWidth = with(density) {
                 measurer.measure(unit.suffix, style = InstrumentType.unit, softWrap = false).size.width.toDp()
@@ -240,7 +244,9 @@ internal fun WeightRepsEditor(
                 val work = measurer.measure(if (hold) TIME_SAMPLE else REPS_SAMPLE, style = style, softWrap = false).size.width.toDp()
                 maxOf(weight, work)
             }
-            listOf(InstrumentType.numeralXl, InstrumentType.numeralLg).firstOrNull { widest(it) <= textWidth }
+            val ramp = if (focused) listOf(InstrumentType.workoutNumeral, InstrumentType.numeralLg)
+                else listOf(InstrumentType.numeralXl, InstrumentType.numeralLg)
+            ramp.firstOrNull { widest(it) <= textWidth }
                 ?: InstrumentType.numeralMd
         }
         if (showWeight && !stack) {
@@ -349,6 +355,7 @@ private fun HeroNumeral(
     tag: String,
     unitLabel: String? = null,
     below: (@Composable () -> Unit)? = null,
+    fieldLabel: String? = null,
 ) {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -463,10 +470,17 @@ private fun HeroNumeral(
             // adding a second helping only pushed the pair apart.
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            // No heading over the numeral. `WEIGHT` and `REPS` were saying what the unit
-            // riding the weight's baseline and the absence of one on the reps already say,
-            // and the heading cost the entry loop a line it could not spare. The numeral's
-            // own spoken form still names its field, so TalkBack is unchanged.
+            fieldLabel?.let { label ->
+                Text(
+                    label,
+                    modifier = Modifier.fillMaxWidth().clearAndSetSemantics { },
+                    style = InstrumentType.caption,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            // Focus adds visible field labels. The numeral's own spoken form still names
+            // the field, so the decorative label does not create a second focus stop.
             if (inline) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

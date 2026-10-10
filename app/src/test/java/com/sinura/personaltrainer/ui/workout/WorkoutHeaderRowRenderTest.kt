@@ -2,6 +2,15 @@ package com.sinura.personaltrainer.ui.workout
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -16,6 +25,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WorkoutProgress
 import com.sinura.personaltrainer.domain.WorkoutProgressCalculator
 import com.sinura.personaltrainer.ui.theme.Metrics
 import kotlinx.coroutines.Dispatchers
@@ -103,7 +113,7 @@ class WorkoutHeaderRowRenderTest {
         val progress = WorkoutProgressCalculator.of(session = vm.uiState.value.session, selectedExerciseId = vm.uiState.value.selectedExerciseId)
         val spoken = WorkoutProgressCalculator.spoken(progress)
         val line = compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE, useUnmergedTree = true).assertIsDisplayed()
-        assertEquals(listOf(WorkoutProgressCalculator.headline(progress).uppercase()), line.mergedTexts())
+        assertEquals(listOf(WorkoutProgressCalculator.headline(progress)), line.mergedTexts())
         assertEquals("the line is spoken as the plan's words", listOf(spoken), line.spokenDescriptions())
         compose.onAllNodes(hasContentDescription(spoken), useUnmergedTree = true).assertCountEquals(1)
         // The bar is the same numbers as shape: nothing under it is read, and it says nothing.
@@ -137,6 +147,41 @@ class WorkoutHeaderRowRenderTest {
         }
         compose.waitForIdle()
         assertOneIdentity(shown = FLOOR_NEXT_LIFT_ID, hidden = FLOOR_LIFT_ID)
+    }
+
+    @Test
+    @Config(qualifiers = "w412dp-h840dp-xhdpi")
+    fun focusedHeaderKeepsItsHeightAndActionWidthAfterTheFirstSave() {
+        val saved = mutableStateOf(false)
+        compose.showFloor {
+            Column(Modifier.width(412.dp)) {
+                WorkoutHeader(
+                    routineName = "F2 entry fixture · Lower A",
+                    progress = WorkoutProgress(1, 1, 0, if (saved.value) 1 else 0, 12, emptyList()),
+                    canFinish = saved.value,
+                    compact = false,
+                    onExit = {},
+                    onFinish = {},
+                    showDiscard = !saved.value,
+                    focused = true,
+                    overflow = { Box(Modifier.size(Metrics.touchMin)) },
+                )
+                Box(Modifier.height(1.dp).testTag("after-workout-header"))
+            }
+        }
+        val beforeBottom = compose.onNodeWithTag("after-workout-header").fetchSemanticsNode().boundsInRoot.top
+        val beforeAction = compose.onNodeWithTag(WorkoutTestTags.DISCARD).fetchSemanticsNode().boundsInRoot
+        val beforeProgress = compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).fetchSemanticsNode().boundsInRoot
+        compose.runOnIdle { saved.value = true }
+        compose.waitForIdle()
+        val finish = compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        val afterProgress = compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE).fetchSemanticsNode()
+        assertEquals("Saving must not resize the end action", beforeAction.width, finish.width, 1f)
+        assertEquals("Saving must not move the content below the header", beforeBottom,
+            compose.onNodeWithTag("after-workout-header").fetchSemanticsNode().boundsInRoot.top, 1f)
+        assertEquals("Progress retains its vertical anchor", beforeProgress.top, afterProgress.boundsInRoot.top, 1f)
+        assertEquals(listOf("1 of 1 exercise · 1 of 12 sets"),
+            afterProgress.config[SemanticsProperties.Text].map { it.text })
     }
 
     private fun assertOneIdentity(shown: String, hidden: String) {

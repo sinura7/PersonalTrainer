@@ -20,10 +20,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -63,89 +66,93 @@ internal fun TempoWhySheet(
 ) {
     val view = LocalView.current
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Surface3,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Metrics.gutter)
-                .padding(bottom = Metrics.space6)
-                .testTag(WorkoutTestTags.TEMPO_WHY_SHEET),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = Metrics.space3),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.tempo_coach_avatar),
-                    contentDescription = null,
-                    modifier = Modifier.size(Metrics.touchMin),
-                    contentScale = ContentScale.Crop,
-                )
-                Text(
-                    model.title,
-                    modifier = Modifier.weight(1f).testTag(WorkoutTestTags.TEMPO_WHY_TITLE),
-                    style = InstrumentType.title,
-                    color = TextPrimary,
-                )
-            }
+        CompositionLocalProvider(LocalDensity provides density, LocalLayoutDirection provides direction) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    // Reserve room for the fixed actions; a long explanation must
-                    // scroll instead of measuring Keep/Use at zero height.
-                    .weight(1f, fill = false)
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = Metrics.space4),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+                    .padding(horizontal = Metrics.gutter)
+                    .padding(bottom = Metrics.space6)
+                    .testTag(WorkoutTestTags.TEMPO_WHY_SHEET),
             ) {
-                SuggestionCallout(model.callout)
-                Text(
-                    model.summary,
-                    modifier = Modifier.testTag(WorkoutTestTags.TEMPO_WHY_SUMMARY),
-                    style = InstrumentType.body,
-                    color = TextSecondary,
-                )
-                DecisionBlock(model.decisionRows)
-                EvidenceBlock(
-                    evidenceIds = model.evidenceIds,
-                    onOpenDoi = { doi -> openCoachDoi(context, doi) },
-                )
-            }
-            HairlineDivider()
-            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                if (canApply && !applied) {
-                    PrimaryGymButton(
-                        text = SetMicroRecCopy.USE_SUGGESTION,
-                        onClick = {
-                            Haptics.tick(view)
-                            onApply()
-                            onDismiss()
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag(WorkoutTestTags.TEMPO_WHY_USE),
-                        height = Metrics.logFloorCommit,
-                    )
-                }
-                TextButton(
-                    onClick = onDismiss,
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = Metrics.touchMin)
-                        .testTag(WorkoutTestTags.TEMPO_WHY_KEEP),
+                        .padding(bottom = Metrics.space3),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
                 ) {
-                    Text(
-                        SetMicroRecCopy.KEEP_MY_NUMBERS,
-                        style = InstrumentType.bodyStrong,
-                        color = if (canApply && !applied) TextSecondary else Volt,
+                    Image(
+                        painter = painterResource(R.drawable.tempo_coach_avatar),
+                        contentDescription = null,
+                        modifier = Modifier.size(Metrics.touchMin),
+                        contentScale = ContentScale.Crop,
                     )
+                    Text(
+                        model.title,
+                        modifier = Modifier.weight(1f).testTag(WorkoutTestTags.TEMPO_WHY_TITLE),
+                        style = InstrumentType.title,
+                        color = TextPrimary,
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // Reserve room for the fixed actions; a long explanation must
+                        // scroll instead of measuring Keep/Use at zero height.
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = Metrics.space4),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+                ) {
+                    SuggestionCallout(model.callout)
+                    Text(
+                        model.summary,
+                        modifier = Modifier.testTag(WorkoutTestTags.TEMPO_WHY_SUMMARY),
+                        style = InstrumentType.body,
+                        color = TextSecondary,
+                    )
+                    DecisionBlock(model.decisionRows)
+                    EvidenceBlock(
+                        evidenceIds = model.evidenceIds,
+                        onOpenDoi = { doi -> openCoachDoi(context, doi) },
+                    )
+                }
+                HairlineDivider()
+                Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    if (canApply && !applied) {
+                        PrimaryGymButton(
+                            text = SetMicroRecCopy.USE_SUGGESTION,
+                            onClick = {
+                                Haptics.tick(view)
+                                onApply()
+                                onDismiss()
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(WorkoutTestTags.TEMPO_WHY_USE),
+                            height = Metrics.logFloorCommit,
+                        )
+                    }
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = Metrics.touchMin)
+                            .testTag(WorkoutTestTags.TEMPO_WHY_KEEP),
+                    ) {
+                        Text(
+                            SetMicroRecCopy.KEEP_MY_NUMBERS,
+                            style = InstrumentType.bodyStrong,
+                            color = if (canApply && !applied) TextSecondary else Volt,
+                        )
+                    }
                 }
             }
         }

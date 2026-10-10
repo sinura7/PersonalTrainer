@@ -58,6 +58,7 @@ class SetHistoryStripRenderTest {
         receiptSetId: String? = null,
         current: CurrentSetMark? = CurrentSetMark(mark = "3", label = "Set 3 of 3"),
         enabled: Boolean = true,
+        focused: Boolean = false,
     ) {
         compose.showFloor {
             SetHistoryStrip(
@@ -69,11 +70,40 @@ class SetHistoryStripRenderTest {
                 receiptSetId = receiptSetId,
                 current = current,
                 enabled = enabled,
+                focused = focused,
                 onEdit = { edited = it },
                 onDelete = { deleted = it },
                 onOpenAll = { openedAll += 1 },
             )
         }
+    }
+
+    @Test
+    fun focusKeepsImportedWarmupAndEffortOnTheOneTapLatestReceipt() {
+        val sets = listOf(floorSet(1, FLOOR_KG70, 10, rpe = 8), floorSet(2, FLOOR_KG70, 8, rpe = 9, warmup = true))
+        showStrip(sets = sets, focused = true)
+        val receipt = compose.onNodeWithTag(WorkoutTestTags.setChip("set-2"))
+        assertTrue(receipt.spokenDescriptions().single().contains("Warm-up · RPE 9"))
+        receipt.assertHeightIsAtLeast(Metrics.touchMin).performClick()
+        assertEquals("set-2", edited)
+        assertEquals(null, deleted)
+        assertEquals(0, openedAll)
+        compose.onNodeWithTag(WorkoutTestTags.setChip("set-1")).assertDoesNotExist()
+    }
+
+    @Test
+    fun focusShowsTheOlderSavedOriginalWhileItsDraftIsBeingEdited() {
+        val sets = listOf(floorSet(1, FLOOR_KG70, 8, rpe = 7), floorSet(2, FLOOR_KG70, 12, rpe = 9))
+        showStrip(sets = sets, editingSetId = "set-1", focused = true)
+        val receipt = compose.onNodeWithTag(WorkoutTestTags.setChip("set-1"))
+        val spoken = receipt.spokenDescriptions().single()
+        assertTrue(spoken.startsWith("Saved set. Set 1 of 3:"))
+        assertTrue(spoken.contains("× 8 · RPE 7"))
+        receipt.assertIsNotEnabled().performClick()
+        assertEquals(null, edited)
+        compose.onNodeWithTag(WorkoutTestTags.setChip("set-2")).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
+        assertEquals(1, openedAll)
     }
 
     private fun spokenSet(set: SetLog) = FloorStatCopy.spokenSet(

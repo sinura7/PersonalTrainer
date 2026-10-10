@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are integrated through #467. Set Edit identity and numeric controls are integrated through #468. History saved-set recovery merged through #469; its final closure awaits the focused History test-recorder repair and a reliable complete gate. Broader app UX phases and physical-phone acceptance remain.
+**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are integrated through #467. Set Edit identity and numeric controls are integrated through #468. History saved-set recovery and its test-recorder repair are integrated through #469 and #470. Compact Focus is implemented with the complete local gate and 222 Android tests passing; [its evidence, previews and review/integration tracking](studies/q01/README.md#compact-focus-development-verification) belong to [PR #471](https://github.com/sinura7/PersonalTrainer/pull/471). Broader app UX phases and physical-phone acceptance remain.
 
 **Summary/detail integration closed, 9 October 2026 UTC:** [PR #467](https://github.com/sinura7/PersonalTrainer/pull/467)
 merged as `755a2df9`, exact reviewed tree `f7628c17`. Actual clean-trunk full
@@ -98,8 +98,7 @@ the separate state recorder deliberately delayed reproduced the same nonempty
 trace assertion: direct public-state observation had completed before trace
 append. The bounded test-only repair acknowledges actual append before the
 unchanged pending and late-result assertions. Its whole History period class
-passed **23 cases / 1 fresh suite**; complete-gate and integration results remain
-pending. The original failures are not relabelled by later successful checks.
+passed **23 cases / 1 fresh suite**. [PR #470](https://github.com/sinura7/PersonalTrainer/pull/470) merged as `e6cc481e`; the clean-trunk complete gate passed **4,065 app cases / 579 fresh suites** and **1,696 standalone cases / 255 classes**. The hosted native run retained two readiness-test failures: History list scrolling before its required read and a restored workout before notes hydration. Their explicit ready-state waits are part of the Focus verification; no native pass is inferred from the enclosing green job. The original failures are not relabelled by later successful checks.
 Pure-hold Summary display, broader UX and phone acceptance remain separate work.
 
 **Audience:** Temper's owner and the next designer, engineer, or agent continuing this work.
@@ -292,8 +291,9 @@ These decisions were made in the conversation on 8 October 2026.
 | O10 | The current workflow feels clunky; aim for one obvious action and a sophisticated, simple front end, with Wealthsimple/Web3 as visual references. | Reduce unnecessary taps, scrolling and decisions; study entry, coaching, saved work and navigation together. Preserve recording contracts and Instrument as the starting point. This is a direction, not acceptance of a specific layout. |
 | O11 | Show the corresponding exercise image beside its name. | Both connected proposals use the existing catalog illustrations in exercise identities and lists. Keep the complete name readable, match the actual exercise on rest/correction/review surfaces, and preserve recording controls. This requests thumbnails; it does not select the whole native composition. |
 | O12 | The updated proposals look good; proceed with coding and development through completion, without asking the owner to test during development. | Implement the native Quiet workout direction as one packet on the reviewed Debug-124 stack, amend ADR-027's composition, and execute synthetic regression, adaptation and connected-workflow checks. Preserve existing policy and data; reconcile the overlapping stack before integration. Report remaining physical-phone evidence separately. |
+| O13 | Review designs before further development; refine the liked Focus direction to be compact, complete and professional, then proceed. | Implement the reviewed compact Focus composition under ADR-027's 10 October amendment. Keep entry and effort prominent, disclose secondary controls, retain matching illustrations and explicit saved-work identity, and verify the native workflow without waiting for owner testing. |
 
-Quiet is the authorized native implementation direction. The owner's visual approval and development directive do not establish complete-workout usability or phone acceptance. Development does not wait for an owner testing session.
+Compact Focus implements the current authorized native refinement of Quiet. The owner's visual approval and development directive do not establish complete-workout usability or phone acceptance. Development does not wait for an owner testing session.
 
 ## Baseline and evidence limits
 

@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -178,6 +179,13 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.rpe == 8 }
     }
 
+    private fun revealSetOption(tag: String) {
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.onNodeWithText("Set options").performClick()
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_CONTENT).performScrollToNode(hasTestTag(tag))
+        compose.onNodeWithTag(tag).assertIsDisplayed()
+    }
+
     private fun scrollContentTo(tag: String): SemanticsNodeInteraction {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
         return compose.onNodeWithTag(tag)
@@ -216,7 +224,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         println("NATIVE_ENTRY_TOUCH $state draft=${fixture.vm.uiState.value.draft} action=${fixture.vm.primaryAction.value}")
     }
 
-    private fun assertWhyActionFullyVisible(tag: String, minimumHeightDp: Int): SemanticsNodeInteraction {
+    private fun assertWhyActionFullyVisible(tag: String, minimumHeightDp: Int, expectedFontScale: Float = 2f): SemanticsNodeInteraction {
         compose.onAllNodes(isDialog()).assertCountEquals(1)
         val dialog = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot
         val action = compose.onNodeWithTag(tag).assertIsDisplayed().assertIsEnabled()
@@ -226,7 +234,7 @@ class WorkoutEntryJourneyInstrumentedTest {
         val resources = ApplicationProvider.getApplicationContext<android.app.Application>().resources
         println("NATIVE_WHY_ACTION tag=$tag bounds=$bounds size=${node.size} dialog=$dialog " +
             "density=$density nodeFont=${node.layoutInfo.density.fontScale} osFont=${resources.configuration.fontScale}")
-        assertEquals("The modal itself must render at font2", 2f, node.layoutInfo.density.fontScale, 0.01f)
+        assertEquals("The modal must retain its composed owner font scale", expectedFontScale, node.layoutInfo.density.fontScale, 0.01f)
         assertTrue("$tag must retain its $minimumHeightDp dp visible target", bounds.height / density >= minimumHeightDp - 0.5f)
         assertTrue("$tag must be fully unclipped", bounds.width >= node.size.width - 1f && bounds.height >= node.size.height - 1f)
         assertTrue("$tag must fit the dialog window", bounds.left >= dialog.left && bounds.top >= dialog.top &&
@@ -234,16 +242,31 @@ class WorkoutEntryJourneyInstrumentedTest {
         return action
     }
 
+    private fun logEntryGeometry(label: String) {
+        val tags = listOf(WorkoutTestTags.PROGRESS_LINE, WorkoutTestTags.CONTENT, WorkoutTestTags.CURRENT_LIFT,
+            WorkoutTestTags.WEIGHT_STEPPER, WorkoutTestTags.TIMER_ROW, WorkoutTestTags.LOG_SET)
+        for (tag in tags) {
+            val node = compose.onNodeWithTag(tag).fetchSemanticsNode()
+            val text = node.config.getOrNull(SemanticsProperties.Text)
+            val scroll = node.config.getOrNull(SemanticsProperties.VerticalScrollAxisRange)
+            println("NATIVE_LOG_GEOMETRY label=$label tag=$tag bounds=${node.boundsInRoot} size=${node.size} " +
+                "text=$text scroll=${scroll?.value?.invoke()} maxScroll=${scroll?.maxValue?.invoke()}")
+        }
+    }
+
     @Test fun eightSavesKeepEntryAndCommitPositionsAndPersistExactlyTheirPayloads() {
         mount()
         scrollContentTo(WorkoutTestTags.WEIGHT_STEPPER)
+        logEntryGeometry("before-effort")
         val before = compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).fetchSemanticsNode().boundsInRoot.top
         val buttonBottom = compose.onNodeWithTag(WorkoutTestTags.LOG_SET).fetchSemanticsNode().boundsInRoot.bottom
         repeat(8) { index ->
             // A working set logs only with its effort (P2a); the journey picks one as a thumb would.
             pickEffort()
+            logEntryGeometry("before-save-${index + 1}")
             compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
             awaitSets(index + 1)
+            logEntryGeometry("after-save-${index + 1}")
             compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertIsDisplayed()
             assertEquals("ordinary logging must retain the entry position", before,
                 compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).fetchSemanticsNode().boundsInRoot.top, 1f)
@@ -252,15 +275,16 @@ class WorkoutEntryJourneyInstrumentedTest {
         }
         val saved = savedSets()
         assertEquals(8, saved.map { it.id }.distinct().size)
-        saved.forEach { assertEquals(60.0, it.weightKg, 0.01); assertEquals(8, it.reps); assertFalse(it.isWarmup) }
-        // The receipt is the just-saved chip in the set history: it reads as saved while the
-        // receipt is live and as logged once the receipt has been shown.
+        saved.forEach { assertEquals(60.0, it.weightKg, 0.01); assertEquals(8, it.reps); assertEquals(8, it.rpe); assertFalse(it.isWarmup) }
+        // The latest receipt keeps its exact saved identity and count after announcement.
         val receipt = checkNotNull(fixture.vm.logReceipt.value) { "the eighth save must leave a live receipt" }
         val savedChip = hasTestTag(WorkoutTestTags.setChip(receipt.setId))
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(savedChip)
-        compose.onNode(savedChip and hasContentDescription(value = "saved", substring = true)).assertIsDisplayed()
+        compose.onNode(savedChip and hasContentDescription(value = "8 saved. Edit latest saved set", substring = true)).assertIsDisplayed()
         compose.runOnIdle { fixture.vm.onLogReceiptShown() }
-        compose.onNode(savedChip and hasContentDescription(value = "logged", substring = true)).assertIsDisplayed()
+        compose.onNode(savedChip and hasContentDescription(value = "8 saved. Edit latest saved set", substring = true)).assertIsDisplayed()
+        assertNull(fixture.vm.logReceipt.value)
+        assertEquals(saved, savedSets())
         assertEquals(buttonBottom, compose.onNodeWithTag(WorkoutTestTags.LOG_SET).fetchSemanticsNode().boundsInRoot.bottom, 1f)
     }
 
@@ -292,7 +316,8 @@ class WorkoutEntryJourneyInstrumentedTest {
 
     @Test fun warmupPresetOnlyChangesDraftAndSavingReturnsToWorkingWithClearEffort() {
         mount()
-        scrollContentTo(WorkoutTestTags.WARMUP_CHIP).performClick()
+        revealSetOption(WorkoutTestTags.WARMUP_CHIP)
+        compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).performClick()
         // A warm-up has no RPE track, only the reason it is blank.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.RPE_WARMUP_REASON))
         compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON).assertIsDisplayed()
@@ -306,17 +331,20 @@ class WorkoutEntryJourneyInstrumentedTest {
         assertTrue(savedSets().single().isWarmup)
         assertEquals(warmupWeight, savedSets().single().weightKg, 0.01)
         assertFalse(fixture.vm.uiState.value.draft.isWarmup)
-        scrollContentTo(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
+        revealSetOption(WorkoutTestTags.WORKING_CHIP)
+        compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_DONE).performClick()
         scrollContentTo(WorkoutTestTags.rpeChoice(9)).performClick()
         assertEquals(9, fixture.vm.uiState.value.draft.rpe)
-        compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(9)).performClick()
         assertNull(fixture.vm.uiState.value.draft.rpe)
         scrollContentTo(WorkoutTestTags.rpeChoice(8)).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(2)
         assertNull(fixture.vm.uiState.value.draft.rpe)
         assertEquals(8, savedSets().single { !it.isWarmup }.rpe)
-        scrollContentTo(WorkoutTestTags.RPE_HELPER).performClick()
+        revealSetOption(WorkoutTestTags.RPE_HELPER)
+        compose.onNodeWithTag(WorkoutTestTags.RPE_HELPER).performClick()
         compose.onNodeWithText("Effort (RPE)").assertIsDisplayed()
         captureWindow("rpe-help")
         compose.onNodeWithText("Done").performClick()
@@ -367,8 +395,9 @@ class WorkoutEntryJourneyInstrumentedTest {
     }
 
     @Test fun adaptiveTempoKeepsWhyAcrossFontRelocationAndApplyOnlyChangesDraft() {
-        // The OS and modal use font2. Only the floor's Compose font override changes:
-        // this exercises relocation within one screen, not Activity recreation.
+        // The OS uses font2; the explicit Compose owner starts at font1 and then
+        // changes to font2. The modal inherits that owner across the same relocation,
+        // without Activity recreation or losing its explanation and draft.
         val adaptiveFont = mutableFloatStateOf(1f)
         mount(fontScale = 2f, fontScaleOverride = adaptiveFont)
         val actualOsFont = ApplicationProvider.getApplicationContext<android.app.Application>().resources.configuration.fontScale
@@ -388,7 +417,7 @@ class WorkoutEntryJourneyInstrumentedTest {
             .config[SemanticsProperties.Text]
         val originalExplanation = compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SUMMARY).fetchSemanticsNode()
             .config[SemanticsProperties.Text]
-        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_KEEP, 48)
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_KEEP, 48, expectedFontScale = 1f)
         captureWindow("adaptive-why-osfont20-floor10")
 
         compose.runOnIdle { adaptiveFont.floatValue = 2f }
@@ -445,14 +474,16 @@ class WorkoutEntryJourneyInstrumentedTest {
         assertTrue(savedSets().isEmpty())
         assertFalse(fixture.vm.restTimerState.value.running)
 
-        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_APPLY)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_WHY)
         compose.onAllNodes(coach).assertCountEquals(1)
         compose.onAllNodes(inlineCoach).assertCountEquals(1)
         compose.onNode(inlineCoach).assertIsDisplayed()
         val recommendation = checkNotNull(fixture.vm.microRec.value)
         assertTrue("Typed weight must differ from Apply's suggestion", recommendation.nextWeightKg != 65.5)
-        captureFloorControl("adaptive-font20-before-apply", WorkoutTestTags.MICRO_REC_APPLY)
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed().assertIsEnabled().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().assertIsEnabled().performClick()
+        captureWindow("adaptive-font20-before-apply")
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_KEEP, 48)
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_USE, 64).performClick()
         compose.waitUntil(5_000) {
             val draft = fixture.vm.uiState.value.draft
             draft.weightKg == recommendation.nextWeightKg && draft.reps == recommendation.nextReps &&

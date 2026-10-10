@@ -13,18 +13,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import com.sinura.personaltrainer.domain.EndWorkoutCopy
 import com.sinura.personaltrainer.domain.ProgressSegment
@@ -68,12 +72,29 @@ internal fun WorkoutHeader(
     onDiscard: () -> Unit = {},
     showDiscard: Boolean = false,
     overflow: (@Composable () -> Unit)? = null,
+    focused: Boolean = false,
 ) {
     // Two lines at display size so a long routine name wraps instead of losing its end;
     // large text keeps the title to one, where a second display-size line would eat the
     // room the log needs.
     val largeText = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
     val titleLines = if (compact || largeText) 1 else 2
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
+    val measurer = rememberTextMeasurer()
+    val endActionPadding = ButtonDefaults.TextButtonContentPadding
+    // Discard becoming Finish must not unwrap the routine title after saving.
+    // Reserve both labels at the actual current font and button padding.
+    val endActionWidth = remember(focused, density, direction, measurer, endActionPadding) {
+        if (focused) {
+            val labelWidth = maxOf(
+                measurer.measure(EndWorkoutCopy.HEADER_DISCARD, style = InstrumentType.bodyStrong).size.width,
+                measurer.measure(EndWorkoutCopy.HEADER_FINISH, style = InstrumentType.bodyStrong).size.width,
+            )
+            maxOf(Metrics.headerActMin, with(density) { labelWidth.toDp() } +
+                endActionPadding.calculateLeftPadding(direction) + endActionPadding.calculateRightPadding(direction))
+        } else Metrics.headerActMin
+    }
     val headline = WorkoutProgressCalculator.headline(progress)
     val spoken = WorkoutProgressCalculator.spoken(progress)
     // The compact landscape header is the one row LandscapeChrome budgets: the plan's
@@ -99,10 +120,15 @@ internal fun WorkoutHeader(
             backIcon = TemperIcons.Back,
             backDescription = "Exit workout",
             paintBackground = true,
-            titleStyle = if (compact) InstrumentType.title else InstrumentType.display,
+            titleStyle = when {
+                compact -> InstrumentType.title
+                focused -> InstrumentType.workoutTitle
+                else -> InstrumentType.display
+            },
             titleMaxLines = titleLines,
             titleModifier = if (planAsTitle) progressLine("$routineName. $spoken") else Modifier,
-            subtitle = null,
+            subtitle = headline.takeIf { focused && !compact && !largeText && it.isNotBlank() },
+            subtitleModifier = progressLine(spoken),
             contentPadding = PaddingValues(start = Metrics.space2, end = Metrics.space2),
             modifier = Modifier
                 .fillMaxWidth()
@@ -111,8 +137,9 @@ internal fun WorkoutHeader(
                 if (showDiscard) {
                     TextButton(
                         onClick = onDiscard,
+                        contentPadding = endActionPadding,
                         modifier = Modifier
-                            .widthIn(min = Metrics.headerActMin)
+                            .widthIn(min = endActionWidth)
                             .heightIn(min = Metrics.touchMin)
                             .testTag(WorkoutTestTags.DISCARD),
                     ) {
@@ -125,9 +152,10 @@ internal fun WorkoutHeader(
                 } else {
                     TextButton(
                         onClick = onFinish,
+                        contentPadding = endActionPadding,
                         enabled = canFinish,
                         modifier = Modifier
-                            .widthIn(min = Metrics.headerActMin)
+                            .widthIn(min = endActionWidth)
                             .heightIn(min = Metrics.touchMin)
                             .testTag(WorkoutTestTags.FINISH)
                             .semantics {
@@ -149,27 +177,32 @@ internal fun WorkoutHeader(
             },
         )
         if (headline.isNotBlank() && !planAsTitle) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // Aligned with the title, which sits after the 48 dp back control.
-                    .padding(start = Metrics.space2 + Metrics.touchMin, end = Metrics.gutter),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
-                Text(
-                    // The instrument-label voice, which is what this line is: a meta label
-                    // over the plan, the same register as REST or LAST 7 DAYS. Uppercased
-                    // at the call site because the kicker style is never set in mixed case.
-                    // The `Kicker` composable itself is not used here: it caps at one line,
-                    // and large text needs the second one to keep the word "sets".
-                    headline.uppercase(),
-                    modifier = progressLine(spoken),
-                    style = InstrumentType.kicker,
-                    color = TextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                WorkoutProgressBar(segments = progress.segments)
+            if (focused && !largeText) {
+                WorkoutProgressBar(segments = progress.segments,
+                    modifier = Modifier.padding(start = Metrics.space2 + Metrics.touchMin, end = Metrics.gutter))
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // Aligned with the title, which sits after the 48 dp back control.
+                        .padding(start = if (focused) Metrics.gutter else Metrics.space2 + Metrics.touchMin, end = Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    Text(
+                        // The instrument-label voice, which is what this line is: a meta label
+                        // over the plan, the same register as REST or LAST 7 DAYS. Uppercased
+                        // at the call site because the kicker style is never set in mixed case.
+                        // The `Kicker` composable itself is not used here: it caps at one line,
+                        // and large text needs the second one to keep the word "sets".
+                        if (focused) headline else headline.uppercase(),
+                        modifier = progressLine(spoken),
+                        style = if (focused) InstrumentType.caption else InstrumentType.kicker,
+                        color = TextSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    WorkoutProgressBar(segments = progress.segments)
+                }
             }
         }
     }

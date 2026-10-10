@@ -175,9 +175,10 @@ class WorkoutFloorRenderTest {
         }
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertIsDisplayed()
         val identity = compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).fetchSemanticsNode()
-        // Include the relocated secondary statistics and inline coach, not only the
-        // shorter entry-to-history prefix. Reordering must not weaken the density ratchet.
-        val finalSection = compose.onNodeWithTag(WorkoutTestTags.SECTION_STATS).fetchSemanticsNode()
+        // Focus measures the complete common floor, including the shared saved/Tempo row.
+        // The unchanged ceiling does not include the disclosed secondary sheet; its controls
+        // have separate reachability assertions across the same native profile matrix.
+        val finalSection = compose.onNodeWithTag(WorkoutTestTags.SECTION_SET_HISTORY).fetchSemanticsNode()
         val loopDp = (finalSection.boundsInRoot.bottom - identity.boundsInRoot.top) /
             identity.layoutInfo.density.density
         assertTrue(
@@ -344,8 +345,9 @@ class WorkoutFloorRenderTest {
         // The list is lazy: landscape, short screens and font 2.0 can start the stats and
         // entry below the fold.
         if (heightDp >= 800 || (heightDp >= 640 && fontScale < 1.6f)) {
-            compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.STATS_ROW))
+            compose.revealWorkoutSetOption(WorkoutTestTags.STATS_ROW)
             compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertExists()
+            compose.closeWorkoutSetOptions()
         }
         if (heightDp >= 640 && fontScale < 1.6f) {
             compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_ENTRY))

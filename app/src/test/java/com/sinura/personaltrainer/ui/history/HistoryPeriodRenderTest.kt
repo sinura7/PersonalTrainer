@@ -21,10 +21,12 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -136,6 +138,34 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
     fun tabletLargestText() = matrix("600x960-font20", 2f)
     @Test @Config(qualifiers = "ldrtl-w360dp-h640dp-xhdpi", fontScale = 2f)
     fun rtlLargestTextAndReducedMotion() = matrix("360x640-rtl-font20", 2f, LayoutDirection.Rtl)
+
+    @Test
+    fun scrollabilityDoesNotMeanTheRequiredHistoryReadIsReady() = evidence("required-read-readiness") {
+        holdRequired = true
+        graph()
+        val before = inventory()
+        show()
+        compose.awaitThat("the real required read is held", { requiredStarted.isCompleted }) {
+            requiredStarted.isCompleted && history.uiState.value.isLoading
+        }
+        // This is the old connected journey predicate. It is already true while
+        // the required read is deliberately blocked and no finished row can render.
+        compose.onNodeWithTag(HistoryTags.LIST).assert(hasScrollAction())
+        compose.onNodeWithTag(HistoryTags.CURRENT).assertDoesNotExist()
+        compose.onNodeWithTag(HistoryTags.row(HistoryKind.WORKOUT, HistoryPeriodTestHost.CURRENT_ID)).assertDoesNotExist()
+        capture("loading-list-is-scrollable")
+        holdRequired = false
+        requiredBarrier.complete(Unit)
+        awaitLoaded()
+        reachTag(HistoryTags.CURRENT).assertIsDisplayed()
+        assertRow(HistoryKind.WORKOUT, HistoryPeriodTestHost.CURRENT_ID,
+            HistoryPeriodTestHost.WORKOUT_TITLE, day(11), "1 h 20 min")
+        reach(wordsInside(HistoryTags.row(HistoryKind.WORKOUT, HistoryPeriodTestHost.CURRENT_ID),
+            HistoryPeriodTestHost.WORKOUT_TITLE)).performClick()
+        assertEquals(listOf(HistoryKind.WORKOUT to HistoryPeriodTestHost.CURRENT_ID), routes)
+        assertEquals("waiting for real readiness cannot change the saved graph", before, inventory())
+        capture("ready-exact-row")
+    }
 
     @Test
     fun heldAndFailedProgressNeverLooksLikeSuccessfulZero() = evidence("progress-states") {
@@ -478,6 +508,9 @@ open class HistoryPeriodTestHost {
     var failRecords = false
     var failRequired = false
     var holdRecords = false
+    var holdRequired = false
+    val requiredStarted = CompletableDeferred<Unit>()
+    val requiredBarrier = CompletableDeferred<Unit>()
     val recordsBarrier = CompletableDeferred<Unit>()
     val blockGate = ReadGate(false)
     val readBarrier = CompletableDeferred<Unit>()
@@ -486,6 +519,7 @@ open class HistoryPeriodTestHost {
     @After fun tearDown() {
         readBarrier.complete(Unit)
         recordsBarrier.complete(Unit)
+        requiredBarrier.complete(Unit)
         try { mountedModel?.let { runBlocking { it.clearAndJoinForTest() } } }
         finally {
             if (::deps.isInitialized) {
@@ -507,6 +541,10 @@ open class HistoryPeriodTestHost {
             insights = MutableStateFlow(TrainingInsights(snapshot = snapshot)),
             workoutDaoDecorator = { base -> object : WorkoutDao by base {
                 override suspend fun sessionSummaries(): List<SessionSummaryRow> {
+                    if (holdRequired) {
+                        requiredStarted.complete(Unit)
+                        requiredBarrier.await()
+                    }
                     if (failRequired) throw IllegalStateException("Synthetic required summary read failed")
                     return base.sessionSummaries()
                 }
