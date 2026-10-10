@@ -254,7 +254,13 @@ class PlanRoutineActionsInstrumentedTest {
         }
     }
     private fun capture(name: String) {
-        val frame = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+        compose.waitForIdle()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.waitForIdleSync()
+        // Compose semantics can settle before the platform paints the same state.
+        // Wait for a bounded quiet accessibility window before reading screen pixels.
+        instrumentation.uiAutomation.waitForIdle(100, 5_000)
+        val frame = checkNotNull(instrumentation.uiAutomation.takeScreenshot())
         try { NativeArtifacts.write(name, frame) } finally { frame.recycle() }
     }
     private fun shell(command: String): String = InstrumentationRegistry.getInstrumentation().uiAutomation
