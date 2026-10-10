@@ -122,6 +122,7 @@ object WorkoutTestTags {
     const val TEMPO_COACH_DISMISS = "workout-tempo-coach-dismiss"
     const val TEMPO_WHY_SHEET = "workout-tempo-why-sheet"
     const val TEMPO_WHY_TITLE = "workout-tempo-why-title"
+    const val TEMPO_WHY_CLOSE = "workout-tempo-why-close"
     const val TEMPO_WHY_SUMMARY = "workout-tempo-why-summary"
     const val TEMPO_WHY_CALLOUT = "workout-tempo-why-callout"
     const val TEMPO_WHY_USE = "workout-tempo-why-use"

@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -20,7 +22,9 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.swipeUp
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
@@ -111,6 +115,31 @@ class AdaptiveTempoReachabilityRenderTest {
     fun landscape_font16() = exerciseControls("640x360-land-font16", 1.6f, inline = true)
     @Test @Config(qualifiers = "w640dp-h360dp-land-xhdpi")
     fun landscape_font20() = exerciseControls("640x360-land-font20", 2f, inline = true)
+
+    @Test fun closeWhyByTouchPreservesManualDraftAndSavedWork() = closeWhy(accessibility = false)
+    @Test fun closeWhyByDismissActionPreservesManualDraftAndSavedWork() = closeWhy(accessibility = true)
+
+    private fun closeWhy(accessibility: Boolean) {
+        val profile = if (accessibility) "close-accessibility-font20" else "close-touch-font20"
+        val vm = openFloor(fontScale = 2f)
+        reveal(WorkoutTestTags.WEIGHT_STEPPER, profile)
+        compose.withKeypad(compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER), "82.5")
+        reveal(WorkoutTestTags.rpeChoice(8), profile).performClick()
+        val manual = vm.uiState.value.draft
+        assertEquals(WeightConverter.toKg(82.5, WeightUnit.LBS), manual.weightKg, EPSILON)
+        assertEquals(8, manual.rpe)
+        val saved = stored(vm)
+        val rest = deps.restTimerStore.current()
+        openWhy(profile, "before-close")
+        val close = assertWhyActionReachable(WorkoutTestTags.TEMPO_WHY_CLOSE, 48f)
+            .assertContentDescriptionEquals("Close explanation")
+        if (accessibility) close.performSemanticsAction(SemanticsActions.Dismiss) { it() }
+        else close.performTouchInput { click() }
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertDoesNotExist()
+        assertEquals("Close must preserve entered numbers and effort", manual, vm.uiState.value.draft)
+        assertEquals("Close must preserve the exact stored session and set rows", saved, stored(vm))
+        assertEquals("Close must not start or change rest", rest, deps.restTimerStore.current())
+    }
 
     @Test
     fun openWhySurvivesTextReflowEvenWhenTheInlineCardIsOffscreen() {
@@ -246,7 +275,7 @@ class AdaptiveTempoReachabilityRenderTest {
         observeWhy(stage, profile)
     }
 
-    /** Full independent footer targets must fit the actual modal Android window. */
+    /** Full independent action targets must fit the actual modal Android window. */
     private fun assertWhyActionReachable(tag: String, minimumHeightDp: Float): SemanticsNodeInteraction {
         val node = compose.onNodeWithTag(tag)
         val target = node.fetchSemanticsNode()
@@ -357,6 +386,7 @@ class AdaptiveTempoReachabilityRenderTest {
         compose.waitForIdle()
         val tags = listOf(
             WorkoutTestTags.TEMPO_WHY_SHEET, WorkoutTestTags.TEMPO_WHY_TITLE,
+            WorkoutTestTags.TEMPO_WHY_CLOSE,
             WorkoutTestTags.TEMPO_WHY_SUMMARY, WorkoutTestTags.TEMPO_WHY_CALLOUT,
             WorkoutTestTags.TEMPO_WHY_USE, WorkoutTestTags.TEMPO_WHY_KEEP,
         )

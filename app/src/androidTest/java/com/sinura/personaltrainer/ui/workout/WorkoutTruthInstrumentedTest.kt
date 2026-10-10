@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -26,6 +28,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
@@ -258,10 +261,14 @@ class WorkoutTruthInstrumentedTest {
         capture("live-read-recovered-font2")
     }
 
-    @Test fun actualAddASetWhyKeepPreservesManualDraftAndStoredRows() = addASetWhy(use = false)
-    @Test fun actualAddASetWhyUseOnlyFillsDraftAndNeverLogsOrStartsRest() = addASetWhy(use = true)
+    @Test fun actualAddASetWhyKeepPreservesManualDraftAndStoredRows() = addASetWhy(WhyAction.KEEP)
+    @Test fun actualAddASetWhyUseOnlyFillsDraftAndNeverLogsOrStartsRest() = addASetWhy(WhyAction.USE)
+    @Test fun actualWhyCloseTouchPreservesManualDraftAndStoredRows() = addASetWhy(WhyAction.CLOSE_TOUCH)
+    @Test fun actualWhyDismissActionPreservesManualDraftAndStoredRows() = addASetWhy(WhyAction.CLOSE_ACCESSIBILITY)
 
-    private fun addASetWhy(use: Boolean) {
+    private enum class WhyAction { KEEP, USE, CLOSE_TOUCH, CLOSE_ACCESSIBILITY }
+
+    private fun addASetWhy(action: WhyAction) {
         fixture.seed(savedSets = 2)
         val vm = mountActive()
         compose.waitUntil(15_000) { vm.tempoCoachTip.value is TempoCoachTip.AddASet }
@@ -278,6 +285,11 @@ class WorkoutTruthInstrumentedTest {
             manual.weightKg == 87.5 && manual.reps == 12 && manual.rpe == 8)
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.MICRO_REC_WHY))
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().performTouchInput { click() }
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_TITLE)
+            .assertTextContains("Why Tempo suggests an extra set").assertIsDisplayed()
+        val close = compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_CLOSE)
+            .assertContentDescriptionEquals("Close explanation")
+        assertNativeAction(close, 48)
         compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SUMMARY).performScrollTo()
             .assertTextContains("Your planned sets are complete. 4 of 5 readiness checks support one extra set.")
         val inWhy = hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET))
@@ -295,10 +307,21 @@ class WorkoutTruthInstrumentedTest {
         // The draft-only sheet action retains its existing 64 dp floor;
         // the workout's recording action has the separate 72 dp contract.
         assertNativeAction(apply, 64)
-        capture("add-a-set-why-${if (use) "use" else "keep"}-font2")
-        (if (use) apply else keep).performTouchInput { click() }
+        val name = when (action) {
+            WhyAction.KEEP -> "keep"
+            WhyAction.USE -> "use"
+            WhyAction.CLOSE_TOUCH -> "close-touch"
+            WhyAction.CLOSE_ACCESSIBILITY -> "close-accessibility"
+        }
+        capture("add-a-set-why-$name-font2")
+        when (action) {
+            WhyAction.KEEP -> keep.performTouchInput { click() }
+            WhyAction.USE -> apply.performTouchInput { click() }
+            WhyAction.CLOSE_TOUCH -> close.performTouchInput { click() }
+            WhyAction.CLOSE_ACCESSIBILITY -> close.performSemanticsAction(SemanticsActions.Dismiss) { it() }
+        }
         compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)).fetchSemanticsNodes().isEmpty() }
-        if (use) {
+        if (action == WhyAction.USE) {
             compose.waitUntil(15_000) { vm.extraSetRequested.value && vm.uiState.value.draft.weightKg == offer.seedRec.nextWeightKg }
             assertEquals(offer.seedRec.nextReps, vm.uiState.value.draft.reps)
             assertEquals(offer.seedRec.nextRpe, vm.uiState.value.draft.rpe)
