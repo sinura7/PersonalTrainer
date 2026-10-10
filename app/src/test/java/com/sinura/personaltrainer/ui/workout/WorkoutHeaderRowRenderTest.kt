@@ -103,7 +103,7 @@ class WorkoutHeaderRowRenderTest {
         val progress = WorkoutProgressCalculator.of(session = vm.uiState.value.session, selectedExerciseId = vm.uiState.value.selectedExerciseId)
         val spoken = WorkoutProgressCalculator.spoken(progress)
         val line = compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE, useUnmergedTree = true).assertIsDisplayed()
-        assertEquals(listOf(WorkoutProgressCalculator.headline(progress).uppercase()), line.mergedTexts())
+        assertEquals(listOf(WorkoutProgressCalculator.headline(progress)), line.mergedTexts())
         assertEquals("the line is spoken as the plan's words", listOf(spoken), line.spokenDescriptions())
         compose.onAllNodes(hasContentDescription(spoken), useUnmergedTree = true).assertCountEquals(1)
         // The bar is the same numbers as shape: nothing under it is read, and it says nothing.

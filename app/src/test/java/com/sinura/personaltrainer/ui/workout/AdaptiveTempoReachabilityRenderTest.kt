@@ -59,9 +59,9 @@ import org.robolectric.shadows.ShadowDialog
  *
  * Numeric confirmation retains FloorTestKit's documented Robolectric keypad clock /
  * Set-action seam. Android window/IME and phone touch acceptance are separate lanes.
- * The floor font matrix is a scoped Compose density override. Modal windows retain
- * their Android resource font configuration; their geometry/touches are checked at
- * each window size, but native tests must establish their actual system-font matrix.
+ * The floor font matrix is a scoped Compose density override. The Why sheet inherits
+ * that density; each modal target must prove the requested scale before reachability
+ * is accepted. Android system font and phone touch acceptance remain separate.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -221,10 +221,10 @@ class AdaptiveTempoReachabilityRenderTest {
 
         val rec = checkNotNull(vm.microRec.value)
         assertTrue("the synthetic manual draft differs from the advice", abs(rec.nextWeightKg - vm.uiState.value.draft.weightKg) > EPSILON)
-        reveal(WorkoutTestTags.MICRO_REC_APPLY, profile)
+        reveal(WorkoutTestTags.MICRO_REC_WHY, profile)
         assertCardPlacement(inline)
-        capture(profile, "apply-before-touch")
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsEnabled().performClick()
+        openWhy(profile, "apply-before-touch")
+        assertWhyActionReachable(WorkoutTestTags.TEMPO_WHY_USE, 64f).assertIsEnabled().performClick()
         compose.awaitThat("Apply changes the draft to the same recommendation", vm.uiState::value) {
             val draft = vm.uiState.value.draft
             abs(draft.weightKg - rec.nextWeightKg) < EPSILON &&
@@ -360,6 +360,9 @@ class AdaptiveTempoReachabilityRenderTest {
             WorkoutTestTags.TEMPO_WHY_SUMMARY, WorkoutTestTags.TEMPO_WHY_CALLOUT,
             WorkoutTestTags.TEMPO_WHY_USE, WorkoutTestTags.TEMPO_WHY_KEEP,
         )
+        compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).fetchSemanticsNodes().forEach { sheet ->
+            assertEquals("Why inherits the requested text scale", font.floatValue, sheet.layoutInfo.density.fontScale, 0.001f)
+        }
         val lines = tags.map { tag ->
             val nodes = compose.onAllNodes(hasTestTag(tag)).fetchSemanticsNodes()
             "tag=$tag nodes=${nodes.map { "root=${it.boundsInRoot} window=${it.boundsInWindow} layout=${it.size}" }}"

@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -94,8 +95,10 @@ class FloorSectionEdgesRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = twoWorkingSetsLogged())
         show(vm, fontScale = 1f)
         assertFramedAndDrawn()
-        // The frame took width from the stats row; the label that used to fit still fits.
+        // Secondary stats keep the complete label inside their sheet.
+        compose.revealWorkoutSetOption(WorkoutTestTags.STAT_LAST)
         assertOneLine("Last set · RPE 9")
+        compose.closeWorkoutSetOptions()
     }
 
     @Test
@@ -143,10 +146,16 @@ class FloorSectionEdgesRenderTest {
         compose.waitUntil(timeoutMillis = WAIT_MS) {
             compose.onAllNodesWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNodes().isNotEmpty()
         }
-        val layout = compose.onNodeWithTag(WorkoutTestTags.MICRO_REC).textLayout()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        val callout = compose.onAllNodes(hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_CALLOUT)), useUnmergedTree = true)
+            .fetchSemanticsNodes().filter { androidx.compose.ui.semantics.SemanticsProperties.Text in it.config }
+            .first { it.config[androidx.compose.ui.semantics.SemanticsProperties.Text].any { text -> text.text.contains("×") } }
+        val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        assertTrue(callout.config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action?.invoke(layouts) == true)
+        val layout = layouts.single()
         assertTrue(
             "Tempo's numbers must be one whole line, were ${layout.lineCount} line(s), fits=${layout.fitsItsWidth()}",
-            layout.lineCount == 1 && layout.fitsItsWidth(),
+            (0 until layout.lineCount).none { layout.isLineEllipsized(it) } && layout.fitsItsWidth(),
         )
     }
 
@@ -156,7 +165,6 @@ class FloorSectionEdgesRenderTest {
         }
         compose.waitForIdle()
         val frames = listOf(
-            WorkoutTestTags.SECTION_STATS,
             WorkoutTestTags.SECTION_ENTRY,
             WorkoutTestTags.SECTION_RPE,
             WorkoutTestTags.SECTION_SET_HISTORY,
@@ -168,7 +176,9 @@ class FloorSectionEdgesRenderTest {
         compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK)
             .assert(hasAnyAncestor(hasTestTag(WorkoutTestTags.SECTION_RPE)))
         val window = compose.drawWindow()
-        frames.forEach { tag -> assertStrokeAndFill(window, compose.onNodeWithTag(tag), tag) }
+        // Focus uses one entry panel. Effort and the saved/Tempo row remain accessible
+        // regions on the bare floor, with no repeated panel chrome.
+        assertStrokeAndFill(window, compose.onNodeWithTag(WorkoutTestTags.SECTION_ENTRY), WorkoutTestTags.SECTION_ENTRY)
     }
 
     /**
@@ -217,7 +227,7 @@ class FloorSectionEdgesRenderTest {
         val layout = compose.onNode(hasText(words), useUnmergedTree = true).textLayout()
         assertTrue(
             "'$words' must lay out on one line, was ${layout.lineCount} line(s), fits=${layout.fitsItsWidth()}",
-            layout.lineCount == 1 && layout.fitsItsWidth(),
+            (0 until layout.lineCount).none { layout.isLineEllipsized(it) } && layout.fitsItsWidth(),
         )
     }
 

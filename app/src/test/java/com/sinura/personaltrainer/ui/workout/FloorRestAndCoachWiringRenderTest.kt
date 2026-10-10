@@ -217,7 +217,7 @@ class FloorRestAndCoachWiringRenderTest {
         val started = vm.restTimerState.value.remainingSeconds
         compose.onNodeWithTag(WorkoutTestTags.REST_PLUS).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.restTimerState.value.remainingSeconds == started + 15 }
-        compose.onNode(hasClickAction() and hasAnyAncestor(hasTestTag(WorkoutTestTags.REST_BAR)) and hasText("REST")).performClick()
+        compose.onNode(hasClickAction() and hasAnyAncestor(hasTestTag(WorkoutTestTags.REST_BAR)) and hasText("Rest ·", substring = true)).performClick()
         assertEquals("a tap on the running rest opens this session's rest page", listOf(checkNotNull(vm.uiState.value.session).id), restPages)
         compose.onNodeWithTag(WorkoutTestTags.REST_SKIP).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.restTimerState.value.running }
@@ -357,7 +357,7 @@ class FloorRestAndCoachWiringRenderTest {
         val vm = openLegExtension(deps, viewModels, loggedSets = listOf(TestSetInput(weightKg = FLOOR_KG70, reps = 8, isWarmup = true)))
         show(vm)
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
-        onIdleCard("WARM-UP").assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.START_REST).assertIsDisplayed()
         // After a warm-up the idle card says why rest did not start in place of "Planned".
         onIdleCard("Warm-ups do not start rest").assertIsDisplayed()
         assertTrue("a warm-up does not start rest", !vm.restTimerState.value.running)
@@ -402,9 +402,9 @@ class FloorRestAndCoachWiringRenderTest {
         assertTrue("the call is one the card shows on entry", SetMicroRecCopy.visibleOnEntry(call!!))
         // Look where the card would be: the effort track sits just above it.
         assertTempoCoachCardOnScreen(vm)
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsNotEnabled()
-        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_DISMISS).assertIsNotEnabled()
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).assertIsNotEnabled()
         gate.complete(Unit)
         compose.waitUntil(timeoutMillis = WAIT_MS) { !vm.uiState.value.entryLocked && vm.uiState.value.session?.sets?.size == 2 }
         compose.waitForIdle()
@@ -456,7 +456,8 @@ class FloorRestAndCoachWiringRenderTest {
         compose.waitForIdle()
         val rec = checkNotNull(vm.microRec.value)
         assertTempoCoachCardOnScreen(vm)
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_USE).assertIsDisplayed().performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.reps == rec.nextReps }
         val draft = vm.uiState.value.draft
         assertEquals(rec.nextWeightKg, draft.weightKg, 1e-6)
@@ -482,7 +483,7 @@ class FloorRestAndCoachWiringRenderTest {
         val tempo = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNode().boundsInRoot
         val timerRow = compose.onNodeWithTag(WorkoutTestTags.TIMER_ROW).fetchSemanticsNode().boundsInRoot.top
         val savedWork = compose.onNodeWithTag(WorkoutTestTags.SET_HISTORY).fetchSemanticsNode().boundsInRoot
-        assertTrue("saved work precedes advice", savedWork.bottom <= tempo.top)
+        assertTrue("advice stays within the shared saved-work row", tempo.top >= savedWork.top && tempo.bottom <= savedWork.bottom)
         assertTrue("Tempo sits on the scroll floor", tempo.bottom <= floor.bottom + 1f)
         assertTrue("Tempo stays above the timer row", tempo.bottom <= timerRow + 1f)
     }
@@ -493,7 +494,7 @@ class FloorRestAndCoachWiringRenderTest {
         show(vm)
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.microRec.value != null }
         assertTempoCoachCardOnScreen(vm)
-        scrollTo(WorkoutTestTags.WARMUP_CHIP)
+        compose.revealWorkoutSetOption(WorkoutTestTags.WARMUP_CHIP)
         compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.isWarmup }
         compose.waitForIdle()
@@ -517,7 +518,6 @@ class FloorRestAndCoachWiringRenderTest {
         assertTempoCoachCardOnScreen(vm)
         // The card keeps the rule and Target RPE, drawn whole: text found by its words can
         // still be cut on screen, so the last drawn line is checked too.
-        compose.onNode(hasText("Had more in you — add weight", substring = true), useUnmergedTree = true).assertIsDisplayed()
         // The goal set in Settings reaches the floor (audit C-1, W1b): a Strength lifter reads
         // the strength reason on the Why sheet, not the goal-free one it used to get.
         compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
@@ -536,13 +536,25 @@ class FloorRestAndCoachWiringRenderTest {
         vm.setWeight(FLOOR_KG70)
         compose.waitForIdle()
         assertTempoCoachCardOnScreen(vm)
-        compose.onNode(hasText("Had more in you — add weight", substring = true), useUnmergedTree = true).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).performClick()
+        val draft = vm.uiState.value.draft
+        val original = runBlocking { deps.workoutRepository.getSession(checkNotNull(vm.uiState.value.session).id) }
+        compose.revealWorkoutSetOption(WorkoutTestTags.SET_OPTIONS_TEMPO)
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_TEMPO).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_SHEET).assertDoesNotExist()
         compose.onNode(
             hasText("Had more in you — add weight", substring = true) and
                 hasAnyAncestor(hasTestTag(WorkoutTestTags.TEMPO_WHY_SHEET)),
         ).assertIsDisplayed()
         compose.onAllNodesWithText("strength bias", substring = true, useUnmergedTree = true).assertCountEquals(0)
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_KEEP).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_WHY_SHEET).assertDoesNotExist()
+        assertEquals(draft, vm.uiState.value.draft)
+        compose.revealWorkoutSetOption(WorkoutTestTags.TEMPO_COACH_DISMISS)
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_DISMISS).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_SHEET).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).assertDoesNotExist()
+        assertEquals(draft, vm.uiState.value.draft)
+        assertEquals(original, runBlocking { deps.workoutRepository.getSession(checkNotNull(vm.uiState.value.session).id) })
     }
 
     private fun assertReasonDrawnWhole(reason: String) {
@@ -605,7 +617,7 @@ class FloorRestAndCoachWiringRenderTest {
 
     private fun idleTile(clock: String? = null) = compose.onNode(
         hasClickAction() and hasAnyAncestor(hasTestTag(WorkoutTestTags.REST_IDLE)) and
-            (if (clock == null) hasText("REST") else hasText(clock)),
+            (if (clock == null) hasText("Planned rest") else hasText(clock)),
     )
 
     /** A word drawn on the idle rest card, found where it is drawn rather than in the merged tile. */

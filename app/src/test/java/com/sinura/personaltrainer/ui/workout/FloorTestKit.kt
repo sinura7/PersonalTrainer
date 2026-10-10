@@ -731,6 +731,11 @@ internal fun ComposeContentTestRule.scrollFloorClearOfTempo() {
 }
 
 internal fun ComposeContentTestRule.scrollFloorTo(tag: String, clearTempo: Boolean = false) {
+    if (tag == WorkoutTestTags.WARMUP_CHIP || tag == WorkoutTestTags.WORKING_CHIP || tag == WorkoutTestTags.RPE_HELPER || tag == WorkoutTestTags.RPE_CLEAR || tag == WorkoutTestTags.STATS_ROW) {
+        revealWorkoutSetOption(tag)
+        return
+    }
+    closeWorkoutSetOptions()
     onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
     if (clearTempo) scrollFloorClearOfTempo()
     waitForIdle()
@@ -745,3 +750,25 @@ private fun ComposeContentTestRule.settleKeypad() {
 
 private const val KEYPAD_SETTLE_FRAMES = 20
 private const val FRAME_MS = 16L
+
+
+/** Drive the actual native disclosure rather than reaching a hidden floor control. */
+internal fun ComposeContentTestRule.openWorkoutSetOptions() {
+    if (onAllNodes(hasTestTag(WorkoutTestTags.SET_OPTIONS_SHEET)).fetchSemanticsNodes().isNotEmpty()) return
+    onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+    onNodeWithText("Set options").performClick()
+    onNodeWithTag(WorkoutTestTags.SET_OPTIONS_SHEET).assertIsDisplayed()
+}
+
+internal fun ComposeContentTestRule.closeWorkoutSetOptions() {
+    if (onAllNodes(hasTestTag(WorkoutTestTags.SET_OPTIONS_DONE)).fetchSemanticsNodes().isNotEmpty()) {
+        onNodeWithTag(WorkoutTestTags.SET_OPTIONS_DONE).performClick()
+        waitForIdle()
+    }
+}
+
+internal fun ComposeContentTestRule.revealWorkoutSetOption(tag: String) {
+    openWorkoutSetOptions()
+    onNodeWithTag(WorkoutTestTags.SET_OPTIONS_CONTENT).performScrollToNode(hasTestTag(tag))
+    onNodeWithTag(tag).assertIsDisplayed()
+}

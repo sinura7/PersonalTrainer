@@ -291,7 +291,6 @@ class RpeSelectorRenderTest {
 
     @Test
     fun aWarmupShowsTheReasonInsteadOfTheTrack() {
-        rpe = 8
         showTrack(warmup = true, recommended = 8)
         compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON)
             .assertIsDisplayed()
@@ -300,6 +299,14 @@ class RpeSelectorRenderTest {
         RpeCopy.VALUES.forEach { choice(it).assertDoesNotExist() }
         compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.RPE_HELPER).assertIsDisplayed()
+        // A valid legacy warm-up already containing effort must describe its
+        // preserved value accurately, while still offering no new RPE selection.
+        rpe = 8
+        compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON)
+            .assert(hasText("Recorded effort: RPE 8 is kept for this warm-up."))
+        compose.onNodeWithTag(WorkoutTestTags.RPE_TRACK).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).assertDoesNotExist()
+        assertTrue(picks.isEmpty())
     }
 
     @Test

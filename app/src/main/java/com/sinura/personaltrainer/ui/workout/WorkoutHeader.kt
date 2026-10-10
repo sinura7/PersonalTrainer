@@ -68,6 +68,7 @@ internal fun WorkoutHeader(
     onDiscard: () -> Unit = {},
     showDiscard: Boolean = false,
     overflow: (@Composable () -> Unit)? = null,
+    focused: Boolean = false,
 ) {
     // Two lines at display size so a long routine name wraps instead of losing its end;
     // large text keeps the title to one, where a second display-size line would eat the
@@ -99,10 +100,15 @@ internal fun WorkoutHeader(
             backIcon = TemperIcons.Back,
             backDescription = "Exit workout",
             paintBackground = true,
-            titleStyle = if (compact) InstrumentType.title else InstrumentType.display,
+            titleStyle = when {
+                compact -> InstrumentType.title
+                focused -> InstrumentType.workoutTitle
+                else -> InstrumentType.display
+            },
             titleMaxLines = titleLines,
             titleModifier = if (planAsTitle) progressLine("$routineName. $spoken") else Modifier,
-            subtitle = null,
+            subtitle = headline.takeIf { focused && !compact && !largeText && it.isNotBlank() },
+            subtitleModifier = progressLine(spoken),
             contentPadding = PaddingValues(start = Metrics.space2, end = Metrics.space2),
             modifier = Modifier
                 .fillMaxWidth()
@@ -149,27 +155,32 @@ internal fun WorkoutHeader(
             },
         )
         if (headline.isNotBlank() && !planAsTitle) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    // Aligned with the title, which sits after the 48 dp back control.
-                    .padding(start = Metrics.space2 + Metrics.touchMin, end = Metrics.gutter),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
-                Text(
-                    // The instrument-label voice, which is what this line is: a meta label
-                    // over the plan, the same register as REST or LAST 7 DAYS. Uppercased
-                    // at the call site because the kicker style is never set in mixed case.
-                    // The `Kicker` composable itself is not used here: it caps at one line,
-                    // and large text needs the second one to keep the word "sets".
-                    headline.uppercase(),
-                    modifier = progressLine(spoken),
-                    style = InstrumentType.kicker,
-                    color = TextSecondary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                WorkoutProgressBar(segments = progress.segments)
+            if (focused && !largeText) {
+                WorkoutProgressBar(segments = progress.segments,
+                    modifier = Modifier.padding(start = Metrics.space2 + Metrics.touchMin, end = Metrics.gutter))
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // Aligned with the title, which sits after the 48 dp back control.
+                        .padding(start = if (focused) Metrics.gutter else Metrics.space2 + Metrics.touchMin, end = Metrics.gutter),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+                ) {
+                    Text(
+                        // The instrument-label voice, which is what this line is: a meta label
+                        // over the plan, the same register as REST or LAST 7 DAYS. Uppercased
+                        // at the call site because the kicker style is never set in mixed case.
+                        // The `Kicker` composable itself is not used here: it caps at one line,
+                        // and large text needs the second one to keep the word "sets".
+                        if (focused) headline else headline.uppercase(),
+                        modifier = progressLine(spoken),
+                        style = if (focused) InstrumentType.caption else InstrumentType.kicker,
+                        color = TextSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    WorkoutProgressBar(segments = progress.segments)
+                }
             }
         }
     }

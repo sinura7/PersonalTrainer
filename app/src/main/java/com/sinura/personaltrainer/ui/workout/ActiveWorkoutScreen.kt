@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalAccessibilityManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -41,10 +40,11 @@ import com.sinura.personaltrainer.domain.CurrentLiftCopy
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.ExerciseFloorStatsCalculator
-import com.sinura.personaltrainer.domain.ExerciseFloorStatsPresentation
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.FloorWeightPresets
+import com.sinura.personaltrainer.domain.RpeCopy
 import com.sinura.personaltrainer.domain.FloorCompactChrome
 import com.sinura.personaltrainer.domain.FloorTimedModeResolver
 import com.sinura.personaltrainer.domain.FloorTimerCue
@@ -68,6 +68,9 @@ import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.EndWorkoutDialog
 import com.sinura.personaltrainer.ui.components.ExercisePickerSheet
+import com.sinura.personaltrainer.ui.components.GymDialog
+import com.sinura.personaltrainer.ui.components.InstrumentPreset
+import com.sinura.personaltrainer.ui.components.QuietButton
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.FloorSection
@@ -79,7 +82,6 @@ import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
-import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
@@ -91,6 +93,12 @@ object WorkoutTestTags {
     fun weightPreset(source: WeightDraftSource) = "workout-weight-preset-${source.name.lowercase()}"
     /** A set's chip on the floor; the saved-sets sheet's rows keep [setOptions], so both can be open at once. */
     fun setChip(setId: String) = "workout-set-chip-$setId"
+    const val SET_OPTIONS_SHEET = "workout-set-options-sheet"
+    const val SET_OPTIONS_CONTENT = "workout-set-options-content"
+    const val SET_OPTIONS_DONE = "workout-set-options-done"
+    const val SET_OPTIONS_SETS = "workout-set-options-sets"
+    const val SET_OPTIONS_TEMPO = "workout-set-options-tempo"
+    const val SET_OPTIONS_DETAILS = "workout-set-options-details"
     const val CONTENT = "workout-content"
     const val LOG_SET = "workout-log-set"
     const val LOG_READINESS = "workout-log-readiness"
@@ -230,12 +238,16 @@ private fun ActiveWorkoutContent(
     var sessionSummaryOpen by rememberSaveable { mutableStateOf(false) }
     var finishNotesOpen by rememberSaveable { mutableStateOf(false) }
     var setsOpen by rememberSaveable { mutableStateOf(false) }
+    var setOptionsOpen by rememberSaveable { mutableStateOf(false) }
+    var effortHelpOpen by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.entryLocked) {
         if (state.entryLocked) {
             confirmEnd = false
             confirmDiscard = false
             liftSwitcherOpen = false
             setsOpen = false
+            setOptionsOpen = false
+            effortHelpOpen = false
             viewModel.setPickerVisible(false)
             viewModel.cancelPendingLiftSwitch()
         }
@@ -389,7 +401,11 @@ private fun ActiveWorkoutContent(
         }
     }
     val setContext = when {
-        state.editingSetId != null -> "Editing saved set"
+        state.editingSetId != null -> {
+            val index = logged.indexOfFirst { it.id == state.editingSetId }
+            val ordinal = SetOrdinalCopy.loggedLines(logged.map { it.isWarmup }, selected?.targetSets ?: 0).getOrNull(index)
+            "Editing saved set" + (ordinal?.let { " · $it" } ?: "")
+        }
         plannedComplete -> "Planned sets complete"
         else -> SetOrdinalCopy.draftLine(
             isWarmup = state.draft.isWarmup,
@@ -427,11 +443,6 @@ private fun ActiveWorkoutContent(
         is TempoCoachTip.AddASet -> false
         null -> false
     }
-    val floorTempoCompactStrip = floorTempoTip is TempoCoachTip.NextSet &&
-        FloorCompactChrome.coachUsesCompactStrip(
-            preparePhase = workingLogged == 0,
-            entryMatchesSuggestion = floorTempoApplied,
-        )
     // Consume restored modal state only after the advice loads, as the card did
     // before hoisting; a transient null tip must not reset restored saveable inputs.
     val floorTempoCardState = floorTempoTip?.let { rememberTempoCoachCardState(it.tipShort) }
@@ -471,6 +482,7 @@ private fun ActiveWorkoutContent(
                 canFinish = state.canFinish,
                 showDiscard = state.showDiscard,
                 compact = LandscapeChrome.compactHeader(landscape),
+                focused = true,
                 onExit = { keepAndExit() },
                 onFinish = { confirmEnd = true },
                 onDiscard = { confirmDiscard = true },
@@ -487,6 +499,7 @@ private fun ActiveWorkoutContent(
                             onSwitch = { liftSwitcherOpen = true },
                             onDetails = { onOpenExercise(lift.exercise.id) },
                             enabled = !state.entryLocked,
+                            onSetOptions = { setOptionsOpen = true },
                         )
                     }
                 },
@@ -530,6 +543,8 @@ private fun ActiveWorkoutContent(
                 ) {
                     if (emptySession) {
                         PinnedDock(
+                            hairline = false,
+                            verticalPadding = Metrics.space2,
                             volt = {
                                 PrimaryGymButton(
                                     text = "Add exercise",
@@ -669,12 +684,8 @@ private fun ActiveWorkoutContent(
                             top = Metrics.space3,
                             bottom = Metrics.space7,
                         ),
-                        // 8, not 12 (and not 16 before that). Each block now sits in its own
-                        // FloorSection frame, so the frame separates them and the gap only has
-                        // to keep two frames from touching; the four points a gap gave back,
-                        // over five gaps, pay for the frames without pushing the commit off
-                        // the screen (WorkoutFloorRenderTest.LOOP_BUDGET_DP). The bottom
-                        // padding stays: that is the dock's clearance.
+                        // Compact entry, effort and saved-work regions share a quiet rhythm.
+                        // The dock stays separate; secondary context lives in Set options.
                         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
                     ) {
                         if (!session.hasLifts()) {
@@ -704,6 +715,7 @@ private fun ActiveWorkoutContent(
                                         onOpenSwitcher = { liftSwitcherOpen = true },
                                         onDetails = { onOpenExercise(currentLift.exercise.id) },
                                         enabled = entryEnabled,
+                                        focused = true,
                                     )
                                 }
                                 item(key = "entry") {
@@ -730,8 +742,7 @@ private fun ActiveWorkoutContent(
                                             holdSeconds = state.draft.durationSeconds ?: currentLift.targetSeconds,
                                             holdRunning = holdTimer.running,
                                             holdRemainingSeconds = holdTimer.remainingSeconds,
-                                            plannedKg = currentLift.targetWeightKg,
-                                            lastKg = lastKg,
+                                            focused = true,
                                             onWeightKgChange = viewModel::setWeight,
                                             onRepsChange = viewModel::setReps,
                                             onSecondsChange = viewModel::setHoldSeconds,
@@ -772,8 +783,11 @@ private fun ActiveWorkoutContent(
                                     }
                                 }
                                 item(key = "rpe") {
-                                    FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_RPE)) {
+                                    Column(modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.SECTION_RPE),
+                                        verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
                                         RpeSelector(
+                                            focused = true,
+                                            optional = hold,
                                             enabled = entryEnabled,
                                             warmup = state.draft.isWarmup,
                                             rpe = state.draft.rpe,
@@ -800,75 +814,30 @@ private fun ActiveWorkoutContent(
                                             ),
                                         )
                                     }
-                                    FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_SET_HISTORY)) {
-                                        SetHistoryStrip(
-                                            sets = logged,
-                                            targetSets = currentLift.targetSets,
-                                            loadClass = loadClass,
-                                            unit = unit,
-                                            editingSetId = state.editingSetId,
-                                            receiptSetId = logReceipt?.setId,
-                                            current = current,
-                                            enabled = entryEnabled,
-                                            onEdit = viewModel::editSet,
-                                            onDelete = viewModel::deleteSet,
-                                            onOpenAll = { setsOpen = true },
-                                        )
-                                    }
-                                }
-                                floorTempoTip?.let { tip ->
-                                    item(key = "tempo-coach") {
-                                        TempoCoachCard(
-                                            tip = tip,
-                                            loadClass = loadClass,
-                                            unit = unit,
-                                            applied = floorTempoApplied,
-                                            enabled = floorEntryEnabled,
-                                            onApply = { viewModel.applyTempoCoachTip(tip) },
-                                            onDismiss = { viewModel.dismissTempoCoachTip(tip) },
-                                            compactLandscape = landscape,
-                                            compactStrip = floorTempoCompactStrip,
-                                            cardState = checkNotNull(floorTempoCardState),
-                                            renderDialogs = false,
-                                        )
-                                    }
-                                }
-                                item(key = "stats") {
-                                    val workingSetsToday = remember(session, currentLift.exercise.id) {
-                                        ExerciseFloorStatsPresentation.workingSetsLoggedToday(
-                                            session = session,
-                                            exerciseId = currentLift.exercise.id,
-                                        )
-                                    }
-                                    // Large text keeps Last alone; Best and Volume are
-                                    // in Details (ADR-030, owner decision of 23 September 2026).
-                                    val stackedText = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
-                                    val statsVisibility = remember(workingSetsToday, stackedText) {
-                                        ExerciseFloorStatsPresentation.rowVisibility(workingSetsToday, stackedText)
-                                    }
-                                    val stats = remember(session, currentLift.exercise.id, state.lastPerformance, exerciseHistory, unit) {
-                                        ExerciseFloorStatsCalculator.of(
-                                            session = session,
-                                            exerciseId = currentLift.exercise.id,
-                                            lastPerformance = state.lastPerformance,
-                                            priorHistory = exerciseHistory,
-                                            unit = unit,
-                                        )
-                                    }
-                                    FloorSection(
-                                        modifier = Modifier.testTag(WorkoutTestTags.SECTION_STATS),
-                                        // The cells inset their own ink by space2; space1 here keeps the
-                                        // ink 12 dp in like every other frame and keeps `Last set · RPE 9`
-                                        // on one line at 360 dp.
-                                        horizontalPadding = Metrics.space1,
-                                    ) {
-                                        ExerciseStatsRow(
-                                            stats = stats,
-                                            unit = unit,
-                                            visibility = statsVisibility,
-                                            onApplyLastSet = if (entryEnabled) viewModel::applyLastTimeSet else null,
-                                        )
-                                    }
+                                    SetHistoryStrip(
+                                        sets = logged,
+                                        targetSets = currentLift.targetSets,
+                                        loadClass = loadClass,
+                                        unit = unit,
+                                        editingSetId = state.editingSetId,
+                                        receiptSetId = logReceipt?.setId,
+                                        current = current,
+                                        enabled = entryEnabled,
+                                        onEdit = viewModel::editSet,
+                                        onDelete = viewModel::deleteSet,
+                                        onOpenAll = { setsOpen = true },
+                                        focused = true,
+                                        modifier = Modifier.testTag(WorkoutTestTags.SECTION_SET_HISTORY),
+                                        trailing = floorTempoTip?.let { tip ->
+                                            {
+                                                TempoCoachShortcut(
+                                                    enabled = floorEntryEnabled,
+                                                    description = tip.tipShort,
+                                                    onOpen = { checkNotNull(floorTempoCardState).showWhy = true },
+                                                )
+                                            }
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -897,6 +866,71 @@ private fun ActiveWorkoutContent(
             onApply = { viewModel.applyTempoCoachTip(tip) },
             cardState = checkNotNull(floorTempoCardState),
         )
+    }
+
+    if (setOptionsOpen && selected != null && session != null && !state.entryLocked) {
+        WorkoutSetOptionsSheet(lift = selected, onDismiss = { setOptionsOpen = false }) {
+            SetTypeToggle(enabled = true, warmup = state.draft.isWarmup, onWarmup = {
+                viewModel.setWarmup(it)
+                setOptionsOpen = false
+            })
+            val fills = FloorWeightPresets.quickFills(
+                currentKg = state.draft.weightKg,
+                plannedKg = selected.targetWeightKg,
+                lastKg = state.hint?.lastWeightKg ?: state.lastPerformance?.topSet?.weightKg,
+            )
+            if (fills.isNotEmpty()) {
+                Text("Fill weight", style = InstrumentType.bodyStrong)
+                fills.forEach { fill ->
+                    InstrumentPreset(
+                        label = fill.chipLabel(unit),
+                        onClick = { viewModel.setWeight(fill.weightKg); setOptionsOpen = false },
+                        modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.weightPreset(fill.source)),
+                        enabled = true,
+                    )
+                }
+                Text("Fills change weight only. Reps and effort stay under your control.", style = InstrumentType.caption)
+            }
+            QuietButton(text = "View all saved sets", enabled = logged.isNotEmpty(), maxLines = Int.MAX_VALUE,
+                modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.SET_OPTIONS_SETS),
+                onClick = { setOptionsOpen = false; setsOpen = true })
+            QuietButton(text = RpeCopy.HELP_TITLE, onClick = { setOptionsOpen = false; effortHelpOpen = true },
+                modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.RPE_HELPER), maxLines = Int.MAX_VALUE)
+            if (!state.draft.isWarmup && state.draft.rpe != null) {
+                QuietButton(text = RpeCopy.CLEAR, onClick = { viewModel.setRpe(null); setOptionsOpen = false },
+                    modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.RPE_CLEAR), maxLines = Int.MAX_VALUE)
+            }
+            floorTempoTip?.let { tip ->
+                QuietButton(text = "Tempo suggestion", maxLines = Int.MAX_VALUE,
+                    modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.SET_OPTIONS_TEMPO), onClick = {
+                    setOptionsOpen = false
+                    checkNotNull(floorTempoCardState).showWhy = true
+                })
+                QuietButton(text = "Dismiss Tempo suggestion", onClick = {
+                    viewModel.dismissTempoCoachTip(tip)
+                    setOptionsOpen = false
+                }, modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.TEMPO_COACH_DISMISS), maxLines = Int.MAX_VALUE)
+            }
+            val stats = remember(session, selected.exercise.id, state.lastPerformance, exerciseHistory, unit) {
+                ExerciseFloorStatsCalculator.of(session = session, exerciseId = selected.exercise.id,
+                    lastPerformance = state.lastPerformance, priorHistory = exerciseHistory, unit = unit)
+            }
+            FloorSection(modifier = Modifier.testTag(WorkoutTestTags.SECTION_STATS)) {
+                ExerciseStatsRow(stats = stats, unit = unit, onApplyLastSet = { kg, reps ->
+                    viewModel.applyLastTimeSet(kg, reps)
+                    setOptionsOpen = false
+                })
+            }
+            QuietButton(text = CurrentLiftCopy.DETAILS_SPOKEN, maxLines = Int.MAX_VALUE,
+                modifier = Modifier.fillMaxWidth().testTag(WorkoutTestTags.SET_OPTIONS_DETAILS), onClick = {
+                setOptionsOpen = false
+                onOpenExercise(selected.exercise.id)
+            })
+        }
+    }
+    if (effortHelpOpen) {
+        GymDialog(title = RpeCopy.HELP_TITLE, body = RpeCopy.helpBody(), confirmLabel = "Done",
+            onConfirm = { effortHelpOpen = false }, onDismiss = { effortHelpOpen = false }, dismissLabel = null)
     }
 
     if (setsOpen && selected != null) {

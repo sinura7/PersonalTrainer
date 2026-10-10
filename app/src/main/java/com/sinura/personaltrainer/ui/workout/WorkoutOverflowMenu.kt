@@ -45,6 +45,7 @@ internal fun LiftOverflowMenu(
     onDetails: () -> Unit,
     onSkip: () -> Unit = {},
     enabled: Boolean = true,
+    onSetOptions: (() -> Unit)? = null,
 ) {
     var menuOpen by rememberSaveable(liftId) { mutableStateOf(false) }
     LaunchedEffect(enabled) { if (!enabled) menuOpen = false }
@@ -63,6 +64,13 @@ internal fun LiftOverflowMenu(
             )
         }
         InstrumentMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            onSetOptions?.let { open ->
+                InstrumentMenuItem(
+                    spokenLabel = "Set options",
+                    leadingIcon = TemperIcons.Edit,
+                    onClick = { menuOpen = false; open() },
+                )
+            }
             InstrumentMenuItem(
                 spokenLabel = CurrentLiftCopy.SWITCH,
                 leadingIcon = TemperIcons.ChevronDown,

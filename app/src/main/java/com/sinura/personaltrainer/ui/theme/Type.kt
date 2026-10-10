@@ -72,6 +72,12 @@ private fun style(
  * governed it. These five sizes are the whole vocabulary; a call site picks one.
  */
 object InstrumentType {
+    /** Compact workout entry; still the loudest information on the recording floor. */
+    val workoutNumeral = style(SpaceGrotesk, FontWeight.Medium, 44.sp, 48.sp, (-0.4).sp)
+
+    /** Full exercise identity beside its keyed still in the Focus workout. */
+    val workoutTitle = style(Inter, FontWeight.Medium, 20.sp, 24.sp, (-0.2).sp)
+
     /** The rest clock, and the weight and rep entry. One per screen, at most. */
     val numeralHero = style(SpaceGrotesk, FontWeight.Medium, 76.sp, 80.sp, (-0.8).sp)
 

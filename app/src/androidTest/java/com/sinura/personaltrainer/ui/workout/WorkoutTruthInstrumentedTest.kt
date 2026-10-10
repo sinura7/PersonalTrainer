@@ -247,7 +247,10 @@ class WorkoutTruthInstrumentedTest {
         capture("live-read-failed-font2")
         fixture.failReads.set(false)
         compose.onNodeWithText("Retry").performTouchInput { click() }
-        compose.waitUntil(15_000) { vm.uiState.value.session?.id == fixture.sessionId && vm.uiState.value.loadState == SessionLoadState.FOUND }
+        compose.waitUntil(15_000) {
+            val recovered = vm.uiState.value
+            recovered.session?.id == fixture.sessionId && recovered.loadState == SessionLoadState.FOUND && recovered.notes == original.notes
+        }
         assertEquals("Stored original", vm.uiState.value.notes)
         assertEquals(original, fixture.stored())
         capture("live-read-recovered-font2")

@@ -138,8 +138,6 @@ class FloorScreenWiringRenderTest {
             WorkoutTestTags.RPE_TRACK,
             WorkoutTestTags.LOG_READINESS,
             WorkoutTestTags.SET_HISTORY,
-            WorkoutTestTags.TEMPO_COACH_CARD,
-            WorkoutTestTags.STATS_ROW,
         )
         val tops = order.map { compose.onNodeWithTag(it).getBoundsInRoot().top }
         assertEquals("top to bottom: $order", tops.sorted(), tops)
@@ -160,10 +158,7 @@ class FloorScreenWiringRenderTest {
     fun theLiftSwitchOpensTheSessionSwitcherAndARowSwitchesLift() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(1), withNextLift = true)
         show(vm)
-        // The switcher opens from the visible "Lift 1 of 2" control (D09). The identity is
-        // words now: a tap on the name opens nothing.
-        compose.onNodeWithTag(WorkoutTestTags.liftCard(LEG_EXTENSION)).performClick()
-        compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCHER).assertDoesNotExist()
+        // Focus groups the complete name and visible lift position into the switch.
         compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCH).assert(hasText(CurrentLiftCopy.switchLabel(1, 2))).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LIFT_SWITCHER).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.liftSwitcherRow(NEXT_LIFT)).performClick()
@@ -176,7 +171,7 @@ class FloorScreenWiringRenderTest {
     @Test
     fun switchingLiftFromTheOverflowBringsTheNewIdentityAndEntryBackIntoView() {
         val vm = openLegExtension(deps, viewModels, loggedSets = sets(2), withNextLift = true)
-        show(vm)
+        show(vm, heightDp = 520)
         compose.scrollFloorTo(WorkoutTestTags.SET_HISTORY, clearTempo = true)
         compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).assertIsNotDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
@@ -226,10 +221,12 @@ class FloorScreenWiringRenderTest {
     fun theSetTypeToggleDrivesTheDraftTheCommitAndTheWarmupRamp() {
         val vm = openBackSquat()
         show(vm)
+        compose.revealWorkoutSetOption(WorkoutTestTags.WARMUP_CHIP)
         compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.isWarmup }
         compose.waitForIdle()
-        compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).assertIsSelected()
+        assertTrue(vm.uiState.value.draft.isWarmup)
+        compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true).assert(hasText("Warm-up", substring = true))
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assert(hasContentDescription("Log warm-up", substring = true))
         compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true)
             .assert(hasText(SetOrdinalCopy.draftLine(isWarmup = true, warmupLogged = 0, workingLogged = 0, targetSets = 3)))
@@ -249,6 +246,98 @@ class FloorScreenWiringRenderTest {
     }
 
     @Test
+    fun disclosedSavedSetsAndDetailsKeepTheExactLiveOwner() {
+        val vm = openLegExtension(deps, viewModels, loggedSets = sets(2))
+        show(vm)
+        compose.awaitThat("the same live fixture is ready", vm.uiState::value) { FLOOR_LIFT_READY(vm.uiState.value) }
+        val original = storedSession(vm)
+        val draft = vm.uiState.value.draft
+        compose.revealWorkoutSetOption(WorkoutTestTags.SET_OPTIONS_SETS)
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_SETS).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_SHEET).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed()
+        original.sets.forEach { set -> compose.onNodeWithTag(WorkoutTestTags.setOptions(set.id)).assertExists() }
+        compose.onNode(hasText("Done") and hasAnyAncestor(hasTestTag(WorkoutTestTags.SAVED_SETS_SHEET))).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertDoesNotExist()
+        compose.revealWorkoutSetOption(WorkoutTestTags.SET_OPTIONS_DETAILS)
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_DETAILS).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_SHEET).assertDoesNotExist()
+        assertEquals(listOf(LEG_EXTENSION), openedExercises)
+        assertEquals(draft, vm.uiState.value.draft)
+        assertEquals(original, storedSession(vm))
+    }
+
+    @Test
+    fun disclosedLastWeightPreservesManualRepsEffortAndBothSavedGraphs() {
+        val lastKg = WeightConverter.lbsToKg(60.0)
+        val priorId = runBlocking {
+            seedLegExtension(deps, listOf(TestSetInput(weightKg = lastKg, reps = 7, rpe = 9))).also {
+                deps.workoutRepository.finishSession(it, notes = "synthetic prior")
+            }
+        }
+        val vm = openLegExtension(deps, viewModels, loggedSets = emptyList())
+        // Both fixtures share the helper's synthetic routine ID. Creating the second
+        // fixture replaces that routine and legitimately clears the prior foreign key.
+        // Freeze the complete persisted baseline after setup, before any UI action.
+        val prior = runBlocking { checkNotNull(deps.workoutRepository.observeSession(priorId).first { it != null }) }
+        show(vm)
+        compose.awaitThat("the real previous-session hint is ready", vm.uiState::value) {
+            FLOOR_LIFT_READY(vm.uiState.value) && vm.uiState.value.lastPerformance?.topSet?.weightKg == lastKg
+        }
+        compose.withKeypad(compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER), "82.5")
+        compose.withKeypad(compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER), "12")
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(8)).performClick()
+        compose.awaitThat("the manual result is authored", vm.uiState::value) { vm.uiState.value.draft.reps == 12 && vm.uiState.value.draft.rpe == 8 }
+        val original = storedSession(vm)
+        compose.revealWorkoutSetOption(WorkoutTestTags.weightPreset(WeightDraftSource.LAST_TIME))
+        compose.onNodeWithTag(WorkoutTestTags.weightPreset(WeightDraftSource.LAST_TIME)).performClick()
+        compose.awaitThat("Last fills only weight", vm.uiState::value) { abs(vm.uiState.value.draft.weightKg - lastKg) < 1e-6 }
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_SHEET).assertDoesNotExist()
+        assertEquals(12, vm.uiState.value.draft.reps)
+        assertEquals(8, vm.uiState.value.draft.rpe)
+        assertEquals(original, storedSession(vm))
+        assertEquals(prior, runBlocking { deps.workoutRepository.observeSession(priorId).first { it != null } })
+    }
+
+    @Test
+    fun correctingAnImportedWarmupShowsAndPreservesItsRecordedEffort() {
+        val sessionId = runBlocking {
+            seedLegExtension(deps, listOf(TestSetInput(weightKg = FLOOR_KG70, reps = 10, isWarmup = true))).also { id ->
+                val set = checkNotNull(deps.workoutRepository.getSession(id)).sets.single()
+                // A valid imported legacy record can contain effort on a warm-up.
+                // Seed it before opening the actual screen; normal new warm-ups omit RPE.
+                val dao = deps.database.workoutDao()
+                dao.updateSet(checkNotNull(dao.getSet(set.id)).copy(rpe = 9))
+            }
+        }
+        val vm = floorViewModel(deps, sessionId).also(viewModels::add)
+        show(vm)
+        compose.awaitThat("the imported warm-up is hydrated", vm.uiState::value) {
+            FLOOR_LIFT_READY(vm.uiState.value) && vm.uiState.value.session?.sets?.singleOrNull()?.rpe == 9
+        }
+        val original = storedSession(vm)
+        val saved = original.sets.single()
+        compose.scrollFloorTo(WorkoutTestTags.setChip(saved.id))
+        compose.onNodeWithTag(WorkoutTestTags.setChip(saved.id)).performClick()
+        compose.awaitThat("the exact warm-up is being corrected", vm.uiState::value) {
+            vm.uiState.value.editingSetId == saved.id && vm.uiState.value.draft.isWarmup && vm.uiState.value.draft.rpe == 9
+        }
+        compose.scrollFloorTo(WorkoutTestTags.RPE_WARMUP_REASON)
+        compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON)
+            .assert(hasText("Recorded effort: RPE 9 is kept for this warm-up."))
+        compose.scrollFloorTo(WorkoutTestTags.REPS_STEPPER)
+        compose.withKeypad(compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER), "9")
+        compose.awaitThat("the manual correction reaches the draft", vm.uiState::value) { vm.uiState.value.draft.reps == 9 }
+        compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assert(hasText("RPE 9", substring = true)).performClick()
+        compose.awaitThat("the same legacy record is corrected once", vm.uiState::value) {
+            !vm.uiState.value.entryLocked && vm.uiState.value.editingSetId == null &&
+                vm.uiState.value.session?.sets?.singleOrNull()?.reps == 9
+        }
+        assertEquals(original.copy(sets = listOf(saved.copy(reps = 9))), storedSession(vm))
+        assertTrue("correction cannot start a fresh rest", !deps.restTimerStore.current().running)
+    }
+
+    @Test
     fun thePlatesAndTheKeypadWriteTheDraftByTheBarbellsRule() {
         val vm = openBackSquat()
         show(vm)
@@ -264,6 +353,7 @@ class FloorScreenWiringRenderTest {
         // A barbell shows its plate loading under the weight.
         compose.onNodeWithText(checkNotNull(PlateMath.load(stepped, WeightUnit.LBS)).caption()).assertIsDisplayed()
         // Off the plan, the plan comes back as a one-tap fill.
+        compose.revealWorkoutSetOption(WorkoutTestTags.weightPreset(WeightDraftSource.PLAN))
         compose.onNodeWithTag(WorkoutTestTags.weightPreset(WeightDraftSource.PLAN)).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { abs(vm.uiState.value.draft.weightKg - SQUAT_KG) < 0.05 }
         // The keypad explains a barbell's weight and writes what was typed.
@@ -333,10 +423,11 @@ class FloorScreenWiringRenderTest {
         // Short enough that reaching the chips scrolls the numerals off screen.
         show(vm, heightDp = 520)
         val first = checkNotNull(vm.uiState.value.session?.sets?.minByOrNull { it.completedAt })
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.setChip(first.id)))
-        compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertIsNotDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.setChip(first.id)).performClick()
-        compose.onNodeWithText(SetRowCopy.revise(SetOrdinalCopy.working(1, 3))).performClick()
+        openViewSets()
+        compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed()
+        compose.onNodeWithTag("workout-saved-sets-list").performScrollToNode(hasTestTag(WorkoutTestTags.setOptions(first.id)))
+        compose.onNodeWithTag(WorkoutTestTags.setOptions(first.id)).performClick()
+        compose.onNodeWithText("Edit set").performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) {
             vm.uiState.value.editingSetId == first.id && !vm.uiState.value.entryLocked
         }
@@ -346,7 +437,7 @@ class FloorScreenWiringRenderTest {
         // While editing, the history shows no "current" chip, and the identity says so.
         assertTrue(compose.onAllNodesWithTag(WorkoutTestTags.CURRENT_SET).fetchSemanticsNodes().isEmpty())
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.CURRENT_LIFT))
-        compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true).assert(hasText("Editing saved set"))
+        compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true).assert(hasText("Editing saved set · Set 1 of 3"))
     }
 
     @Test
@@ -380,8 +471,9 @@ class FloorScreenWiringRenderTest {
         assertEquals(2, saved.size)
         // The history is on screen through its last chip: the floor is composed, not pending.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_HISTORY))
-        saved.forEach { compose.onNodeWithTag(WorkoutTestTags.setChip(it)).assertIsDisplayed() }
-        compose.onNodeWithTag(WorkoutTestTags.CURRENT_SET).assertIsDisplayed()
+        val latest = checkNotNull(com.sinura.personaltrainer.domain.WorkoutAdvance.latestSetId(checkNotNull(vm.uiState.value.session).sets))
+        compose.onNodeWithTag(WorkoutTestTags.setChip(latest)).assertIsDisplayed()
+        compose.onNodeWithTag(WorkoutTestTags.SET_CONTEXT, useUnmergedTree = true).assert(hasText("Working set 3 of 3", substring = true))
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
@@ -478,13 +570,12 @@ class FloorScreenWiringRenderTest {
         vm.pickEffortIfNeeded()
         compose.waitForIdle()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
-        val saved = "Saved · ${SetOrdinalCopy.working(3, 3)}"
         compose.waitUntil(timeoutMillis = WAIT_MS) {
-            compose.onAllNodesWithText(saved, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+            vm.uiState.value.session?.sets?.size == 3 && !vm.uiState.value.entryLocked
         }
-        // The chip itself carries the receipt, in words as well as the Volt ring.
-        compose.onNode(hasContentDescription("${SetOrdinalCopy.working(3, 3)}, ", substring = true))
-            .assert(hasContentDescription(", saved", substring = true))
+        val latest = checkNotNull(com.sinura.personaltrainer.domain.WorkoutAdvance.latestSetId(checkNotNull(vm.uiState.value.session).sets))
+        compose.onNodeWithTag(WorkoutTestTags.setChip(latest)).assertIsDisplayed()
+            .assert(hasContentDescription("3 saved. Edit latest saved set:", substring = true))
     }
 
     @Test

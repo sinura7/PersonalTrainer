@@ -37,6 +37,7 @@ import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.WeightDraftSource
 import com.sinura.personaltrainer.testutil.seedTestWorkout
 import com.sinura.personaltrainer.ui.theme.Pit
 import java.io.File
@@ -65,7 +66,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Quiet's changed hierarchy through the real screen, ViewModel and Room. A manual
+ * Compact Focus's changed hierarchy (the existing Quiet study's next refinement) through the real screen, ViewModel and Room. A manual
  * result is recorded through actual numeric, effort and primary-action touches at
  * every supported profile. A displayed semantics node is insufficient: each touch
  * must have its whole layout target inside its unobstructed viewport.
@@ -158,7 +159,6 @@ class QuietWorkoutFlowRenderTest {
         val order = listOf(
             WorkoutTestTags.CURRENT_LIFT, WorkoutTestTags.SECTION_ENTRY,
             WorkoutTestTags.SECTION_RPE, WorkoutTestTags.SECTION_SET_HISTORY,
-            WorkoutTestTags.TEMPO_COACH_CARD, WorkoutTestTags.SECTION_STATS,
         )
         val tops = order.map { compose.onNodeWithTag(it).assertIsDisplayed().fetchSemanticsNode().boundsInRoot.top }
         capture("hierarchy-360x1600", "all-context")
@@ -170,6 +170,14 @@ class QuietWorkoutFlowRenderTest {
         ).assert(hasText(EFFORT_MISSING))
         compose.onAllNodesWithTag(WorkoutTestTags.LOG_SET).assertCountEquals(1)
         assertNoFloatingCoach()
+        val saved = compose.onNodeWithTag(WorkoutTestTags.SECTION_SET_HISTORY).fetchSemanticsNode().boundsInRoot
+        val tempo = compose.onNodeWithTag(WorkoutTestTags.TEMPO_COACH_CARD).fetchSemanticsNode().boundsInRoot
+        assertTrue("Tempo shares the saved-work region", tempo.top >= saved.top && tempo.bottom <= saved.bottom)
+        compose.revealWorkoutSetOption(WorkoutTestTags.STATS_ROW)
+        compose.onNodeWithTag(WorkoutTestTags.STAT_LAST).assertExists()
+        compose.onNodeWithTag(WorkoutTestTags.STAT_BEST).assertExists()
+        compose.onNodeWithTag(WorkoutTestTags.STAT_VOLUME).assertExists()
+        compose.closeWorkoutSetOptions()
     }
 
     @Test
@@ -231,6 +239,7 @@ class QuietWorkoutFlowRenderTest {
         assertNoFloatingCoach()
         enterManual(vm, profile)
         capture(profile, "manual-ready")
+        inspectSetOptions(vm, profile, fontScale, direction)
         assertPrimaryReachable().performClick()
         awaitSaved(vm, sessionId)
         val saved = stored(vm).sets.single()
@@ -240,9 +249,132 @@ class QuietWorkoutFlowRenderTest {
         assertEquals("logging cannot advance the lift", selected, vm.uiState.value.selectedExerciseId)
         assertNull("the next working set needs its own effort", vm.uiState.value.draft.rpe)
         assertPrimaryReachable(enabled = false)
+        inspectSavedSets(vm, profile, fontScale, direction)
         reveal(WorkoutTestTags.LOG_READINESS, profile).assert(hasText(EFFORT_MISSING))
         capture(profile, "saved-next-draft")
         writeObservations(profile)
+    }
+
+    /** The approved disclosure must preserve the actual draft and keep every control reachable. */
+    private fun inspectSetOptions(vm: ActiveWorkoutViewModel, profile: String, fontScale: Float, direction: LayoutDirection) {
+        val draftBefore = vm.uiState.value.draft
+        val rowsBefore = stored(vm)
+        compose.openWorkoutSetOptions()
+        val tags = listOf(
+            WorkoutTestTags.WORKING_CHIP, WorkoutTestTags.WARMUP_CHIP,
+            WorkoutTestTags.weightPreset(WeightDraftSource.PLAN),
+            WorkoutTestTags.RPE_HELPER, WorkoutTestTags.RPE_CLEAR,
+            WorkoutTestTags.SET_OPTIONS_SETS, WorkoutTestTags.SET_OPTIONS_TEMPO,
+            WorkoutTestTags.TEMPO_COACH_DISMISS, WorkoutTestTags.SET_OPTIONS_DETAILS,
+            WorkoutTestTags.STAT_LAST, WorkoutTestTags.STAT_BEST, WorkoutTestTags.STAT_VOLUME,
+        )
+        tags.forEach { tag ->
+            compose.revealWorkoutSetOption(tag)
+            val target = compose.onNodeWithTag(tag).fetchSemanticsNode()
+            assertEquals("$profile options retain the requested font scale", fontScale, target.layoutInfo.density.fontScale, 0.001f)
+            assertEquals("$profile options retain the requested reading direction", direction, target.layoutInfo.layoutDirection)
+            val bounds = target.boundsInWindow
+            val content = compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_CONTENT).fetchSemanticsNode().boundsInWindow
+            val whole = bounds.width >= target.size.width - 1f && bounds.height >= target.size.height - 1f &&
+                bounds.left >= content.left - 1f && bounds.right <= content.right + 1f &&
+                bounds.top >= content.top - 1f && bounds.bottom <= content.bottom + 1f
+            assertTrue("$profile $tag must be fully reachable in the scrollable sheet: $bounds in $content", whole)
+            if (tag !in listOf(WorkoutTestTags.STAT_LAST, WorkoutTestTags.STAT_BEST, WorkoutTestTags.STAT_VOLUME)) {
+                val density = target.layoutInfo.density.density
+                assertTrue("$tag retains its 48 dp target", target.size.height / density >= 48f - 0.01f)
+            }
+            val completeLabels = mapOf(
+                WorkoutTestTags.SET_OPTIONS_SETS to "View all saved sets",
+                WorkoutTestTags.SET_OPTIONS_TEMPO to "Tempo suggestion",
+                WorkoutTestTags.TEMPO_COACH_DISMISS to "Dismiss Tempo suggestion",
+                WorkoutTestTags.SET_OPTIONS_DETAILS to "Exercise details",
+            )
+            completeLabels[tag]?.let { label ->
+                assertWholeText(compose.onNode(hasText(label) and hasAnyAncestor(hasTestTag(tag)), useUnmergedTree = true), "$profile $label")
+            }
+            val done = compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_DONE).assertIsDisplayed().fetchSemanticsNode()
+            val modal = compose.runOnIdle {
+                checkNotNull(org.robolectric.shadows.ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }?.window?.decorView)
+            }
+            val doneBounds = done.boundsInWindow
+            assertTrue("Done remains fully inside the modal", doneBounds.top >= -1f && doneBounds.bottom <= modal.height + 1f &&
+                doneBounds.width >= done.size.width - 1f && doneBounds.height >= done.size.height - 1f)
+            val frame = compose.runOnIdle {
+                Bitmap.createBitmap(modal.width, modal.height, Bitmap.Config.ARGB_8888).also {
+                    modal.draw(android.graphics.Canvas(it))
+                }
+            }
+            try { evidenceDirectory(profile).resolve("options-$tag.png").outputStream().use {
+                check(frame.compress(Bitmap.CompressFormat.PNG, 100, it))
+            } } finally { frame.recycle() }
+        }
+        compose.closeWorkoutSetOptions()
+        assertEquals("Inspecting options keeps the exact authored draft", draftBefore, vm.uiState.value.draft)
+        assertEquals("Inspecting options cannot write a set", rowsBefore, stored(vm))
+        assertPrimaryReachable().assert(hasText("82.5 lb × 12 · RPE 8"))
+    }
+
+    /** All must retain real text scaling and exact persisted identity, including in RTL. */
+    private fun inspectSavedSets(vm: ActiveWorkoutViewModel, profile: String, fontScale: Float, direction: LayoutDirection) {
+        val graph = stored(vm)
+        val draft = vm.uiState.value.draft
+        val saved = graph.sets.single()
+        reveal(WorkoutTestTags.VIEW_SETS, profile, minimumTargetDp = 48f).performClick()
+        val sheet = compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertIsDisplayed().fetchSemanticsNode()
+        assertEquals(fontScale, sheet.layoutInfo.density.fontScale, 0.001f)
+        assertEquals(direction, sheet.layoutInfo.layoutDirection)
+        val list = compose.onNodeWithTag("workout-saved-sets-list")
+        list.performScrollToNode(hasTestTag(WorkoutTestTags.setOptions(saved.id)))
+        val action = compose.onNodeWithTag(WorkoutTestTags.setOptions(saved.id)).assertIsDisplayed().fetchSemanticsNode()
+        assertWhollyInside(action, list.fetchSemanticsNode(), "$profile exact saved-set action")
+        assertTrue(action.size.width / action.layoutInfo.density.density >= 48f - 0.01f)
+        assertTrue(action.size.height / action.layoutInfo.density.density >= 48f - 0.01f)
+        val row = hasTestTag("workout-saved-${saved.id}")
+        for (label in listOf("Working set 1 of 3 · Latest", "82.5 lb × 12", "RPE 8")) {
+            assertWholeText(compose.onNode(hasText(label) and hasAnyAncestor(row), useUnmergedTree = true), "$profile saved $label")
+        }
+        val done = compose.onNode(hasText("Done") and hasAnyAncestor(hasTestTag(WorkoutTestTags.SAVED_SETS_SHEET)))
+            .assertIsDisplayed()
+        val doneNode = done.fetchSemanticsNode()
+        assertTrue(doneNode.size.height / doneNode.layoutInfo.density.density >= 48f - 0.01f)
+        assertWhollyInside(doneNode, sheet, "$profile saved-sets Done")
+        val modal = compose.runOnIdle {
+            checkNotNull(org.robolectric.shadows.ShadowDialog.getLatestDialog()?.takeIf { it.isShowing }?.window?.decorView)
+        }
+        val frame = compose.runOnIdle {
+            Bitmap.createBitmap(modal.width, modal.height, Bitmap.Config.ARGB_8888).also { modal.draw(android.graphics.Canvas(it)) }
+        }
+        try { evidenceDirectory(profile).resolve("all-saved-sets.png").outputStream().use {
+            check(frame.compress(Bitmap.CompressFormat.PNG, 100, it))
+        } } finally { frame.recycle() }
+        done.performClick()
+        compose.onNodeWithTag(WorkoutTestTags.SAVED_SETS_SHEET).assertDoesNotExist()
+        assertEquals(draft, vm.uiState.value.draft)
+        assertEquals(graph, stored(vm))
+        assertPrimaryReachable(enabled = false)
+    }
+
+    private fun assertWhollyInside(target: androidx.compose.ui.semantics.SemanticsNode,
+        container: androidx.compose.ui.semantics.SemanticsNode, label: String) {
+        val bounds = target.boundsInWindow
+        val viewport = container.boundsInWindow
+        assertTrue("$label is wholly reachable: $bounds in $viewport", bounds.width >= target.size.width - 1f &&
+            bounds.height >= target.size.height - 1f && bounds.left >= viewport.left - 1f &&
+            bounds.right <= viewport.right + 1f && bounds.top >= viewport.top - 1f && bounds.bottom <= viewport.bottom + 1f)
+    }
+
+    private fun assertWholeText(text: SemanticsNodeInteraction, label: String) {
+        val layout = text.textLayout()
+        val node = text.fetchSemanticsNode()
+        // Plain-String semantics may reconstruct a paragraph at the offered width.
+        // Verify actual glyphs against the actual rendered node, not unused width.
+        repeat(layout.lineCount) { line ->
+            assertFalse("$label cannot be ellipsized", layout.isLineEllipsized(line))
+            assertTrue("$label glyphs fit the rendered box", layout.getLineLeft(line) >= -1f &&
+                layout.getLineRight(line) <= node.size.width + 1f && layout.getLineBottom(line) <= node.size.height + 1f)
+        }
+        assertEquals("$label must draw every character", layout.layoutInput.text.length,
+            layout.getLineEnd(layout.lineCount - 1, visibleEnd = true))
     }
 
     private fun enterManual(vm: ActiveWorkoutViewModel, profile: String) {
@@ -415,7 +547,7 @@ class QuietWorkoutFlowRenderTest {
         evidenceDirectory(profile).resolve("reachability.tsv").writeText(observations.joinToString("\n", postfix = "\n"))
     }
 
-    private fun evidenceDirectory(profile: String): File = File("build/screen-renders/quiet-workout-flow/$runId/$profile").also {
+    private fun evidenceDirectory(profile: String): File = File("build/screen-renders/compact-focus-workout/$runId/$profile").also {
         check(it.exists() || it.mkdirs()) { "Cannot create Quiet render directory $it" }
     }
 

@@ -240,6 +240,38 @@ This amendment changes composition on the reviewed Debug-124 stack. It adds no
 coaching algorithm, persistence format, navigation destination or distribution
 change. Reconcile the overlapping Tempo/coaching stack before trunk integration.
 
+## Amendment — 10 October 2026, compact Focus workout
+
+The owner reviewed the connected Focus concept, requested a more compact and
+complete presentation, and authorized implementation (O13). This amends the
+8 October composition while retaining its recording, recovery and timer rules.
+
+- Keep the matching 64 dp exercise image beside its complete name and set
+  context. Use smaller Instrument workout title and numeral tokens. The native
+  adaptation retains the fixed session overflow so it is reachable after scrolling.
+- Keep actual entry, effort and visible readiness on the common floor. Group
+  Working/Warm-up, weight fills, effort help/Clear, saved statistics and secondary
+  coaching controls in a scrollable Set options sheet with a fixed Done action.
+  Weight fills retain their existing weight-only behavior and say so explicitly.
+- Show one durable receipt with direct Edit last and All. During correction,
+  identify the actual selected saved set and show its saved record, rather than
+  presenting a different latest set as the correction target. All retains the
+  complete saved list and its existing correction and deletion actions.
+- Put the Tempo shortcut alongside saved work. It opens the existing explanation,
+  Apply and Keep my numbers actions. Apply still only changes the draft. Compact
+  rest retains the service-owned clock and its existing controls. Preserve the
+  anchored 72 dp primary action and applicable 48 dp targets.
+- Retain the 852 dp ceiling for the complete common floor through its saved/Tempo
+  region. Statistics now occupy a disclosed sheet, so this is a different
+  composition from the previous inline measurement, not a claimed like-for-like
+  height improvement. Verify every disclosed control and essential value across
+  the full native matrix, separately from the floor measurement.
+
+Native source, renders, interactions, connected journey and independent/adversarial
+reviews must verify this packet. Browser approval does not establish native or
+physical-phone acceptance. No schema, backup format, navigation destination,
+coaching algorithm, signing or distribution change is authorized.
+
 ## Consequences
 
 - `CurrentLiftCard`, `WorkoutLiftCard`, `LogBar`, `SelectedLiftDock` and

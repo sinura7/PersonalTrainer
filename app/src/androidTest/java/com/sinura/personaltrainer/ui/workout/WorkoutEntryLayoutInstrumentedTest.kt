@@ -156,11 +156,10 @@ class WorkoutEntryLayoutInstrumentedTest(
             }
         }
         if (scenario == "latest") {
-            // The saved set is a chip in the set history; once its receipt has been shown it
-            // reads as logged, not saved.
+            // Announcing the receipt keeps the exact saved identity visible for correction.
             val savedChip = hasTestTag(WorkoutTestTags.setChip(fixture.vm.uiState.value.session!!.sets.single().id))
             compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(savedChip)
-            compose.onNode(savedChip and hasContentDescription(value = "logged", substring = true)).assertIsDisplayed()
+            compose.onNode(savedChip and hasContentDescription(value = "1 saved. Edit latest saved set", substring = true)).assertIsDisplayed()
         }
     }
 

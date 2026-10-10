@@ -36,6 +36,8 @@ import androidx.compose.ui.semantics.semantics
 import com.sinura.personaltrainer.domain.FloorStatCopy
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.SetCopy
+import com.sinura.personaltrainer.domain.WorkoutAdvance
 import com.sinura.personaltrainer.domain.SetOrdinalCopy
 import com.sinura.personaltrainer.domain.SetRowCopy
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -46,6 +48,8 @@ import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.theme.Danger
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.LogLoopScale
+import androidx.compose.ui.platform.LocalDensity
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface2
@@ -84,7 +88,15 @@ internal fun SetHistoryStrip(
     onDelete: (String) -> Unit,
     onOpenAll: () -> Unit,
     modifier: Modifier = Modifier,
+    focused: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
+    if (focused) {
+        Box(modifier) {
+            FocusSavedSet(sets, targetSets, editingSetId, loadClass, unit, enabled, onEdit, onOpenAll, Modifier, trailing)
+        }
+        return
+    }
     if (sets.isEmpty() && current == null) return
     var openMenuFor by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(sets, editingSetId, enabled) {
@@ -193,6 +205,66 @@ internal fun SetHistoryStrip(
                     }
                 }
             }
+        }
+    }
+}
+
+/** One durable receipt on the common path; All opens the complete unchanged saved list. */
+@Composable
+private fun FocusSavedSet(
+    sets: List<SetLog>,
+    targetSets: Int,
+    editingSetId: String?,
+    loadClass: LoadClass,
+    unit: WeightUnit,
+    enabled: Boolean,
+    onEdit: (String) -> Unit,
+    onOpenAll: () -> Unit,
+    modifier: Modifier,
+    trailing: (@Composable () -> Unit)?,
+) {
+    val latestId = WorkoutAdvance.latestSetId(sets)
+    val latest = sets.firstOrNull { it.id == (editingSetId ?: latestId) }
+    val editingOrdinal = latest?.takeIf { editingSetId != null }?.let { set ->
+        SetOrdinalCopy.loggedLines(sets.map { it.isWarmup }, targetSets)[sets.indexOf(set)]
+    }
+    val receipt: @Composable (Modifier) -> Unit = { receiptModifier ->
+        if (latest == null) {
+            Text("No sets saved yet", modifier = receiptModifier.padding(vertical = Metrics.space3),
+                style = InstrumentType.caption, color = TextSecondary)
+        } else {
+            val line = SetCopy.setLine(latest.weightKg, latest.reps, loadClass, unit,
+                durationSeconds = latest.durationSeconds, entryPrecision = true) +
+                (if (latest.isWarmup) " · Warm-up" else "") +
+                (latest.rpe?.let { " · RPE $it" } ?: "")
+            TextButton(onClick = { onEdit(latest.id) }, enabled = enabled && editingSetId == null,
+                modifier = receiptModifier.heightIn(min = Metrics.touchMin)
+                    .testTag(WorkoutTestTags.setChip(latest.id))
+                    .semantics { contentDescription = if (editingOrdinal != null) "Saved set. $editingOrdinal: $line" else "${sets.size} saved. Edit latest saved set: $line" }) {
+                Column(Modifier.fillMaxWidth().clearAndSetSemantics { }) {
+                    Text(editingOrdinal?.let { "Saved set · $it" } ?: "${sets.size} saved · Edit last", style = InstrumentType.caption, color = TextSecondary)
+                    Text(line, style = InstrumentType.bodyStrong, color = TextPrimary)
+                }
+            }
+        }
+    }
+    val actions: @Composable () -> Unit = {
+        if (latest != null) TextButton(onClick = onOpenAll, enabled = enabled,
+            modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.VIEW_SETS)
+                .semantics { contentDescription = "View all ${sets.size} saved sets" }) {
+            Text("All", modifier = Modifier.clearAndSetSemantics { }, style = InstrumentType.caption, color = TextSecondary)
+        }
+        trailing?.invoke()
+    }
+    if (LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)) {
+        Column(modifier.fillMaxWidth().testTag(WorkoutTestTags.SET_HISTORY)) {
+            receipt(Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically) { actions() }
+        }
+    } else {
+        Row(modifier.fillMaxWidth().testTag(WorkoutTestTags.SET_HISTORY), verticalAlignment = Alignment.CenterVertically) {
+            receipt(Modifier.weight(1f))
+            actions()
         }
     }
 }

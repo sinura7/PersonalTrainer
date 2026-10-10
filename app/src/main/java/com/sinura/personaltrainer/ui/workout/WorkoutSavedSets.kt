@@ -18,12 +18,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetCopy
@@ -73,72 +76,76 @@ internal fun WorkoutSetsSheet(
 ) {
     val labels = remember(sets, targetSets) { savedSetLabels(sets, targetSets) }
     var menuId by remember { mutableStateOf<String?>(null) }
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Surface3,
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(Metrics.gutter).testTag(WorkoutTestTags.SAVED_SETS_SHEET),
-            verticalArrangement = Arrangement.spacedBy(Metrics.space3),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Saved sets", modifier = Modifier.weight(1f), style = InstrumentType.title, color = TextPrimary)
-                TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = Metrics.touchMin)) {
-                    Text("Done", style = InstrumentType.bodyStrong, color = TextPrimary)
-                }
-            }
-            LazyColumn(modifier = Modifier.weight(1f, fill = false).testTag("workout-saved-sets-list")) {
-                item(key = "exercise-identity") {
-                    Text(exerciseName, modifier = Modifier.padding(bottom = Metrics.space3), style = InstrumentType.bodyStrong, color = TextSecondary)
-                }
-                items(sets, key = { it.id }) { set ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = Metrics.space2).testTag("workout-saved-${set.id}"),
-                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                            Text(
-                                labels[set.id].orEmpty() + if (set.id == latestSetId) " · Latest" else "",
-                                style = InstrumentType.caption,
-                                color = TextSecondary,
-                            )
-                            Text(
-                                SetCopy.setLine(set.weightKg, set.reps, loadClass, unit, durationSeconds = set.durationSeconds, entryPrecision = true),
-                                style = InstrumentType.bodyStrong,
-                                color = TextPrimary,
-                            )
-                            set.rpe?.let { Text("RPE $it", style = InstrumentType.caption, color = TextSecondary) }
-                            if (set.id == editingSetId) Text("Editing", style = InstrumentType.caption, color = Volt)
-                        }
-                        Box {
-                            IconButton(
-                                onClick = { menuId = set.id },
-                                modifier = Modifier.size(Metrics.touchMin).testTag(WorkoutTestTags.setOptions(set.id)),
-                            ) {
-                                Icon(TemperIcons.More, contentDescription = "${labels[set.id]} actions", tint = TextSecondary)
-                            }
-                            InstrumentMenu(expanded = menuId == set.id, onDismissRequest = { menuId = null }) {
-                                InstrumentMenuItem(
-                                    spokenLabel = "Edit set",
-                                    leadingIcon = TemperIcons.Edit,
-                                    onClick = { menuId = null; onEdit(set.id) },
-                                )
-                                InstrumentMenuItem(
-                                    spokenLabel = "Delete set",
-                                    leadingIcon = TemperIcons.Delete,
-                                    iconTint = Danger,
-                                    textColor = Danger,
-                                    onClick = { menuId = null; onDelete(set.id) },
-                                )
-                            }
-                        }
+        CompositionLocalProvider(LocalDensity provides density, LocalLayoutDirection provides direction) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(Metrics.gutter).testTag(WorkoutTestTags.SAVED_SETS_SHEET),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Saved sets", modifier = Modifier.weight(1f), style = InstrumentType.title, color = TextPrimary)
+                    TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = Metrics.touchMin)) {
+                        Text("Done", style = InstrumentType.bodyStrong, color = TextPrimary)
                     }
-                    HairlineDivider()
                 }
-                if (showAddSet) item(key = "add-set") {
-                    SecondaryGymButton(text = "Add another set", onClick = onAddSet, modifier = Modifier.padding(top = Metrics.space3))
+                LazyColumn(modifier = Modifier.weight(1f, fill = false).testTag("workout-saved-sets-list")) {
+                    item(key = "exercise-identity") {
+                        Text(exerciseName, modifier = Modifier.padding(bottom = Metrics.space3), style = InstrumentType.bodyStrong, color = TextSecondary)
+                    }
+                    items(sets, key = { it.id }) { set ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = Metrics.space2).testTag("workout-saved-${set.id}"),
+                            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                                Text(
+                                    labels[set.id].orEmpty() + if (set.id == latestSetId) " · Latest" else "",
+                                    style = InstrumentType.caption,
+                                    color = TextSecondary,
+                                )
+                                Text(
+                                    SetCopy.setLine(set.weightKg, set.reps, loadClass, unit, durationSeconds = set.durationSeconds, entryPrecision = true),
+                                    style = InstrumentType.bodyStrong,
+                                    color = TextPrimary,
+                                )
+                                set.rpe?.let { Text("RPE $it", style = InstrumentType.caption, color = TextSecondary) }
+                                if (set.id == editingSetId) Text("Editing", style = InstrumentType.caption, color = Volt)
+                            }
+                            Box {
+                                IconButton(
+                                    onClick = { menuId = set.id },
+                                    modifier = Modifier.size(Metrics.touchMin).testTag(WorkoutTestTags.setOptions(set.id)),
+                                ) {
+                                    Icon(TemperIcons.More, contentDescription = "${labels[set.id]} actions", tint = TextSecondary)
+                                }
+                                InstrumentMenu(expanded = menuId == set.id, onDismissRequest = { menuId = null }) {
+                                    InstrumentMenuItem(
+                                        spokenLabel = "Edit set",
+                                        leadingIcon = TemperIcons.Edit,
+                                        onClick = { menuId = null; onEdit(set.id) },
+                                    )
+                                    InstrumentMenuItem(
+                                        spokenLabel = "Delete set",
+                                        leadingIcon = TemperIcons.Delete,
+                                        iconTint = Danger,
+                                        textColor = Danger,
+                                        onClick = { menuId = null; onDelete(set.id) },
+                                    )
+                                }
+                            }
+                        }
+                        HairlineDivider()
+                    }
+                    if (showAddSet) item(key = "add-set") {
+                        SecondaryGymButton(text = "Add another set", onClick = onAddSet, modifier = Modifier.padding(top = Metrics.space3))
+                    }
                 }
             }
         }

@@ -1089,3 +1089,33 @@ pins the reports and execution summaries (SHA-256
 The separately preserved reviewed Git bundle retains the deleted feature branch.
 This completes integration of the bounded packet, not all UX23, W3, N2 or phone
 acceptance. No distribution/version/signer change or Debug drop was made.
+
+
+### Compact Focus native refinement — 10 October 2026 UTC
+
+O13 and ADR-027 authorize the reviewed Focus direction as a refinement of the
+integrated Quiet workflow. The actual native screen keeps matching exercise
+artwork and the full name, one entry panel, flat effort/readiness, a saved receipt
+and Tempo shortcut, compact rest, and the anchored 72 dp action. Set options
+contains secondary fills, type, help/Clear, statistics and coaching dismissal.
+The native adaptation uses Workout options → Set options (two taps); latest
+correction is one tap, and All retains exact-ID older-set actions.
+
+The saved receipt identifies the actual correction target. Valid imported
+warm-up effort remains visible in the receipt, editor and Save changes preview;
+new warm-ups continue to omit effort. No write, timer, progression, schema,
+backup, destination, algorithm or signing contract changes are planned.
+
+The source-pinned `targeted10` run closed **904 cases / 111 fresh suites**, with
+**one failure**, no errors/skips and 1,553 stable runtime inputs/references. The
+13-profile full-screen/options/All checks, held/failed write/Retry, connected
+workout and real Room legacy warm-up correction passed. The remaining isolated
+selector test supplied retained effort while expecting the new-warm-up blank
+copy; it now checks both truthful states and retains all unavailable-track/Clear
+assertions. Earlier failed runs remain archived under
+`build/ux-context/runs/compact-focus-workout/`. Full preflight, unfiltered local
+gate, Android execution and final reviews/integration remain pending.
+
+This is bounded W1/W3 and UX23/UX24/UX25/UX29 development evidence. Broader
+acceptance, physical-phone usability/performance and the deferred app areas
+remain open. No Debug drop or phone update has occurred.

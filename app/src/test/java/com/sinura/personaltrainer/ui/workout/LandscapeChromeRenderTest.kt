@@ -134,7 +134,7 @@ class LandscapeChromeRenderTest {
         val progress = WorkoutProgressCalculator.of(session = vm.uiState.value.session, selectedExerciseId = vm.uiState.value.selectedExerciseId)
         compose.onAllNodesWithText("Lower B", useUnmergedTree = true).assertCountEquals(1)
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_LINE, useUnmergedTree = true)
-            .assertTextEquals(WorkoutProgressCalculator.headline(progress).uppercase())
+            .assertTextEquals(WorkoutProgressCalculator.headline(progress))
         compose.onNodeWithTag(WorkoutTestTags.PROGRESS_BAR, useUnmergedTree = true).assertExists()
         compose.onNodeWithTag(WorkoutTestTags.REST_IDLE).assertIsDisplayed()
         compose.onAllNodesWithText("Timer controls ›").assertCountEquals(0)

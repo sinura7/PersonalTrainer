@@ -202,7 +202,6 @@ class ConnectedWorkoutJourneyTest {
         revealFloorControlAboveTempo(WorkoutTestTags.setChip(original.id))
         captureFloorControl("saved-set-after-scroll", WorkoutTestTags.setChip(original.id))
         compose.onNodeWithTag(WorkoutTestTags.setChip(original.id)).performClick()
-        compose.onNodeWithText(SetRowCopy.revise(SetOrdinalCopy.working(1, TARGET_SETS))).performClick()
         awaitEntry("the saved row is open for correction") { it.editingSetId == original.id }
         enterNumbers(weightLb = "80", reps = "11")
         chooseEffort(9)

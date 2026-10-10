@@ -152,6 +152,7 @@ class FirstWorkingSetRenderTest {
     fun aWarmupThenTheFirstWorkingSetHoldTheEntry() {
         val vm = openLegExtension()
         show(vm, widthDp = 360, heightDp = 640, fontScale = 1f)
+        compose.revealWorkoutSetOption(WorkoutTestTags.WARMUP_CHIP)
         compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).performClick()
         compose.waitUntil(timeoutMillis = WAIT_MS) { vm.uiState.value.draft.isWarmup }
         compose.waitForIdle()
@@ -350,6 +351,7 @@ class FirstWorkingSetRenderTest {
      * short to show them under the identity. (The hosted journey scrolls to the weight stepper.)
      */
     private fun reachTheEntry() {
+        compose.closeWorkoutSetOptions()
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.SET_ENTRY))
         compose.onNodeWithTag(WorkoutTestTags.SET_ENTRY).assertIsDisplayed()
     }
@@ -359,7 +361,7 @@ class FirstWorkingSetRenderTest {
      * Its text and height checks do not depend on entry sharing this viewport.
      */
     private fun reachTheStatsRow() {
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.STATS_ROW))
+        compose.revealWorkoutSetOption(WorkoutTestTags.STATS_ROW)
         compose.onNodeWithTag(WorkoutTestTags.STATS_ROW).assertIsDisplayed()
     }
 
@@ -367,8 +369,8 @@ class FirstWorkingSetRenderTest {
     private fun assertLastAlone() {
         reachTheStatsRow()
         compose.onNodeWithTag(WorkoutTestTags.STAT_LAST).assertIsDisplayed()
-        compose.onNodeWithTag(WorkoutTestTags.STAT_BEST).assertDoesNotExist()
-        compose.onNodeWithTag(WorkoutTestTags.STAT_VOLUME).assertDoesNotExist()
+        compose.onNodeWithTag(WorkoutTestTags.STAT_BEST).assertExists()
+        compose.onNodeWithTag(WorkoutTestTags.STAT_VOLUME).assertExists()
     }
 
     /** After the first working set: Best and Volume have joined the Last cell. */
@@ -389,6 +391,7 @@ class FirstWorkingSetRenderTest {
     }
 
     private fun assertCommitReachable() {
+        compose.closeWorkoutSetOptions()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
     }
 
@@ -402,6 +405,7 @@ class FirstWorkingSetRenderTest {
 
     /** The exercise identity's laid-out height, in pixels: the content preceding entry. */
     private fun identityHeight(): Float {
+        compose.closeWorkoutSetOptions()
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.CURRENT_LIFT))
         return compose.onNodeWithTag(WorkoutTestTags.CURRENT_LIFT).fetchSemanticsNode().size.height.toFloat()
     }
@@ -539,7 +543,7 @@ class FirstWorkingSetRenderTest {
 
     /** From the top of the Last cell's label to the top of its number, after scrolling to the cell. */
     private fun lastLabelGap(): Float {
-        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.STAT_LAST))
+        compose.revealWorkoutSetOption(WorkoutTestTags.STAT_LAST)
         val (label, number) = lastCellTexts()
         return number.positionInRoot.y - label.positionInRoot.y
     }

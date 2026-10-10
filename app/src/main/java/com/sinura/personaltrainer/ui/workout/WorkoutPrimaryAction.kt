@@ -92,7 +92,11 @@ data class WorkoutPrimaryAction(
         if (!carriesSet) return null
         val saved = identity.pendingSave?.values
         val line = setPayload(unit, loadClass)
-        val rpe = saved?.rpe ?: identity.draft.rpe.takeUnless { identity.draft.isWarmup }
+        // Imported warm-ups may already have effort. Corrections preserve that
+        // recorded value; only a newly logged warm-up leaves effort blank.
+        val rpe = if (saved != null) saved.rpe else identity.draft.rpe.takeUnless {
+            identity.draft.isWarmup && identity.editingSetId == null
+        }
         return if (rpe != null) "$line · RPE $rpe" else line
     }
 

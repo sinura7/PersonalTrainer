@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import com.sinura.personaltrainer.domain.RestFinishFlash
 import com.sinura.personaltrainer.domain.RestIdleCopy
 import com.sinura.personaltrainer.domain.RestNudgeCopy
@@ -95,6 +96,7 @@ internal fun RestTimerCard(
     onStartSetClock: () -> Unit,
     onOpenRest: () -> Unit,
     modifier: Modifier = Modifier,
+    focused: Boolean = false,
 ) {
     var justFinished by remember { mutableStateOf(false) }
     var flashedTimerId by remember { mutableStateOf<String?>(null) }
@@ -156,6 +158,7 @@ internal fun RestTimerCard(
         totalSeconds = safeTotal,
     )
     val density = LocalDensity.current
+    val compactPresentation = focused && !LogLoopScale.stackEntryWells(density.fontScale)
     val measurer = rememberTextMeasurer()
     val controls = when {
         justFinished -> emptyList()
@@ -176,7 +179,7 @@ internal fun RestTimerCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = Metrics.commit)
+            .heightIn(min = if (compactPresentation) Metrics.touchMin else Metrics.commit)
             .clip(RoundedCornerShape(Radius.md))
             // One step lighter than the panels around it, so resting reads as a state the
             // floor is in rather than another card on it. The segments below then recess to
@@ -184,11 +187,12 @@ internal fun RestTimerCard(
             .background(Surface2)
             .border(Metrics.hairline, SectionEdge, RoundedCornerShape(Radius.md))
             .testTag(if (idle) WorkoutTestTags.REST_IDLE else WorkoutTestTags.REST_BAR)
-            .padding(horizontal = Metrics.space3, vertical = Metrics.space2),
+            .padding(horizontal = if (compactPresentation) Metrics.space2 else Metrics.space3,
+                vertical = if (compactPresentation) Metrics.space1 else Metrics.space2),
     ) {
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+            horizontalArrangement = Arrangement.spacedBy(if (compactPresentation) Metrics.space2 else Metrics.space3),
             verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             itemVerticalAlignment = Alignment.CenterVertically,
             // Large text: the −15 / +15 / Skip row drops under the clock instead of squeezing it.
@@ -207,12 +211,20 @@ internal fun RestTimerCard(
                             liveRegion = LiveRegionMode.Polite
                         }
                     },
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+                horizontalArrangement = Arrangement.spacedBy(if (compactPresentation) Metrics.space1 else Metrics.space3),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RestMiniRing(progress = progress, accent = accent, finished = justFinished)
+                RestMiniRing(progress = progress, accent = accent, finished = justFinished,
+                    diameter = if (compactPresentation) Metrics.icon else Metrics.restRingSmall)
                 Column {
-                    Kicker(text = kicker, color = accent, asHeading = false)
+                    if (compactPresentation) {
+                        Text(when {
+                            justFinished -> REST_COMPLETE
+                            running -> "Rest · $targetClock plan"
+                            afterWarmup -> "Warm-ups do not start rest"
+                            else -> "Planned rest"
+                        }, style = InstrumentType.caption, color = accent)
+                    } else Kicker(text = kicker, color = accent, asHeading = false)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
@@ -232,7 +244,7 @@ internal fun RestTimerCard(
                             )
                         }
                     }
-                    Text(
+                    if (!compactPresentation) Text(
                         caption,
                         style = InstrumentType.caption,
                         color = TextSecondary,
@@ -294,6 +306,7 @@ private fun RestMiniRing(
     progress: Float,
     accent: Color,
     finished: Boolean,
+    diameter: Dp = Metrics.restRingSmall,
 ) {
     val sweep by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
@@ -305,7 +318,7 @@ private fun RestMiniRing(
         animationSpec = instrumentTween(Motion.BASE),
         label = "rest-mini-ring-accent",
     )
-    Canvas(modifier = Modifier.size(Metrics.restRingSmall)) {
+    Canvas(modifier = Modifier.size(diameter)) {
         val strokePx = Metrics.ringStroke.toPx()
         val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)
         val inset = strokePx / 2f

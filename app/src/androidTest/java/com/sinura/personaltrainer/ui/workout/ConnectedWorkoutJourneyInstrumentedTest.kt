@@ -59,8 +59,6 @@ import com.sinura.personaltrainer.domain.RestExteriorPermissionCopy
 import com.sinura.personaltrainer.domain.SavePosture
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.SetLog
-import com.sinura.personaltrainer.domain.SetOrdinalCopy
-import com.sinura.personaltrainer.domain.SetRowCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.NativeArtifacts
@@ -241,11 +239,12 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.revealFloorControlAboveTempo(WorkoutTestTags.setChip(original.id))
         captureWindow("saved-set-after-scroll")
         compose.onNodeWithTag(WorkoutTestTags.setChip(original.id)).performClick()
-        compose.onNodeWithText(SetRowCopy.revise(SetOrdinalCopy.working(1, TARGET_SETS))).performClick()
         assertReadiness("Save changes updates this saved set.")
         enterNumbers(85.0, 3)
-        compose.revealFloorControlAboveTempo(WorkoutTestTags.RPE_CLEAR)
-        compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).assertIsDisplayed().performClick()
+        // Editing restores the saved effort, not the departing unsaved draft's 7.
+        val savedEffort = checkNotNull(original.rpe)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.rpeChoice(savedEffort))
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(savedEffort)).assertIsDisplayed().assertIsSelected().performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsNotEnabled()
         assertReadiness("Choose effort to save this correction.")
         assertEquals(listOf(original.id), session().sets.map { it.id })
@@ -297,9 +296,11 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertDoesNotExist()
         compose.onNodeWithTag("navigation-history").performClick()
         compose.onNodeWithTag("navigation-history").assertIsSelected()
-        awaitScrollableContent()
+        // The list also exists during Loading. Wait for the READY branch before
+        // scrolling; an unavailable or missing result must still fail this journey.
+        awaitTag(com.sinura.personaltrainer.ui.history.HistoryTags.CURRENT)
         val historyRow = hasTestTag(SessionLogTags.ROW) and hasContentDescription(fixture.routineName, substring = true)
-        compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(historyRow)
+        compose.onNodeWithTag(com.sinura.personaltrainer.ui.history.HistoryTags.LIST).performScrollToNode(historyRow)
         val row = compose.onNode(historyRow).assertIsDisplayed()
         val spoken = row.fetchSemanticsNode().config[SemanticsProperties.ContentDescription].joinToString()
         assertTrue(spoken, spoken.contains("1 sets, 255 kg"))

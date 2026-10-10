@@ -178,6 +178,13 @@ class WorkoutEntryJourneyInstrumentedTest {
         compose.waitUntil(5_000) { fixture.vm.uiState.value.draft.rpe == 8 }
     }
 
+    private fun revealSetOption(tag: String) {
+        compose.onNodeWithTag(WorkoutTestTags.LIFT_OPTIONS).performClick()
+        compose.onNodeWithText("Set options").performClick()
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_CONTENT).performScrollToNode(hasTestTag(tag))
+        compose.onNodeWithTag(tag).assertIsDisplayed()
+    }
+
     private fun scrollContentTo(tag: String): SemanticsNodeInteraction {
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(tag))
         return compose.onNodeWithTag(tag)
@@ -252,15 +259,16 @@ class WorkoutEntryJourneyInstrumentedTest {
         }
         val saved = savedSets()
         assertEquals(8, saved.map { it.id }.distinct().size)
-        saved.forEach { assertEquals(60.0, it.weightKg, 0.01); assertEquals(8, it.reps); assertFalse(it.isWarmup) }
-        // The receipt is the just-saved chip in the set history: it reads as saved while the
-        // receipt is live and as logged once the receipt has been shown.
+        saved.forEach { assertEquals(60.0, it.weightKg, 0.01); assertEquals(8, it.reps); assertEquals(8, it.rpe); assertFalse(it.isWarmup) }
+        // The latest receipt keeps its exact saved identity and count after announcement.
         val receipt = checkNotNull(fixture.vm.logReceipt.value) { "the eighth save must leave a live receipt" }
         val savedChip = hasTestTag(WorkoutTestTags.setChip(receipt.setId))
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(savedChip)
-        compose.onNode(savedChip and hasContentDescription(value = "saved", substring = true)).assertIsDisplayed()
+        compose.onNode(savedChip and hasContentDescription(value = "8 saved. Edit latest saved set", substring = true)).assertIsDisplayed()
         compose.runOnIdle { fixture.vm.onLogReceiptShown() }
-        compose.onNode(savedChip and hasContentDescription(value = "logged", substring = true)).assertIsDisplayed()
+        compose.onNode(savedChip and hasContentDescription(value = "8 saved. Edit latest saved set", substring = true)).assertIsDisplayed()
+        assertNull(fixture.vm.logReceipt.value)
+        assertEquals(saved, savedSets())
         assertEquals(buttonBottom, compose.onNodeWithTag(WorkoutTestTags.LOG_SET).fetchSemanticsNode().boundsInRoot.bottom, 1f)
     }
 
@@ -292,7 +300,8 @@ class WorkoutEntryJourneyInstrumentedTest {
 
     @Test fun warmupPresetOnlyChangesDraftAndSavingReturnsToWorkingWithClearEffort() {
         mount()
-        scrollContentTo(WorkoutTestTags.WARMUP_CHIP).performClick()
+        revealSetOption(WorkoutTestTags.WARMUP_CHIP)
+        compose.onNodeWithTag(WorkoutTestTags.WARMUP_CHIP).performClick()
         // A warm-up has no RPE track, only the reason it is blank.
         compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.RPE_WARMUP_REASON))
         compose.onNodeWithTag(WorkoutTestTags.RPE_WARMUP_REASON).assertIsDisplayed()
@@ -306,17 +315,20 @@ class WorkoutEntryJourneyInstrumentedTest {
         assertTrue(savedSets().single().isWarmup)
         assertEquals(warmupWeight, savedSets().single().weightKg, 0.01)
         assertFalse(fixture.vm.uiState.value.draft.isWarmup)
-        scrollContentTo(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
+        revealSetOption(WorkoutTestTags.WORKING_CHIP)
+        compose.onNodeWithTag(WorkoutTestTags.WORKING_CHIP).assertIsSelected()
+        compose.onNodeWithTag(WorkoutTestTags.SET_OPTIONS_DONE).performClick()
         scrollContentTo(WorkoutTestTags.rpeChoice(9)).performClick()
         assertEquals(9, fixture.vm.uiState.value.draft.rpe)
-        compose.onNodeWithTag(WorkoutTestTags.RPE_CLEAR).performClick()
+        compose.onNodeWithTag(WorkoutTestTags.rpeChoice(9)).performClick()
         assertNull(fixture.vm.uiState.value.draft.rpe)
         scrollContentTo(WorkoutTestTags.rpeChoice(8)).performClick()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
         awaitSets(2)
         assertNull(fixture.vm.uiState.value.draft.rpe)
         assertEquals(8, savedSets().single { !it.isWarmup }.rpe)
-        scrollContentTo(WorkoutTestTags.RPE_HELPER).performClick()
+        revealSetOption(WorkoutTestTags.RPE_HELPER)
+        compose.onNodeWithTag(WorkoutTestTags.RPE_HELPER).performClick()
         compose.onNodeWithText("Effort (RPE)").assertIsDisplayed()
         captureWindow("rpe-help")
         compose.onNodeWithText("Done").performClick()
@@ -445,14 +457,16 @@ class WorkoutEntryJourneyInstrumentedTest {
         assertTrue(savedSets().isEmpty())
         assertFalse(fixture.vm.restTimerState.value.running)
 
-        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_APPLY)
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.MICRO_REC_WHY)
         compose.onAllNodes(coach).assertCountEquals(1)
         compose.onAllNodes(inlineCoach).assertCountEquals(1)
         compose.onNode(inlineCoach).assertIsDisplayed()
         val recommendation = checkNotNull(fixture.vm.microRec.value)
         assertTrue("Typed weight must differ from Apply's suggestion", recommendation.nextWeightKg != 65.5)
-        captureFloorControl("adaptive-font20-before-apply", WorkoutTestTags.MICRO_REC_APPLY)
-        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_APPLY).assertIsDisplayed().assertIsEnabled().performClick()
+        compose.onNodeWithTag(WorkoutTestTags.MICRO_REC_WHY).assertIsDisplayed().assertIsEnabled().performClick()
+        captureWindow("adaptive-font20-before-apply")
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_KEEP, 48)
+        assertWhyActionFullyVisible(WorkoutTestTags.TEMPO_WHY_USE, 64).performClick()
         compose.waitUntil(5_000) {
             val draft = fixture.vm.uiState.value.draft
             draft.weightKg == recommendation.nextWeightKg && draft.reps == recommendation.nextReps &&

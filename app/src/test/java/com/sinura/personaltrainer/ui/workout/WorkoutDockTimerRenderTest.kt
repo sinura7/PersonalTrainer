@@ -5,12 +5,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasTestTag
@@ -193,7 +196,11 @@ class WorkoutDockTimerRenderTest {
     fun aFinishedRestFlashesOnTheCardInTheSlot() {
         showDock(restAt().copy(restCompletedTimerId = "rest-1"))
         compose.onNodeWithTag(WorkoutTestTags.REST_BAR).assertIsDisplayed()
-        compose.onNode(hasText("BACK TO THE BAR"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(hasText("Rest complete"), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(hasText("0:00"), useUnmergedTree = true).assertIsDisplayed()
+        val announcement = compose.onNode(hasContentDescription("Rest complete", substring = true) and
+            hasAnyAncestor(hasTestTag(WorkoutTestTags.REST_BAR))).fetchSemanticsNode()
+        assertEquals(LiveRegionMode.Polite, announcement.config[SemanticsProperties.LiveRegion])
     }
 
     @Test
