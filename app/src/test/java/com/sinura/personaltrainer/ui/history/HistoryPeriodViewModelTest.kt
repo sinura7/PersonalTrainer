@@ -433,9 +433,60 @@ class HistoryPeriodViewModelTest {
     }
 
     @Test
+    fun aDelayedCorrectionRecorderExposesTheUnacknowledgedPendingTrace() = runBlocking {
+        seedProgress()
+        val recorderEntered = CompletableDeferred<Unit>()
+        val recorderRelease = CompletableDeferred<Unit>()
+        val recorded = CompletableDeferred<Unit>()
+        val firstCorrection = AtomicBoolean(false)
+        withModel(beforeRecord = { state ->
+            if (state.horizonTotals?.volumeKg == 950.0 && firstCorrection.compareAndSet(false, true)) {
+                recorderEntered.complete(Unit)
+                withTimeout(TestWaits.FLOW_MS) { recorderRelease.await() }
+                recorded
+            } else null
+        }) { model ->
+            try {
+                awaitReady(model)
+                val correction = trace(model).size
+                val held = reads.holdNext(late = true)
+                deps.workoutRepository.updateSet("closing-set", 90.0, 5, 8, false)
+                held.awaitEntered()
+                val changed = awaitState(model) { it.horizonTotals?.volumeKg == 950.0 }
+                assertTrue(changed.progressLoading)
+                assertNull(changed.horizonProgress)
+                withTimeout(TestWaits.FLOW_MS) { recorderEntered.await() }
+                assertFalse("direct observation does not acknowledge the separate recorder append",
+                    trace(model).drop(correction).any { it.horizonTotals?.volumeKg == 950.0 })
+                assertFalse(recorderRelease.isCompleted)
+                recorderRelease.complete(Unit)
+                withTimeout(TestWaits.FLOW_MS) { recorded.await() }
+                assertPendingEmissions(model, correction) { it.horizonTotals?.volumeKg == 950.0 }
+                held.release.complete(Unit)
+                assertEquals(950.0, awaitReady(model).horizonTotals!!.volumeKg, 0.0)
+            } finally {
+                recorderRelease.complete(Unit)
+                reads.releaseAll()
+            }
+        }
+    }
+
+    @Test
     fun rapidExactRowCorrectionsHideTheOldRevisionAndIgnoreItsLateResult() = runBlocking {
         seedProgress()
-        withModel { model ->
+        val correctionRecorded = CompletableDeferred<Unit>()
+        val newestRecorded = CompletableDeferred<Unit>()
+        val readyRecorded = CompletableDeferred<Unit>()
+        val readyRequested = AtomicBoolean(false)
+        withModel(beforeRecord = { state ->
+            // Direct uiState.first and this recorder are independent subscribers.
+            // Acknowledge after withModel appends, without excluding invalid pending states.
+            when (state.horizonTotals?.volumeKg) {
+                950.0 -> correctionRecorded
+                1200.0 -> if (readyRequested.get() && !state.progressLoading) readyRecorded else newestRecorded
+                else -> null
+            }
+        }) { model ->
             val opening = awaitReady(model)
             assertEquals(2, opening.horizonProgress!!.recordsBroken)
             assertNotNull(opening.horizonProgress!!.movedMost)
@@ -447,6 +498,7 @@ class HistoryPeriodViewModelTest {
             val changed = awaitState(model) { it.horizonTotals?.volumeKg == 950.0 }
             assertTrue(changed.progressLoading)
             assertNull(changed.horizonProgress)
+            withTimeout(TestWaits.FLOW_MS) { correctionRecorded.await() }
             assertPendingEmissions(model, correction) { it.horizonTotals?.volumeKg == 950.0 }
             val nextCorrection = trace(model).size
             deps.workoutRepository.updateSet(original.id, 140.0, 5, 8, false)
@@ -454,9 +506,12 @@ class HistoryPeriodViewModelTest {
             assertTrue(newest.progressLoading)
             assertNull(newest.horizonProgress)
             assertEquals(original.copy(weightKg = 140.0), deps.database.workoutDao().getSet(original.id))
+            withTimeout(TestWaits.FLOW_MS) { newestRecorded.await() }
             assertPendingEmissions(model, nextCorrection) { it.horizonTotals?.volumeKg == 1200.0 }
+            readyRequested.set(true)
             held.release.complete(Unit)
             val ready = awaitState(model) { it.horizonTotals?.volumeKg == 1200.0 && !it.progressLoading }
+            withTimeout(TestWaits.FLOW_MS) { readyRecorded.await() }
             assertTrue(held.returned.get())
             assertEquals(2, ready.horizonProgress!!.recordsBroken)
             assertEquals(setOf("opening", "closing"), ready.summaries.map { it.id }.toSet())

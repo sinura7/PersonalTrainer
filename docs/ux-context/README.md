@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are integrated through #467. Set Edit identity and numeric controls are integrated through #468. The active single F9/W11/V12/Q08/UX29 packet is History saved-set save recovery. Broader app UX phases and physical-phone acceptance remain.
+**Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are integrated through #467. Set Edit identity and numeric controls are integrated through #468. History saved-set recovery merged through #469; its final closure awaits the focused History test-recorder repair and a reliable complete gate. Broader app UX phases and physical-phone acceptance remain.
 
 **Summary/detail integration closed, 9 October 2026 UTC:** [PR #467](https://github.com/sinura7/PersonalTrainer/pull/467)
 merged as `755a2df9`, exact reviewed tree `f7628c17`. Actual clean-trunk full
@@ -84,9 +84,22 @@ cases / 2 fresh suites, 1 failure**, from an incorrect spoken-label expectation
 after the invalid submission was correctly retained and released. The narrow
 fixture correction's `targeted07` passed the complete invalid-row native path,
 including an intentional valid correction and exact stored/exported inventory.
-Source review accepts both recovery repairs. These focused results do not replace
-the packet's complete gate, native journey and integration review, whose executed
-results belong in the implementation PR and its archived verification receipt.
+Independent and adversarial source reviews accepted the recovery repairs.
+[PR #469](https://github.com/sinura7/PersonalTrainer/pull/469) merged as
+`7a83cb5f`, reviewed tree `7c41739f`. Both the premerge and actual clean-trunk
+complete local gates passed **4,064 cases / 579 fresh suites**, alongside **1,696
+standalone cases / 255 classes**. The clean-trunk Android run passed **222 cases /
+32 classes**, including the connected workout, with synthetic settings, network
+and packages restored. These are source/emulator results, not a phone update.
+
+The closed hosted trunk run `38015519794` failed one rapid-correction test while
+its emulator job passed. It remains archived as failed. A real Room counter with
+the separate state recorder deliberately delayed reproduced the same nonempty
+trace assertion: direct public-state observation had completed before trace
+append. The bounded test-only repair acknowledges actual append before the
+unchanged pending and late-result assertions. Its whole History period class
+passed **23 cases / 1 fresh suite**; complete-gate and integration results remain
+pending. The original failures are not relabelled by later successful checks.
 Pure-hold Summary display, broader UX and phone acceptance remain separate work.
 
 **Audience:** Temper's owner and the next designer, engineer, or agent continuing this work.
