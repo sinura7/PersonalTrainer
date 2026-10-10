@@ -4,8 +4,10 @@ import android.Manifest
 import android.app.NotificationManager
 import android.content.Intent
 import android.os.Looper
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -15,11 +17,15 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.datastore.preferences.core.edit
 import androidx.test.core.app.ApplicationProvider
+import androidx.core.content.ContextCompat
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.StartSessionOutcome
 import com.sinura.personaltrainer.data.repository.prefs.REST_ALERTS_ASKED
+import com.sinura.personaltrainer.data.repository.prefs.ONBOARDING_COMPLETE
+import com.sinura.personaltrainer.data.repository.prefs.LAUNCH_PERMISSIONS_ASKED
 import com.sinura.personaltrainer.domain.RestNotificationCopy
 import com.sinura.personaltrainer.testutil.forgetFirstApplication
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.timer.RestTimerService
 import com.sinura.personaltrainer.ui.workout.RestFloorTags
 import com.sinura.personaltrainer.ui.workout.WorkoutTestTags
@@ -29,6 +35,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Before
@@ -327,8 +334,36 @@ class RestAlertsAskedOnceTest {
     }
 
     private fun awaitText(text: String) {
-        compose.waitUntil(timeoutMillis = WAIT_MS) {
-            compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
+        try {
+            compose.waitUntil(timeoutMillis = WAIT_MS) {
+                compose.onAllNodes(hasText(text)).fetchSemanticsNodes().isNotEmpty()
+            }
+        } catch (failure: ComposeTimeoutException) {
+            try {
+                val activity = controller!!.get()
+                val factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory::class.java
+                    .getDeclaredField("_instance").apply { isAccessible = true }.get(null)
+                val factoryApp = factory?.javaClass?.declaredFields
+                    ?.firstOrNull { it.type.name == "android.app.Application" }
+                    ?.apply { isAccessible = true }?.get(factory)
+                println("REST_PROMPT_DIAGNOSTIC sdk=${Build.VERSION.SDK_INT} app=${System.identityHashCode(app)} " +
+                    "activityApp=${System.identityHashCode(activity.application)} " +
+                    "factoryApp=${factoryApp?.let { System.identityHashCode(it) }} " +
+                    "appPermission=${ContextCompat.checkSelfPermission(app, Manifest.permission.POST_NOTIFICATIONS)} " +
+                    "activityPermission=${ContextCompat.checkSelfPermission(activity, Manifest.permission.POST_NOTIFICATIONS)}")
+                fun dump(node: androidx.compose.ui.semantics.SemanticsNode, depth: Int) {
+                    println("REST_PROMPT_ROOT depth=$depth ${node.config}")
+                    if (depth < 15) node.children.forEach { dump(it, depth + 1) }
+                }
+                compose.onAllNodes(isRoot(), useUnmergedTree = true).fetchSemanticsNodes().forEach { dump(it, 0) }
+                val prefs = runBlocking {
+                    withTimeout(TestWaits.FLOW_MS) { app.container.preferencesRepository.accountSyncSettingsStore.data.data.first() }
+                }
+                println("REST_PROMPT_PREFS asked=${prefs[REST_ALERTS_ASKED]} onboarding=${prefs[ONBOARDING_COMPLETE]} " +
+                    "launchAsked=${prefs[LAUNCH_PERMISSIONS_ASKED]}")
+            } finally {
+                throw failure
+            }
         }
     }
 
