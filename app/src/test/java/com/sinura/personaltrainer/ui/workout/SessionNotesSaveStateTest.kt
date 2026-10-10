@@ -23,6 +23,116 @@ import org.robolectric.annotation.Config
 @Config(application = Application::class)
 class SessionNotesSaveStateTest {
     @Test
+    fun clearingStoredNotesWritesBeforeTheTypingDelayWithoutAnExitFlush() = runTest {
+        var stored: String? = "old notes"
+        val writes = mutableListOf<Pair<Long, String>>()
+        val owner = FloorSessionNotes(sessionId = "session", write = {
+            writes += testScheduler.currentTime to it
+            stored = it.trim()
+        }, readStored = { stored })
+        owner.sessionRead("old notes")
+        backgroundScope.launch { owner.writeOnTypingPause() }
+        runCurrent()
+        owner.edit("")
+        runCurrent()
+        assertEquals(listOf(0L to ""), writes)
+        assertEquals("", stored)
+        assertEquals(NotesSaveStatus.SAVED, owner.saveState.value.status)
+        assertTrue(owner.saveState.value.cleared)
+        advanceTimeBy(401)
+        runCurrent()
+        assertEquals("No delayed duplicate clear", 1, writes.size)
+    }
+
+    @Test
+    fun aRestoredClearStillWaitsForTheRealRowThenWritesWithoutAnotherDelay() = runTest {
+        var stored: String? = "old notes"
+        val writes = mutableListOf<String>()
+        val owner = FloorSessionNotes(sessionId = "session", write = {
+            writes += it
+            stored = it.trim()
+        }, readStored = { stored })
+        owner.restore("")
+        backgroundScope.launch { owner.writeOnTypingPause() }
+        runCurrent()
+        assertTrue(writes.isEmpty())
+        assertEquals(NotesSaveStatus.UNKNOWN, owner.saveState.value.status)
+        owner.sessionRead("old notes")
+        runCurrent()
+        assertEquals(listOf(""), writes)
+        assertEquals("", stored)
+        assertEquals(0L, testScheduler.currentTime)
+        assertEquals(NotesSaveStatus.SAVED, owner.saveState.value.status)
+    }
+
+    @Test
+    fun anImmediateClearWaitsBehindAnOlderWriteAndRemainsTheLastStoredValue() = runTest {
+        var stored: String? = "seed"
+        val writes = mutableListOf<String>()
+        val release = CompletableDeferred<Unit>()
+        val owner = FloorSessionNotes(sessionId = "session", write = {
+            writes += it
+            if (it == "older") release.await()
+            stored = it.trim()
+        }, readStored = { stored })
+        owner.sessionRead("seed")
+        backgroundScope.launch { owner.writeOnTypingPause() }
+        try {
+            runCurrent()
+            owner.edit("older")
+            runCurrent()
+            advanceTimeBy(400)
+            runCurrent()
+            assertEquals(listOf("older"), writes)
+            owner.edit("")
+            runCurrent()
+            assertEquals(NotesSaveStatus.PENDING, owner.saveState.value.status)
+            assertTrue(owner.saveState.value.busy)
+            assertEquals("seed", stored)
+            release.complete(Unit)
+            runCurrent()
+            assertEquals(listOf("older", ""), writes)
+            assertEquals("", stored)
+            assertEquals(400L, testScheduler.currentTime)
+            assertEquals(NotesSaveStatus.SAVED, owner.saveState.value.status)
+        } finally {
+            release.complete(Unit)
+            runCurrent()
+        }
+    }
+
+    @Test
+    fun aFailedImmediateClearRequiresExplicitRetryAndKeepsItsExactDraft() = runTest {
+        var stored: String? = "old notes"
+        var fail = true
+        var writes = 0
+        val owner = FloorSessionNotes(sessionId = "session", write = {
+            writes += 1
+            check(!fail) { "Injected clear failure" }
+            stored = it.trim()
+        }, readStored = { stored })
+        owner.sessionRead("old notes")
+        backgroundScope.launch { owner.writeOnTypingPause() }
+        runCurrent()
+        owner.edit("")
+        runCurrent()
+        assertEquals(1, writes)
+        assertEquals(NotesSaveStatus.FAILED, owner.saveState.value.status)
+        assertEquals("", owner.text.value)
+        assertEquals("old notes", stored)
+        advanceTimeBy(800)
+        runCurrent()
+        assertEquals(1, writes)
+        fail = false
+        assertTrue(owner.beginRetry())
+        assertFalse(owner.beginRetry())
+        owner.retryNow()
+        assertEquals(2, writes)
+        assertEquals("", stored)
+        assertEquals(NotesSaveStatus.SAVED, owner.saveState.value.status)
+    }
+
+    @Test
     fun pendingAndHeldWriteNeverClaimTheNewTextSaved() = runTest {
         var stored: String? = "old"
         val held = CompletableDeferred<Unit>()
@@ -243,9 +353,10 @@ class SessionNotesSaveStateTest {
         assertEquals(0, writes)
         assertEquals(NotesSaveStatus.UNKNOWN, owner.saveState.value.status)
         owner.sessionRead("old")
-        runCurrent()
         assertEquals("", owner.text.value)
         assertEquals(NotesSaveStatus.PENDING, owner.saveState.value.status)
+        runCurrent()
+        assertEquals("A hydrated clear no longer waits for a typing pause", NotesSaveStatus.SAVED, owner.saveState.value.status)
         advanceTimeBy(401)
         runCurrent()
         assertEquals(1, writes)

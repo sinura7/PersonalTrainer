@@ -54,7 +54,8 @@ import org.robolectric.annotation.Config
  * words differ from what was restored (G5), and restored words deleted before the row arrives stay
  * deleted (B4).
  *
- * A process death is the screen's end with no flush, then the draft cache cleared; the screen is
+ * The scope/cache recreation seam ends the screen with no exit flush and drains writes already
+ * started, then clears the draft cache; it does not establish Android process-death timing. The screen is
  * rebuilt on the same SavedStateHandle, over the same database. A reopen from Home is a new screen on
  * a fresh handle, the cache as it was.
  *
@@ -117,7 +118,7 @@ class DeletedNoteStaysDeletedTest {
 
     /** R1. */
     @Test
-    fun aNoteDeletedJustBeforeAProcessDeathStaysDeleted() = runBlocking<Unit> {
+    fun aClearWritesWithoutATypingPauseAndStaysDeletedAfterRecreation() = runBlocking<Unit> {
         val sessionId = seedLegExtension(deps = deps, loggedSets = emptyList())
         unheld.updateSessionNotes(sessionId, OLD_NOTE)
         val handle = handleFor(sessionId)
@@ -125,11 +126,13 @@ class DeletedNoteStaysDeletedTest {
         val vm = viewModel(handle)
         awaitScreen(vm, "the stored note on screen") { it.notes == OLD_NOTE }
 
-        vm.setNotes("") // the owner deletes the whole note, and Android stops the app inside the typing pause
+        val clearedAt = dispatcher.scheduler.currentTime
+        vm.setNotes("") // no typing delay or exit flush before scope/cache recreation
         assertEquals("precondition: saved state keeps the deletion", "", saved.sessionNotesIfSaved())
         processDeath(vm)
-        assertEquals("precondition: the deletion never reached the database", emptyList<String>(), writesStarted.toList())
-        assertEquals("precondition: the database still holds the old note", OLD_NOTE, unheld.getSession(sessionId)?.notes)
+        assertEquals("the clear starts immediately and completes before scope teardown", listOf(""), writesStarted.toList())
+        assertEquals("the database confirms the deletion", "", unheld.getSession(sessionId)?.notes)
+        assertEquals("clearing required no typing delay", clearedAt, dispatcher.scheduler.currentTime)
 
         val rowMark = rowsDelivered.size
         val revived = viewModel(handle)
@@ -146,7 +149,7 @@ class DeletedNoteStaysDeletedTest {
         val pauseEndedAt = dispatcher.scheduler.currentTime
         awaitWriteLanded("")
         assertEquals("settling Room I/O does not advance the typing clock", pauseEndedAt, dispatcher.scheduler.currentTime)
-        assertEquals("the next pause writes the deletion, once", listOf(""), writesStarted.toList())
+        assertEquals("recreation and a later pause do not duplicate the confirmed clear", listOf(""), writesStarted.toList())
         assertEquals("and the database holds it", "", unheld.getSession(sessionId)?.notes)
     }
 
@@ -277,8 +280,9 @@ class DeletedNoteStaysDeletedTest {
         val handle = handleFor(sessionId)
         val vm = viewModel(handle)
         awaitScreen(vm, "the stored note on screen") { it.notes == OLD_NOTE }
-        vm.setNotes("") // deleted, and Android stops the app inside the typing pause
+        vm.setNotes("") // the clear starts immediately; scope teardown drains that write
         processDeath(vm)
+        assertEquals("the original clear is already confirmed", listOf(""), writesStarted.toList())
 
         sessionPaused.value = true // the revived screen's first read is slow
         val rowMark = rowsDelivered.size
@@ -286,8 +290,8 @@ class DeletedNoteStaysDeletedTest {
         revived.setNotes(TYPED_BEFORE_THE_ROW)
         pauseTyping()
         assertEquals(
-            "no notes write while the row is unread, though the restored note differs from the words",
-            emptyList<String>(),
+            "no additional notes write while the revived row is unread",
+            listOf(""),
             writesStarted.toList(),
         )
 
@@ -295,7 +299,7 @@ class DeletedNoteStaysDeletedTest {
         runUntil(what = "the revived screen reading the row", read = { rowsDelivered.size }) { it > rowMark }
         revived.persistDraftForExit() // Back: the pause writer waits for the next change, Back does not
         awaitWriteLanded(TYPED_BEFORE_THE_ROW)
-        assertEquals("Back writes the words typed before the row, once", listOf(TYPED_BEFORE_THE_ROW), writesStarted.toList())
+        assertEquals("Back writes the new words once after the earlier clear", listOf("", TYPED_BEFORE_THE_ROW), writesStarted.toList())
         assertEquals("and the database holds them", TYPED_BEFORE_THE_ROW, unheld.getSession(sessionId)?.notes)
     }
 

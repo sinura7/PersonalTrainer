@@ -402,7 +402,6 @@ class FloorSessionNotesMoveCharacterisationTest {
         awaitScreen(vm, "stored note loaded") { it.notes == "stored note" && it.canFinish }
         failNextWrite.set(true)
         vm.setNotes("")
-        vm.persistDraftForExit()
         awaitScreen(vm, "clear failed without losing its empty draft") { it.notesSave.status == NotesSaveStatus.FAILED }
         vm.requestNotesExit(leaveWithDraft = true)
         assertEquals(WorkoutExit.Kept, vm.exitRequested.value)
@@ -420,12 +419,16 @@ class FloorSessionNotesMoveCharacterisationTest {
             assertEquals("", deps.workoutDraftCache.sessionNotes(sessionId))
             end(vm)
 
+            holdNextWrite.set(true)
             val reopened = viewModel(handleFor(sessionId))
             awaitScreen(reopened, "failed clear restored with actual row") {
                 it.canFinish && it.session?.notes == "stored note" && it.notes.isEmpty() &&
-                    it.notesSave.status == NotesSaveStatus.PENDING
+                    it.notesSave.status == NotesSaveStatus.SAVING && it.notesSave.busy
             }
+            assertEquals("the resumed clear is still held", before, unheld.getSession(sessionId))
+            assertTrue(deps.workoutDraftCache.hasPendingNotes(sessionId))
             reopened.persistDraftForExit()
+            releaseWrite.complete(Unit)
             awaitScreen(reopened, "clear confirmed after return") {
                 it.notesSave.status == NotesSaveStatus.SAVED && it.notesSave.cleared && !it.notesSave.busy
             }
@@ -712,11 +715,27 @@ class FloorSessionNotesMoveCharacterisationTest {
         unheld.updateSessionNotes(sessionId, "old")
         val vm = viewModel(handleFor(sessionId))
         awaitScreen(vm, "the stored notes, and a workout that can be finished") { it.notes == "old" && it.canFinish }
-
+        val before = checkNotNull(unheld.getSession(sessionId))
+        val clearedAt = dispatcher.scheduler.currentTime
+        holdNextWrite.set(true)
         vm.setNotes("") // the owner clears the note, and finishes at once
+        awaitHeldNotesWrite()
         vm.finishWorkout()
-        val finished = unheld.awaitSession(sessionId) { it.finishedAt != null }
+        vm.finishWorkout()
+        dispatcher.scheduler.runCurrent()
+        assertNull("Finish waits for the clear instead of navigating early", vm.exitRequested.value)
+        assertEquals(before, unheld.getSession(sessionId))
+        releaseWrite.complete(Unit)
+        runUntil(what = "one Finish after the held clear", read = { vm.exitRequested.value }) {
+            it == WorkoutExit.Finished(sessionId)
+        }
+        val finished = checkNotNull(unheld.getSession(sessionId))
         assertEquals("Finish with the note cleared saves it cleared, not the stored one", "", finished.notes)
+        assertEquals(before.sets, finished.sets)
+        assertEquals(before.startedAt, finished.startedAt)
+        assertEquals("one clear precedes Finish", listOf(""), writesStarted.toList())
+        assertEquals(1, finishesStarted.get())
+        assertEquals("neither clear nor Finish waits for typing", clearedAt, dispatcher.scheduler.currentTime)
     }
 
     @Test
