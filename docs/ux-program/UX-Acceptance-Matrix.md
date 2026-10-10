@@ -125,8 +125,30 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
 | UX11-AC01 | P1 | F02, F06 | A participant can state the scope before saving a swap or schedule edit. | Not executed |
-| UX11-AC02 | P1 | F02, F06 | Routine management is reachable without relying solely on long press, or documented usability evidence supports retaining the existing affordance. | Not executed |
-| UX11-AC03 | P1 | F02, F06 | Deleting a routine preserves history and accurately explains its impact on scheduled days. | Not executed |
+| UX11-AC02 | P1 | F02, F06 | Routine management is reachable without relying solely on long press, or documented usability evidence supports retaining the existing affordance. | Development candidate: actual Plan menu touch, exact routine IDs, cancellation, final guidance and retained long-press pass in the 12-profile JVM matrix; native journey, full gate and reviews remain pending. |
+| UX11-AC03 | P1 | F02, F06 | Deleting a routine preserves history and accurately explains its impact on scheduled days. | Development candidate: confirmed deletion preserves exact saved session/exercise/set fields apart from the existing nullable template FK, keeps the identically named other routine and its pin, and removes the selected pin. Native verification and integration remain pending. |
+
+**Plan routine management follow-up — 10 October 2026:** the current source still
+required a long press to discover deletion. Each routine now has a quiet 48 dp
+options button offering Edit routine and Delete routine; row tap still edits and
+long-press still opens the existing confirmation. The lift count moves into the
+text area so the new control does not squeeze identity beside a metric column.
+The confirmation says the routine is removed from the plan: other blocks can
+remain on the same day, so claiming that the day becomes open was misleading.
+No new persistence contract, schema, navigation destination or scheduling policy
+is introduced. UX04's existing truthful Save behavior is retained.
+
+The first focused run remains **91 tests / 12 failures**: the new matrix initially
+tried to address off-screen lazy rows directly and used a text-layout overflow
+flag that does not establish actual clipping. The corrected harness reaches
+targets through the actual Plan list and checks every label character's bounds
+and ellipsis. The next run passed **91 tests / zero failures/errors/skips**, with
+real Room fixtures including two routines sharing a name. The final concise
+guidance passed all 13 new checks again (36 actual window-composited frames).
+Android test compilation also passes after correcting the test to read public
+repositories rather than the container's private database; the failed compile
+is retained. The new MainActivity → Plan → editor/delete journeys, full local
+gate, both reviews and clean-trunk verification remain pending.
 
 ### UX12 — Make calendar dates and statuses distinguishable at small widths
 
