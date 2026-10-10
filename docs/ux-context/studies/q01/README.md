@@ -2,7 +2,7 @@
 
 **Date:** 8 October 2026
 
-**Status:** Native Quiet (#460) and the bounded workout-truth follow-up (#461) are independently reviewed, merged and reverified on trunk. The follow-up's reviewed candidate `473fff3a` and merged `c2384951` have the same tree. Fresh post-merge verification passed 3,702 JVM tests and 222 native tests; all 85 native captures were verified through a separately reviewed archive recovery after a helper parsing failure. The original failed archive and earlier failures remain preserved. Home required-read recovery is implemented with completed local and native checks; remaining Home geometry and History follow its reviewed integration. N2 interruption recovery, broader UX23/W3 criteria, phone acceptance and the inherited native Why-title tooltip limitation remain open. The historical baselines, prototypes and verification snapshots below retain their original scope.
+**Status:** Native Quiet and the bounded workout-truth follow-up are integrated through #460/#461; subsequent Home, History, Summary and saved-set packets are integrated through #470 (see the parent context record). Compact Focus development passes the complete local gate and 222 Android tests, with evidence and review/integration tracking under [PR #471](https://github.com/sinura7/PersonalTrainer/pull/471). Broader N2/UX23/W3 acceptance, phone experience and the inherited native Why-title tooltip limitation remain open. The historical baselines, prototypes and dated verification snapshots below retain their original scope.
 
 **Original study baseline:** `eae6517845ee560ceb9695bf2f92788e2b4339cc`, Debug 122. Later Debug-124 repairs and the new native implementation direction are recorded separately below.
 
@@ -1119,3 +1119,38 @@ gate, Android execution and final reviews/integration remain pending.
 This is bounded W1/W3 and UX23/UX24/UX25/UX29 development evidence. Broader
 acceptance, physical-phone usability/performance and the deferred app areas
 remain open. No Debug drop or phone update has occurred.
+
+#### Compact Focus development verification
+
+Executed source is `06a3f587953dde9d85141756e4c3e746cae068ac`, based on
+`e6cc481e`. The two later documentation previews do not change the 1,553 runtime
+inputs. Review/integration tracking is [PR #471](https://github.com/sinura7/PersonalTrainer/pull/471).
+
+| Evidence | Executed result |
+|---|---|
+| `full02`: Windows preflight and all four required Gradle tasks, with Release assembly | **4,074 app tests / 579 fresh XML suites** and **1,696 standalone tests / 255 classes**; no failures/errors/skips; lint and both Debug APK assemblies passed. Source and refs remained unchanged. |
+| Render and interaction coverage within `full02` | 360×640, 412 dp, landscape and adaptive 600 dp, fonts 1.0/1.6/2.0 and RTL; full options/All/Why controls, loading/saving/failure/Retry and exact-record correction. The exact native title counterexample now passes the header regression. |
+| `native03`: complete unfiltered API 29 suite on owned `temper-tests-api29`, offline before first app launch | **222 tests**, no failures/errors/skips; one connected Start → manual entry/effort → Log/rest → switch → correct → Finish → Summary/History session. All **85 fresh captures** matched device/host hashes; 13 fixture/restoration pairs, network/device settings, empty packages and collector cleanup verified. |
+
+The first native run exposed a switch target taller than its viewport and a
+19 px post-save shift when Discard changed to the narrower Finish label. The
+repair gives switching a separate 48 dp target and reserves equal measured
+action widths. Eight real saves retain entry and commit anchors within the
+original 1 px tolerance and produce eight unique exact records. Other native
+failures were obsolete copy/selection locations and modal selectors/font-owner
+expectations; their data and reachability assertions remain. `native01` stays
+**222 tests / six failures**. `native02` stays a rejected launcher boot with
+**zero app tests**, before installation. Earlier failed evidence is retained.
+
+The archived summaries' SHA-256 values are `B6F67905DB9DEB5A0D704255697F21B4588B2F79647EF01A6A5762ECF3BB11A7`
+(`full02`) and `0F12200C347DD09C95C0C22EE20A0B7DEBD0C8D8049780149A4AC6FE8CF53FA6`
+(`native03`), under ignored `build/ux-context/runs/compact-focus-workout/`.
+
+Representative actual Compose renders from `full02`:
+[ready to log, 360×640 / font 1.0](assets/compact-focus-ready-360x640-font10.png)
+(run `922f5ae8-252b-4c3a-b8fd-2ea233f9f5cd`) and
+[saved sets, 360×640 / font 2.0](assets/compact-focus-saved-360x640-font20.png)
+(run `5cd5a23c-d9aa-4ec1-a0c0-7c8f6ffba4db`). These are JVM renders;
+Android captures and physical-phone evidence retain separate roles. The 852 dp
+floor ceiling, recording/timer contracts and distribution identity are unchanged.
+This closes bounded development evidence, not the whole roadmap or phone acceptance.
