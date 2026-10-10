@@ -386,6 +386,8 @@ fun RoutineEditorScreen(
 internal fun RoutineEditorHeader(onBack: () -> Unit) {
     ScreenHeader(
         title = "Routine",
+        subtitle = RoutineSaveCopy.SCOPE,
+        subtitleModifier = Modifier.testTag(RoutineEditorTags.SCOPE),
         onBack = onBack,
         backTag = RoutineEditorTags.BACK,
         kickerTitle = true,
@@ -394,6 +396,7 @@ internal fun RoutineEditorHeader(onBack: () -> Unit) {
 
 object RoutineEditorTags {
     const val BACK = "routine-editor-back"
+    const val SCOPE = "routine-editor-scope"
     const val ADD_LIFTS = "routine-editor-add-lifts"
     const val SAVE = "routine-editor-save"
     const val SAVE_ERROR = "routine-editor-save-error"
@@ -576,7 +579,7 @@ private fun SwapExerciseSheet(
             ) {
                 Text("Swap ${current.name}", style = InstrumentType.title, color = TextPrimary)
                 Text(
-                    "Same movement, different kit. Sets, reps, rest and position stay as they are.",
+                    RoutineSaveCopy.SWAP_SCOPE,
                     style = InstrumentType.caption,
                     color = TextTertiary,
                 )

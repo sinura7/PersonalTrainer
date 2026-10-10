@@ -201,6 +201,8 @@ class PlanPickerHeaderRenderTest {
     private fun proveHeader(title: String, stage: String) {
         val date = DateCopy.weekdayFullDate(LocalDate.ofEpochDay(today))
         proveWords(compose.onNodeWithText(date, useUnmergedTree = true), date, "$stage-fixed-date")
+        val scope = PlanDayCopy.addScope(com.sinura.personaltrainer.domain.Weekday.fromEpochDay(today))
+        proveWords(compose.onNodeWithTag(PlanDayTags.SCOPE), scope, "$stage-weekly-scope")
         assertTarget(compose.onNodeWithTag(PlanDayTags.BACK))
         val question = reachable(compose.onNodeWithTag(PickerHeaderTags.TITLE))
         val cancel = reachable(compose.onNodeWithTag(PickerHeaderTags.CANCEL)).assertIsEnabled()

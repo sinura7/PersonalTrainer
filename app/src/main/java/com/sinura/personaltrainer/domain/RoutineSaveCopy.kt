@@ -11,6 +11,9 @@ package com.sinura.personaltrainer.domain
 object RoutineSaveCopy {
     const val SAVE = SessionOrderCopy.SAVE_ROUTINE
     const val SAVING = "Saving…"
+    const val SCOPE = "Reusable routine · Future workouts"
+    const val SWAP_SCOPE =
+        "Routine swap for future workouts. Same movement; sets, reps, rest and position stay."
 
     /** The one quiet line beside the dock that explains the write-through model. */
     const val WRITE_THROUGH =
