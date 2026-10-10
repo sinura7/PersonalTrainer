@@ -40,6 +40,8 @@ import com.sinura.personaltrainer.domain.DefaultExercises
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.LoadClass
 import com.sinura.personaltrainer.domain.SetLog
+import com.sinura.personaltrainer.domain.WorkoutSetSave
+import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.domain.StepperRepeat
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -54,6 +56,8 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.awaitThat
 import com.sinura.personaltrainer.ui.workout.holdingTheClock
 import com.sinura.personaltrainer.ui.workout.textLayout
+import com.sinura.personaltrainer.ui.workout.WorkoutSaveState
+import com.sinura.personaltrainer.ui.workout.WorkoutSavePhase
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -89,6 +93,9 @@ class SetEditSheetRenderTest {
     private val saved = mutableListOf<Saved>()
     private val deleted = mutableListOf<String?>()
     private var dismissed = 0
+    private var operation by mutableStateOf(WorkoutSaveState())
+    private var retried = 0
+    private var released = 0
 
     @Before fun setUp() {
         host = SavedWorkRenderHost(compose = compose, contentTag = { if (open) SetEditTestTags.CONTENT else REFERENCES }) {
@@ -180,6 +187,36 @@ class SetEditSheetRenderTest {
             host.touch(host.tag(SetEditTestTags.CANCEL))
             assertEquals("actual quiet Cancel dismisses without saving", 1, dismissed)
             assertEquals(2, saved.size)
+            initial = original("sheet-failed-submission", 6, null)
+            val command = WorkoutSetSave("render-session", exercise.id, "sheet-failed-submission", 1,
+                WorkoutSetValues(117.5, 9, 9, false, null), WorkoutSetValues.from(checkNotNull(initial)))
+            operation = WorkoutSaveState(WorkoutSavePhase.FAILED, command, FAILURE)
+            showEditor()
+            assertIdentity(expected, unrelated)
+            host.readable(host.tag("set-edit-submitted-values"), "117.5 kg × 9 · RPE 9")
+            host.readable(host.tag("set-edit-save-error"), FAILURE)
+            effort(9).assertIsOn()
+            effort(9).assertIsNotEnabled()
+            host.tag(SetEditTestTags.DELETE).assertIsNotEnabled()
+            host.action(control("Retry save"))
+            host.action(control("Edit values"))
+            host.action(host.tag(SetEditTestTags.CANCEL))
+            host.capture("failed-submission-exact-values-and-reachable-recovery")
+            host.touch(control("Retry save"))
+            assertEquals(1, retried)
+            operation = operation.copy(phase = WorkoutSavePhase.SAVING, message = null)
+            host.drain()
+            control("Saving…").assertIsNotEnabled()
+            host.tag(SetEditTestTags.CANCEL).assertIsNotEnabled()
+            host.capture("pending-save-locks-actions-with-values-visible")
+            operation = operation.copy(phase = WorkoutSavePhase.CONFLICT, message = CONFLICT)
+            host.drain()
+            control("Retry save").assertIsNotEnabled()
+            host.readable(host.tag("set-edit-save-error"), CONFLICT)
+            host.action(control("Review saved sets"))
+            host.capture("conflict-review-without-replaying-a-save")
+            host.touch(control("Review saved sets"))
+            assertEquals(1, released)
         }
 
     @Test fun unknownImageKeysUseTheExistingDecorativeFallback() = host.evidence("set-editor-art-fallback") {
@@ -442,6 +479,9 @@ class SetEditSheetRenderTest {
                         prefillWeightKg = prefillWeight,
                         prefillReps = prefillReps,
                         loadClass = LoadClass.LOADED,
+                        saveState = operation,
+                        onRetry = { retried++ },
+                        onEditValues = { released++ },
                     )
                 }
             }
@@ -552,3 +592,6 @@ class SetEditSheetRenderTest {
         )
     }
 }
+
+private const val FAILURE = "Could not confirm whether this set was saved. Retry will check before saving again."
+private const val CONFLICT = "This set changed or was removed. Review your saved sets before continuing."

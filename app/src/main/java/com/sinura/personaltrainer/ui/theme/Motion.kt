@@ -23,6 +23,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
@@ -86,14 +87,15 @@ fun recordEnter(): EnterTransition =
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun rememberFullSheetState(reduced: Boolean): SheetState {
+fun rememberFullSheetState(reduced: Boolean, canDismiss: () -> Boolean = { true }): SheetState {
     // Read once per opening: a settings change while the sheet is up must not swap its state.
     val reducedAtOpen = remember { reduced }
-    if (!reducedAtOpen) return rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val dismiss = rememberUpdatedState(canDismiss)
+    val confirmValueChange: (SheetValue) -> Boolean = { it != SheetValue.Hidden || dismiss.value() }
+    if (!reducedAtOpen) return rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = confirmValueChange)
     val density = LocalDensity.current
     val positionalThreshold = { with(density) { SheetPositionalThreshold.toPx() } }
     val velocityThreshold = { with(density) { SheetVelocityThreshold.toPx() } }
-    val confirmValueChange: (SheetValue) -> Boolean = { true }
     return rememberSaveable(
         saver = SheetState.Saver(
             skipPartiallyExpanded = true,

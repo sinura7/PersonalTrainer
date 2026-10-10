@@ -840,6 +840,86 @@ class WorkoutRepository(
 
     class SetSaveConflict : IllegalStateException("This set changed or was removed. Review your saved sets before continuing.")
 
+    /** History retries use the same identity and original values as their first Save tap. */
+    internal suspend fun saveFinishedSet(command: WorkoutSetSave): SavedWorkoutSet = database.withTransaction {
+        val current = workoutDao.getSession(command.sessionId) ?: throw SetSaveConflict()
+        if (current.session.finishedAt == null) throw SetSaveConflict()
+        val existing = workoutDao.getSet(command.setId)
+        val values = finishedSaveValues(command, current)
+        // An untouched accepted historical row is not permission to bypass the
+        // editor's current recording rules (for example zero loaded working weight).
+        finishedSaveViolation(command, values, current)?.let { error(it) }
+        if (existing != null && matchesFinishedSave(existing, command, values)) {
+            return@withTransaction savedResult(existing, current, alreadySaved = true)
+        }
+        if (command.editing) {
+            if (existing == null || !matchesOriginal(existing, command)) throw SetSaveConflict()
+            SetLogRules.validateEffort(values.rpe, values.isWarmup,
+                existing.reps < 1 && (existing.durationSeconds ?: 0) > 0 || values.reps == 0,
+            )?.let { error(it) }
+            updateSet(existing.id, values.weightKg, values.reps, values.rpe, values.isWarmup, values.durationSeconds)
+        } else {
+            if (existing != null || !hasFinishedLift(current, command.exerciseId)) throw SetSaveConflict()
+            if (command.completedAt !in current.session.startedAt..checkNotNull(current.session.finishedAt)) {
+                throw SetSaveConflict()
+            }
+            SetLogRules.validateEffort(rpe = values.rpe, isWarmup = values.isWarmup, isHold = false)?.let { error(it) }
+            insertFinishedSet(current, command.exerciseId, values, command.setId, command.completedAt)
+        }
+        savedResult(checkNotNull(workoutDao.getSet(command.setId)), current, alreadySaved = false)
+    }
+
+    /** A failed read leaves the outcome unknown; it never authorizes another insertion. */
+    internal suspend fun inspectFinishedSetSave(command: WorkoutSetSave): WorkoutSetSaveResolution = database.withTransaction {
+        val current = workoutDao.getSession(command.sessionId)
+        if (current == null || current.session.finishedAt == null) return@withTransaction WorkoutSetSaveResolution.CONFLICT
+        val existing = workoutDao.getSet(command.setId)
+        if (existing != null) {
+            val values = finishedSaveValues(command, current)
+            if (matchesFinishedSave(existing, command, values)) {
+                // An invalid unchanged legacy row was already there before Save. It
+                // cannot acknowledge a refused submission or prevent Edit values.
+                if (matchesOriginal(existing, command) && finishedSaveViolation(command, values, current) != null) {
+                    return@withTransaction WorkoutSetSaveResolution.UNSAVED
+                }
+                return@withTransaction WorkoutSetSaveResolution.SAVED
+            }
+            return@withTransaction if (command.editing && matchesOriginal(existing, command)) {
+                WorkoutSetSaveResolution.UNSAVED
+            } else WorkoutSetSaveResolution.CONFLICT
+        }
+        if (command.editing || !hasFinishedLift(current, command.exerciseId)) WorkoutSetSaveResolution.CONFLICT
+        else WorkoutSetSaveResolution.UNSAVED
+    }
+
+    private fun hasFinishedLift(current: SessionWithDetails, exerciseId: String): Boolean =
+        current.exercises.any { it.exercise.id == exerciseId } || current.sets.any { it.set.exerciseId == exerciseId }
+
+    private fun finishedSaveViolation(command: WorkoutSetSave, values: WorkoutSetValues, current: SessionWithDetails): String? {
+        val load = liftLoadOf(current, command.exerciseId)
+        val hold = command.editing && values.reps < 1
+        return SetLogRules.validate(values.weightKg, values.reps, values.isWarmup, load.loadType,
+            durationSeconds = values.durationSeconds, isHold = hold,
+            equipment = load.equipment, movementKey = load.movementKey,
+        ) ?: SetLogRules.validateEffort(values.rpe, values.isWarmup, hold)
+    }
+
+    private fun finishedSaveValues(command: WorkoutSetSave, current: SessionWithDetails): WorkoutSetValues {
+        val original = command.original ?: return command.values
+        val timed = (original.durationSeconds ?: 0) > 0
+        val plannedHold = current.exercises.any {
+            it.exercise.id == command.exerciseId && HoldWork.isHold(it.exercise.id, it.exercise.name, it.exercise.movementKey)
+        }
+        return command.values.copy(
+            reps = if (timed && original.reps < 1) original.reps else if (!timed && plannedHold) 0 else command.values.reps,
+            durationSeconds = command.values.durationSeconds?.takeIf { it > 0 } ?: original.durationSeconds,
+        )
+    }
+
+    private fun matchesFinishedSave(row: SetLogEntity, command: WorkoutSetSave, values: WorkoutSetValues): Boolean =
+        row.sessionId == command.sessionId && row.exerciseId == command.exerciseId &&
+            row.completedAt == command.completedAt && valuesOf(row) == values
+
     suspend fun updateSet(
         setId: String,
         weightKg: Double,
@@ -979,37 +1059,26 @@ class WorkoutRepository(
                 ?: error("This workout is no longer available.")
             val session = current.session
             val finishedAt = session.finishedAt ?: error("This workout is still in progress.")
-            if (reps < 1) error("Reps must be at least 1.")
-            val load = liftLoadOf(current, exerciseId)
-            val violation = SetLogRules.validate(
-                weightKg,
-                reps,
-                isWarmup,
-                load.loadType,
-                equipment = load.equipment,
-                movementKey = load.movementKey,
-            )
-            if (violation != null) error(violation)
-            val safeWeight = if (weightKg.isFinite()) weightKg.coerceAtLeast(0.0) else 0.0
-            val nextNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1
-            workoutDao.insertSet(
-                SetLogEntity(
-                    id = ids.newId(),
-                    sessionId = sessionId,
-                    exerciseId = exerciseId,
-                    setNumber = nextNumber,
-                    weightKg = safeWeight,
-                    reps = reps.coerceAtLeast(1),
-                    rpe = rpe,
-                    isWarmup = isWarmup,
-                    completedAt = FinishedSessionEdits.timestampForAddedSet(
-                        startedAt = session.startedAt,
-                        finishedAt = finishedAt,
-                        lastCompletedAt = current.sets.maxOfOrNull { it.set.completedAt },
-                    ),
-                ),
+            insertFinishedSet(current, exerciseId, WorkoutSetValues(weightKg, reps, rpe, isWarmup, null), ids.newId(),
+                FinishedSessionEdits.timestampForAddedSet(session.startedAt, finishedAt, current.sets.maxOfOrNull { it.set.completedAt }),
             )
         }
+    }
+
+    private suspend fun insertFinishedSet(
+        current: SessionWithDetails, exerciseId: String, values: WorkoutSetValues, setId: String, completedAt: Long,
+    ) {
+        if (values.reps < 1) error("Reps must be at least 1.")
+        val load = liftLoadOf(current, exerciseId)
+        SetLogRules.validate(values.weightKg, values.reps, values.isWarmup, load.loadType,
+            equipment = load.equipment, movementKey = load.movementKey,
+        )?.let { error(it) }
+        workoutDao.insertSet(SetLogEntity(
+            id = setId, sessionId = current.session.id, exerciseId = exerciseId,
+            setNumber = current.sets.count { it.set.exerciseId == exerciseId } + 1,
+            weightKg = if (values.weightKg.isFinite()) values.weightKg.coerceAtLeast(0.0) else 0.0,
+            reps = values.reps, rpe = values.rpe, isWarmup = values.isWarmup, completedAt = completedAt,
+        ))
     }
 
     /**

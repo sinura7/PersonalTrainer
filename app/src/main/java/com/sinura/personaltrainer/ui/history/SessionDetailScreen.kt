@@ -107,6 +107,9 @@ fun SessionDetailScreen(
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
     val notesExitRequested by viewModel.notesExitRequested.collectAsStateWithLifecycle()
     val notesExitBlocked by viewModel.notesExitBlocked.collectAsStateWithLifecycle()
+    val setSave by viewModel.setSave.collectAsStateWithLifecycle()
+    val setEditorExit by viewModel.setEditorExit.collectAsStateWithLifecycle()
+    val editorOriginal by viewModel.editorOriginal.collectAsStateWithLifecycle()
     val leave = { viewModel.requestNotesExit() }
 
     BackHandler(onBack = leave)
@@ -129,6 +132,23 @@ fun SessionDetailScreen(
         }
         addingToExerciseId = null
         addingSessionId = null
+    }
+
+    LaunchedEffect(setEditorExit) {
+        val completed = setEditorExit ?: return@LaunchedEffect
+        if (completed.editing && editingSetId == completed.setId) editingSetId = null
+        if (!completed.editing && addingSessionId == completed.sessionId && addingToExerciseId == completed.exerciseId) {
+            discardAddDraft()
+        }
+        viewModel.onSetEditorExitHandled(completed)
+    }
+    // A restored pending command reopens its own editor, never the last selected row.
+    LaunchedEffect(setSave.command) {
+        val pending = setSave.command ?: return@LaunchedEffect
+        if (pending.editing) editingSetId = pending.setId else {
+            addingSessionId = pending.sessionId
+            addingToExerciseId = pending.exerciseId
+        }
     }
 
     LaunchedEffect(notesExitRequested) {
@@ -273,7 +293,10 @@ fun SessionDetailScreen(
                                 loadClass = session.loadClassOf(lift.exercise.id),
                                 unit = unit,
                                 onOpen = { onOpenExercise(lift.exercise.id) },
-                                onEditSet = { editingSetId = it.id },
+                                onEditSet = {
+                                    viewModel.beginSetEdit(it)
+                                    editingSetId = it.id
+                                },
                                 onAddSet = {
                                     discardAddDraft()
                                     addingSessionId = session.id
@@ -285,7 +308,7 @@ fun SessionDetailScreen(
                 }
             }
         }
-        error?.let { message ->
+        error?.takeIf { editingSetId == null && addingToExerciseId == null }?.let { message ->
             GymErrorBanner(
                 message = message,
                 modifier = Modifier
@@ -327,7 +350,12 @@ fun SessionDetailScreen(
         )
     }
 
-    val editing = editingSetId?.let { id -> session?.sets?.firstOrNull { it.id == id } }
+    val editing = editingSetId?.let { id -> session?.sets?.firstOrNull { it.id == id } }?.let { row ->
+        val snapshot = editorOriginal?.takeIf { it.setId == row.id && it.exerciseId == row.exerciseId }
+        if (snapshot == null) row else row.copy(weightKg = snapshot.values.weightKg, reps = snapshot.values.reps,
+            rpe = snapshot.values.rpe, isWarmup = snapshot.values.isWarmup, completedAt = snapshot.completedAt,
+            durationSeconds = snapshot.values.durationSeconds)
+    }
     if (editing != null && session != null) {
         SetEditSheet(
             exercise = session.filledLifts().first { it.exercise.id == editing.exerciseId }.exercise.let { projected ->
@@ -335,8 +363,7 @@ fun SessionDetailScreen(
             },
             initial = editing,
             onSave = { weightKg, reps, rpe, isWarmup, durationSeconds ->
-                editingSetId = null
-                viewModel.updateSet(
+                viewModel.saveCorrection(
                     setId = editing.id,
                     weightKg = weightKg,
                     reps = reps,
@@ -346,19 +373,29 @@ fun SessionDetailScreen(
                 )
             },
             onDelete = {
+                viewModel.dismissSetEdit(editing.id)
                 editingSetId = null
                 viewModel.deleteSet(editing.id)
             },
-            onDismiss = { editingSetId = null },
+            onDismiss = {
+                if (setSave.pending) viewModel.releaseSetSave(cancel = true) else {
+                    viewModel.dismissSetEdit(editing.id)
+                    editingSetId = null
+                }
+            },
             loadClass = session.loadClassOf(editing.exerciseId),
             plated = session.isBarbell(editing.exerciseId),
+            saveState = setSave,
+            validationMessage = error,
+            onRetry = viewModel::retrySetSave,
+            onEditValues = { viewModel.releaseSetSave(cancel = false) },
         )
     }
 
     val adding = addingToExerciseId
     val addingExercise = session?.filledLifts()?.firstOrNull { it.exercise.id == adding }?.exercise
     LaunchedEffect(adding, addingSessionId, addingExercise?.id, session?.id, state.isLoading, state.failed) {
-        if (adding != null && !state.isLoading && !state.failed &&
+        if (adding != null && !setSave.pending && !state.isLoading && !state.failed &&
             (addingExercise == null || session?.id != addingSessionId)) {
             discardAddDraft()
         }
@@ -378,8 +415,7 @@ fun SessionDetailScreen(
                 exercise = addingExercise.copy(name = name),
                 initial = null,
                 onSave = { weightKg, reps, rpe, isWarmup, _ ->
-                    discardAddDraft()
-                    viewModel.addSet(
+                    viewModel.saveAdditionalSet(
                         exerciseId = adding,
                         weightKg = weightKg,
                         reps = reps,
@@ -388,13 +424,34 @@ fun SessionDetailScreen(
                     )
                 },
                 onDelete = null,
-                onDismiss = discardAddDraft,
+                onDismiss = {
+                    if (setSave.pending) viewModel.releaseSetSave(cancel = true) else discardAddDraft()
+                },
                 prefillWeightKg = previous?.weightKg ?: 0.0,
                 prefillReps = previous?.reps ?: DEFAULT_ADD_REPS,
                 loadClass = session.loadClassOf(adding),
                 plated = session.isBarbell(adding),
+                saveState = setSave,
+                validationMessage = error,
+                onRetry = viewModel::retrySetSave,
+                onEditValues = { viewModel.releaseSetSave(cancel = false) },
             )
         }
+    }
+
+    // If a successful read proves the edited row/lift gone, its frozen operation
+    // still needs an explicit recovery path. Read failure itself cannot discard it.
+    if (setSave.pending && !state.isLoading && !state.failed &&
+        (session == null || (setSave.command?.editing == true && editing == null) ||
+            (setSave.command?.editing == false && addingExercise == null))) {
+        ConfirmActionDialog(
+            title = "Review saved set",
+            body = setSave.message ?: "Checking the saved set. Your submitted values are retained.",
+            confirmLabel = "Check save",
+            onConfirm = viewModel::retrySetSave,
+            confirmEnabled = !setSave.busy && setSave.phase != com.sinura.personaltrainer.ui.workout.WorkoutSavePhase.CONFLICT,
+            onDismiss = { viewModel.releaseSetSave(cancel = true) },
+        )
     }
 
     if (confirmDelete && session != null) {

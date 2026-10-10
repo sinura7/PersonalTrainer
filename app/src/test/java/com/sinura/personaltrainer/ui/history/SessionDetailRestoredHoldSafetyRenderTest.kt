@@ -56,6 +56,7 @@ import java.io.File
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -110,6 +111,8 @@ class SessionDetailRestoredHoldSafetyRenderTest {
     private val permittedInventories = mutableListOf<List<Any?>>()
     private val failSessionObservation = MutableStateFlow(false)
     private val sessionObservationCalls = AtomicInteger()
+    private val failSetCorrection = AtomicBoolean(false)
+    private val failSetInsertion = AtomicBoolean(false)
     private var lastSaveOutcome = "not-attempted"
     private var direction = LayoutDirection.Ltr
     private val artifactRunId = UUID.randomUUID().toString()
@@ -122,6 +125,16 @@ class SessionDetailRestoredHoldSafetyRenderTest {
             context = ApplicationProvider.getApplicationContext(),
             scheduler = dispatcher,
             workoutDaoDecorator = { real -> object : WorkoutDao by real {
+                override suspend fun insertSet(set: SetLogEntity) {
+                    if (failSetInsertion.get()) error("controlled saved-set insertion failure")
+                    real.insertSet(set)
+                }
+                override suspend fun updateSet(set: SetLogEntity) {
+                    if (set.id == SET_ID && failSetCorrection.get()) {
+                        error("controlled saved-set write failure")
+                    }
+                    real.updateSet(set)
+                }
                 override fun observeSession(id: String): Flow<SessionWithDetails?> {
                     if (id == SESSION_ID) sessionObservationCalls.incrementAndGet()
                     return combine(real.observeSession(id), failSessionObservation) { row, failed ->
@@ -216,6 +229,138 @@ class SessionDetailRestoredHoldSafetyRenderTest {
         verify(holdFixture(planned = false, originalReps = 8), Draft.CLEAR_EFFORT, SetLogRules.EFFORT_MISSING)
     @Test fun historicalPositiveRepsUnderHoldMetadataNudgeAndSaveOneHundredAndTwoExactly() =
         verify(holdFixture(planned = true, originalReps = 101), Draft.REP_NUDGE)
+
+    @Test fun failedCorrectionKeepsTheActualDraftForOneTapRetryWithoutChangingSavedWork() =
+        host.evidence("restored-detail-failed-save-retains-draft-retry") {
+            val model = openFixture(holdFixture(planned = true, originalReps = 8))
+            val before = checkNotNull(restoredInventory)
+            val original = rawOriginal(before)
+            val expected = applyDraft(original, Draft.EFFORT)
+            failSetCorrection.set(true)
+            completedAction(model) { host.touch(compose.onNode(hasText("Save") and hasAnyAncestor(actualDialog()))) }
+            assertEquals("a refused write changes no restored row or recovery inventory", before, inventory())
+            host.capture("failed-save-with-original-record-intact")
+            host.tag(SetEditTestTags.NAME, unmerged = true).assertExists()
+            val effort = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox)
+            compose.onNode(hasText(checkNotNull(expected.rpe).toString()) and effort and hasAnyAncestor(actualDialog())).assertIsOn()
+            failSetCorrection.set(false)
+            val wanted = expectedInventory(before, expected)
+            permittedInventories += wanted
+            completedAction(model) { host.touch(compose.onNode(hasText("Retry save") and hasAnyAncestor(actualDialog()))) }
+            compose.awaitThat("the retained draft saves exactly once", { inventory() }) { inventory() == wanted }
+            compose.onNodeWithTag(SetEditTestTags.NAME, useUnmergedTree = true).assertDoesNotExist()
+            assertEquals(wanted, inventory())
+            host.capture("retry-confirmed-exact-saved-correction")
+        }
+
+    @Test fun failedAdditionalSetRetainsTheActualDraftAndCancelChecksBeforeDiscardingIt() =
+        host.evidence("restored-detail-failed-add-retains-draft-edit-cancel") {
+            val model = openFixture(holdFixture(planned = true, originalReps = 8))
+            host.touch(host.tag(SetEditTestTags.CANCEL))
+            host.touch(host.tag(FilledLiftCardTags.addSet(HOLD_ID)))
+            authorAddDraft()
+            val before = checkNotNull(restoredInventory)
+            failSetInsertion.set(true)
+            completedAction(model) { host.touch(compose.onNode(hasText("Save") and hasAnyAncestor(actualDialog()))) }
+            assertEquals("a failed insertion changes none of eleven inventory parts", before, inventory())
+            host.readable(host.tag("set-edit-submitted-values"), "17.5 kg × 9 · RPE 9 · Warm-up")
+            addChip("9").assertIsOn()
+            addChip("Warm-up").assertIsOn()
+            host.readable(host.tag("set-edit-save-error"), checkNotNull(model.setSave.value.message))
+            host.capture("failed-add-submitted-values-and-recovery")
+            completedAction(model) { host.touch(compose.onNode(hasText("Edit values") and hasAnyAncestor(actualDialog()))) }
+            assertAddDraft("17.5", "9", effortSelected = true, warmupSelected = true)
+            assertEquals("Edit checks and releases only an unwritten command", before, inventory())
+            host.capture("released-add-draft-remains-editable")
+            host.touch(host.tag(SetEditTestTags.CANCEL))
+            compose.onNodeWithTag(SetEditTestTags.CONTENT).assertDoesNotExist()
+            host.touch(host.tag(FilledLiftCardTags.addSet(HOLD_ID)))
+            assertAddDraft("12.5", "8", effortSelected = false, warmupSelected = false)
+            host.touch(host.tag(SetEditTestTags.CANCEL))
+            assertEquals("explicit Cancel clears only the draft and no record", before, inventory())
+        }
+
+    @Test fun staleEditorSaveCannotOverwriteAChangedOriginal() =
+        host.evidence("restored-detail-stale-open-editor-conflict") {
+            val model = openFixture(holdFixture(planned = true, originalReps = 8))
+            val before = checkNotNull(restoredInventory)
+            val original = rawOriginal(before)
+            applyDraft(original, Draft.EFFORT)
+            val newer = original.copy(weightKg = 17.5, reps = 10, rpe = 10)
+            val wanted = expectedInventory(before, newer)
+            permittedInventories += wanted
+            runBlocking { deps.database.workoutDao().updateSet(newer) }
+            compose.awaitThat("actual Detail observes the intervening correction", { model.uiState.value }) {
+                model.uiState.value.session?.sets?.singleOrNull()?.weightKg == 17.5
+            }
+            host.capture("old-editor-draft-after-newer-record-arrived")
+            completedAction(model) { host.touch(compose.onNode(hasText("Save") and hasAnyAncestor(actualDialog()))) }
+            host.capture("stale-save-outcome-before-conflict-assertion")
+            assertEquals("the newer record must survive an older open editor's first Save", wanted, inventory())
+            assertEquals(com.sinura.personaltrainer.ui.workout.WorkoutSavePhase.CONFLICT, model.setSave.value.phase)
+            host.tag(SetEditTestTags.NAME, unmerged = true).assertExists()
+        }
+
+    @Test fun refusedUnchangedZeroWorkingWeightCannotBecomeAnAcknowledgedSaveOnRetryOrEdit() =
+        host.evidence("restored-detail-invalid-original-retry-edit") {
+            val model = openFixture(holdFixture(planned = false, originalWeight = 0.0))
+            val before = checkNotNull(restoredInventory)
+            val original = rawOriginal(before)
+            completedAction(model) { host.touch(compose.onNode(hasText("Save") and hasAnyAncestor(actualDialog()))) }
+            val frozen = checkNotNull(model.setSave.value.command)
+            assertEquals(SetLogRules.ZERO_WORKING_WEIGHT, model.setSave.value.message)
+            assertNull(model.setEditorExit.value)
+            completedAction(model) { host.touch(compose.onNode(hasText("Retry save") and hasAnyAncestor(actualDialog()))) }
+            assertEquals("Retry cannot bless the invalid original as a completed submission", frozen, model.setSave.value.command)
+            assertNull(model.setEditorExit.value)
+            assertEquals(SetLogRules.ZERO_WORKING_WEIGHT, model.setSave.value.message)
+            assertEquals("first Save and Retry change no inventory part", before, inventory())
+            host.capture("invalid-original-remains-refused-after-retry")
+            completedAction(model) { host.touch(compose.onNode(hasText("Edit values") and hasAnyAncestor(actualDialog()))) }
+            assertFalse(model.setSave.value.pending)
+            assertNull(model.setEditorExit.value)
+            host.tag("Type a weight").assertContentDescriptionEquals("Weight, no weight")
+            host.tag(TYPE_TIME).assertContentDescriptionEquals("Time 45 seconds")
+            val valid = applyDraft(original, Draft.WARMUP)
+            val wanted = expectedInventory(before, valid)
+            permittedInventories += wanted
+            completedAction(model) { host.touch(compose.onNode(hasText("Save") and hasAnyAncestor(actualDialog()))) }
+            assertEquals("an intentional valid correction changes only the requested warm-up field", wanted, inventory())
+            compose.onNodeWithTag(SetEditTestTags.CONTENT).assertDoesNotExist()
+            host.capture("corrected-valid-warmup-acknowledged")
+        }
+
+    @Test fun retainedCorrectionCanRetryAgainstRoomDuringADegradedDisplayRead() =
+        host.evidence("restored-detail-failed-write-and-degraded-read-retry") {
+            val model = openFixture(holdFixture(planned = true, originalReps = 8))
+            val before = checkNotNull(restoredInventory)
+            val wanted = expectedInventory(before, applyDraft(rawOriginal(before), Draft.EFFORT))
+            failSetCorrection.set(true)
+            completedAction(model) { host.touch(compose.onNode(hasText("Save") and hasAnyAncestor(actualDialog()))) }
+            val frozen = checkNotNull(model.setSave.value.command)
+            failSessionObservation.value = true
+            compose.awaitThat("required display read fails while the submitted correction remains owned", { model.uiState.value }) {
+                model.uiState.value.failed && !model.uiState.value.isLoading
+            }
+            assertEquals(before, inventory())
+            assertEquals(frozen, model.setSave.value.command)
+            host.readable(host.tag("set-edit-submitted-values"), "12.5 kg × 8 · 45s · RPE 9")
+            host.capture("frozen-correction-above-degraded-display-read")
+            failSetCorrection.set(false)
+            permittedInventories += wanted
+            completedAction(model) { host.touch(compose.onNode(hasText("Retry save") and hasAnyAncestor(actualDialog()))) }
+            assertEquals("authoritative inspection and write save the retained correction once", wanted, inventory())
+            compose.onNodeWithTag(SetEditTestTags.CONTENT).assertDoesNotExist()
+            assertTrue(model.uiState.value.failed)
+            failSessionObservation.value = false
+            host.touch(host.tag(SessionDetailTestTags.RETRY))
+            compose.awaitThat("display Retry reflects the acknowledged correction", { model.uiState.value }) {
+                !model.uiState.value.failed && !model.uiState.value.isLoading && model.uiState.value.session?.sets?.singleOrNull()?.rpe == 9
+            }
+            compose.onNodeWithTag(SetEditTestTags.CONTENT).assertDoesNotExist()
+            assertEquals(wanted, inventory())
+            host.capture("fresh-detail-after-acknowledged-correction")
+        }
 
     @Test fun removingAnAddTargetsActualGraphClosesAndClearsTheStaleSheet() =
         host.evidence("restored-detail-add-target-graph-disappears") {
@@ -363,13 +508,16 @@ class SessionDetailRestoredHoldSafetyRenderTest {
             if (refusal == null) permittedInventories += expectedInventory(before, desired)
             host.capture("actual-editor-before-save")
             completedAction(model) { host.touch(compose.onNode(hasText("Save") and hasAnyAncestor(actualDialog()))) }
-            compose.awaitThat("actual Save closes the original editor", { model.error.value }) {
-                compose.onAllNodes(hasTestTag(SetEditTestTags.CONTENT)).fetchSemanticsNodes().isEmpty()
-            }
+            if (refusal == null) {
+                compose.awaitThat("acknowledged Save closes the original editor", { model.setSave.value }) {
+                    compose.onAllNodes(hasTestTag(SetEditTestTags.CONTENT)).fetchSemanticsNodes().isEmpty()
+                }
+            } else host.tag(SetEditTestTags.NAME, unmerged = true).assertExists()
             val after = inventory()
             writeInventory("actual-post-save-before-safety-assertions", after)
             val stored = rawOriginal(after)
-            lastSaveOutcome = model.error.value?.let { "explicit-refusal: $it" } ?: "completed-without-refusal"
+            val saveError = model.setSave.value.message ?: model.error.value
+            lastSaveOutcome = saveError?.let { "explicit-refusal: $it" } ?: "completed-without-refusal"
             File(artifactDirectory, fixtureName + "-actual-save-outcome.txt").writeText(
                 "fixture=$fixtureName\ndraft=$draft\noutcome=$lastSaveOutcome\nrequested=$desired\nactual=$stored\n",
             )
@@ -379,8 +527,8 @@ class SessionDetailRestoredHoldSafetyRenderTest {
                 assertEquals("actual Save writes exactly the requested original row", desired, stored)
                 assertEquals("all eleven inventory parts match only the requested correction", expectedInventory(before, desired), after)
             } else {
-                assertEquals("the refusal names the unchanged rule", refusal, model.error.value)
-                host.readable(host.words(refusal), refusal)
+                assertEquals("the refusal names the unchanged rule", refusal, saveError)
+                host.readable(compose.onNode(hasText(refusal) and hasAnyAncestor(actualDialog())), refusal)
                 assertEquals("a refused correction changes no inventory part", before, after)
             }
             compose.awaitThat("actual Detail reflects the completed stored row", { model.uiState.value }) {
@@ -390,6 +538,9 @@ class SessionDetailRestoredHoldSafetyRenderTest {
                 } == true
             }
             assertSavedType(checkNotNull(model.uiState.value.session), stored)
+            // A refused Save deliberately keeps the editor above Detail. Explicitly
+            // Cancel only after proving the unchanged record and the visible refusal.
+            if (refusal != null) completedAction(model) { host.touch(host.tag(SetEditTestTags.CANCEL)) }
             val row = FilledLiftCardTags.setRow(SET_ID)
             host.readable(host.words(workWords(stored), row), workWords(stored))
             host.capture("preserved-row-after-truthful-outcome")
