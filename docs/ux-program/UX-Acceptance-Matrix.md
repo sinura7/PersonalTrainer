@@ -153,8 +153,8 @@ runtime inputs. The hosted native report passed **all 226 tests**, including
 both new MainActivity → Plan → editor/delete journeys at system font 2, on the
 same implementation tree. A separate push-job failure resolving JUnit from
 Google Maven with HTTP 502 remains failed and archived; it did not execute the
-unit suite. Review, clean-trunk gate and affected journey closure are recorded
-in [PR #475](https://github.com/sinura7/PersonalTrainer/pull/475). These automated
+unit suite. Review and integration status, including the clean-trunk gate and
+affected journeys, are tracked in [PR #475](https://github.com/sinura7/PersonalTrainer/pull/475). These automated
 results do not claim physical-phone or participant usability acceptance.
 
 ### UX12 — Make calendar dates and statuses distinguishable at small widths
