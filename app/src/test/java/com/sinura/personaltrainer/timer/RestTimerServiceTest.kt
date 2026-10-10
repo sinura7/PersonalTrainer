@@ -57,6 +57,92 @@ class RestTimerServiceTest {
     }
 
     @Test
+    fun anIdleExteriorRefreshStopsTheServiceAndRemovesItsRunningCard() {
+        val before = app.container.restTimerStore.current()
+        assertFalse(before.running)
+        val intent = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_EXTERIOR_SYNC)
+        val controller = Robolectric.buildService(RestTimerService::class.java, intent)
+        val service = controller.create().get()
+        try {
+            val restart = service.onStartCommand(intent, 0, 1)
+            shadowOf(Looper.getMainLooper()).idle()
+
+            assertEquals(before, app.container.restTimerStore.current())
+            assertEquals(android.app.Service.START_NOT_STICKY, restart)
+            assertTrue(shadowOf(service).isStoppedBySelf)
+            val manager = app.getSystemService(NotificationManager::class.java)
+            assertTrue(manager.activeNotifications.none { it.id == RestTimerNotifications.RUNNING_ID })
+            assertTrue(manager.activeNotifications.none { it.id == RestTimerNotifications.DONE_ID })
+        } finally {
+            controller.destroy()
+        }
+    }
+
+    @Test
+    fun anExteriorRefreshAfterCompletionKeepsTheRestDoneAndLeavesNoRunningService() {
+        val store = app.container.restTimerStore
+        store.start(30, "session-1", nowElapsedRealtime = SystemClock.elapsedRealtime())
+        val finished = store.current()
+        runBlocking {
+            assertTrue(RestTimerCompletion.completeOnce(
+                context = app,
+                incomingTimerId = finished.timerId,
+                expectedTimerId = finished.timerId,
+                deadlineElapsedRealtime = finished.endsAtElapsedRealtime,
+                sessionId = finished.sessionId,
+                nowElapsedRealtime = finished.endsAtElapsedRealtime + 1L,
+                playCue = false,
+            ))
+        }
+        shadowOf(Looper.getMainLooper()).idle()
+        val before = store.current()
+        val manager = app.getSystemService(NotificationManager::class.java)
+        val doneBefore = manager.activeNotifications.first { it.id == RestTimerNotifications.DONE_ID }
+        val intent = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_EXTERIOR_SYNC)
+        val controller = Robolectric.buildService(RestTimerService::class.java, intent)
+        val service = controller.create().get()
+        try {
+            val restart = service.onStartCommand(intent, 0, 1)
+            shadowOf(Looper.getMainLooper()).idle()
+
+            assertEquals(before, store.current())
+            assertEquals(android.app.Service.START_NOT_STICKY, restart)
+            assertTrue(shadowOf(service).isStoppedBySelf)
+            assertTrue(manager.activeNotifications.none { it.id == RestTimerNotifications.RUNNING_ID })
+            assertEquals(doneBefore.notification, manager.activeNotifications.single {
+                it.id == RestTimerNotifications.DONE_ID
+            }.notification)
+        } finally {
+            controller.destroy()
+        }
+    }
+
+    @Test
+    fun anExteriorRefreshKeepsTheCurrentRestIdentityAndDeadlineRunning() {
+        val store = app.container.restTimerStore
+        store.start(90, "session-1", nowElapsedRealtime = SystemClock.elapsedRealtime())
+        val before = store.current()
+        val intent = Intent(app, RestTimerService::class.java)
+            .setAction(RestTimerService.ACTION_EXTERIOR_SYNC)
+        val controller = Robolectric.buildService(RestTimerService::class.java, intent)
+        val service = controller.create().get()
+        try {
+            val restart = service.onStartCommand(intent, 0, 1)
+            shadowOf(Looper.getMainLooper()).idle()
+
+            assertEquals(before, store.current())
+            assertEquals(android.app.Service.START_STICKY, restart)
+            assertFalse(shadowOf(service).isStoppedBySelf)
+            val manager = app.getSystemService(NotificationManager::class.java)
+            assertNotNull(manager.activeNotifications.firstOrNull { it.id == RestTimerNotifications.RUNNING_ID })
+        } finally {
+            controller.destroy()
+        }
+    }
+
+    @Test
     fun alarmPathCompletionStopsTheServiceAndRemovesTheRunningCard() {
         val store = app.container.restTimerStore
         store.start(90, "session-1", nowElapsedRealtime = SystemClock.elapsedRealtime())

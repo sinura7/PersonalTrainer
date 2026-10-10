@@ -212,7 +212,12 @@ class RestTimerService : Service() {
                     RestTimerOverlayController.sync(this, snap)
                     RestLockScreenWidgetUpdater.updateAll(this, snap)
                 } else {
-                    RestTimerOverlayController.release()
+                    // A foreground/background transition can start this service while no
+                    // rest exists. The foreground claim above satisfies Android's start
+                    // contract; remove it and stop instead of keeping an idle 0:00 card
+                    // and a sticky process alive. Leave the store and any Done card alone.
+                    stopNow()
+                    return START_NOT_STICKY
                 }
             }
             else -> syncForeground()

@@ -1154,3 +1154,24 @@ Representative actual Compose renders from `full02`:
 Android captures and physical-phone evidence retain separate roles. The 852 dp
 floor ceiling, recording/timer contracts and distribution identity are unchanged.
 This closes bounded development evidence, not the whole roadmap or phone acceptance.
+
+#### Idle rest lifecycle follow-up — 10 October 2026
+
+The next bounded N2/UX23 packet follows compact Focus's merged `c7181554`.
+The earlier real-app N2 experiment rejected its no-foreground-service
+precondition: an `EXTERIOR_SYNC` refresh had claimed foreground with no running
+rest and retained the service. Fresh regression tests reproduce the defect:
+24 service cases executed, with the two idle/post-completion cases failing and
+the active-rest identity/deadline case passing. The original failed archive is
+retained under `build/ux-context/runs/idle-rest-lifecycle/targeted-red01/`.
+
+An exterior refresh with no running rest now removes the running foreground
+card and stops non-sticky after satisfying Android's foreground-start contract.
+It does not mutate timer state or dismiss completed-rest feedback. Running
+refresh behavior, timer generations/deadlines, alarm ownership and recorded
+work are unchanged. Verification must cover the full local gate, the connected
+workout and an actual native idle refresh, followed by independent/adversarial
+review and clean-trunk verification. This service repair alone does not close
+N2's under-400 ms note-clear/Recents/process-death acceptance, physical-phone
+experience or the inherited Why-title tooltip limitation. No distribution,
+schema, backup format or navigation change is part of this packet.
