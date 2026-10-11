@@ -79,7 +79,8 @@ The feature is retired with a verified recoverable bundle. Hosted feature, PR an
 integrated-trunk unit/build jobs and supplemental emulator smoke all passed.
 Original hosted and fixture failures remain preserved separately.
 
-The active Summary candidate implements the approved compact result line, full
+Summary is integrated through [PR #486](https://github.com/sinura7/PersonalTrainer/pull/486)
+as `7d9e2049`. It implements the approved compact result line, full
 title, flat illustrated ledger and plain notes. Existing measure/formatting rules,
 mixed bodyweight reps, personal records, reduced motion, truthful read outcomes,
 retained correction and pinned exits remain intact. Holds retain recorded time
@@ -98,16 +99,51 @@ and matching diagnostics are archived with hashes: the fourteen display profiles
 and four controlled measure/unit branches. [The actual native Summary preview](studies/q01/assets/summary-flat-receipt-2026-10-11.png)
 is an unchanged capture with synthetic saved Room data. It shows the compact
 results, complete title, matching illustrations, flat ledger and pinned exits.
-Final review and integration use the pinned packet receipts. Original failure
-evidence remains preserved.
+Both final pinned reviews passed. The integrated complete gate proved unchanged
+inputs and reused the exact executed app/standalone evidence. Connected workout,
+saved Summary correction and the controlled measure/unit case then passed **four
+fresh cases / three suites**, with no failures, errors or skips. The feature is
+retired with a verified recoverable bundle. Hosted feature, PR and integrated-trunk
+unit/build jobs and supplemental emulator smoke all passed. The original pending
+closure and final hosted receipt are preserved separately.
+
+The active History packet carries the compact labeled result line into the
+selected period and replaces enclosing session, record and block panels with a
+flat ledger. Lifetime controls retain their full labels and wrap. Session rows
+keep matching illustrations, exact destinations and Repeat; cardio omits empty
+strength measures while retaining active time. The native preview showed the
+period selector still used two rows at normal phone text size, so it now uses five
+flat radio targets and a structural selected underline. It keeps one row at normal
+text and wraps at larger sizes. Previous, Next and Current remain quiet actions.
+The one-period scope, immutable read projection, reader recovery and calculation
+rules remain intact. The first focused command failed on an invalid test import;
+the second failed the existing mixed-argument skip ceiling. Removing the import
+and naming new metric/layout arguments repaired those causes without weakening
+checks or assertions. The skip ceiling is tightened from 181 to 180. Seven fresh
+layout/identity/read-health cases passed before the selector refinement; four
+fresh selector/measure cases then passed, including native 360/412 dp and narrow
+font-2 rendering. Both original failures remain preserved. The complete `full01`
+gate at `e8188756` passed **4,286 fresh app tests / 592 suites and 1,707 fresh
+standalone tests / 256 classes**, all four required Windows tasks and dependent
+release assembly, with no failures, errors or skips. All 1,572 runtime/test/tool
+inputs and refs stayed unchanged. Ninety-nine fresh native frames and matching
+diagnostics are archived with hashes: fourteen display profiles, period/calendar
+and lifetime views, held/failed/recovered progress and mounted-reader recovery.
+[The actual native History period preview](studies/q01/assets/history-flat-ledger-2026-10-11.png)
+shows the flat selected-range facts and quiet controls.
+[The actual native session ledger](studies/q01/assets/history-illustrated-ledger-2026-10-11.png)
+shows complete names, separate options and actual measures; this fixture uses
+custom synthetic exercises with family fallback illustrations, rather than
+catalog-specific exercise pictures. Existing ID-bound thumbnail routing remains
+unchanged. Final pinned reviews and integration remain pending.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
 **Visual direction clarification, 11 October 2026 UTC:** The owner questioned
 why recent images still resemble the earlier layout. Compact Focus is the
 prior implemented workout composition. Home is now flat and illustrated; the new
-workout rows are implemented and verified. Summary's flat receipt is the current
-candidate; History retains its older enclosing panels. The whole-app visual
+workout rows and Summary's flat receipt are implemented and integrated. History's
+flat ledger is the current candidate. The whole-app visual
 redesign is unfinished. The connected native composition follows the
 [new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
 agenda, two flat editable workout rows, reachable saved-work actions and an

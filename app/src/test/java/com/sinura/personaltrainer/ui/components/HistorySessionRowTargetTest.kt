@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
 import androidx.compose.ui.unit.dp
@@ -84,8 +85,13 @@ class HistorySessionRowTargetTest {
             val spoken = node.config[SemanticsProperties.ContentDescription].single()
             assertTrue(spoken.startsWith("Run, 2 January 2026,"))
             assertTrue(spoken.endsWith("1 h 20 min"))
+            assertTrue("cardio speech omits unrelated empty strength measures", !spoken.contains("sets") && !spoken.contains("reps") && !spoken.contains("kg"))
             action.performTouchInput { click(center) }
         }
+        compose.onNodeWithText("sets").assertDoesNotExist()
+        compose.onNodeWithText("reps").assertDoesNotExist()
+        compose.onNodeWithText("kg").assertDoesNotExist()
+        compose.onNodeWithText("1 h 20 min").assertIsDisplayed()
         assertEquals(listOf("activity:original-id", "activity:original-id"), opened)
     }
 }

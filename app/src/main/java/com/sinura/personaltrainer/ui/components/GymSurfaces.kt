@@ -491,7 +491,17 @@ fun SessionLogRow(
     durationLabel: String? = null,
 ) {
     var menuOpen by rememberSaveable(title, dateLabel) { mutableStateOf(false) }
-    val spoken = sessionRowSpoken(title, dateLabel, workingSets, work, durationMinutes, unit, durationLabel)
+    val hasWorkMeasures = work.volumeKg > 0.0 || work.bodyweightReps > 0
+    val spoken = if (reflowContent) buildList {
+        add(title)
+        add(dateLabel)
+        if (workingSets > 0) add("$workingSets sets")
+        if (hasWorkMeasures) {
+            val column = SetCopy.workColumn(work, unit)
+            add("${column.value} ${column.label}")
+        }
+        add(durationLabel ?: "$durationMinutes min")
+    }.joinToString(", ") else sessionRowSpoken(title, dateLabel, workingSets, work, durationMinutes, unit, durationLabel)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -502,9 +512,9 @@ fun SessionLogRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    start = Metrics.space4,
+                    start = if (reflowContent) 0.dp else Metrics.space4,
                     top = Metrics.space3,
-                    end = if (onRepeat != null) Metrics.space2 else Metrics.space4,
+                    end = if (onRepeat != null) Metrics.space2 else if (reflowContent) 0.dp else Metrics.space4,
                 ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
@@ -576,14 +586,14 @@ fun SessionLogRow(
                     .fillMaxWidth()
                     .heightIn(min = Metrics.touchMin)
                     .clickable(role = Role.Button, onClick = onClick)
-                    .padding(horizontal = Metrics.space4, vertical = Metrics.space3)
+                    .padding(vertical = Metrics.space2)
                     .testTag(SessionLogTags.METRICS)
                     .semantics(mergeDescendants = true) { contentDescription = spoken },
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space5),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                SessionRowMetric(workingSets.toString(), "sets")
-                SessionRowMetric(column.value, column.label)
+                if (workingSets > 0) SessionRowMetric(workingSets.toString(), "sets")
+                if (hasWorkMeasures) SessionRowMetric(column.value, column.label)
                 SessionRowMetric(durationLabel ?: "$durationMinutes min", "active time")
             }
         } else Row(

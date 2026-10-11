@@ -65,6 +65,7 @@ Physical checks remain explicit outstanding acceptance until actually performed.
 - Does Next exercise automatically advance after logging? No; it requires a tap.
 - Can History display all sessions beneath Month-selected totals? No.
 - Can a generated test APK overwrite the owner's Obtainium app? No.
+- Does this authorize parallel implementation packets? No.
 
 ## Amendment — 11 October 2026, compact finish receipt
 
@@ -88,4 +89,27 @@ refresh and exit navigation keep their existing rules. This is a presentation
 change, with no calculation, write, schema, backup or public API change. Native
 readability, unit/measure branches and the saved correction journey must pass;
 browser concepts do not establish native or physical-phone acceptance.
-- Does this authorize parallel implementation packets? No.
+
+## Amendment — 11 October 2026, compact History ledger
+
+Carry the approved flat composition into History. The selected period has a
+complete range title and wrapping, labeled session, day, set, active-time and
+available record totals. Loading or failed progress does not display a successful
+zero record count. Period choices use a flat radio group with a structural selected
+underline: one line at normal phone text size, wrapping at larger sizes. Previous,
+Next and Current remain quiet, reachable actions. Clearly labeled lifetime records and completed blocks use
+quiet controls that wrap while preserving their full labels and touch targets.
+
+Sessions, lifetime records and completed blocks use a flat ledger. Session rows
+retain matching keyed exercise illustrations, complete names, captured dates,
+exact kind/ID destinations and the separate Repeat action. Show session set/work
+measures when present and retain actual active time; cardio does not acquire empty
+strength measures, and holds do not acquire an invented weight or duration total.
+The default Home row composition remains intact.
+
+The selected period still governs totals, calendar, progress and chronology.
+Immutable read projection, lifetime-reader ownership, loading/failure/Retry,
+calendar restoration, units and existing calculation rules remain unchanged.
+Verify rendered measures and reachable actions across the native display matrix
+and preserve the saved-work journey. This changes presentation without changing
+writes, schema, backup format, public API or physical-phone acceptance.

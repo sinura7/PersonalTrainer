@@ -12,11 +12,13 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -29,9 +31,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -57,11 +60,8 @@ import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.HairlineDivider
-import com.sinura.personaltrainer.ui.components.InstrumentChoiceChip
-import com.sinura.personaltrainer.ui.components.InstrumentChoiceGroup
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.QuietButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
@@ -69,14 +69,15 @@ import com.sinura.personaltrainer.ui.components.SessionLogRow
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.rememberWeekStripState
 import com.sinura.personaltrainer.ui.theme.InstrumentType
+import com.sinura.personaltrainer.ui.theme.Hairline
+import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
-import com.sinura.personaltrainer.ui.theme.Radius
-import com.sinura.personaltrainer.ui.theme.Surface1
 import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.ui.theme.Volt
 import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.units.LocalClockFormat
@@ -166,20 +167,26 @@ fun HistoryScreen(
                             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
                         ) {
                             if (state.horizon != AnalyticsHorizon.ALL_TIME) {
-                                QuietButton(text = "Previous", onClick = viewModel::showPreviousPeriod,
+                                QuietButton(text = "Previous", onClick = viewModel::showPreviousPeriod, plain = true,
                                     modifier = Modifier.testTag(HistoryTags.PREVIOUS))
-                                QuietButton(text = "Next", onClick = viewModel::showNextPeriod, enabled = state.canGoNext,
+                                QuietButton(text = "Next", onClick = viewModel::showNextPeriod, enabled = state.canGoNext, plain = true,
                                     modifier = Modifier.testTag(HistoryTags.NEXT))
                             }
-                            QuietButton(text = "Current", onClick = viewModel::showCurrentPeriod,
+                            QuietButton(text = "Current", onClick = viewModel::showCurrentPeriod, plain = true,
                                 modifier = Modifier.testTag(HistoryTags.CURRENT))
                         }
                     }
                     item(key = "lifetime-actions") {
-                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-                            SecondaryGymButton(text = HistoryCopy.LIFETIME_RECORDS, onClick = { secondary = RECORDS },
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                        ) {
+                            QuietButton(text = HistoryCopy.LIFETIME_RECORDS, onClick = { secondary = RECORDS },
+                                plain = true, maxLines = Int.MAX_VALUE,
                                 modifier = Modifier.testTag(HistoryTags.LIFETIME_RECORDS))
-                            SecondaryGymButton(text = HistoryCopy.LIFETIME_BLOCKS, onClick = { secondary = BLOCKS },
+                            QuietButton(text = HistoryCopy.LIFETIME_BLOCKS, onClick = { secondary = BLOCKS },
+                                plain = true, maxLines = Int.MAX_VALUE,
                                 modifier = Modifier.testTag(HistoryTags.LIFETIME_BLOCKS))
                         }
                     }
@@ -237,10 +244,9 @@ fun HistoryScreen(
                         itemsIndexed(group.entries, key = { _, entry -> "${entry.kind}:${entry.id}" }) { index, entry ->
                             Column(
                                 modifier = instrumentAnimateItem()
-                                    .testTag(HistoryTags.row(entry.kind, entry.id))
-                                    .clip(groupedRowShape(index, group.entries.size)).background(Surface1),
+                                    .testTag(HistoryTags.row(entry.kind, entry.id)),
                             ) {
-                                if (index > 0) HairlineDivider()
+                                if (index > 0) HairlineDivider(startIndent = 0.dp)
                                 SessionLogRow(
                                     title = entry.title, dateLabel = DateCopy.civilDate(entry.localEpochDay),
                                     workingSets = entry.workingSets, work = entry.work,
@@ -327,10 +333,13 @@ internal fun HorizonPicker(
     onRetry: () -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Metrics.space3)) {
-        InstrumentChoiceGroup {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+        ) {
             AnalyticsHorizon.entries.forEach { entry ->
-                InstrumentChoiceChip(label = entry.label, selected = horizon == entry, onClick = { onSelect(entry) },
-                    modifier = Modifier.testTag(HistoryTags.horizon(entry)))
+                HistoryPeriodChoice(entry = entry, selected = horizon == entry, onSelect = { onSelect(entry) })
             }
         }
         Text(HistoryCopy.HORIZON_CAPTION, style = InstrumentType.caption, color = TextTertiary)
@@ -346,19 +355,29 @@ internal fun HorizonPicker(
                 if (progressFailed) add(HistoryCopy.PROGRESS_FAILED)
                 else if (progressLoading || progress == null) add(HistoryCopy.PROGRESS_LOADING)
             }.joinToString(", ")
-            GymCard(modifier = Modifier.fillMaxWidth().testTag(HistoryTags.READOUT)
-                .semantics { contentDescription = spoken }) {
+            Column(
+                modifier = Modifier.fillMaxWidth().testTag(HistoryTags.READOUT)
+                    .semantics { contentDescription = spoken },
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
                 Text(title, style = InstrumentType.title, color = TextPrimary,
                     modifier = Modifier.testTag(HistoryTags.RANGE_TITLE).semantics { heading() })
-                Text(numbers.sessionCount.toString(), style = InstrumentType.numeralLg, color = TextPrimary)
-                Text(HistoryCopy.sessionsLabel(numbers.sessionCount), style = InstrumentType.caption, color = TextSecondary)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                    HistoryMetric(numbers.trainedDays.toString(), "days")
-                    HistoryMetric(numbers.workingSets.toString(), "sets")
-                    HistoryMetric(HistoryCopy.activeDuration(numbers.activeMinutes), "active time")
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().testTag(HistoryTags.FACTS),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+                ) {
+                    HistoryMetric(value = numbers.sessionCount.toString(), label = HistoryCopy.sessionsLabel(numbers.sessionCount),
+                        modifier = Modifier.testTag(HistoryTags.SESSION_COUNT), prominent = true)
+                    HistoryMetric(value = numbers.trainedDays.toString(), label = "days",
+                        modifier = Modifier.testTag(HistoryTags.TRAINED_DAYS), prominent = true)
+                    HistoryMetric(value = numbers.workingSets.toString(), label = "sets",
+                        modifier = Modifier.testTag(HistoryTags.WORKING_SETS), prominent = true)
+                    HistoryMetric(value = HistoryCopy.activeDuration(numbers.activeMinutes), label = "active time",
+                        modifier = Modifier.testTag(HistoryTags.ACTIVE_TIME), prominent = true)
                     if (!progressLoading && !progressFailed && progress != null)
-                        HistoryMetric(progress.recordsBroken.toString(), "PRs")
+                        HistoryMetric(value = progress.recordsBroken.toString(), label = "PRs",
+                            modifier = Modifier.testTag(HistoryTags.RECORD_COUNT), prominent = true)
                 }
                 when {
                     progressFailed -> Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
@@ -385,9 +404,40 @@ internal fun HorizonPicker(
 }
 
 @Composable
-private fun HistoryMetric(value: String, label: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        Text(value, style = InstrumentType.numeralSm, color = TextSecondary)
+private fun HistoryPeriodChoice(entry: AnalyticsHorizon, selected: Boolean, onSelect: () -> Unit) {
+    val view = LocalView.current
+    Box(
+        modifier = Modifier
+            .widthIn(min = Metrics.touchMin)
+            .heightIn(min = Metrics.touchMin)
+            .drawBehind {
+                val stroke = if (selected) Metrics.emphasisBorder.toPx() else Metrics.hairline.toPx()
+                val y = size.height - stroke / 2
+                drawLine(
+                    color = if (selected) Volt else Hairline,
+                    start = Offset(x = Metrics.space2.toPx(), y = y),
+                    end = Offset(x = size.width - Metrics.space2.toPx(), y = y),
+                    strokeWidth = stroke,
+                )
+            }
+            .selectable(selected = selected, role = Role.RadioButton, onClick = {
+                Haptics.tickLight(view)
+                onSelect()
+            })
+            .testTag(HistoryTags.horizon(entry))
+            .padding(horizontal = Metrics.space2),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = entry.label, style = InstrumentType.bodyStrong,
+            color = if (selected) TextPrimary else TextSecondary)
+    }
+}
+
+@Composable
+private fun HistoryMetric(value: String, label: String, modifier: Modifier = Modifier, prominent: Boolean = false) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+        Text(value, style = if (prominent) InstrumentType.numeralMd else InstrumentType.numeralSm,
+            color = if (prominent) TextPrimary else TextSecondary)
         Text(label, style = InstrumentType.caption, color = TextTertiary)
     }
 }
@@ -443,7 +493,8 @@ private fun HistoryLifetimeSheet(
 private fun FinishedBlockCard(finished: FinishedBlock, unit: WeightUnit) {
     val review = finished.review
     val span = "${DateCopy.civilDate(finished.block.startEpochDay)} – ${DateCopy.civilDate(finished.block.endExclusiveEpochDay - 1)}"
-    GymCard {
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        HairlineDivider(startIndent = 0.dp)
         Text("${review.weeks} weeks · $span", style = InstrumentType.title, color = TextPrimary)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
             verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
@@ -471,8 +522,7 @@ private fun RecordRow(record: PrSummaryRow, unit: WeightUnit, onClick: () -> Uni
     val clock = LocalClockFormat.current
     Column(
         Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin)
-            .clip(RoundedCornerShape(Radius.sm)).background(Surface1)
-            .clickable(role = Role.Button, onClick = onClick).padding(Metrics.space4),
+            .clickable(role = Role.Button, onClick = onClick).padding(vertical = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Text(record.exerciseName, style = InstrumentType.bodyStrong, color = TextPrimary)
@@ -484,13 +534,6 @@ private fun RecordRow(record: PrSummaryRow, unit: WeightUnit, onClick: () -> Uni
             HistoryMetric(record.reps.toString(), "reps")
         }
     }
-}
-
-private fun groupedRowShape(index: Int, count: Int): Shape = when {
-    count == 1 -> RoundedCornerShape(Radius.sm)
-    index == 0 -> RoundedCornerShape(topStart = Radius.sm, topEnd = Radius.sm)
-    index == count - 1 -> RoundedCornerShape(bottomStart = Radius.sm, bottomEnd = Radius.sm)
-    else -> RectangleShape
 }
 
 private const val RECORDS = "records"
@@ -506,6 +549,12 @@ object HistoryTags {
     const val ALL = "history-horizon-all"
     const val READOUT = "history-horizon-readout"
     const val RANGE_TITLE = "history-period-range"
+    const val FACTS = "history-recorded-facts"
+    const val SESSION_COUNT = "history-recorded-session-count"
+    const val TRAINED_DAYS = "history-recorded-days"
+    const val WORKING_SETS = "history-recorded-sets"
+    const val ACTIVE_TIME = "history-recorded-active-time"
+    const val RECORD_COUNT = "history-recorded-prs"
     const val MOVED_MOST = "history-moved-most"
     const val EMPTY = "history-empty-log"
     const val START_SHEET = "history-start-sheet"
