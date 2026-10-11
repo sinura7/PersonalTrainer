@@ -55,7 +55,9 @@ tests / five suites**, with no failures, errors or skips. The retired feature is
 recoverable from its verified bundle. Hosted feature, PR and integrated-trunk
 unit/build jobs and supplemental emulator smoke all passed.
 
-The active History repair captures one immutable emission for deferred list content,
+History's lifetime projection repair is integrated through
+[PR #485](https://github.com/sinura7/PersonalTrainer/pull/485) as `6d683865`.
+It captures one immutable emission for deferred list content,
 units and read-health flags while retaining the mounted lifetime sheet and calendar.
 The existing records journey now verifies rendered loading, recovered **120 kg**, and
 required-read failure against explicit replacement owners. A new completed-block
@@ -69,16 +71,34 @@ required Windows tasks and dependent release assembly, with no failures, errors
 or skips. All 1,572 runtime/test/tool inputs and refs stayed unchanged. Eleven
 native loading/failure/recovery frames and their diagnostics are archived with
 hashes. They exercise mounted reader replacement in Compose with synthetic Room
-data, rather than Android process death. Both source reviews are clear; final
-pinned reviews and integration remain pending. Summary composition follows.
+data, rather than Android process death. Both final pinned reviews passed. The
+integrated complete gate proved unchanged inputs and reused the exact executed
+app/standalone evidence. Both lifetime readers and the connected workout then
+passed **three fresh cases / two suites**, with no failures, errors or skips.
+The feature is retired with a verified recoverable bundle; hosted checks remain
+pending. Original hosted and fixture failures remain preserved separately.
+
+The active Summary candidate implements the approved compact result line, full
+title, flat illustrated ledger and plain notes. Existing measure/formatting rules,
+mixed bodyweight reps, personal records, reduced motion, truthful read outcomes,
+retained correction and pinned exits remain intact. Holds retain recorded time
+without an empty weight metric. Its first focused command failed test compilation:
+the new fixture supplied catalog seeds where domain exercises were required.
+Mapping the canonical seed fields repaired setup without changing app code,
+assertions or bounds. The focused rerun passed **four fresh tests / two suites**,
+including actual saved Summary, correction and domain-built font-2 measure/unit
+branches; those controlled branches are presentation evidence. The existing
+14-profile native matrix now checks visible result values and labels. The full
+gate and final native/review acceptance remain pending.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
 **Visual direction clarification, 11 October 2026 UTC:** The owner questioned
 why recent images still resemble the earlier layout. Compact Focus is the
 prior implemented workout composition. Home is now flat and illustrated; the new
-workout rows are now implemented and verified, while Summary and History retain older enclosing
-panels. The whole-app visual redesign is unfinished. The connected native composition follows the
+workout rows are implemented and verified. Summary's flat receipt is the current
+candidate; History retains its older enclosing panels. The whole-app visual
+redesign is unfinished. The connected native composition follows the
 [new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
 agenda, two flat editable workout rows, reachable saved-work actions and an
 illustrated Summary ledger. [The overview](studies/q01/assets/temper-flow-concept-2026-10-11.jpg)
