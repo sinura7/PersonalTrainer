@@ -52,8 +52,8 @@ remain separate evidence. The integrated complete gate proved unchanged inputs a
 reused the exact executed app/standalone evidence. The affected connected workout,
 entry controls, haptic ownership and Summary correction then passed **44 fresh
 tests / five suites**, with no failures, errors or skips. The retired feature is
-recoverable from its verified bundle. Hosted PR emulator smoke passed; its full
-unit job is still pending.
+recoverable from its verified bundle. Hosted feature, PR and integrated-trunk
+unit/build jobs and supplemental emulator smoke all passed.
 
 The active History repair captures one immutable emission for deferred list content,
 units and read-health flags while retaining the mounted lifetime sheet and calendar.
@@ -63,7 +63,14 @@ journey verifies loading, exact review metrics, recovery and unchanged saved inv
 The first focused run passed 43 of 44 cases; the new block fixture waited before
 draining its replacement-owner layout. Adding the existing layout drain repaired
 that fixture, and the focused rerun passed its one case. Original failed evidence
-is retained. The complete gate and final reviews remain pending; Summary composition follows.
+is retained. The complete `full01` gate at `d3df8793` passed **4,285 fresh app
+tests / 592 suites and 1,707 fresh standalone tests / 256 classes**, all four
+required Windows tasks and dependent release assembly, with no failures, errors
+or skips. All 1,572 runtime/test/tool inputs and refs stayed unchanged. Eleven
+native loading/failure/recovery frames and their diagnostics are archived with
+hashes. They exercise mounted reader replacement in Compose with synthetic Room
+data, rather than Android process death. Both source reviews are clear; final
+pinned reviews and integration remain pending. Summary composition follows.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
