@@ -1,13 +1,28 @@
 # Temper UX acceptance matrix — updated 7 September 2026
 
-**Current packet update, 9 October 2026 UTC:** Summary/detail's bounded
+**Current development, 11 October 2026 UTC:** Shared lift selection is integrated
+through [PR #480](https://github.com/sinura7/PersonalTrainer/pull/480). The active
+single packet is corrected Summary receipts and exact exercise History readouts,
+`f1156f4b` on `codex/summary-history-clarity` (UX05/UX16/UX29). Its complete gate
+and final runtime reviews are pending. The first complete attempt ran 4,216 fresh
+app tests and 1,707 standalone tests successfully, then failed the chart-sheet
+window-sizing lint check. That source cause is fixed; the original failed receipt
+is retained. The next bounded packet is Home start-date
+clarity and keeping the start surface visible until its outcome. Existing Home
+read recovery, week geometry, History periods and Plan/routine packets are retained.
+Earlier dated snapshots below keep their original evidence boundaries; a stale
+pending row does not authorize rebuilding an integrated change. Wider app work
+and physical-phone acceptance remain open. No new Debug drop is published.
+
+
+**Historical packet update, 9 October 2026 UTC:** Summary/detail's bounded
 F9/W11/V12/Q08/UX23/UX29 work integrated through [PR #467](https://github.com/sinura7/PersonalTrainer/pull/467)
 as `755a2df9`, with the exact reviewed tree, final independent integration review
 and fresh actual-trunk local (**3,990 app / 1,694 standalone**) and native
 (**222 tests / 32 classes**) gates. A first hosted trunk attempt hit the aggregate
 30-minute limit and remains failed; one complete unchanged retry passed. Earlier
-dated pending statements below retain their original evidence scope. The active
-single packet is the named **Set Edit sheet identity and numeric controls**
+dated pending statements below retain their original evidence scope. At that snapshot, the active
+single packet was the named **Set Edit sheet identity and numeric controls**
 refinement. It does not close pure-hold Summary representation, Summary's retained
 return policy, the wider UX roadmap or physical-phone acceptance.
 
