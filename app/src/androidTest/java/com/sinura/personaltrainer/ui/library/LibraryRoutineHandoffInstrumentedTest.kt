@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.library
 
 import android.content.Intent
+import android.view.KeyEvent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
@@ -16,9 +17,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
-import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.MainActivity
 import com.sinura.personaltrainer.PersonalTrainerApp
@@ -93,7 +94,7 @@ class LibraryRoutineHandoffInstrumentedTest {
         searchField().performImeAction()
         openSelectedLift()
         awaitTag(AddToRoutineTags.CREATE)
-        Espresso.pressBack()
+        InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
         awaitTag(LibraryTags.SEARCH)
         assertTrue(read { container.routineRepository.observeAll().first().isEmpty() })
 
