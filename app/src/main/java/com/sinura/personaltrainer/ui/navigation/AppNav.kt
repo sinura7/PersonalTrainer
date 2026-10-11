@@ -131,8 +131,15 @@ sealed class Route(val path: String) {
     data object Home : Route("home")
     data object Routines : Route("routines")
     data object History : Route("history")
-    data object RoutineEditor : Route("routine/{routineId}") {
-        fun create(routineId: String): String = "routine/$routineId"
+    data object RoutineEditor : Route("routine/{routineId}?initialExerciseId={initialExerciseId}") {
+        fun create(routineId: String, initialExerciseId: String? = null): String {
+            val route = "routine/${Uri.encode(routineId)}"
+            return if (routineId == "new" && initialExerciseId != null) {
+                "$route?initialExerciseId=${Uri.encode(initialExerciseId)}"
+            } else {
+                route
+            }
+        }
     }
     data object ActiveWorkout : Route("session/{sessionId}") {
         fun create(sessionId: String): String = "session/$sessionId"
@@ -608,7 +615,11 @@ fun PersonalTrainerNav(
                 ) { entry ->
                     ExerciseLibraryScreen(
                         onBack = { navController.popBackStack() },
-                        onCreateRoutine = { navController.navigate(Route.RoutineEditor.create("new")) },
+                        onCreateRoutine = { exerciseId ->
+                            navController.navigate(Route.RoutineEditor.create("new", exerciseId)) {
+                                launchSingleTop = true
+                            }
+                        },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         initialMuscle = Route.Library.parseMuscle(entry.arguments?.getString("muscle")),
                     )
@@ -684,7 +695,14 @@ fun PersonalTrainerNav(
                 }
                 composable(
                     route = Route.RoutineEditor.path,
-                    arguments = listOf(navArgument("routineId") { type = NavType.StringType }),
+                    arguments = listOf(
+                        navArgument("routineId") { type = NavType.StringType },
+                        navArgument("initialExerciseId") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                    ),
                 ) {
                     RoutineEditorScreen(onBack = { navController.popBackStack() })
                 }

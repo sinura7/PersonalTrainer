@@ -507,7 +507,7 @@
         "UX07"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Proposed; no implementation or Android runtime validation performed",
+      "status": "Implemented; selected exercise is carried into the new editor. Focused Room/ViewModel and small-screen recovery checks executed; complete gate, review and connected AppNav evidence belongs to the implementation packet. Physical-phone acceptance unobserved.",
       "fixtures": [
         "F01",
         "F06"

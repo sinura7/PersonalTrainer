@@ -15,6 +15,13 @@ object RoutineSaveCopy {
     const val SWAP_SCOPE =
         "Routine swap for future workouts. Same movement; sets, reps, rest and position stay."
 
+    const val PREPARE_FAILED_TITLE = "Could not prepare your routine"
+    const val PREPARE_FAILED_BODY =
+        "Retry keeps the lift you selected and checks any saved changes."
+    const val SELECTED_LIFT_MISSING_TITLE = "Lift no longer available"
+    const val SELECTED_LIFT_MISSING_BODY = "Return to Library to choose another lift."
+    const val BACK_TO_LIBRARY = "Back to Library"
+
     /** The one quiet line beside the dock that explains the write-through model. */
     const val WRITE_THROUGH =
         "Lift changes save as you make them. Save keeps the name, notes and targets."

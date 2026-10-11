@@ -107,9 +107,9 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
-| UX09-AC01 | P1 | F01, F06 | From an empty routine catalogue, choose a lift → Create routine → save: exactly one routine contains that lift, without another search. | Not executed |
-| UX09-AC02 | P1 | F01, F06 | Cancel returns to the original context and leaves no empty stub. | Not executed |
-| UX09-AC03 | P1 | F01, F06 | Rotation/process recreation retains the pending exercise ID according to the draft contract. | Not executed |
+| UX09-AC01 | P1 | F01, F06 | From an empty routine catalogue, choose a lift → Create routine → save: exactly one routine contains that lift, without another search. | Implemented; selected-lift creation/Save, exact Retry and committed-write dedup passed in `RoutineEditorViewModelTest`. Actual AppNav journey is in `LibraryRoutineHandoffInstrumentedTest`; execution belongs to the packet evidence. Phone acceptance unobserved. |
+| UX09-AC02 | P1 | F01, F06 | Dismissing selection creates nothing. Editor Back keeps written lifts and removes a new empty stub, returning to the original Library context. | Existing write-through contract retained. Missing selection, failed-add Back cleanup and Back during a held write passed in `RoutineEditorViewModelTest`; native journey covers sheet dismissal and return to the same search. |
+| UX09-AC03 | P1 | F01, F06 | Rotation/process recreation retains the pending exercise ID according to the draft contract. | Restored SavedStateHandle intent, existing-row dedup and deliberate lift removal passed in `RoutineEditorViewModelTest`. Native Activity recreation is written; it is distinct from actual process death. No new durable pending-write receipt is claimed. |
 
 ### UX10 — Reduce accidental custom-exercise creation and keep picker errors visible
 
