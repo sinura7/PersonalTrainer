@@ -11,10 +11,12 @@ import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.sinura.personaltrainer.AppContainer
@@ -88,9 +90,10 @@ class LibraryRoutineHandoffInstrumentedTest {
         tap(PlanTags.LIBRARY)
         awaitTag(LibraryTags.SEARCH)
         searchField().performTextReplacement(exercise.name)
+        searchField().performImeAction()
         openSelectedLift()
         awaitTag(AddToRoutineTags.CREATE)
-        scenario.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        Espresso.pressBack()
         awaitTag(LibraryTags.SEARCH)
         assertTrue(read { container.routineRepository.observeAll().first().isEmpty() })
 
