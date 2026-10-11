@@ -32,19 +32,30 @@ with a verified recoverable bundle. Hosted emulator checks passed. Hosted unit
 failures in synthetic Summary catalog acquisition and History lifetime-owner
 replacement remain separately diagnosed; they are not presented as passes.
 
-The active Workout packet implements two flat labeled entry rows and equal flat
+The Workout candidate implements two flat labeled entry rows and equal flat
 effort targets. Direct typing, step/hold behavior, effort selection, saved correction,
 readiness and the 72 dp primary retain their existing contracts. Five focused
 interaction checks accompany the change. The Summary fixture now explicitly prepares
-its synthetic catalog inside the existing bounded setup. Native rendering, full
-verification and final reviews of this packet remain pending; Summary composition follows.
+its synthetic catalog inside the existing bounded setup. The complete `full02` gate
+at `e494c162` passed **4,284 fresh app tests / 592 suites and 1,707 fresh standalone
+tests / 256 classes**, all four required Windows tasks and release assembly, with
+no failures, errors or skips. All 1,572 runtime/test/tool inputs and refs stayed
+unchanged. [The actual native Workout preview](studies/q01/assets/workout-flat-entry-2026-10-11.png)
+is an unchanged capture of the candidate with synthetic Room data. Its 212 hashed
+frames cover 13 display profiles, saved next drafts and held/failed/retried writes.
+The prior full gate failed an existing haptic ownership check: the final clickable
+effort component now owns the tick, and all original checks remain. The first
+archive helper failed before copying because automatic date conversion shifted its
+UTC filter; the corrected archive uses the original timestamp offsets. Both failures
+remain separate evidence. Final reviews and integration follow; the known History
+lifetime-owner projection issue is the next packet, followed by Summary composition.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
 **Visual direction clarification, 11 October 2026 UTC:** The owner questioned
 why recent images still resemble the earlier layout. Compact Focus is the
 prior implemented workout composition. Home is now flat and illustrated; the new
-workout rows are under verification, while Summary and History retain older enclosing
+workout rows are now implemented and verified, while Summary and History retain older enclosing
 panels. The whole-app visual redesign is unfinished. The connected native composition follows the
 [new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
 agenda, two flat editable workout rows, reachable saved-work actions and an
