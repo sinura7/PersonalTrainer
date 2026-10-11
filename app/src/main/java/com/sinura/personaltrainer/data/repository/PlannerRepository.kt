@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.data.local.dao.PlannerDao
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.domain.DataHealth
+import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilDateTime
 import com.sinura.personaltrainer.domain.DayBlockOrder
@@ -316,6 +317,33 @@ class PlannerRepository(
     suspend fun publishPinnedWeek(weekStart: Weekday, todayEpochDay: Long) {
         syncSlotsToRules()
         ensureWeek(CivilDate.fromEpochDay(todayEpochDay).previousOrSame(weekStart))
+    }
+
+    /** Finish one accepted Plan addition even if retry crosses midnight (ADR-011).
+     * Ordinary week generation keeps its anti-backfill policy. Only this rule/day
+     * is eligible at the captured admission time; stamps and reminders use now.
+     */
+    internal suspend fun ensureAcceptedRuleDay(ruleId: String, epochDay: Long, acceptedAt: CapturedCivilTime) {
+        require(epochDay >= acceptedAt.localEpochDay)
+        val nowMs = time.nowMillis()
+        var wrote = false
+        database.withTransaction {
+            val rule = checkNotNull(dao.getRule(ruleId)?.toDomain())
+            val existing = dao.getOccurrencesBetween(epochDay, epochDay).map { it.toDomain() }
+            // Keep completed, skipped and moved rows as well as planned work.
+            if (existing.any { it.ruleId == ruleId }) return@withTransaction
+            val date = CivilDate.fromEpochDay(epochDay)
+            check(rule.enabled && rule.weekday == date.dayOfWeek)
+            val row = OccurrenceGenerator.generateWeek(
+                weekStart = date, rules = listOf(rule), existing = emptyList(), time = time,
+                deviceZoneId = acceptedAt.zoneId, nowMs = nowMs,
+                todayEpochDay = acceptedAt.localEpochDay,
+            ).single { it.ruleId == ruleId && it.localEpochDay == epochDay }
+            dao.upsertOccurrence(row.toEntity())
+            scheduleRemindersLocked(listOf(row), listOf(rule), nowMs)
+            wrote = true
+        }
+        if (wrote) notifyScheduleSync()
     }
 
     suspend fun applyMissedWork(

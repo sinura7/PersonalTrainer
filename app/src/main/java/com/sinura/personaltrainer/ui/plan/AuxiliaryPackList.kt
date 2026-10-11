@@ -47,6 +47,7 @@ fun AuxiliaryPackList(
     equipment: ExtraEquipment? = null,
     /** A popup owner can retain the choice in its outer saveable registry. */
     onEquipmentChanged: ((ExtraEquipment?) -> Unit)? = null,
+    navigationEnabled: Boolean = true,
 ) {
     var kitName by rememberSaveable { mutableStateOf<String?>(null) }
     val kit = if (onEquipmentChanged != null) equipment else kitName?.let { ExtraEquipment.fromStorage(it) }
@@ -63,12 +64,13 @@ fun AuxiliaryPackList(
                 suggestedKit = suggestedKit,
                 onPick = changeKit,
                 onCancel = onCancel,
+                enabled = navigationEnabled,
             )
         } else {
             val visible = AuxiliaryPacks.visibleFor(kit, usedPackIds)
             val warmups = visible.filter { it.kind == AuxiliaryKind.WARMUP }
             val mobility = visible.filter { it.kind == AuxiliaryKind.MOBILITY }
-            PickerHeader(title = title, onCancel = { changeKit(null) })
+            PickerHeader(title = title, onCancel = { changeKit(null) }, enabled = navigationEnabled)
             if (warmups.isEmpty() && mobility.isEmpty()) {
                 Text(
                     PlanDayCopy.AUX_ALREADY,
@@ -95,8 +97,9 @@ private fun ExtraEquipmentList(
     suggestedKit: ExtraEquipment,
     onPick: (ExtraEquipment) -> Unit,
     onCancel: () -> Unit,
+    enabled: Boolean,
 ) {
-    PickerHeader(title = title, onCancel = onCancel)
+    PickerHeader(title = title, onCancel = onCancel, enabled = enabled)
     GroupedList(
         modifier = Modifier
             .testTag(ExtraEquipmentTags.PAGE)
@@ -114,6 +117,7 @@ private fun ExtraEquipmentList(
                     .testTag(ExtraEquipmentTags.choice(kit))
                     .semantics { contentDescription = kit.label },
                 onClick = { onPick(kit) },
+                enabled = enabled,
                 trailing = extraKitCheck(usual),
             )
         }
