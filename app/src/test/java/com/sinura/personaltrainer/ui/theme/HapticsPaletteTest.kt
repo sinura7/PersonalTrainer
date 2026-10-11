@@ -102,8 +102,8 @@ class HapticsPaletteTest {
         val chip = readOwned("ui/components/InstrumentChip.kt")
         assertTrue(chip.contains("Haptics.tick(view)"))
         assertTrue(chip.contains("Motion.FIELD_MS"))
-        // Working | Warm-up and the RPE track are InstrumentChip radios: the tick comes
-        // from the chip itself on the field settle, never from a caller.
+        // Working | Warm-up and default effort use InstrumentChip. Focused effort has
+        // its own radio component. Each component owns its tick, never the caller.
         val header = readOwned("ui/workout/ExerciseHeader.kt")
         assertTrue(header.contains("fun SetTypeToggle("))
         assertTrue(header.contains("InstrumentChip("))
@@ -116,6 +116,11 @@ class HapticsPaletteTest {
         assertTrue(rpe.contains("RpeCopy.VALUES.forEach"))
         assertTrue(rpe.contains("role = Role.RadioButton"))
         assertFalse(rpe.contains("Haptics."))
+        assertTrue(rpe.contains("FocusEffortChoice("))
+        val focused = readOwned("ui/workout/FocusEffortChoice.kt")
+        assertTrue(focused.contains("LocalView.current"))
+        assertTrue(focused.contains("Haptics.tick(view)"))
+        assertTrue(focused.contains(".selectable(selected = selected, enabled = enabled, role = Role.RadioButton"))
     }
 
     @Test
