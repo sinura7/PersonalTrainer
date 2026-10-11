@@ -28,7 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
@@ -620,7 +620,7 @@ internal fun ExerciseTrendCard(
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
-                    .heightIn(max = (LocalConfiguration.current.screenHeightDp * SHEET_HEIGHT_SHARE).dp)
+                    .heightIn(max = LocalWindowInfo.current.containerDpSize.height * SHEET_HEIGHT_SHARE)
                     .padding(horizontal = Metrics.gutter)
                     .testTag("$tag-data"),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space3),
