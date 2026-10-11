@@ -122,8 +122,20 @@ and naming new metric/layout arguments repaired those causes without weakening
 checks or assertions. The skip ceiling is tightened from 181 to 180. Seven fresh
 layout/identity/read-health cases passed before the selector refinement; four
 fresh selector/measure cases then passed, including native 360/412 dp and narrow
-font-2 rendering. Both original failures remain preserved. The complete local
-gate and final reviews are pending on this candidate.
+font-2 rendering. Both original failures remain preserved. The complete `full01`
+gate at `e8188756` passed **4,286 fresh app tests / 592 suites and 1,707 fresh
+standalone tests / 256 classes**, all four required Windows tasks and dependent
+release assembly, with no failures, errors or skips. All 1,572 runtime/test/tool
+inputs and refs stayed unchanged. Ninety-nine fresh native frames and matching
+diagnostics are archived with hashes: fourteen display profiles, period/calendar
+and lifetime views, held/failed/recovered progress and mounted-reader recovery.
+[The actual native History period preview](studies/q01/assets/history-flat-ledger-2026-10-11.png)
+shows the flat selected-range facts and quiet controls.
+[The actual native session ledger](studies/q01/assets/history-illustrated-ledger-2026-10-11.png)
+shows complete names, separate options and actual measures; this fixture uses
+custom synthetic exercises with family fallback illustrations, rather than
+catalog-specific exercise pictures. Existing ID-bound thumbnail routing remains
+unchanged. Final pinned reviews and integration remain pending.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
