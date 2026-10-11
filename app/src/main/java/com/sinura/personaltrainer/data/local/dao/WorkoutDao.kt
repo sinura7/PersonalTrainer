@@ -365,10 +365,15 @@ interface WorkoutDao {
         SELECT sl.id AS setId,
                sl.sessionId AS sessionId,
                ws.routineName AS sessionName,
-               ws.date AS sessionDate,
+               CASE WHEN ws.date > 0 THEN ws.date
+                    WHEN ws.finishedAt > 0 THEN ws.finishedAt
+                    WHEN ws.startedAt > 0 THEN ws.startedAt
+                    ELSE 0 END AS sessionDate,
                sl.weightKg AS weightKg,
                sl.reps AS reps,
-               sl.completedAt AS completedAt
+               sl.completedAt AS completedAt,
+               sl.durationSeconds AS durationSeconds,
+               NULL AS sessionLocalEpochDay
         FROM set_logs sl
         JOIN workout_sessions ws ON ws.id = sl.sessionId
         WHERE sl.exerciseId = :exerciseId

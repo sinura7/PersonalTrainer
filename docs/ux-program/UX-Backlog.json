@@ -81,7 +81,7 @@
       "observation": "Home is a selected-day board. ADR-021 explicitly makes its filled Start a workout button freestyle; planned rows carry Start and open a confirmation. My earlier proposal to make the filled button start today's named plan would reverse this owner decision. HomeStatRow is placed before the agenda; whether that delays discovery needs actual-screen evidence.",
       "outcome": "Users distinguish starting the listed plan from starting an empty workout and can identify the selected date.",
       "requirements": [
-        "Preserve planned-row confirmation, the freestyle filled action, the Add row under the selected day's agenda, and the single ambient Live Session Bar.",
+        "Preserve planned-row confirmation, the current Home Start a workout sheet without an Add row (ADR-021), and the single ambient Live Session Bar.",
         "Keep a short visible explanation near the freestyle control: proposed copy 'Empty session — add lifts as you go.' A label change to 'Start freestyle workout' is a prototype option requiring reconciliation with ADR-021; do not silently replace its wording.",
         "Prototype moving the recent-stat row below the agenda while retaining the week strip. Compare normal, missed-work and active-session states before choosing an ordering.",
         "Show the full selected date in the masthead. When another day is selected, provide a quiet, accessible return-to-today action; make clear a live/free workout starts now rather than backdating.",
@@ -304,7 +304,7 @@
         "R06"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Implemented locally; domain tests executed (JVM lane), Robolectric written, not executed here",
+      "status": "Existing receipt/error states integrated through #467; acknowledged same-session correction refresh and literal hold readback in f1156f4b passed the complete local gate (4,216 fresh app / 1,707 standalone, builds/lint/test APK). Current PR records final reviews/integration. Phone acceptance remains open.",
       "fixtures": [
         "F03",
         "F08"
@@ -794,7 +794,7 @@
         "R17"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Proposed; no implementation or Android runtime validation performed",
+      "status": "One selected History period and captured-date travel repair integrated through #465/#466; wider human workflow acceptance remains open. Do not rebuild integrated filtering/navigation.",
       "fixtures": [
         "F05"
       ],
@@ -842,7 +842,7 @@
         "R08"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Proposed; no implementation or Android runtime validation performed",
+      "status": "Exercise History exact values/dates, truthful units, comparison/scale labels and sparse readouts in f1156f4b passed the complete local gate and native matrix. Current PR records final reviews/integration. Other app charts and phone acceptance remain open.",
       "fixtures": [
         "F05",
         "F10"
@@ -1832,7 +1832,7 @@
         "UX05"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Proposed; no implementation or Android runtime validation performed",
+      "status": "Identity and safe historical set editing/recovery integrated through #467–#470; literal hold Summary/History readback in f1156f4b passed the complete local gate and real AppNav correction journey. Current PR records final reviews/integration. Typed-activity capability matrix and broader journeys remain open.",
       "fixtures": [
         "F05",
         "F08",

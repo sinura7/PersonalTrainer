@@ -120,6 +120,7 @@ object WorkoutSummaryBuilder {
         priorByExercise: Map<String, List<ExerciseSetRecord>>,
     ): WorkoutSummary {
         val working = session.sets.filterNot { it.isWarmup }
+            .sortedWith(compareBy<SetLog> { it.completedAt }.thenBy { it.id })
         val highlights = working
             .groupBy { it.exerciseId }
             .map { (exerciseId, sets) ->
@@ -131,9 +132,11 @@ object WorkoutSummaryBuilder {
                             weightKg = set.weightKg,
                             reps = set.reps,
                             completedAt = set.completedAt,
+                            rpe = set.rpe,
+                            durationSeconds = set.durationSeconds,
                         )
                     }
-                    .sortedBy { it.completedAt }
+                    .sortedWith(exerciseSetOrder)
                 val loadClass = session.loadClassOf(exerciseId)
                 val work = SetWork.sum(records.map { SetWork.of(it.weightKg, it.reps, loadClass) })
                 SessionHighlight(
@@ -147,7 +150,7 @@ object WorkoutSummaryBuilder {
                     records = recordsBroken(records, priorByExercise[exerciseId].orEmpty(), loadClass),
                 )
             }
-            .sortedWith(compareByDescending<SessionHighlight> { it.volumeKg }.thenBy { it.exerciseName })
+            .sortedWith(compareByDescending<SessionHighlight> { it.volumeKg }.thenBy { it.exerciseName }.thenBy { it.exerciseId })
 
         return WorkoutSummary(
             sessionId = session.id,

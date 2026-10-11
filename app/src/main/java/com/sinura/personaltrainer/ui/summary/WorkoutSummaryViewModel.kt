@@ -49,10 +49,9 @@ data class WorkoutSummaryUiState(
 )
 
 /**
- * Reads once, not as a live flow.
+ * Reads on entry and after an acknowledged same-session correction, not as a live flow.
  *
- * A finished session does not change while its summary is on screen, and the record check
- * behind it walks each lift's whole history — re-running that on every unrelated database
+ * The record check behind the receipt walks each lift's whole history — re-running that on every unrelated database
  * write would be pure waste. [retry] re-runs the same read; nothing here ever writes, so a
  * retry can never finish a workout twice or create one.
  */
@@ -79,6 +78,13 @@ class WorkoutSummaryViewModel @JvmOverloads constructor(
     fun retry() {
         if (!_uiState.value.failed) return
         load()
+    }
+
+    /** Navigation consumes its result only after this matching receipt accepts a reload. */
+    internal fun refreshAfterCorrection(correctedSessionId: String): Boolean {
+        if (correctedSessionId != sessionId || sessionId.isBlank()) return false
+        load()
+        return true
     }
 
     /**

@@ -1,21 +1,23 @@
 package com.sinura.personaltrainer.ui.exercise
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -26,9 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,7 +68,6 @@ import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.GoldContainer
-import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.theme.Metrics
@@ -72,15 +75,15 @@ import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.PrGold
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
+import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
+import com.sinura.personaltrainer.ui.units.DateCopy
 import com.sinura.personaltrainer.ui.workout.ExerciseStatsRow
 import com.sinura.personaltrainer.util.JvmTime
-import com.sinura.personaltrainer.util.toLocalDate
 import java.text.DateFormat
-import java.time.Instant
-import java.time.ZoneId
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import kotlin.math.abs
@@ -106,6 +109,16 @@ fun ExerciseDetailScreen(
     var routinePickerOpen by rememberSaveable { mutableStateOf(false) }
     val unit = LocalWeightUnit.current
     val history = state.history
+    // A literal hold has no repetition/tonnage measurement. Do not present a
+    // zero-rep record or promise a rep trend for a history made only of holds.
+    // Mixed or positive-rep stopwatch history keeps the established measures.
+    val holdsOnly = remember(history) {
+        history.sessions.isNotEmpty() && history.sessions.all { session ->
+            session.sets.isNotEmpty() && session.sets.all { set ->
+                set.reps < 1 && (set.durationSeconds ?: 0) > 0
+            }
+        }
+    }
     // The floor's own Best set and Volume for this lift in the workout in progress, once a
     // working set of it is logged there (ADR-030, owner decision of 23 September 2026).
     val sessionInProgress = state.sessionInProgress
@@ -132,6 +145,10 @@ fun ExerciseDetailScreen(
             history.weeklyTonnage.map { WeightConverter.toDisplayValue(it.volumeKg, unit) }
         }
     }
+    val estimateDays = remember(estimateSessions) { estimateSessions.map(::sessionEpochDay) }
+    val weekDays = remember(history.weeklyTonnage) { history.weeklyTonnage.map { it.weekStart.epochDay } }
+    val today = JvmTime.civilDate(JvmTime.nowMillis()).epochDay
+    val currentWeek = weekDays.lastOrNull()?.let { today >= it && today < it + 7L } == true
 
     Column(
         modifier = Modifier
@@ -221,7 +238,7 @@ fun ExerciseDetailScreen(
                     if (sessionInProgress != null) {
                         item(key = "this-workout") { SessionInProgressCard(sessionInProgress) }
                     }
-                    if (history.records.isNotEmpty()) {
+                    if (!holdsOnly && history.records.isNotEmpty()) {
                         item(key = "records") { RecordsCard(records = history.records, unit = unit) }
                     }
 
@@ -245,7 +262,11 @@ fun ExerciseDetailScreen(
                             )
                         }
                     }
-                    item(key = "all-time-volume") {
+                    if (holdsOnly) item(key = "hold-measures") {
+                        Text("Recorded hold durations are listed by session.",
+                            style = InstrumentType.caption, color = TextSecondary)
+                    }
+                    if (!holdsOnly) item(key = "all-time-volume") {
                         if (repsAreTheMeasure) {
                             StatTile(
                                 label = "reps",
@@ -260,17 +281,14 @@ fun ExerciseDetailScreen(
                         }
                     }
 
-                    item(key = "e1rm") {
+                    if (!holdsOnly && !repsAreTheMeasure) item(key = "e1rm") {
                         val prDisplay = history.records[PersonalRecordKind.ESTIMATED_ONE_REP_MAX]
                             ?.value
                             ?.let { WeightConverter.toDisplayValue(it, unit) }
-                        TrendCard(
+                        ExerciseTrendCard(
                             title = "Estimated 1RM",
                             values = estimates,
-                            startLabel = estimateSessions.firstOrNull()
-                                ?.let { axisLabel(it.performedAtMs) }.orEmpty(),
-                            endLabel = estimateSessions.lastOrNull()
-                                ?.let { axisLabel(it.performedAtMs) }.orEmpty(),
+                            epochDays = estimateDays,
                             pointNoun = "session",
                             // A lift with no estimable set will never grow this chart, so it is
                             // told what would, rather than promised a trend that cannot arrive.
@@ -280,26 +298,26 @@ fun ExerciseDetailScreen(
                             } else {
                                 "One more session unlocks your trend."
                             },
-                            unit = unit,
+                            measure = unit.suffix,
                             line = true,
                             grouped = false,
+                            tag = ExerciseDetailTags.ESTIMATES,
                             prValue = prDisplay,
                             modifier = Modifier.padding(top = SECTION_LEAD),
                         )
                     }
-                    item(key = "weekly-volume") {
-                        TrendCard(
+                    if (!holdsOnly) item(key = "weekly-volume") {
+                        ExerciseTrendCard(
                             title = if (repsAreTheMeasure) "Weekly reps" else "Weekly volume",
                             values = weeklySeries,
-                            startLabel = history.weeklyTonnage.firstOrNull()
-                                ?.let { axisLabel(it.weekStart) }.orEmpty(),
-                            endLabel = history.weeklyTonnage.lastOrNull()
-                                ?.let { axisLabel(it.weekStart) }.orEmpty(),
+                            epochDays = weekDays,
                             pointNoun = "week",
                             hint = "One more training week unlocks your trend.",
-                            unit = unit,
+                            measure = if (repsAreTheMeasure) "reps" else unit.suffix,
                             line = false,
                             grouped = true,
+                            tag = ExerciseDetailTags.WEEKLY,
+                            currentWeek = currentWeek,
                         )
                     }
 
@@ -314,7 +332,7 @@ fun ExerciseDetailScreen(
                     // does it: rounded ends, square middles, a hairline between.
                     itemsIndexed(
                         history.sessions,
-                        key = { _, summary -> summary.sessionId },
+                        key = { _, summary -> "${summary.kind}:${summary.sessionId}" },
                     ) { index, summary ->
                         Column(
                             modifier = instrumentAnimateItem()
@@ -527,71 +545,107 @@ private fun RecordProvenance(detail: String, achievedAt: Long) {
     )
 }
 
-/**
- * A trend, annotated, and never absent.
- *
- * Below two points both charts used to disappear, so a lifter one session in had no way to
- * know a trend was coming; the card now stands with ghost content and says what would fill
- * it. When there is data, the current value leads and the change against the previous point
- * sits beside it — a down week in the quiet colour, never in red.
- */
+/** Exact readouts lead; only two or more recorded points make a trend. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TrendCard(
+internal fun ExerciseTrendCard(
     title: String,
     values: List<Double>,
-    startLabel: String,
-    endLabel: String,
+    epochDays: List<Long>,
     pointNoun: String,
     hint: String,
-    unit: WeightUnit,
+    measure: String,
     line: Boolean,
     grouped: Boolean,
+    tag: String,
     modifier: Modifier = Modifier,
     prValue: Double? = null,
+    currentWeek: Boolean = false,
 ) {
-    GymCard(modifier = modifier) {
-        if (values.size < MIN_POINTS_FOR_TREND) {
+    require(values.size == epochDays.size)
+    var valuesOpen by rememberSaveable { mutableStateOf(false) }
+    GymCard(modifier = modifier.testTag(tag)) {
+        if (values.isEmpty()) {
             Kicker(title)
-            GhostTrend()
+            Text(if (line) "No recorded estimate" else "No recorded training week",
+                style = InstrumentType.bodyStrong, color = TextSecondary)
             Text(hint, style = InstrumentType.caption, color = TextTertiary)
         } else {
             val latest = values.last()
-            val previous = values[values.lastIndex - 1]
-            LabelledTrend(
-                title = title,
-                values = values,
-                startLabel = startLabel,
-                endLabel = endLabel,
-                headlineValue = formatSeries(latest, grouped),
-                headlineUnit = unit.suffix,
-                deltaLabel = seriesDelta(values, unit, grouped),
-                deltaIsGain = latest >= previous,
-                line = line,
-                contentDescription = trendDescription(title, values, pointNoun, unit, grouped),
-                prValue = prValue,
+            if (values.size == 1) {
+                Kicker(title)
+                // A single real measurement has a value and date, but no fabricated bars.
+                Text("${formatSeries(latest, grouped)} $measure", style = InstrumentType.numeralMd,
+                    color = TextSecondary)
+                Text(pointDate(epochDays.single(), line), style = InstrumentType.caption, color = TextTertiary)
+                Text(hint, style = InstrumentType.caption, color = TextTertiary)
+            } else {
+                LabelledTrend(
+                    title = title,
+                    values = values,
+                    startLabel = axisLabel(epochDays.first()),
+                    endLabel = axisLabel(epochDays.last()),
+                    headlineValue = formatSeries(latest, grouped),
+                    headlineUnit = measure,
+                    deltaLabel = seriesDelta(values, measure, grouped),
+                    deltaIsGain = latest >= values[values.lastIndex - 1],
+                    line = line,
+                    contentDescription = trendDescription(title, values, pointNoun, measure, grouped),
+                    prValue = prValue,
+                )
+                Text("Change from the previous recorded $pointNoun", style = InstrumentType.caption,
+                    color = TextTertiary)
+                Text(
+                    if (line) "Recorded sessions · equal spacing · focused scale"
+                    else "Training weeks · empty weeks omitted · bars start at 0",
+                    style = InstrumentType.caption, color = TextTertiary,
+                )
+                if (line && prValue != null) Text("Gold dashed line: lifetime best estimate",
+                    style = InstrumentType.caption, color = TextTertiary)
+            }
+            if (currentWeek) Text("Current week so far", style = InstrumentType.caption, color = TextSecondary)
+            SecondaryGymButton(
+                text = "Values and dates",
+                onClick = { valuesOpen = true },
+                modifier = Modifier.testTag("$tag-values"),
+                height = Metrics.touchMin,
             )
         }
     }
-}
-
-/** The shape of a chart that does not exist yet. Decorative, so it carries no semantics. */
-@Composable
-private fun GhostTrend(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(GHOST_HEIGHT),
-        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        verticalAlignment = Alignment.Bottom,
-    ) {
-        GHOST_FRACTIONS.forEach { fraction ->
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(fraction)
-                    .clip(RoundedCornerShape(Radius.xs))
-                    .background(Hairline),
-            )
+    if (valuesOpen && values.isNotEmpty()) {
+        ModalBottomSheet(
+            onDismissRequest = { valuesOpen = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = Surface3,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+                    .heightIn(max = LocalWindowInfo.current.containerDpSize.height * SHEET_HEIGHT_SHARE)
+                    .padding(horizontal = Metrics.gutter)
+                    .testTag("$tag-data"),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+            ) {
+                Text(title, style = InstrumentType.title, color = TextSecondary)
+                LazyColumn(
+                    modifier = Modifier.weight(1f, fill = false).testTag("$tag-data-list"),
+                    verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+                ) {
+                    itemsIndexed(values.indices.reversed().toList()) { _, index ->
+                        Column(modifier = Modifier.fillMaxWidth().testTag("$tag-point-$index")) {
+                            Text(pointDate(epochDays[index], line), style = InstrumentType.caption,
+                                color = TextTertiary)
+                            Text("${formatSeries(values[index], grouped)} $measure",
+                                style = InstrumentType.bodyStrong, color = TextSecondary)
+                        }
+                    }
+                }
+                SecondaryGymButton(
+                    text = "Close",
+                    onClick = { valuesOpen = false },
+                    modifier = Modifier.padding(bottom = Metrics.space3).testTag("$tag-close"),
+                    height = Metrics.touchMin,
+                )
+            }
         }
     }
 }
@@ -603,23 +657,43 @@ private fun SessionRow(
     loadClass: LoadClass,
     onClick: () -> Unit,
 ) {
-    InstrumentRow(
-        title = dateLabel(summary.performedAtMs),
-        subtitle = summary.topSet?.let { top ->
-            "Top set " + SetCopy.setLine(top.weightKg, top.reps, loadClass, unit)
-        },
-        onClick = onClick,
-    ) {
-        MetricCluster(value = summary.workingSets.toString(), label = "sets")
-        val column = SetCopy.workColumn(summary.work, unit)
-        MetricCluster(value = column.value, label = column.label)
+    Column(modifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick)) {
+        InstrumentRow(title = dateLabel(atMs = summary.performedAtMs, epochDay = summary.localEpochDay)) {
+            MetricCluster(value = summary.workingSets.toString(), label = "sets")
+            val column = SetCopy.workColumn(summary.work, unit)
+            MetricCluster(value = column.value, label = column.label)
+        }
+        summary.topSet?.let { top ->
+            // Recorded values use the row's full width, without a single-line subtitle cap.
+            // Long holds and large text must not turn the saved result into an abbreviation.
+            Text(
+                (if (top.reps < 1 && (top.durationSeconds ?: 0) > 0) "Recorded hold " else "Top set ") +
+                    SetCopy.setLine(
+                        weightKg = top.weightKg, reps = top.reps, loadClass = loadClass,
+                        unit = unit, durationSeconds = top.durationSeconds,
+                    ),
+                modifier = Modifier.padding(start = Metrics.space4, end = Metrics.space4, bottom = Metrics.space3),
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
+        }
     }
 }
 
 @Composable
-private fun dateLabel(atMs: Long): String {
-    val absolute = remember(atMs) { DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs)) }
-    val relative = remember(atMs) { DayLabel.relative(atMs, JvmTime.nowMillis(), JvmTime) }
+private fun dateLabel(atMs: Long, epochDay: Long? = null): String {
+    val absolute = remember(atMs, epochDay) {
+        epochDay?.let(DateCopy::civilDate) ?: DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(atMs))
+    }
+    val relative = remember(atMs, epochDay) {
+        if (epochDay == null) DayLabel.relative(atMs, JvmTime.nowMillis(), JvmTime)
+        else when (val days = JvmTime.civilDate(JvmTime.nowMillis()).epochDay - epochDay) {
+            0L -> "Today"
+            1L -> "Yesterday"
+            in 2L..DayLabel.RELATIVE_DAYS.toLong() -> "$days days ago"
+            else -> null
+        }
+    }
     return relative ?: absolute
 }
 
@@ -638,12 +712,12 @@ private fun formatSeries(value: Double, grouped: Boolean): String =
     }
 
 /** Null when the change rounds away: "+0 kg" is noise rather than information. */
-private fun seriesDelta(values: List<Double>, unit: WeightUnit, grouped: Boolean): String? {
+private fun seriesDelta(values: List<Double>, measure: String, grouped: Boolean): String? {
     if (values.size < MIN_POINTS_FOR_TREND) return null
     val delta = values.last() - values[values.lastIndex - 1]
     val magnitude = formatSeries(abs(delta), grouped)
     if (magnitude == "0") return null
-    return "${if (delta > 0.0) "+" else "−"}$magnitude ${unit.suffix}"
+    return "${if (delta > 0.0) "+" else "−"}$magnitude $measure"
 }
 
 /**
@@ -654,30 +728,31 @@ private fun trendDescription(
     title: String,
     values: List<Double>,
     pointNoun: String,
-    unit: WeightUnit,
+    measure: String,
     grouped: Boolean,
 ): String {
     val noun = if (values.size == 1) pointNoun else "${pointNoun}s"
     val latest = formatSeries(values.lastOrNull() ?: 0.0, grouped)
     val best = formatSeries(values.maxOrNull() ?: 0.0, grouped)
-    return "$title, ${values.size} $noun, latest $latest ${unit.suffix}, best $best ${unit.suffix}"
+    return "$title, ${values.size} $noun, latest $latest $measure, best $best $measure"
 }
 
 private val axisDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 
-private fun axisLabel(weekStart: com.sinura.personaltrainer.domain.CivilDate): String =
-    axisDateFormatter.format(weekStart.toLocalDate())
+private fun axisLabel(epochDay: Long): String = axisDateFormatter.format(LocalDate.ofEpochDay(epochDay))
 
-private fun axisLabel(atMs: Long): String =
-    axisDateFormatter.format(Instant.ofEpochMilli(atMs).atZone(ZoneId.systemDefault()).toLocalDate())
+private fun sessionEpochDay(summary: ExerciseSessionSummary): Long =
+    summary.localEpochDay ?: JvmTime.civilDate(summary.performedAtMs).epochDay
+
+private fun pointDate(epochDay: Long, line: Boolean): String = if (line) DateCopy.civilDate(epochDay)
+    else "${DateCopy.civilDate(epochDay)} – ${DateCopy.civilDate(epochDay + 6L)}"
 
 private const val MIN_POINTS_FOR_TREND = 2
 
 /** A section owns the space above it; the list's own arrangement covers the rest. */
 private val SECTION_LEAD = Metrics.sectionGap - Metrics.cardGap
 
-private val GHOST_HEIGHT = 72.dp
-private val GHOST_FRACTIONS = listOf(0.34f, 0.5f, 0.42f, 0.66f, 0.55f, 0.8f)
+private const val SHEET_HEIGHT_SHARE = 0.8f
 
 /**
  * The rounding a row needs to look like part of one grouped container.
@@ -696,4 +771,6 @@ object ExerciseDetailTags {
     const val BACK = "exercise-detail-back"
     const val ADD_TO_ROUTINE = "exercise-detail-add-to-routine"
     const val THIS_WORKOUT = "exercise-detail-this-workout"
+    const val ESTIMATES = "exercise-detail-estimates"
+    const val WEEKLY = "exercise-detail-weekly"
 }

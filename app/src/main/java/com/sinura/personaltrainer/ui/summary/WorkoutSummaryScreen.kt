@@ -540,7 +540,12 @@ private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit, exercises: 
                     // lift is measured, and a set of push-ups read "Top set 0 kg × 20" here
                     // long after every other surface had stopped saying that.
                     Text(
-                        "Top set " + SetCopy.setLine(top.weightKg, top.reps, highlight.loadClass, unit),
+                        (if (top.reps < 1 && (top.durationSeconds ?: 0) > 0) "Recorded hold " else "Top set ") +
+                            SetCopy.setLine(
+                                weightKg = top.weightKg, reps = top.reps,
+                                loadClass = highlight.loadClass, unit = unit,
+                                durationSeconds = top.durationSeconds,
+                            ),
                         style = InstrumentType.body,
                         color = TextSecondary,
                     )

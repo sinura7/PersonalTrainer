@@ -12,8 +12,10 @@ fun ExerciseSetRow.toExerciseSetEntry(kind: HistoryKind): ExerciseSetEntry = Exe
         weightKg = weightKg,
         reps = reps,
         completedAt = completedAt,
+        durationSeconds = durationSeconds,
     ),
     sessionName = sessionName,
     sessionPerformedAtMs = sessionDate,
     kind = kind,
+    sessionLocalEpochDay = sessionLocalEpochDay,
 )

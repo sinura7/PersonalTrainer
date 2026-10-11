@@ -42,12 +42,15 @@ object RecordsCalculator {
         val priorByExercise = before.groupBy { it.exerciseId }
         val byExercise = inRange.groupBy { it.exerciseId }
         byExercise.forEach { (exerciseId, pairs) ->
-            val loadClass = pairs.first().loadClass
-            val ordered = pairs.sortedBy { it.set.completedAt }
+            val ordered = pairs.sortedWith(compareBy<RecordSet> { it.set.completedAt }
+                .thenBy { it.set.sessionId }.thenBy { it.set.setId }
+                .thenBy { it.set.weightKg }.thenBy { it.set.reps }
+                .thenBy { it.loadClass.ordinal }.thenBy { it.exerciseName })
+            val loadClass = ordered.first().loadClass
             val seen = priorByExercise[exerciseId]
                 .orEmpty()
                 .map { it.set }
-                .sortedBy { it.completedAt }
+                .sortedWith(exerciseSetOrder)
                 .toMutableList()
             ordered.forEach { attempt ->
                 total += detect(

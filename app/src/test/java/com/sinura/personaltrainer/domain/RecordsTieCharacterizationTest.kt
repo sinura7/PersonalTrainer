@@ -3,23 +3,23 @@ package com.sinura.personaltrainer.domain
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Existing equal-stamp behavior, retained for a separately specified calculation decision. */
+/** Equal timestamps use a stable comparison order, not an inferred physical chronology. */
 class RecordsTieCharacterizationTest {
     private val at = 1_700_000_000_000L
 
     @Test
-    fun equalStampSetsRetainInputOrderRatherThanInventingAnOrder() {
-        val lower = loaded("lower", "same-session", 100.0)
-        val higher = loaded("higher", "same-session", 110.0)
+    fun equalStampSetsHaveTheSameRecordCountForEitherInputOrder() {
+        val lower = loaded("a-lower", "same-session", 100.0)
+        val higher = loaded("b-higher", "same-session", 110.0)
         assertEquals(2, RecordsCalculator.countBroken(listOf(lower, higher), emptyList()))
-        assertEquals(0, RecordsCalculator.countBroken(listOf(higher, lower), emptyList()))
+        assertEquals(2, RecordsCalculator.countBroken(listOf(higher, lower), emptyList()))
     }
 
     @Test
-    fun equalStampMixedSourcesRetainTheSameKnownOrderDependency() {
+    fun equalStampMixedSourcesHaveTheSameRecordCountForEitherInputOrder() {
         val workout = training("same-id", CompletedTraining.Kind.STRENGTH_SESSION, loaded("workout-set", "same-id", 100.0))
         val activity = training("same-id", CompletedTraining.Kind.ACTIVITY, loaded("activity-set", "same-id", 110.0))
-        assertEquals(2, RecordsCalculator.countBrokenTraining(listOf(workout, activity), emptyList()))
+        assertEquals(0, RecordsCalculator.countBrokenTraining(listOf(workout, activity), emptyList()))
         assertEquals(0, RecordsCalculator.countBrokenTraining(listOf(activity, workout), emptyList()))
     }
 
@@ -37,4 +37,12 @@ class RecordsTieCharacterizationTest {
             kind = if (kind == CompletedTraining.Kind.ACTIVITY) HistoryKind.ACTIVITY else HistoryKind.WORKOUT,
         ), strength = listOf(row), cardioSeconds = 0L, cardioDistanceMeters = null,
     )
+    @Test fun collidingSourceAndSetIdsStillHaveAStableContentTieBreak() {
+        val lower = loaded("same-set", "same-session", 100.0)
+        val higher = loaded("same-set", "same-session", 110.0)
+        assertEquals(2, RecordsCalculator.countBroken(listOf(lower, higher), emptyList()))
+        assertEquals(2, RecordsCalculator.countBroken(listOf(higher, lower), emptyList()))
+        assertEquals(0, RecordsCalculator.countBroken(listOf(lower, lower), emptyList()))
+    }
+
 }

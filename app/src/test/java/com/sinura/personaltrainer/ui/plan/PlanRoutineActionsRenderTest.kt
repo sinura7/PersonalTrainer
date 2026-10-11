@@ -293,6 +293,9 @@ class PlanRoutineActionsRenderTest {
         val before = inventory()
         compose.runOnUiThread { route.value = "day" }
         compose.settle()
+        compose.awaitThat("disabled one-off day loaded", dayVm.uiState::value) {
+            !dayVm.uiState.value.isLoading && dayVm.uiState.value.rules.any { it.id == rule.id && !it.enabled }
+        }
         compose.onNodeWithTag(PickerHeaderTags.CANCEL).performScrollTo().performClick()
         compose.settle()
         tap(compose.onNodeWithTag(PlanDayTags.remove(rule.id)).performScrollTo())

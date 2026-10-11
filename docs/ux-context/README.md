@@ -2,6 +2,15 @@
 
 **Created:** 8 October 2026
 
+**Current implementation, 11 October 2026 UTC:** Compact Focus and subsequent
+work are integrated through #480. Corrected Summary receipts and literal exercise
+History readouts (`f1156f4b`) passed the complete local gate: 4,216 fresh app tests,
+1,707 standalone checks, builds, lint and test APK assembly. Current packet review
+and integration are recorded in its PR. Home start clarity and acknowledged start
+recovery are next. Older dated entries below retain their historical scope;
+physical-phone acceptance and the wider roadmap remain open. No new Debug drop
+has been published.
+
 **Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are integrated through #467. Set Edit identity and numeric controls are integrated through #468. History saved-set recovery and its test-recorder repair are integrated through #469 and #470. Compact Focus is implemented with the complete local gate and 222 Android tests passing; [its evidence, previews and review/integration tracking](studies/q01/README.md#compact-focus-development-verification) belong to [PR #471](https://github.com/sinura7/PersonalTrainer/pull/471). Broader app UX phases and physical-phone acceptance remain.
 
 **Summary/detail integration closed, 9 October 2026 UTC:** [PR #467](https://github.com/sinura7/PersonalTrainer/pull/467)

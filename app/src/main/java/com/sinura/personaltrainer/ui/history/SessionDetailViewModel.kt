@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
+import com.sinura.personaltrainer.data.local.entity.SetLogEntity
 import com.sinura.personaltrainer.data.repository.RepeatOutcome
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.CompletedTrainingDetailLoad
@@ -67,10 +68,31 @@ data class SessionDetailUiState(
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionDetailViewModel @JvmOverloads constructor(
     application: Application,
-    savedStateHandle: SavedStateHandle,
+    private val savedStateHandle: SavedStateHandle,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
+
+    internal val summaryNeedsRefresh: Boolean
+        get() = savedStateHandle.get<Boolean>("history.summaryDirty.v1") == true
+
+    private fun markSummaryChanged() {
+        savedStateHandle["history.summaryDirty.v1"] = true
+    }
+
+    private fun acknowledgeNotesChange() {
+        markSummaryChanged()
+        savedStateHandle.remove<String>("history.notesChangeBaseline.v1")
+    }
+
+    private fun acknowledgeSetCorrection(command: WorkoutSetSave, row: SetLogEntity) {
+        if (command.sessionId != sessionId || row.sessionId != sessionId || row.id != command.setId) return
+        val stored = WorkoutSetValues(
+            weightKg = row.weightKg, reps = row.reps, rpe = row.rpe,
+            isWarmup = row.isWarmup, durationSeconds = row.durationSeconds,
+        )
+        if (command.original != stored) markSummaryChanged()
+    }
 
     private val retryNonce = MutableStateFlow(0)
 
@@ -98,6 +120,12 @@ class SessionDetailViewModel @JvmOverloads constructor(
             }
         },
         readStored = { container.workoutRepository.getSession(sessionId)?.notes },
+        onConfirmedChange = ::acknowledgeNotesChange,
+        onChangeAttempt = { baseline ->
+            if (!summaryNeedsRefresh && savedStateHandle.get<String>("history.notesChangeBaseline.v1") == null) {
+                savedStateHandle["history.notesChangeBaseline.v1"] = baseline
+            }
+        },
         onUnconfirmed = { pending, busy, notes ->
             val live = load.value.value?.isFinished != true
             if (live && pending) container.workoutDraftCache.putSessionNotes(sessionId, notes)
@@ -135,11 +163,18 @@ class SessionDetailViewModel @JvmOverloads constructor(
         cache = WorkoutDraftCache(),
         saved = SavedStateWorkoutSave(savedStateHandle, "history.pendingSet.v1"),
         write = container.workoutRepository::saveFinishedSet,
-        inspect = container.workoutRepository::inspectFinishedSetSave,
+        inspect = { command ->
+            val receipt = container.workoutRepository.inspectFinishedSetSaveReceipt(command)
+            receipt.row?.let { acknowledgeSetCorrection(command, it) }
+            receipt.resolution
+        },
         // Inspection establishes the finished owner from Room, and the write checks
         // it again transactionally. A degraded display observer cannot block Retry.
         sessionFound = { true },
-        onSaved = { command, _, _ -> finishSetEditor(command) },
+        onSaved = { command, result, _ ->
+            result?.row?.let { acknowledgeSetCorrection(command, it) }
+            finishSetEditor(command)
+        },
         onReleased = { command, conflict -> if (cancelPendingSet || conflict) finishSetEditor(command) },
         onRejected = {},
     )
@@ -182,6 +217,11 @@ class SessionDetailViewModel @JvmOverloads constructor(
                 if (load.missing) sessionNotes.sessionMissing()
                 val current = load.value ?: return@collect
                 sessionNotes.sessionRead(current.notes)
+                // Room may acknowledge a committed write after its direct readback failed.
+                // The token also survives owner reconstruction; ordinary hydration is not a change.
+                val baseline = savedStateHandle.get<String>("history.notesChangeBaseline.v1")
+                if (!load.failed && current.id == sessionId && baseline != null &&
+                    baseline != current.notes.trim()) acknowledgeNotesChange()
             }
         }
         viewModelScope.launch { sessionNotes.writeOnTypingPause() }
@@ -430,7 +470,10 @@ class SessionDetailViewModel @JvmOverloads constructor(
         if (setOperationOwned()) return
         viewModelScope.launch {
             runCatchingCancellable { container.workoutRepository.deleteSet(setId) }
-                .onSuccess { _deletedSet.value = it }
+                .onSuccess { deleted ->
+                    if (deleted?.sessionId == sessionId) markSummaryChanged()
+                    _deletedSet.value = deleted
+                }
                 .onFailure { report(it, "Could not delete that set. Try again.") }
         }
     }
@@ -454,8 +497,11 @@ class SessionDetailViewModel @JvmOverloads constructor(
         if (!mutating.compareAndSet(false, true)) return
         viewModelScope.launch {
             try {
-                runCatchingCancellable { container.workoutRepository.deleteFinishedSession(sessionId) }
-                    .onSuccess { _deleted.value = true }
+                runCatchingCancellable { container.workoutRepository.deleteFinishedSessionAcknowledged(sessionId) }
+                    .onSuccess { changed ->
+                        if (changed) markSummaryChanged()
+                        _deleted.value = true
+                    }
                     .onFailure { report(it, "Could not delete that session. Try again.") }
             } finally {
                 mutating.set(false)
