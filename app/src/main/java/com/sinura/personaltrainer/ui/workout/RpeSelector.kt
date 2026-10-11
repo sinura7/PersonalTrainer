@@ -161,7 +161,14 @@ internal fun RpeSelector(
                         RpeCopy.VALUES.forEach { value ->
                             val selected = rpe == value
                             val recommended = recommendedRpe == value && !selected
-                            InstrumentChip(
+                            if (focused) FocusEffortChoice(
+                                value = value,
+                                selected = selected,
+                                recommended = recommended,
+                                enabled = enabled,
+                                onSelect = { onRpe(if (selected) null else value) },
+                                modifier = Modifier.weight(1f),
+                            ) else InstrumentChip(
                                 label = value.toString(),
                                 selected = selected,
                                 onClick = { onRpe(if (selected) null else value) },
@@ -208,3 +215,5 @@ internal fun RpeSelector(
         )
     }
 }
+
+/** Flat, equal effort targets. Selection is also named by the heading and spoken state. */

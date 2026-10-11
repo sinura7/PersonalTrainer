@@ -76,6 +76,7 @@ class RpeSelectorRenderTest {
         enabled: Boolean = true,
         fontScale: Float = 1f,
         screenWidth: Dp = 360.dp,
+        focused: Boolean = false,
     ) {
         compose.showFloor(fontScale = fontScale) {
             Box(modifier = Modifier.width(screenWidth).padding(horizontal = Metrics.gutter).testTag(HOST)) {
@@ -85,6 +86,7 @@ class RpeSelectorRenderTest {
                     rpe = rpe,
                     recommendedRpe = recommended,
                     onRpe = { picks += it },
+                    focused = focused,
                 )
             }
         }
@@ -93,6 +95,37 @@ class RpeSelectorRenderTest {
     private fun choice(value: Int): SemanticsNodeInteraction = compose.onNodeWithTag(WorkoutTestTags.rpeChoice(value))
 
     private val radio = SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton)
+
+    @Test
+    fun flatEffortAtFontTwoKeepsAllChoicesWholeAndRecommendationUnselected() {
+        showTrack(recommended = 8, fontScale = 2f, focused = true)
+        val bounds = RpeCopy.VALUES.map { value ->
+            choice(value).assertIsDisplayed().assert(radio).assertIsNotSelected()
+                .assertHeightIsAtLeast(Metrics.touchMin).assertWidthIsAtLeast(Metrics.touchMin)
+                .getBoundsInRoot()
+        }
+        assertTrue("all five choices stay on the same row", bounds.all { it.top == bounds.first().top })
+        assertEquals(listOf("RPE 8, about two reps left, recommended"), choice(8).spokenDescriptions())
+        assertTrue(picks.isEmpty())
+        rpe = 8
+        choice(8).assertIsSelected()
+        assertEquals(listOf("RPE 8, about two reps left"), choice(8).spokenDescriptions())
+        choice(8).performClick()
+        assertEquals(listOf<Int?>(null), picks)
+        rpe = null
+        choice(7).performClick()
+        assertEquals(listOf<Int?>(null, 7), picks)
+    }
+
+    @Test
+    fun flatEffortRetainsSelectionWhileSavingAndCannotChangeIt() {
+        rpe = 9
+        showTrack(enabled = false, focused = true)
+        RpeCopy.VALUES.forEach { value -> choice(value).assertIsNotEnabled() }
+        choice(9).assertIsSelected().performClick()
+        assertTrue("locked effort cannot invoke a draft change", picks.isEmpty())
+        assertEquals(9, rpe)
+    }
 
     @Test
     fun effortIsFiveEqualRadioChoicesWithTheirMeaningSpoken() {

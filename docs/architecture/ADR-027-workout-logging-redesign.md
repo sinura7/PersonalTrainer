@@ -272,6 +272,21 @@ reviews must verify this packet. Browser approval does not establish native or
 physical-phone acceptance. No schema, backup format, navigation destination,
 coaching algorithm, signing or distribution change is authorized.
 
+## Amendment — 11 October 2026, flat workout entry
+
+The owner's connected flow direction carries the flat Home agenda into recording.
+The common focused floor uses two full-width labeled input rows, with direct numeric
+entry and the existing decrease/increase controls beside each value. Constrained
+width or large text moves the label above its row; exact values and units remain
+fitted and readable. The shared unfocused editor retains its existing composition.
+
+Focused effort uses five equal flat radio targets with a selection underline and
+the existing visible selected-value and meaning text. A recommendation remains
+distinct from selection. Preserve 48 dp targets, manual draft ownership, effort
+requirements, hold clocks, save locking, saved-set correction, the compact rest bar
+and one anchored 72 dp primary. Verify the native matrix and connected recording
+journey before accepting the packet. Phone acceptance remains separate.
+
 ## Consequences
 
 - `CurrentLiftCard`, `WorkoutLiftCard`, `LogBar`, `SelectedLiftDock` and

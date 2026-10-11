@@ -204,6 +204,9 @@ class SummaryCorrectionNavigationTest {
 
     private fun seedLiveWorkout(): SetLog = runBlocking(context = Dispatchers.IO) {
         withTimeout(timeMillis = WAIT_MS) {
+            // This owned fixture needs the catalog before recording its synthetic routine.
+            // Application startup also performs imports and planner work before its seed.
+            app.container.dbMaintenance.seedCatalog()
             val catalogId = DefaultExercises.catalog().first { it.name == "Barbell Back Squat" }.id
             val exercise = app.container.exerciseRepository.observeById(id = catalogId)
                 .first(predicate = { it != null })!!

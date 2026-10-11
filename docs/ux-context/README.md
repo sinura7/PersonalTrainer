@@ -4,13 +4,14 @@
 
 **Current implementation, 11 October 2026 UTC:** Home start recovery is
 integrated through [PR #482](https://github.com/sinura7/PersonalTrainer/pull/482)
-as `9d148ea5`. Both pinned reviews and updated hosted checks passed. Clean-trunk
+as `9d148ea5`. Both pinned reviews and updated feature/PR hosted checks passed. Clean-trunk
 verification proved unchanged inputs and reused the preserved successful 4,265
 app / 1,707 standalone results; the affected start ownership and connected
 workout journey then passed **10 fresh tests**, with no failures, errors or skips.
 The retired feature branch is recoverable from its verified bundle.
 
-The active native Home composition packet implements the flat illustrated agenda,
+Native Home composition is integrated through [PR #483](https://github.com/sinura7/PersonalTrainer/pull/483)
+as `326a3c1b`, with both final pinned reviews passing. It implements the flat illustrated agenda,
 full exercise names, quieter day masthead, flat dated targets, planned Start
 beside the routine and anchored general Start. It retains the start sheet, confirmations,
 one-filled-action priority, live return bar and recovery ownership. The new app
@@ -22,17 +23,40 @@ profiles and actual Home → confirmed named routine → saved session records.
 uses synthetic Room data and real navigation. Its flat dates, matching catalog
 illustrations, wrapped full names and anchored Start belong to this candidate.
 The 53 native captures are archived with hashes; earlier failures remain preserved.
-One device-fixture assertion has been corrected to the new visible “Start” copy
-while retaining its semantic checks. Final compilation, pinned reviews and
-integration of that bounded follow-up remain pending.
-Workout and Summary composition follow as separate native packets.
+The final device-fixture copy correction and integrated complete gate passed;
+unchanged JVM/standalone inputs and exact archived evidence justified reuse.
+Integrated Home then passed 22 fresh layout/ownership tests and one fresh connected
+workout case. The first targeted command omitted that case through a package-filter
+typo; the corrected command and both receipts are preserved. The feature is retired
+with a verified recoverable bundle. Hosted emulator checks passed. Hosted unit
+failures in synthetic Summary catalog acquisition and History lifetime-owner
+replacement remain separately diagnosed; they are not presented as passes.
+
+The Workout candidate implements two flat labeled entry rows and equal flat
+effort targets. Direct typing, step/hold behavior, effort selection, saved correction,
+readiness and the 72 dp primary retain their existing contracts. Five focused
+interaction checks accompany the change. The Summary fixture now explicitly prepares
+its synthetic catalog inside the existing bounded setup. The complete `full02` gate
+at `e494c162` passed **4,284 fresh app tests / 592 suites and 1,707 fresh standalone
+tests / 256 classes**, all four required Windows tasks and release assembly, with
+no failures, errors or skips. All 1,572 runtime/test/tool inputs and refs stayed
+unchanged. [The actual native Workout preview](studies/q01/assets/workout-flat-entry-2026-10-11.png)
+is an unchanged capture of the candidate with synthetic Room data. Its 212 hashed
+frames cover 13 display profiles, saved next drafts and held/failed/retried writes.
+The prior full gate failed an existing haptic ownership check: the final clickable
+effort component now owns the tick, and all original checks remain. The first
+archive helper failed before copying because automatic date conversion shifted its
+UTC filter; the corrected archive uses the original timestamp offsets. Both failures
+remain separate evidence. Final reviews and integration follow; the known History
+lifetime-owner projection issue is the next packet, followed by Summary composition.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
 **Visual direction clarification, 11 October 2026 UTC:** The owner questioned
 why recent images still resemble the earlier layout. Compact Focus is the
-implemented workout composition; Home, Summary and History retain older enclosing
-panels, so the whole-app visual redesign is unfinished. The connected native composition follows the
+prior implemented workout composition. Home is now flat and illustrated; the new
+workout rows are now implemented and verified, while Summary and History retain older enclosing
+panels. The whole-app visual redesign is unfinished. The connected native composition follows the
 [new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
 agenda, two flat editable workout rows, reachable saved-work actions and an
 illustrated Summary ledger. [The overview](studies/q01/assets/temper-flow-concept-2026-10-11.jpg)

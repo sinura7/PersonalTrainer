@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -227,7 +228,7 @@ internal fun WeightRepsEditor(
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
         // Read once here: the Row and Column scopes below cannot see this scope's maxWidth.
         val fullWidth = maxWidth
-        val columnWidth = if (showWeight && !stack) fullWidth / 2 - Metrics.space2 else fullWidth
+        val columnWidth = if (showWeight && !stack && !focused) fullWidth / 2 - Metrics.space2 else fullWidth
         // The largest numeral whose widest sample (a decimal weight with its unit, or a long
         // hold) fits the column: decided from fixed samples, so the size never jumps as the
         // value changes, and a 102.5 lbs never crosses the divider on a narrow phone. Only a
@@ -244,12 +245,12 @@ internal fun WeightRepsEditor(
                 val work = measurer.measure(if (hold) TIME_SAMPLE else REPS_SAMPLE, style = style, softWrap = false).size.width.toDp()
                 maxOf(weight, work)
             }
-            val ramp = if (focused) listOf(InstrumentType.workoutNumeral, InstrumentType.numeralLg)
+            val ramp = if (focused) listOf(InstrumentType.numeralLg)
                 else listOf(InstrumentType.numeralXl, InstrumentType.numeralLg)
             ramp.firstOrNull { widest(it) <= textWidth }
                 ?: InstrumentType.numeralMd
         }
-        if (showWeight && !stack) {
+        if (showWeight && !stack && !focused) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -274,11 +275,11 @@ internal fun WeightRepsEditor(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(WorkoutTestTags.SET_ENTRY),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+                verticalArrangement = Arrangement.spacedBy(if (focused) 0.dp else Metrics.space3),
             ) {
                 if (showWeight) {
                     weightColumn(Modifier.fillMaxWidth(), fullWidth, heroStyle)
-                    HairlineDivider(startIndent = Metrics.space7)
+                    HairlineDivider(startIndent = if (focused) 0.dp else Metrics.space7)
                 }
                 workColumn(Modifier.fillMaxWidth(), fullWidth, heroStyle)
             }
@@ -371,7 +372,16 @@ private fun HeroNumeral(
             }
         }
         val sampleWidth = numeralWidth + unitWidth
-        val inline = sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth
+        val flat = fieldLabel != null
+        val labelWidth = fieldLabel?.let { label ->
+            with(density) {
+                measurer.measure(label, style = InstrumentType.bodyStrong, softWrap = false).size.width.toDp()
+            }
+        } ?: 0.dp
+        val inlineLabel = flat && !LogLoopScale.stackEntryWells(density.fontScale) &&
+            sampleWidth + labelWidth + Metrics.space2 + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth
+        val labelReserve = if (inlineLabel) labelWidth + Metrics.space2 else 0.dp
+        val inline = flat || sampleWidth + (Metrics.stepperRound + Metrics.space2) * 2 <= availableWidth
         // The sample's one line, held by the field whatever size a value is drawn at, so a value
         // that steps down below does not pull the plates beneath it up (ADR-027 decision 7).
         val sampleLine = with(density) { sampleLayout.size.height.toDp() }
@@ -381,6 +391,7 @@ private fun HeroNumeral(
         val numeralRoomPx = with(density) {
             availableWidth.roundToPx() -
                 (if (inline) (Metrics.stepperRound.roundToPx() + Metrics.space2.roundToPx()) * 2 else 0) -
+                labelReserve.roundToPx() -
                 Metrics.space1.roundToPx() * 2 -
                 unitWidth.roundToPx() - 1
         }
@@ -470,18 +481,36 @@ private fun HeroNumeral(
             // adding a second helping only pushed the pair apart.
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            fieldLabel?.let { label ->
+            fieldLabel?.takeIf { !inlineLabel }?.let { label ->
                 Text(
                     label,
                     modifier = Modifier.fillMaxWidth().clearAndSetSemantics { },
                     style = InstrumentType.caption,
                     color = TextSecondary,
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Start,
                 )
             }
             // Focus adds visible field labels. The numeral's own spoken form still names
             // the field, so the decorative label does not create a second focus stop.
-            if (inline) {
+            if (flat) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = Metrics.space1),
+                    horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (inlineLabel) {
+                        Text(
+                            text = checkNotNull(fieldLabel),
+                            modifier = Modifier.width(labelWidth).clearAndSetSemantics { },
+                            style = InstrumentType.bodyStrong,
+                            color = TextSecondary,
+                        )
+                    }
+                    numeral(Modifier.weight(1f))
+                    RoundPlate(label = "−", spoken = decrementSpoken, enabled = enabled, onClick = onDecrement)
+                    RoundPlate(label = "+", spoken = incrementSpoken, enabled = enabled, onClick = onIncrement)
+                }
+            } else if (inline) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
@@ -508,7 +537,7 @@ private fun HeroNumeral(
                     modifier = Modifier.fillMaxWidth(),
                     style = InstrumentType.caption,
                     color = TextTertiary,
-                    textAlign = TextAlign.Center,
+                    textAlign = if (flat) TextAlign.Start else TextAlign.Center,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

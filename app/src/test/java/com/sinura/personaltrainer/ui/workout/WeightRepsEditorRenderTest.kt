@@ -83,6 +83,7 @@ class WeightRepsEditorRenderTest {
         holdRunning: Boolean = false,
         enabled: Boolean = true,
         fontScale: Float = 1f,
+        focused: Boolean = false,
     ) {
         compose.showFloor(fontScale = fontScale) {
             WeightRepsEditor(
@@ -102,6 +103,7 @@ class WeightRepsEditorRenderTest {
                 onWeightKgChange = { weights += it },
                 onRepsChange = { repsSeen += it },
                 onSecondsChange = { seconds += it },
+                focused = focused,
             )
         }
     }
@@ -110,6 +112,55 @@ class WeightRepsEditorRenderTest {
     private fun step(loadType: LoadType, equipment: EquipmentType): String =
         IncrementTable.displayStep(loadType, FLOOR_UNIT, equipment)?.let { WeightConverter.formatDisplayNumber(it) }
             ?: FLOOR_UNIT.stepLabel
+
+    @Test
+    fun flatRowsKeepEachValueAndItsTouchActionsTogether() {
+        val kg = WeightConverter.lbsToKg(102.5)
+        showEditor(weightKg = kg, reps = 100, focused = true)
+        val weight = compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER)
+        val reps = compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER)
+        val weightBounds = weight.getBoundsInRoot()
+        val repsBounds = reps.getBoundsInRoot()
+        assertTrue("the rep row follows the weight row", weightBounds.bottom <= repsBounds.top)
+        assertAnchorHolds(weightBounds, repsBounds)
+        listOf(weight, reps).forEach { it.assertHeightIsAtLeast(Metrics.touchMin) }
+        val step = step(LoadType.EXTERNAL, EquipmentType.MACHINE)
+        listOf("Decrease weight by $step lb", "Increase weight by $step lb", "Decrease reps by 1", "Increase reps by 1").forEach { spoken ->
+            compose.onNodeWithContentDescription(spoken).assertIsDisplayed()
+                .assertHeightIsAtLeast(Metrics.touchMin).assertWidthIsAtLeast(Metrics.touchMin)
+        }
+        compose.onNodeWithContentDescription("Increase weight by $step lb").performClick()
+        compose.onNodeWithContentDescription("Decrease reps by 1").performClick()
+        assertEquals(listOf(FloorStepper.nextWeightKg(kg, FLOOR_UNIT, 1, LoadType.EXTERNAL, EquipmentType.MACHINE)), weights)
+        assertEquals(listOf(99), repsSeen)
+    }
+
+    @Test
+    fun flatRowsAtLargeTextKeepTypedDecimalWeightAndRepsSeparate() {
+        showEditor(focused = true, fontScale = 2f)
+        val weight = compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER)
+        val reps = compose.onNodeWithTag(WorkoutTestTags.REPS_STEPPER)
+        compose.withKeypad(on = weight, value = "82.5")
+        compose.withKeypad(on = reps, value = "12")
+        assertEquals(listOf(checkNotNull(NumericEntry.parseWeightKg("82.5", FLOOR_UNIT))), weights)
+        assertEquals(listOf(12), repsSeen)
+        assertTrue(seconds.isEmpty())
+        assertAnchorHolds(weight.getBoundsInRoot(), reps.getBoundsInRoot())
+    }
+
+    @Test
+    fun flatRunningHoldKeepsItsClockAndRejectsEditing() {
+        showEditor(weightKg = 0.0, reps = 0, loadType = LoadType.BODYWEIGHT,
+            equipment = EquipmentType.BODYWEIGHT, hold = true, holdRunning = true,
+            focused = true, fontScale = 2f)
+        val hold = compose.onNodeWithTag(WorkoutTestTags.HOLD_STEPPER).assertIsNotEnabled()
+        assertEquals(listOf("Hold, ${HoldWork.clock(HOLD_REMAINING)} remaining"), hold.spokenDescriptions())
+        assertTrue(hold.customActionLabels().isEmpty())
+        compose.onNodeWithTag(WorkoutTestTags.WEIGHT_STEPPER).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Increase time by ${HoldWork.STEP_SECONDS} seconds").assertIsNotEnabled()
+        compose.assertTapOpensNoKeypad { hold.performClick() }
+        assertTrue(seconds.isEmpty())
+    }
 
     @Test
     fun eachNumeralOffersDecreaseIncreaseAndTypeToTalkBack() {
