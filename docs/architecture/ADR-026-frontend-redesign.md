@@ -65,4 +65,27 @@ Physical checks remain explicit outstanding acceptance until actually performed.
 - Does Next exercise automatically advance after logging? No; it requires a tap.
 - Can History display all sessions beneath Month-selected totals? No.
 - Can a generated test APK overwrite the owner's Obtainium app? No.
+
+## Amendment — 11 October 2026, compact finish receipt
+
+The owner's approved connected flow concept carries the flat Home agenda and
+workout entry into Summary. Replace the separate hero and metric cards with a
+clear full workout title and a wrapping line of labeled recorded measures. Keep
+the existing headline choice and canonical units: volume, bodyweight repetitions
+or working sets. A mixed session retains its additional bodyweight repetitions;
+a set-count headline is displayed once. Count-up ownership, settled spoken values
+and reduced motion remain intact.
+
+Show the lift breakdown as a flat illustrated ledger with complete names and
+values. Exercise identity still resolves by its exact ID and catalog image key.
+A hold keeps its recorded duration and set count without an empty weight metric;
+this does not invent an aggregate hold duration. Full session remains the route to
+all saved sets and correction. Notes use plain text, personal records retain their
+existing event treatment, and Done and full-session actions remain pinned.
+
+Loading, missing, read failure, confirmed saved work, Retry, retained Summary
+refresh and exit navigation keep their existing rules. This is a presentation
+change, with no calculation, write, schema, backup or public API change. Native
+readability, unit/measure branches and the saved correction journey must pass;
+browser concepts do not establish native or physical-phone acceptance.
 - Does this authorize parallel implementation packets? No.

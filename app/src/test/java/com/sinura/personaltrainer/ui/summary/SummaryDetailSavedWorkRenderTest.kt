@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -49,6 +50,7 @@ import com.sinura.personaltrainer.domain.SummaryCopy
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.domain.WorkoutSummary
+import com.sinura.personaltrainer.domain.WorkoutSummaryBuilder
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.history.FilledLiftCard
@@ -109,6 +111,7 @@ class SummaryDetailSavedWorkRenderTest {
     private val surface = mutableStateOf(Surface.SUMMARY)
     private val controlled = mutableStateOf(WorkoutSummaryUiState())
     private val direction = mutableStateOf(LayoutDirection.Ltr)
+    private val weightUnit = mutableStateOf(WeightUnit.KG)
     private var loadClass by mutableStateOf(LoadClass.LOADED)
     private val done = AtomicInteger(0)
     private val retries = AtomicInteger(0)
@@ -235,6 +238,97 @@ class SummaryDetailSavedWorkRenderTest {
         assertEquals("image lookup is read-only", before, inventory())
     }
 
+    @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
+    fun compactResultsKeepBodyweightMixedAndHoldMeasures() = host.evidence("compact-measures-font20") {
+        host.font = 2f
+        seed()
+        val before = inventory()
+        mount()
+        compose.awaitThat("saved fixture loaded before controlled measure branches", { summaryModel.uiState.value }) {
+            !summaryModel.uiState.value.isLoading && summaryModel.uiState.value.summary.hasWork
+        }
+        val loaded = summaryModel.uiState.value
+        fun catalogExercise(id: String): Exercise {
+            val entry = DefaultExercises.catalog().first { it.id == id }
+            return Exercise(id = entry.id, name = entry.name, muscleGroup = entry.muscleGroup,
+                notes = "", isCustom = false, equipment = entry.equipment, loadType = entry.loadType,
+                movementKey = entry.movementKey, imageKey = entry.imageKey, muscles = entry.credits)
+        }
+        val pushUp = catalogExercise("ex-push-up")
+        val plank = catalogExercise("ex-plank")
+        val originalLift = session.exercises.single()
+        val originalSet = session.sets.single { it.id == WORK_SET_ID }
+        val repsLift = originalLift.copy(id = "measure-reps-lift", exercise = pushUp)
+        val repsSet = originalSet.copy(id = "measure-reps-set", exerciseId = pushUp.id,
+            exerciseName = pushUp.name, weightKg = 0.0, reps = 35)
+        val holdLift = originalLift.copy(id = "measure-hold-lift", exercise = plank,
+            targetReps = 0, targetSeconds = 45)
+        val holdSet = originalSet.copy(id = "measure-hold-set", exerciseId = plank.id,
+            exerciseName = plank.name, weightKg = 0.0, reps = 0, rpe = null, durationSeconds = 45)
+
+        fun show(receiptSession: WorkoutSession) {
+            val receipt = WorkoutSummaryBuilder.build(receiptSession, emptyMap())
+            controlled.value = loaded.copy(summary = receipt,
+                highlightExercises = receiptSession.exercises.associate { it.exercise.id to it.exercise })
+            if (surface.value != Surface.STATE) switchTo(Surface.STATE) else host.drain()
+        }
+
+        show(session.copy(exercises = listOf(repsLift), sets = listOf(repsSet)))
+        assertFact(SummaryTags.WORKING_SETS, "1", SummaryCopy.WORKING_SETS)
+        assertFact(SummaryTags.DURATION, "24 min", SummaryCopy.DURATION)
+        assertFact(SummaryTags.HEADLINE, "35", SummaryCopy.BODYWEIGHT_REPS)
+        assertNoFact(SummaryCopy.TOTAL_VOLUME)
+        compose.onNode(hasContentDescription("Bodyweight reps 35")).assertExists()
+        host.readable(host.words("Top set 35 reps", SummaryTags.lift(pushUp.id)), "Top set 35 reps")
+        host.capture("bodyweight-results")
+
+        show(session.copy(exercises = listOf(originalLift, repsLift), sets = listOf(originalSet, repsSet)))
+        assertFact(SummaryTags.WORKING_SETS, "2", SummaryCopy.WORKING_SETS)
+        assertFact(SummaryTags.HEADLINE, "255 kg", SummaryCopy.TOTAL_VOLUME)
+        assertFact(SummaryTags.BODYWEIGHT_REPS, "35", SummaryCopy.BODYWEIGHT_REPS)
+        host.capture("mixed-results")
+        weightUnit.value = WeightUnit.LBS
+        host.drain()
+        assertFact(SummaryTags.HEADLINE, "562 lb", SummaryCopy.TOTAL_VOLUME)
+        compose.onNode(hasContentDescription("Total volume 562 lb")).assertExists()
+        assertFact(SummaryTags.BODYWEIGHT_REPS, "35", SummaryCopy.BODYWEIGHT_REPS)
+        host.capture("mixed-results-lb")
+
+        show(session.copy(exercises = listOf(holdLift), sets = listOf(holdSet),
+            notes = "Steady breathing throughout the hold."))
+        assertFact(SummaryTags.HEADLINE, "1", SummaryCopy.WORKING_SETS)
+        assertFact(SummaryTags.DURATION, "24 min", SummaryCopy.DURATION)
+        assertEquals("set-count headline is not duplicated", 1, compose.onAllNodes(
+            hasText(SummaryCopy.WORKING_SETS) and hasAnyAncestor(hasTestTag(SummaryTags.FACTS)),
+            useUnmergedTree = true,
+        ).fetchSemanticsNodes().size)
+        assertNoFact(SummaryCopy.TOTAL_VOLUME)
+        assertNoFact(SummaryCopy.BODYWEIGHT_REPS)
+        host.capture("hold-results")
+        compose.onNode(hasContentDescription("Working sets 1")).assertExists()
+        host.readable(host.words("Recorded hold 45s", SummaryTags.lift(plank.id)), "Recorded hold 45s")
+        assertTrue("holds do not receive a fabricated weight metric", compose.onAllNodes(
+            hasText("lb") and hasAnyAncestor(hasTestTag(SummaryTags.lift(plank.id))), useUnmergedTree = true,
+        ).fetchSemanticsNodes().isEmpty())
+        host.readable(host.words("Steady breathing throughout the hold."), "Steady breathing throughout the hold.")
+        host.touch(host.tag(SummaryTags.DONE))
+        assertEquals(1, done.get())
+        host.touch(host.tag(SummaryTags.OPEN_SESSION))
+        assertEquals(listOf(SESSION_ID), openedSessions)
+        assertEquals("measure branches, unit changes and route taps do not write", before, inventory())
+    }
+
+    private fun assertFact(tag: String, value: String, label: String) {
+        host.readable(host.words(value, tag), value)
+        host.readable(host.words(label, tag), label)
+    }
+
+    private fun assertNoFact(label: String) {
+        assertTrue("$label does not replace the recorded measure", compose.onAllNodes(
+            hasText(label) and hasAnyAncestor(hasTestTag(SummaryTags.FACTS)), useUnmergedTree = true,
+        ).fetchSemanticsNodes().isEmpty())
+    }
+
     private fun matrix(name: String, font: Float, layoutDirection: LayoutDirection = LayoutDirection.Ltr) =
         host.evidence(name) {
             host.font = font
@@ -256,6 +350,11 @@ class SummaryDetailSavedWorkRenderTest {
             assertEquals(exercise, loaded.highlightExercises[exercise.id])
             host.readable(host.words(SESSION_NAME), SESSION_NAME)
             host.capture("summary-complete-title")
+            assertFact(SummaryTags.WORKING_SETS, "1", SummaryCopy.WORKING_SETS)
+            assertFact(SummaryTags.DURATION, "24 min", SummaryCopy.DURATION)
+            assertFact(SummaryTags.HEADLINE, "255 kg", SummaryCopy.TOTAL_VOLUME)
+            compose.onNode(hasContentDescription("Total volume 255 kg")).assertExists()
+            host.capture("summary-compact-results")
             host.readable(host.words("2 personal records"), "2 personal records")
             host.readable(host.words("Heaviest ever · Best estimated 1RM"), "Heaviest ever · Best estimated 1RM")
             val recordArt = host.still(SummaryTags.recordArt(exercise.id), ThumbSize.header)
@@ -330,14 +429,14 @@ class SummaryDetailSavedWorkRenderTest {
 
     private fun mount() {
         compose.setContent {
-            CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG, LocalLayoutDirection provides direction.value) {
+            CompositionLocalProvider(LocalWeightUnit provides weightUnit.value, LocalLayoutDirection provides direction.value) {
                 PersonalTrainerTheme(reduceMotion = true) {
                     when (surface.value) {
                         Surface.SUMMARY -> WorkoutSummaryScreen(
                             onDone = { done.incrementAndGet() }, onOpenSession = { openedSessions += it }, viewModel = summaryModel,
                         )
                         Surface.STATE -> WorkoutSummaryContent(
-                            state = controlled.value, unit = WeightUnit.KG,
+                            state = controlled.value, unit = weightUnit.value,
                             onRetry = { retries.incrementAndGet() }, onOpenSession = { openedSessions += it },
                             onDone = { done.incrementAndGet() },
                         )

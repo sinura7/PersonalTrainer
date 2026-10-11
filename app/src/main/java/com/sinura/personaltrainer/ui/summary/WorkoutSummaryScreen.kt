@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
@@ -53,8 +53,6 @@ import com.sinura.personaltrainer.domain.SummaryHeadline
 import com.sinura.personaltrainer.domain.WorkoutSummary
 import com.sinura.personaltrainer.ui.components.EmptyState
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
-import com.sinura.personaltrainer.ui.components.GroupedList
-import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.GymSectionHeader
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.Kicker
@@ -63,11 +61,9 @@ import com.sinura.personaltrainer.ui.components.PinnedDock
 import com.sinura.personaltrainer.ui.components.PrimaryGymButton
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.SecondaryGymButton
-import com.sinura.personaltrainer.ui.components.StatTile
 import com.sinura.personaltrainer.ui.components.ThumbSize
 import com.sinura.personaltrainer.ui.theme.GoldContainer
 import com.sinura.personaltrainer.ui.theme.InstrumentType
-import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Motion
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
@@ -84,18 +80,7 @@ import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.util.Date
 
-/**
- * What the workout amounted to, shown once, immediately after finishing.
- *
- * Finishing used to pop silently back to Home. The app knew a session had just set two
- * personal bests and said nothing about it — spending the one moment it has the lifter's full
- * attention on a screen transition.
- *
- * It then spent that moment on a titled page of interchangeable cards whose headline numbers
- * were set *smaller* than the stepper numerals from the workout it was summarising. There is
- * no top bar here at all: the session's one number leads, the two supporting ones flank it,
- * and records are the only thing on the screen allowed to look like an event.
- */
+/** A compact receipt of saved work, with matching exercise identity and pinned exit actions. */
 @Composable
 fun WorkoutSummaryScreen(
     onDone: () -> Unit,
@@ -190,62 +175,10 @@ internal fun WorkoutSummaryContent(
                     ),
                     verticalArrangement = Arrangement.spacedBy(Metrics.space4),
                 ) {
-                    item(key = "hero") { SummaryHero(summary = summary, unit = unit) }
-
-                    item(key = "tiles") {
-                        val stack = LogLoopScale.stackTiles(LocalDensity.current.fontScale)
-                        // A mixed day leads with kilograms; its bodyweight reps are real work
-                        // too and get a tile rather than vanishing into the hero's rounding.
-                        val repsTile = summary.bodyweightReps
-                            .takeIf { it > 0 && summary.headline is SummaryHeadline.Volume }
-                        if (stack) {
-                            Column(verticalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
-                                StatTile(
-                                    label = SummaryCopy.WORKING_SETS,
-                                    value = summary.workingSets.toString(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    valueColor = TextPrimary,
-                                )
-                                if (repsTile != null) {
-                                    StatTile(
-                                        label = SummaryCopy.BODYWEIGHT_REPS,
-                                        value = repsTile.toString(),
-                                        modifier = Modifier.fillMaxWidth(),
-                                        valueColor = TextPrimary,
-                                    )
-                                }
-                                StatTile(
-                                    label = SummaryCopy.DURATION,
-                                    value = summary.durationMinutes.toString(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    unit = "min",
-                                    valueColor = TextPrimary,
-                                )
-                            }
-                        } else {
-                            Row(horizontalArrangement = Arrangement.spacedBy(Metrics.cardGap)) {
-                                StatTile(
-                                    label = SummaryCopy.WORKING_SETS,
-                                    value = summary.workingSets.toString(),
-                                    modifier = Modifier.weight(1f),
-                                    valueColor = TextPrimary,
-                                )
-                                if (repsTile != null) {
-                                    StatTile(
-                                        label = SummaryCopy.BODYWEIGHT_REPS,
-                                        value = repsTile.toString(),
-                                        modifier = Modifier.weight(1f),
-                                        valueColor = TextPrimary,
-                                    )
-                                }
-                                StatTile(
-                                    label = SummaryCopy.DURATION,
-                                    value = summary.durationMinutes.toString(),
-                                    modifier = Modifier.weight(1f),
-                                    unit = "min",
-                                    valueColor = TextPrimary,
-                                )
-                            }
+                    item(key = "receipt") {
+                        Column(verticalArrangement = Arrangement.spacedBy(Metrics.space4)) {
+                            SummaryHeading(summary)
+                            SummaryFacts(summary, unit)
                         }
                     }
 
@@ -267,7 +200,8 @@ internal fun WorkoutSummaryContent(
 
                     if (summary.notes.isNotBlank()) {
                         item(key = "notes") {
-                            GymCard {
+                            Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                                HairlineDivider(startIndent = 0.dp)
                                 Kicker("Notes")
                                 Text(summary.notes, style = InstrumentType.body, color = TextSecondary)
                             }
@@ -297,21 +231,25 @@ internal fun WorkoutSummaryContent(
     }
 }
 
-/**
- * The session as one number.
- *
- * The count-up is deliberately gated on a saveable flag rather than played whenever this
- * composes: a rotation, a theme change or a process-death restore would otherwise replay the
- * celebration, which turns a reward into a glitch. Tabular figures do the rest — the digits
- * settle in place instead of jittering the layout on every frame.
- */
 @Composable
-private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
+private fun SummaryHeading(summary: WorkoutSummary) {
     val dateLabel = remember(summary.performedAtMs) {
         DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(summary.performedAtMs))
     }
-    // The hero is the measure the session was made of — kilograms, or reps, or sets — so a
-    // set of push-ups is never announced as "0 kg". See WorkoutSummary.headline.
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+        Kicker(SummaryCopy.COMPLETE)
+        Text(summary.title, style = InstrumentType.display, color = TextPrimary)
+        Text(dateLabel, style = InstrumentType.caption, color = TextTertiary)
+    }
+}
+
+/**
+ * The same recorded measures in a wrapping result line. Each fact owns its label and
+ * settled spoken value; the count-up uses the existing reduced-motion policy and does
+ * not replay simply because the receipt recomposes or its activity is recreated.
+ */
+@Composable
+private fun SummaryFacts(summary: WorkoutSummary, unit: WeightUnit) {
     val headline = summary.headline
     val target = remember(headline, unit) {
         when (headline) {
@@ -320,17 +258,18 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
             is SummaryHeadline.WorkingSets -> headline.count
         }
     }
-    val heroUnit: String? = when (headline) {
-        is SummaryHeadline.Volume -> unit.suffix
-        is SummaryHeadline.BodyweightReps -> null
-        is SummaryHeadline.WorkingSets -> null
-    }
-    val heroLabel = when (headline) {
+    val headlineLabel = when (headline) {
         is SummaryHeadline.Volume -> SummaryCopy.TOTAL_VOLUME
         is SummaryHeadline.BodyweightReps -> SummaryCopy.BODYWEIGHT_REPS
         is SummaryHeadline.WorkingSets -> SummaryCopy.WORKING_SETS
     }
-
+    val finalLabel = remember(headline, unit) {
+        when (headline) {
+            is SummaryHeadline.Volume -> WeightConverter.formatVolumeLabel(headline.kg, unit)
+            is SummaryHeadline.BodyweightReps -> headline.reps.toString()
+            is SummaryHeadline.WorkingSets -> headline.count.toString()
+        }
+    }
     var played by rememberSaveable { mutableStateOf(false) }
     var counting by remember { mutableStateOf(played) }
     LaunchedEffect(Unit) {
@@ -342,54 +281,38 @@ private fun SummaryHero(summary: WorkoutSummary, unit: WeightUnit) {
         animationSpec = instrumentTween(Motion.DRAW),
         label = "summary-volume",
     )
+    val headlineValue = com.sinura.personaltrainer.util.QuantityFormat.formatGroupedNumber(shown.toDouble()) +
+        if (headline is SummaryHeadline.Volume) " ${unit.suffix}" else ""
 
-    val finalLabel = remember(headline, unit) {
-        when (headline) {
-            is SummaryHeadline.Volume -> WeightConverter.formatVolumeLabel(headline.kg, unit)
-            is SummaryHeadline.BodyweightReps -> "${headline.reps} bodyweight reps"
-            is SummaryHeadline.WorkingSets -> "${headline.count} working sets"
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().testTag(SummaryTags.FACTS),
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
+        maxItemsInEachRow = 3,
+    ) {
+        if (headline is SummaryHeadline.WorkingSets) {
+            SummaryFact(headlineLabel, headlineValue, SummaryTags.HEADLINE, "$headlineLabel $finalLabel")
+        } else {
+            SummaryFact(SummaryCopy.WORKING_SETS, summary.workingSets.toString(), SummaryTags.WORKING_SETS)
+        }
+        SummaryFact(SummaryCopy.DURATION, "${summary.durationMinutes} min", SummaryTags.DURATION)
+        if (headline !is SummaryHeadline.WorkingSets) {
+            SummaryFact(headlineLabel, headlineValue, SummaryTags.HEADLINE, "$headlineLabel $finalLabel")
+        }
+        if (headline is SummaryHeadline.Volume && summary.bodyweightReps > 0) {
+            SummaryFact(SummaryCopy.BODYWEIGHT_REPS, summary.bodyweightReps.toString(), SummaryTags.BODYWEIGHT_REPS)
         }
     }
+}
 
-    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        Kicker(SummaryCopy.COMPLETE)
-        Text(
-            summary.title,
-            style = InstrumentType.title,
-            color = TextPrimary,
-        )
-        Text(dateLabel, style = InstrumentType.caption, color = TextTertiary)
-        Column(
-            modifier = Modifier
-                .padding(top = Metrics.space5)
-                // One node for the whole readout, holding the settled value: a screen reader
-                // must never be handed a number that is still counting.
-                .semantics(mergeDescendants = true) {
-                    contentDescription = "$heroLabel $finalLabel"
-                },
-            verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-        ) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    com.sinura.personaltrainer.util.QuantityFormat.formatGroupedNumber(shown.toDouble()),
-                    modifier = Modifier.alignByBaseline(),
-                    style = InstrumentType.numeralXl,
-                    color = TextPrimary,
-                    maxLines = 1,
-                )
-                if (heroUnit != null) {
-                    Text(
-                        heroUnit,
-                        modifier = Modifier
-                            .alignByBaseline()
-                            .padding(start = Metrics.space2),
-                        style = InstrumentType.unit,
-                        color = TextSecondary,
-                    )
-                }
-            }
-            Kicker(heroLabel, color = TextTertiary)
-        }
+@Composable
+private fun SummaryFact(label: String, value: String, tag: String, spoken: String = "$label $value") {
+    Column(
+        modifier = Modifier.testTag(tag).semantics(mergeDescendants = true) { contentDescription = spoken },
+        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+    ) {
+        Text(value, style = InstrumentType.numeralMd, color = TextPrimary)
+        Text(label, style = InstrumentType.caption, color = TextTertiary)
     }
 }
 
@@ -526,12 +449,12 @@ private fun PersonalRecordPanel(
  */
 @Composable
 private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit, exercises: Map<String, Exercise>) {
-    GroupedList {
+    Column {
         summary.highlights.forEachIndexed { index, highlight ->
-            if (index > 0) HairlineDivider()
+            if (index > 0) HairlineDivider(startIndent = 0.dp)
             Column(
                 modifier = Modifier.fillMaxWidth().testTag(SummaryTags.lift(highlight.exerciseId))
-                    .padding(Metrics.space3),
+                    .padding(vertical = Metrics.space3),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
                 SummaryLiftIdentity(highlight, exercises, artTag = SummaryTags.art(highlight.exerciseId))
@@ -562,7 +485,9 @@ private fun LiftBreakdown(summary: WorkoutSummary, unit: WeightUnit, exercises: 
                 val column = SetCopy.workColumn(highlight.work, unit)
                 Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space3)) {
                     ReceiptMetric(highlight.workingSets.toString(), "sets", Modifier.weight(1f))
-                    ReceiptMetric(column.value, column.label, Modifier.weight(1f))
+                    if (highlight.volumeKg > 0.0 || highlight.bodyweightReps > 0) {
+                        ReceiptMetric(column.value, column.label, Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -638,6 +563,11 @@ internal fun SummaryActions(onDone: () -> Unit, onOpenSession: () -> Unit) {
 
 object SummaryTags {
     const val CONTENT = "summary-content"
+    const val FACTS = "summary-facts"
+    const val WORKING_SETS = "summary-working-sets"
+    const val DURATION = "summary-duration"
+    const val HEADLINE = "summary-headline"
+    const val BODYWEIGHT_REPS = "summary-bodyweight-reps"
     const val DONE = "summary-done"
     const val OPEN_SESSION = "summary-open-session"
     const val RETRY = "summary-retry"
