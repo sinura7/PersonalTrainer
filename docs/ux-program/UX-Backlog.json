@@ -304,7 +304,7 @@
         "R06"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Existing receipt/error states integrated through #467; acknowledged same-session correction refresh and literal hold readback implemented in f1156f4b, complete gate/reviews pending. Phone acceptance remains open.",
+      "status": "Existing receipt/error states integrated through #467; acknowledged same-session correction refresh and literal hold readback in f1156f4b passed the complete local gate (4,216 fresh app / 1,707 standalone, builds/lint/test APK). Current PR records final reviews/integration. Phone acceptance remains open.",
       "fixtures": [
         "F03",
         "F08"
@@ -842,7 +842,7 @@
         "R08"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Exercise History exact values/dates, truthful units, comparison/scale labels and sparse readouts implemented in f1156f4b; complete gate/reviews pending. Other app charts and phone acceptance remain open.",
+      "status": "Exercise History exact values/dates, truthful units, comparison/scale labels and sparse readouts in f1156f4b passed the complete local gate and native matrix. Current PR records final reviews/integration. Other app charts and phone acceptance remain open.",
       "fixtures": [
         "F05",
         "F10"
@@ -1832,7 +1832,7 @@
         "UX05"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Identity and safe historical set editing/recovery integrated through #467–#470; literal hold Summary/History readback implemented in f1156f4b, complete gate/reviews pending. Typed-activity capability matrix and broader journeys remain open.",
+      "status": "Identity and safe historical set editing/recovery integrated through #467–#470; literal hold Summary/History readback in f1156f4b passed the complete local gate and real AppNav correction journey. Current PR records final reviews/integration. Typed-activity capability matrix and broader journeys remain open.",
       "fixtures": [
         "F05",
         "F08",

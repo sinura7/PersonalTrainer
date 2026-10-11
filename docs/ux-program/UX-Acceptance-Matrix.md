@@ -3,11 +3,16 @@
 **Current development, 11 October 2026 UTC:** Shared lift selection is integrated
 through [PR #480](https://github.com/sinura7/PersonalTrainer/pull/480). The active
 single packet is corrected Summary receipts and exact exercise History readouts,
-`f1156f4b` on `codex/summary-history-clarity` (UX05/UX16/UX29). Its complete gate
-and final runtime reviews are pending. The first complete attempt ran 4,216 fresh
+`f1156f4b` on `codex/summary-history-clarity` (UX05/UX16/UX29). Its corrected
+complete local gate passed 4,216 fresh app tests / 588 suites and 1,707 standalone
+tests / 256 classes, plus Debug/release builds, lint and test APK assembly, with
+unchanged inputs. Native trend, literal-hold and actual AppNav correction renders
+are archived; final review and integration receipts accompany the PR. The first complete attempt ran 4,216 fresh
 app tests and 1,707 standalone tests successfully, then failed the chart-sheet
 window-sizing lint check. That source cause is fixed; the original failed receipt
-is retained. The next bounded packet is Home start-date
+is retained as a failed attempt. Actual AppNav verifies correction, return to
+the same refreshed Summary and Activity reconstruction; arbitrary OS process
+death and physical-phone acceptance remain unobserved. The next bounded packet is Home start-date
 clarity and keeping the start surface visible until its outcome. Existing Home
 read recovery, week geometry, History periods and Plan/routine packets are retained.
 Earlier dated snapshots below keep their original evidence boundaries; a stale
