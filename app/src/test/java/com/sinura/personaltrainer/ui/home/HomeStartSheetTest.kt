@@ -13,8 +13,10 @@ class HomeStartSheetTest {
     @Test
     fun emptyHomeHasStartAWorkoutAndNoAddRow() {
         val agenda = readOwned("ui/home/DailyAgendaCard.kt")
-        assertTrue(agenda.contains("HomeTags.START"))
-        assertTrue(agenda.contains("SessionOrderCopy.FREE_WORKOUT"))
+        val action = readOwned("ui/home/HomeBoardLayout.kt")
+        assertTrue(agenda.contains("HomeStartAction("))
+        assertTrue(action.contains("HomeTags.START"))
+        assertTrue(action.contains("SessionOrderCopy.FREE_WORKOUT"))
         assertTrue(agenda.contains("HomeStartCopy.EMPTY_BODY"))
         assertFalse(agenda.contains("AddUnderTodayRow"))
         assertFalse(agenda.contains("DayAddPicker"))

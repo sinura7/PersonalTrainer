@@ -3,14 +3,12 @@ package com.sinura.personaltrainer.ui.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,14 +23,12 @@ import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
@@ -66,7 +62,6 @@ import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeekStrip
 import com.sinura.personaltrainer.ui.components.rememberWeekStripState
 import com.sinura.personaltrainer.ui.theme.InstrumentType
-import com.sinura.personaltrainer.ui.theme.LogLoopScale
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -608,15 +603,22 @@ fun HomeScreen(
         )
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().testTag(HomeTags.BOARD),
-        contentPadding = PaddingValues(
-            start = Metrics.gutter,
-            end = Metrics.gutter,
-            top = Metrics.space4,
-            bottom = Metrics.space8,
+    val daySurface = HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen, offPlanLogged)
+    val trainingToday = leftoverDay?.takeUnless { it.isRest } != null
+    val openStartSheet = {
+        if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+            startSheetRequestId = UUID.randomUUID().toString()
+            startSheet = true
+        }
+    }
+    HomeBoardLayout(
+        startRank = homeStartRank(
+            surface = daySurface, sessionLive = sessionLive,
+            quietStart = state.missedWorkPrompt, trainingToday = trainingToday,
+            hasPlan = trainingToday || nextDay != null, loggedToday = loggedSelected,
+            setupComplete = state.setupComplete,
         ),
-        verticalArrangement = Arrangement.spacedBy(Metrics.sectionGap),
+        onStartFree = openStartSheet,
     ) {
         if (state.readProblem != null) {
             item(key = "home-read-recovery") {
@@ -650,6 +652,7 @@ fun HomeScreen(
                     selected = selectedEpochDay,
                     onSelectDay = { if (viewModel.canEditStartChoice()) selectedEpochDay = it },
                     stripState = weekStripState,
+                    flat = true,
                 )
             }
         }
@@ -727,7 +730,7 @@ fun HomeScreen(
         }
         item(key = "home-day-board") {
             Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-                when (HomeToday.surface(selectedAgenda, leftoverBelongs, stillOpen, offPlanLogged)) {
+                when (daySurface) {
                     HomeToday.Surface.AGENDA -> DailyAgendaCard(
                         items = selectedAgenda,
                         sessionLive = sessionLive,
@@ -741,12 +744,8 @@ fun HomeScreen(
                                 plannedStartPending = HomePlannedStart(requestId = UUID.randomUUID().toString(), occurrenceId = id)
                             }
                         },
-                        onStartFree = {
-                            if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
-                                startSheetRequestId = UUID.randomUUID().toString()
-                                startSheet = true
-                            }
-                        },
+                        onStartFree = openStartSheet,
+                        showStartAction = false,
                         routines = state.routines,
                         kicker = dayKicker,
                         stillOpen = stillOpen,
@@ -789,12 +788,8 @@ fun HomeScreen(
                                 }
                             }
                         },
-                        onStartFree = {
-                            if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
-                                startSheetRequestId = UUID.randomUUID().toString()
-                                startSheet = true
-                            }
-                        },
+                        onStartFree = openStartSheet,
+                        showStartAction = false,
                         onOpenPlan = onOpenPlan,
                     )
                 }
@@ -1065,13 +1060,13 @@ internal fun HomeMasthead(
             }
         }
         Text(
-            headline,
+            text = if (epochDay == LocalTodayEpochDay.current) "Your day." else
+                "${com.sinura.personaltrainer.domain.Weekday.fromEpochDay(epochDay).titleLabel()}.",
             modifier = Modifier.semantics { heading() },
             style = InstrumentType.display,
             color = TextPrimary,
-            maxLines = LogLoopScale.headlineLines(LocalDensity.current.fontScale),
-            overflow = TextOverflow.Ellipsis,
         )
+        Text(text = headline, style = InstrumentType.caption, color = TextSecondary)
     }
 }
 

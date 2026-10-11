@@ -163,6 +163,7 @@ fun WeekStrip(
     modifier: Modifier = Modifier,
     proposals: Map<Long, SuggestedTrainingDay> = emptyMap(),
     stripState: WeekStripState = rememberWeekStripState(),
+    flat: Boolean = false,
 ) {
     val density = LocalDensity.current
     val direction = LocalLayoutDirection.current
@@ -252,6 +253,7 @@ fun WeekStrip(
                         isToday = cell.epochDay == today,
                         selected = cell.epochDay == selected,
                         onClick = { onSelectDay(cell.epochDay) },
+                        flat = flat,
                         modifier = Modifier
                             .width(with(density) { cellWidthPx.toDp() })
                             .fillMaxHeight()
@@ -278,6 +280,7 @@ private fun WeekCell(
     isToday: Boolean,
     selected: Boolean,
     onClick: () -> Unit,
+    flat: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val dayOfMonth = remember(cell.epochDay) { CivilDate.fromEpochDay(cell.epochDay).dayOfMonth }
@@ -300,10 +303,11 @@ private fun WeekCell(
         cell.fill == DayFill.PARTIAL -> Warn
         else -> TextSecondary
     }
+    val surface = if (flat) modifier else modifier
+        .clip(RoundedCornerShape(Radius.sm))
+        .background(if (selected) SurfacePressed else Surface2)
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(Radius.sm))
-            .background(if (selected) SurfacePressed else Surface2)
+        modifier = surface
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .heightIn(min = Metrics.touchMin)
             .padding(horizontal = Metrics.space2, vertical = Metrics.space1)
@@ -363,8 +367,12 @@ private fun WeekCell(
                 tint = TextSecondary,
                 modifier = Modifier.size(LOGGED_TICK),
             )
-        } else {
+        } else if (!flat) {
             Box(modifier = Modifier.size(LOGGED_TICK))
+        }
+        if (flat) {
+            Box(Modifier.fillMaxWidth().height(Metrics.hairline)
+                .background(if (selected) HairlineStrong else Color.Transparent))
         }
     }
 }

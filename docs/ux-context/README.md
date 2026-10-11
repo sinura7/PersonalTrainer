@@ -2,38 +2,37 @@
 
 **Created:** 8 October 2026
 
-**Current implementation, 11 October 2026 UTC:** Compact Focus and subsequent
-work are integrated through #481. Corrected Summary receipts and literal exercise
-History readouts (`f1156f4b`) passed the complete local gate: 4,216 fresh app tests,
-1,707 standalone checks, builds, lint and test APK assembly. Current packet review
-and integration are recorded in [PR #481](https://github.com/sinura7/PersonalTrainer/pull/481).
-Home start clarity and acknowledged start recovery are the active packet:
-retain the chosen start through saving/failure, show Starts now, and retry the
-same command after acknowledged relocation or discard. The prior-copy targeted07 run passed 189 fresh checks / 15 suites; native
-start/recovery profiles passed with stable source. Review then found that the
-generic repository start error misdescribed an insert failure as a read failure;
-Home now uses neutral start-failure copy, with an explicit native assertion.
-Candidate `3841721` passed the complete local gate (4,265 fresh app tests and
-1,707 standalone tests), native renders and both final reviews. PR #482's
-required pull-request job passed, but its same-head push job caught a routine
-editor fixture reading the intermediate Retry projection before the editor error
-cleared. The bounded wait now requires the complete recovered state; assertions
-still require a clear error and exactly the intended saved lift. The original
-failure is preserved. The corrected candidate `b9f13fa0` passed `full02`:
-4,265 fresh app tests / 591 suites and 1,707 standalone tests, zero failures,
-errors or skips, builds, lint and test-APK assembly. Both delta reviews accepted
-the fixture correction. The following concept-only update normalizes HTML line
-endings and adds the short-screen preview; app and verification inputs are
-unchanged. Updated hosted verification and integration remain pending.
-Older dated entries below retain their historical scope;
-physical-phone acceptance and the wider roadmap remain open. No new Debug drop
-has been published.
+**Current implementation, 11 October 2026 UTC:** Home start recovery is
+integrated through [PR #482](https://github.com/sinura7/PersonalTrainer/pull/482)
+as `9d148ea5`. Both pinned reviews and updated hosted checks passed. Clean-trunk
+verification proved unchanged inputs and reused the preserved successful 4,265
+app / 1,707 standalone results; the affected start ownership and connected
+workout journey then passed **10 fresh tests**, with no failures, errors or skips.
+The retired feature branch is recoverable from its verified bundle.
+
+The active native Home composition packet implements the flat illustrated agenda,
+full exercise names, quieter day masthead, flat dated targets, planned Start
+beside the routine and anchored general Start. It retains the start sheet, confirmations,
+one-filled-action priority, live return bar and recovery ownership. The new app
+code and fixtures passed the complete `full01` local gate at `cff5ceba`:
+**4,279 fresh app tests / 592 suites, 1,707 standalone tests / 256 classes**,
+builds and lint, with no failures, errors or skips. This includes 13 native display
+profiles and actual Home → confirmed named routine → saved session records.
+[The actual native Home preview](studies/q01/assets/home-agenda-2026-10-11.png)
+uses synthetic Room data and real navigation. Its flat dates, matching catalog
+illustrations, wrapped full names and anchored Start belong to this candidate.
+The 53 native captures are archived with hashes; earlier failures remain preserved.
+One device-fixture assertion has been corrected to the new visible “Start” copy
+while retaining its semantic checks. Final compilation, pinned reviews and
+integration of that bounded follow-up remain pending.
+Workout and Summary composition follow as separate native packets.
+Older dated entries below retain their historical scope. Physical-phone
+acceptance and the wider roadmap remain open; no new Debug drop is published.
 
 **Visual direction clarification, 11 October 2026 UTC:** The owner questioned
 why recent images still resemble the earlier layout. Compact Focus is the
 implemented workout composition; Home, Summary and History retain older enclosing
-panels, so the whole-app visual redesign is unfinished. After this bounded Home
-recovery packet, the next native packet follows the
+panels, so the whole-app visual redesign is unfinished. The connected native composition follows the
 [new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
 agenda, two flat editable workout rows, reachable saved-work actions and an
 illustrated Summary ledger. [The overview](studies/q01/assets/temper-flow-concept-2026-10-11.jpg)

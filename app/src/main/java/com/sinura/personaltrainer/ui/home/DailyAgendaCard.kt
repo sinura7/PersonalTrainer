@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.FreeStartRank
 import com.sinura.personaltrainer.domain.AuxiliaryPacks
 import com.sinura.personaltrainer.domain.DailyAgenda
 import com.sinura.personaltrainer.domain.HomeStartCopy
@@ -39,8 +40,6 @@ import com.sinura.personaltrainer.domain.sessionLifts
 import com.sinura.personaltrainer.domain.sessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -55,7 +54,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
  * Extra). Plan still adds sessions. Still open leftovers can skip (ADR-021).
  *
  * Each session is its own [DayBlock] — still beside number and name,
- * estimate, Start on the foot — rather than a row in one grouped list: a
+ * estimate, Start beside the title — with rules between sessions: a
  * day's sessions are separate things, and the block is the control
  * (ADR-021 §1).
  */
@@ -84,6 +83,7 @@ fun DailyAgendaCard(
     recoveryContent: (@Composable () -> Unit)? = null,
     /** Home owns its modal outside the virtualized board; standalone callers stay local. */
     onOpenStartConfirm: ((String) -> Unit)? = null,
+    showStartAction: Boolean = true,
 ) {
     val catalog = items + stillOpen
     var pendingOccurrenceId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -231,25 +231,11 @@ fun DailyAgendaCard(
                 style = InstrumentType.body,
                 color = TextPrimary,
             )
-        } else {
-            val startModifier = Modifier
-                .testTag(HomeTags.START)
-                .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT }
-            if (quietStart) {
-                SecondaryGymButton(
-                    text = SessionOrderCopy.FREE_WORKOUT,
-                    onClick = onStartFree,
-                    modifier = startModifier,
-                    height = Metrics.touchMin,
-                )
-            } else {
-                PrimaryGymButton(
-                    text = SessionOrderCopy.FREE_WORKOUT,
-                    onClick = onStartFree,
-                    modifier = startModifier,
-                    height = Metrics.touchMin,
-                )
-            }
+        } else if (showStartAction) {
+            HomeStartAction(
+                rank = if (quietStart) FreeStartRank.SECONDARY else FreeStartRank.PRIMARY,
+                onStartFree = onStartFree,
+            )
         }
     }
 }
