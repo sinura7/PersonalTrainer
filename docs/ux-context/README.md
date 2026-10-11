@@ -19,7 +19,12 @@ required pull-request job passed, but its same-head push job caught a routine
 editor fixture reading the intermediate Retry projection before the editor error
 cleared. The bounded wait now requires the complete recovered state; assertions
 still require a clear error and exactly the intended saved lift. The original
-failure is preserved; the updated candidate awaits verification and integration.
+failure is preserved. The corrected candidate `b9f13fa0` passed `full02`:
+4,265 fresh app tests / 591 suites and 1,707 standalone tests, zero failures,
+errors or skips, builds, lint and test-APK assembly. Both delta reviews accepted
+the fixture correction. The following concept-only update normalizes HTML line
+endings and adds the short-screen preview; app and verification inputs are
+unchanged. Updated hosted verification and integration remain pending.
 Older dated entries below retain their historical scope;
 physical-phone acceptance and the wider roadmap remain open. No new Debug drop
 has been published.
@@ -35,7 +40,10 @@ illustrated Summary ledger. [The overview](studies/q01/assets/temper-flow-concep
 shows all three layouts as proposals. The browser example retains exact entry on
 failure, retries once, corrects saved work separately, applies Tempo only to the
 draft and confirms early finish. These interactions use synthetic browser memory;
-they do not establish native or phone acceptance. Full History calendar/progress
+they do not establish native or phone acceptance. The 360 × 640 concept keeps
+entry, all five effort choices and the 72 px Log action visible, with 48 px effort
+controls; saved-set correction remains reachable by scrolling. The week picker
+scrolls to preserve its 48 px targets. Full History calendar/progress
 and the other activity types remain in scope. Mechanical recovery evidence does
 not close the visual work. Preserve the accepted Instrument identity and navigation.
 
