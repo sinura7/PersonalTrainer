@@ -179,6 +179,7 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
         }
         assertWords(reachTag(HistoryTags.PROGRESS_LOADING), HistoryCopy.PROGRESS_LOADING)
         assertFalse(readoutSpoken().contains("0 PRs"))
+        compose.onNodeWithTag(HistoryTags.RECORD_COUNT).assertDoesNotExist()
         capture("held-progress")
         failProgress = true
         holdProgress = false
@@ -188,6 +189,7 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
         }
         assertWords(reachTag(HistoryTags.PROGRESS_FAILED), HistoryCopy.PROGRESS_FAILED)
         assertFalse(readoutSpoken().contains("0 PRs"))
+        compose.onNodeWithTag(HistoryTags.RECORD_COUNT).assertDoesNotExist()
         val selected = history.uiState.value.selection
         capture("failed-progress")
         failProgress = false
@@ -468,7 +470,13 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
         for (horizon in AnalyticsHorizon.entries) {
             val chip = reachTag(HistoryTags.horizon(horizon))
             assertTarget(chip, Role.RadioButton)
+            assertEquals("the selected period is explicit", horizon == history.uiState.value.horizon,
+                chip.fetchSemanticsNode().config[SemanticsProperties.Selected])
             assertWords(wordsInside(HistoryTags.horizon(horizon), horizon.label), horizon.label)
+        }
+        if (scale == 1f) {
+            val rows = AnalyticsHorizon.entries.map { findTag(HistoryTags.horizon(it)).fetchSemanticsNode().boundsInWindow.top }
+            assertEquals("normal text keeps all five complete periods on one line", rows.min(), rows.max(), .5f)
         }
         for ((tag, label) in listOf(HistoryTags.PREVIOUS to "Previous", HistoryTags.NEXT to "Next", HistoryTags.CURRENT to "Current")) {
             assertTarget(reachTag(tag))
@@ -476,6 +484,7 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
         }
         assertTrue("next current period is disabled", reachTag(HistoryTags.NEXT).fetchSemanticsNode().config.contains(SemanticsProperties.Disabled))
         assertRange()
+        capture("history-compact-results")
         assertLifetimeViews()
         tapDay(day(10))
         assertScoped(setOf(HistoryKind.ACTIVITY to HistoryPeriodTestHost.CURRENT_ID))
@@ -739,7 +748,24 @@ open class HistoryPeriodTestHost {
         val spoken = readoutSpoken()
         assertTrue(spoken.contains(expected))
         assertTrue(spoken.contains("days") && spoken.contains("sets"))
-        assertTrue(spoken.contains(HistoryCopy.activeDuration(history.uiState.value.horizonTotals!!.activeMinutes)))
+        val totals = checkNotNull(history.uiState.value.horizonTotals)
+        assertTrue(spoken.contains(HistoryCopy.activeDuration(totals.activeMinutes)))
+        for ((tag, value, label) in listOf(
+            Triple(HistoryTags.SESSION_COUNT, totals.sessionCount.toString(), HistoryCopy.sessionsLabel(totals.sessionCount)),
+            Triple(HistoryTags.TRAINED_DAYS, totals.trainedDays.toString(), "days"),
+            Triple(HistoryTags.WORKING_SETS, totals.workingSets.toString(), "sets"),
+            Triple(HistoryTags.ACTIVE_TIME, HistoryCopy.activeDuration(totals.activeMinutes), "active time"),
+        )) {
+            assertWords(wordsInside(tag, value), value)
+            assertWords(wordsInside(tag, label), label)
+        }
+        val current = history.uiState.value
+        val progress = current.horizonProgress
+        if (!current.progressLoading && !current.progressFailed && progress != null) {
+            val count = progress.recordsBroken.toString()
+            assertWords(wordsInside(HistoryTags.RECORD_COUNT, count), count)
+            assertWords(wordsInside(HistoryTags.RECORD_COUNT, "PRs"), "PRs")
+        } else compose.onNodeWithTag(HistoryTags.RECORD_COUNT).assertDoesNotExist()
     }
     fun readoutSpoken() = findTag(HistoryTags.READOUT).fetchSemanticsNode()
         .config[SemanticsProperties.ContentDescription].joinToString()
