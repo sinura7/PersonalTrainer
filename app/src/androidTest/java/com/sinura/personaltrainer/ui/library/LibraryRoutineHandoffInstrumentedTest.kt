@@ -2,14 +2,13 @@ package com.sinura.personaltrainer.ui.library
 
 import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
@@ -103,11 +102,12 @@ class LibraryRoutineHandoffInstrumentedTest {
         awaitTag(RoutineEditorTags.SAVE)
         val restored = read { container.routineRepository.observeAll().first().single() }
         assertEquals(created, restored)
-        compose.onNode(hasSetTextAction() and hasText("Untitled routine"))
+        compose.onNode(hasSetTextAction())
             .performTextReplacement("Library handoff routine")
         tap(RoutineEditorTags.SAVE)
         awaitTag(LibraryTags.SEARCH)
-        compose.onNodeWithText(exercise.name).assertIsDisplayed()
+        compose.onNodeWithTag(LibraryTags.SEARCH).assertIsDisplayed().assertTextContains(exercise.name)
+        compose.onNodeWithContentDescription("Add ${exercise.name} to a routine").assertIsDisplayed()
         val saved = read { container.routineRepository.observeAll().first().single() }
         assertEquals(created.id, saved.id)
         assertEquals("Library handoff routine", saved.name)

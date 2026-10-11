@@ -274,6 +274,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private fun prepareInitialExercise(): Deferred<Unit>? {
         val exerciseId = initialExerciseId ?: return null
         if (savedStateHandle.get<Boolean>(KEY_INITIAL_EXERCISE_ADDED) == true) return null
+        val started = error.mark()
         initialExerciseUnavailable = false
         return registerWrite(viewModelScope.async(start = CoroutineStart.LAZY) {
             pickWrites.withLock {
@@ -303,6 +304,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
                 }
                 // Once consumed, removing this lift in the editor must survive recreation too.
                 savedStateHandle[KEY_INITIAL_EXERCISE_ADDED] = true
+                error.clearFrom(source = ERR_ROUTINE, before = started)
             }
         })
     }

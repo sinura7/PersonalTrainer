@@ -167,6 +167,21 @@ class RoutineEditorViewModelTest {
     }
 
     @Test
+    fun failedLibraryRoutineCreationRetriesWithoutAnObsoleteError() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val gate = FailureGate(shouldFail = true)
+        val dao = FailingCreateDao(deps.database.routineDao(), gate)
+        val vm = createViewModel("new", withRoutineDao(dao), selectedExerciseHandle(exercise.id))
+        vm.awaitState { it.failed }
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+        gate.shouldFail = false
+        vm.retryHydration()
+        val state = vm.awaitState { !it.failed && !it.isLoading && it.routine?.exercises?.size == 1 }
+        assertNull(state.error)
+        assertEquals(exercise.id, deps.routineRepository.observeAll().first().single().exercises.single().exercise.id)
+    }
+
+    @Test
     fun committedAddWhoseAcknowledgmentFailsIsNotDuplicatedOnRetry() = runBlocking {
         val exercise = insertTestExercise(deps, "selected-row", "Selected row")
         val gate = FailureGate(shouldFail = true)
@@ -1890,9 +1905,13 @@ class RoutineEditorViewModelTest {
     }
 
     /** Every routine it is asked to create fails to write. */
-    private class FailingCreateDao(private val delegate: RoutineDao) : RoutineDao by delegate {
+    private class FailingCreateDao(
+        private val delegate: RoutineDao,
+        private val gate: FailureGate = FailureGate(shouldFail = true),
+    ) : RoutineDao by delegate {
         override suspend fun upsertRoutine(routine: RoutineEntity) {
-            throw IllegalStateException("disk full")
+            if (gate.shouldFail) throw IllegalStateException("disk full")
+            delegate.upsertRoutine(routine)
         }
     }
 
