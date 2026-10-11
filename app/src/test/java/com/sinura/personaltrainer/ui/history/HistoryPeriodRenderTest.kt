@@ -58,6 +58,7 @@ import com.sinura.personaltrainer.domain.CapturedCivilTime
 import com.sinura.personaltrainer.domain.CardioBlock
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.CivilYearMonth
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.HeatWindow
 import com.sinura.personaltrainer.domain.HistoryCopy
 import com.sinura.personaltrainer.domain.HistoryKind
@@ -262,15 +263,22 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
             !history.uiState.value.recordsUnavailable && !history.uiState.value.recordsStale &&
                 history.uiState.value.records.any { it.valueKg == 120.0 }
         }
+        assertRenderedLifetimeRecord(history)
         capture("lifetime-recovered")
 
         // A distinct injected VM exercises an already-open local sheet during a new read.
         // This is mounted owner replacement, not a claim of Android process-death recovery.
         val previous = history
         holdRecords = true
-        compose.runOnIdle {
-            history = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val freshOwner = compose.runOnIdle {
+            val owner = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            history = owner
             font = 1.01f
+            owner
+        }
+        compose.awaitThat("replacement owner's held records read is rendered as loading", { freshOwner.uiState.value }) {
+            freshOwner.uiState.value.recordsLoading &&
+                compose.onAllNodes(hasTestTag(HistoryTags.SECONDARY_LOADING)).fetchSemanticsNodes().isNotEmpty()
         }
         drainLayout()
         assertWords(reachTag(HistoryTags.SECONDARY_LOADING), "Loading Lifetime records…")
@@ -279,18 +287,25 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
         holdRecords = false
         recordsBarrier.complete(Unit)
         awaitLoaded()
+        assertRenderedLifetimeRecord(freshOwner)
+        capture("fresh-owner-recovered")
         runBlocking { previous.clearAndJoinForTest() }
 
         val loaded = history
         failRequired = true
-        compose.runOnIdle {
-            history = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+        val unavailableOwner = compose.runOnIdle {
+            val owner = HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps)
+            history = owner
             font = 1.02f
+            owner
         }
         drainLayout()
-        compose.awaitThat("fresh required summary read is unavailable", { history.uiState.value }) {
-            !history.uiState.value.isLoading && history.uiState.value.unavailable
+        compose.awaitThat("fresh required summary failure is rendered", { unavailableOwner.uiState.value }) {
+            !unavailableOwner.uiState.value.isLoading && unavailableOwner.uiState.value.unavailable &&
+                compose.onAllNodes(hasText(DataHealthCopy.HISTORY_TITLE), useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
         }
+        assertRenderedLifetimeRecord(unavailableOwner)
         assertTrue("unread main history must not create a successful lifetime empty",
             compose.onAllNodes(hasText("No lifetime records yet.")).fetchSemanticsNodes().isEmpty())
         assertTrue("lifetime state retains independently read records or offers an honest error",
@@ -304,6 +319,66 @@ class HistoryPeriodRenderTest : HistoryPeriodTestHost() {
         awaitLoaded()
         assertTrue(history.uiState.value.records.any { it.valueKg == 120.0 })
         capture("required-recovered")
+    }
+
+    @Test
+    fun openLifetimeBlocksStayHonestAcrossMountedOwnerLoadingAndRequiredFailure() = evidence("lifetime-block-owner") {
+        graph()
+        val stored = inventory()
+        show()
+        awaitLoaded()
+        reachTag(HistoryTags.LIFETIME_BLOCKS).performClick()
+        sheetOpen = true
+        assertRenderedLifetimeBlock(history)
+
+        // Holding a fresh records read holds the new catalog, including its block projection.
+        // The open sheet survives owner replacement; this is not process-death acceptance.
+        val previous = history
+        holdRecords = true
+        val freshOwner = compose.runOnIdle {
+            HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps).also { history = it }
+        }
+        drainLayout()
+        compose.awaitThat("replacement owner's held catalog keeps the open block sheet loading", { freshOwner.uiState.value }) {
+            freshOwner.uiState.value.blocksLoading &&
+                compose.onAllNodes(hasTestTag(HistoryTags.SECONDARY_LOADING)).fetchSemanticsNodes().isNotEmpty()
+        }
+        assertWords(reachTag(HistoryTags.SECONDARY_LOADING), "Loading Completed blocks · lifetime…")
+        assertTrue(compose.onAllNodes(hasText("No completed blocks yet.")).fetchSemanticsNodes().isEmpty())
+        capture("fresh-block-owner-loading")
+
+        holdRecords = false
+        recordsBarrier.complete(Unit)
+        awaitLoaded()
+        assertRenderedLifetimeBlock(freshOwner)
+        capture("fresh-block-owner-recovered")
+        runBlocking { previous.clearAndJoinForTest() }
+
+        val loaded = history
+        failRequired = true
+        val unavailableOwner = compose.runOnIdle {
+            HistoryViewModel(ApplicationProvider.getApplicationContext<Application>(), deps).also { history = it }
+        }
+        drainLayout()
+        compose.awaitThat("replacement owner's required failure is rendered behind the open block sheet", { unavailableOwner.uiState.value }) {
+            !unavailableOwner.uiState.value.isLoading && unavailableOwner.uiState.value.unavailable &&
+                compose.onAllNodes(hasText(DataHealthCopy.HISTORY_TITLE), useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+        }
+        assertRenderedLifetimeBlock(unavailableOwner)
+        capture("fresh-block-required-failure")
+        runBlocking { loaded.clearAndJoinForTest() }
+
+        reachTag(HistoryTags.SECONDARY_CLOSE).performClick()
+        sheetOpen = false
+        failRequired = false
+        compose.onNodeWithText("Retry").performClick()
+        awaitLoaded()
+        reachTag(HistoryTags.LIFETIME_BLOCKS).performClick()
+        sheetOpen = true
+        assertRenderedLifetimeBlock(unavailableOwner)
+        capture("block-required-recovered")
+        assertEquals("owner replacement, reads and retry do not change saved work", stored, inventory())
     }
 
     @Test @Config(qualifiers = "w320dp-h640dp-xhdpi", fontScale = 2f)
@@ -746,6 +821,38 @@ open class HistoryPeriodTestHost {
         return findNode(matcher = hasText(words) and hasAnyAncestor(hasTestTag(tag)),
             description = "$tag: $words", unmerged = true)
     }
+    fun assertRenderedLifetimeRecord(owner: HistoryViewModel) {
+        compose.awaitThat("the mounted owner's independently read records are rendered", { owner.uiState.value }) {
+            val state = owner.uiState.value
+            !state.recordsLoading && !state.recordsUnavailable && !state.recordsStale &&
+                state.records.any { it.valueKg == 120.0 } &&
+                compose.onAllNodes(hasText("Period lift", substring = true) and
+                    hasAnyAncestor(hasTestTag(HistoryTags.SECONDARY_LIST)), useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+        }
+        assertWords(wordsInside(HistoryTags.SECONDARY_LIST, "Period lift 1"), "Period lift 1")
+        val record = SemanticsMatcher("the actual Period lift 1 record row") { node ->
+            node.children.any { child ->
+                child.config.getOrNull(SemanticsProperties.Text)?.singleOrNull()?.text == "Period lift 1"
+            }
+        }
+        for (words in listOf("120", "kg")) {
+            assertWords(findNode(hasText(words) and hasAnyAncestor(record) and
+                hasAnyAncestor(hasTestTag(HistoryTags.SECONDARY_LIST)), "Period lift 1: $words", unmerged = true), words)
+        }
+        assertTrue("verified records never show successful-empty copy",
+            compose.onAllNodes(hasText("No lifetime records yet.")).fetchSemanticsNodes().isEmpty())
+    }
+    fun assertRenderedLifetimeBlock(owner: HistoryViewModel) {
+        compose.awaitThat("the mounted owner's completed block is rendered", { owner.uiState.value }) {
+            val state = owner.uiState.value
+            !state.blocksLoading && !state.blocksUnavailable && !state.blocksStale && state.pastBlocks.isNotEmpty() &&
+                compose.onAllNodes(hasText("4 weeks · 14 September 2026 – 11 October 2026") and
+                    hasAnyAncestor(hasTestTag(HistoryTags.SECONDARY_LIST)), useUnmergedTree = true)
+                    .fetchSemanticsNodes().isNotEmpty()
+        }
+        assertFinishedBlock()
+    }
     fun evidence(name: String, assertion: () -> Unit) {
         profile = name
         try { assertion() } catch (failure: Throwable) {
@@ -987,13 +1094,16 @@ open class HistoryPeriodTestHost {
                 .fetchSemanticsNodes().joinToString("\n") {
                     "${it.config} size=${it.size} origin=${it.positionInWindow} clip=${it.boundsInWindow}"
                 }
+            val state = history.uiState.value
             directory.resolve("$stage.txt").writeText(
                 "viewport=${bitmap.width}x${bitmap.height}\nfont=$font\ndirection=$direction\n" +
-                    "selection=${history.uiState.value.selection}\nrange=${history.uiState.value.periodRange}\n" +
-                    "unit=${history.uiState.value.unit}\nprogressLoading=${history.uiState.value.progressLoading}\n" +
-                    "progressFailed=${history.uiState.value.progressFailed}\n" +
-                    "blocksLoading=${history.uiState.value.blocksLoading}\nblocksUnavailable=${history.uiState.value.blocksUnavailable}\n" +
-                    "blocksStale=${history.uiState.value.blocksStale}\npastBlocks=${history.uiState.value.pastBlocks}\nroutes=$routes\n" +
+                    "selection=${state.selection}\nrange=${state.periodRange}\nunit=${state.unit}\n" +
+                    "isLoading=${state.isLoading}\nunavailable=${state.unavailable}\nstale=${state.stale}\n" +
+                    "progressLoading=${state.progressLoading}\nprogressFailed=${state.progressFailed}\n" +
+                    "recordsLoading=${state.recordsLoading}\nrecordsUnavailable=${state.recordsUnavailable}\n" +
+                    "recordsStale=${state.recordsStale}\nrecords=${state.records}\n" +
+                    "blocksLoading=${state.blocksLoading}\nblocksUnavailable=${state.blocksUnavailable}\n" +
+                    "blocksStale=${state.blocksStale}\npastBlocks=${state.pastBlocks}\nroutes=$routes\n" +
                     (failure?.let { "failure=$it\n" } ?: "") + nodes,
             )
         } finally { bitmap.recycle() }

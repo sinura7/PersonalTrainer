@@ -95,7 +95,8 @@ fun HistoryScreen(
     onOpenStartSheet: () -> Unit = {},
     viewModel: HistoryViewModel = viewModel(),
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Deferred list content must use the same emission as its captured read-health flags.
+    val state = viewModel.uiState.collectAsStateWithLifecycle().value
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()

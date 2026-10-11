@@ -32,7 +32,8 @@ with a verified recoverable bundle. Hosted emulator checks passed. Hosted unit
 failures in synthetic Summary catalog acquisition and History lifetime-owner
 replacement remain separately diagnosed; they are not presented as passes.
 
-The Workout candidate implements two flat labeled entry rows and equal flat
+Native Workout entry is integrated through [PR #484](https://github.com/sinura7/PersonalTrainer/pull/484)
+as `7ae646a2`, with both pinned reviews passing. It implements two flat labeled entry rows and equal flat
 effort targets. Direct typing, step/hold behavior, effort selection, saved correction,
 readiness and the 72 dp primary retain their existing contracts. Five focused
 interaction checks accompany the change. The Summary fixture now explicitly prepares
@@ -47,8 +48,29 @@ The prior full gate failed an existing haptic ownership check: the final clickab
 effort component now owns the tick, and all original checks remain. The first
 archive helper failed before copying because automatic date conversion shifted its
 UTC filter; the corrected archive uses the original timestamp offsets. Both failures
-remain separate evidence. Final reviews and integration follow; the known History
-lifetime-owner projection issue is the next packet, followed by Summary composition.
+remain separate evidence. The integrated complete gate proved unchanged inputs and
+reused the exact executed app/standalone evidence. The affected connected workout,
+entry controls, haptic ownership and Summary correction then passed **44 fresh
+tests / five suites**, with no failures, errors or skips. The retired feature is
+recoverable from its verified bundle. Hosted feature, PR and integrated-trunk
+unit/build jobs and supplemental emulator smoke all passed.
+
+The active History repair captures one immutable emission for deferred list content,
+units and read-health flags while retaining the mounted lifetime sheet and calendar.
+The existing records journey now verifies rendered loading, recovered **120 kg**, and
+required-read failure against explicit replacement owners. A new completed-block
+journey verifies loading, exact review metrics, recovery and unchanged saved inventory.
+The first focused run passed 43 of 44 cases; the new block fixture waited before
+draining its replacement-owner layout. Adding the existing layout drain repaired
+that fixture, and the focused rerun passed its one case. Original failed evidence
+is retained. The complete `full01` gate at `d3df8793` passed **4,285 fresh app
+tests / 592 suites and 1,707 fresh standalone tests / 256 classes**, all four
+required Windows tasks and dependent release assembly, with no failures, errors
+or skips. All 1,572 runtime/test/tool inputs and refs stayed unchanged. Eleven
+native loading/failure/recovery frames and their diagnostics are archived with
+hashes. They exercise mounted reader replacement in Compose with synthetic Room
+data, rather than Android process death. Both source reviews are clear; final
+pinned reviews and integration remain pending. Summary composition follows.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
