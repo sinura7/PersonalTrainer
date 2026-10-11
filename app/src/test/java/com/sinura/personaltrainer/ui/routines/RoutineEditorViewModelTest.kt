@@ -785,7 +785,12 @@ class RoutineEditorViewModelTest {
         assertEquals(refused.error, refused.pickerProgress.error)
         gate.shouldFail = false
         vm.retryPicker()
-        val recovered = vm.awaitState { it.routine?.exercises?.size == 1 && !it.addingLifts && it.pickerProgress.error == null }
+        // The picker and editor error project through separate combines. Wait for the
+        // complete recovered screen, rather than the picker settling one emission first.
+        val recovered = vm.awaitState {
+            it.routine?.exercises?.size == 1 && !it.addingLifts &&
+                it.pickerProgress.error == null && it.error == null
+        }
         assertNull(recovered.error)
         val stored = deps.routineRepository.observeAll().first().single()
         assertEquals(listOf(squat.id), stored.exercises.map { it.exercise.id })
