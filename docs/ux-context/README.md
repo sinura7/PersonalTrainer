@@ -13,7 +13,14 @@ same command after acknowledged relocation or discard. The prior-copy targeted07
 start/recovery profiles passed with stable source. Review then found that the
 generic repository start error misdescribed an insert failure as a read failure;
 Home now uses neutral start-failure copy, with an explicit native assertion.
-The repaired candidate awaits its complete gate and final reviews. Older dated entries below retain their historical scope;
+Candidate `3841721` passed the complete local gate (4,265 fresh app tests and
+1,707 standalone tests), native renders and both final reviews. PR #482's
+required pull-request job passed, but its same-head push job caught a routine
+editor fixture reading the intermediate Retry projection before the editor error
+cleared. The bounded wait now requires the complete recovered state; assertions
+still require a clear error and exactly the intended saved lift. The original
+failure is preserved; the updated candidate awaits verification and integration.
+Older dated entries below retain their historical scope;
 physical-phone acceptance and the wider roadmap remain open. No new Debug drop
 has been published.
 
@@ -21,11 +28,16 @@ has been published.
 why recent images still resemble the earlier layout. Compact Focus is the
 implemented workout composition; Home, Summary and History retain older enclosing
 panels, so the whole-app visual redesign is unfinished. After this bounded Home
-recovery packet, the next visible checkpoint is a connected Home → Compact Focus
-→ saved-work concept: fewer competing cards, complete illustrated exercise names,
-clear typography and one dominant action. The concept must be marked as proposed
-where it differs from native source. Mechanical recovery evidence does not close
-that visual work. Preserve the accepted Instrument identity and navigation.
+recovery packet, the next native packet follows the
+[new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
+agenda, two flat editable workout rows, reachable saved-work actions and an
+illustrated Summary ledger. [The overview](studies/q01/assets/temper-flow-concept-2026-10-11.jpg)
+shows all three layouts as proposals. The browser example retains exact entry on
+failure, retries once, corrects saved work separately, applies Tempo only to the
+draft and confirms early finish. These interactions use synthetic browser memory;
+they do not establish native or phone acceptance. Full History calendar/progress
+and the other activity types remain in scope. Mechanical recovery evidence does
+not close the visual work. Preserve the accepted Instrument identity and navigation.
 
 **Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are integrated through #467. Set Edit identity and numeric controls are integrated through #468. History saved-set recovery and its test-recorder repair are integrated through #469 and #470. Compact Focus is implemented with the complete local gate and 222 Android tests passing; [its evidence, previews and review/integration tracking](studies/q01/README.md#compact-focus-development-verification) belong to [PR #471](https://github.com/sinura7/PersonalTrainer/pull/471). Broader app UX phases and physical-phone acceptance remain.
 
