@@ -75,8 +75,9 @@ data, rather than Android process death. Both final pinned reviews passed. The
 integrated complete gate proved unchanged inputs and reused the exact executed
 app/standalone evidence. Both lifetime readers and the connected workout then
 passed **three fresh cases / two suites**, with no failures, errors or skips.
-The feature is retired with a verified recoverable bundle; hosted checks remain
-pending. Original hosted and fixture failures remain preserved separately.
+The feature is retired with a verified recoverable bundle. Hosted feature, PR and
+integrated-trunk unit/build jobs and supplemental emulator smoke all passed.
+Original hosted and fixture failures remain preserved separately.
 
 The active Summary candidate implements the approved compact result line, full
 title, flat illustrated ledger and plain notes. Existing measure/formatting rules,
@@ -88,8 +89,17 @@ Mapping the canonical seed fields repaired setup without changing app code,
 assertions or bounds. The focused rerun passed **four fresh tests / two suites**,
 including actual saved Summary, correction and domain-built font-2 measure/unit
 branches; those controlled branches are presentation evidence. The existing
-14-profile native matrix now checks visible result values and labels. The full
-gate and final native/review acceptance remain pending.
+14-profile native matrix checks visible result values and labels. The complete
+`full01` gate at `58e05787` passed **4,286 fresh app tests / 592 suites and 1,707
+fresh standalone tests / 256 classes**, all four required Windows tasks and
+dependent release assembly, with no failures, errors or skips. All 1,572
+runtime/test/tool inputs and refs stayed unchanged. Eighteen fresh native frames
+and matching diagnostics are archived with hashes: the fourteen display profiles
+and four controlled measure/unit branches. [The actual native Summary preview](studies/q01/assets/summary-flat-receipt-2026-10-11.png)
+is an unchanged capture with synthetic saved Room data. It shows the compact
+results, complete title, matching illustrations, flat ledger and pinned exits.
+Final review and integration use the pinned packet receipts. Original failure
+evidence remains preserved.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
