@@ -92,15 +92,19 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
 /** Results and creation are separate steps; writes belong to the calling ViewModel. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExercisePickerSheet(state: ExercisePickerState, onEvent: (ExercisePickerEvent) -> Unit) {
-    val busy by rememberUpdatedState(state.progress.busy)
-    val canChange = remember { { value: SheetValue -> value != SheetValue.Hidden || !busy } }
+fun ExercisePickerSheet(
+    state: ExercisePickerState,
+    onEvent: (ExercisePickerEvent) -> Unit,
+    canDismiss: () -> Boolean = { !state.progress.busy },
+) {
+    val mayDismiss by rememberUpdatedState(canDismiss)
+    val canChange = remember { { value: SheetValue -> value != SheetValue.Hidden || mayDismiss() } }
     val sheet = rememberModalBottomSheetState(
         skipPartiallyExpanded = true,
         confirmValueChange = canChange,
     )
     ModalBottomSheet(
-        onDismissRequest = { if (!state.progress.busy) onEvent(ExercisePickerEvent.Dismissed) },
+        onDismissRequest = { if (mayDismiss()) onEvent(ExercisePickerEvent.Dismissed) },
         sheetState = sheet,
     ) {
         ExercisePickerContent(
@@ -123,6 +127,7 @@ internal fun ExercisePickerContent(
     var createName by rememberSaveable { mutableStateOf("") }
     var group by rememberSaveable { mutableStateOf("") }
     var loadTypeName by rememberSaveable { mutableStateOf(LoadType.EXTERNAL.name) }
+    var consumedCreation by rememberSaveable { mutableStateOf(state.progress.createdGeneration) }
     val selectedMuscle = CanonicalMuscle.bodyMapOrder.firstOrNull { it.name == selectedMuscleName }
     val visibleResults = state.visibleFor(selectedMuscle)
     val needle = state.query.trim()
@@ -132,7 +137,12 @@ internal fun ExercisePickerContent(
     val keyboard = LocalSoftwareKeyboardController.current
     val problem = state.progress.error ?: state.error
     LaunchedEffect(state.progress.createdGeneration) {
-        if (state.progress.createdGeneration > 0) creating = false
+        if (state.progress.createdGeneration > consumedCreation) {
+            creating = false
+        }
+        // A new ViewModel starts at zero after process recreation; retain the form,
+        // then consume its future successes against that new owner's counter.
+        consumedCreation = state.progress.createdGeneration
     }
     LaunchedEffect(problem, creating) { if (problem != null || creating) list.scrollToItem(0) }
     val choose: (Exercise) -> Unit = { exercise ->

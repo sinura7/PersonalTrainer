@@ -201,6 +201,7 @@ fun ActivityComposerScreen(
                         onPickerErrorDismissed = viewModel::dismissCreateError,
                         pickerProgress = state.pickerProgress,
                         onPickerRetry = viewModel::retryPicker,
+                        canDismissPicker = viewModel::canLeave,
                     )
                 }
             }
@@ -295,6 +296,7 @@ internal fun StrengthAdder(
     onPickerErrorDismissed: () -> Unit = {},
     pickerProgress: ExercisePickerProgress = ExercisePickerProgress(),
     onPickerRetry: () -> Unit = {},
+    canDismissPicker: () -> Boolean = { !pickerProgress.busy },
 ) {
     val unit = LocalWeightUnit.current
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
@@ -411,6 +413,7 @@ internal fun StrengthAdder(
     }
     if (pickerOpen) {
         ExercisePickerSheet(
+            canDismiss = canDismissPicker,
             state = ExercisePickerState(
                 query = pickerQuery,
                 results = filterCatalog(catalog, pickerQuery),
@@ -424,6 +427,7 @@ internal fun StrengthAdder(
                 when (event) {
                     is ExercisePickerEvent.QueryChanged -> pickerQuery = event.query
                     is ExercisePickerEvent.Selected -> {
+                        if (!canDismissPicker()) return@ExercisePickerSheet
                         onPickerErrorDismissed()
                         pickedId = event.exercise.id
                         pickerQuery = ""
@@ -437,7 +441,7 @@ internal fun StrengthAdder(
                     ExercisePickerEvent.ErrorDismissed -> onPickerErrorDismissed()
                     ExercisePickerEvent.Retry -> onPickerRetry()
                     ExercisePickerEvent.Dismissed -> {
-                        if (pickerProgress.busy) return@ExercisePickerSheet
+                        if (!canDismissPicker()) return@ExercisePickerSheet
                         pickerQuery = ""
                         pickerOpen = false
                     }

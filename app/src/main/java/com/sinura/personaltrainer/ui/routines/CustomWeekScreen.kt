@@ -263,6 +263,7 @@ fun CustomWeekScreen(
 
     if (state.showPicker) {
         ExercisePickerSheet(
+            canDismiss = viewModel::canDismissPicker,
             state = ExercisePickerState(
                 query = state.searchQuery,
                 progress = state.pickerProgress,

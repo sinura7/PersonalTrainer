@@ -1329,6 +1329,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // The database write is not launched here. See FloorSessionNotes.writeOnTypingPause, launched in init.
     }
 
+    fun canDismissPicker(): Boolean = !pickerWrites.busy
+
     fun setPickerVisible(visible: Boolean) {
         if (visible && !canChangeEntry()) return
         if (!visible && pickerWrites.busy) return

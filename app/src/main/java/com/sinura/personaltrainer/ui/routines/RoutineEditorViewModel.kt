@@ -910,6 +910,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
     }
 
+    fun canDismissPicker(): Boolean = !pickerWrites.busy
+
     fun setPickerVisible(visible: Boolean) {
         if (missing) return
         if (visible && leaving) return

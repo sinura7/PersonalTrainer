@@ -1044,6 +1044,7 @@ private fun ActiveWorkoutContent(
 
     if (state.showExercisePicker) {
         ExercisePickerSheet(
+            canDismiss = viewModel::canDismissPicker,
             state = ExercisePickerState(
                 query = state.searchQuery,
                 progress = state.pickerProgress,

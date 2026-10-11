@@ -115,10 +115,10 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
-| UX10-AC01 | P1 | F06, F08 | Searching 'bench' with existing matching variants prioritizes choosing them over creating 'bench'. | Not executed |
-| UX10-AC02 | P1 | F06, F08 | Duplicate/disk/create errors are visible within the active sheet in single and multi modes. | Not executed |
-| UX10-AC03 | P1 | F06, F08 | Create then cancel activity follows the disclosed catalogue persistence rule. | Not executed |
-| UX10-AC04 | P1 | F06, F08 | Double confirmation adds the selected IDs once and preserves order. | Not executed |
+| UX10-AC01 | P1 | F06, F08 | Searching 'bench' with existing matching variants prioritizes choosing them over creating 'bench'. | Executed targeted native-graphics matrix: full illustrated matches precede quiet Create. Final complete gate/review remain pending; phone acceptance unobserved. |
+| UX10-AC02 | P1 | F06, F08 | Duplicate/disk/create errors are visible within the active sheet in single and multi modes. | Targeted execution covers all-mode errors, canonical duplicate selection, exact Retry, restored second creation and native Back before recomposition. Complete gate/review remain pending. |
+| UX10-AC03 | P1 | F06, F08 | Create then cancel activity follows the disclosed catalogue persistence rule. | Disclosure implemented; final added Room cancellation regression awaits the complete gate. The Library lift persists while the activity draft is discarded. |
+| UX10-AC04 | P1 | F06, F08 | Double confirmation adds the selected IDs once and preserves order. | Targeted routine/write-owner checks passed; final pending-create/leave guards and exact inventories await the complete gate. No staged cart transaction was introduced. |
 
 ### UX11 — Make edit scope and secondary actions discoverable
 

@@ -215,6 +215,8 @@ class CustomWeekViewModel @JvmOverloads constructor(
 
     fun canLeave(): Boolean = !applying.value && !pickerWrites.busy
 
+    fun canDismissPicker(): Boolean = !pickerWrites.busy
+
     fun setPickerVisible(visible: Boolean) {
         if (visible && applying.value) return
         if (!visible && pickerWrites.busy) return

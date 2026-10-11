@@ -16,12 +16,18 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.LayoutDirection
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
@@ -29,6 +35,7 @@ import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerProgress
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.ui.activity.StrengthAdder
 import com.sinura.personaltrainer.ui.activity.ComposerTags
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
@@ -101,6 +108,84 @@ class ExercisePickerRenderTest {
         words("Creation failed")
         compose.onNodeWithText("Retry").assertIsDisplayed()
         capture("native-modal", "retry")
+    }
+
+    @Test
+    fun anEarlierCreationDoesNotDismissTheNextRestoredForm() {
+        val state = mutableStateOf(ExercisePickerState(
+            query = "First lift", results = emptyList(), title = "Add lifts", mode = ExercisePickerMode.MULTI_ADD,
+        ))
+        val events = mutableListOf<ExercisePickerEvent>()
+        val restoration = StateRestorationTester(compose)
+        restoration.setContent {
+            PersonalTrainerTheme { ExercisePickerContent(state.value, { events += it }, Modifier.fillMaxHeight(0.9f)) }
+        }
+        compose.onNodeWithTag("picker-content").performScrollToNode(hasTestTag("picker-create-entry"))
+        compose.onNodeWithTag("picker-create-entry").performClick()
+        words("Chest")
+        compose.onNodeWithText("Chest").performClick()
+        compose.onNodeWithTag("picker-action").performClick()
+        compose.runOnIdle { state.value = state.value.copy(query = "Second lift", progress = ExercisePickerProgress(createdGeneration = 1)) }
+        compose.settle()
+        compose.onNodeWithTag("picker-content").performScrollToNode(hasTestTag("picker-create-entry"))
+        compose.onNodeWithTag("picker-create-entry").performClick()
+        words("Chest")
+        compose.onNodeWithText("Chest").performClick()
+        compose.onNodeWithTag("picker-content").performTouchInput { swipeUp() }
+        compose.settle()
+        compose.onNodeWithTag(LoadTypeTags.chip(LoadType.BODYWEIGHT)).assertIsDisplayed().performClick()
+        compose.runOnIdle {
+            state.value = state.value.copy(progress = ExercisePickerProgress(createdGeneration = 1, error = "Second creation failed", canRetry = true))
+        }
+        restoration.emulateSavedInstanceStateRestore()
+        words("Second lift")
+        words("Second creation failed")
+        compose.onNodeWithTag("picker-action").assertIsEnabled().performClick()
+        assertEquals(ExercisePickerEvent.Created("Second lift", "Chest", LoadType.BODYWEIGHT), events.last())
+        compose.runOnIdle { state.value = state.value.copy(progress = ExercisePickerProgress(createdGeneration = 0)) }
+        compose.settle()
+        words("Second lift")
+        compose.runOnIdle { state.value = state.value.copy(progress = ExercisePickerProgress(createdGeneration = 1)) }
+        compose.settle()
+        compose.onNodeWithText("Back to lifts").assertDoesNotExist()
+        compose.onNodeWithTag("picker-search").assertIsDisplayed()
+    }
+
+    @Test
+    fun composerVetoesNativeDismissalBeforeBusyStateRecomposes() {
+        var pending = false
+        val progress = mutableStateOf(ExercisePickerProgress())
+        compose.setContent {
+            PersonalTrainerTheme {
+                StrengthAdder(
+                    catalog = emptyList(), onAdd = { _, _, _ -> },
+                    onCreate = { _, _, _ -> pending = true },
+                    pickerProgress = progress.value, canDismissPicker = { !pending },
+                )
+            }
+        }
+        compose.onNodeWithTag(ComposerTags.CHOOSE_LIFT).performClick()
+        compose.settle()
+        compose.onNode(hasSetTextAction() and hasAnyAncestor(hasTestTag("picker-search")), useUnmergedTree = true)
+            .performTextInput("Held lift")
+        compose.onNodeWithTag("picker-content").performScrollToNode(hasTestTag("picker-create-entry"))
+        compose.onNodeWithTag("picker-create-entry").performClick()
+        words("Chest")
+        compose.onNodeWithText("Chest").performClick()
+        compose.onNodeWithTag("picker-action").performClick()
+        assertTrue(pending)
+        // Deliberately leave rendered progress idle: the write owner already accepted it.
+        compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.settle()
+        compose.onNodeWithTag("picker-action").assertIsDisplayed()
+        compose.onNodeWithText("Back to lifts").assertIsDisplayed()
+        compose.runOnIdle {
+            pending = false
+            progress.value = ExercisePickerProgress(error = "Held creation failed", canRetry = true)
+        }
+        words("Held creation failed")
+        compose.onNodeWithText("Retry").assertIsDisplayed()
+        capture("native-modal", "same-frame-retry")
     }
 
     @Test
