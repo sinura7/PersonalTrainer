@@ -22,6 +22,8 @@ import com.sinura.personaltrainer.domain.TrainingGoal
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
+import com.sinura.personaltrainer.domain.ExercisePickerProgress
+import com.sinura.personaltrainer.util.PickerWrites
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.domain.Weekday
@@ -58,6 +60,7 @@ data class CustomWeekUiState(
     val showPicker: Boolean = false,
     val applying: Boolean = false,
     val error: String? = null,
+    val pickerProgress: ExercisePickerProgress = ExercisePickerProgress(),
 ) {
     val selectedLifts: List<CustomWeekLift> get() = days[selectedDay].orEmpty()
 
@@ -89,6 +92,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
     private val applying = MutableStateFlow(false)
+    private val pickerWrites = PickerWrites()
     private val error = ErrorSlot()
 
     /**
@@ -141,6 +145,8 @@ class CustomWeekViewModel @JvmOverloads constructor(
             applying = extras.applying,
             error = extras.error,
         )
+    }.combine(pickerWrites.state) { state, progress ->
+        state.copy(pickerProgress = progress)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -187,7 +193,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
     }
 
     fun selectDay(day: Weekday) {
-        if (applying.value) return
+        if (applying.value || pickerWrites.busy) return
         userPickedDay = true
         selectedDay.value = day
         persistDraft()
@@ -207,8 +213,13 @@ class CustomWeekViewModel @JvmOverloads constructor(
         }
     }
 
+    fun canLeave(): Boolean = !applying.value && !pickerWrites.busy
+
+    fun canDismissPicker(): Boolean = !pickerWrites.busy
+
     fun setPickerVisible(visible: Boolean) {
         if (visible && applying.value) return
+        if (!visible && pickerWrites.busy) return
         showPicker.value = visible
         // Only the typed query. The lifts are on the day already — losing a cart to a tap
         // outside the sheet is exactly what this screen no longer does.
@@ -227,7 +238,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
      * the day will be lifted in.
      */
     fun togglePicked(exercise: Exercise) {
-        if (applying.value) return
+        if (applying.value || pickerWrites.busy) return
         val day = selectedDay.value
         val existing = days.value[day].orEmpty()
         val stored = existing.firstOrNull { it.exercise.id == exercise.id }
@@ -247,59 +258,74 @@ class CustomWeekViewModel @JvmOverloads constructor(
         persistDraft()
     }
 
-    /** A lift created inside the picker joins the day; it is never a tap that removes one. */
-    private fun addPicked(exercise: Exercise) {
-        if (applying.value) return
-        val day = selectedDay.value
+    fun retryPicker() = pickerWrites.retry()
+    fun dismissPickerError() { pickerWrites.dismissError(); error.clearFrom(ERR_ADD_LIFT) }
+
+    fun selectPickerExercise(exercise: Exercise) {
+        if (applying.value || pickerWrites.busy) return
+        addPicked(exercise, selectedDay.value)
+        pickerWrites.dismissError()
+    }
+
+    private fun addPicked(exercise: Exercise, day: Weekday) {
         val existing = days.value[day].orEmpty()
-        if (existing.any { it.exercise.id == exercise.id }) return
-        togglePicked(exercise)
+        days.value = days.value + (day to CustomWeekPolicy.addLifts(
+            existing, listOf(exercise), guidedAnswers?.goal ?: trainingGoal.value,
+        ) { UUID.randomUUID().toString() })
+        persistDraft()
+        error.clearFrom(ERR_ADD_LIFT)
     }
 
     fun createAndSelect(name: String, muscleGroup: String, loadType: LoadType = LoadType.EXTERNAL) {
-        if (applying.value) return
+        if (applying.value || pickerWrites.busy) return
+        createAndSelect(name, muscleGroup, loadType, selectedDay.value, showPicker.value)
+    }
+
+    private fun createAndSelect(name: String, muscleGroup: String, loadType: LoadType, day: Weekday, selectHere: Boolean) {
+        if (applying.value || pickerWrites.busy) return
+        val ticket = pickerWrites.begin("create", creating = true)
+        if (name.isBlank()) {
+            error.fail(ERR_ADD_LIFT, SessionOrderCopy.LIFT_NAME_REQUIRED)
+            pickerWrites.fail(ticket, SessionOrderCopy.LIFT_NAME_REQUIRED)
+            return
+        }
         viewModelScope.launch {
-            if (name.isBlank()) {
-                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.LIFT_NAME_REQUIRED)
-                return@launch
-            }
-            runCatchingCancellable {
-                when (val result = container.exerciseRepository.createCustom(
-                    name,
-                    muscleGroup,
-                    loadType = loadType,
-                )) {
-                    is SaveExerciseResult.DuplicateName ->
-                        error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
-                    is SaveExerciseResult.MissingMuscle ->
-                        error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
+            try {
+                when (val result = container.exerciseRepository.createCustom(name, muscleGroup, loadType = loadType)) {
+                    is SaveExerciseResult.DuplicateName -> {
+                        error.fail(ERR_ADD_LIFT, DUPLICATE_NAME_MESSAGE)
+                        pickerWrites.fail(ticket, DUPLICATE_NAME_MESSAGE, existing = result.existing)
+                    }
+                    is SaveExerciseResult.MissingMuscle -> {
+                        error.fail(ERR_ADD_LIFT, MuscleGroups.MISSING_MESSAGE)
+                        pickerWrites.fail(ticket, MuscleGroups.MISSING_MESSAGE)
+                    }
                     is SaveExerciseResult.Saved -> {
-                        extraCatalog.value = LiftCart.mergeSources(
-                            extraCatalog.value,
-                            listOf(result.exercise),
-                        )
+                        extraCatalog.value = LiftCart.mergeSources(extraCatalog.value, listOf(result.exercise))
                         catalog.value = LiftCart.mergeSources(catalog.value, extraCatalog.value)
-                        if (showPicker.value) {
-                            addPicked(result.exercise)
-                        }
+                        if (selectHere) addPicked(result.exercise, day)
+                        pickerWrites.succeed(ticket, created = true)
                     }
                 }
-            }.onFailure {
-                AppLog.w(TAG, "createAndSelect failed", it)
-                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
+            } catch (thrown: kotlinx.coroutines.CancellationException) {
+                pickerWrites.cancel(ticket)
+                throw thrown
+            } catch (thrown: Exception) {
+                error.fail(ERR_ADD_LIFT, SessionOrderCopy.CREATE_LIFT_FAILED)
+                pickerWrites.fail(ticket, SessionOrderCopy.CREATE_LIFT_FAILED) { createAndSelect(name, muscleGroup, loadType, day, selectHere) }
             }
         }
     }
 
     fun moveLift(itemId: String, direction: Int) {
-        if (applying.value) return
+        if (applying.value || pickerWrites.busy) return
         val day = selectedDay.value
         days.value = days.value + (day to CustomWeekPolicy.move(days.value[day].orEmpty(), itemId, direction))
         persistDraft()
     }
 
     fun removeLift(itemId: String) {
-        if (applying.value) return
+        if (applying.value || pickerWrites.busy) return
         forgetTargetRule(itemId)
         val day = selectedDay.value
         days.value = days.value + (day to days.value[day].orEmpty().filterNot { it.id == itemId })
@@ -326,7 +352,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
         seconds: Int? = null,
         secondsMax: Int? = null,
     ) {
-        if (applying.value) return
+        if (applying.value || pickerWrites.busy) return
         if (invalidReason == null) {
             invalidTargets.remove(itemId)
             moveTargetRuleBanner()
@@ -353,7 +379,7 @@ class CustomWeekViewModel @JvmOverloads constructor(
 
     fun confirm() {
         val started = error.mark()
-        if (applying.value || !CustomWeekPolicy.canConfirm(days.value)) return
+        if (applying.value || pickerWrites.busy || !CustomWeekPolicy.canConfirm(days.value)) return
         // A card still showing a value the week cannot hold is unfinished work, not a value to
         // walk past: applying would write the number underneath it instead. Say the rule and stay.
         invalidTargets.values.firstOrNull()?.let { rule ->

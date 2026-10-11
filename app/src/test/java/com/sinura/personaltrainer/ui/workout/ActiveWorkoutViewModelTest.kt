@@ -1672,6 +1672,39 @@ class ActiveWorkoutViewModelTest {
     }
 
     @Test
+    fun failedSwapKeepsItsTargetForTheNextSelection() = runBlocking {
+        val fixture = seedTwoLifts()
+        insertExercise("bench-retry", "Bench")
+        val row = checkNotNull(deps.exerciseRepository.getById(ROW))
+        val bench = checkNotNull(deps.exerciseRepository.getById("bench-retry"))
+        val before = checkNotNull(deps.workoutRepository.getSession(fixture.session.id))
+        val original = before.exercises.first { it.exercise.id == SQUAT }
+        val vm = createViewModel(fixture.session.id)
+        vm.awaitFound()
+        vm.selectExercise(SQUAT)
+        vm.awaitState { it.session?.exercises?.size == 2 && it.selectedExerciseId == SQUAT }
+        vm.awaitEntryUnlocked()
+        vm.requestSwap()
+        vm.addExercise(row)
+        val refused = vm.awaitState { it.pickerProgress.error != null && !it.mutating }
+        assertTrue(refused.swapping)
+        assertTrue(refused.showExercisePicker)
+        assertEquals(SQUAT, refused.selectedExerciseId)
+        assertEquals(before.exercises.map { it.id }, deps.workoutRepository.getSession(fixture.session.id)!!.exercises.map { it.id })
+        vm.addExercise(bench)
+        val saved = awaitSession(fixture.session.id) { it.exercises.any { row -> row.exercise.id == bench.id } }
+        assertEquals(listOf(bench.id, ROW), saved.exercises.map { it.exercise.id })
+        val swapped = saved.exercises.first()
+        assertEquals(original.sortOrder, swapped.sortOrder)
+        assertEquals(original.targetSets, swapped.targetSets)
+        assertEquals(original.targetReps, swapped.targetReps)
+        assertEquals(original.restSeconds, swapped.restSeconds)
+        assertNull(swapped.targetWeightKg)
+        vm.awaitState { !it.showExercisePicker && it.selectedExerciseId == bench.id }
+        Unit
+    }
+
+    @Test
     fun swapUnloggedLiftKeepsPositionAndTargets() = runBlocking {
         val fixture = seedWorkout(targetSets = 4, restSeconds = 120)
         insertExercise(ROW, "Row")

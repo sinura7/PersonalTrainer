@@ -20,6 +20,7 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.WorkoutPasteCopy
 import com.sinura.personaltrainer.domain.WorkoutPasteRest
+import com.sinura.personaltrainer.testutil.GatedPickerCreation
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
@@ -770,7 +771,8 @@ class RoutineEditorViewModelTest {
     @Test
     fun aRoutineThatCannotBeCreatedDropsTheTap() = runBlocking {
         val squat = insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
-        val vm = createViewModel("new", container = withRoutineDao(FailingCreateDao(deps.database.routineDao())))
+        val gate = FailureGate(shouldFail = true)
+        val vm = createViewModel("new", container = withRoutineDao(FailingCreateDao(deps.database.routineDao(), gate)))
         vm.awaitState { it.catalog.isNotEmpty() }
         vm.setPickerVisible(true)
         vm.togglePicked(squat)
@@ -780,6 +782,13 @@ class RoutineEditorViewModelTest {
         }
         assertTrue(refused.showExercisePicker)
         assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+        assertEquals(refused.error, refused.pickerProgress.error)
+        gate.shouldFail = false
+        vm.retryPicker()
+        val recovered = vm.awaitState { it.routine?.exercises?.size == 1 && !it.addingLifts && it.pickerProgress.error == null }
+        assertNull(recovered.error)
+        val stored = deps.routineRepository.observeAll().first().single()
+        assertEquals(listOf(squat.id), stored.exercises.map { it.exercise.id })
     }
 
     /**
@@ -1648,6 +1657,64 @@ class RoutineEditorViewModelTest {
         assertTrue(slots.any { it.anchorDay == Weekday.SATURDAY })
         assertTrue(slots.none { it.anchorDay == Weekday.WEDNESDAY })
         assertTrue(slots.none { it.anchorDay == Weekday.SUNDAY })
+    }
+
+    @Test
+    fun pastedLiftAndCreatedIdentitySurviveAFailedSelection() = runBlocking {
+        insertTestExercise(deps, "catalog-seed", "Row")
+        val gate = CompletableDeferred<Unit>()
+        val container = withRoutineDao(GateThenFailFirstAddDao(deps.database.routineDao(), gate))
+        val vm = createViewModel("new", container)
+        try {
+            vm.awaitState { !it.isLoading && it.catalog.isNotEmpty() }
+            vm.importPaste("Upper A (strength)\n1. My new press — 3×8")
+            val miss = vm.awaitState { !it.pasting && it.unmatched.size == 1 }.unmatched.single()
+            vm.requestUnmatchedPick(miss)
+            vm.createAndSelect("My new press", "Chest", LoadType.EXTERNAL)
+            vm.awaitState { it.pickerProgress.pendingIds.isNotEmpty() }
+            assertEquals(listOf(miss), vm.uiState.value.unmatched)
+            assertEquals(miss, vm.uiState.value.unmatchedPick)
+            assertTrue(vm.uiState.value.showExercisePicker)
+            vm.setPickerVisible(false)
+            assertTrue(vm.uiState.value.showExercisePicker)
+            gate.complete(Unit)
+            val failed = vm.awaitState { it.pickerProgress.error != null && !it.pickerProgress.busy }
+            assertEquals(listOf(miss), failed.unmatched)
+            assertTrue(failed.showExercisePicker)
+            val created = deps.exerciseRepository.observeAll().first().single { it.name == "My new press" }
+            vm.retryPicker()
+            val done = vm.awaitState { it.unmatched.isEmpty() && !it.showExercisePicker && it.routine?.exercises?.size == 1 }
+            val row = done.routine!!.exercises.single()
+            assertEquals(created.id, row.exercise.id)
+            assertEquals(3, row.targetSets)
+            assertEquals(8, row.targetReps)
+            assertEquals(1, deps.exerciseRepository.observeAll().first().count { it.name == "My new press" })
+        } finally { gate.complete(Unit) }
+    }
+
+    @Test
+    fun pendingCreationCannotBeLostToSaveOrBack() = runBlocking {
+        val existing = insertTestExercise(deps, "existing", "Row")
+        val creation = GatedPickerCreation(deps)
+        val vm = createViewModel("new", creation.container)
+        try {
+            vm.awaitState { !it.isLoading && it.catalog.isNotEmpty() }
+            vm.togglePicked(existing)
+            vm.awaitState { !it.addingLifts && it.routine?.exercises?.size == 1 }
+            vm.setPickerVisible(true)
+            vm.createAndSelect("Accepted press", "Chest")
+            withTimeout(TestWaits.FLOW_MS) { creation.entered.await() }
+            vm.saveAndLeave()
+            vm.leave()
+            vm.leaveAnyway()
+            assertFalse(vm.exitRequested.value)
+            creation.release.complete(Unit)
+            val done = vm.awaitState { !it.addingLifts && it.routine?.exercises?.size == 2 }
+            assertEquals(listOf("Row", "Accepted press"), done.routine!!.exercises.map { it.exercise.name })
+            vm.saveAndLeave()
+            vm.awaitExit()
+            assertEquals(2, deps.routineRepository.observeAll().first().single().exercises.size)
+        } finally { creation.release.complete(Unit) }
     }
 
     @Test

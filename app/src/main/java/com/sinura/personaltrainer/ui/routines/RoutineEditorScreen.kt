@@ -315,8 +315,10 @@ fun RoutineEditorScreen(
 
     if (state.showExercisePicker) {
         ExercisePickerSheet(
+            canDismiss = viewModel::canDismissPicker,
             state = ExercisePickerState(
                 query = state.searchQuery,
+                progress = state.pickerProgress,
                 results = state.searchResults,
                 title = if (state.unmatchedPick != null) WorkoutPasteCopy.PICK else "Add lifts",
                 mode = if (state.unmatchedPick != null) {
@@ -326,7 +328,6 @@ fun RoutineEditorScreen(
                 },
                 selectedOrder = state.pickedIds,
                 catalog = state.catalog,
-                error = state.error,
             ),
             onEvent = { event ->
                 when (event) {
@@ -336,7 +337,8 @@ fun RoutineEditorScreen(
                         viewModel.createAndSelect(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> viewModel.togglePicked(event.exercise)
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
-                    ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
+                    ExercisePickerEvent.ErrorDismissed -> viewModel.dismissPickerError()
+                    ExercisePickerEvent.Retry -> viewModel.retryPicker()
                 }
             },
         )

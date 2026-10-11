@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,7 +25,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,19 +32,27 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -53,7 +60,6 @@ import com.sinura.personaltrainer.domain.CanonicalMuscle
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
-import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
 import com.sinura.personaltrainer.domain.LibraryFilter
 import com.sinura.personaltrainer.domain.LiftCart
@@ -83,288 +89,246 @@ import com.sinura.personaltrainer.ui.theme.VoltDim
  * is what keeps them from drifting again.
  */
 
-/**
- * The picker, as a list of lifts rather than a form with a list under it.
- *
- * Three things used to fight for the top of this sheet: an unstyled title, the search box,
- * and a permanently mounted "Muscle group for new exercise" field that mattered only on the
- * rare create path. Underneath them the results were capped at 360dp inside a half-height
- * sheet — about four rows of a catalog of forty. Here the sheet is a fixed nine-tenths of
- * the screen, the search stays pinned to the top, and everything below it is catalog.
- *
- * Creating is not chrome any more: it appears as a single row above the results, only when
- * what has been typed matches nothing. The create-row muscle chips sit on that row — not a
- * permanent field at the top — because a blank group used to become "Other" and never heat
- * a plate. Catalog chips (All plus Body's ten groups) sit under search and filter the list.
- *
- * Multi-add writes as it goes. Every tap lands on the routine or the day immediately, and
- * the cart is a numbered view of that session rather than a staging list held by the sheet:
- * the scrim, the back gesture and a mis-swipe cost the typed query and nothing else.
- */
+/** Results and creation are separate steps; writes belong to the calling ViewModel. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExercisePickerSheet(
     state: ExercisePickerState,
     onEvent: (ExercisePickerEvent) -> Unit,
+    canDismiss: () -> Boolean = { !state.progress.busy },
 ) {
-    val query = state.query
-    val results = state.results
-    val title = state.title
+    val mayDismiss by rememberUpdatedState(canDismiss)
+    val canChange = remember { { value: SheetValue -> value != SheetValue.Hidden || mayDismiss() } }
+    val sheet = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = canChange,
+    )
+    ModalBottomSheet(
+        onDismissRequest = { if (mayDismiss()) onEvent(ExercisePickerEvent.Dismissed) },
+        sheetState = sheet,
+    ) {
+        ExercisePickerContent(
+            state = state,
+            onEvent = onEvent,
+            modifier = Modifier.fillMaxHeight(SHEET_HEIGHT_SHARE),
+        )
+    }
+}
+
+/** The same native content is used by the sheet and its constrained-layout render tests. */
+@Composable
+internal fun ExercisePickerContent(
+    state: ExercisePickerState,
+    onEvent: (ExercisePickerEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var selectedMuscleName by rememberSaveable { mutableStateOf("") }
+    var creating by rememberSaveable { mutableStateOf(false) }
+    var createName by rememberSaveable { mutableStateOf("") }
+    var group by rememberSaveable { mutableStateOf("") }
+    var loadTypeName by rememberSaveable { mutableStateOf(LoadType.EXTERNAL.name) }
+    var consumedCreation by rememberSaveable { mutableStateOf(state.progress.createdGeneration) }
     val selectedMuscle = CanonicalMuscle.bodyMapOrder.firstOrNull { it.name == selectedMuscleName }
     val visibleResults = state.visibleFor(selectedMuscle)
-    val suggestion = state.suggestion?.takeIf {
-        selectedMuscle == null || LibraryFilter.matches(it, selectedMuscle)
+    val needle = state.query.trim()
+    val canCreate = needle.isNotEmpty() &&
+        (state.catalog + state.results).none { it.name.equals(needle, ignoreCase = true) }
+    val list = rememberLazyListState()
+    val keyboard = LocalSoftwareKeyboardController.current
+    val problem = state.progress.error ?: state.error
+    LaunchedEffect(state.progress.createdGeneration) {
+        if (state.progress.createdGeneration > consumedCreation) {
+            creating = false
+        }
+        // A new ViewModel starts at zero after process recreation; retain the form,
+        // then consume its future successes against that new owner's counter.
+        consumedCreation = state.progress.createdGeneration
     }
-    val suggestionReason = state.suggestionReason
-    val siblings = if (state.showSiblings) {
-        state.siblings.filter { selectedMuscle == null || LibraryFilter.matches(it, selectedMuscle) }
-    } else {
-        emptyList()
+    LaunchedEffect(problem, creating) { if (problem != null || creating) list.scrollToItem(0) }
+    val choose: (Exercise) -> Unit = { exercise ->
+        if (!state.progress.creating && (state.multiSelect || !state.progress.busy)) {
+            onEvent(if (state.multiSelect) ExercisePickerEvent.Toggled(exercise) else ExercisePickerEvent.Selected(exercise))
+        }
     }
-    val selectedIds = state.selectedIds
-    val selectedOrder = state.selectedOrder
-    val cart = state.cart
-    val multiSelect = state.multiSelect
-    val needle = query.trim()
-    val canCreate = needle.isNotEmpty() && results.none { it.name.equals(needle, ignoreCase = true) }
-
-    ModalBottomSheet(
-        onDismissRequest = { onEvent(ExercisePickerEvent.Dismissed) },
-        // One height, held: the sheet no longer grows and shrinks under the thumb as the
-        // result count changes with every keystroke.
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-    ) {
-        // The height goes on the content, never on the sheet's own modifier: the caller's
-        // modifier is the first link in a chain that ends in the drag anchors, so fixing a
-        // height there positions the sheet by its top edge and lifts it off the bottom of
-        // the screen instead of making it tall.
+    Column(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(SHEET_HEIGHT_SHARE),
+            modifier = Modifier.padding(horizontal = Metrics.gutter).padding(bottom = Metrics.space3),
+            verticalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = Metrics.gutter)
-                    .padding(bottom = Metrics.space3),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space3),
-            ) {
-                Text(title, style = InstrumentType.title, color = TextPrimary)
-                if (multiSelect) {
-                    Text(
-                        SessionOrderCopy.PICKER_HINT,
-                        style = InstrumentType.caption,
-                        color = TextSecondary,
-                    )
+            if (creating) {
+                TextButton(onClick = { creating = false }, enabled = !state.progress.busy) {
+                    Text("Back to lifts", style = InstrumentType.bodyStrong)
                 }
+                Text("Create custom lift", style = InstrumentType.title, color = TextPrimary)
+            } else {
+                Text(state.title, style = InstrumentType.title, color = TextPrimary)
                 ExerciseSearchField(
-                    value = query,
+                    value = state.query,
                     onValueChange = { onEvent(ExercisePickerEvent.QueryChanged(it)) },
-                    placeholder = "Search, or name a new lift",
+                    placeholder = "Search lifts",
+                    modifier = Modifier.testTag("picker-search"),
                 )
             }
-            LazyRow(
-                modifier = Modifier.padding(bottom = Metrics.space3),
-                contentPadding = PaddingValues(horizontal = Metrics.gutter),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-            ) {
-                item(key = "muscle-all") {
-                    InstrumentChip(
-                        label = "All",
-                        selected = selectedMuscle == null,
-                        onClick = { selectedMuscleName = "" },
-                    )
-                }
-                items(CanonicalMuscle.bodyMapOrder, key = { it.name }) { muscle ->
-                    InstrumentChip(
-                        label = muscle.displayName,
-                        selected = selectedMuscle == muscle,
-                        onClick = {
-                            selectedMuscleName =
-                                if (selectedMuscleName == muscle.name) "" else muscle.name
-                        },
-                    )
-                }
-            }
-            if (multiSelect && cart.isNotEmpty()) {
-                val cartState = rememberLazyListState()
-                LaunchedEffect(cart.size) {
-                    cartState.animateScrollToItem(cart.lastIndex)
-                }
-                Column(
-                    modifier = Modifier.padding(bottom = Metrics.space3),
-                    verticalArrangement = Arrangement.spacedBy(Metrics.space2),
-                ) {
-                    Kicker(
-                        SessionOrderCopy.CART,
-                        modifier = Modifier.padding(horizontal = Metrics.gutter),
-                    )
-                    LazyRow(
-                        state = cartState,
-                        contentPadding = PaddingValues(horizontal = Metrics.gutter),
-                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-                    ) {
-                        itemsIndexed(cart, key = { _, exercise -> exercise.id }) { index, exercise ->
-                            InstrumentChip(
-                                label = "${index + 1}  ${exercise.name}",
-                                selected = true,
-                                onClick = { onEvent(ExercisePickerEvent.Toggled(exercise)) },
-                            )
-                        }
-                    }
-                }
-            }
-            HairlineDivider(startIndent = 0.dp)
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(bottom = Metrics.space7),
-            ) {
-                if (siblings.isNotEmpty() && needle.isEmpty()) {
-                    item(key = "siblings-header") {
-                        Kicker(
-                            "SAME MOVEMENT",
-                            modifier = Modifier.padding(
-                                start = Metrics.space4,
-                                top = Metrics.space3,
-                                bottom = Metrics.space1,
-                            ),
-                        )
-                    }
-                    items(siblings, key = { "sibling-${it.id}" }) { sibling ->
-                        Column {
-                            PickerLiftRow(
-                                exercise = sibling,
-                                selected = sibling.id in selectedIds,
-                                cartNumber = LiftCart.cartNumber(selectedOrder, sibling.id),
-                                onClick = {
-                                    if (multiSelect) {
-                                        onEvent(ExercisePickerEvent.Toggled(sibling))
-                                    } else {
-                                        onEvent(ExercisePickerEvent.Selected(sibling))
-                                    }
-                                },
-                            )
-                            HairlineDivider()
-                        }
-                    }
-                }
-                if (suggestion != null && needle.isEmpty()) {
-                    item(key = "suggested") {
-                        Column {
-                            Kicker(
-                                "SUGGESTED",
-                                modifier = Modifier.padding(
-                                    start = Metrics.space4,
-                                    top = Metrics.space3,
-                                    bottom = Metrics.space1,
-                                ),
-                            )
-                            PickerLiftRow(
-                                exercise = suggestion,
-                                selected = suggestion.id in selectedIds,
-                                cartNumber = LiftCart.cartNumber(selectedOrder, suggestion.id),
-                                onClick = {
-                                    if (multiSelect) {
-                                        onEvent(ExercisePickerEvent.Toggled(suggestion))
-                                    } else {
-                                        onEvent(ExercisePickerEvent.Selected(suggestion))
-                                    }
-                                },
-                                subtitle = suggestionReason,
-                            )
-                            HairlineDivider()
-                        }
-                    }
-                }
-                if (canCreate) {
-                    item(key = "create") {
-                        var group by rememberSaveable(needle, selectedMuscleName) {
-                            mutableStateOf(MuscleGroups.forNewDraft(selectedMuscle))
-                        }
-                        var loadTypeName by rememberSaveable(needle) {
-                            mutableStateOf(LoadType.EXTERNAL.name)
-                        }
-                        val loadType = LoadType.fromStorage(loadTypeName)
-                        Column {
-                            CreateExerciseRow(
-                                name = needle,
-                                muscleGroup = group,
-                                loadType = loadType,
-                                onMuscle = { group = it },
-                                onLoadType = { loadTypeName = it.name },
-                                onClick = {
-                                    if (MuscleGroups.resolved(group) != null) {
-                                        onEvent(
-                                            ExercisePickerEvent.Created(needle, group, loadType),
-                                        )
-                                    }
-                                },
-                            )
-                            HairlineDivider()
-                        }
-                    }
-                }
-                if (visibleResults.isEmpty() && !canCreate) {
-                    item(key = "empty") {
-                        EmptyState(
-                            scene = EmptyScene.CATALOG,
-                            title = if (needle.isEmpty()) "Search the library" else "No matches",
-                            body = when {
-                                needle.isNotEmpty() && selectedMuscle != null ->
-                                    "Nothing in ${selectedMuscle.displayName} matches that name."
-                                needle.isNotEmpty() ->
-                                    "Nothing in the library matches. Create it as a custom lift above."
-                                else ->
-                                    "Type a lift name to search, or name a new one to create it."
-                            },
-                            modifier = Modifier.padding(Metrics.gutter),
-                            compact = true,
-                        )
-                    }
-                } else {
-                    itemsIndexed(visibleResults, key = { _, exercise -> exercise.id }) { index, exercise ->
-                        Column(modifier = instrumentAnimateItem()) {
-                            PickerLiftRow(
-                                exercise = exercise,
-                                selected = exercise.id in selectedIds,
-                                cartNumber = LiftCart.cartNumber(selectedOrder, exercise.id),
-                                onClick = {
-                                    if (multiSelect) {
-                                        onEvent(ExercisePickerEvent.Toggled(exercise))
-                                    } else {
-                                        onEvent(ExercisePickerEvent.Selected(exercise))
-                                    }
-                                },
-                            )
-                            if (index < visibleResults.lastIndex) HairlineDivider()
-                        }
-                    }
-                }
-            }
-            if (state.mode == ExercisePickerMode.MULTI_ADD) {
-                if (!state.error.isNullOrBlank()) {
+        }
+        HairlineDivider(startIndent = 0.dp)
+        LazyColumn(
+            state = list,
+            modifier = Modifier.weight(1f).testTag("picker-content"),
+            contentPadding = PaddingValues(bottom = Metrics.space4),
+        ) {
+            if (problem != null) {
+                item(key = "error") {
                     GymErrorBanner(
-                        message = state.error,
-                        modifier = Modifier.padding(horizontal = Metrics.gutter),
+                        message = problem,
+                        modifier = Modifier.padding(Metrics.gutter),
+                        onRetry = if (state.progress.canRetry && !state.progress.busy) {
+                            { onEvent(ExercisePickerEvent.Retry) }
+                        } else null,
                         onDismiss = { onEvent(ExercisePickerEvent.ErrorDismissed) },
                     )
                 }
-                // Done, not Add: the lifts went on the routine as they were tapped. This
-                // button is the way out of the sheet, and it says what is already saved.
-                PrimaryGymButton(
-                    text = when (cart.size) {
-                        0 -> "Done"
-                        1 -> "Done · 1 lift"
-                        else -> "Done · ${cart.size} lifts"
-                    },
-                    onClick = { onEvent(ExercisePickerEvent.Dismissed) },
-                    modifier = Modifier.padding(
-                        horizontal = Metrics.gutter,
-                        vertical = Metrics.space3,
-                    ),
-                )
             }
+            state.progress.existing?.let { existing ->
+                item(key = "existing") {
+                    ExerciseRow(
+                        exercise = existing,
+                        nameMaxLines = Int.MAX_VALUE,
+                        tag = LoadTypeCopy.rowTag(existing),
+                    )
+                    TextButton(
+                        onClick = { creating = false; onEvent(ExercisePickerEvent.Selected(existing)) },
+                        enabled = !state.progress.busy,
+                        modifier = Modifier.padding(horizontal = Metrics.gutter),
+                    ) { Text("Use existing lift: ${existing.name}", style = InstrumentType.bodyStrong) }
+                }
+            }
+            if (creating) {
+                item(key = "create-form") {
+                    Column(
+                        modifier = Modifier.padding(Metrics.gutter).testTag("picker-create-form"),
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space4),
+                    ) {
+                        Text(createName, style = InstrumentType.display, color = TextPrimary)
+                        Text(
+                            "Saved to your Library, then selected here. Cancelling later keeps the Library lift.",
+                            style = InstrumentType.caption, color = TextSecondary,
+                        )
+                        Kicker("MUSCLE GROUP")
+                        if (group.isBlank()) Text("Choose a muscle group to continue.", style = InstrumentType.caption, color = TextSecondary)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2), verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                            (MuscleGroups.chips + MuscleGroups.OTHER).forEach { muscle ->
+                                InstrumentChip(
+                                    label = muscle, selected = muscle.equals(group, ignoreCase = true),
+                                    onClick = { group = muscle }, enabled = !state.progress.busy,
+                                )
+                            }
+                        }
+                        LoadTypeChipRow(
+                            selected = LoadType.fromStorage(loadTypeName),
+                            onSelect = { loadTypeName = it.name },
+                            enabled = !state.progress.busy,
+                        )
+                    }
+                }
+            } else {
+                item(key = "filters") {
+                    LazyRow(
+                        contentPadding = PaddingValues(Metrics.gutter),
+                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                    ) {
+                        item { InstrumentChip("All", selectedMuscle == null, { selectedMuscleName = "" }) }
+                        items(CanonicalMuscle.bodyMapOrder, key = { it.name }) { muscle ->
+                            InstrumentChip(muscle.displayName, selectedMuscle == muscle, {
+                                selectedMuscleName = if (selectedMuscleName == muscle.name) "" else muscle.name
+                            })
+                        }
+                    }
+                }
+                if (state.multiSelect) {
+                    item(key = "selection") {
+                        Text(SessionOrderCopy.PICKER_HINT, style = InstrumentType.caption, color = TextSecondary,
+                            modifier = Modifier.padding(horizontal = Metrics.gutter).padding(bottom = Metrics.space3))
+                        if (state.cart.isNotEmpty()) {
+                            LazyRow(contentPadding = PaddingValues(horizontal = Metrics.gutter), horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                                itemsIndexed(state.cart, key = { _, e -> e.id }) { i, exercise ->
+                                    InstrumentChip(label = "${i + 1}  ${exercise.name}", selected = true, onClick = { choose(exercise) }, enabled = !state.progress.creating)
+                                }
+                            }
+                        }
+                    }
+                }
+                if (needle.isEmpty()) {
+                    val siblings = if (state.showSiblings) LibraryFilter.apply(state.siblings, selectedMuscle) else emptyList()
+                    if (siblings.isNotEmpty()) {
+                        item { Kicker("SAME MOVEMENT", modifier = Modifier.padding(Metrics.gutter)) }
+                        items(siblings, key = { "sibling-${it.id}" }) { exercise ->
+                            PickerLiftRow(exercise = exercise, selected = exercise.id in state.selectedIds, onClick = { choose(exercise) },
+                                cartNumber = LiftCart.cartNumber(state.selectedOrder, exercise.id),
+                                enabled = !state.progress.busy, pending = exercise.id in state.progress.pendingIds)
+                        }
+                    }
+                    state.suggestion?.takeIf { selectedMuscle == null || LibraryFilter.matches(it, selectedMuscle) }?.let { exercise ->
+                        item(key = "suggestion") {
+                            Kicker("SUGGESTED", modifier = Modifier.padding(Metrics.gutter))
+                            PickerLiftRow(exercise = exercise, selected = exercise.id in state.selectedIds, onClick = { choose(exercise) }, subtitle = state.suggestionReason,
+                                cartNumber = LiftCart.cartNumber(state.selectedOrder, exercise.id),
+                                enabled = !state.progress.busy, pending = exercise.id in state.progress.pendingIds)
+                        }
+                    }
+                }
+                if (visibleResults.isEmpty()) {
+                    item(key = "empty") {
+                        EmptyState(
+                            scene = EmptyScene.CATALOG,
+                            title = "No matching lifts",
+                            body = if (selectedMuscle != null) "Try All or a different name." else "Try a different name, or create your own lift.",
+                            modifier = Modifier.padding(Metrics.gutter), compact = true,
+                        )
+                    }
+                }
+                itemsIndexed(visibleResults, key = { _, e -> e.id }) { i, exercise ->
+                    Column(modifier = instrumentAnimateItem()) {
+                        PickerLiftRow(exercise = exercise, selected = exercise.id in state.selectedIds, onClick = { choose(exercise) },
+                            cartNumber = LiftCart.cartNumber(state.selectedOrder, exercise.id),
+                            enabled = !state.progress.creating && (state.multiSelect || !state.progress.busy),
+                            pending = exercise.id in state.progress.pendingIds)
+                        if (i < visibleResults.lastIndex) HairlineDivider()
+                    }
+                }
+                if (canCreate) {
+                    item(key = "create-entry") {
+                        TextButton(
+                            onClick = {
+                                keyboard?.hide()
+                                createName = needle
+                                group = MuscleGroups.forNewDraft(selectedMuscle)
+                                loadTypeName = LoadType.EXTERNAL.name
+                                creating = true
+                            },
+                            enabled = !state.progress.busy,
+                            modifier = Modifier.fillMaxWidth().padding(Metrics.gutter).testTag("picker-create-entry"),
+                        ) { Text("Create custom lift: $needle", style = InstrumentType.bodyStrong, color = TextSecondary) }
+                    }
+                }
+            }
+        }
+        if (creating || state.multiSelect || state.progress.busy) {
+            PrimaryGymButton(
+                text = when {
+                    state.progress.creating -> "Creating lift…"
+                    state.progress.busy -> "Saving lift…"
+                    creating -> "Create and select"
+                    state.cart.isEmpty() -> "Done"
+                    state.cart.size == 1 -> "Done · 1 lift"
+                    else -> "Done · ${state.cart.size} lifts"
+                },
+                enabled = !state.progress.busy && (!creating || MuscleGroups.resolved(group) != null),
+                onClick = {
+                    if (creating) onEvent(ExercisePickerEvent.Created(createName, group, LoadType.fromStorage(loadTypeName)))
+                    else onEvent(ExercisePickerEvent.Dismissed)
+                },
+                modifier = Modifier.padding(horizontal = Metrics.gutter, vertical = Metrics.space3).testTag("picker-action"),
+            )
         }
     }
 }
@@ -376,21 +340,27 @@ private fun PickerLiftRow(
     onClick: () -> Unit,
     subtitle: String? = null,
     cartNumber: Int? = null,
+    enabled: Boolean = true,
+    pending: Boolean = false,
 ) {
     val shape = RoundedCornerShape(Radius.xs)
     ExerciseRow(
         exercise = exercise,
-        modifier = if (selected) {
+        modifier = (if (selected) {
             Modifier
                 .clip(shape)
                 .background(VoltDim)
                 .border(Metrics.emphasisBorder, Volt, shape)
         } else {
             Modifier
+        }).semantics {
+            this.selected = selected
+            if (pending) stateDescription = "Saving lift"
         },
-        onClick = onClick,
+        onClick = if (enabled) onClick else null,
+        nameMaxLines = Int.MAX_VALUE,
         tag = LoadTypeCopy.rowTag(exercise),
-        subtitle = subtitle,
+        subtitle = if (pending) "Saving…" else subtitle,
         trailing = when {
             cartNumber != null -> {
                 {
@@ -449,6 +419,7 @@ fun ExerciseRow(
      * worse row if it repeated the group the rows below it already show.
      */
     subtitle: String? = null,
+    nameMaxLines: Int = 1,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Row(
@@ -474,7 +445,7 @@ fun ExerciseRow(
                 exercise.name,
                 style = InstrumentType.title,
                 color = TextPrimary,
-                maxLines = 1,
+                maxLines = nameMaxLines,
                 overflow = TextOverflow.Ellipsis,
             )
             Row(
@@ -549,96 +520,6 @@ fun ExerciseSearchField(
         if (value.isNotEmpty()) {
             IconButton(onClick = { onValueChange("") }) {
                 Icon(Icons.Outlined.Close, contentDescription = "Clear search", tint = TextSecondary)
-            }
-        }
-    }
-}
-
-/** The one accented row in the sheet, and only when what was typed matches nothing. */
-@Composable
-private fun CreateExerciseRow(
-    name: String,
-    muscleGroup: String,
-    loadType: LoadType,
-    onMuscle: (String) -> Unit,
-    onLoadType: (LoadType) -> Unit,
-    onClick: () -> Unit,
-) {
-    val shape = RoundedCornerShape(Radius.xs)
-    val ready = MuscleGroups.resolved(muscleGroup) != null
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = Metrics.space3),
-        verticalArrangement = Arrangement.spacedBy(Metrics.space3),
-    ) {
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = Metrics.gutter),
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
-        ) {
-            items(MuscleGroups.chips, key = { it }) { group ->
-                InstrumentChip(
-                    label = group,
-                    selected = group.equals(muscleGroup, ignoreCase = true),
-                    onClick = { onMuscle(group) },
-                )
-            }
-            item(key = "other") {
-                InstrumentChip(
-                    label = MuscleGroups.OTHER,
-                    selected = MuscleGroups.otherSelected(muscleGroup),
-                    onClick = { onMuscle(MuscleGroups.OTHER) },
-                )
-            }
-        }
-        LoadTypeChipRow(
-            selected = loadType,
-            onSelect = onLoadType,
-            modifier = Modifier.padding(horizontal = Metrics.gutter),
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = Metrics.rowMin)
-                .clickable(enabled = ready, onClick = onClick)
-                .padding(horizontal = Metrics.gutter),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(ThumbSize.row)
-                    .clip(shape)
-                    .background(Surface1)
-                    .border(Metrics.hairline, if (ready) Volt else Hairline, shape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.Add,
-                    contentDescription = null,
-                    tint = if (ready) Volt else TextTertiary,
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
-            ) {
-                Text(
-                    "Create \"$name\"",
-                    style = InstrumentType.title,
-                    color = if (ready) Volt else TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    if (ready) {
-                        LoadTypeCopy.createCaption(muscleGroup, loadType)
-                    } else {
-                        MuscleGroups.MISSING_MESSAGE
-                    },
-                    style = InstrumentType.caption,
-                    color = TextSecondary,
-                )
             }
         }
     }

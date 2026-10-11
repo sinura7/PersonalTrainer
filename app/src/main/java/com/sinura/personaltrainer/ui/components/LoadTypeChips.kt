@@ -28,6 +28,7 @@ fun LoadTypeChipRow(
     selected: LoadType,
     onSelect: (LoadType) -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     Column(
         modifier = modifier,
@@ -43,6 +44,7 @@ fun LoadTypeChipRow(
                     label = type.label,
                     selected = selected == type,
                     onClick = { onSelect(type) },
+                    enabled = enabled,
                     modifier = Modifier.testTag(LoadTypeTags.chip(type)),
                 )
             }

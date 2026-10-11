@@ -3,11 +3,14 @@ package com.sinura.personaltrainer.ui.routines
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.testutil.GatedPickerCreation
+import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.TestSetInput
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.testutil.seedTestWorkout
@@ -17,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -66,6 +70,34 @@ class CustomWeekViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
         if (::deps.isInitialized) deps.close()
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun asynchronousCreationKeepsTheAcceptedDayAndBlocksConfirm() = runBlocking {
+        insertTestExercise(deps, "seed", "Row")
+        val creation = GatedPickerCreation(deps)
+        val vm = createViewModel(container = creation.container)
+        try {
+            vm.uiState.awaitFirst { it.catalog.isNotEmpty() }
+            vm.selectDay(Weekday.TUESDAY)
+            vm.setPickerVisible(true)
+            vm.createAndSelect("Tuesday press", "Chest")
+            assertFalse(vm.canLeave())
+            withTimeout(TestWaits.FLOW_MS) { creation.entered.await() }
+            vm.selectDay(Weekday.THURSDAY)
+            vm.setPickerVisible(false)
+            vm.confirm()
+            assertFalse(vm.finished.value)
+            assertEquals(Weekday.TUESDAY, vm.uiState.value.selectedDay)
+            assertTrue(vm.uiState.value.showPicker)
+            creation.release.complete(Unit)
+            val done = vm.uiState.awaitFirst { !it.pickerProgress.busy && it.days[Weekday.TUESDAY]?.size == 1 }
+            assertTrue(vm.canLeave())
+            assertTrue(done.days[Weekday.THURSDAY].isNullOrEmpty())
+            val saved = deps.exerciseRepository.observeAll().first().single { it.name == "Tuesday press" }
+            assertEquals(saved.id, done.days[Weekday.TUESDAY]!!.single().exercise.id)
+            assertEquals(1, creation.inserts.get())
+        } finally { creation.release.complete(Unit) }
     }
 
     @Test
@@ -657,11 +689,12 @@ class CustomWeekViewModelTest {
 
     private fun createViewModel(
         handle: SavedStateHandle = SavedStateHandle(),
+        container: AppDependencies = deps,
     ): CustomWeekViewModel =
         CustomWeekViewModel(
             ApplicationProvider.getApplicationContext<Application>(),
             handle,
-            deps,
+            container,
         ).also { vm ->
             viewModel = vm
             keepAlive = CoroutineScope(dispatcher).launch { vm.uiState.collect { } }

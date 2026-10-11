@@ -31,6 +31,7 @@ data class ExercisePickerState(
     val selectedOrder: List<String> = emptyList(),
     val catalog: List<Exercise> = emptyList(),
     val error: String? = null,
+    val progress: ExercisePickerProgress = ExercisePickerProgress(),
 ) {
     val multiSelect: Boolean get() = mode == ExercisePickerMode.MULTI_ADD
     val showSiblings: Boolean get() = mode == ExercisePickerMode.SWAP && siblings.isNotEmpty()
@@ -52,6 +53,18 @@ data class ExercisePickerState(
         LibraryFilter.apply(results, muscle)
 }
 
+/** The owner of a write holds its intent until it receives an answer. */
+data class ExercisePickerProgress(
+    val pendingIds: Set<String> = emptySet(),
+    val creating: Boolean = false,
+    val error: String? = null,
+    val canRetry: Boolean = false,
+    val existing: Exercise? = null,
+    val createdGeneration: Int = 0,
+) {
+    val busy: Boolean get() = creating || pendingIds.isNotEmpty()
+}
+
 sealed class ExercisePickerEvent {
     data class QueryChanged(val query: String) : ExercisePickerEvent()
     data class Selected(val exercise: Exercise) : ExercisePickerEvent()
@@ -64,4 +77,5 @@ sealed class ExercisePickerEvent {
     data class Toggled(val exercise: Exercise) : ExercisePickerEvent()
     data object Dismissed : ExercisePickerEvent()
     data object ErrorDismissed : ExercisePickerEvent()
+    data object Retry : ExercisePickerEvent()
 }

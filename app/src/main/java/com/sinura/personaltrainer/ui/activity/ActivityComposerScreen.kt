@@ -46,6 +46,7 @@ import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.ExercisePickerEvent
 import com.sinura.personaltrainer.domain.ExercisePickerMode
 import com.sinura.personaltrainer.domain.ExercisePickerState
+import com.sinura.personaltrainer.domain.ExercisePickerProgress
 import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.StrengthEntry
@@ -198,6 +199,9 @@ fun ActivityComposerScreen(
                         onCreatedHandled = viewModel::onCreatedExerciseHandled,
                         pickerError = state.createError,
                         onPickerErrorDismissed = viewModel::dismissCreateError,
+                        pickerProgress = state.pickerProgress,
+                        onPickerRetry = viewModel::retryPicker,
+                        canDismissPicker = viewModel::canLeave,
                     )
                 }
             }
@@ -232,9 +236,11 @@ fun ActivityComposerScreen(
             confirmLabel = ComposerCopy.LEAVE,
             dismissLabel = ComposerCopy.KEEP_EDITING,
             onConfirm = {
-                confirmLeave = false
-                viewModel.discardDraft()
-                onBack()
+                if (viewModel.canLeave()) {
+                    confirmLeave = false
+                    viewModel.discardDraft()
+                    onBack()
+                }
             },
             onDismiss = { confirmLeave = false },
         )
@@ -279,8 +285,8 @@ internal fun ComposerSaveDock(
 }
 
 @Composable
-private fun StrengthAdder(
-    catalog: List<ExerciseOption>,
+internal fun StrengthAdder(
+    catalog: List<Exercise>,
     onAdd: (Exercise, Double, Int) -> Unit,
     onCreate: (String, String, LoadType) -> Unit = { _, _, _ -> },
     created: Exercise? = null,
@@ -288,6 +294,9 @@ private fun StrengthAdder(
     /** A Create-row failure, shown inside the sheet that asked — a banner behind a modal is invisible. */
     pickerError: String? = null,
     onPickerErrorDismissed: () -> Unit = {},
+    pickerProgress: ExercisePickerProgress = ExercisePickerProgress(),
+    onPickerRetry: () -> Unit = {},
+    canDismissPicker: () -> Boolean = { !pickerProgress.busy },
 ) {
     val unit = LocalWeightUnit.current
     var pickerOpen by rememberSaveable { mutableStateOf(false) }
@@ -313,8 +322,13 @@ private fun StrengthAdder(
         pickerOpen = false
         onCreatedHandled()
     }
-    val exercise = catalog.firstOrNull { it.id == pickedId } ?: catalog.firstOrNull()
+    val exercise = catalog.firstOrNull { it.id == pickedId }
     Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        SecondaryGymButton(
+            text = ComposerCopy.CHOOSE_LIFT,
+            onClick = { pickerOpen = true },
+            modifier = Modifier.testTag(ComposerTags.CHOOSE_LIFT),
+        )
         if (catalog.isEmpty()) {
             Text(ComposerCopy.NO_LIFTS, style = InstrumentType.caption, color = TextSecondary)
         } else {
@@ -322,11 +336,6 @@ private fun StrengthAdder(
                 exercise?.name ?: ComposerCopy.CHOOSE_LIFT,
                 style = InstrumentType.bodyStrong,
                 color = TextPrimary,
-            )
-            SecondaryGymButton(
-                text = ComposerCopy.CHOOSE_LIFT,
-                onClick = { pickerOpen = true },
-                modifier = Modifier.testTag(ComposerTags.CHOOSE_LIFT),
             )
             val strengthChain = NumericEntry.COMPOSER_STRENGTH_CHAIN
             val weightFocus = remember { FocusRequester() }
@@ -397,12 +406,14 @@ private fun StrengthAdder(
                         }
                     }
                 },
+                enabled = exercise != null,
                 modifier = Modifier.testTag(ComposerTags.ADD_SET),
             )
         }
     }
     if (pickerOpen) {
         ExercisePickerSheet(
+            canDismiss = canDismissPicker,
             state = ExercisePickerState(
                 query = pickerQuery,
                 results = filterCatalog(catalog, pickerQuery),
@@ -410,11 +421,14 @@ private fun StrengthAdder(
                 mode = ExercisePickerMode.SINGLE_ADD,
                 catalog = catalog,
                 error = pickerError,
+                progress = pickerProgress,
             ),
             onEvent = { event ->
                 when (event) {
                     is ExercisePickerEvent.QueryChanged -> pickerQuery = event.query
                     is ExercisePickerEvent.Selected -> {
+                        if (!canDismissPicker()) return@ExercisePickerSheet
+                        onPickerErrorDismissed()
                         pickedId = event.exercise.id
                         pickerQuery = ""
                         pickerOpen = false
@@ -425,7 +439,9 @@ private fun StrengthAdder(
                     // sees a Toggled; the arm is here only to keep the when exhaustive.
                     is ExercisePickerEvent.Toggled -> Unit
                     ExercisePickerEvent.ErrorDismissed -> onPickerErrorDismissed()
+                    ExercisePickerEvent.Retry -> onPickerRetry()
                     ExercisePickerEvent.Dismissed -> {
+                        if (!canDismissPicker()) return@ExercisePickerSheet
                         pickerQuery = ""
                         pickerOpen = false
                     }

@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.domain.ExercisePickerProgress
+import com.sinura.personaltrainer.util.PickerWrites
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppDependencies
@@ -100,6 +102,7 @@ data class RoutineEditorUiState(
      */
     val pickedIds: List<String> = emptyList(),
     val error: String? = null,
+    val pickerProgress: ExercisePickerProgress = ExercisePickerProgress(),
     /** True while a tap from the picker is still being written. */
     val addingLifts: Boolean = false,
     /**
@@ -173,6 +176,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val notes = MutableStateFlow(savedStateHandle.get<String>(KEY_NOTES).orEmpty())
     private val searchQuery = MutableStateFlow("")
     private val showPicker = MutableStateFlow(false)
+    private var createdPickerLift: Exercise? = null
+    private val pickerWrites = PickerWrites()
     private val error = ErrorSlot()
     private val extraCatalog = MutableStateFlow<List<Exercise>>(emptyList())
     private val swapItemId = MutableStateFlow<String?>(null)
@@ -389,6 +394,8 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             pasting = catalogExtras.paste.pasting,
             unmatchedPick = catalogExtras.paste.unmatchedPick,
         )
+    }.combine(pickerWrites.state) { state, progress ->
+        state.copy(pickerProgress = progress, addingLifts = state.addingLifts || progress.busy)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -720,7 +727,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * without a word.
      */
     fun leave() {
-        if (leaving) return
+        if (leaving || pickerWrites.creating) return
         // Nothing hydrated and nothing staged means nothing Save could owe: the read that failed
         // or the row that is gone must not produce a "Some changes are not saved" prompt over an
         // editor the owner never got to type into. Leave-anyway is exactly Back minus the flush.
@@ -768,7 +775,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * is the retry. An empty stub still cannot be saved — Add lifts is the empty Volt.
      */
     fun saveAndLeave() {
-        if (leaving) return
+        if (leaving || pickerWrites.creating) return
         // The press itself, before anything suspends. Only refusals older than it may be
         // taken over by the dock below; one raised while the attempt ran is newer news.
         val started = error.mark()
@@ -822,7 +829,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * Safe to call without a prompt showing: it is Back minus the flush, nothing more.
      */
     fun leaveAnyway() {
-        if (leaving) return
+        if (leaving || pickerWrites.creating) return
         beginExit()
         viewModelScope.launch {
             joinWrites()
@@ -903,9 +910,12 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         }
     }
 
+    fun canDismissPicker(): Boolean = !pickerWrites.busy
+
     fun setPickerVisible(visible: Boolean) {
         if (missing) return
         if (visible && leaving) return
+        if (!visible && pickerWrites.busy) return
         showPicker.value = visible
         // The typed query is the only thing closing the sheet throws away. The lifts are
         // already on the routine, which is the whole point: a tap outside the sheet used to
@@ -997,32 +1007,58 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         setPickerVisible(true)
     }
 
+    fun retryPicker() = pickerWrites.retry()
+    fun dismissPickerError() { pickerWrites.dismissError(); error.clearFrom(ERR_ADD_LIFT); error.clearFrom(ERR_REMOVE_LIFT); error.clearFrom(ERR_ROUTINE) }
+
     fun resolveUnmatched(exercise: Exercise) {
-        val pending = pasteState.value.unmatchedPick ?: return
+        val pending = pasteState.value.unmatchedPick
+        if (pending == null) commitPick(exercise, adding = true)
+        else resolveUnmatched(exercise, pending, created = false)
+    }
+
+    private fun resolveUnmatched(exercise: Exercise, pending: PastedUnmatched, created: Boolean) {
+        if (leaving || missing || pickerWrites.busy) return
+        val started = error.mark()
+        val ticket = pickerWrites.begin(exercise.id)
         val defaults = AddDefaults.forExercise(exercise)
         val scheme = pending.scheme
-        pasteState.update {
-            it.copy(
-                unmatchedPick = null,
-                unmatched = it.unmatched.filterNot { row ->
-                    row.raw == pending.raw && row.names == pending.names
-                },
-            )
+        launchWrite {
+            try {
+                pickWrites.withLock {
+                    val id = ensureRoutineId()
+                    if (id == null) {
+                        pickerWrites.fail(ticket, error.message ?: "Could not prepare this routine. Try again.") { resolveUnmatched(exercise, pending, created) }
+                        return@withLock
+                    }
+                    if (storedRow(id, exercise.id) == null) {
+                        container.routineRepository.addExercise(
+                            routineId = id, exercise = exercise,
+                            targetSets = scheme?.storedSets ?: defaults.sets,
+                            targetReps = if (scheme?.isTimed == true) HoldWork.HOLD_REPS_PLACEHOLDER else scheme?.storedReps ?: defaults.reps,
+                            targetWeightKg = null,
+                            restSeconds = scheme?.let { WorkoutPasteRest.forLift(exercise, it) } ?: defaults.restSeconds,
+                            targetSeconds = if (scheme?.isTimed == true) scheme.storedSeconds else defaults.seconds,
+                            targetSecondsMax = if (scheme?.isTimed == true) scheme.storedSecondsMax else defaults.secondsMax,
+                        )
+                    }
+                    pasteState.update {
+                        it.copy(unmatchedPick = null, unmatched = it.unmatched.filterNot { row -> row == pending })
+                    }
+                    pickerWrites.succeed(ticket, created)
+                    if (created) createdPickerLift = null
+                    setPickerVisible(false)
+                    error.clearFrom(ERR_ADD_LIFT, before = started)
+                    error.clearFrom(ERR_ROUTINE, before = started)
+                    if (pasteState.value.unmatched.isEmpty()) error.clearFrom(ERR_PASTE, before = started)
+                }
+            } catch (thrown: CancellationException) {
+                pickerWrites.cancel(ticket)
+                throw thrown
+            } catch (thrown: Exception) {
+                error.fail(ERR_ADD_LIFT, SessionOrderCopy.ADD_LIFT_FAILED)
+                pickerWrites.fail(ticket, SessionOrderCopy.ADD_LIFT_FAILED) { resolveUnmatched(exercise, pending, created) }
+            }
         }
-        setPickerVisible(false)
-        addExercise(
-            exercise = exercise,
-            targetSets = scheme?.storedSets ?: defaults.sets,
-            targetReps = if (scheme?.isTimed == true) {
-                HoldWork.HOLD_REPS_PLACEHOLDER
-            } else {
-                scheme?.storedReps ?: defaults.reps
-            },
-            targetWeightKg = null,
-            restSeconds = scheme?.let { WorkoutPasteRest.forLift(exercise, it) } ?: defaults.restSeconds,
-            targetSeconds = if (scheme?.isTimed == true) scheme.storedSeconds else defaults.seconds,
-            targetSecondsMax = if (scheme?.isTimed == true) scheme.storedSecondsMax else defaults.secondsMax,
-        )
     }
 
     private suspend fun applyPastedSession(id: String, session: PastedSession, plan: WorkoutPastePlan) {
@@ -1087,7 +1123,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * out, and the numbers the rows carry are the session's own order.
      */
     fun togglePicked(exercise: Exercise) {
-        if (leaving) return
+        if (leaving || pickerWrites.creating) return
         commitPick(
             exercise = exercise,
             adding = LiftCart.addsOnTap(
@@ -1102,8 +1138,9 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * Hold the tap's intent, then write it. The intent is held first so the row answers the
      * finger on the same frame — Room's flow is a database round trip behind it.
      */
-    private fun commitPick(exercise: Exercise, adding: Boolean) {
+    private fun commitPick(exercise: Exercise, adding: Boolean, created: Boolean = false) {
         if (leaving) return
+        val ticket = pickerWrites.begin(exercise.id)
         val tap = taps.incrementAndGet()
         pendingPicks.update { LiftCart.record(pending = it, id = exercise.id, adding = adding, tap = tap) }
         // The mark belongs to the TAP, so it is taken here — before `launchWrite`, and before
@@ -1115,16 +1152,18 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         // ordinary case, not the exotic one. A refusal raised while a tap waited its turn is
         // newer than the tap and must survive it.
         val started = error.mark()
-        launchWrite { pickWrites.withLock { writePick(exercise, adding, started, tap) } }
+        launchWrite { pickWrites.withLock { writePick(exercise, adding, started, tap, ticket, created) } }
     }
 
-    private suspend fun writePick(exercise: Exercise, adding: Boolean, started: Long, tap: Long) {
+    private suspend fun writePick(exercise: Exercise, adding: Boolean, started: Long, tap: Long, ticket: Long, created: Boolean) {
         val source = if (adding) ERR_ADD_LIFT else ERR_REMOVE_LIFT
-        val id = ensureRoutineId() ?: run {
-            pendingPicks.update { LiftCart.forget(pending = it, id = exercise.id, tap = tap) }
-            return
-        }
         try {
+            val id = ensureRoutineId()
+            if (id == null) {
+                pendingPicks.update { LiftCart.forget(pending = it, id = exercise.id, tap = tap) }
+                pickerWrites.fail(ticket, error.message ?: "Could not prepare this routine. Try again.") { commitPick(exercise, adding, created) }
+                return
+            }
             // Read the routine rather than trust the flow's last emission. This is the dedup
             // that stops a double tap writing the same lift twice, and under this lock it has
             // to see the write that finished a moment ago, not the state before it.
@@ -1166,13 +1205,18 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             // or that tap would wait for an emission that has already gone by.
             settlePicks(committedIds(routineFlow.value))
             dropOverriddenPicks(routineFlow.value)
+            pickerWrites.succeed(ticket, created)
+            if (created) createdPickerLift = null
             error.clearFrom(source = source, before = started)
             error.clearFrom(source = ERR_SAVE, before = started)
+            error.clearFrom(ERR_ROUTINE, before = started)
         } catch (thrown: CancellationException) {
+            pickerWrites.cancel(ticket)
             throw thrown
         } catch (thrown: Exception) {
             AppLog.w(TAG, "writePick failed", thrown)
             pendingPicks.update { LiftCart.forget(pending = it, id = exercise.id, tap = tap) }
+            pickerWrites.fail(ticket, if (adding) SessionOrderCopy.ADD_LIFT_FAILED else SessionOrderCopy.REMOVE_LIFT_FAILED) { commitPick(exercise, adding, created) }
             error.fail(
                 source = source,
                 message = if (adding) {
@@ -1277,40 +1321,53 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }
 
     fun createAndSelect(name: String, muscleGroup: String, loadType: LoadType = LoadType.EXTERNAL) {
+        if (leaving || pickerWrites.busy) return
         val started = error.mark()
-        if (leaving) return
+        val selectHere = showPicker.value
+        val pending = pasteState.value.unmatchedPick
+        val cached = createdPickerLift?.takeIf {
+            it.name.equals(name.trim(), ignoreCase = true) && it.muscleGroup.equals(muscleGroup, ignoreCase = true) && it.loadType == loadType
+        }
+        if (cached != null && selectHere) {
+            if (pending != null) resolveUnmatched(cached, pending, created = true)
+            else commitPick(cached, adding = true, created = true)
+            return
+        }
+        val ticket = pickerWrites.begin("create", creating = true)
         if (name.isBlank()) {
-            error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.LIFT_NAME_REQUIRED)
+            error.fail(ERR_ADD_LIFT, SessionOrderCopy.LIFT_NAME_REQUIRED)
+            pickerWrites.fail(ticket, SessionOrderCopy.LIFT_NAME_REQUIRED)
             return
         }
         launchWrite {
             try {
-                when (val result = container.exerciseRepository.createCustom(
-                    name,
-                    muscleGroup,
-                    loadType = loadType,
-                )) {
-                    is SaveExerciseResult.DuplicateName ->
-                        error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
-                    is SaveExerciseResult.MissingMuscle ->
-                        error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
+                when (val result = container.exerciseRepository.createCustom(name, muscleGroup, loadType = loadType)) {
+                    is SaveExerciseResult.DuplicateName -> {
+                        error.fail(ERR_ADD_LIFT, DUPLICATE_NAME_MESSAGE)
+                        pickerWrites.fail(ticket, DUPLICATE_NAME_MESSAGE, existing = result.existing)
+                    }
+                    is SaveExerciseResult.MissingMuscle -> {
+                        error.fail(ERR_ADD_LIFT, MuscleGroups.MISSING_MESSAGE)
+                        pickerWrites.fail(ticket, MuscleGroups.MISSING_MESSAGE)
+                    }
                     is SaveExerciseResult.Saved -> {
-                        extraCatalog.value = LiftCart.mergeSources(
-                            extraCatalog.value,
-                            listOf(result.exercise),
-                        )
-                        if (showPicker.value) {
-                            commitPick(exercise = result.exercise, adding = true)
+                        createdPickerLift = result.exercise
+                        extraCatalog.value = LiftCart.mergeSources(extraCatalog.value, listOf(result.exercise))
+                        pickerWrites.succeed(ticket)
+                        if (selectHere) {
+                            if (pending != null) resolveUnmatched(result.exercise, pending, created = true)
+                            else commitPick(result.exercise, adding = true, created = true)
                         }
-                        error.clearFrom(source = ERR_ADD_LIFT, before = started)
-                        error.clearFrom(source = ERR_SAVE, before = started)
+                        error.clearFrom(ERR_ADD_LIFT, before = started)
+                        error.clearFrom(ERR_SAVE, before = started)
                     }
                 }
             } catch (thrown: CancellationException) {
+                pickerWrites.cancel(ticket)
                 throw thrown
             } catch (thrown: Exception) {
-                AppLog.w(TAG, "createAndSelect failed", thrown)
-                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
+                error.fail(ERR_ADD_LIFT, SessionOrderCopy.CREATE_LIFT_FAILED)
+                pickerWrites.fail(ticket, SessionOrderCopy.CREATE_LIFT_FAILED) { createAndSelect(name, muscleGroup, loadType) }
             }
         }
     }

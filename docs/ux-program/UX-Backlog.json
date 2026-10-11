@@ -556,12 +556,12 @@
         "UX23"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Proposed; no implementation or Android runtime validation performed",
+      "status": "Implemented and locally verified: full names/artwork precede explicit creation; all modes own pending/error/Retry state and disclose immediate Library persistence. The complete gate passed 4,184 fresh app tests, 1,701 standalone checks, build, lint and instrumented APK assembly. Final review/integration is recorded by this packet; physical-phone acceptance remains unobserved.",
       "fixtures": [
         "F06",
         "F08"
       ],
-      "evidenceClass": "Unchanged by this batch"
+      "evidenceClass": "Executed complete local gate and native-graphics matrix; physical acceptance unobserved"
     },
     {
       "id": "UX11",
@@ -2403,7 +2403,7 @@
         "F08"
       ],
       "requirement": "Searching 'bench' with existing matching variants prioritizes choosing them over creating 'bench'.",
-      "status": "Not executed",
+      "status": "Executed: ExercisePickerRenderTest retains matching illustrated results before secondary Create across the layout/font matrix.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
     },
     {
@@ -2415,7 +2415,7 @@
         "F08"
       ],
       "requirement": "Duplicate/disk/create errors are visible within the active sheet in single and multi modes.",
-      "status": "Not executed",
+      "status": "Executed targeted UI recovery and exact-identity ownership checks. Final complete-gate verification remains pending; native-graphics hosts are synthetic, not phone acceptance.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
     },
     {
@@ -2427,7 +2427,7 @@
         "F08"
       ],
       "requirement": "Create then cancel activity follows the disclosed catalogue persistence rule.",
-      "status": "Not executed",
+      "status": "Implemented disclosure and Room cancellation regression in ActivityComposerViewModelTest; the final added regression awaits the complete gate.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
     },
     {
@@ -2439,7 +2439,7 @@
         "F08"
       ],
       "requirement": "Double confirmation adds the selected IDs once and preserves order.",
-      "status": "Not executed",
+      "status": "Existing ordered write-through contract retained with synchronous pending ownership and exact-ID Retry. Targeted picker write/routine checks executed; final source changes await the complete gate.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
     },
     {

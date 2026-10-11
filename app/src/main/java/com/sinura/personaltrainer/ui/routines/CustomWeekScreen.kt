@@ -90,7 +90,9 @@ fun CustomWeekScreen(
     // A five-day draft lives only in this ViewModel; a back-swipe used to destroy
     // it with no confirmation while the composer next door guards the same case.
     val leave = {
-        if (state.days.values.any { it.isNotEmpty() } && !finished) {
+        if (!viewModel.canLeave()) {
+            Unit
+        } else if (state.days.values.any { it.isNotEmpty() } && !finished) {
             confirmLeave = true
         } else {
             onBack()
@@ -105,8 +107,10 @@ fun CustomWeekScreen(
             confirmLabel = "Discard and leave",
             destructive = true,
             onConfirm = {
-                confirmLeave = false
-                onBack()
+                if (viewModel.canLeave()) {
+                    confirmLeave = false
+                    onBack()
+                }
             },
             onDismiss = { confirmLeave = false },
         )
@@ -235,7 +239,7 @@ fun CustomWeekScreen(
                         }
                     },
                     modifier = Modifier.testTag(CustomWeekTags.CONFIRM),
-                    enabled = state.canConfirm && !state.applying,
+                    enabled = state.canConfirm && !state.applying && !state.pickerProgress.busy,
                 )
                 if (restCaption != null && state.trainingDays > 0) {
                     Text(restCaption, style = InstrumentType.caption, color = TextSecondary)
@@ -259,24 +263,26 @@ fun CustomWeekScreen(
 
     if (state.showPicker) {
         ExercisePickerSheet(
+            canDismiss = viewModel::canDismissPicker,
             state = ExercisePickerState(
                 query = state.searchQuery,
+                progress = state.pickerProgress,
                 results = state.searchResults,
                 title = "Add lifts",
                 mode = ExercisePickerMode.MULTI_ADD,
                 selectedOrder = state.pickedIds,
                 catalog = state.catalog,
-                error = state.error,
             ),
             onEvent = { event ->
                 when (event) {
                     is ExercisePickerEvent.QueryChanged -> viewModel.onSearchQuery(event.query)
-                    is ExercisePickerEvent.Selected -> Unit
+                    is ExercisePickerEvent.Selected -> viewModel.selectPickerExercise(event.exercise)
                     is ExercisePickerEvent.Created ->
                         viewModel.createAndSelect(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> viewModel.togglePicked(event.exercise)
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
-                    ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
+                    ExercisePickerEvent.ErrorDismissed -> viewModel.dismissPickerError()
+                    ExercisePickerEvent.Retry -> viewModel.retryPicker()
                 }
             },
         )
