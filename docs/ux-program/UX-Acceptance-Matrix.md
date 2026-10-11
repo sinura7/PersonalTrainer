@@ -1,6 +1,19 @@
 # Temper UX acceptance matrix — updated 7 September 2026
 
-**Current development, 11 October 2026 UTC:** Shared lift selection is integrated
+**Current Home packet, 11 October 2026 UTC (UX01/UX02/UX23):** Summary/History
+is integrated through [PR #481](https://github.com/sinura7/PersonalTrainer/pull/481).
+Home now retains its authored start surface until an actual open/conflict result,
+shows the actual start date separately from the planned date, reserves a start
+before launching work, and offers explicit retry of the retained command.
+Acknowledged relocation and discard retain their completed phase; Extra routine
+preparation is one transaction. Prior-copy targeted07 passed 189 fresh tests /
+15 suites, including 33 actual Home start cases and the 13-profile blocked-start
+matrix; 508 fresh PNGs were archived. A later neutral-error-copy repair and its
+explicit native assertion await the complete fresh gate. Final native inspection,
+pinned independent/adversarial review and integration remain pending. Participant
+interpretation and physical-phone acceptance are not claimed.
+
+**Summary/History development baseline, 11 October 2026 UTC:** Shared lift selection is integrated
 through [PR #480](https://github.com/sinura7/PersonalTrainer/pull/480). The active
 single packet is corrected Summary receipts and exact exercise History readouts,
 `f1156f4b` on `codex/summary-history-clarity` (UX05/UX16/UX29). Its corrected

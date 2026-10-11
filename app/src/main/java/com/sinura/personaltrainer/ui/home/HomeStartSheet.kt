@@ -13,12 +13,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,6 +50,9 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Surface3
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
+import com.sinura.personaltrainer.ui.theme.TextDisabled
+import com.sinura.personaltrainer.ui.units.DateCopy
+import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 
 private enum class HomeStartPage { KIND, ROUTINES, CARDIO, AUX }
 
@@ -67,6 +73,10 @@ fun HomeStartSheet(
     suggestedKit: ExtraEquipment = ExtraEquipment.MIXED,
     mutationEnabled: Boolean = true,
     recoveryContent: (@Composable () -> Unit)? = null,
+    navigationEnabled: Boolean = true,
+    canNavigate: () -> Boolean = { navigationEnabled },
+    canDismiss: () -> Boolean = { navigationEnabled },
+    onChoiceChangeAccepted: () -> Boolean = { true },
 ) {
     var picking by rememberSaveable { mutableStateOf(HomeStartPage.KIND.name) }
     // Popup content has its own registry. Keep both page and equipment with the sheet's
@@ -75,8 +85,20 @@ fun HomeStartSheet(
     val page = runCatching { HomeStartPage.valueOf(picking) }.getOrNull()
         ?: HomeStartPage.KIND
     val named = remember(routines) { HomeStart.namedRoutines(routines) }
+    val mayNavigate by rememberUpdatedState(canNavigate)
+    val mayDismiss by rememberUpdatedState(canDismiss)
+    val acceptChoiceChange by rememberUpdatedState(onChoiceChangeAccepted)
+    val canChange = remember { { value: SheetValue -> value != SheetValue.Hidden || mayDismiss() } }
+    val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = canChange)
+    val changePage: (HomeStartPage) -> Unit = { next ->
+        if (mayNavigate() && acceptChoiceChange()) picking = next.name
+    }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Surface3) {
+    ModalBottomSheet(
+        onDismissRequest = { if (mayDismiss()) onDismiss() },
+        containerColor = Surface3,
+        sheetState = sheet,
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -86,35 +108,45 @@ fun HomeStartSheet(
                 .padding(bottom = Metrics.space7),
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
+            Text(
+                "Starts now · ${DateCopy.civilDate(LocalTodayEpochDay.current)}",
+                modifier = Modifier.testTag(HomeStartTags.DATE),
+                style = InstrumentType.caption,
+                color = TextSecondary,
+            )
             recoveryContent?.invoke()
             when (page) {
                 HomeStartPage.KIND -> KindPage(
                     onStartFree = onStartFree,
-                    onRoutines = { picking = HomeStartPage.ROUTINES.name },
-                    onCardio = { picking = HomeStartPage.CARDIO.name },
-                    onExtra = { picking = HomeStartPage.AUX.name },
+                    onRoutines = { changePage(HomeStartPage.ROUTINES) },
+                    onCardio = { changePage(HomeStartPage.CARDIO) },
+                    onExtra = { changePage(HomeStartPage.AUX) },
                     mutationEnabled = mutationEnabled,
+                    navigationEnabled = navigationEnabled,
                 )
                 HomeStartPage.ROUTINES -> RoutinePage(
                     routines = named,
-                    onBack = { picking = HomeStartPage.KIND.name },
+                    onBack = { changePage(HomeStartPage.KIND) },
                     onStartRoutine = onStartRoutine,
                     mutationEnabled = mutationEnabled,
+                    navigationEnabled = navigationEnabled,
                 )
                 HomeStartPage.CARDIO -> CardioPage(
-                    onBack = { picking = HomeStartPage.KIND.name },
+                    onBack = { changePage(HomeStartPage.KIND) },
                     onStartCardio = onStartCardio,
                     mutationEnabled = mutationEnabled,
+                    navigationEnabled = navigationEnabled,
                 )
                 HomeStartPage.AUX -> AuxiliaryPackList(
                     usedPackIds = emptySet(),
                     onPick = onStartExtra,
-                    onCancel = { picking = HomeStartPage.KIND.name },
+                    onCancel = { changePage(HomeStartPage.KIND) },
                     suggestedKit = suggestedKit,
                     modifier = Modifier.testTag(HomeStartTags.EXTRA_PAGE),
                     pickEnabled = mutationEnabled,
                     equipment = kitName?.let { ExtraEquipment.fromStorage(it) },
-                    onEquipmentChanged = { kitName = it?.name },
+                    onEquipmentChanged = { if (mayNavigate() && acceptChoiceChange()) kitName = it?.name },
+                    navigationEnabled = navigationEnabled,
                 )
             }
         }
@@ -128,6 +160,7 @@ private fun KindPage(
     onCardio: () -> Unit,
     onExtra: () -> Unit,
     mutationEnabled: Boolean,
+    navigationEnabled: Boolean,
 ) {
     Text(
         SessionOrderCopy.FREE_WORKOUT,
@@ -153,6 +186,7 @@ private fun KindPage(
                 .testTag(HomeStartTags.ROUTINE)
                 .semantics { contentDescription = HomeStartCopy.ROUTINE },
             onClick = onRoutines,
+            enabled = navigationEnabled,
         )
         HairlineDivider()
         InstrumentRow(
@@ -162,6 +196,7 @@ private fun KindPage(
                 .testTag(HomeStartTags.CARDIO)
                 .semantics { contentDescription = HomeStartCopy.CARDIO },
             onClick = onCardio,
+            enabled = navigationEnabled,
         )
         HairlineDivider()
         InstrumentRow(
@@ -171,6 +206,7 @@ private fun KindPage(
                 .testTag(HomeStartTags.EXTRA)
                 .semantics { contentDescription = HomeStartCopy.EXTRA },
             onClick = onExtra,
+            enabled = navigationEnabled,
         )
     }
 }
@@ -181,10 +217,12 @@ private fun RoutinePage(
     onBack: () -> Unit,
     onStartRoutine: (String) -> Unit,
     mutationEnabled: Boolean,
+    navigationEnabled: Boolean,
 ) {
     SheetBackKicker(
         title = HomeStartCopy.PICK_ROUTINE,
         onBack = onBack,
+        enabled = navigationEnabled,
     )
     if (routines.isEmpty()) {
         Text(
@@ -221,10 +259,12 @@ private fun CardioPage(
     onBack: () -> Unit,
     onStartCardio: (CardioType) -> Unit,
     mutationEnabled: Boolean,
+    navigationEnabled: Boolean,
 ) {
     SheetBackKicker(
         title = HomeStartCopy.CARDIO,
         onBack = onBack,
+        enabled = navigationEnabled,
     )
     LazyRow(
         modifier = Modifier.testTag(HomeStartTags.CARDIO_PAGE),
@@ -244,18 +284,20 @@ private fun CardioPage(
 private fun SheetBackKicker(
     title: String,
     onBack: () -> Unit,
+    enabled: Boolean,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Kicker(text = title, modifier = Modifier.weight(1f))
         TextButton(
             onClick = onBack,
+            enabled = enabled,
             contentPadding = PaddingValues(0.dp),
-            modifier = Modifier.heightIn(min = Metrics.touchMin),
+            modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(HomeStartTags.CANCEL),
         ) {
             Text(
                 PlanDayCopy.CANCEL,
                 style = InstrumentType.bodyStrong,
-                color = TextSecondary,
+                color = if (enabled) TextSecondary else TextDisabled,
             )
         }
     }
@@ -269,6 +311,11 @@ object HomeStartTags {
     const val EXTRA = "home-start-extra"
     const val CARDIO_PAGE = "home-start-cardio-page"
     const val EXTRA_PAGE = "home-start-extra-page"
+    const val DATE = "home-start-date"
+    const val PENDING = "home-start-pending"
+    const val ERROR = "home-start-error"
+    const val RETRY = "home-start-retry"
+    const val CANCEL = "home-start-cancel"
 
     fun routine(id: String): String = "home-start-routine-$id"
 }

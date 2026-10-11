@@ -239,6 +239,9 @@ class PlanRoutineActionsInstrumentedTest {
             compose.onAllNodesWithTag("navigation-routines").fetchSemanticsNodes().isNotEmpty()
         }
         tap("navigation-routines")
+        compose.waitUntil(15_000) {
+            compose.onAllNodesWithTag(PlanTags.CONTENT).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.ROUTINES))
         tap(PlanTags.ROUTINES)
         compose.waitForIdle()

@@ -32,6 +32,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -836,8 +837,12 @@ class HomeReadRecoveryRenderTest {
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertIsEnabled().performClick()
         scrollTo(HomeTags.START).assertIsEnabled().performClick()
         compose.onNodeWithTag(HomeStartTags.FREE).assertIsNotEnabled()
-        compose.onNodeWithTag(HomeStartTags.EXTRA).assertIsEnabled().performClick()
-        compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.MIXED)).assertIsEnabled()
+        reachable(compose.onNodeWithTag(HomeStartTags.EXTRA)).assertIsEnabled().performClick()
+        compose.awaitThat("the read-only Extra equipment page is composed", vm.uiState::value) {
+            compose.onAllNodesWithTag(HomeStartTags.EXTRA_PAGE).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithTag(ExtraEquipmentTags.PAGE).fetchSemanticsNodes().isNotEmpty()
+        }
+        reachable(compose.onNodeWithTag(ExtraEquipmentTags.choice(ExtraEquipment.MIXED))).assertIsEnabled()
         proveRecovery("sheet-rtl")
     }
 

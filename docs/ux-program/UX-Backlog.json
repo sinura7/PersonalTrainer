@@ -111,7 +111,7 @@
       ],
       "dependencies": [],
       "decision": "Preserve ADR-021. Alternative primary-action semantics are a separate product decision.",
-      "status": "Proposed; no implementation or Android runtime validation performed",
+      "status": "ADR-021 start semantics retained. Home start-date clarity and retained start/retry implemented; prior-copy targeted07 passed 189 fresh checks including actual Home date/admission journeys. Neutral failure-copy repair, full gate, pinned reviews and integration pending. Home visual composition and participant interpretation remain open.",
       "fixtures": [
         "F02",
         "F11"
@@ -153,7 +153,7 @@
         "UX01"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Proposed; no implementation or Android runtime validation performed",
+      "status": "Current start/log entry routes retained. Home exact-choice ownership, explicit retry and acknowledged discard recovery implemented; prior-copy native matrix passed. Repaired full gate and final review/integration pending. Broader StartOptions usability and participant tasks remain open.",
       "fixtures": [
         "F01",
         "F06"
@@ -1195,7 +1195,7 @@
         "R10"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Core states implemented for summary, composer, finish outcomes and History wording; bounded workout notes/Why recovery reviewed, merged and reverified in PR461. Home required-read/Retry recovery is implemented and mechanically verified; scoped review/integration follows the packet protocol. Broader residue remains open.",
+      "status": "Core states and prior workout/Home-read/Summary/History packets retained through PR481. Current Home start/retry packet keeps exact commands and acknowledged phases; Extra preparation is atomic. Prior-copy targeted07 passed 189 fresh checks; neutral start-failure copy now awaits complete fresh verification, pinned review and integration. Broader cross-app language remains open.",
       "currentDevelopment": {
         "packet": "F4 / Home required-read recovery",
         "problem": "Required failures can disappear behind values-only feeds, loading can continue indefinitely, and recollection can replay a terminated shared producer.",

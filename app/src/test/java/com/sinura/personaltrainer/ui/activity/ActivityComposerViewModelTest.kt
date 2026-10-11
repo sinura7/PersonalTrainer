@@ -97,6 +97,9 @@ class ActivityComposerViewModelTest {
         vm.createExercise("Library keeps this lift", "Chest")
         val created = withTimeout(TestWaits.FLOW_MS) { vm.createdExercise.first { it != null } }!!
         vm.onCreatedExerciseHandled()
+        // The saved library result is delivered before the picker releases its write owner.
+        // Deliberate Cancel is permitted only after both have settled.
+        vm.uiState.awaitFirst { !it.pickerProgress.creating && vm.canLeave() }
         vm.addStrength(created, 50.0, 8)
         vm.discardDraft()
         assertFalse(SavedStateComposerDraft(handle).exists())

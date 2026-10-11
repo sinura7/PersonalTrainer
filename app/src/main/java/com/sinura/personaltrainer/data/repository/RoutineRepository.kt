@@ -3,10 +3,12 @@ package com.sinura.personaltrainer.data.repository
 import androidx.room.withTransaction
 import com.sinura.personaltrainer.data.local.TemperDatabase
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
+import com.sinura.personaltrainer.data.local.entity.RoutineEntity
 import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
 import com.sinura.personaltrainer.data.sync.SyncAuthoring
+import com.sinura.personaltrainer.domain.AuxiliaryPack
 import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HoldWork
@@ -37,6 +39,64 @@ class RoutineRepository(
 
     /** How many routines exist. Cheaper than loading them all to ask whether any do. */
     suspend fun count(): Int = routineDao.getAllRoutines().size
+
+    /** Prepare the available, ordered pack once; a failed child write leaves no partial routine. */
+    internal suspend fun ensureAuxiliaryRoutine(
+        pack: AuxiliaryPack,
+        exercises: ExerciseRepository,
+    ): String {
+        val db = checkNotNull(database) { "Preparing an Extra requires a database transaction." }
+        val prepared = db.withTransaction {
+            val available = pack.lifts.mapNotNull { lift ->
+                exercises.getById(id = lift.exerciseId)?.let { exercise ->
+                    lift to exercise
+                }
+            }.distinctBy { (_, exercise) -> exercise.id }
+            check(available.isNotEmpty()) { "No lifts from this Extra are available." }
+            val wanted = available.map { (_, exercise) -> exercise.id }
+            val name = pack.title.trim().ifBlank { "Untitled routine" }
+            val existing = routineDao.getAllRoutines()
+                .sortedByDescending { it.updatedAt }
+                .firstOrNull { routine ->
+                    routine.name.equals(other = name, ignoreCase = true) &&
+                        routineDao.getById(id = routine.id)?.items
+                            ?.sortedBy { it.item.sortOrder }
+                            ?.map { it.exercise.id } == wanted
+                }
+            if (existing != null) {
+                return@withTransaction AuxiliaryRoutinePreparation(id = existing.id, created = false)
+            }
+            val now = System.currentTimeMillis()
+            val routine = RoutineEntity(
+                id = UUID.randomUUID().toString(),
+                name = name,
+                notes = pack.caption.trim(),
+                createdAt = now,
+                updatedAt = now,
+            )
+            routineDao.upsertRoutine(routine = routine)
+            available.forEachIndexed { index, (lift, exercise) ->
+                val hold = HoldWork.isHold(exercise)
+                routineDao.upsertRoutineExercise(
+                    item = RoutineExerciseEntity(
+                        id = UUID.randomUUID().toString(),
+                        routineId = routine.id,
+                        exerciseId = exercise.id,
+                        sortOrder = index,
+                        targetSets = lift.sets.coerceAtLeast(1),
+                        targetReps = if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else lift.reps.coerceAtLeast(1),
+                        targetWeightKg = null,
+                        restSeconds = lift.restSeconds.coerceAtLeast(0),
+                        targetSeconds = if (hold) HoldWork.countdownSeconds(targetSeconds = lift.reps) else null,
+                        targetSecondsMax = null,
+                    ),
+                )
+            }
+            AuxiliaryRoutinePreparation(id = routine.id, created = true)
+        }
+        if (prepared.created) notifyRoutinesSync()
+        return prepared.id
+    }
 
     suspend fun create(name: String, notes: String = ""): Routine {
         val now = System.currentTimeMillis()
@@ -213,4 +273,6 @@ class RoutineRepository(
         val existing = routineDao.getById(routineId)?.routine ?: return
         routineDao.updateRoutine(existing.copy(updatedAt = System.currentTimeMillis()))
     }
+
+    private data class AuxiliaryRoutinePreparation(val id: String, val created: Boolean)
 }

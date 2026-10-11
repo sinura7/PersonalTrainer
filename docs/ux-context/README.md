@@ -3,13 +3,49 @@
 **Created:** 8 October 2026
 
 **Current implementation, 11 October 2026 UTC:** Compact Focus and subsequent
-work are integrated through #480. Corrected Summary receipts and literal exercise
+work are integrated through #481. Corrected Summary receipts and literal exercise
 History readouts (`f1156f4b`) passed the complete local gate: 4,216 fresh app tests,
 1,707 standalone checks, builds, lint and test APK assembly. Current packet review
-and integration are recorded in its PR. Home start clarity and acknowledged start
-recovery are next. Older dated entries below retain their historical scope;
+and integration are recorded in [PR #481](https://github.com/sinura7/PersonalTrainer/pull/481).
+Home start clarity and acknowledged start recovery are the active packet:
+retain the chosen start through saving/failure, show Starts now, and retry the
+same command after acknowledged relocation or discard. The prior-copy targeted07 run passed 189 fresh checks / 15 suites; native
+start/recovery profiles passed with stable source. Review then found that the
+generic repository start error misdescribed an insert failure as a read failure;
+Home now uses neutral start-failure copy, with an explicit native assertion.
+Candidate `3841721` passed the complete local gate (4,265 fresh app tests and
+1,707 standalone tests), native renders and both final reviews. PR #482's
+required pull-request job passed, but its same-head push job caught a routine
+editor fixture reading the intermediate Retry projection before the editor error
+cleared. The bounded wait now requires the complete recovered state; assertions
+still require a clear error and exactly the intended saved lift. The original
+failure is preserved. The corrected candidate `b9f13fa0` passed `full02`:
+4,265 fresh app tests / 591 suites and 1,707 standalone tests, zero failures,
+errors or skips, builds, lint and test-APK assembly. Both delta reviews accepted
+the fixture correction. The following concept-only update normalizes HTML line
+endings and adds the short-screen preview; app and verification inputs are
+unchanged. Updated hosted verification and integration remain pending.
+Older dated entries below retain their historical scope;
 physical-phone acceptance and the wider roadmap remain open. No new Debug drop
 has been published.
+
+**Visual direction clarification, 11 October 2026 UTC:** The owner questioned
+why recent images still resemble the earlier layout. Compact Focus is the
+implemented workout composition; Home, Summary and History retain older enclosing
+panels, so the whole-app visual redesign is unfinished. After this bounded Home
+recovery packet, the next native packet follows the
+[new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
+agenda, two flat editable workout rows, reachable saved-work actions and an
+illustrated Summary ledger. [The overview](studies/q01/assets/temper-flow-concept-2026-10-11.jpg)
+shows all three layouts as proposals. The browser example retains exact entry on
+failure, retries once, corrects saved work separately, applies Tempo only to the
+draft and confirms early finish. These interactions use synthetic browser memory;
+they do not establish native or phone acceptance. The 360 × 640 concept keeps
+entry, all five effort choices and the 72 px Log action visible, with 48 px effort
+controls; saved-set correction remains reachable by scrolling. The week picker
+scrolls to preserve its 48 px targets. Full History calendar/progress
+and the other activity types remain in scope. Mechanical recovery evidence does
+not close the visual work. Preserve the accepted Instrument identity and navigation.
 
 **Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are integrated through #467. Set Edit identity and numeric controls are integrated through #468. History saved-set recovery and its test-recorder repair are integrated through #469 and #470. Compact Focus is implemented with the complete local gate and 222 Android tests passing; [its evidence, previews and review/integration tracking](studies/q01/README.md#compact-focus-development-verification) belong to [PR #471](https://github.com/sinura7/PersonalTrainer/pull/471). Broader app UX phases and physical-phone acceptance remain.
 
@@ -143,7 +179,7 @@ The earlier branch push's native IME-observation timeout remains failed evidence
 with unresolved cause; subsequent passes do not relabel it.
 [UX15 records the exact scope and limits](../ux-program/UX-Acceptance-Matrix.md#ux15--make-historys-scope-and-deeper-sections-reachable).
 
-The next bounded History packet addresses a confirmed travel visibility failure
+**Historical travel packet, integrated through #466:** This addressed a confirmed travel visibility failure
 before Summary: a completed activity captured on 9 October in Tokyo disappears
 from All History when the later device date is 8 October in Honolulu, although
 its saved graph and summary are unchanged. All must include known completed
