@@ -115,10 +115,24 @@ Baseline for this update: `156cc400a0bc7974209e494e4e4cf0525b29bb7d` on `claude/
 
 | Check | Priority | Fixtures | Expected outcome | Status |
 |---|---|---|---|---|
-| UX10-AC01 | P1 | F06, F08 | Searching 'bench' with existing matching variants prioritizes choosing them over creating 'bench'. | Executed targeted native-graphics matrix: full illustrated matches precede quiet Create. Final complete gate/review remain pending; phone acceptance unobserved. |
-| UX10-AC02 | P1 | F06, F08 | Duplicate/disk/create errors are visible within the active sheet in single and multi modes. | Targeted execution covers all-mode errors, canonical duplicate selection, exact Retry, restored second creation and native Back before recomposition. Complete gate/review remain pending. |
-| UX10-AC03 | P1 | F06, F08 | Create then cancel activity follows the disclosed catalogue persistence rule. | Disclosure implemented; final added Room cancellation regression awaits the complete gate. The Library lift persists while the activity draft is discarded. |
-| UX10-AC04 | P1 | F06, F08 | Double confirmation adds the selected IDs once and preserves order. | Targeted routine/write-owner checks passed; final pending-create/leave guards and exact inventories await the complete gate. No staged cart transaction was introduced. |
+| UX10-AC01 | P1 | F06, F08 | Searching 'bench' with existing matching variants prioritizes choosing them over creating 'bench'. | Complete local gate passed; the native-graphics matrix shows full illustrated matches before quiet Create. Final review/integration recorded by this packet; phone acceptance unobserved. |
+| UX10-AC02 | P1 | F06, F08 | Duplicate/disk/create errors are visible within the active sheet in single and multi modes. | Complete local gate passed: all-mode errors, canonical duplicate selection, exact Retry, restored second creation and actual modal Back before recomposition. Final review/integration recorded by this packet. |
+| UX10-AC03 | P1 | F06, F08 | Create then cancel activity follows the disclosed catalogue persistence rule. | Disclosure and Room cancellation regression passed in the complete gate: the created Library lift persists; the discarded activity creates no activity, workout or set. |
+| UX10-AC04 | P1 | F06, F08 | Double confirmation adds the selected IDs once and preserves order. | Complete gate passed: ordered routine actions, pending-create/leave ownership, exact inventories and canonical-ID Retry. No staged cart transaction was introduced. |
+
+**Picker packet verification — 11 October 2026:** candidate
+`ee6b6ee1ec5f4e3f3e9a1944988048c1ed92d1c3` passed
+`exercise-picker-flow/full02`: **4,184 freshly executed app tests in 585 suites**,
+zero failures/errors/skips, **1,701 standalone tests in 256 classes**, Debug and
+unsigned release build, lint and instrumented test APK assembly. All **1,563**
+runtime inputs and the source references stayed unchanged. Summary SHA-256:
+`8fcca2070ecf0cebc2fff13416f784741d98b0a2ce4c71d0dc2b669a079cd75b`. The archive contains **55** fresh picker frames:
+the 13-profile content matrix is distinct from the separate actual-modal pending
+Back and pre-recomposition Back cases. This does not claim a modal/IME matrix,
+physical touch, system surfaces or arbitrary in-flight process-death acceptance.
+The obsolete interrupted `full01` and failed targeted attempts remain preserved
+as failed/incomplete evidence; the two review regressions passed in `targeted11`
+and again in this complete run.
 
 ### UX11 — Make edit scope and secondary actions discoverable
 
