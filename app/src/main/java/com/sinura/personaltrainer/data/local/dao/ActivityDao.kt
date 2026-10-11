@@ -143,7 +143,9 @@ interface ActivityDao {
                s.performedStartInstantMs AS sessionDate,
                st.weightKg AS weightKg,
                st.reps AS reps,
-               st.completedAtMs AS completedAt
+               st.completedAtMs AS completedAt,
+               NULL AS durationSeconds,
+               s.performedStartLocalEpochDay AS sessionLocalEpochDay
         FROM activity_strength_sets st
         JOIN activity_blocks b ON b.id = st.blockId
         JOIN activity_sessions s ON s.id = b.sessionId

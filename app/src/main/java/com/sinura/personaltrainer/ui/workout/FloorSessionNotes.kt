@@ -23,6 +23,8 @@ internal class FloorSessionNotes(
     private val write: suspend (String) -> Unit,
     private val readStored: suspend () -> String?,
     private val onUnconfirmed: (Boolean, Boolean, String) -> Unit = { _, _, _ -> },
+    private val onConfirmedChange: () -> Unit = {},
+    private val onChangeAttempt: (String) -> Unit = {},
 ) {
     private val _text = MutableStateFlow("")
     val text: StateFlow<String> = _text.asStateFlow()
@@ -198,6 +200,7 @@ internal class FloorSessionNotes(
             return true
         }
         val writing = revision
+        if (known != canonical) onChangeAttempt(known)
         writingRevision = writing
         publish()
         try {
@@ -217,6 +220,7 @@ internal class FloorSessionNotes(
                     AppLog.w(TAG, "Writing the session notes failed", thrown)
                     if (revision == writing && (missing || lastPersisted != canonical)) failedRevision = writing
                 }
+                if (!missing && known != canonical && lastPersisted == canonical) onConfirmedChange()
             }
         } finally {
             writingRevision = null

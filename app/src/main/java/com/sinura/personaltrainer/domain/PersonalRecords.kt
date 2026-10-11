@@ -8,7 +8,15 @@ data class ExerciseSetRecord(
     val reps: Int,
     val completedAt: Long,
     val rpe: Int? = null,
+    /** Literal saved duration; a read projection, never a new hold-ranking rule. */
+    val durationSeconds: Int? = null,
 )
+
+/** Equal instants have a stable identity order, not an inferred physical chronology. */
+internal val exerciseSetOrder: Comparator<ExerciseSetRecord> =
+    compareBy<ExerciseSetRecord> { it.completedAt }
+        .thenBy { it.sessionId }.thenBy { it.setId }
+        .thenBy { it.weightKg }.thenBy { it.reps }
 
 enum class PersonalRecordKind {
     /** Heaviest working set ever for this lift, at any rep count. */

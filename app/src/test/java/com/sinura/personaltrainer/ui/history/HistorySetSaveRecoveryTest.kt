@@ -7,6 +7,10 @@ import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.SetLogEntity
+import com.sinura.personaltrainer.data.local.relation.SessionWithDetails
+import com.sinura.personaltrainer.ui.components.NotesSaveStatus
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import com.sinura.personaltrainer.domain.SetLogRules
 import com.sinura.personaltrainer.domain.WorkoutSession
 import com.sinura.personaltrainer.testutil.TestSetInput
@@ -47,6 +51,8 @@ class HistorySetSaveRecoveryTest {
     private var failWrite = false
     private var failRead = false
     private var gate: CompletableDeferred<Unit>? = null
+    private var failNotesConfirmation = false
+    private var notesObserverGate: CompletableDeferred<Unit>? = null
     private var inserts = 0
     private var corrections = 0
 
@@ -54,6 +60,21 @@ class HistorySetSaveRecoveryTest {
         Dispatchers.setMain(dispatcher)
         deps = FakeAppDependencies(context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher,
             workoutDaoDecorator = { real -> object : WorkoutDao by real {
+                override fun observeSession(id: String): Flow<SessionWithDetails?> = real.observeSession(id).map { row ->
+                    if (row?.session?.notes == "corrected note") notesObserverGate?.await()
+                    row
+                }
+                override suspend fun getSession(id: String): SessionWithDetails? {
+                    if (failNotesConfirmation) {
+                        failNotesConfirmation = false
+                        error("controlled notes confirmation failure")
+                    }
+                    return real.getSession(id)
+                }
+                override suspend fun updateSessionNotes(id: String, notes: String) {
+                    if (armed) check(!failWrite) { "controlled notes write failure" }
+                    real.updateSessionNotes(id, notes)
+                }
                 override suspend fun insertSet(set: SetLogEntity) {
                     if (armed) { inserts++; gate?.await(); check(!failWrite) { "controlled insert failure" } }
                     real.insertSet(set)
@@ -85,6 +106,7 @@ class HistorySetSaveRecoveryTest {
         vm.setSave.awaitFirst { it.phase == WorkoutSavePhase.FAILED }
         val frozen = checkNotNull(vm.setSave.value.command)
         assertEquals(session, stored(session.id))
+        assertFalse(vm.summaryNeedsRefresh)
         assertNull(vm.setEditorExit.value)
         assertEquals(original.id, frozen.setId)
         assertEquals(original.completedAt, frozen.completedAt)
@@ -100,6 +122,7 @@ class HistorySetSaveRecoveryTest {
         assertEquals(session.copy(sets = listOf(original.copy(weightKg = 117.5, reps = 9, rpe = 9))), after)
         assertEquals(2, corrections)
         assertEquals(0, inserts)
+        assertTrue(vm.summaryNeedsRefresh)
     }
 
     @Test fun refusedAddRetryUsesOneIdentityAndPreservesTheHistoricalWindow() = runBlocking {
@@ -142,6 +165,7 @@ class HistorySetSaveRecoveryTest {
         vm.repeatSession()
         vm.requestNotesExit()
         assertEquals(frozen, vm.setSave.value.command)
+        assertFalse(vm.summaryNeedsRefresh)
         assertFalse(vm.notesExitRequested.value)
         assertFalse(vm.deleted.value)
         assertNull(vm.navigateToSession.value)
@@ -149,6 +173,7 @@ class HistorySetSaveRecoveryTest {
         checkNotNull(gate).complete(Unit)
         vm.setEditorExit.awaitFirst { it != null }
         assertEquals(1, inserts)
+        assertTrue(vm.summaryNeedsRefresh)
         assertEquals(2, stored(session.id).sets.size)
         assertEquals(session.sets.single(), stored(session.id).sets.first())
     }
@@ -179,6 +204,7 @@ class HistorySetSaveRecoveryTest {
         assertEquals(frozen, recreated.setEditorExit.awaitFirst { it != null })
         assertEquals(attempted, inserts)
         assertEquals(committed, stored(session.id))
+        assertTrue(recreated.summaryNeedsRefresh)
     }
 
     @Test fun restoredUnwrittenSubmissionOffersRetryWithoutWritingAutomatically() = runBlocking {
@@ -217,6 +243,7 @@ class HistorySetSaveRecoveryTest {
         val attempts = corrections
         vm.retrySetSave()
         assertEquals(attempts, corrections)
+        assertFalse(vm.summaryNeedsRefresh)
         assertEquals(newer, stored(session.id))
         vm.releaseSetSave(cancel = true)
         vm.setEditorExit.awaitFirst { it != null }
@@ -306,6 +333,93 @@ class HistorySetSaveRecoveryTest {
         recreated.saveCorrection(original.id, 125.0, 10, 9, false, null)
         recreated.setEditorExit.awaitFirst { it != null }
         assertEquals(newer.copy(sets = listOf(newer.sets.single().copy(rpe = 9))), stored(session.id))
+    }
+
+    @Test fun exactNoOpDoesNotRefreshButAcknowledgedDeletionAndRecreationDo() = runBlocking {
+        val session = seedTestWorkout(deps, exerciseId = LIFT,
+            loggedSets = listOf(TestSetInput(weightKg = 100.0, reps = 5, rpe = 8)), finish = true).session
+        val handle = SavedStateHandle(mapOf("sessionId" to session.id))
+        val vm = model(session, handle)
+        val row = session.sets.single()
+        vm.saveCorrection(row.id, 100.0, 5, 8, false, null)
+        val saved = checkNotNull(vm.setEditorExit.awaitFirst { it != null })
+        assertFalse(vm.summaryNeedsRefresh)
+        vm.onSetEditorExitHandled(saved)
+        vm.deleteSet(row.id)
+        vm.deletedSet.awaitFirst { it != null }
+        assertTrue(vm.summaryNeedsRefresh)
+        vm.clearAndJoinForTest()
+        assertTrue(model(session, handle).summaryNeedsRefresh)
+    }
+
+    @Test fun failedNotesConfirmationWaitsForTheRealDelayedObserverBeforeRefreshing() = runBlocking {
+        val session = seed()
+        val vm = model(session)
+        notesObserverGate = CompletableDeferred()
+        failNotesConfirmation = true
+        vm.setNotes("corrected note")
+        vm.persistNotesForExit()
+        vm.uiState.awaitFirst { it.notesSave.status == NotesSaveStatus.FAILED }
+        assertEquals("corrected note", deps.database.workoutDao().getSession(session.id)?.session?.notes)
+        assertFalse(vm.summaryNeedsRefresh)
+        checkNotNull(notesObserverGate).complete(Unit)
+        vm.uiState.awaitFirst { it.notesSave.status == NotesSaveStatus.SAVED }
+        assertTrue(vm.summaryNeedsRefresh)
+    }
+
+    @Test fun aChangedNotesAttemptCanBeAcknowledgedAfterOwnerReconstructionWithoutAnotherWrite() = runBlocking {
+        val session = seed()
+        val handle = SavedStateHandle(mapOf("sessionId" to session.id))
+        val vm = model(session, handle)
+        notesObserverGate = CompletableDeferred()
+        failNotesConfirmation = true
+        vm.setNotes("corrected note")
+        vm.persistNotesForExit()
+        vm.uiState.awaitFirst { it.notesSave.status == NotesSaveStatus.FAILED }
+        assertFalse(vm.summaryNeedsRefresh)
+        vm.clearAndJoinForTest()
+        checkNotNull(notesObserverGate).complete(Unit)
+        val recreated = model(session, handle)
+        recreated.uiState.awaitFirst { it.notes == "corrected note" }
+        assertTrue(recreated.summaryNeedsRefresh)
+        assertNull(handle.get<String>("history.notesChangeBaseline.v1"))
+    }
+
+    @Test fun aNewerFailedNotesAttemptCannotEraseAnEarlierCommittedChange() = runBlocking {
+        val session = seed()
+        val handle = SavedStateHandle(mapOf("sessionId" to session.id))
+        val vm = model(session, handle)
+        notesObserverGate = CompletableDeferred()
+        failNotesConfirmation = true
+        vm.setNotes("corrected note")
+        vm.persistNotesForExit()
+        vm.uiState.awaitFirst { it.notesSave.status == NotesSaveStatus.FAILED }
+        armed = true; failWrite = true
+        vm.setNotes("newer refused note")
+        vm.persistNotesForExit()
+        vm.uiState.awaitFirst { it.notesSave.status == NotesSaveStatus.FAILED && it.notes == "newer refused note" }
+        assertEquals("", handle.get<String>("history.notesChangeBaseline.v1"))
+        assertFalse(vm.summaryNeedsRefresh)
+        checkNotNull(notesObserverGate).complete(Unit)
+        vm.uiState.awaitFirst { it.session?.notes == "corrected note" }
+        assertTrue(vm.summaryNeedsRefresh)
+        assertNull(handle.get<String>("history.notesChangeBaseline.v1"))
+        assertEquals("newer refused note", vm.uiState.value.notes)
+    }
+
+    @Test fun noOpNotesAndRefusedNotesWriteDoNotRefreshSummary() = runBlocking {
+        val session = seed()
+        val vm = model(session)
+        vm.setNotes("   ")
+        vm.persistNotesForExit()
+        vm.uiState.awaitFirst { it.notesSave.status == NotesSaveStatus.SAVED }
+        assertFalse(vm.summaryNeedsRefresh)
+        armed = true; failWrite = true
+        vm.setNotes("not committed")
+        vm.persistNotesForExit()
+        vm.uiState.awaitFirst { it.notesSave.status == NotesSaveStatus.FAILED }
+        assertFalse(vm.summaryNeedsRefresh)
+        assertEquals("", deps.database.workoutDao().getSession(session.id)?.session?.notes)
     }
 
     private suspend fun seed(): WorkoutSession = seedTestWorkout(deps, exerciseId = LIFT,

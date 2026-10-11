@@ -42,8 +42,8 @@ import org.robolectric.annotation.Config
 import kotlin.coroutines.CoroutineContext
 
 /**
- * Summary reads once. A later historical repair must not rewrite the
- * celebration the user is looking at.
+ * Summary reads on entry and after a matching acknowledged correction.
+ * Unrelated repository updates do not silently rebuild the retained screen.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -560,6 +560,31 @@ class WorkoutSummaryViewModelTest {
         assertEquals(500.0, vm.uiState.value.summary.volumeKg, 0.0001)
         assertEquals(before, vm.uiState.value.summary)
         assertNull(deps.workoutRepository.getInProgress())
+    }
+
+    @Test fun matchingAcknowledgedCorrectionReloadsButAnotherSessionCannot() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)), finish = true)
+        val vm = createViewModel(fixture.session.id)
+        vm.uiState.awaitFirst { !it.isLoading }
+        deps.workoutRepository.updateSet(fixture.session.sets.single().id, 100.0, 6, 8, false)
+        assertFalse(vm.refreshAfterCorrection("different-session"))
+        assertEquals(500.0, vm.uiState.value.summary.volumeKg, 0.0)
+        assertTrue(vm.refreshAfterCorrection(fixture.session.id))
+        val after = vm.uiState.awaitFirst { !it.isLoading && it.summary.volumeKg == 600.0 }
+        assertTrue(after.savedConfirmed)
+        assertEquals(1, after.summary.workingSets)
+        assertNull(deps.workoutRepository.getInProgress())
+    }
+
+    @Test fun acknowledgedDeletedSessionBecomesMissingInsteadOfRetainingSavedTotals() = runBlocking {
+        val fixture = seedTestWorkout(deps, loggedSets = listOf(TestSetInput(100.0, 5)), finish = true)
+        val vm = createViewModel(fixture.session.id)
+        vm.uiState.awaitFirst { !it.isLoading }
+        deps.workoutRepository.deleteFinishedSession(fixture.session.id)
+        assertTrue(vm.refreshAfterCorrection(fixture.session.id))
+        val after = vm.uiState.awaitFirst { !it.isLoading && it.missing }
+        assertFalse(after.savedConfirmed)
+        assertFalse(after.summary.hasWork)
     }
 
     private fun createViewModel(

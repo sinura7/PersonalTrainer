@@ -256,4 +256,53 @@ class ExerciseHistoryBuilderTest {
         assertEquals(HistoryKind.ACTIVITY, history.sessions.single().kind)
         assertEquals(110.0, history.records.getValue(PersonalRecordKind.WEIGHT).value, 0.0001)
     }
+    @Test fun identicalSessionIdsFromDifferentSourcesStaySeparateAndStable() {
+        val stamp = at("2026-08-10T10:00:00Z")
+        val workout = ExerciseSetEntry(ExerciseSetRecord("workout-set", "same", 100.0, 5, stamp),
+            "Workout", stamp, HistoryKind.WORKOUT)
+        val activity = ExerciseSetEntry(ExerciseSetRecord("activity-set", "same", 110.0, 5, stamp),
+            "Activity", stamp, HistoryKind.ACTIVITY)
+        fun build(rows: List<ExerciseSetEntry>) = ExerciseHistoryBuilder.fromEntries(
+            exerciseId = squat, entries = rows, loadClass = LoadClass.LOADED, zone = zone)
+        val forward = build(listOf(workout, activity))
+        assertEquals(forward, build(listOf(activity, workout)))
+        assertEquals(listOf(HistoryKind.WORKOUT, HistoryKind.ACTIVITY), forward.sessions.map { it.kind })
+        assertEquals(listOf(1, 1), forward.sessions.map { it.workingSets })
+        assertEquals(1050.0, forward.lifetimeVolumeKg, 0.0)
+    }
+
+    @Test fun capturedActivityDayControlsItsWeekWhileLegacyUsesSessionStartNotSetFinish() {
+        val start = at("2026-08-16T23:30:00Z")
+        val completed = at("2026-08-17T01:00:00Z")
+        val captured = LocalDate.of(2026, 8, 17).toEpochDay()
+        val activity = ExerciseSetEntry(
+            record = ExerciseSetRecord("a", "activity", 100.0, 5, completed),
+            sessionName = "Travel", sessionPerformedAtMs = start, kind = HistoryKind.ACTIVITY,
+            sessionLocalEpochDay = captured,
+        )
+        fun build(row: ExerciseSetEntry, zoneId: java.time.ZoneId) = ExerciseHistoryBuilder.fromEntries(
+            exerciseId = squat, entries = listOf(row), loadClass = LoadClass.LOADED, zone = zoneId)
+        val utc = build(activity, zone)
+        assertEquals(utc, build(activity, java.time.ZoneId.of("America/Los_Angeles")))
+        assertEquals(captured, utc.sessions.single().localEpochDay)
+        assertEquals(captured, utc.weeklyTonnage.single().weekStart.epochDay)
+        val legacy = build(activity.copy(kind = HistoryKind.WORKOUT, sessionLocalEpochDay = null), zone)
+        assertNull(legacy.sessions.single().localEpochDay)
+        assertEquals(LocalDate.of(2026, 8, 10).toEpochDay(), legacy.weeklyTonnage.single().weekStart.epochDay)
+    }
+
+    @Test fun holdReadbackPreservesTheLiteralDurationWithoutAnEstimate() {
+        val stamp = at("2026-08-10T10:00:00Z")
+        listOf(1, 4, 1801, Int.MAX_VALUE).forEach { seconds ->
+            val hold = squatSet("hold", 0.0, 0, stamp).copy(durationSeconds = seconds)
+            val history = ExerciseHistoryBuilder.build(exerciseId = squat,
+                sessions = listOf(workout("hold", stamp, listOf(hold))),
+                loadClass = LoadClass.BODYWEIGHT, zone = zone)
+            assertEquals(seconds, history.sessions.single().topSet?.durationSeconds)
+            assertNull(history.sessions.single().estimatedOneRepMaxKg)
+            assertEquals(1, history.lifetimeWorkingSets)
+            assertEquals(0, history.lifetimeBodyweightReps)
+        }
+    }
+
 }

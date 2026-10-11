@@ -870,9 +870,18 @@ class WorkoutRepository(
     }
 
     /** A failed read leaves the outcome unknown; it never authorizes another insertion. */
-    internal suspend fun inspectFinishedSetSave(command: WorkoutSetSave): WorkoutSetSaveResolution = database.withTransaction {
+    internal data class FinishedSetInspection(
+        val resolution: WorkoutSetSaveResolution,
+        val row: SetLogEntity? = null,
+    )
+
+    internal suspend fun inspectFinishedSetSave(command: WorkoutSetSave): WorkoutSetSaveResolution =
+        inspectFinishedSetSaveReceipt(command).resolution
+
+    /** Exact saved row and resolution come from the same transaction, including recovery. */
+    internal suspend fun inspectFinishedSetSaveReceipt(command: WorkoutSetSave): FinishedSetInspection = database.withTransaction {
         val current = workoutDao.getSession(command.sessionId)
-        if (current == null || current.session.finishedAt == null) return@withTransaction WorkoutSetSaveResolution.CONFLICT
+        if (current == null || current.session.finishedAt == null) return@withTransaction FinishedSetInspection(resolution = WorkoutSetSaveResolution.CONFLICT)
         val existing = workoutDao.getSet(command.setId)
         if (existing != null) {
             val values = finishedSaveValues(command, current)
@@ -880,16 +889,19 @@ class WorkoutRepository(
                 // An invalid unchanged legacy row was already there before Save. It
                 // cannot acknowledge a refused submission or prevent Edit values.
                 if (matchesOriginal(existing, command) && finishedSaveViolation(command, values, current) != null) {
-                    return@withTransaction WorkoutSetSaveResolution.UNSAVED
+                    return@withTransaction FinishedSetInspection(resolution = WorkoutSetSaveResolution.UNSAVED)
                 }
-                return@withTransaction WorkoutSetSaveResolution.SAVED
+                return@withTransaction FinishedSetInspection(resolution = WorkoutSetSaveResolution.SAVED, row = existing)
             }
-            return@withTransaction if (command.editing && matchesOriginal(existing, command)) {
-                WorkoutSetSaveResolution.UNSAVED
-            } else WorkoutSetSaveResolution.CONFLICT
+            return@withTransaction FinishedSetInspection(resolution =
+                if (command.editing && matchesOriginal(existing, command)) WorkoutSetSaveResolution.UNSAVED
+                else WorkoutSetSaveResolution.CONFLICT,
+            )
         }
-        if (command.editing || !hasFinishedLift(current, command.exerciseId)) WorkoutSetSaveResolution.CONFLICT
-        else WorkoutSetSaveResolution.UNSAVED
+        FinishedSetInspection(resolution =
+            if (command.editing || !hasFinishedLift(current, command.exerciseId)) WorkoutSetSaveResolution.CONFLICT
+            else WorkoutSetSaveResolution.UNSAVED,
+        )
     }
 
     private fun hasFinishedLift(current: SessionWithDetails, exerciseId: String): Boolean =
@@ -1089,12 +1101,17 @@ class WorkoutRepository(
      * history. The check keeps the two from overlapping.
      */
     suspend fun deleteFinishedSession(sessionId: String) {
+        deleteFinishedSessionAcknowledged(sessionId)
+    }
+
+    internal suspend fun deleteFinishedSessionAcknowledged(sessionId: String): Boolean {
         val deleted = workoutDao.deleteFinishedSessionRow(sessionId)
-        if (deleted > 0) return
-        val current = workoutDao.getSessionRow(sessionId) ?: return
+        if (deleted > 0) return true
+        val current = workoutDao.getSessionRow(sessionId) ?: return false
         check(current.finishedAt != null) {
             "Only finished sessions can be deleted; discard owns in-progress."
         }
+        return false
     }
 
     /**

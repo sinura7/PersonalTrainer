@@ -219,4 +219,27 @@ class WorkoutSummaryBuilderTest {
         assertEquals("Workout", WorkoutSummaryBuilder.build(unnamed, emptyMap()).title)
         assertEquals("Workout", WorkoutSummaryBuilder.build(unnamed.copy(routineName = "  "), emptyMap()).title)
     }
+    @Test fun summaryHoldReadbackKeepsLiteralSecondsAndDoesNotInventReps() {
+        listOf(1, 4, 1801, Int.MAX_VALUE).forEach { seconds ->
+            val hold = logged("hold", "Hold", 0.0, 0, 0).copy(durationSeconds = seconds)
+            val summary = WorkoutSummaryBuilder.build(finished(listOf(hold)), emptyMap())
+            val top = checkNotNull(summary.highlights.single().topSet)
+            assertEquals(seconds, top.durationSeconds)
+            assertEquals(0, top.reps)
+            assertEquals(1, summary.workingSets)
+            assertEquals(0.0, summary.volumeKg, 0.0)
+            assertEquals(0, summary.recordCount)
+        }
+    }
+
+    @Test fun exactTopSetAndHighlightTiesDoNotDependOnIncomingRowOrder() {
+        val a = logged("a", "Same name", 100.0, 5, 0).copy(id = "a-set")
+        val b = logged("b", "Same name", 100.0, 5, 0).copy(id = "b-set")
+        val tied = a.copy(id = "z-set", durationSeconds = 27)
+        val forward = WorkoutSummaryBuilder.build(finished(listOf(a, b, tied)), emptyMap())
+        val reverse = WorkoutSummaryBuilder.build(finished(listOf(tied, b, a)), emptyMap())
+        assertEquals(forward, reverse)
+        assertEquals("a-set", forward.highlights.first().topSet?.setId)
+    }
+
 }

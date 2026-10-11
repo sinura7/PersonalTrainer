@@ -27,6 +27,7 @@ data class ExerciseSessionSummary(
     /** Every working set of this exercise in the session, in the order logged. */
     val sets: List<ExerciseSetRecord>,
     val kind: HistoryKind = HistoryKind.WORKOUT,
+    val localEpochDay: Long? = null,
 ) {
     /**
      * The two numbers as one value, so the screen renders whichever this lift is measured in
@@ -72,6 +73,7 @@ data class ExerciseSetEntry(
     val sessionName: String?,
     val sessionPerformedAtMs: Long,
     val kind: HistoryKind = HistoryKind.WORKOUT,
+    val sessionLocalEpochDay: Long? = null,
 )
 
 /**
@@ -125,16 +127,20 @@ object ExerciseHistoryBuilder {
         weekStart: Weekday = Weekday.MONDAY,
     ): ExerciseHistory {
         val summaries = entries
-            .groupBy { it.record.sessionId }
-            .map { (sessionId, group) -> summarise(sessionId, group, loadClass) }
-            .sortedByDescending { it.performedAtMs }
+            .groupBy { it.kind to it.record.sessionId }
+            .map { (identity, group) -> summarise(identity.second, group, loadClass) }
+            .sortedWith(compareByDescending<ExerciseSessionSummary> { it.performedAtMs }
+                .thenBy { it.kind.ordinal }.thenBy { it.sessionId })
 
         val allSets = summaries.flatMap { it.sets }
-        val weekly = allSets
-            .groupBy { record ->
-                time.civilDate(record.completedAt, zoneId).previousOrSame(weekStart)
+        val weekly = entries
+            .groupBy { entry ->
+                val day = entry.sessionLocalEpochDay?.let(CivilDate::fromEpochDay)
+                    ?: time.civilDate(entry.sessionPerformedAtMs, zoneId)
+                day.previousOrSame(weekStart)
             }
-            .map { (start, records) ->
+            .map { (start, group) ->
+                val records = group.map { it.record }
                 val work = SetWork.sum(
                     records.map { SetWork.of(it.weightKg, it.reps, loadClass) },
                 )
@@ -181,7 +187,7 @@ object ExerciseHistoryBuilder {
         group: List<ExerciseSetEntry>,
         loadClass: LoadClass,
     ): ExerciseSessionSummary {
-        val records = group.map { it.record }.sortedBy { it.completedAt }
+        val records = group.map { it.record }.sortedWith(exerciseSetOrder)
         val work = SetWork.sum(records.map { SetWork.of(it.weightKg, it.reps, loadClass) })
         val top = ProgressionBasis.topWorkingSet(
             records.map { WorkingSetCandidate(it.weightKg, it.reps, it.completedAt) },
@@ -210,6 +216,7 @@ object ExerciseHistoryBuilder {
             },
             sets = records,
             kind = group.first().kind,
+            localEpochDay = group.first().sessionLocalEpochDay,
         )
     }
 
@@ -224,6 +231,7 @@ object ExerciseHistoryBuilder {
                     reps = set.reps,
                     completedAt = set.completedAt,
                     rpe = set.rpe,
+                    durationSeconds = set.durationSeconds,
                 )
             }
 }

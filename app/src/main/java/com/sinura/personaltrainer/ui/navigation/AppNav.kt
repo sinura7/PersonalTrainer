@@ -60,6 +60,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -86,6 +88,7 @@ import com.sinura.personaltrainer.ui.components.TemperIcons
 import com.sinura.personaltrainer.ui.history.HistoryScreen
 import com.sinura.personaltrainer.ui.exercise.ExerciseDetailScreen
 import com.sinura.personaltrainer.ui.history.SessionDetailScreen
+import com.sinura.personaltrainer.ui.history.SessionDetailViewModel
 import com.sinura.personaltrainer.ui.home.HomeScreen
 import com.sinura.personaltrainer.ui.library.ExerciseLibraryScreen
 import com.sinura.personaltrainer.ui.progress.ProgressScreen
@@ -104,6 +107,7 @@ import com.sinura.personaltrainer.ui.settings.SettingsPage
 import com.sinura.personaltrainer.ui.settings.SettingsScreen
 import com.sinura.personaltrainer.ui.settings.SettingsViewModel
 import com.sinura.personaltrainer.ui.summary.WorkoutSummaryScreen
+import com.sinura.personaltrainer.ui.summary.WorkoutSummaryViewModel
 import com.sinura.personaltrainer.ui.theme.Haptics
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
@@ -126,6 +130,8 @@ import com.sinura.personaltrainer.ui.workout.LocalRestAlertsAsk
 import com.sinura.personaltrainer.ui.workout.RestAlertsAsk
 import com.sinura.personaltrainer.ui.workout.RestTimerScreen
 import com.sinura.personaltrainer.ui.workout.StartOptionsSheet
+
+private const val SUMMARY_CORRECTION_RESULT = "summary.acknowledgedCorrection.v1"
 
 sealed class Route(val path: String) {
     data object Home : Route("home")
@@ -739,9 +745,23 @@ fun PersonalTrainerNav(
                 composable(
                     route = Route.SessionDetail.path,
                     arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
-                ) {
+                ) { entry ->
+                    val detail: SessionDetailViewModel = viewModel(viewModelStoreOwner = entry)
                     SessionDetailScreen(
-                        onBack = { navController.popBackStack() },
+                        viewModel = detail,
+                        onBack = {
+                            if (detail.summaryNeedsRefresh) {
+                                val summaryEntry = try {
+                                    navController.getBackStackEntry(Route.WorkoutSummary.path)
+                                } catch (_: IllegalArgumentException) {
+                                    null
+                                }
+                                if (summaryEntry?.arguments?.getString("sessionId") == entry.arguments?.getString("sessionId")) {
+                                    summaryEntry?.savedStateHandle?.set(SUMMARY_CORRECTION_RESULT, true)
+                                }
+                            }
+                            navController.popBackStack()
+                        },
                         onOpenExercise = { navController.navigate(Route.ExerciseDetail.create(it)) },
                         onOpenActiveSession = { sessionId ->
                             navController.navigate(Route.ActiveWorkout.create(sessionId)) {
@@ -753,8 +773,19 @@ fun PersonalTrainerNav(
                 composable(
                     route = Route.WorkoutSummary.path,
                     arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
-                ) {
+                ) { entry ->
+                    val summary: WorkoutSummaryViewModel = viewModel(viewModelStoreOwner = entry)
+                    LaunchedEffect(entry, summary) {
+                        entry.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                            entry.savedStateHandle.getStateFlow(SUMMARY_CORRECTION_RESULT, false).collect { changed ->
+                                if (changed && summary.refreshAfterCorrection(entry.arguments?.getString("sessionId").orEmpty())) {
+                                    entry.savedStateHandle[SUMMARY_CORRECTION_RESULT] = false
+                                }
+                            }
+                        }
+                    }
                     WorkoutSummaryScreen(
+                        viewModel = summary,
                         onDone = {
                             navController.popBackStack(Route.Home.path, inclusive = false)
                         },
