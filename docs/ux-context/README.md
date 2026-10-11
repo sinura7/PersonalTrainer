@@ -14,13 +14,17 @@ The active native Home composition packet implements the flat illustrated agenda
 full exercise names, quieter day masthead, flat dated targets, planned Start
 beside the routine and anchored general Start. It retains the start sheet, confirmations,
 one-filled-action priority, live return bar and recovery ownership. The new app
-code and fixtures compiled. `targeted04` passed **57 fresh tests / 6 suites**,
-including 13 native display profiles and actual Home → confirmed named routine
-→ saved session records. Native renders show matching catalog illustrations,
-wrapped full names and the anchored action above navigation. Earlier fixture
-compile/static failures remain preserved. A subsequent Home-only date-surface
-refinement removes the old filled tiles while retaining their geometry and
-captions; complete verification and review of the final source remain pending.
+code and fixtures passed the complete `full01` local gate at `cff5ceba`:
+**4,279 fresh app tests / 592 suites, 1,707 standalone tests / 256 classes**,
+builds and lint, with no failures, errors or skips. This includes 13 native display
+profiles and actual Home → confirmed named routine → saved session records.
+[The actual native Home preview](studies/q01/assets/home-agenda-2026-10-11.png)
+uses synthetic Room data and real navigation. Its flat dates, matching catalog
+illustrations, wrapped full names and anchored Start belong to this candidate.
+The 53 native captures are archived with hashes; earlier failures remain preserved.
+One device-fixture assertion has been corrected to the new visible “Start” copy
+while retaining its semantic checks. Final compilation, pinned reviews and
+integration of that bounded follow-up remain pending.
 Workout and Summary composition follow as separate native packets.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
