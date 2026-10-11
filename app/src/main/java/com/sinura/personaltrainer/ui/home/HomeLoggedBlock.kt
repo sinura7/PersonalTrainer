@@ -1,18 +1,19 @@
 package com.sinura.personaltrainer.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.HomeLogged
 import com.sinura.personaltrainer.domain.SessionSummary
-import com.sinura.personaltrainer.ui.components.GymCard
+import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextSecondary
@@ -32,27 +33,25 @@ fun HomeLoggedBlock(
     val unit = LocalWeightUnit.current
     val title = HomeLogged.title(summary)
     val stats = HomeLogged.statsLine(summary, unit)
-    GymCard(
-        modifier = modifier
-            .semantics { role = Role.Button }
-            .testTag(HomeTags.loggedSession(summary.id)),
-        onClick = onClick,
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag(HomeTags.loggedSession(summary.id))
+            .padding(vertical = Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
             Text(
                 title,
                 style = InstrumentType.title,
                 color = TextSecondary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 stats,
                 style = InstrumentType.caption,
                 color = TextTertiary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
+        HairlineDivider(startIndent = 0.dp)
     }
 }

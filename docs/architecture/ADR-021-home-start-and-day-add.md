@@ -52,6 +52,25 @@ authorize that work.
 
 ## Decision
 
+### Native Home composition — 11 October 2026
+
+Home's day picker uses flat date targets with a neutral selection rule. It keeps
+the existing measured widths, full activity/status captions, today marker,
+horizontal exploration ownership and spoken dates; Plan keeps its current surface.
+
+The authorized frontend roadmap keeps the start behavior below and changes its
+presentation. The general **Start a workout** stays anchored above navigation
+while the selected-day agenda scrolls. Its existing priority goes quiet during
+missed-work recovery and it hides while the ambient live-session bar provides
+the return path. The same sheet, exact-choice ownership and Retry apply.
+
+Separate sessions use illustrated rows and a dividing rule. Planned **Start**
+sits beside the session title; tapping the planned session still confirms that
+session. Full exercise names wrap beside their matching artwork. The selected
+date, day status, return to today, leftover Skip and reorder controls remain.
+Finished sessions keep their existing History-detail destination. Native render
+and reachability evidence closes implementation separately from phone acceptance.
+
 1. **A planned Home row starts that session.** Tap a `PLANNED` row
    (or a leftover `PLANNED` / `MISSED` Still open row) opens the
    existing ADR-018 / ADR-019 confirm. Confirm starts it (leftover:

@@ -1,9 +1,10 @@
 package com.sinura.personaltrainer.ui.home
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -19,21 +20,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.sinura.personaltrainer.domain.DayBlockCopy
-import com.sinura.personaltrainer.domain.FreeStartRank
 import com.sinura.personaltrainer.domain.GetStartedCopy
 import com.sinura.personaltrainer.domain.HomeToday
-import com.sinura.personaltrainer.domain.OneFilledVolt
 import com.sinura.personaltrainer.domain.Routine
-import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.featuredSession
 import com.sinura.personaltrainer.domain.sessionLifts
 import com.sinura.personaltrainer.domain.sessionMinutes
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
-import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.PrimaryGymButton
-import com.sinura.personaltrainer.ui.components.SecondaryGymButton
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
@@ -67,6 +62,7 @@ fun ThisWeekCard(
     recoveryContent: (@Composable () -> Unit)? = null,
     /** Home owns its modal outside the virtualized board; standalone callers stay local. */
     onOpenStartConfirm: (() -> Unit)? = null,
+    showStartAction: Boolean = true,
 ) {
     val trainingToday = day?.takeUnless { it.isRest }
     var startPending by rememberSaveable { mutableStateOf(false) }
@@ -106,7 +102,7 @@ fun ThisWeekCard(
 
     val featuredRoutineId = featuredSession(trainingToday, nextDay)?.routineId
 
-    GymCard {
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
         Kicker(kicker, color = TextSecondary)
         if (hasPlan) {
             DayBlockHead(
@@ -116,6 +112,20 @@ fun ThisWeekCard(
                     minutes = sessionMinutes(featuredRoutineId, routines),
                 ),
                 exercises = sessionLifts(featuredRoutineId, routines),
+                trailing = if (!sessionLive && trainingToday != null && !loggedToday) {
+                    {
+                        TextButton(
+                            onClick = { onOpenStartConfirm?.invoke() ?: run { startPending = true } },
+                            enabled = mutationEnabled,
+                            modifier = Modifier.heightIn(min = Metrics.touchMin)
+                                .testTag(HomeTags.SESSION)
+                                .semantics { contentDescription = "Start today's planned session" },
+                        ) {
+                            Text(text = "Start", style = InstrumentType.bodyStrong,
+                                color = if (quietStart || !mutationEnabled) TextSecondary else com.sinura.personaltrainer.ui.theme.Volt)
+                        }
+                    }
+                } else null,
             )
         } else {
             Text(
@@ -145,15 +155,6 @@ fun ThisWeekCard(
             )
         }
         if (!hasPlan) {
-            LeftoverFreeStart(
-                rank = OneFilledVolt.leftoverFreeStart(
-                    sessionLive = sessionLive,
-                    setupComplete = setupComplete,
-                    hasRecoveryVolt = false,
-                    quietStart = quietStart,
-                ),
-                onStartFree = onStartFree,
-            )
             TextButton(
                 onClick = onOpenPlan,
                 modifier = Modifier
@@ -169,112 +170,15 @@ fun ThisWeekCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-        } else if (!sessionLive && trainingToday != null && !loggedToday) {
-            val sessionModifier = Modifier
-                .padding(top = Metrics.space1)
-                .testTag(HomeTags.SESSION)
-                .semantics { contentDescription = "Start today's planned session" }
-            if (quietStart) {
-                TextButton(
-                    onClick = { onOpenStartConfirm?.invoke() ?: run { startPending = true } },
-                    enabled = mutationEnabled,
-                    modifier = sessionModifier.fillMaxWidth().heightIn(min = Metrics.touchMin),
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Text(
-                        "Start this session",
-                        style = InstrumentType.bodyStrong,
-                        color = TextSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            } else {
-                SecondaryGymButton(
-                    text = "Start this session",
-                    onClick = { onOpenStartConfirm?.invoke() ?: run { startPending = true } },
-                    enabled = mutationEnabled,
-                    modifier = sessionModifier,
-                    height = Metrics.touchMin,
-                )
-            }
-            val startModifier = Modifier
-                .testTag(HomeTags.START)
-                .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT }
-            if (quietStart) {
-                SecondaryGymButton(
-                    text = SessionOrderCopy.FREE_WORKOUT,
-                    onClick = onStartFree,
-                    modifier = startModifier,
-                    height = Metrics.touchMin,
-                )
-            } else {
-                PrimaryGymButton(
-                    text = SessionOrderCopy.FREE_WORKOUT,
-                    onClick = onStartFree,
-                    modifier = startModifier,
-                    height = Metrics.touchMin,
-                )
-            }
-        } else if (!sessionLive) {
-            TextButton(
-                onClick = onStartFree,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = Metrics.touchMin)
-                    .padding(top = Metrics.space1)
-                    .testTag(HomeTags.START)
-                    .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT },
-                contentPadding = PaddingValues(0.dp),
-            ) {
-                Text(
-                    SessionOrderCopy.FREE_WORKOUT,
-                    style = InstrumentType.bodyStrong,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
         }
-    }
-}
-
-@Composable
-private fun LeftoverFreeStart(
-    rank: FreeStartRank,
-    onStartFree: () -> Unit,
-) {
-    val startModifier = Modifier
-        .padding(top = Metrics.space1)
-        .testTag(HomeTags.START)
-        .semantics { contentDescription = SessionOrderCopy.FREE_WORKOUT }
-    when (rank) {
-        FreeStartRank.HIDDEN -> Unit
-        FreeStartRank.PRIMARY -> PrimaryGymButton(
-            text = SessionOrderCopy.FREE_WORKOUT,
-            onClick = onStartFree,
-            modifier = startModifier,
-            height = Metrics.touchMin,
-        )
-        FreeStartRank.SECONDARY -> SecondaryGymButton(
-            text = SessionOrderCopy.FREE_WORKOUT,
-            onClick = onStartFree,
-            modifier = startModifier,
-            height = Metrics.touchMin,
-        )
-        FreeStartRank.TEXT -> TextButton(
-            onClick = onStartFree,
-            modifier = startModifier
-                .fillMaxWidth()
-                .heightIn(min = Metrics.touchMin),
-            contentPadding = PaddingValues(0.dp),
-        ) {
-            Text(
-                SessionOrderCopy.FREE_WORKOUT,
-                style = InstrumentType.bodyStrong,
-                color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        if (showStartAction) {
+            HomeStartAction(
+                rank = homeStartRank(
+                    surface = HomeToday.Surface.WEEK_FALLBACK, sessionLive = sessionLive,
+                    quietStart = quietStart, trainingToday = trainingToday != null,
+                    hasPlan = hasPlan, loggedToday = loggedToday, setupComplete = setupComplete,
+                ),
+                onStartFree = onStartFree,
             )
         }
     }

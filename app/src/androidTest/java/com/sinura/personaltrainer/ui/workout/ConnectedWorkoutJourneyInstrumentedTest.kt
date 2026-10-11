@@ -148,8 +148,6 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
         awaitScrollableContent()
         assertNoBlockingDialogs()
-        compose.onAllNodes(hasScrollAction()).onFirst()
-            .performScrollToNode(hasTestTag(HomeTags.START))
         compose.onNodeWithTag(HomeTags.START).assertIsDisplayed().performClick()
         compose.onNodeWithTag(HomeStartTags.ROUTINE).performScrollTo().performClick()
         compose.onNodeWithTag(HomeStartTags.routine(fixture.routineId)).performScrollTo().assertIsDisplayed()

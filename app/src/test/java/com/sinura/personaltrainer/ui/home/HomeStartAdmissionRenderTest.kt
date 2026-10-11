@@ -10,6 +10,9 @@ import android.view.View
 import android.view.inspector.WindowInspector
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -43,11 +46,15 @@ import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.WorkoutSessionEntity
+import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
 import com.sinura.personaltrainer.data.local.relation.RoutineWithExercises
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import com.sinura.personaltrainer.domain.CivilDate
 import com.sinura.personaltrainer.domain.CivilDateTime
+import com.sinura.personaltrainer.domain.DefaultExercises
+import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.MuscleNormalizer
 import com.sinura.personaltrainer.domain.LiveBarCopy
 import com.sinura.personaltrainer.domain.OccurrenceGenerator
 import com.sinura.personaltrainer.domain.OccurrenceStatus
@@ -65,6 +72,9 @@ import com.sinura.personaltrainer.testutil.FrozenTime
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.ui.components.ConfirmActionTags
 import com.sinura.personaltrainer.ui.components.WeekStripTags
+import com.sinura.personaltrainer.ui.navigation.InstrumentNavBar
+import com.sinura.personaltrainer.ui.navigation.Route
+import com.sinura.personaltrainer.ui.navigation.shippingTabs
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
@@ -695,7 +705,47 @@ class HomeStartAdmissionRenderTest {
         assertNull(base.pendingOccurrenceId.value)
     }
 
-    private fun createGraph(plannedDay: Long? = null) {
+    @Test @Config(qualifiers = "w412dp-h840dp-xhdpi", fontScale = 1f)
+    fun illustratedPlannedHomeKeepsGenericStartByNavigationAndStartsTheNamedRoutine() {
+        profile = "412x840-font10-actual-home"
+        createGraph(plannedDay = today, visual = true)
+        show(withNavigation = true)
+        val planned = boardNode(HomeTags.agendaRow(checkNotNull(occurrenceId)))
+        compose.onNodeWithTag(HomeTags.START).assertIsDisplayed()
+        val navigation = compose.onNodeWithTag("primary-navigation").assertIsDisplayed().fetchSemanticsNode().boundsInWindow
+        val start = compose.onNodeWithTag(HomeTags.START).fetchSemanticsNode().boundsInWindow
+        assertTrue("general Start stays above the real navigation", start.bottom <= navigation.top)
+        val bitmap = compose.runOnUiThread {
+            val decor = compose.activity.window.decorView
+            Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888).also { decor.draw(Canvas(it)) }
+        }
+        try {
+            val file = File("build/screen-renders/home-agenda-composition/$runId/$profile/actual-loaded-home.png")
+            check(file.parentFile.isDirectory || file.parentFile.mkdirs())
+            file.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            assertTrue(file.length() > 100)
+        } finally { bitmap.recycle() }
+        planned.performClick()
+        reachable(compose.onNodeWithTag(ConfirmActionTags.CONFIRM)).assertIsEnabled().performClick()
+        assertOneSavedStart()
+        val saved = runBlocking { checkNotNull(base.workoutRepository.getSession(openedSessions.single())) }
+        assertEquals(listOf("Incline Dumbbell Bench Press", "Seated Cable Row"), saved.exercises.map { it.exercise.name })
+        assertTrue("the persisted lifts retain their matching illustration keys", saved.exercises.all { !it.exercise.imageKey.isNullOrBlank() })
+    }
+
+    private suspend fun visualLift(name: String): Exercise {
+        val seed = DefaultExercises.catalog().first { it.name == name }
+        val id = "home-visual-${seed.id}"
+        base.database.exerciseDao().insertAll(listOf(ExerciseEntity(
+            id = id, name = name, muscleGroup = seed.muscleGroup, notes = "", isCustom = false,
+            equipment = seed.equipment.name, loadType = seed.loadType.name,
+            movementKey = seed.movementKey, imageKey = seed.imageKey,
+            nameKey = MuscleNormalizer.nameKeyOf(name),
+        )))
+        return checkNotNull(base.exerciseRepository.getById(id))
+    }
+
+    private fun createGraph(plannedDay: Long? = null, visual: Boolean = false) {
         base = FakeAppDependencies(
             context = ApplicationProvider.getApplicationContext(), scheduler = dispatcher,
             insights = insights, time = FrozenTime(nowMs),
@@ -721,8 +771,10 @@ class HomeStartAdmissionRenderTest {
             base.preferencesRepository.setOnboardingComplete(true)
             base.preferencesRepository.setWeightUnit(WeightUnit.KG)
             val target = base.routineRepository.create(ROUTINE_NAME)
-            val lift = insertTestExercise(base, "home-admission-bench", "Incline Dumbbell Bench Press")
+            val lift = if (visual) visualLift("Incline Dumbbell Bench Press") else
+                insertTestExercise(base, "home-admission-bench", "Incline Dumbbell Bench Press")
             base.routineRepository.addExercise(target.id, lift, 3, 8, 27.5, 120)
+            if (visual) base.routineRepository.addExercise(target.id, visualLift("Seated Cable Row"), 3, 10, 45.0, 90)
             routineId = target.id
             val other = base.routineRepository.create("Lower B")
             base.routineRepository.addExercise(other.id, lift, 2, 10, 20.0, 90)
@@ -767,7 +819,7 @@ class HomeStartAdmissionRenderTest {
         )
     }
 
-    private fun show() {
+    private fun show(withNavigation: Boolean = false) {
         compose.setContent {
             CompositionLocalProvider(
                 LocalWeightUnit provides WeightUnit.KG, LocalTodayEpochDay provides today,
@@ -776,7 +828,14 @@ class HomeStartAdmissionRenderTest {
             ) {
                 PersonalTrainerTheme(reduceMotion = reducedMotion) {
                     Surface(modifier = Modifier.fillMaxSize(), color = Pit) {
-                        HomeScreen(onResumeWorkout = { openedSessions += it }, onOpenPlan = {}, viewModel = vm)
+                        if (withNavigation) {
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                                    HomeScreen(onResumeWorkout = { openedSessions += it }, onOpenPlan = {}, viewModel = vm)
+                                }
+                                InstrumentNavBar(tabs = shippingTabs, isSelected = { it.route == Route.Home }, onSelect = {})
+                            }
+                        } else HomeScreen(onResumeWorkout = { openedSessions += it }, onOpenPlan = {}, viewModel = vm)
                     }
                 }
             }
@@ -799,7 +858,10 @@ class HomeStartAdmissionRenderTest {
     }
 
     private fun boardNode(tag: String): SemanticsNodeInteraction {
-        compose.onNodeWithTag(HomeTags.BOARD).performScrollToNode(hasTestTag(tag))
+        // Generic Start is anchored outside the day list. Other targets are lazy items.
+        if (tag != HomeTags.START) {
+            compose.onNodeWithTag(HomeTags.BOARD).performScrollToNode(hasTestTag(tag))
+        }
         return reachable(compose.onNodeWithTag(tag))
     }
 

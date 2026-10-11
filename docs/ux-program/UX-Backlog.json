@@ -78,12 +78,12 @@
       "title": "Clarify Home's planned versus freestyle actions",
       "priority": "P1",
       "type": "Source-backed usability hypothesis",
-      "observation": "Home is a selected-day board. ADR-021 explicitly makes its filled Start a workout button freestyle; planned rows carry Start and open a confirmation. My earlier proposal to make the filled button start today's named plan would reverse this owner decision. HomeStatRow is placed before the agenda; whether that delays discovery needs actual-screen evidence.",
-      "outcome": "Users distinguish starting the listed plan from starting an empty workout and can identify the selected date.",
+      "observation": "Home is a selected-day board. ADR-021 reserves general Start a workout for the existing chooser (free, routine, cardio or Extra); planned rows open their named confirmation. Recent statistics are already removed from the Home board. The remaining visual packet clarifies the illustrated agenda and keeps generic Start reachable as it scrolls.",
+      "outcome": "Users distinguish starting the listed planned session from choosing another activity and can identify the selected date.",
       "requirements": [
         "Preserve planned-row confirmation, the current Home Start a workout sheet without an Add row (ADR-021), and the single ambient Live Session Bar.",
-        "Keep a short visible explanation near the freestyle control: proposed copy 'Empty session — add lifts as you go.' A label change to 'Start freestyle workout' is a prototype option requiring reconciliation with ADR-021; do not silently replace its wording.",
-        "Prototype moving the recent-stat row below the agenda while retaining the week strip. Compare normal, missed-work and active-session states before choosing an ordering.",
+        "Keep Start a workout opening the existing chooser. Do not describe all its choices as an empty session or silently change the accepted wording. Planned Start retains its own session identity and confirmation.",
+        "Keep the agenda before secondary check-ins and the week strip intact. Compare loaded, empty, missed-work and active-session states; the generic Start stays reachable while the agenda scrolls.",
         "Show the full selected date in the masthead. When another day is selected, provide a quiet, accessible return-to-today action; make clear a live/free workout starts now rather than backdating.",
         "Maintain only one dominant filled action in each state, including first visit and missed-work handling. Do not add another resume hero above the existing live bar."
       ],
@@ -111,7 +111,7 @@
       ],
       "dependencies": [],
       "decision": "Preserve ADR-021. Alternative primary-action semantics are a separate product decision.",
-      "status": "ADR-021 start semantics retained. Home start-date clarity and retained start/retry implemented; prior-copy targeted07 passed 189 fresh checks including actual Home date/admission journeys. Neutral failure-copy repair, full gate, pinned reviews and integration pending. Home visual composition and participant interpretation remain open.",
+      "status": "Home start recovery reviewed and integrated through PR482 at 9d148ea5; complete unchanged-input verification and 10 fresh affected-journey tests passed. Native flat Home composition is implemented in the active candidate; its render matrix, complete gate and reviews remain pending. Participant and phone interpretation remain open.",
       "fixtures": [
         "F02",
         "F11"
@@ -153,7 +153,7 @@
         "UX01"
       ],
       "decision": "Refinement within current product direction",
-      "status": "Current start/log entry routes retained. Home exact-choice ownership, explicit retry and acknowledged discard recovery implemented; prior-copy native matrix passed. Repaired full gate and final review/integration pending. Broader StartOptions usability and participant tasks remain open.",
+      "status": "Home exact-choice ownership, Retry and acknowledged discard recovery reviewed and integrated through PR482. Complete gate and 10 fresh affected-journey checks passed. The current native Home layout preserves those routes; broader StartOptions usability and participant tasks remain open.",
       "fixtures": [
         "F01",
         "F06"
