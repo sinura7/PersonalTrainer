@@ -4,7 +4,9 @@ import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -85,7 +87,7 @@ class LibraryRoutineHandoffInstrumentedTest {
         tap("navigation-routines")
         tap(PlanTags.LIBRARY)
         awaitTag(LibraryTags.SEARCH)
-        compose.onNodeWithTag(LibraryTags.SEARCH).performTextReplacement(exercise.name)
+        searchField().performTextReplacement(exercise.name)
         openSelectedLift()
         awaitTag(AddToRoutineTags.CREATE)
         scenario.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
@@ -106,7 +108,7 @@ class LibraryRoutineHandoffInstrumentedTest {
             .performTextReplacement("Library handoff routine")
         tap(RoutineEditorTags.SAVE)
         awaitTag(LibraryTags.SEARCH)
-        compose.onNodeWithTag(LibraryTags.SEARCH).assertIsDisplayed().assertTextContains(exercise.name)
+        searchField().assertIsDisplayed().assertTextContains(exercise.name)
         compose.onNodeWithContentDescription("Add ${exercise.name} to a routine").assertIsDisplayed()
         val saved = read { container.routineRepository.observeAll().first().single() }
         assertEquals(created.id, saved.id)
@@ -114,6 +116,11 @@ class LibraryRoutineHandoffInstrumentedTest {
         assertEquals(exercise.id, saved.exercises.single().exercise.id)
         assertEquals(historyBefore, read { container.workoutRepository.observeHistory().first() })
     }
+
+    private fun searchField() = compose.onNode(
+        matcher = hasSetTextAction() and hasAnyAncestor(hasTestTag(LibraryTags.SEARCH)),
+        useUnmergedTree = true,
+    )
 
     private fun openSelectedLift() {
         compose.waitForIdle()
