@@ -10,6 +10,8 @@ import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.workout.SavedStateWorkoutSave
+import com.sinura.personaltrainer.domain.ExercisePickerProgress
+import com.sinura.personaltrainer.util.PickerWrites
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.runCatchingCancellable
 import com.sinura.personaltrainer.AppDependencies
@@ -168,6 +170,7 @@ data class ActiveWorkoutUiState(
     val notes: String = "",
     val notesSave: NotesSaveState = NotesSaveState(),
     val error: String? = null,
+    val pickerProgress: ExercisePickerProgress = ExercisePickerProgress(),
     val finished: Boolean = false,
     val editingSetId: String? = null,
     /**
@@ -331,6 +334,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             draftCache.markNotesPending(sessionId = sessionId, owner = notesOwner, pending = pending, busy = busy, notes = notes)
         },
     )
+    private val pickerWrites = PickerWrites()
     private val error = ErrorSlot()
     private val finished = MutableStateFlow(false)
     private val _exitRequested = MutableStateFlow<WorkoutExit?>(null)
@@ -871,6 +875,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         state.copy(suggestionUnavailable = missing)
     }.combine(draftDirty) { state, dirty ->
         state.copy(draftDirty = dirty)
+    }.combine(pickerWrites.state) { state, progress ->
+        state.copy(pickerProgress = progress)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -1325,6 +1331,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     fun setPickerVisible(visible: Boolean) {
         if (visible && !canChangeEntry()) return
+        if (!visible && pickerWrites.busy) return
         if (!visible) swapTargetItemId.value = null
         showPicker.value = visible
         if (!visible) searchQuery.value = ""
@@ -1334,41 +1341,71 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         searchQuery.value = value
     }
 
-    fun addExercise(exercise: Exercise) {
+    fun retryPicker() = pickerWrites.retry()
+    fun dismissPickerError() { pickerWrites.dismissError(); error.clearFrom(ERR_ADD_LIFT) }
+
+    fun addExercise(exercise: Exercise) = pickExercise(exercise, swapTargetItemId.value)
+
+    private fun pickExercise(exercise: Exercise, swapTarget: String?, created: Boolean = false) {
         if (!canChangeEntry()) return
+        val ticket = pickerWrites.begin(exercise.id)
         launchEntryMutation(source = ERR_ADD_LIFT) {
-            addExerciseInternal(exercise)
+            try {
+                addExerciseInternal(exercise, swapTarget)
+                pickerWrites.succeed(ticket, created)
+            } catch (thrown: CancellationException) {
+                pickerWrites.cancel(ticket)
+                throw thrown
+            } catch (thrown: Exception) {
+                val message = thrown.message?.takeIf {
+                    SetLogRules.isUserMessage(it) || SessionEditRules.isUserMessage(it)
+                } ?: if (swapTarget != null) "Could not swap that lift. Try again." else SessionOrderCopy.ADD_LIFT_FAILED
+                error.fail(ERR_ADD_LIFT, message)
+                pickerWrites.fail(ticket, message) { pickExercise(exercise, swapTarget, created) }
+            }
         }
     }
 
-    fun createAndAddExercise(
-        name: String,
-        muscleGroup: String,
-        loadType: LoadType = LoadType.EXTERNAL,
-    ) {
+    fun createAndAddExercise(name: String, muscleGroup: String, loadType: LoadType = LoadType.EXTERNAL) =
+        createPickerExercise(name, muscleGroup, loadType, swapTargetItemId.value)
+
+    private fun createPickerExercise(name: String, muscleGroup: String, loadType: LoadType, swapTarget: String?) {
         if (!canChangeEntry()) return
+        val ticket = pickerWrites.begin("create", creating = true)
+        if (name.isBlank()) {
+            error.fail(ERR_ADD_LIFT, SessionOrderCopy.LIFT_NAME_REQUIRED)
+            pickerWrites.fail(ticket, SessionOrderCopy.LIFT_NAME_REQUIRED)
+            return
+        }
         launchEntryMutation(source = ERR_ADD_LIFT) {
-            if (name.isBlank()) {
-                error.fail(source = ERR_ADD_LIFT, message = "Give that lift a name.")
-                return@launchEntryMutation
-            }
+            var created: Exercise? = null
             try {
-                when (val result = container.exerciseRepository.createCustom(
-                    name,
-                    muscleGroup,
-                    loadType = loadType,
-                )) {
-                    is SaveExerciseResult.DuplicateName ->
-                        error.fail(source = ERR_ADD_LIFT, message = DUPLICATE_NAME_MESSAGE)
-                    is SaveExerciseResult.MissingMuscle ->
-                        error.fail(source = ERR_ADD_LIFT, message = MuscleGroups.MISSING_MESSAGE)
-                    is SaveExerciseResult.Saved -> addExerciseInternal(result.exercise)
+                when (val result = container.exerciseRepository.createCustom(name, muscleGroup, loadType = loadType)) {
+                    is SaveExerciseResult.DuplicateName -> {
+                        error.fail(ERR_ADD_LIFT, DUPLICATE_NAME_MESSAGE)
+                        pickerWrites.fail(ticket, DUPLICATE_NAME_MESSAGE, existing = result.existing)
+                    }
+                    is SaveExerciseResult.MissingMuscle -> {
+                        error.fail(ERR_ADD_LIFT, MuscleGroups.MISSING_MESSAGE)
+                        pickerWrites.fail(ticket, MuscleGroups.MISSING_MESSAGE)
+                    }
+                    is SaveExerciseResult.Saved -> {
+                        created = result.exercise
+                        addExerciseInternal(result.exercise, swapTarget)
+                        pickerWrites.succeed(ticket, created = true)
+                    }
                 }
             } catch (thrown: CancellationException) {
+                pickerWrites.cancel(ticket)
                 throw thrown
             } catch (thrown: Exception) {
-                AppLog.w(TAG, "createAndAddExercise failed", thrown)
-                error.fail(source = ERR_ADD_LIFT, message = SessionOrderCopy.CREATE_LIFT_FAILED)
+                val saved = created
+                val message = if (saved != null) "Lift saved to Library. Could not select it here. Retry to select it." else SessionOrderCopy.CREATE_LIFT_FAILED
+                error.fail(ERR_ADD_LIFT, message)
+                pickerWrites.fail(ticket, message) {
+                    if (saved != null) pickExercise(saved, swapTarget, created = true)
+                    else createPickerExercise(name, muscleGroup, loadType, swapTarget)
+                }
             }
         }
     }
@@ -1438,61 +1475,28 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         selectExercise(next)
     }
 
-    private suspend fun addExerciseInternal(exercise: Exercise) {
+    private suspend fun addExerciseInternal(exercise: Exercise, swapTarget: String?) {
         val started = error.mark()
-        if (sessionId.isBlank()) {
-            error.fail(source = ERR_ADD_LIFT, message = "This workout is no longer available.")
-            return
-        }
-        swapTargetItemId.value?.let { itemId ->
-            swapTargetItemId.value = null
-            try {
-                container.workoutRepository.swapExerciseInSession(sessionId, itemId, exercise)
-                selectExerciseInternal(exercise.id)
-                showPicker.value = false
-                error.clearFrom(source = ERR_ADD_LIFT, before = started)
-            } catch (thrown: CancellationException) {
-                throw thrown
-            } catch (thrown: Exception) {
-                AppLog.w(TAG, "swapExerciseInSession failed", thrown)
-                error.fail(
-                    source = ERR_ADD_LIFT,
-                    message = thrown.message?.takeIf {
-                        SetLogRules.isUserMessage(it) || SessionEditRules.isUserMessage(it)
-                    } ?: "Could not swap that lift. Try again.",
+        check(sessionId.isNotBlank()) { "This workout is no longer available." }
+        if (swapTarget != null) {
+            container.workoutRepository.swapExerciseInSession(sessionId, swapTarget, exercise)
+            if (swapTargetItemId.value == swapTarget) swapTargetItemId.value = null
+        } else {
+            val current = container.workoutRepository.getSession(sessionId)
+            if (current?.exercises?.none { it.exercise.id == exercise.id } != false) {
+                val goal = container.preferencesRepository.coachPreferences.first().goal
+                val defaults = AddDefaults.forExercise(exercise, goal = goal)
+                container.workoutRepository.addExerciseToSession(
+                    sessionId = sessionId, exercise = exercise, targetSets = defaults.sets,
+                    targetReps = defaults.reps, targetWeightKg = null, restSeconds = defaults.restSeconds,
+                    targetSeconds = defaults.seconds, targetSecondsMax = defaults.secondsMax,
                 )
             }
-            return
         }
-        val alreadyAdded = session.value?.exercises?.any { it.exercise.id == exercise.id } == true
-        if (alreadyAdded) {
-            selectExerciseInternal(exercise.id)
-            showPicker.value = false
-            error.clearFrom(source = ERR_ADD_LIFT, before = started)
-            return
-        }
-        try {
-            val goal = container.preferencesRepository.coachPreferences.first().goal
-            val defaults = AddDefaults.forExercise(exercise, goal = goal)
-            container.workoutRepository.addExerciseToSession(
-                sessionId = sessionId,
-                exercise = exercise,
-                targetSets = defaults.sets,
-                targetReps = defaults.reps,
-                targetWeightKg = null,
-                restSeconds = defaults.restSeconds,
-                targetSeconds = defaults.seconds,
-                targetSecondsMax = defaults.secondsMax,
-            )
-            selectExerciseInternal(exercise.id)
-            showPicker.value = false
-            error.clearFrom(source = ERR_ADD_LIFT, before = started)
-        } catch (thrown: CancellationException) {
-            throw thrown
-        } catch (thrown: Exception) {
-            AppLog.w(TAG, "addExerciseInternal failed", thrown)
-            error.fail(source = ERR_ADD_LIFT, message = "Could not add that lift. Try again.")
-        }
+        selectExerciseInternal(exercise.id)
+        showPicker.value = false
+        searchQuery.value = ""
+        error.clearFrom(source = ERR_ADD_LIFT, before = started)
     }
 
     /**

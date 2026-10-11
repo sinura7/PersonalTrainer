@@ -3,6 +3,7 @@ package com.sinura.personaltrainer.ui.activity
 import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
+import com.sinura.personaltrainer.AppDependencies
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
 import com.sinura.personaltrainer.data.local.dao.ActivityDao
@@ -11,6 +12,7 @@ import com.sinura.personaltrainer.domain.ActivityOrigin
 import com.sinura.personaltrainer.domain.CompleteTrainingOutcome
 import com.sinura.personaltrainer.domain.CardioType
 import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.testutil.GatedPickerCreation
 import com.sinura.personaltrainer.testutil.TestWaits
 import com.sinura.personaltrainer.testutil.awaitFirst
 import kotlinx.coroutines.CompletableDeferred
@@ -53,6 +55,56 @@ class ActivityComposerViewModelTest {
         viewModel = null
         if (::deps.isInitialized) deps.close()
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun pendingCreationOwnsTheDraftUntilSelectionIsDelivered() = runBlocking {
+        val existing = seedLift()
+        val creation = GatedPickerCreation(deps)
+        val vm = composer(SavedStateHandle(mapOf("mode" to "strength")), creation.container)
+        viewModel = vm
+        try {
+            vm.uiState.awaitFirst { it.catalog.isNotEmpty() }
+            vm.addStrength(existing, 100.0, 5)
+            vm.createExercise("Accepted row", "Back")
+            assertFalse(vm.canLeave())
+            withTimeout(TestWaits.FLOW_MS) { creation.entered.await() }
+            vm.createExercise("Duplicate tap", "Back")
+            vm.save()
+            vm.discardDraft()
+            assertFalse(vm.uiState.value.saving)
+            assertEquals(null, vm.savedId.value)
+            assertEquals(1, vm.uiState.value.strength.size)
+            creation.release.complete(Unit)
+            val created = withTimeout(TestWaits.FLOW_MS) { vm.createdExercise.first { it != null } }!!
+            assertFalse(vm.canLeave())
+            vm.onCreatedExerciseHandled()
+            assertTrue(vm.canLeave())
+            vm.addStrength(created, 50.0, 8)
+            vm.save()
+            val id = withTimeout(TestWaits.FLOW_MS) { vm.savedId.first { it != null } }!!
+            assertEquals(1, creation.inserts.get())
+            assertEquals(listOf(existing.id, created.id), deps.activityRepository.get(id)!!.strengthBlocks.map { it.exerciseId })
+        } finally { creation.release.complete(Unit) }
+    }
+
+    @Test
+    fun cancellingAnActivityKeepsTheLiftAlreadySavedToLibrary() = runBlocking {
+        val handle = SavedStateHandle(mapOf("mode" to "strength"))
+        val vm = composer(handle)
+        viewModel = vm
+        vm.uiState.awaitFirst { it.todayEpochDay != 0L }
+        vm.createExercise("Library keeps this lift", "Chest")
+        val created = withTimeout(TestWaits.FLOW_MS) { vm.createdExercise.first { it != null } }!!
+        vm.onCreatedExerciseHandled()
+        vm.addStrength(created, 50.0, 8)
+        vm.discardDraft()
+        assertFalse(SavedStateComposerDraft(handle).exists())
+        assertEquals(created, deps.exerciseRepository.getById(created.id))
+        assertEquals(listOf(created.id), deps.exerciseRepository.observeAll().first().map { it.id })
+        assertTrue(deps.activityRepository.all().isEmpty())
+        assertTrue(deps.database.workoutDao().getAllSessions().isEmpty())
+        assertTrue(deps.database.workoutDao().getAllSets().isEmpty())
     }
 
     @Test
@@ -264,10 +316,10 @@ class ActivityComposerViewModelTest {
 
     private fun composer(mode: String) = composer(SavedStateHandle(mapOf("mode" to mode)))
 
-    private fun composer(handle: SavedStateHandle) = ActivityComposerViewModel(
+    private fun composer(handle: SavedStateHandle, container: AppDependencies = deps) = ActivityComposerViewModel(
         ApplicationProvider.getApplicationContext<Application>(),
         handle,
-        deps,
+        container,
     )
 
     /** The activity DAO with its session insert held at a gate, so a save can be caught mid-write. */

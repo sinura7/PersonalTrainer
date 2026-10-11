@@ -1046,6 +1046,7 @@ private fun ActiveWorkoutContent(
         ExercisePickerSheet(
             state = ExercisePickerState(
                 query = state.searchQuery,
+                progress = state.pickerProgress,
                 results = state.searchResults,
                 title = if (state.swapping) "Swap lift" else "Add a lift",
                 mode = if (state.swapping) ExercisePickerMode.SWAP else ExercisePickerMode.SINGLE_ADD,
@@ -1061,7 +1062,8 @@ private fun ActiveWorkoutContent(
                         viewModel.createAndAddExercise(event.name, event.muscleGroup, event.loadType)
                     is ExercisePickerEvent.Toggled -> Unit
                     ExercisePickerEvent.Dismissed -> viewModel.setPickerVisible(false)
-                    ExercisePickerEvent.ErrorDismissed -> viewModel.dismissError()
+                    ExercisePickerEvent.ErrorDismissed -> viewModel.dismissPickerError()
+                    ExercisePickerEvent.Retry -> viewModel.retryPicker()
                 }
             },
         )

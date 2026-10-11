@@ -313,6 +313,11 @@ class PlanRoutineActionsRenderTest {
         val before = inventory()
         compose.runOnUiThread { dayOffset.value = 2; route.value = "day" }
         compose.settle()
+        compose.awaitThat("moved weekly day loaded", dayVm.uiState::value) {
+            !dayVm.uiState.value.isLoading && dayVm.uiState.value.occurrences.any {
+                it.ruleId == rule.id && it.localEpochDay == today + 2
+            }
+        }
         compose.onNodeWithTag(PickerHeaderTags.CANCEL).performScrollTo().performClick()
         compose.settle()
         words(PlanDayCopy.addScope(Weekday.SATURDAY))

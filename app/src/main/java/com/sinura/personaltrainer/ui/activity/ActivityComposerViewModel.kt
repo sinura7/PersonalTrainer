@@ -26,6 +26,8 @@ import com.sinura.personaltrainer.domain.StrengthBlock
 import com.sinura.personaltrainer.domain.StrengthSet
 import com.sinura.personaltrainer.ui.library.DUPLICATE_NAME_MESSAGE
 import com.sinura.personaltrainer.logging.AppLog
+import com.sinura.personaltrainer.domain.ExercisePickerProgress
+import com.sinura.personaltrainer.util.PickerWrites
 import com.sinura.personaltrainer.util.ErrorSlot
 import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.util.JvmTime
@@ -76,6 +78,7 @@ data class ActivityComposerUiState(
     val catalog: List<Exercise> = emptyList(),
     /** Form-level outcomes: a refused or failed save. Rendered above Save. */
     val error: String? = null,
+    val pickerProgress: ExercisePickerProgress = ExercisePickerProgress(),
     /** The picker's Create row failed. Rendered inside the sheet that asked, and only there. */
     val createError: String? = null,
     val saving: Boolean = false,
@@ -120,6 +123,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
     private val catalog = MutableStateFlow<List<Exercise>>(emptyList())
 
     /** Form-level refusals — [ERR_DRAFT], [ERR_SAVE]. Rendered above Save. */
+    private val pickerWrites = PickerWrites()
     private val error = ErrorSlot()
 
     /** The picker's Create row — [ERR_CREATE_LIFT]. Rendered inside the sheet that asked. */
@@ -153,6 +157,8 @@ class ActivityComposerViewModel @JvmOverloads constructor(
             createError = flags.createError,
             saving = flags.saving,
         )
+    }.combine(pickerWrites.state) { state, progress ->
+        state.copy(pickerProgress = progress)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ActivityComposerUiState())
 
     private val _savedId = MutableStateFlow<String?>(null)
@@ -201,6 +207,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
 
     fun dismissCreateError() {
         createError.dismiss()
+        pickerWrites.dismissError()
     }
 
     fun setEpochDay(value: Long) {
@@ -256,7 +263,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
      * guard behind it.
      */
     fun discardDraft() {
-        if (saving.value) return
+        if (saving.value || pickerWrites.busy || _createdExercise.value != null) return
         draft.clear()
     }
 
@@ -266,7 +273,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
      * catches up a frame later, and a Back in that frame must not pop the entry — and with it
      * the coroutine the write is riding on.
      */
-    fun canLeave(): Boolean = !saving.value
+    fun canLeave(): Boolean = !saving.value && !pickerWrites.busy && _createdExercise.value == null
 
     private fun rememberDraft() {
         draft.write(
@@ -279,7 +286,7 @@ class ActivityComposerViewModel @JvmOverloads constructor(
 
     fun save() {
         val started = error.mark()
-        if (saving.value) return
+        if (saving.value || pickerWrites.busy || _createdExercise.value != null) return
         saving.value = true
         viewModelScope.launch {
             val write = runCatchingCancellable { confirmDraft() }
@@ -320,47 +327,41 @@ class ActivityComposerViewModel @JvmOverloads constructor(
         _createdExercise.value = null
     }
 
-    fun createExercise(
-        name: String,
-        muscleGroup: String,
-        loadType: LoadType = LoadType.EXTERNAL,
-    ) {
+    fun retryPicker() = pickerWrites.retry()
+
+    fun createExercise(name: String, muscleGroup: String, loadType: LoadType = LoadType.EXTERNAL) {
+        if (saving.value || pickerWrites.busy || _createdExercise.value != null) return
         val started = createError.mark()
+        val ticket = pickerWrites.begin("create", creating = true)
+        if (name.isBlank()) {
+            createError.fail(ERR_CREATE_LIFT, SessionOrderCopy.LIFT_NAME_REQUIRED)
+            pickerWrites.fail(ticket, SessionOrderCopy.LIFT_NAME_REQUIRED)
+            return
+        }
         viewModelScope.launch {
-            if (name.isBlank()) {
-                createError.fail(
-                    source = ERR_CREATE_LIFT,
-                    message = SessionOrderCopy.LIFT_NAME_REQUIRED,
-                )
-                return@launch
-            }
-            runCatchingCancellable {
-                when (val result = container.exerciseRepository.createCustom(
-                    name,
-                    muscleGroup,
-                    loadType = loadType,
-                )) {
-                    is SaveExerciseResult.DuplicateName ->
-                        createError.fail(
-                            source = ERR_CREATE_LIFT,
-                            message = DUPLICATE_NAME_MESSAGE,
-                        )
-                    is SaveExerciseResult.MissingMuscle ->
-                        createError.fail(
-                            source = ERR_CREATE_LIFT,
-                            message = MuscleGroups.MISSING_MESSAGE,
-                        )
+            try {
+                when (val result = container.exerciseRepository.createCustom(name, muscleGroup, loadType = loadType)) {
+                    is SaveExerciseResult.DuplicateName -> {
+                        createError.fail(ERR_CREATE_LIFT, DUPLICATE_NAME_MESSAGE)
+                        pickerWrites.fail(ticket, DUPLICATE_NAME_MESSAGE, existing = result.existing)
+                    }
+                    is SaveExerciseResult.MissingMuscle -> {
+                        createError.fail(ERR_CREATE_LIFT, MuscleGroups.MISSING_MESSAGE)
+                        pickerWrites.fail(ticket, MuscleGroups.MISSING_MESSAGE)
+                    }
                     is SaveExerciseResult.Saved -> {
-                        createError.clearFrom(source = ERR_CREATE_LIFT, before = started)
+                        createError.clearFrom(ERR_CREATE_LIFT, before = started)
+                        catalog.value = com.sinura.personaltrainer.domain.LiftCart.mergeSources(catalog.value, listOf(result.exercise))
                         _createdExercise.value = result.exercise
+                        pickerWrites.succeed(ticket, created = true)
                     }
                 }
-            }.onFailure { thrown ->
-                AppLog.w(TAG, "createExercise failed", thrown)
-                createError.fail(
-                    source = ERR_CREATE_LIFT,
-                    message = SessionOrderCopy.CREATE_LIFT_FAILED,
-                )
+            } catch (thrown: kotlinx.coroutines.CancellationException) {
+                pickerWrites.cancel(ticket)
+                throw thrown
+            } catch (thrown: Exception) {
+                createError.fail(ERR_CREATE_LIFT, SessionOrderCopy.CREATE_LIFT_FAILED)
+                pickerWrites.fail(ticket, SessionOrderCopy.CREATE_LIFT_FAILED) { createExercise(name, muscleGroup, loadType) }
             }
         }
     }
