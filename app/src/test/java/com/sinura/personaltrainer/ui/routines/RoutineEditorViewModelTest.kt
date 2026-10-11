@@ -93,6 +93,158 @@ class RoutineEditorViewModelTest {
     }
 
     @Test
+    fun librarySelectionCreatesOneRoutineWithThatLiftAndSaveKeepsItsName() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val handle = selectedExerciseHandle(exercise.id)
+        val vm = createViewModel("new", savedStateHandle = handle)
+        val state = vm.awaitState { !it.isLoading && it.routine?.exercises?.size == 1 }
+        assertEquals(exercise.id, state.routine?.exercises?.single()?.exercise?.id)
+        vm.onNameChange("My compact routine")
+        vm.saveAndLeave()
+        vm.awaitExit()
+        val stored = deps.routineRepository.observeAll().first().single()
+        assertEquals(state.routine?.id, stored.id)
+        assertEquals("My compact routine", stored.name)
+        assertEquals(exercise.id, stored.exercises.single().exercise.id)
+    }
+
+    @Test
+    fun restoredLibrarySelectionDoesNotAddAgainAfterTheOwnerRemovesIt() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val handle = selectedExerciseHandle(exercise.id)
+        val vm = createViewModel("new", savedStateHandle = handle)
+        val routine = checkNotNull(vm.awaitState { it.routine?.exercises?.size == 1 }.routine)
+        vm.togglePicked(exercise)
+        awaitRoutine { it.exercises.isEmpty() }
+        vm.clearAndJoinForTest()
+
+        val restored = createViewModel("new", savedStateHandle = copyHandle(handle))
+        val state = restored.awaitState { !it.isLoading && it.routine != null }
+        assertEquals(routine.id, state.routine?.id)
+        assertTrue(state.routine?.exercises?.isEmpty() == true)
+        restored.leave()
+        restored.awaitExit()
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun restoredUnconsumedSelectionReusesTheAlreadyCommittedLift() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val routine = deps.routineRepository.create("Preserved draft")
+        deps.routineRepository.addExercise(routine.id, exercise, 3, 8, null, 90)
+        val handle = selectedExerciseHandle(exercise.id).apply {
+            set("editor.routineId", routine.id)
+            set("editor.createdThisSession", true)
+            set("editor.name", routine.name)
+        }
+        val vm = createViewModel("new", savedStateHandle = handle)
+        vm.awaitState { !it.isLoading && it.routine?.exercises?.size == 1 }
+        assertEquals(listOf(routine.id), deps.routineRepository.observeAll().first().map { it.id })
+        assertEquals(8, deps.routineRepository.getById(routine.id)?.exercises?.single()?.targetReps)
+        assertEquals(true, handle.get<Boolean>("editor.initialExerciseAdded"))
+    }
+
+    @Test
+    fun failedLibraryAddRetriesTheSameRoutineAndTheSameLift() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val gate = FailureGate(shouldFail = true)
+        val dao = InitialAddFaultDao(deps.database.routineDao(), gate)
+        val handle = selectedExerciseHandle(exercise.id)
+        val vm = createViewModel("new", withRoutineDao(dao), handle)
+        vm.awaitState { it.failed }
+        val stubId = checkNotNull(handle.get<String>("editor.routineId"))
+        assertFalse(vm.initialExerciseUnavailable)
+        assertTrue(deps.routineRepository.getById(stubId)?.exercises?.isEmpty() == true)
+        assertNull(handle.get<Boolean>("editor.initialExerciseAdded"))
+
+        gate.shouldFail = false
+        vm.retryHydration()
+        vm.retryHydration()
+        val state = vm.awaitState { !it.failed && !it.isLoading && it.routine?.exercises?.size == 1 }
+        assertEquals(stubId, state.routine?.id)
+        assertEquals(exercise.id, state.routine?.exercises?.single()?.exercise?.id)
+        assertEquals(1, deps.routineRepository.observeAll().first().size)
+    }
+
+    @Test
+    fun failedLibraryRoutineCreationRetriesWithoutAnObsoleteError() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val gate = FailureGate(shouldFail = true)
+        val dao = FailingCreateDao(deps.database.routineDao(), gate)
+        val vm = createViewModel("new", withRoutineDao(dao), selectedExerciseHandle(exercise.id))
+        vm.awaitState { it.failed }
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+        gate.shouldFail = false
+        vm.retryHydration()
+        val state = vm.awaitState { !it.failed && !it.isLoading && it.routine?.exercises?.size == 1 }
+        assertNull(state.error)
+        assertEquals(exercise.id, deps.routineRepository.observeAll().first().single().exercises.single().exercise.id)
+    }
+
+    @Test
+    fun committedAddWhoseAcknowledgmentFailsIsNotDuplicatedOnRetry() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val gate = FailureGate(shouldFail = true)
+        val dao = InitialAddFaultDao(
+            delegate = deps.database.routineDao(), gate = gate, commitBeforeFailure = true,
+        )
+        val vm = createViewModel("new", withRoutineDao(dao), selectedExerciseHandle(exercise.id))
+        vm.awaitState { it.failed }
+        val before = deps.routineRepository.observeAll().first().single()
+        assertEquals(exercise.id, before.exercises.single().exercise.id)
+        gate.shouldFail = false
+        vm.retryHydration()
+        vm.awaitState { !it.failed && !it.isLoading && it.routine?.exercises?.size == 1 }
+        assertEquals(before, deps.routineRepository.observeAll().first().single())
+    }
+
+    @Test
+    fun backDuringLibraryPreparationWaitsForTheLiftAndKeepsTheNonemptyRoutine() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val gate = CompletableDeferred<Unit>()
+        val vm = createViewModel("new", delayedAdd(gate), selectedExerciseHandle(exercise.id))
+        vm.awaitState { it.isLoading }
+        vm.leave()
+        assertFalse(vm.exitRequested.value)
+        gate.complete(Unit)
+        vm.awaitExit()
+        assertEquals(exercise.id, deps.routineRepository.observeAll().first().single().exercises.single().exercise.id)
+    }
+
+    @Test
+    fun missingLibrarySelectionAllowsBackWithoutCreatingAStub() = runBlocking {
+        val vm = createViewModel("new", savedStateHandle = selectedExerciseHandle("no-longer-here"))
+        vm.awaitState { it.failed }
+        assertTrue(vm.initialExerciseUnavailable)
+        vm.leave()
+        vm.awaitExit()
+        assertTrue(deps.routineRepository.observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun backingOutOfAFailedLibraryAddDiscardsOnlyItsEmptyStub() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val other = deps.routineRepository.create("Keep this unrelated routine")
+        val dao = InitialAddFaultDao(deps.database.routineDao(), FailureGate(shouldFail = true))
+        val vm = createViewModel("new", withRoutineDao(dao), selectedExerciseHandle(exercise.id))
+        vm.awaitState { it.failed }
+        vm.leave()
+        vm.awaitExit()
+        assertEquals(listOf(other), deps.routineRepository.observeAll().first())
+    }
+
+    @Test
+    fun existingRoutineIgnoresAnInitialExerciseArgument() = runBlocking {
+        val exercise = insertTestExercise(deps, "selected-row", "Selected row")
+        val routine = deps.routineRepository.create("Existing routine")
+        val handle = selectedExerciseHandle(exercise.id).apply { set("routineId", routine.id) }
+        val vm = createViewModel(routine.id, savedStateHandle = handle)
+        vm.awaitState { !it.isLoading && it.routine != null }
+        assertFalse(vm.startsWithSelectedExercise)
+        assertEquals(routine, deps.routineRepository.getById(routine.id))
+    }
+
+    @Test
     fun existingRoutineLoadsNameExercisesAndNotes() = runBlocking {
         val fixture = seedTestWorkout(deps, notes = "")
         deps.workoutRepository.discardSession(fixture.session.id)
@@ -1587,6 +1739,28 @@ class RoutineEditorViewModelTest {
             container = container,
         ).also { viewModel = it }
 
+    private fun selectedExerciseHandle(exerciseId: String) = SavedStateHandle(
+        mapOf("routineId" to "new", "initialExerciseId" to exerciseId),
+    )
+
+    private fun copyHandle(handle: SavedStateHandle) = SavedStateHandle(
+        handle.keys().associateWith { handle.get<Any?>(it) },
+    )
+
+    private class InitialAddFaultDao(
+        private val delegate: RoutineDao,
+        private val gate: FailureGate,
+        private val commitBeforeFailure: Boolean = false,
+    ) : RoutineDao by delegate {
+        override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
+            if (gate.shouldFail) {
+                if (commitBeforeFailure) delegate.upsertRoutineExercise(item)
+                error("synthetic initial add failure")
+            }
+            delegate.upsertRoutineExercise(item)
+        }
+    }
+
     /**
      * A copy of the graph whose routine reads throw on demand, so the editor's hydration failure
      * branch can be exercised. Only [RoutineDao.getById] — the opening read — is made to fail;
@@ -1731,9 +1905,13 @@ class RoutineEditorViewModelTest {
     }
 
     /** Every routine it is asked to create fails to write. */
-    private class FailingCreateDao(private val delegate: RoutineDao) : RoutineDao by delegate {
+    private class FailingCreateDao(
+        private val delegate: RoutineDao,
+        private val gate: FailureGate = FailureGate(shouldFail = true),
+    ) : RoutineDao by delegate {
         override suspend fun upsertRoutine(routine: RoutineEntity) {
-            throw IllegalStateException("disk full")
+            if (gate.shouldFail) throw IllegalStateException("disk full")
+            delegate.upsertRoutine(routine)
         }
     }
 

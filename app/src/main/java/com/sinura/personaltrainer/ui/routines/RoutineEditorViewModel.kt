@@ -40,8 +40,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -146,13 +148,26 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     private val incomingId: String? = RoutineEditorPolicy.incomingId(
         savedStateHandle.get<String>("routineId"),
     )
+    private val initialExerciseId: String? = if (incomingId == null) {
+        savedStateHandle.get<String>("initialExerciseId")?.takeIf { it.isNotBlank() }
+    } else {
+        null
+    }
+    val startsWithSelectedExercise: Boolean get() = initialExerciseId != null
+    var initialExerciseUnavailable: Boolean = false
+        private set
     private var createdThisSession: Boolean =
         savedStateHandle.get<Boolean>(KEY_CREATED) ?: (incomingId == null)
 
     private val routineId = MutableStateFlow(
         savedStateHandle.get<String>(KEY_ID) ?: incomingId,
     )
-    private val load = MutableStateFlow(RoutineEditorLoad(opensExisting = incomingId != null))
+    private val load = MutableStateFlow(
+        RoutineEditorLoad(
+            opensExisting = incomingId != null,
+            hydrated = incomingId == null && initialExerciseId == null,
+        ),
+    )
     private val missing: Boolean get() = load.value.phase == EditorPhase.MISSING
     private val name = MutableStateFlow(savedStateHandle.get<String>(KEY_NAME).orEmpty())
     private val notes = MutableStateFlow(savedStateHandle.get<String>(KEY_NOTES).orEmpty())
@@ -227,10 +242,14 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      */
     private fun hydrate() {
         hydrateJob?.cancel()
+        // Register the bounded write before hydration can suspend or Back can run. Back joins
+        // this job, never the long-lived routine collector, before checking for an empty stub.
+        val initialWrite = prepareInitialExercise()
         hydrateJob = viewModelScope.launch {
             // getById and the collector below both touch Room; an uncaught failure
             // here would kill the collector and leave the editor frozen with no clue why.
             runCatchingCancellable {
+                initialWrite?.await()
                 val id = incomingId ?: routineId.value
                 val existing = id?.let { container.routineRepository.getById(it) }
                 if (existing != null) {
@@ -245,16 +264,54 @@ class RoutineEditorViewModel @JvmOverloads constructor(
             }.onFailure {
                 // Before this, the read simply stopped and `hydrated` stayed false, so the editor
                 // sat on ScreenLoading forever. FAILED turns that dead spinner into a retriable
-                // error state — the new-routine path never reaches here, so it is untouched.
+                // error state. Preparing a new routine from Library uses the same recovery.
                 AppLog.e(TAG, "Loading the routine editor failed", it)
                 applyLoad { it.markFailed() }
             }
         }
     }
 
+    private fun prepareInitialExercise(): Deferred<Unit>? {
+        val exerciseId = initialExerciseId ?: return null
+        if (savedStateHandle.get<Boolean>(KEY_INITIAL_EXERCISE_ADDED) == true) return null
+        val started = error.mark()
+        initialExerciseUnavailable = false
+        return registerWrite(viewModelScope.async(start = CoroutineStart.LAZY) {
+            pickWrites.withLock {
+                // Validate first: a stale Library selection must not create an empty routine.
+                val exercise = container.exerciseRepository.getById(exerciseId) ?: run {
+                    initialExerciseUnavailable = true
+                    error("The selected lift is no longer available")
+                }
+                val id = checkNotNull(ensureRoutineId()) { "Could not prepare the selected routine" }
+                // A previous write can have landed before state restoration or a read failure.
+                // Read Room, not its last UI emission, before deciding whether anything is owed.
+                if (storedRow(id, exerciseId) == null) {
+                    val defaults = AddDefaults.forExercise(
+                        exercise,
+                        goal = container.preferencesRepository.coachPreferences.first().goal,
+                    )
+                    container.routineRepository.addExercise(
+                        routineId = id,
+                        exercise = exercise,
+                        targetSets = defaults.sets,
+                        targetReps = defaults.reps,
+                        targetWeightKg = null,
+                        restSeconds = defaults.restSeconds,
+                        targetSeconds = defaults.seconds,
+                        targetSecondsMax = defaults.secondsMax,
+                    )
+                }
+                // Once consumed, removing this lift in the editor must survive recreation too.
+                savedStateHandle[KEY_INITIAL_EXERCISE_ADDED] = true
+                error.clearFrom(source = ERR_ROUTINE, before = started)
+            }
+        })
+    }
+
     /** Re-read after a failed hydration. No-op unless the editor is actually in FAILED. */
     fun retryHydration() {
-        if (load.value.phase != EditorPhase.FAILED) return
+        if (leaving || load.value.phase != EditorPhase.FAILED) return
         error.clearFrom(source = ERR_LOAD)
         applyLoad { it.onRetry() }
         hydrate()
@@ -335,7 +392,7 @@ class RoutineEditorViewModel @JvmOverloads constructor(
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = RoutineEditorUiState(isLoading = incomingId != null),
+        initialValue = RoutineEditorUiState(isLoading = incomingId != null || startsWithSelectedExercise),
     )
 
     fun requestSwap(itemId: String) {
@@ -1337,7 +1394,10 @@ class RoutineEditorViewModel @JvmOverloads constructor(
      * is already scheduled on the dispatcher.
      */
     private fun launchWrite(block: suspend () -> Unit): Job {
-        val job = viewModelScope.launch(start = CoroutineStart.LAZY) { block() }
+        return registerWrite(viewModelScope.launch(start = CoroutineStart.LAZY) { block() })
+    }
+
+    private fun <T : Job> registerWrite(job: T): T {
         inFlight.add(job)
         job.invokeOnCompletion { inFlight.remove(job) }
         job.start()
@@ -1487,5 +1547,6 @@ class RoutineEditorViewModel @JvmOverloads constructor(
         const val KEY_NAME = "editor.name"
         const val KEY_NOTES = "editor.notes"
         const val KEY_CREATED = "editor.createdThisSession"
+        const val KEY_INITIAL_EXERCISE_ADDED = "editor.initialExerciseAdded"
     }
 }

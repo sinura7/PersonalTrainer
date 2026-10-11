@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -107,16 +109,27 @@ fun RoutineEditorScreen(
             return@Scaffold
         }
         if (state.failed) {
-            // The opening read threw. Retry re-runs hydration; the header's back arrow is the way
-            // out — the same shape History uses for an unreadable list.
+            val selectedLiftMissing = viewModel.initialExerciseUnavailable
             EmptyState(
                 scene = EmptyScene.RETRY,
-                title = DataHealthCopy.ROUTINE_EDITOR_TITLE,
-                body = DataHealthCopy.ROUTINE_EDITOR_BODY,
-                actionLabel = DataHealthCopy.RETRY,
-                onAction = { viewModel.retryHydration() },
+                title = when {
+                    selectedLiftMissing -> RoutineSaveCopy.SELECTED_LIFT_MISSING_TITLE
+                    viewModel.startsWithSelectedExercise -> RoutineSaveCopy.PREPARE_FAILED_TITLE
+                    else -> DataHealthCopy.ROUTINE_EDITOR_TITLE
+                },
+                body = when {
+                    selectedLiftMissing -> RoutineSaveCopy.SELECTED_LIFT_MISSING_BODY
+                    viewModel.startsWithSelectedExercise -> RoutineSaveCopy.PREPARE_FAILED_BODY
+                    else -> DataHealthCopy.ROUTINE_EDITOR_BODY
+                },
+                actionLabel = if (selectedLiftMissing) RoutineSaveCopy.BACK_TO_LIBRARY else DataHealthCopy.RETRY,
+                onAction = {
+                    if (selectedLiftMissing) viewModel.leave() else viewModel.retryHydration()
+                },
                 modifier = Modifier
                     .padding(padding)
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
                     .padding(Metrics.gutter),
             )
             return@Scaffold

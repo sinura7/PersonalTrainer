@@ -75,7 +75,7 @@ import com.sinura.personaltrainer.ui.theme.Volt
 @Composable
 fun ExerciseLibraryScreen(
     onBack: () -> Unit,
-    onCreateRoutine: () -> Unit,
+    onCreateRoutine: (String) -> Unit,
     onOpenExercise: (String) -> Unit,
     initialMuscle: CanonicalMuscle? = null,
     viewModel: ExerciseLibraryViewModel = viewModel(),
@@ -377,7 +377,7 @@ fun ExerciseLibraryScreen(
             onDismiss = viewModel::dismissAddToRoutine,
             onCreateRoutine = {
                 viewModel.dismissAddToRoutine()
-                onCreateRoutine()
+                onCreateRoutine(exercise.id)
             },
         )
     }
