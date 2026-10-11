@@ -8,7 +8,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.DialogProperties
 import com.sinura.personaltrainer.domain.LiveBarCopy
 import com.sinura.personaltrainer.domain.LiveBarKind
 import com.sinura.personaltrainer.ui.theme.InstrumentType
@@ -35,17 +39,28 @@ fun ResumeOrDiscardDialog(
     onDismiss: () -> Unit,
     discardEnabled: Boolean = true,
     recoveryContent: (@Composable () -> Unit)? = null,
+    title: String = "A workout is already in progress",
+    body: String = "Pick one — this one, or the session you were in the middle of.",
+    discardLabel: String = "Discard it and start this",
+    resumeVisible: Boolean = true,
+    dismissEnabled: Boolean = true,
+    canDismiss: () -> Boolean = { dismissEnabled },
+    canResume: () -> Boolean = { resumeVisible && dismissEnabled },
+    actionKey: Any? = null,
 ) {
+    val mayDismiss by rememberUpdatedState(canDismiss)
+    val mayResume by rememberUpdatedState(canResume)
     AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("A workout is already in progress", style = InstrumentType.title) },
+        onDismissRequest = { if (mayDismiss()) onDismiss() },
+        properties = DialogProperties(dismissOnBackPress = dismissEnabled, dismissOnClickOutside = dismissEnabled),
+        title = { Text(title, style = InstrumentType.title) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space3),
             ) {
                 Text(
-                    "Pick one — this one, or the session you were in the middle of.",
+                    body,
                     style = InstrumentType.body,
                     color = TextSecondary,
                 )
@@ -57,16 +72,23 @@ fun ResumeOrDiscardDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                PrimaryGymButton(
-                    text = LiveBarCopy.resumeLabel(LiveBarKind.WORKOUT),
-                    onClick = onResume,
-                )
-                SecondaryGymButton(
-                    text = "Discard it and start this",
-                    onClick = onDiscardAndStart,
-                    enabled = discardEnabled,
-                    contentColor = Danger,
-                )
+                if (resumeVisible) {
+                    key(actionKey) {
+                        PrimaryGymButton(
+                            text = LiveBarCopy.resumeLabel(LiveBarKind.WORKOUT),
+                            onClick = { if (mayResume()) onResume() },
+                            enabled = dismissEnabled,
+                        )
+                    }
+                }
+                key(actionKey) {
+                    SecondaryGymButton(
+                        text = discardLabel,
+                        onClick = onDiscardAndStart,
+                        enabled = discardEnabled,
+                        contentColor = Danger,
+                    )
+                }
             }
         },
     )

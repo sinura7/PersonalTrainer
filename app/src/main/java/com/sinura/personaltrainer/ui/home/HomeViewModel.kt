@@ -29,6 +29,7 @@ import com.sinura.personaltrainer.domain.Weekday
 import com.sinura.personaltrainer.domain.BodyweightCheckIn
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.ReminderCopy
+import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
 import com.sinura.personaltrainer.domain.TrainingRecommendation
@@ -71,6 +72,18 @@ import kotlinx.coroutines.withContext
 
 enum class HomeReadState { WAITING, CURRENT, UNAVAILABLE, STALE }
 
+data class HomeStartState(
+    val pending: Boolean = false,
+    val error: String? = null,
+    val canRetry: Boolean = false,
+    /** The original authored occurrence, even after its leftover has moved onto today. */
+    val occurrenceId: String? = null,
+    /** Only an acknowledged discard makes the old workout unavailable to Resume. */
+    val discardedOriginal: Boolean = false,
+    /** A rendered action belongs to this admitted attempt, including its failed result. */
+    val attemptId: Long = 0L,
+)
+
 data class HomeUiState(
     val isLoading: Boolean = true,
     val inProgress: WorkoutSession? = null,
@@ -106,10 +119,11 @@ data class HomeUiState(
     val bodyweightSavePending: Boolean = false,
     val bodyweightSaveError: String? = null,
     val bodyweightDraftKg: Double? = null,
+    val startPending: Boolean = false,
 ) {
     /** True for a live workout or live cardio — Home's filled Volt hides for both. */
     val sessionLive: Boolean get() = inProgress != null || liveActivity != null
-    val mutationEnabled: Boolean get() = readState == HomeReadState.CURRENT && !retryPending
+    val mutationEnabled: Boolean get() = readState == HomeReadState.CURRENT && !retryPending && !startPending
 }
 
 /** A leftover Skip, held only long enough for the undo host to offer it back. */
@@ -126,6 +140,12 @@ class HomeViewModel @JvmOverloads constructor(
 ) : AppViewModel(application, container) {
     private val actionError = MutableStateFlow<String?>(null)
     private val bodyweightSave = MutableStateFlow(BodyweightSave())
+    private val _startState = MutableStateFlow(HomeStartState())
+    val startState: StateFlow<HomeStartState> = _startState.asStateFlow()
+    private var startAttemptSerial = 0L
+    private var startCommand: StartCommand? = null
+    private var blockedStartCommand: StartCommand? = null
+    private val resolvedOccurrenceIds = mutableMapOf<String, String>()
     private val _bodyweightSaved = MutableStateFlow(false)
     val bodyweightSaved: StateFlow<Boolean> = _bodyweightSaved.asStateFlow()
     private val undoableSkip = MutableStateFlow<SkippedDayOffer?>(null)
@@ -141,12 +161,17 @@ class HomeViewModel @JvmOverloads constructor(
     private var healthRevision = 0L
     private val terminalReminderRequests = mutableSetOf<String>()
 
-    val uiState: StateFlow<HomeUiState> = combine(board, actionError, bodyweightSave) { state, error, weight ->
+    val uiState: StateFlow<HomeUiState> = combine(
+        board,
+        actionError,
+        combine(bodyweightSave, _startState) { weight, start -> weight to start },
+    ) { state, error, fields ->
         state.copy(
             error = error,
-            bodyweightSavePending = weight.pending,
-            bodyweightSaveError = weight.error,
-            bodyweightDraftKg = weight.kg,
+            bodyweightSavePending = fields.first.pending,
+            bodyweightSaveError = fields.first.error,
+            bodyweightDraftKg = fields.first.kg,
+            startPending = fields.second.pending,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, HomeUiState())
 
@@ -236,7 +261,7 @@ class HomeViewModel @JvmOverloads constructor(
     }
 
     private fun canMutate(): Boolean =
-        authoritativeReadState == HomeReadState.CURRENT && !authoritativeRetryPending
+        authoritativeReadState == HomeReadState.CURRENT && !authoritativeRetryPending && !_startState.value.pending
 
     private fun requiredReads(retry: Boolean): Flow<DataHealth<HomeInputs>> {
         val live = combineHealth(
@@ -352,6 +377,7 @@ class HomeViewModel @JvmOverloads constructor(
 
     fun onSessionNavigationHandled() {
         _navigateToSession.value = null
+        releaseStartAfterNavigation()
     }
 
     /**
@@ -372,14 +398,17 @@ class HomeViewModel @JvmOverloads constructor(
 
     fun onCardioNavigationHandled() {
         _navigateToCardio.value = null
+        releaseStartAfterNavigation()
     }
 
     fun onComposerNavigationHandled() {
         _navigateToComposer.value = null
+        releaseStartAfterNavigation()
     }
 
     fun onEditorNavigationHandled() {
         _navigateToEditor.value = null
+        releaseStartAfterNavigation()
     }
 
     private val _reviewOccurrenceId = MutableStateFlow<String?>(null)
@@ -427,14 +456,166 @@ class HomeViewModel @JvmOverloads constructor(
         }
     }
 
+    /** Presentation may lag behind this owner; these queries also protect queued callbacks. */
+    fun canDismissStart(): Boolean = !_startState.value.pending && !hasQueuedStartNavigation()
+
+    fun canEditStartChoice(): Boolean = canDismissStart() && _blockedByInProgress.value == null
+
+    fun canResumeBlockedStart(): Boolean =
+        canDismissStart() && !_startState.value.discardedOriginal && _blockedByInProgress.value != null
+
+    /** An explicit leave abandons this attempt, never a write still in progress. */
+    fun dismissStart(expectedAttemptId: Long? = null): Boolean {
+        if (!matchesStartAttempt(expectedAttemptId = expectedAttemptId) || !canDismissStart()) return false
+        _blockedByInProgress.value = null
+        clearStartAttempt()
+        return true
+    }
+
+    /** Retry owns the same command and any already acknowledged relocation or discard. */
+    fun retryStart(expectedAttemptId: Long? = null): Boolean {
+        if (!matchesStartAttempt(expectedAttemptId = expectedAttemptId)) return false
+        val command = startCommand ?: return false
+        if (!_startState.value.canRetry || _startState.value.error == null) return false
+        return admitStart(
+            command = command,
+            allowBlocked = command is StartCommand.Discard,
+            explicitRetry = true,
+        )
+    }
+
+    private fun hasQueuedStartNavigation(): Boolean =
+        _navigateToSession.value != null || _navigateToCardio.value != null ||
+            _navigateToComposer.value != null || _navigateToEditor.value != null
+
+    private fun matchesStartAttempt(expectedAttemptId: Long?): Boolean =
+        expectedAttemptId == null || expectedAttemptId == _startState.value.attemptId
+
+    private fun matchesBlockedStart(expectedBlocked: BlockedStart?, expectedAttemptId: Long?): Boolean =
+        matchesStartAttempt(expectedAttemptId = expectedAttemptId) &&
+            (expectedBlocked == null || expectedBlocked == _blockedByInProgress.value)
+
+    private fun clearStartAttempt() {
+        val ownedError = _startState.value.error
+        if (ownedError != null && actionError.value == ownedError) actionError.value = null
+        _startState.value.occurrenceId?.let { resolvedOccurrenceIds.remove(it) }
+        startCommand = null
+        blockedStartCommand = null
+        _startState.value = HomeStartState(attemptId = _startState.value.attemptId)
+    }
+
+    private fun releaseStartAfterNavigation() {
+        if (canDismissStart() && _blockedByInProgress.value == null && _startState.value.error == null) {
+            clearStartAttempt()
+        }
+    }
+
+    private fun admitStart(
+        command: StartCommand,
+        allowBlocked: Boolean = false,
+        explicitRetry: Boolean = false,
+    ): Boolean {
+        if (!canMutate() || hasQueuedStartNavigation()) return false
+        val blocked = _blockedByInProgress.value
+        if (blocked != null && !allowBlocked) return false
+        if (allowBlocked && (command !is StartCommand.Discard || blocked != command.blocked)) return false
+        val retained = startCommand
+        if (_startState.value.error != null) {
+            // A stale Start callback cannot turn an immediate failure into an implicit retry.
+            if (!explicitRetry || retained != command || !_startState.value.canRetry) return false
+        }
+        val ownedError = _startState.value.error
+        if (ownedError != null && actionError.value == ownedError) actionError.value = null
+        startCommand = command
+        // Reserve before launch: a second callback from the same rendered frame is refused.
+        _startState.value = HomeStartState(
+            pending = true,
+            occurrenceId = command.originalOccurrenceId,
+            discardedOriginal = (command as? StartCommand.Discard)?.discarded == true,
+            attemptId = ++startAttemptSerial,
+        )
+        viewModelScope.launch {
+            runCatchingCancellable { executeStart(command = command) }
+                .onFailure { thrown ->
+                    AppLog.w(TAG, "Starting from Home failed", thrown)
+                    failStart(message = ReminderCopy.START_FAILED)
+                }
+            _startState.value = _startState.value.copy(pending = false)
+            releaseStartAfterNavigation()
+        }
+        return true
+    }
+
+    private fun failStart(message: String, canRetry: Boolean = true) {
+        // The repository's unavailable bucket covers both reads and writes during a start.
+        // Home must not diagnose an insertion failure as a failed live-workout read.
+        val startError = if (message == DataHealthCopy.START_UNAVAILABLE) ReminderCopy.START_FAILED else message
+        actionError.value = startError
+        _startState.value = _startState.value.copy(error = startError, canRetry = canRetry)
+    }
+
+    private fun markStartBlocked(blocked: BlockedStart) {
+        val requested = (startCommand as? StartCommand.Discard)?.requested ?: startCommand
+        blockedStartCommand = requested
+        startCommand = requested
+        _startState.value = _startState.value.copy(error = null, canRetry = false, discardedOriginal = false)
+        _blockedByInProgress.value = blocked
+    }
+
+    private fun clearBlockedAfterOpen() {
+        _blockedByInProgress.value = null
+        blockedStartCommand = null
+        actionError.value = null
+    }
+
+    private suspend fun executeStart(command: StartCommand) {
+        when (command) {
+            StartCommand.Free -> openWorkout(
+                outcome = container.workoutRepository.startFreeWorkoutSafely(),
+                blockedDay = freeDay(),
+            )
+            is StartCommand.Routine -> startRoutineCommand(routineId = command.routineId)
+            is StartCommand.Cardio -> startCardioCommand(type = command.type)
+            is StartCommand.Aux -> startAuxCommand(packId = command.packId)
+            is StartCommand.Suggested -> start(
+                day = command.day,
+                occurrenceId = PendingOccurrence.plannedOccurrenceId(deps = container, day = command.day),
+            )
+            is StartCommand.Occurrence -> startOccurrenceCommand(command = command)
+            is StartCommand.Discard -> discardAndStartCommand(command = command)
+        }
+    }
+
+    private suspend fun discardAndStartCommand(command: StartCommand.Discard) {
+        if (!command.discarded) {
+            val planned = command.requested as? StartCommand.Occurrence
+            if (planned != null && plannedStartId(
+                    occurrenceId = planned.occurrenceId,
+                    reminder = planned.deliveryId?.let { ReminderTap(occurrenceId = planned.occurrenceId, deliveryId = it) },
+                ) == null
+            ) return
+            when (val result = container.discardWorkout(sessionId = command.blocked.sessionId)) {
+                DiscardOutcome.Discarded -> {
+                    // Only the acknowledgement advances the phase. A failed replacement start
+                    // retries that start without deleting the old workout again.
+                    startCommand = command.copy(discarded = true)
+                    _startState.value = _startState.value.copy(discardedOriginal = true)
+                    PendingOccurrence.forgetIfSession(deps = container, sessionId = command.blocked.sessionId)
+                }
+                is DiscardOutcome.Failed -> {
+                    failStart(message = result.message)
+                    return
+                }
+            }
+        }
+        executeStart(command = command.requested)
+    }
+
     fun startSuggestedDay(day: SuggestedTrainingDay): Boolean {
         // A confirmation owns the day it showed, even when selection or the plan changes.
         // Consult the completed board directly: the presentation flow may still be behind it.
         if (!canMutate() || board.value.weekPlan?.dayOn(day.epochDay) != day) return false
-        viewModelScope.launch {
-            start(day, PendingOccurrence.plannedOccurrenceId(container, day))
-        }
-        return true
+        return admitStart(command = StartCommand.Suggested(day = day))
     }
 
     /**
@@ -443,86 +624,85 @@ class HomeViewModel @JvmOverloads constructor(
      * row DONE.
      */
     fun startFreeWorkout(): Boolean {
-        if (!canMutate()) return false
-        viewModelScope.launch {
-            openWorkout(container.workoutRepository.startFreeWorkoutSafely(), freeDay())
-        }
-        return true
+        return admitStart(command = StartCommand.Free)
     }
 
     fun startRoutine(routineId: String): Boolean {
-        if (!canMutate()) return false
-        viewModelScope.launch {
-            val routine = runCatchingCancellable { container.routineRepository.getById(routineId) }
-                .getOrElse { thrown ->
-                    AppLog.w(TAG, "Reading the routine to start failed", thrown)
-                    actionError.value = ReminderCopy.START_FAILED
-                    return@launch
-                }
-            if (routine == null) {
-                actionError.value = "That routine is no longer available."
-                return@launch
+        return admitStart(command = StartCommand.Routine(routineId = routineId))
+    }
+
+    private suspend fun startRoutineCommand(routineId: String) {
+        val routine = runCatchingCancellable { container.routineRepository.getById(id = routineId) }
+            .getOrElse { thrown ->
+                AppLog.w(TAG, "Reading the routine to start failed", thrown)
+                failStart(message = ReminderCopy.START_FAILED)
+                return
             }
-            if (routine.exercises.isEmpty()) {
-                actionError.value = SessionOrderCopy.NEED_A_LIFT
-                return@launch
-            }
-            openWorkout(
-                container.workoutRepository.startRoutineSafely(routine),
-                freeDay(title = routine.name, routineId = routine.id),
-            )
+        if (routine == null) {
+            failStart(message = "That routine is no longer available.", canRetry = false)
+            return
         }
-        return true
+        if (routine.exercises.isEmpty()) {
+            failStart(message = SessionOrderCopy.NEED_A_LIFT, canRetry = false)
+            return
+        }
+        openWorkout(
+            outcome = container.workoutRepository.startRoutineSafely(routine = routine),
+            blockedDay = freeDay(title = routine.name, routineId = routine.id),
+        )
     }
 
     fun startCardio(type: CardioType): Boolean {
-        if (!canMutate()) return false
-        viewModelScope.launch {
-            when (
-                val outcome = container.startLiveCardio(
-                    type = type,
-                    now = time.captureNow(),
-                    title = CardioCopy.name(type),
-                )
-            ) {
-                is StartCardioOutcome.Open -> {
-                    PendingOccurrence.forget(container)
-                    actionError.value = null
-                    _navigateToCardio.value = outcome.sessionId
-                }
-                is StartCardioOutcome.Rejected ->
-                    actionError.value = outcome.reason
+        return admitStart(command = StartCommand.Cardio(type = type))
+    }
+
+    private suspend fun startCardioCommand(type: CardioType) {
+        when (
+            val outcome = container.startLiveCardio(
+                type = type,
+                now = time.captureNow(),
+                title = CardioCopy.name(type = type),
+            )
+        ) {
+            is StartCardioOutcome.Open -> {
+                PendingOccurrence.forget(deps = container)
+                clearBlockedAfterOpen()
+                _navigateToCardio.value = outcome.sessionId
             }
+            is StartCardioOutcome.Rejected -> failStart(message = outcome.reason)
         }
-        return true
     }
 
     fun startAux(packId: String): Boolean {
-        if (!canMutate()) return false
-        viewModelScope.launch {
-            val pack = AuxiliaryPacks.byId(packId) ?: return@launch
-            val routine = runCatchingCancellable {
-                val routineId = AuxiliaryBlocks.ensureRoutine(
-                    pack,
-                    container.routineRepository,
-                    container.exerciseRepository,
-                )
-                container.routineRepository.getById(routineId)
-            }.getOrElse { thrown ->
-                AppLog.w(TAG, "Preparing the extra to start failed", thrown)
-                actionError.value = ReminderCopy.START_FAILED
-                return@launch
-            }
-            if (routine == null || routine.exercises.isEmpty()) {
-                actionError.value = SessionOrderCopy.NEED_A_LIFT
-                return@launch
-            }
-            openWorkout(
-                container.workoutRepository.startRoutineSafely(routine),
-                freeDay(title = pack.title, routineId = routine.id),
-            )
+        return admitStart(command = StartCommand.Aux(packId = packId))
+    }
+
+    private suspend fun startAuxCommand(packId: String) {
+        val pack = AuxiliaryPacks.byId(id = packId)
+        if (pack == null) {
+            failStart(message = "That extra is no longer available.", canRetry = false)
+            return
         }
-        return true
+        val routine = runCatchingCancellable {
+            val routineId = AuxiliaryBlocks.ensureRoutine(
+                pack = pack,
+                routines = container.routineRepository,
+                exercises = container.exerciseRepository,
+            )
+            container.routineRepository.getById(id = routineId)
+        }.getOrElse { thrown ->
+            AppLog.w(TAG, "Preparing the extra to start failed", thrown)
+            failStart(message = ReminderCopy.START_FAILED)
+            return
+        }
+        if (routine == null || routine.exercises.isEmpty()) {
+            failStart(message = SessionOrderCopy.NEED_A_LIFT, canRetry = false)
+            return
+        }
+        openWorkout(
+            outcome = container.workoutRepository.startRoutineSafely(routine = routine),
+            blockedDay = freeDay(title = pack.title, routineId = routine.id),
+        )
     }
 
     private suspend fun openWorkout(
@@ -531,17 +711,15 @@ class HomeViewModel @JvmOverloads constructor(
     ) {
         when (outcome) {
             is StartSessionOutcome.Started -> {
-                PendingOccurrence.forget(container)
-                actionError.value = null
+                PendingOccurrence.forget(deps = container)
+                clearBlockedAfterOpen()
                 _navigateToSession.value = outcome.session.id
             }
             is StartSessionOutcome.Blocked ->
-                _blockedByInProgress.value = BlockedStart(
-                    day = blockedDay,
-                    sessionId = outcome.inProgress.id,
+                markStartBlocked(
+                    blocked = BlockedStart(day = blockedDay, sessionId = outcome.inProgress.id),
                 )
-            is StartSessionOutcome.Unavailable ->
-                actionError.value = outcome.message
+            is StartSessionOutcome.Unavailable -> failStart(message = outcome.message)
         }
     }
 
@@ -589,51 +767,52 @@ class HomeViewModel @JvmOverloads constructor(
      * leftover from an earlier day: moving it to today already cancels its reminders.
      */
     fun startOccurrence(occurrenceId: String, deliveryId: String? = null): Boolean {
-        if (!canMutate()) return false
-        val reminder = deliveryId?.let { ReminderTap(occurrenceId = occurrenceId, deliveryId = it) }
-        viewModelScope.launch {
-            // Its reads used to be unguarded, so a failed one closed the app (audit UI-12's
-            // follow-up); the start itself already fails closed.
-            val startId = runCatchingCancellable { plannedStartId(occurrenceId, reminder) }
-                .getOrElse { thrown ->
-                    AppLog.w(TAG, "Reading the planned session to start failed", thrown)
-                    actionError.value = ReminderCopy.START_FAILED
-                    return@launch
-                } ?: return@launch
-            when (val outcome = container.startOccurrence(startId)) {
-                is StartOccurrenceOutcome.OpenWorkout -> {
-                    PendingOccurrence.bindForSession(
-                        container,
-                        outcome.occurrenceId,
-                        outcome.sessionId,
-                    )
-                    markReminderStarted(reminder)
-                    actionError.value = null
-                    _navigateToSession.value = outcome.sessionId
-                }
-                is StartOccurrenceOutcome.OpenCardio -> {
-                    PendingOccurrence.forget(container)
-                    markReminderStarted(reminder)
-                    actionError.value = null
-                    _navigateToCardio.value = outcome.sessionId
-                }
-                is StartOccurrenceOutcome.OpenComposer -> {
-                    PendingOccurrence.bind(container, outcome.occurrenceId)
-                    markReminderStarted(reminder)
-                    _navigateToComposer.value = "mixed"
-                }
-                is StartOccurrenceOutcome.Blocked ->
-                    _blockedByInProgress.value = BlockedStart(
-                        day = outcome.day,
-                        sessionId = outcome.inProgressSessionId,
-                        occurrenceId = outcome.occurrenceId,
-                        reminder = reminder,
-                    )
-                is StartOccurrenceOutcome.Failed -> actionError.value = outcome.message
-                StartOccurrenceOutcome.Missing -> reminderGone(reminder)
+        return admitStart(command = StartCommand.Occurrence(occurrenceId = occurrenceId, deliveryId = deliveryId))
+    }
+
+    private suspend fun startOccurrenceCommand(command: StartCommand.Occurrence) {
+        val reminder = command.deliveryId?.let { ReminderTap(occurrenceId = command.occurrenceId, deliveryId = it) }
+        val startId = runCatchingCancellable {
+            plannedStartId(occurrenceId = command.occurrenceId, reminder = reminder)
+        }.getOrElse { thrown ->
+            AppLog.w(TAG, "Reading the planned session to start failed", thrown)
+            failStart(message = ReminderCopy.START_FAILED)
+            return
+        } ?: return
+        when (val outcome = container.startOccurrence(occurrenceId = startId)) {
+            is StartOccurrenceOutcome.OpenWorkout -> {
+                PendingOccurrence.bindForSession(
+                    deps = container,
+                    occurrenceId = outcome.occurrenceId,
+                    sessionId = outcome.sessionId,
+                )
+                markReminderStarted(reminder = reminder)
+                clearBlockedAfterOpen()
+                _navigateToSession.value = outcome.sessionId
             }
+            is StartOccurrenceOutcome.OpenCardio -> {
+                PendingOccurrence.forget(deps = container)
+                markReminderStarted(reminder = reminder)
+                clearBlockedAfterOpen()
+                _navigateToCardio.value = outcome.sessionId
+            }
+            is StartOccurrenceOutcome.OpenComposer -> {
+                PendingOccurrence.bind(deps = container, occurrenceId = outcome.occurrenceId)
+                markReminderStarted(reminder = reminder)
+                clearBlockedAfterOpen()
+                _navigateToComposer.value = "mixed"
+            }
+            is StartOccurrenceOutcome.Blocked -> markStartBlocked(
+                blocked = BlockedStart(
+                    day = outcome.day,
+                    sessionId = outcome.inProgressSessionId,
+                    occurrenceId = outcome.occurrenceId,
+                    reminder = reminder,
+                ),
+            )
+            is StartOccurrenceOutcome.Failed -> failStart(message = outcome.message)
+            StartOccurrenceOutcome.Missing -> reminderGone(reminder = reminder)
         }
-        return true
     }
 
     /**
@@ -651,7 +830,13 @@ class HomeViewModel @JvmOverloads constructor(
         if (authoritativeReadState == HomeReadState.WAITING) return false
         terminalReminderRequests += token
         if (!canMutate()) return true
-        startOccurrence(occurrenceId, deliveryId)
+        val requested = StartCommand.Occurrence(occurrenceId = occurrenceId, deliveryId = deliveryId)
+        val retained = (startCommand as? StartCommand.Discard)?.requested ?: startCommand
+        if (_startState.value.error != null && retained == requested) {
+            retryStart()
+        } else {
+            startOccurrence(occurrenceId = occurrenceId, deliveryId = deliveryId)
+        }
         return true
     }
 
@@ -660,22 +845,43 @@ class HomeViewModel @JvmOverloads constructor(
      * Null when there is nothing to start, already said.
      */
     private suspend fun plannedStartId(occurrenceId: String, reminder: ReminderTap?): String? {
-        val occurrence = container.plannerRepository.getOccurrence(occurrenceId)
-        if (occurrence == null) {
-            reminderGone(reminder)
+        val resolvedId = resolvedOccurrenceIds[occurrenceId] ?: occurrenceId
+        val occurrence = container.plannerRepository.getOccurrence(id = resolvedId)
+        val today = todayEpochDay()
+        if (occurrence == null || !DailyAgenda.canOpenStart(
+                item = AgendaItem(occurrence = occurrence, rule = null, routineName = null),
+                todayEpochDay = today,
+            )
+        ) {
+            reminderGone(reminder = reminder)
             return null
         }
-        val today = todayEpochDay()
-        if (!MoveToToday.isLeftover(occurrence, today)) return occurrenceId
-        return when (val moved = container.plannerRepository.moveOccurrenceToDay(occurrenceId, today)) {
-            is MoveToToday.Outcome.Relocate -> moved.created.id
-            is MoveToToday.Outcome.AlreadyThere -> moved.occurrence.id
+        // A relocation acknowledged on another civil day cannot now be bound as today's
+        // workout. Leave it available on the board for an explicit new Do it today choice.
+        if (resolvedId != occurrenceId && occurrence.localEpochDay != today) {
+            failStart(
+                message = "The day has changed. Close this start and choose the workout again.",
+                canRetry = false,
+            )
+            return null
+        }
+        // A deliberate retry uses the copy whose relocation already committed. Without
+        // that retained identity, an old MOVED row fails the predicate above.
+        if (resolvedId != occurrenceId || !MoveToToday.isLeftover(occurrence = occurrence, todayEpochDay = today)) {
+            return resolvedId
+        }
+        return when (val moved = container.plannerRepository.moveOccurrenceToDay(
+            occurrenceId = occurrenceId,
+            todayEpochDay = today,
+        )) {
+            is MoveToToday.Outcome.Relocate -> moved.created.id.also { resolvedOccurrenceIds[occurrenceId] = it }
+            is MoveToToday.Outcome.AlreadyThere -> moved.occurrence.id.also { resolvedOccurrenceIds[occurrenceId] = it }
             is MoveToToday.Outcome.Blocked -> {
-                actionError.value = moved.message
+                failStart(message = moved.message)
                 null
             }
             null -> {
-                reminderGone(reminder)
+                reminderGone(reminder = reminder)
                 null
             }
         }
@@ -686,8 +892,8 @@ class HomeViewModel @JvmOverloads constructor(
      * never open anything, but not marked started.
      */
     private fun reminderGone(reminder: ReminderTap?) {
-        reminder?.let { ReminderNotifications.cancel(getApplication(), it.occurrenceId) }
-        actionError.value = ReminderCopy.GONE
+        reminder?.let { ReminderNotifications.cancel(context = getApplication(), occurrenceId = it.occurrenceId) }
+        failStart(message = ReminderCopy.GONE, canRetry = false)
     }
 
     /** Starts [day]. The [reminder] that asked for it is used up only if the session opens. */
@@ -696,66 +902,77 @@ class HomeViewModel @JvmOverloads constructor(
         occurrenceId: String? = null,
         reminder: ReminderTap? = null,
     ) {
-        when (val outcome = container.startTrainingDay(day)) {
+        when (val outcome = container.startTrainingDay(day = day)) {
             is StartDayOutcome.Open -> {
                 // The binding is armed only now, for exactly this session. Arming
                 // before the outcome let a Blocked start leave the intent live, so
                 // finishing an unrelated session marked the wrong plan row DONE.
                 if (occurrenceId != null) {
-                    PendingOccurrence.bindForSession(container, occurrenceId, outcome.sessionId)
+                    PendingOccurrence.bindForSession(deps = container, occurrenceId = occurrenceId, sessionId = outcome.sessionId)
                 } else {
-                    PendingOccurrence.forget(container)
+                    PendingOccurrence.forget(deps = container)
                 }
-                markReminderStarted(reminder)
-                actionError.value = null
+                markReminderStarted(reminder = reminder)
+                clearBlockedAfterOpen()
                 _navigateToSession.value = outcome.sessionId
             }
             is StartDayOutcome.Blocked ->
-                _blockedByInProgress.value = BlockedStart(
-                    day = day,
-                    sessionId = outcome.inProgressSessionId,
-                    occurrenceId = occurrenceId,
-                    reminder = reminder,
+                markStartBlocked(
+                    blocked = BlockedStart(
+                        day = day,
+                        sessionId = outcome.inProgressSessionId,
+                        occurrenceId = occurrenceId,
+                        reminder = reminder,
+                    ),
                 )
-            is StartDayOutcome.Failed -> actionError.value = outcome.message
-            StartDayOutcome.Ignored -> Unit
+            is StartDayOutcome.Failed -> failStart(message = outcome.message)
+            StartDayOutcome.Ignored -> failStart(message = "There is no session to start.", canRetry = false)
         }
     }
 
     /** The reminder behind a start that has opened, used up ([UsedReminder]). */
     private suspend fun markReminderStarted(reminder: ReminderTap?) {
         reminder ?: return
-        UsedReminder.markStarted(getApplication(), container, reminder.occurrenceId, reminder.deliveryId)
+        UsedReminder.markStarted(
+            context = getApplication(),
+            deps = container,
+            occurrenceId = reminder.occurrenceId,
+            deliveryId = reminder.deliveryId,
+        )
     }
 
-    fun resumeBlocked() {
+    fun resumeBlocked(expectedBlocked: BlockedStart? = null, expectedAttemptId: Long? = null) {
+        if (!matchesBlockedStart(expectedBlocked = expectedBlocked, expectedAttemptId = expectedAttemptId) ||
+            !canResumeBlockedStart()
+        ) return
         val blocked = _blockedByInProgress.value ?: return
         _blockedByInProgress.value = null
+        clearStartAttempt()
         _navigateToSession.value = blocked.sessionId
     }
 
-    fun discardBlockedAndStart(): Boolean {
-        if (!canMutate()) return false
+    fun discardBlockedAndStart(expectedBlocked: BlockedStart? = null, expectedAttemptId: Long? = null): Boolean {
+        if (!matchesBlockedStart(expectedBlocked = expectedBlocked, expectedAttemptId = expectedAttemptId)) return false
         val blocked = _blockedByInProgress.value ?: return false
-        _blockedByInProgress.value = null
-        viewModelScope.launch {
-            when (val result = container.discardWorkout(blocked.sessionId)) {
-                DiscardOutcome.Discarded -> {
-                    PendingOccurrence.forgetIfSession(container, blocked.sessionId)
-                    start(blocked.day, blocked.occurrenceId, blocked.reminder)
-                }
-                is DiscardOutcome.Failed -> actionError.value = result.message
-            }
-        }
-        return true
+        if (startCommand is StartCommand.Discard) return retryStart(expectedAttemptId = expectedAttemptId)
+        val requested = blockedStartCommand ?: StartCommand.Suggested(day = blocked.day)
+        return admitStart(
+            command = StartCommand.Discard(blocked = blocked, requested = requested),
+            allowBlocked = true,
+        )
     }
 
-    fun dismissBlockedStart() {
-        _blockedByInProgress.value = null
+    fun dismissBlockedStart(expectedBlocked: BlockedStart? = null, expectedAttemptId: Long? = null) {
+        if (!matchesBlockedStart(expectedBlocked = expectedBlocked, expectedAttemptId = expectedAttemptId)) return
+        dismissStart(expectedAttemptId = expectedAttemptId)
     }
 
     fun dismissError() {
-        actionError.value = null
+        if (actionError.value != null && actionError.value == _startState.value.error) {
+            dismissStart()
+        } else {
+            actionError.value = null
+        }
     }
 
     fun skipOccurrence(occurrenceId: String): Boolean {
@@ -897,6 +1114,26 @@ class HomeViewModel @JvmOverloads constructor(
      */
     fun requestAnswerReplay() {
         container.pendingAnswerReplay.value = true
+    }
+
+    private sealed interface StartCommand {
+        val originalOccurrenceId: String? get() = null
+
+        data object Free : StartCommand
+        data class Routine(val routineId: String) : StartCommand
+        data class Cardio(val type: CardioType) : StartCommand
+        data class Aux(val packId: String) : StartCommand
+        data class Suggested(val day: SuggestedTrainingDay) : StartCommand
+        data class Occurrence(val occurrenceId: String, val deliveryId: String?) : StartCommand {
+            override val originalOccurrenceId: String get() = occurrenceId
+        }
+        data class Discard(
+            val blocked: BlockedStart,
+            val requested: StartCommand,
+            val discarded: Boolean = false,
+        ) : StartCommand {
+            override val originalOccurrenceId: String? get() = requested.originalOccurrenceId
+        }
     }
 
     data class BlockedStart(

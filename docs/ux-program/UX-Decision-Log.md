@@ -1,5 +1,25 @@
 # Temper UX decision register — updated 7 September 2026
 
+**Home start recovery refinement, 11 October 2026 UTC (UX01/UX02/UX23):**
+At the #481 baseline, Home closed a start at command admission, before the result;
+repeat callbacks could launch more work, and retry of a relocated leftover could
+use its old MOVED ID. Starting a selected past/future plan also lacked an explicit
+actual-date explanation. Extra preparation could leave a partial routine.
+The chosen repair keeps the same sheet/confirmation, adds Starts now and pending/
+error/retry feedback, and retains the exact command and acknowledged substeps.
+An automatic retry or another confirmation would add work or a decision without
+resolving ownership. Pending dismissal is temporarily unavailable until the
+result is known; idle cancellation remains available. This preserves ADR-021
+planned confirmation, one-tap sheet choices, ADR-011 current-time starts and
+ADR-007 one-live-activity, without a schema/backup change. Acceptance uses actual
+Home with held/failed Room writes, repeated callbacks, native Back/scrim, date
+truth, moved-ID binding, acknowledged discard, and atomic Extra inventory.
+The prior-copy targeted07 passed 189 fresh checks; the generic failed-start
+message was subsequently made neutral after native review proved an insert error
+was mislabelled as a read error. The repaired full gate and pinned reviews are
+pending; this is an implementation
+refinement within the owner's authorized roadmap, not a new product decision.
+
 Supplements the register in the 6 September handoff package. Entries D01–D14 keep their IDs; this file records what this session did with each and adds D15–D19. Nothing here is an owner approval unless it says so; "implemented" means code on branch `claude/file-visibility-check-jraqc2`.
 
 | ID | Topic | What this session did | Status |

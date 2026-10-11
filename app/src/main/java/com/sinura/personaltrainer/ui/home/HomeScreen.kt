@@ -16,6 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableLongStateOf
@@ -44,6 +45,7 @@ import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.ScheduleConfidence
 import com.sinura.personaltrainer.domain.SessionFocusKind
 import com.sinura.personaltrainer.domain.SuggestedTrainingDay
+import com.sinura.personaltrainer.domain.StartSessionConfirm
 import com.sinura.personaltrainer.domain.UndoHostCopy
 import com.sinura.personaltrainer.domain.WeekBoard
 import com.sinura.personaltrainer.domain.Weekday
@@ -97,25 +99,16 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val starting by viewModel.startState.collectAsStateWithLifecycle()
+    // Capture the action that this frame actually presents. A delegated State read
+    // inside an old callback would otherwise turn its Start into a later Retry.
+    val renderedStartAttemptId = starting.attemptId
+    val renderedCanRetry = starting.canRetry
+    val renderedOccurrenceId = starting.occurrenceId
     val startedSessionId by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val cardioId by viewModel.navigateToCardio.collectAsStateWithLifecycle()
     val composerMode by viewModel.navigateToComposer.collectAsStateWithLifecycle()
     val editorId by viewModel.navigateToEditor.collectAsStateWithLifecycle()
-    LaunchedEffect(startedSessionId) {
-        val id = startedSessionId ?: return@LaunchedEffect
-        onResumeWorkout(id)
-        viewModel.onSessionNavigationHandled()
-    }
-    LaunchedEffect(cardioId) {
-        val id = cardioId ?: return@LaunchedEffect
-        onOpenLiveCardio(id)
-        viewModel.onCardioNavigationHandled()
-    }
-    LaunchedEffect(composerMode) {
-        val mode = composerMode ?: return@LaunchedEffect
-        onLogActivity(mode)
-        viewModel.onComposerNavigationHandled()
-    }
     LaunchedEffect(editorId) {
         val id = editorId ?: return@LaunchedEffect
         onOpenRoutine(id)
@@ -139,6 +132,7 @@ fun HomeScreen(
         onPendingOccurrenceReviewConsumed()
     }
     val blocked by viewModel.blockedByInProgress.collectAsStateWithLifecycle()
+    val blockedOwner = blocked
     val skippedDay by viewModel.skippedDay.collectAsStateWithLifecycle()
     val unit = LocalWeightUnit.current
     val sessionLive = state.sessionLive
@@ -155,6 +149,7 @@ fun HomeScreen(
     val weekStripState = rememberWeekStripState()
     var lastToday by rememberSaveable { mutableLongStateOf(today) }
     var startSheet by rememberSaveable { mutableStateOf(false) }
+    var startSheetRequestId by rememberSaveable { mutableStateOf("") }
     // Modal ownership must outlive a LazyColumn item leaving composition. Inserting the
     // recovery banner or scrolling the underlying board must never dismiss a pending start.
     var plannedStartPending by rememberSaveable(stateSaver = HomePlannedStartSaver) {
@@ -162,6 +157,38 @@ fun HomeScreen(
     }
     var fallbackStartPending by rememberSaveable(stateSaver = HomeFallbackStartSaver) {
         mutableStateOf<HomeFallbackStart?>(null)
+    }
+    // Admission keeps the authored surface. Only an actual open/conflict outcome releases it.
+    LaunchedEffect(startedSessionId) {
+        val id = startedSessionId ?: return@LaunchedEffect
+        startSheet = false
+        plannedStartPending = null
+        fallbackStartPending = null
+        onResumeWorkout(id)
+        viewModel.onSessionNavigationHandled()
+    }
+    LaunchedEffect(cardioId) {
+        val id = cardioId ?: return@LaunchedEffect
+        startSheet = false
+        plannedStartPending = null
+        fallbackStartPending = null
+        onOpenLiveCardio(id)
+        viewModel.onCardioNavigationHandled()
+    }
+    LaunchedEffect(composerMode) {
+        val mode = composerMode ?: return@LaunchedEffect
+        startSheet = false
+        plannedStartPending = null
+        fallbackStartPending = null
+        onLogActivity(mode)
+        viewModel.onComposerNavigationHandled()
+    }
+    LaunchedEffect(blocked) {
+        if (blocked != null) {
+            startSheet = false
+            plannedStartPending = null
+            fallbackStartPending = null
+        }
     }
     val reviewOccurrenceId by viewModel.reviewOccurrenceId.collectAsStateWithLifecycle()
     val focusEpochDay by viewModel.focusEpochDay.collectAsStateWithLifecycle()
@@ -182,7 +209,8 @@ fun HomeScreen(
         val end = start + 6
         if (selectedEpochDay !in start..end) selectedEpochDay = today.coerceIn(start, end)
     }
-    LaunchedEffect(focusEpochDay) {
+    LaunchedEffect(focusEpochDay, starting.pending) {
+        if (starting.pending) return@LaunchedEffect
         val day = focusEpochDay ?: return@LaunchedEffect
         selectedEpochDay = day
         viewModel.onFocusEpochDayHandled()
@@ -191,13 +219,52 @@ fun HomeScreen(
     // Starting a planned day while another session is live is a question, not something the
     // app answers on the user's behalf. Composed before the loading return so it survives a
     // recomposition that briefly reports loading.
-    if (blocked != null) {
+    if (blockedOwner != null) {
         ResumeOrDiscardDialog(
-            onResume = viewModel::resumeBlocked,
-            onDiscardAndStart = { viewModel.discardBlockedAndStart() },
-            onDismiss = viewModel::dismissBlockedStart,
-            discardEnabled = state.mutationEnabled,
-            recoveryContent = recoveryContent,
+            onResume = {
+                viewModel.resumeBlocked(expectedBlocked = blockedOwner, expectedAttemptId = renderedStartAttemptId)
+            },
+            onDiscardAndStart = {
+                if (viewModel.blockedByInProgress.value == blockedOwner &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId
+                ) {
+                    if (renderedCanRetry) viewModel.retryStart(expectedAttemptId = renderedStartAttemptId)
+                    else viewModel.discardBlockedAndStart(
+                        expectedBlocked = blockedOwner,
+                        expectedAttemptId = renderedStartAttemptId,
+                    )
+                }
+            },
+            onDismiss = {
+                viewModel.dismissBlockedStart(expectedBlocked = blockedOwner, expectedAttemptId = renderedStartAttemptId)
+            },
+            discardEnabled = state.mutationEnabled && !starting.pending &&
+                (starting.error == null || starting.canRetry),
+            recoveryContent = {
+                HomeStartRecovery(startStatus = starting, retryEnabled = false, onRetry = {})
+                recoveryContent?.invoke()
+            },
+            title = if (starting.discardedOriginal) "Start the selected workout" else "A workout is already in progress",
+            body = if (starting.discardedOriginal) {
+                "The previous workout was discarded. The selected workout has not opened yet."
+            } else "Pick one — this one, or the session you were in the middle of.",
+            discardLabel = when {
+                starting.pending -> "Starting…"
+                starting.canRetry -> "Retry start"
+                starting.discardedOriginal -> "Start unavailable"
+                else -> "Discard it and start this"
+            },
+            resumeVisible = !starting.discardedOriginal,
+            dismissEnabled = !starting.pending,
+            canDismiss = {
+                viewModel.blockedByInProgress.value == blockedOwner &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId && viewModel.canDismissStart()
+            },
+            canResume = {
+                viewModel.blockedByInProgress.value == blockedOwner &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId && viewModel.canResumeBlockedStart()
+            },
+            actionKey = Triple(blockedOwner, renderedStartAttemptId, renderedCanRetry),
         )
     }
 
@@ -332,92 +399,212 @@ fun HomeScreen(
     val pendingItem = confirmCatalog.firstOrNull { item ->
         item.occurrence.id == plannedOwner?.occurrenceId && DailyAgenda.canOpenStart(item, today)
     }?.takeUnless { sessionLive }
-    val confirmFallback = fallbackStartPending?.takeIf { pending ->
-        fallbackTargetMatches(state = state, day = pending.day, today = today)
+    val heldPlanned = plannedOwner?.takeIf { owner ->
+        owner.accepted && starting.occurrenceId == owner.occurrenceId && (starting.pending || starting.error != null)
     }
-    LaunchedEffect(plannedOwner, selectedAgenda, stillOpen, sessionLive, today, state.readState) {
+    val confirmFallback = fallbackStartPending?.takeIf { pending ->
+        fallbackTargetMatches(state = state, day = pending.day, today = today) ||
+            (pending.accepted && (starting.pending || starting.error != null))
+    }
+    LaunchedEffect(plannedOwner, selectedAgenda, stillOpen, sessionLive, today, state.readState, starting) {
         // Only confirmed current data may invalidate an authored choice. The last complete
         // catalog and the modal remain intact through a failed read and a held Retry.
-        if (state.readState == HomeReadState.CURRENT && plannedOwner != null && pendingItem == null && plannedStartPending == plannedOwner) {
+        if (state.readState == HomeReadState.CURRENT && plannedOwner != null && pendingItem == null &&
+            heldPlanned == null && plannedStartPending == plannedOwner
+        ) {
             plannedStartPending = null
         }
     }
-    LaunchedEffect(fallbackStartPending, state, today) {
-        val pending = fallbackStartPending ?: return@LaunchedEffect
-        if (state.readState == HomeReadState.CURRENT && !fallbackTargetMatches(state = state, day = pending.day, today = today)) {
+    LaunchedEffect(fallbackStartPending, state, today, starting) {
+        if (fallbackStartPending == null) return@LaunchedEffect
+        if (state.readState == HomeReadState.CURRENT && confirmFallback == null) {
             fallbackStartPending = null
         }
     }
-    LaunchedEffect(reviewOccurrenceId, selectedAgenda, stillOpen, sessionLive, today) {
+    LaunchedEffect(reviewOccurrenceId, selectedAgenda, stillOpen, sessionLive, today, starting.pending) {
+        if (starting.pending) return@LaunchedEffect
         val id = reviewOccurrenceId ?: return@LaunchedEffect
         if (sessionLive) {
             viewModel.onReviewOccurrenceHandled()
-        } else if (confirmCatalog.any { it.occurrence.id == id && DailyAgenda.canOpenStart(it, today) }) {
+        } else if (confirmCatalog.any { it.occurrence.id == id && DailyAgenda.canOpenStart(it, today) } &&
+            viewModel.canEditStartChoice() && viewModel.dismissStart()
+        ) {
+            startSheet = false
             fallbackStartPending = null
             plannedStartPending = HomePlannedStart(requestId = UUID.randomUUID().toString(), occurrenceId = id)
             viewModel.onReviewOccurrenceHandled()
         }
     }
-    if (pendingItem != null && plannedOwner != null) {
-        val confirm = HomeToday.startConfirm(pendingItem, state.routines, today)
-        ConfirmActionDialog(
-            title = confirm.heading,
-            body = confirm.body,
-            confirmLabel = confirm.confirmLabel,
-            onConfirm = {
-                if (plannedStartPending == plannedOwner && viewModel.startOccurrence(plannedOwner.occurrenceId)) {
-                    if (plannedStartPending == plannedOwner) plannedStartPending = null
-                }
-            },
-            onDismiss = { if (plannedStartPending == plannedOwner) plannedStartPending = null },
-            confirmEnabled = state.mutationEnabled,
-            recoveryContent = recoveryContent,
-        )
+    if (plannedOwner != null && (pendingItem != null || heldPlanned != null)) {
+        val confirm = heldPlanned?.confirm ?: pendingItem?.let { item ->
+            HomeToday.startConfirm(item, state.routines, today)
+        }
+        if (confirm != null) {
+            val plannedDay = heldPlanned?.plannedEpochDay ?: pendingItem?.occurrence?.localEpochDay ?: today
+            ConfirmActionDialog(
+                title = confirm.heading,
+                body = confirm.body,
+                confirmLabel = when {
+                    starting.pending -> "Starting…"
+                    starting.canRetry -> "Retry start"
+                    starting.error != null -> "Start unavailable"
+                    else -> confirm.confirmLabel
+                },
+                onConfirm = {
+                    if (plannedStartPending?.requestId == plannedOwner.requestId &&
+                        viewModel.startState.value.attemptId == renderedStartAttemptId
+                    ) {
+                        val accepted = if (renderedCanRetry && renderedOccurrenceId == plannedOwner.occurrenceId) {
+                            viewModel.retryStart(expectedAttemptId = renderedStartAttemptId)
+                        } else viewModel.startOccurrence(plannedOwner.occurrenceId)
+                        if (accepted && plannedStartPending?.requestId == plannedOwner.requestId) {
+                            plannedStartPending = plannedOwner.copy(accepted = true, confirm = confirm, plannedEpochDay = plannedDay)
+                        }
+                    }
+                },
+                onDismiss = {
+                    if (plannedStartPending?.requestId == plannedOwner.requestId &&
+                        viewModel.blockedByInProgress.value == null &&
+                        viewModel.dismissStart(expectedAttemptId = renderedStartAttemptId)
+                    ) plannedStartPending = null
+                },
+                confirmEnabled = state.mutationEnabled && (starting.error == null || starting.canRetry),
+                dismissEnabled = !starting.pending,
+                canDismiss = {
+                    plannedStartPending?.requestId == plannedOwner.requestId &&
+                        viewModel.startState.value.attemptId == renderedStartAttemptId &&
+                        viewModel.blockedByInProgress.value == null && viewModel.canDismissStart()
+                },
+                canConfirm = {
+                    plannedStartPending?.requestId == plannedOwner.requestId &&
+                        viewModel.startState.value.attemptId == renderedStartAttemptId && viewModel.canEditStartChoice()
+                },
+                contextContent = {
+                    HomeStartDate(plannedEpochDay = plannedDay, today = today)
+                    HomeStartRecovery(startStatus = starting, retryEnabled = false, onRetry = {})
+                    recoveryContent?.invoke()
+                },
+                actionKey = renderedStartAttemptId to renderedCanRetry,
+            )
+        }
     }
     if (confirmFallback != null) {
-        val confirm = HomeToday.fallbackStartConfirm(confirmFallback.day, state.routines)
+        val confirm = confirmFallback.confirm ?: HomeToday.fallbackStartConfirm(confirmFallback.day, state.routines)
         ConfirmActionDialog(
             title = confirm.heading,
             body = confirm.body,
-            confirmLabel = confirm.confirmLabel,
+            confirmLabel = when {
+                starting.pending -> "Starting…"
+                starting.canRetry -> "Retry start"
+                starting.error != null -> "Start unavailable"
+                else -> confirm.confirmLabel
+            },
             onConfirm = {
                 // The selected cell and a new healthy plan may change behind this modal.
                 // A queued callback must still belong to the exact authored target and owner.
-                if (fallbackStartPending == confirmFallback &&
-                    fallbackTargetMatches(state = viewModel.uiState.value, day = confirmFallback.day, today = today) &&
-                    viewModel.startSuggestedDay(confirmFallback.day)
+                if (fallbackStartPending?.requestId == confirmFallback.requestId &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId
                 ) {
-                    fallbackStartPending = null
+                    val accepted = if (confirmFallback.accepted && renderedCanRetry) {
+                        viewModel.retryStart(expectedAttemptId = renderedStartAttemptId)
+                    } else if (fallbackTargetMatches(state = viewModel.uiState.value, day = confirmFallback.day, today = today)) {
+                        viewModel.startSuggestedDay(confirmFallback.day)
+                    } else false
+                    if (accepted && fallbackStartPending?.requestId == confirmFallback.requestId) {
+                        fallbackStartPending = confirmFallback.copy(accepted = true, confirm = confirm)
+                    }
                 }
             },
-            onDismiss = { if (fallbackStartPending == confirmFallback) fallbackStartPending = null },
-            confirmEnabled = state.mutationEnabled,
-            recoveryContent = recoveryContent,
+            onDismiss = {
+                if (fallbackStartPending?.requestId == confirmFallback.requestId &&
+                    viewModel.blockedByInProgress.value == null &&
+                    viewModel.dismissStart(expectedAttemptId = renderedStartAttemptId)
+                ) fallbackStartPending = null
+            },
+            confirmEnabled = state.mutationEnabled && (starting.error == null || starting.canRetry),
+            dismissEnabled = !starting.pending,
+            canDismiss = {
+                fallbackStartPending?.requestId == confirmFallback.requestId &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId &&
+                    viewModel.blockedByInProgress.value == null && viewModel.canDismissStart()
+            },
+            canConfirm = {
+                fallbackStartPending?.requestId == confirmFallback.requestId &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId && viewModel.canEditStartChoice()
+            },
+            contextContent = {
+                HomeStartDate(plannedEpochDay = confirmFallback.day.epochDay, today = today)
+                HomeStartRecovery(startStatus = starting, retryEnabled = false, onRetry = {})
+                recoveryContent?.invoke()
+            },
+            actionKey = renderedStartAttemptId to renderedCanRetry,
         )
     }
-    LaunchedEffect(sessionLive) {
-        if (sessionLive) startSheet = false
-    }
 
-    if (startSheet && !sessionLive) {
+    if (startSheet) {
+        val sheetOwner = startSheetRequestId
         HomeStartSheet(
             routines = state.routines,
-            onDismiss = { startSheet = false },
+            onDismiss = {
+                if (startSheet && startSheetRequestId == sheetOwner &&
+                    viewModel.blockedByInProgress.value == null &&
+                    viewModel.dismissStart(expectedAttemptId = renderedStartAttemptId)
+                ) startSheet = false
+            },
             onStartFree = {
-                if (viewModel.startFreeWorkout()) startSheet = false
+                if (startSheet && startSheetRequestId == sheetOwner &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId
+                ) viewModel.startFreeWorkout()
             },
             onStartRoutine = { routineId ->
-                if (viewModel.startRoutine(routineId)) startSheet = false
+                if (startSheet && startSheetRequestId == sheetOwner &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId
+                ) viewModel.startRoutine(routineId)
             },
             onStartCardio = { type ->
-                if (viewModel.startCardio(type)) startSheet = false
+                if (startSheet && startSheetRequestId == sheetOwner &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId
+                ) viewModel.startCardio(type)
             },
             onStartExtra = { packId ->
-                if (viewModel.startAux(packId)) startSheet = false
+                if (startSheet && startSheetRequestId == sheetOwner &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId
+                ) viewModel.startAux(packId)
             },
             suggestedKit = state.suggestedExtraEquipment,
-            mutationEnabled = state.mutationEnabled,
-            recoveryContent = recoveryContent,
+            mutationEnabled = state.mutationEnabled && starting.error == null,
+            navigationEnabled = !starting.pending,
+            canNavigate = {
+                startSheet && startSheetRequestId == sheetOwner &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId && viewModel.canEditStartChoice()
+            },
+            canDismiss = {
+                startSheet && startSheetRequestId == sheetOwner &&
+                    viewModel.startState.value.attemptId == renderedStartAttemptId &&
+                    viewModel.blockedByInProgress.value == null && viewModel.canDismissStart()
+            },
+            onChoiceChangeAccepted = {
+                if (startSheet && startSheetRequestId == sheetOwner &&
+                    viewModel.dismissStart(expectedAttemptId = renderedStartAttemptId)
+                ) {
+                    // Keep this sheet's page/equipment state, but retire every callback
+                    // from the old page before another one can fire in this frame.
+                    startSheetRequestId = UUID.randomUUID().toString()
+                    true
+                } else false
+            },
+            recoveryContent = {
+                HomeStartRecovery(
+                    startStatus = starting,
+                    retryEnabled = state.mutationEnabled && starting.canRetry,
+                    onRetry = {
+                        if (startSheet && startSheetRequestId == sheetOwner) {
+                            viewModel.retryStart(expectedAttemptId = renderedStartAttemptId)
+                        }
+                    },
+                )
+                recoveryContent?.invoke()
+            },
         )
     }
 
@@ -461,7 +648,7 @@ fun HomeScreen(
                     cells = weekCells,
                     today = today,
                     selected = selectedEpochDay,
-                    onSelectDay = { selectedEpochDay = it },
+                    onSelectDay = { if (viewModel.canEditStartChoice()) selectedEpochDay = it },
                     stripState = weekStripState,
                 )
             }
@@ -470,7 +657,16 @@ fun HomeScreen(
             item(key = "home-action-error") {
                 // Dismissable: the flow only cleared this on a later SUCCESSFUL
                 // action, so a one-off failure pinned a red card to Home forever.
-                GymErrorBanner(message, onDismiss = viewModel::dismissError)
+                key(renderedStartAttemptId, message) {
+                    GymErrorBanner(
+                        message = message,
+                        onDismiss = {
+                            if (viewModel.uiState.value.error == message &&
+                                viewModel.startState.value.attemptId == renderedStartAttemptId
+                            ) viewModel.dismissError()
+                        },
+                    )
+                }
             }
         }
         skippedDay?.let { skipped ->
@@ -540,10 +736,17 @@ fun HomeScreen(
                         mutationEnabled = state.mutationEnabled,
                         recoveryContent = recoveryContent,
                         onOpenStartConfirm = { id ->
-                            fallbackStartPending = null
-                            plannedStartPending = HomePlannedStart(requestId = UUID.randomUUID().toString(), occurrenceId = id)
+                            if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+                                fallbackStartPending = null
+                                plannedStartPending = HomePlannedStart(requestId = UUID.randomUUID().toString(), occurrenceId = id)
+                            }
                         },
-                        onStartFree = { startSheet = true },
+                        onStartFree = {
+                            if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+                                startSheetRequestId = UUID.randomUUID().toString()
+                                startSheet = true
+                            }
+                        },
                         routines = state.routines,
                         kicker = dayKicker,
                         stillOpen = stillOpen,
@@ -580,11 +783,18 @@ fun HomeScreen(
                         recoveryContent = recoveryContent,
                         onOpenStartConfirm = {
                             leftoverDay?.takeUnless { it.isRest }?.let { day ->
-                                plannedStartPending = null
-                                fallbackStartPending = HomeFallbackStart(requestId = UUID.randomUUID().toString(), day = day)
+                                if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+                                    plannedStartPending = null
+                                    fallbackStartPending = HomeFallbackStart(requestId = UUID.randomUUID().toString(), day = day)
+                                }
                             }
                         },
-                        onStartFree = { startSheet = true },
+                        onStartFree = {
+                            if (viewModel.canEditStartChoice() && viewModel.dismissStart()) {
+                                startSheetRequestId = UUID.randomUUID().toString()
+                                startSheet = true
+                            }
+                        },
                         onOpenPlan = onOpenPlan,
                     )
                 }
@@ -622,18 +832,37 @@ fun HomeScreen(
 }
 
 /** An explicit target and owner token prevent a selected day or refreshed plan retargeting a modal. */
-private data class HomeFallbackStart(val requestId: String, val day: SuggestedTrainingDay)
+private data class HomeFallbackStart(
+    val requestId: String,
+    val day: SuggestedTrainingDay,
+    val accepted: Boolean = false,
+    val confirm: StartSessionConfirm? = null,
+)
 
-private data class HomePlannedStart(val requestId: String, val occurrenceId: String)
+private data class HomePlannedStart(
+    val requestId: String,
+    val occurrenceId: String,
+    val accepted: Boolean = false,
+    val confirm: StartSessionConfirm? = null,
+    val plannedEpochDay: Long? = null,
+)
 
 private val HomePlannedStartSaver = mapSaver<HomePlannedStart?>(
     save = { pending ->
-        if (pending == null) emptyMap() else mapOf("requestId" to pending.requestId, "occurrenceId" to pending.occurrenceId)
+        if (pending == null) emptyMap() else mapOf(
+            "requestId" to pending.requestId,
+            "occurrenceId" to pending.occurrenceId,
+            "accepted" to pending.accepted,
+            "plannedEpochDay" to pending.plannedEpochDay,
+        ) + saveStartConfirm(pending.confirm)
     },
     restore = { saved ->
         if (saved.isEmpty()) null else HomePlannedStart(
             requestId = saved["requestId"] as String,
             occurrenceId = saved["occurrenceId"] as String,
+            accepted = saved["accepted"] as? Boolean ?: false,
+            confirm = restoreStartConfirm(saved),
+            plannedEpochDay = saved["plannedEpochDay"] as? Long,
         )
     },
 )
@@ -654,12 +883,15 @@ private val HomeFallbackStartSaver = mapSaver<HomeFallbackStart?>(
                 "emphasisMuscles" to ArrayList(emphasisMuscles.map { it.name }),
                 "confidence" to confidence.name,
                 "slotId" to slotId,
-            )
+                "accepted" to pending.accepted,
+            ) + saveStartConfirm(pending.confirm)
         }
     },
     restore = { saved ->
         if (saved.isEmpty()) null else HomeFallbackStart(
             requestId = saved["requestId"] as String,
+            accepted = saved["accepted"] as? Boolean ?: false,
+            confirm = restoreStartConfirm(saved),
             day = SuggestedTrainingDay(
                 epochDay = saved["epochDay"] as Long,
                 dayOfWeek = Weekday.valueOf(saved["dayOfWeek"] as String),
@@ -676,6 +908,62 @@ private val HomeFallbackStartSaver = mapSaver<HomeFallbackStart?>(
         )
     },
 )
+
+private fun saveStartConfirm(confirm: StartSessionConfirm?): Map<String, Any?> = if (confirm == null) emptyMap() else mapOf(
+    "confirmHeading" to confirm.heading,
+    "confirmBody" to confirm.body,
+    "confirmLabel" to confirm.confirmLabel,
+    "confirmLeftover" to confirm.leftover,
+)
+
+private fun restoreStartConfirm(saved: Map<String, Any?>): StartSessionConfirm? {
+    val heading = saved["confirmHeading"] as? String ?: return null
+    val body = saved["confirmBody"] as? String ?: return null
+    val label = saved["confirmLabel"] as? String ?: return null
+    return StartSessionConfirm(heading = heading, body = body, confirmLabel = label, leftover = saved["confirmLeftover"] as? Boolean ?: false)
+}
+
+@Composable
+private fun HomeStartDate(plannedEpochDay: Long, today: Long) {
+    Text(
+        "Planned: ${DateCopy.civilDate(plannedEpochDay)}\nStarts now · ${DateCopy.civilDate(today)}",
+        modifier = Modifier.testTag(HomeStartTags.DATE),
+        style = InstrumentType.caption,
+        color = TextSecondary,
+    )
+}
+
+@Composable
+internal fun HomeStartRecovery(startStatus: HomeStartState, retryEnabled: Boolean, onRetry: () -> Unit) {
+    if (!startStatus.pending && startStatus.error == null) return
+    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+        if (startStatus.pending) {
+            Text(
+                "Starting…",
+                modifier = Modifier.testTag(HomeStartTags.PENDING).semantics { liveRegion = LiveRegionMode.Polite },
+                style = InstrumentType.bodyStrong,
+                color = TextPrimary,
+            )
+        }
+        startStatus.error?.let { message ->
+            FieldComplaint(
+                message = message,
+                modifier = Modifier.testTag(HomeStartTags.ERROR).semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+        if (retryEnabled) {
+            key(startStatus.attemptId) {
+                TextButton(
+                    onClick = onRetry,
+                    enabled = !startStatus.pending,
+                    modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(HomeStartTags.RETRY),
+                ) {
+                    Text("Retry start", style = InstrumentType.bodyStrong, color = TextSecondary)
+                }
+            }
+        }
+    }
+}
 
 private fun fallbackTargetMatches(state: HomeUiState, day: SuggestedTrainingDay, today: Long): Boolean {
     if (day.isRest || state.sessionLive || day.epochDay in state.loggedEpochDays || state.weekPlan?.dayOn(day.epochDay) != day) {

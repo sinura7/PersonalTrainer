@@ -3,13 +3,29 @@
 **Created:** 8 October 2026
 
 **Current implementation, 11 October 2026 UTC:** Compact Focus and subsequent
-work are integrated through #480. Corrected Summary receipts and literal exercise
+work are integrated through #481. Corrected Summary receipts and literal exercise
 History readouts (`f1156f4b`) passed the complete local gate: 4,216 fresh app tests,
 1,707 standalone checks, builds, lint and test APK assembly. Current packet review
-and integration are recorded in its PR. Home start clarity and acknowledged start
-recovery are next. Older dated entries below retain their historical scope;
+and integration are recorded in [PR #481](https://github.com/sinura7/PersonalTrainer/pull/481).
+Home start clarity and acknowledged start recovery are the active packet:
+retain the chosen start through saving/failure, show Starts now, and retry the
+same command after acknowledged relocation or discard. The prior-copy targeted07 run passed 189 fresh checks / 15 suites; native
+start/recovery profiles passed with stable source. Review then found that the
+generic repository start error misdescribed an insert failure as a read failure;
+Home now uses neutral start-failure copy, with an explicit native assertion.
+The repaired candidate awaits its complete gate and final reviews. Older dated entries below retain their historical scope;
 physical-phone acceptance and the wider roadmap remain open. No new Debug drop
 has been published.
+
+**Visual direction clarification, 11 October 2026 UTC:** The owner questioned
+why recent images still resemble the earlier layout. Compact Focus is the
+implemented workout composition; Home, Summary and History retain older enclosing
+panels, so the whole-app visual redesign is unfinished. After this bounded Home
+recovery packet, the next visible checkpoint is a connected Home → Compact Focus
+→ saved-work concept: fewer competing cards, complete illustrated exercise names,
+clear typography and one dominant action. The concept must be marked as proposed
+where it differs from native source. Mechanical recovery evidence does not close
+that visual work. Preserve the accepted Instrument identity and navigation.
 
 **Status:** Native Quiet workout and its bounded UX23 follow-up are integrated through PRs #460 and #461. Home required-read/Retry recovery and Home/Plan week geometry are reviewed and integrated through #462 and #464. History's one-period workflow and captured-date travel repair are reviewed and integrated through #465 and #466. Summary/detail identity, planned/recorded clarity and restored saved-work reachability are integrated through #467. Set Edit identity and numeric controls are integrated through #468. History saved-set recovery and its test-recorder repair are integrated through #469 and #470. Compact Focus is implemented with the complete local gate and 222 Android tests passing; [its evidence, previews and review/integration tracking](studies/q01/README.md#compact-focus-development-verification) belong to [PR #471](https://github.com/sinura7/PersonalTrainer/pull/471). Broader app UX phases and physical-phone acceptance remain.
 
@@ -143,7 +159,7 @@ The earlier branch push's native IME-observation timeout remains failed evidence
 with unresolved cause; subsequent passes do not relabel it.
 [UX15 records the exact scope and limits](../ux-program/UX-Acceptance-Matrix.md#ux15--make-historys-scope-and-deeper-sections-reachable).
 
-The next bounded History packet addresses a confirmed travel visibility failure
+**Historical travel packet, integrated through #466:** This addressed a confirmed travel visibility failure
 before Summary: a completed activity captured on 9 October in Tokyo disappears
 from All History when the later device date is 8 October in Honolulu, although
 its saved graph and summary are unchanged. All must include known completed
