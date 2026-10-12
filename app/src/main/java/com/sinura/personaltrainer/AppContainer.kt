@@ -76,6 +76,13 @@ import com.sinura.personaltrainer.workout.WorkoutDraftCache
 class AppContainer(context: Context) : AppDependencies {
     override val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
     override val computeDispatcher: CoroutineDispatcher = Dispatchers.Default
+    // Local staged fields/commands never enter exported backups or redirect app startup.
+    internal val durableDrafts: com.sinura.personaltrainer.data.draft.DurableDraftStore by lazy {
+        com.sinura.personaltrainer.data.draft.DurableDraftStore(
+            java.io.File(context.applicationContext.noBackupFilesDir, "draft-checkpoints"),
+            ioDispatcher,
+        )
+    }
     override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime
     override val phoneCapabilities: PhoneCapabilityPort = AndroidPhoneCapabilities(context)
 
