@@ -75,7 +75,11 @@ class ComponentInventoryTest {
         assertTrue(picker.contains("EquipmentChip("))
         assertFalse(picker.contains("private fun InstrumentTag("))
         val library = readUi("library/ExerciseLibraryScreen.kt")
-        assertTrue(library.contains("ExerciseRow("))
+        // The accepted adaptive Library row owns its wrapping, while shared picture identity
+        // and canonical load wording remain the component contracts. Native Library tests
+        // verify names, buttons and exact-ID behavior across the display matrix.
+        assertTrue(library.contains("ExerciseThumb(exercise = exercise)"))
+        assertTrue(library.contains("LoadTypeCopy.libraryTag(exercise)"))
         val editor = readUi("routines/RoutineEditorScreen.kt")
         assertTrue(editor.contains("ExerciseRow("))
     }

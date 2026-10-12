@@ -278,8 +278,10 @@ private fun ExerciseLibraryContent(
                             } else {
                                 "Add a custom lift to start the catalog."
                             },
-                            modifier = Modifier.padding(horizontal = Metrics.gutter),
+                            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
+                                .padding(horizontal = Metrics.gutter),
                             actionLabel = "Create lift",
+                            actionTag = LibraryTags.EMPTY_CREATE,
                             onAction = viewModel::openCreate,
                         )
                     } else {
@@ -581,7 +583,7 @@ private fun LibraryRow(
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
             .testTag(LibraryTags.lift(exercise.id))
-            .clickable(role = Role.Button, onClickLabel = "Open exercise", onClick = onOpen)
+            .clickable(role = Role.Button, onClickLabel = "Open lift", onClick = onOpen)
             .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
@@ -656,6 +658,7 @@ object LibraryTags {
     const val BACK = "library-back"
     const val SEARCH = "library-search"
     const val FAB = "library-create"
+    const val EMPTY_CREATE = "library-empty-create"
     const val CLEAR_FILTERS = "library-clear-filters"
     const val EQUIPMENT_FILTERS = "library-equipment-filters"
     const val LIST = "library-list"

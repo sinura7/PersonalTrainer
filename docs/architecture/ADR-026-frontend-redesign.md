@@ -184,6 +184,8 @@ sheet opens fully and scrolls when long names or larger text require it.
 In landscape, move the existing Create action into the header, using the actual
 parent dimensions, so the floating button cannot cover a row's Options action.
 Portrait retains its existing Create placement.
+Empty/no-match content scrolls within its remaining viewport so its explanation
+and Create action remain reachable; opening and cancelling Create saves no row.
 
 Clear filters resets muscle and equipment together while retaining the raw
 typed query. It remains visible beside the horizontal equipment strip, so

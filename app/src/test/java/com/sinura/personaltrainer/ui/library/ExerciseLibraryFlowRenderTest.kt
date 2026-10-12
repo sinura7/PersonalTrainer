@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasText
@@ -171,7 +172,23 @@ class ExerciseLibraryFlowRenderTest {
         compose.awaitThat("query and both facets combine, producing no matches", vm.uiState::value) {
             vm.uiState.value.selectedMuscle == CanonicalMuscle.CHEST && vm.uiState.value.visibleExercises.isEmpty()
         }
+        emptyWords("No matches")
+        emptyWords("Clear search or filters, or add a custom lift.")
+        capture("no-matches-message")
+        val create = compose.onNodeWithTag(LibraryTags.EMPTY_CREATE).performScrollTo().assertIsDisplayed()
         capture("no-matches")
+        create.performTouchInput { click(center) }
+        compose.awaitThat("No matches can open an uncommitted custom draft", vm.uiState::value) {
+            vm.uiState.value.editor != null
+        }
+        compose.onNodeWithText("New lift").assertExists()
+        dismissNativeSheet()
+        compose.settle()
+        assertEquals(null, vm.uiState.value.editor)
+        assertEquals("  row  ", vm.uiState.value.query)
+        assertEquals(CanonicalMuscle.CHEST, vm.uiState.value.selectedMuscle)
+        assertEquals(EquipmentType.BODYWEIGHT, vm.uiState.value.selectedEquipment)
+        assertTrue(vm.uiState.value.visibleExercises.isEmpty())
         compose.onNodeWithTag(LibraryTags.EQUIPMENT_FILTERS)
             .performScrollToNode(hasText(EquipmentType.OTHER.label))
         compose.onNodeWithTag(LibraryTags.CLEAR_FILTERS).assertIsDisplayed()
@@ -256,6 +273,15 @@ class ExerciseLibraryFlowRenderTest {
     private fun words(text: String) {
         compose.onNodeWithTag(LibraryTags.LIST).performScrollToNode(hasText(text))
         val node = compose.onNode(hasText(text), useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        assertWords(text, node)
+    }
+
+    private fun emptyWords(text: String) {
+        val node = compose.onNodeWithText(text, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        assertWords(text, node)
+    }
+
+    private fun assertWords(text: String, node: SemanticsNodeInteraction) {
         val layout = node.textLayout()
         val semantics = node.fetchSemanticsNode()
         for (line in 0 until layout.lineCount) assertFalse(layout.isLineEllipsized(line))

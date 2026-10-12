@@ -286,7 +286,18 @@ same Body argument, proves the initial BACK/CABLE facets before clearing, and
 verifies cleared facets/raw query after restoration with exact catalog equality.
 Native journeys check complete name/load glyphs, pinned facet clearing, exact
 Add/options cancellation and exact-ID return without catalog/routine writes.
-The complete gate, final pinned reviews and integration remain pending.
+The first complete gate failed two source assertions: its new spoken label used
+"exercise" rather than the established "lift", and the inventory still required
+the superseded global row call. It was stopped after those demonstrated failures;
+console partial results are preserved, but there is no fresh complete app XML
+total and no build acceptance. The label is now Open lift; inventory coverage
+retains shared thumbnail and canonical load-wording ownership, while the native
+matrix protects actual adaptive-row behavior. Pixel review also found the old
+non-scrolling empty branch hid its explanation/Create action in large-text
+landscape. That branch now scrolls. `targeted11` passed **nine fresh cases / four
+suites**, covering both source assertions and phone/landscape no-match copy,
+actual Create opening/cancellation and exact unchanged catalog/routine snapshots.
+The fresh repaired complete gate, final pinned reviews and integration remain pending.
 Manual custom-editor draft recovery, required-read recovery, full
 pickers/onboarding and broader F8 acceptance remain separately open.
 
