@@ -45,6 +45,7 @@
       "scope": "Host JVM startup failure and demonstrated checker gap; no demonstrated application failure. Full01 app/standalone evidence remains valid.",
       "fix": "Bound the syntax compiler heap, retain both output streams, and reject exit1 without an actual Kotlin source diagnostic. Eight launcher regressions pass, including native-memory stdout failures and expected unresolved references. Fresh complete gate required for changed tool inputs."
     },
+    "full03": "Preflight rejected the existing domain-lane compiler mock because it expected -cp as the first argument. No fresh app tests executed. The mock now also asserts the bounded heap arguments, retaining its classpath and launch/finding checks. Original failed attempt retained; the updated domain-lane regression passes.",
     "target01": "Static declined-lambda count47 exceeded46 before any fresh tests; fixed qualified new constructor call by importing it. Original outputs retained; no baseline weakened.",
     "target02": {
       "freshTests": 48,
