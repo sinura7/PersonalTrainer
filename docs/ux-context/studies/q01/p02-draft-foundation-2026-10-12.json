@@ -1,0 +1,31 @@
+{
+  "packet": "P02",
+  "baseCommit": "a4829bfdc0c1cabe444ce0f23bf0e1b071fd1cea",
+  "status": "Implementation candidate; complete gate and pinned reviews pending.",
+  "authority": "ADR-033 and accepted P01-P20 completion train",
+  "problem": "SavedState alone does not preserve deliberate close/reopen. A frozen Save command must precede business writes and survive uncertain acknowledgement.",
+  "implementation": [
+    "Internal typed owner/version/checkpoint/pending/recovery types; existing public DraftStore and AppDependencies signatures unchanged.",
+    "AppContainer lazily owns noBackupFilesDir/draft-checkpoints; no startup redirect, Room/schema/export/sync change.",
+    "Shared ordered off-main IO; fsync temporary then atomic replacement without unsafe overwrite fallback.",
+    "Owner-bound revision/generation checks and payload-free clear tombstones reject stale/queued writes.",
+    "Durable frozen Save admission; duplicate reservation rejected. Repository inspection supplies exact/uncommitted/conflict/unavailable outcome.",
+    "Only proven uncommitted commands become Retryable. Retry retains exact command; resume editing retains authored fields.",
+    "Accepted command remains fenced when cleanup fails. Clear refuses uncertain pending work.",
+    "Generation advance requires existing restore write coordination; old owners require area reconciliation and fresh pending inspection.",
+    "Strict version/owner/revision/codec checks; bounded reads and redacted result descriptions. Unreadable checkpoints retained without automatic erase or replay."
+  ],
+  "evidence": {
+    "targeted": "target02: 15 fresh tests, zero failure/error/skip; source unchanged during run. Later security-error classification and platform fixture included in final full gate.",
+    "platform": {
+      "freshTests": 1,
+      "result": "PASS",
+      "scope": "Owned API29 noBackup filesystem and main-thread entry dispatched off-main; exact replacement/reopen/clear/generation. Synthetic private fixture only.",
+      "deviceRunId": "20261012-170414348"
+    },
+    "originalFailure": "target01 static required_args_mixed grew181 versus180 plus nullable-parent warning. Both corrected; tests had not executed, no checker baseline weakened."
+  },
+  "acceptanceBoundary": "Infrastructure only. P03-P18 adopt form codecs, perform repository ownership/uncertain-write inspection and wire accepted restore. This does not close UI, actual process termination, all UX07/UX23 criteria or physical acceptance.",
+  "visibleChange": "None. Connected custom-editor concept and actual native states belong to P03.",
+  "next": "P03 custom-editor typed reconstruction and stable-ID Save recovery after P02 gate/reviews/integration."
+}

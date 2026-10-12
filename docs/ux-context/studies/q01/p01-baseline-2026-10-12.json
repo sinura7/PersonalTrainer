@@ -110,5 +110,27 @@
     "fixtures": 12,
     "acceptanceChecks": 97,
     "uxItems": 30
+  },
+  "integration": {
+    "pullRequest": 493,
+    "commit": "a4829bfdc0c1cabe444ce0f23bf0e1b071fd1cea",
+    "candidate": "e0e8999d85e12413a122a5046ee7d283783a2537",
+    "reviews": "Independent and adversarial PASS; no remaining findings.",
+    "candidateGate": {
+      "appReused": 4333,
+      "standaloneReused": 1707,
+      "freshStatic": true,
+      "summarySha256": "D3E36864F86BC1FBAEC01B86EA636F3E80CEEDC85649B73CB7C764F0BDC19F0C"
+    },
+    "mergedGate": "integrated01: identical app/tool inputs, 4333 app and 1707 standalone reused, fresh static/build invocation, no failures.",
+    "mergedNative": {
+      "freshTests": 1,
+      "failures": 0,
+      "xmlSha256": "9C4B967C4F9CDE8FAC8E28BEE730D43B15A0DBA304281630D62D6597D5C1E798",
+      "scope": "Same actual AppNav synthetic workout, owned API29 only; no physical acceptance."
+    },
+    "originalAccounting": "full01 cache-restored XML was initially misclassified from mtimes. Original receipts kept; corrected exact byte/hash classification records zero fresh app execution.",
+    "branchRetirement": "Verified recoverable feature bundle; local branch removed; GitHub removed remote branch on merge.",
+    "delivery": "No new drop; signed Debug125 remains baseline. Next authorized milestone after P10."
   }
 }

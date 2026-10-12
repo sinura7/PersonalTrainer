@@ -4740,12 +4740,12 @@
       {
         "id": "P01",
         "title": "Reconcile completion checklist",
-        "state": "In progress"
+        "state": "Closed"
       },
       {
         "id": "P02",
         "title": "Persistent draft infrastructure",
-        "state": "Open"
+        "state": "In progress"
       },
       {
         "id": "P03",
