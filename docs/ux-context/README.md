@@ -350,13 +350,14 @@ was integrated into `trunk` at `9ac97eaa`. The clean-trunk gate proved unchanged
 inputs and exact prior JVM results (no new unfiltered JVM execution), followed
 by eight fresh Library return, framework-owner and connected workout checks.
 The feature branch was retired with a verified recovery bundle.
-Manual custom-editor draft recovery, required-read recovery, full
-pickers/onboarding and broader F8 acceptance remain separately open.
+At #490, manual custom-editor draft recovery, required-read recovery, full
+pickers/onboarding and broader F8 acceptance remained separately open.
+Required-read recovery is now integrated through #491 below.
 
-The next F8 packet addresses demonstrated required-read failures in Library.
+The subsequent F8 packet (#491) addressed demonstrated required-read failures in Library.
 The two observation checks established that a failed first catalog read remained
 loading indefinitely and that reconstructed editor owners lose unsaved drafts.
-Required-read recovery proceeds first: explicit unavailable/stale state and Retry,
+Required-read recovery implemented explicit unavailable/stale state and Retry,
 all-source freshness, owner-lifetime write admission and same-owner editor Retry
 without discarding manual fields. Queued Add actions must not use details from a
 previous read generation. The reconstructed draft and interrupted/unknown Save
