@@ -21,6 +21,13 @@ necessary data-safety work remains first. Those deferred feature decisions remai
 in force. Extend the same evidence-led process across the app after workout
 acceptance; do not rebuild work merely because an older progress row says pending.
 
+On 12 October the owner approved the P01–P20 completion train from signed
+Debug125, recorded in `FRONTEND_REDESIGN.md`. Local drafts resume after reopening
+under ADR-033. Connected previews precede each remaining area; routine work does
+not wait for owner phone testing. Signed Debug milestones follow P10/P14/P19,
+then physical acceptance P20. Existing integrated work and deferred-feature
+boundaries remain; necessary safety and compatibility work still takes priority.
+
 This file is the executable program. Accepted ADRs are the decisions it
 may not violate. Historical [ROADMAP.md](ROADMAP.md), Jobs 1–6, and
 `docs/archive/` explain how the strength logger was built. They are not
