@@ -110,14 +110,16 @@ class ExerciseRepository(
      * Derived on every read rather than stored: a stored flag would have to be cleared when the
      * custom is renamed, and a flag nobody remembers to clear is worse than no flag.
      */
-    fun observeNameCollisions(): Flow<List<Exercise>> =
+    internal fun observeNameCollisionsHealth(): Flow<DataHealth<List<Exercise>>> =
         combine(
             exerciseDao.observeBuiltInCollisions(),
             catalogDao.observeAllCredits(),
         ) { rows, credits ->
             val byExercise = credits.groupByExercise()
             rows.map { it.toDomain(byExercise[it.id].orEmpty()) }
-        }.observeHealth("name collisions").presentValues()
+        }.observeHealth("name collisions")
+
+    fun observeNameCollisions(): Flow<List<Exercise>> = observeNameCollisionsHealth().presentValues()
 
     /** When each lift was last logged, for the picker's recency order. */
     fun observeLastLogged(): Flow<Map<String, Long>> =
