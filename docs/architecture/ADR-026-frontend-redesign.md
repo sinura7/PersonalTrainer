@@ -113,3 +113,28 @@ calendar restoration, units and existing calculation rules remain unchanged.
 Verify rendered measures and reachable actions across the native display matrix
 and preserve the saved-work journey. This changes presentation without changing
 writes, schema, backup format, public API or physical-phone acceptance.
+
+## Amendment — 11 October 2026, compact Plan workshop
+
+Extend the owner's approved flat, illustrated direction into Plan. Routines are
+visible directly under a named section, with complete names, ordered exercise
+previews and the first three exact exercise illustrations. A single tap opens
+that routine's editor; separate options and the existing long-press shortcut
+retain Edit, Delete and its confirmation. This supersedes ADR-021 decision 6's
+collapsed catalog and its earlier note that Plan keeps the old date surface.
+
+Plan's date targets use the accepted flat week-strip presentation while keeping
+selected civil day, occurrence status, today marker, horizontal exploration and
+measured touch geometry. The selected-day board uses flat illustrated rows and
+dividing rules. A scheduled routine resolves artwork through its exact rule and
+routine IDs; cardio or an unresolved routine does not receive an invented lift
+picture. Tapping a planned row still edits that day, and Add session retains its
+existing selected-day add picker and one-filled-action priority.
+
+Capture one immutable Plan state for deferred list content. Retain empty/loading/
+error, proposal and missed-work recovery, recurrence, stored-time ordering,
+Library, editor Save/cancel and confirmed-deletion scope. Opening a reusable
+routine performs no write; deleting it preserves captured workout results.
+No scheduling, calculation, schema, backup, public API or distribution change is
+included. Native full-name/preview/target evidence, exact-ID actions and the
+existing weekly-add, cancellation, Save and saved-history journeys must pass.

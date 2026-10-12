@@ -107,7 +107,8 @@ retired with a verified recoverable bundle. Hosted feature, PR and integrated-tr
 unit/build jobs and supplemental emulator smoke all passed. The original pending
 closure and final hosted receipt are preserved separately.
 
-The active History packet carries the compact labeled result line into the
+History's compact ledger is integrated through [PR #487](https://github.com/sinura7/PersonalTrainer/pull/487)
+as `be291b10`. It carries the compact labeled result line into the
 selected period and replaces enclosing session, record and block panels with a
 flat ledger. Lifetime controls retain their full labels and wrap. Session rows
 keep matching illustrations, exact destinations and Repeat; cardio omits empty
@@ -135,15 +136,65 @@ shows the flat selected-range facts and quiet controls.
 shows complete names, separate options and actual measures; this fixture uses
 custom synthetic exercises with family fallback illustrations, rather than
 catalog-specific exercise pictures. Existing ID-bound thumbnail routing remains
-unchanged. Final pinned reviews and integration remain pending.
+unchanged. Both final pinned reviews passed. The integrated complete gate proved
+unchanged inputs and reused the exact executed app/standalone evidence. Connected
+workout, selected History period, mounted lifetime-reader recovery and exact
+short-cardio identity/metrics targets then passed **five fresh cases / three
+suites**, with no failures, errors or skips. The feature is retired with a
+verified recovery bundle. Hosted feature, PR and integrated-trunk unit/build and
+supplemental emulator jobs all passed; original pending receipts are preserved.
+
+The active Plan packet makes routines directly visible, replaces enclosing
+routine/day panels with flat rows, shows complete names and ordered exercise
+previews, and resolves matching illustrations by exact exercise identity. A
+direct routine tap opens its editor; the separate options, long-press shortcut,
+confirmed deletion and saved-history scope remain. Plan uses the accepted flat
+week strip and retains civil-day ownership, Add session, proposals, recurrence,
+missed-work recovery, Library and editor Save/cancel. One immutable state is
+captured for deferred content. ADR-021's old collapsed-routine rule is amended
+under the owner's approved one-tap frontend direction. The real Plan/Room
+journey is strengthened with direct exact-ID taps, selected-day callbacks,
+full-name/preview glyph checks and catalog-keyed art. It uses four distinct
+ordered lifts and verifies the first three native thumbnail IDs/order, the absent
+fourth and the complete counted preview. A cardio modality or cardio template
+with a retained routine reference cannot borrow that routine's lift picture;
+both supported contradictory shapes are covered by an actual Room-backed case.
+The repeated lift count is removed from the update caption.
+
+The first two focused commands failed compilation on an icon reference and a
+duplicate test variable. Later focused commands preserved native test failures:
+decorative-image lookups needed the unmerged tree, interactive spoken assertions
+needed the merged tree, and the four-lift fixture needed to scroll the editor
+title into view before typing. Those causes were repaired without relaxing the
+existing geometry, inventory, cancellation, Save or history assertions. The
+`targeted06` run passed **nine fresh cases / two suites**, including normal and
+font-2 phone/landscape journeys and the cardio-art boundary. Both source reviews
+cleared the production repair; their original finding reports remain preserved.
+The complete `full01` gate at `97906299` passed **4,288 fresh app tests / 592
+suites and 1,707 fresh standalone tests / 256 classes**, all four required
+Windows tasks and dependent release assembly, with no failures, errors or skips.
+All 1,572 runtime/test/tool inputs and refs stayed unchanged. The native archive
+contains **146 fresh frames and matching diagnostics**: eleven stages across
+thirteen display profiles, two cardio-reference guard branches and one separate
+past-day read-only case. The first archive helper incorrectly expected that
+past-day frame in every profile; validation stopped before copying. Its original
+source and diagnosis are preserved, and the corrected inventory includes the
+existing routine-list stage in the matrix and the standalone past-day capture.
+[The actual native Plan preview](studies/q01/assets/plan-flat-workshop-2026-10-12.png)
+is an unmodified capture with synthetic Room data, including two identically
+named routines used to prove exact-ID routing. It shows flat dates/day rows,
+direct routine access, complete names and three distinct catalog illustrations.
+These are screen-host/callback and saved-data checks, distinct from full AppNav,
+physical-phone or process-death acceptance. Final pinned reviews and integration
+for [PR #488](https://github.com/sinura7/PersonalTrainer/pull/488) remain pending.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
 **Visual direction clarification, 11 October 2026 UTC:** The owner questioned
 why recent images still resemble the earlier layout. Compact Focus is the
 prior implemented workout composition. Home is now flat and illustrated; the new
-workout rows and Summary's flat receipt are implemented and integrated. History's
-flat ledger is the current candidate. The whole-app visual
+workout rows, Summary's flat receipt and History's flat ledger are implemented
+and integrated. The compact Plan workshop is the current candidate. The whole-app visual
 redesign is unfinished. The connected native composition follows the
 [new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
 agenda, two flat editable workout rows, reachable saved-work actions and an

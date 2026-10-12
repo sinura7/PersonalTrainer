@@ -50,7 +50,7 @@ object AccessibilityMatrix {
             title = "Plan",
             states = requiredStates,
             voltAction = "Add session",
-            talkBackNotes = "Library, Add session, and Log or start cardio are named. Planned Start is Home. The sheet is not a second Volt. Routines start collapsed behind Show routines. Generator lives on Settings. Settings is a tab, not a header gear. Reminders live on Settings.",
+            talkBackNotes = "Library, Add session, and Log or start cardio are named. Planned Start is Home. The sheet is not a second Volt. Routines are visible directly, with complete names, ordered exercise previews, and separate options; tapping a routine edits it. Generator lives on Settings. Settings is a tab, not a header gear. Reminders live on Settings.",
             automatedEvidence = true,
         ),
         PagePass(

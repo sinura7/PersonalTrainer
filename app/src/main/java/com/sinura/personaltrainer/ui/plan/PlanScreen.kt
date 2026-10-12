@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
@@ -37,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,6 +47,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
+import com.sinura.personaltrainer.domain.AgendaItem
+import com.sinura.personaltrainer.domain.Exercise
+import com.sinura.personaltrainer.domain.ScheduleKind
+import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.EmptyScene
 import com.sinura.personaltrainer.domain.LighterWeek
 import com.sinura.personaltrainer.domain.OneFilledVolt
@@ -56,13 +63,12 @@ import com.sinura.personaltrainer.domain.WeekTwoCopy
 import com.sinura.personaltrainer.ui.units.LocalTodayEpochDay
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.GroupedList
+import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymCard
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.components.InstrumentChip
-import com.sinura.personaltrainer.ui.components.InstrumentRow
 import com.sinura.personaltrainer.ui.components.InstrumentMenu
 import com.sinura.personaltrainer.ui.components.InstrumentMenuItem
 import com.sinura.personaltrainer.ui.components.OutlinedMarks
@@ -278,7 +284,7 @@ fun PlanScreen(
     onOpenStartSheet: () -> Unit = {},
     viewModel: PlanViewModel = viewModel(),
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val state = viewModel.uiState.collectAsStateWithLifecycle().value
     val navigateToEditor by viewModel.navigateToEditor.collectAsStateWithLifecycle()
     val dateFormat = remember {
         DateFormat.getDateInstance(DateFormat.MEDIUM)
@@ -288,7 +294,6 @@ fun PlanScreen(
     var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
     val weekStripState = rememberWeekStripState()
-    var routinesOpen by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(navigateToEditor) {
         val id = navigateToEditor ?: return@LaunchedEffect
@@ -317,6 +322,7 @@ fun PlanScreen(
             }
         }
         val names = remember(state.routines) { state.routines.associate { it.id to it.name } }
+        val routinesById = remember(state.routines) { state.routines.associateBy { it.id } }
         val cells = remember(weekStart, state.occurrences, state.rules, names) {
             WeekBoard.forWeek(weekStart, state.occurrences, state.rules, names)
         }
@@ -401,6 +407,7 @@ fun PlanScreen(
                     onSelectDay = { selectedEpochDay = it },
                     proposals = proposalsByDay,
                     stripState = weekStripState,
+                    flat = true,
                 )
             }
             item(key = "summary") {
@@ -416,6 +423,7 @@ fun PlanScreen(
                 PlanSelectedDayBoard(
                     title = selectedTitle,
                     items = selectedAgenda,
+                    routines = routinesById,
                     empty = selectedAgenda.isEmpty(),
                     onOpenDay = { onOpenDay(selectedEpochDay, false) },
                 )
@@ -465,42 +473,24 @@ fun PlanScreen(
                 }
             } else {
                 item(key = "routines-header") {
-                    val count = state.routines.size
-                    InstrumentRow(
-                        title = if (routinesOpen) "Hide routines" else "Show routines",
-                        subtitle = if (routinesOpen) {
-                            "Edit or manage routines."
-                        } else if (count == 1) {
-                            "1 program"
-                        } else {
-                            "$count programs"
-                        },
-                        modifier = Modifier
-                            .testTag(PlanTags.ROUTINES)
-                            .semantics {
-                                contentDescription = if (routinesOpen) {
-                                    "Hide routines"
-                                } else {
-                                    "Show routines"
-                                }
-                            },
-                        onClick = { routinesOpen = !routinesOpen },
-                    )
-                }
-                if (routinesOpen) {
-                    item(key = "routines") {
-                        GroupedList {
-                            state.routines.forEachIndexed { index, routine ->
-                                if (index > 0) HairlineDivider()
-                                RoutineRow(
-                                    routine = routine,
-                                    updatedLabel = routineUpdatedLabel(routine, dateFormat),
-                                    onOpen = { onOpenRoutine(routine.id) },
-                                    onDelete = { pendingDeleteId = routine.id },
-                                )
-                            }
-                        }
+                    Column(verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+                        Text(
+                            text = "Routines",
+                            style = InstrumentType.title,
+                            color = TextPrimary,
+                            modifier = Modifier.testTag(PlanTags.ROUTINES).semantics { heading() },
+                        )
+                        Text(text = "Tap a routine to edit.", style = InstrumentType.caption, color = TextSecondary)
                     }
+                }
+                itemsIndexed(items = state.routines, key = { _, routine -> "routine:${routine.id}" }) { index, routine ->
+                    if (index > 0) HairlineDivider(startIndent = 0.dp)
+                    RoutineRow(
+                        routine = routine,
+                        updatedLabel = routineUpdatedLabel(routine, dateFormat),
+                        onOpen = { onOpenRoutine(routine.id) },
+                        onDelete = { pendingDeleteId = routine.id },
+                    )
                 }
             }
         }
@@ -595,7 +585,8 @@ internal fun PlanLighterChip(
 @Composable
 private fun PlanSelectedDayBoard(
     title: String,
-    items: List<com.sinura.personaltrainer.domain.AgendaItem>,
+    items: List<AgendaItem>,
+    routines: Map<String, Routine>,
     empty: Boolean,
     onOpenDay: () -> Unit,
 ) {
@@ -621,22 +612,50 @@ private fun PlanSelectedDayBoard(
                 color = TextSecondary,
             )
         } else {
-            GroupedList {
+            Column {
                 items.forEachIndexed { index, item ->
-                    if (index > 0) HairlineDivider()
-                    InstrumentRow(
-                        title = item.title,
-                        subtitle = item.kindCaption,
-                        onClick = onOpenDay,
-                    )
+                    if (index > 0) HairlineDivider(startIndent = 0.dp)
+                    val routine = item.rule?.takeUnless {
+                        it.modality == ScheduleModality.CARDIO || ScheduleKind.cardioType(it.templateId) != null
+                    }?.routineId?.let(routines::get)
+                    PlanAgendaRow(item = item, exercise = routine?.exercises?.firstOrNull()?.exercise, onOpen = onOpenDay)
                 }
             }
         }
     }
 }
 
+
+@Composable
+private fun PlanAgendaRow(item: AgendaItem, exercise: Exercise?, onOpen: () -> Unit) {
+    val view = LocalView.current
+    Row(
+        modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin)
+            .testTag(PlanTags.agenda(item.occurrence.id))
+            .clickable(role = Role.Button, onClickLabel = "Edit this day") {
+                Haptics.tickLight(view)
+                onOpen()
+            }
+            .padding(vertical = Metrics.space3),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+    ) {
+        exercise?.let {
+            Box(modifier = Modifier.testTag(PlanTags.agendaThumb(item.occurrence.id))) {
+                ExerciseThumb(exercise = it)
+            }
+        }
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+            Text(text = item.title, style = InstrumentType.title, color = TextPrimary)
+            Text(text = item.kindCaption, style = InstrumentType.caption, color = TextSecondary)
+        }
+        Icon(imageVector = TemperIcons.Chevron, contentDescription = null, tint = TextSecondary,
+            modifier = Modifier.size(Metrics.chevron))
+    }
+}
+
 /**
- * A routine as a program rather than as a document.
+ * A reusable routine, shown directly beside its management actions.
  *
  * Tap edits the reusable routine. A quiet menu exposes management without requiring
  * a guessed gesture; long-press remains a shortcut to the same delete confirmation.
@@ -658,6 +677,8 @@ private fun RoutineRow(
             .heightIn(min = Metrics.rowMin)
             .testTag(PlanTags.routine(routine.id))
             .combinedClickable(
+                role = Role.Button,
+                onClickLabel = "Edit ${routine.name}",
                 onLongClickLabel = "Delete ${routine.name}",
                 onLongClick = {
                     Haptics.tick(view)
@@ -665,7 +686,7 @@ private fun RoutineRow(
                 },
                 onClick = onOpen,
             )
-            .padding(horizontal = Metrics.space4, vertical = Metrics.space3),
+            .padding(vertical = Metrics.space3),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
     ) {
@@ -674,28 +695,32 @@ private fun RoutineRow(
             verticalArrangement = Arrangement.spacedBy(Metrics.space1),
         ) {
             Text(
-                routine.name,
+                text = routine.name,
+                modifier = Modifier.testTag(PlanTags.routineName(routine.id)),
                 style = InstrumentType.title,
                 color = TextPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                maxLines = Int.MAX_VALUE,
+                overflow = TextOverflow.Clip,
             )
+            if (routine.exercises.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                    routine.exercises.take(3).forEach { lift ->
+                        Box(modifier = Modifier.testTag(PlanTags.routineThumb(routine.id, lift.exercise.id))) {
+                            ExerciseThumb(exercise = lift.exercise)
+                        }
+                    }
+                }
+            }
             Text(
-                preview,
+                text = preview,
                 style = InstrumentType.body,
                 color = TextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                maxLines = Int.MAX_VALUE,
+                overflow = TextOverflow.Clip,
             )
-            Text(
-                buildString {
-                    append(routine.exercises.size)
-                    append(if (routine.exercises.size == 1) " lift" else " lifts")
-                    updatedLabel?.let { append(" · "); append(it) }
-                },
-                style = InstrumentType.caption,
-                color = TextTertiary,
-            )
+            updatedLabel?.let { label ->
+                Text(text = label, style = InstrumentType.caption, color = TextTertiary)
+            }
         }
         Box {
             IconButton(
@@ -874,7 +899,11 @@ object PlanTags {
     const val LIGHTER = "plan-lighter"
     const val LIBRARY_SPOKEN = "Library"
     const val ROUTINES = "plan-routines"
+    fun agenda(occurrenceId: String): String = "plan-agenda-$occurrenceId"
+    fun agendaThumb(occurrenceId: String): String = "plan-agenda-thumb-$occurrenceId"
     fun routine(id: String): String = "plan-routine-$id"
+    fun routineName(id: String): String = "plan-routine-name-$id"
+    fun routineThumb(id: String, exerciseId: String): String = "plan-routine-thumb-$id-$exerciseId"
     fun routineOptions(id: String): String = "plan-routine-options-$id"
     fun routineEdit(id: String): String = "plan-routine-edit-$id"
     fun routineDelete(id: String): String = "plan-routine-delete-$id"

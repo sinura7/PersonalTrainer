@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.plan
 
 import android.content.Intent
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
@@ -243,7 +244,12 @@ class PlanRoutineActionsInstrumentedTest {
             compose.onAllNodesWithTag(PlanTags.CONTENT).fetchSemanticsNodes().isNotEmpty()
         }
         compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.ROUTINES))
-        tap(PlanTags.ROUTINES)
+        val heading = compose.onNodeWithTag(PlanTags.ROUTINES).assertIsDisplayed().fetchSemanticsNode()
+        assertTrue("routines are directly visible without a disclosure action",
+            !heading.config.contains(SemanticsActions.OnClick))
+        compose.onNodeWithText("Show routines").assertDoesNotExist()
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(PlanTags.routine(routine.id)))
+        compose.onNodeWithTag(PlanTags.routine(routine.id)).performScrollTo().assertIsDisplayed()
         compose.waitForIdle()
     }
 

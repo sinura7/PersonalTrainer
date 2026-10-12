@@ -56,7 +56,8 @@ authorize that work.
 
 Home's day picker uses flat date targets with a neutral selection rule. It keeps
 the existing measured widths, full activity/status captions, today marker,
-horizontal exploration ownership and spoken dates; Plan keeps its current surface.
+horizontal exploration ownership and spoken dates. The later native Plan amendment
+in ADR-026 extends these flat targets to Plan without changing day ownership.
 
 The authorized frontend roadmap keeps the start behavior below and changes its
 presentation. The general **Start a workout** stays anchored above navigation
@@ -106,9 +107,12 @@ and reachability evidence closes implementation separately from phone acceptance
    block. Skip is never Volt. Today's own planned rows are not
    skipped from this control.
 
-6. **Plan routines are collapsed.** The catalog list starts closed.
-   Tap **Routines** to expand. Empty still offers Create a routine.
-   Long-press delete is unchanged.
+6. **Plan routines are visible directly.** *Amended 11 October 2026 by
+   [ADR-026's compact Plan workshop](ADR-026-frontend-redesign.md): the owner's
+   one-tap frontend direction supersedes the earlier collapsed catalog.*
+   Show complete names and ordered exercise previews beside matching artwork.
+   Tap a routine to edit; its separate options and long-press delete shortcut
+   retain the existing confirmation. Empty still offers Create a routine.
 
 7. **Routine editor Save keeps the program.** When the routine has
    lifts, a Save dock writes the name and notes, flushes staged
@@ -144,5 +148,6 @@ and reachability evidence closes implementation separately from phone acceptance
 - Does Add sit under Today? No. Plan still adds.
 - Does **Start a free workout** on the sheet start immediately? Yes.
 - Can a Still open leftover be skipped? Yes. Recurrence unchanged.
-- Are Plan routines expanded by default? No.
+- Are Plan routines visible without a disclosure tap? Yes, under the 11 October
+  native Plan amendment. Tapping a routine edits that exact routine.
 - Is there a Save when creating a routine that has lifts? Yes.
