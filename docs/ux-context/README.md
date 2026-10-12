@@ -2,6 +2,29 @@
 
 **Created:** 8 October 2026
 
+**Delivery scope, 12 October 2026 UTC:** The owner authorized a signed Debug 125
+Obtainium drop from integrated `trunk`. It includes the completed core-screen
+work below, including #491. Release publication, APK identity, increasing
+version code and the stable distribution certificate must be verified before
+calling the drop available. This is an intermediate Debug delivery; the whole
+UX roadmap and physical acceptance are unfinished.
+
+**Progress estimate:** approximately **55% of the full UX roadmap**, with about
+45% remaining. This is an engineering planning estimate based on completed
+workout and core-screen packets and remaining journey/acceptance scope, not a
+measured percentage of app functionality. The app already contains the other
+areas; their redesign and complete acceptance remain open.
+
+| Area | Implemented in the current integrated work | Remaining roadmap work |
+|---|---|---|
+| Workout | Compact illustrated identity; flat editable values and effort; clearer readiness; direct saved-set correction; explicit progression; rest/return/finish; notes and timed-result safety | Phone touch/timing/TalkBack and complete interruption/performance acceptance |
+| Home | Flat illustrated agenda, full names, dated targets, direct Start and retained choices during failed/retried starts | Complete remaining day-state/return branches and physical acceptance |
+| History and Summary | One coherent selected period; captured-date travel visibility; flat results/session ledger and finish receipt; exact correction, timed records and reader recovery | Calendar/detail/exercise-detail refinement and full end-to-end acceptance |
+| Plan and routines | Direct routine entry; flat day/week rows; illustrated editor lifts, full targets, clear recurrence/routine scope; retained failed changes and bodyweight targets | Remaining ordering/import/editor recovery and full route acceptance |
+| Library | Complete illustrated names, direct Clear filters, restored search/facet context, explicit selection, required-read Retry and guarded stale Add | Reconstructed custom drafts, interrupted/unknown Save, full picker/custom-authoring acceptance |
+| Body, cardio, onboarding, Settings | Existing functionality and shared tested foundations | Complete remaining redesigns, anatomy/list equivalence, mixed activities, setup recovery, permissions and backup/restore clarity |
+| Final integration | Connected synthetic workout, local gates, native matrices and independent/adversarial reviews for completed packets | Cross-app matrix, supported upgrade and backup/restore reconciliation, physical performance/system/accessibility checks |
+
 **Current implementation, 12 October 2026 UTC:** Home start recovery is
 integrated through [PR #482](https://github.com/sinura7/PersonalTrainer/pull/482)
 as `9d148ea5`. Both pinned reviews and updated feature/PR hosted checks passed. Clean-trunk
@@ -356,10 +379,14 @@ jobs also passed. The fresh full-gate native matrix has **117 frames and matchin
 diagnostics across 13 profiles**. The
 [actual native editor recovery state](studies/q01/assets/library-read-recovery-2026-10-12.png)
 is copied unchanged from that verified run. This establishes same-owner manual
-field continuity, not reconstruction or OS process-death draft recovery. Final
-pinned acceptance reviews and clean-trunk integration are the remaining packet
-steps; the following F8 packet addresses reconstructed drafts and interrupted
-or unknown Save outcomes.
+field continuity, not reconstruction or OS process-death draft recovery. Both
+final pinned reviews passed; [#491](https://github.com/sinura7/PersonalTrainer/pull/491)
+is integrated at `89825956`. The clean-trunk gate proved identical inputs and
+reused the preserved full results, then seven fresh Library/owner/connected
+workout cases passed with no failures, errors or skips. The feature is retired
+with a verified complete-history bundle, and integrated hosted CI passed. The
+following F8 packet addresses reconstructed drafts and interrupted or unknown
+Save outcomes.
 
 The hosted PR and trunk checks for #488 exposed one existing Home RTL fixture
 failure: on Monday it selected week start, which was today, then incorrectly
