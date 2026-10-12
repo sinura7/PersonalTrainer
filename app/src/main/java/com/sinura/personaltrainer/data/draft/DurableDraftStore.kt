@@ -12,7 +12,6 @@ import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
 import java.util.UUID
-import java.util.ArrayDeque
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -241,7 +240,7 @@ internal class DurableDraftStore(
 
     /** Escaped lone surrogates are ASCII bytes, so strict UTF8 decoding alone cannot reject them. */
     private fun validateUnicode(root: JsonElement) {
-        val remaining = ArrayDeque<JsonElement>()
+        val remaining = java.util.ArrayDeque<JsonElement>()
         remaining.addLast(root)
         while (remaining.isNotEmpty()) {
             val value = remaining.removeLast()
@@ -253,6 +252,7 @@ internal class DurableDraftStore(
                 value.isJsonArray -> value.asJsonArray.forEach { remaining.addLast(it) }
                 value.isJsonPrimitive && value.asJsonPrimitive.isString ->
                     if (!wellFormedDraftText(value.asString)) corrupt()
+                else -> Unit
             }
         }
     }
