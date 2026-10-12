@@ -241,7 +241,17 @@ diagnostics**, including the bodyweight retained-column case. Pixel review
 checked actual catalog pictures, full names, large text, landscape and RTL
 targets. [The actual native routine editor](studies/q01/assets/routine-flat-editor-2026-10-12.png)
 uses synthetic data; its routine-name input keeps the existing horizontal
-editing behavior. Final pinned reviews and integration remain pending.
+editing behavior. Both final pinned reviews passed and
+[PR #489](https://github.com/sinura7/PersonalTrainer/pull/489) merged at `e5a00abd`,
+with the exact reviewed tree. The clean-trunk complete gate passed with fresh
+static checks and proven reuse of unchanged code/test/tool inputs, archived XML
+and standalone evidence; it executed no new app or standalone tests. The
+shortest affected journey then passed **six fresh cases / five suites**,
+including the connected workout and exact bodyweight-column preservation.
+The feature branch is retired with a verified complete recovery bundle.
+Some inherited Plan return captures show the transitional Saving editor;
+callback and exact Room Save return are verified, while the rendered return
+matrix and full AppNav remain F11 acceptance.
 
 Both hosted build checks passed on the repair. One supplemental emulator run
 passed and the other initially failed waiting for the keyboard in an unchanged
@@ -249,6 +259,36 @@ History notes test, before that test attempted its correction write. Original
 log/report evidence is preserved. A repeat of that failed job passed, with no
 source, assertion or timeout change; the first failure remains a failure.
 Physical keyboard, phone and broader F11 acceptance remain separate.
+
+The current Library packet carries the flat illustrated layout into complete
+exercise names and wrapping metadata, with full-width identity below the image
+and actions at large text. A direct Clear filters action stays visible beside
+the scrolling equipment choices and clears both facets while retaining the
+typed query. Query, facets, family expansion and the route's initial-muscle
+ownership use the existing Android SavedState mechanism so a cleared Body filter
+is not reapplied after reconstruction. A temporary native baseline at normal
+and font-2 phone sizes confirmed the old one-line name truncation; its two cases,
+frames and diagnostics are preserved, and the observation-only probe is removed
+from shipping tests. Source review identified custom bodyweight metadata
+truncation; its local tag now wraps. Add and Options expose their own spoken
+48 dp buttons. The options sheet opens fully and scrolls. Actual native
+landscape failures found hidden Delete and a Create button covering Options;
+Create now moves into the header when the parent is landscape. Original
+compilation, harness, static and reachability failures are preserved under
+`build/ux-context/runs/library-return`, including the interrupted main-loop
+fixture diagnostic and the covered-control screenshot. No baseline was raised.
+
+`targeted10` passed **31 fresh cases / three suites**, with no failures, errors
+or skips and all 1,574 source inputs and refs unchanged. It produced **79 native
+frames and matching diagnostics** across 13 profiles, including the real sheet
+window. The framework test uses a genuinely new Activity/ViewModel, mounts the
+same Body argument, proves the initial BACK/CABLE facets before clearing, and
+verifies cleared facets/raw query after restoration with exact catalog equality.
+Native journeys check complete name/load glyphs, pinned facet clearing, exact
+Add/options cancellation and exact-ID return without catalog/routine writes.
+The complete gate, final pinned reviews and integration remain pending.
+Manual custom-editor draft recovery, required-read recovery, full
+pickers/onboarding and broader F8 acceptance remain separately open.
 
 The hosted PR and trunk checks for #488 exposed one existing Home RTL fixture
 failure: on Monday it selected week start, which was today, then incorrectly

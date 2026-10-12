@@ -1,19 +1,28 @@
 package com.sinura.personaltrainer.ui.library
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.AlertDialog
@@ -23,6 +32,7 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -35,8 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,7 +63,7 @@ import com.sinura.personaltrainer.domain.MuscleGroups
 import com.sinura.personaltrainer.ui.components.AddToRoutineSheet
 import com.sinura.personaltrainer.ui.components.ConfirmActionDialog
 import com.sinura.personaltrainer.ui.components.EmptyState
-import com.sinura.personaltrainer.ui.components.ExerciseRow
+import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.ExerciseSearchField
 import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymStatusBanner
@@ -63,10 +75,12 @@ import com.sinura.personaltrainer.ui.components.OutlinedMarks
 import com.sinura.personaltrainer.ui.components.ScreenHeader
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.theme.Danger
+import com.sinura.personaltrainer.ui.theme.Hairline
 import com.sinura.personaltrainer.ui.theme.instrumentAnimateItem
 import com.sinura.personaltrainer.ui.theme.InstrumentType
 import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
+import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
@@ -80,12 +94,44 @@ fun ExerciseLibraryScreen(
     initialMuscle: CanonicalMuscle? = null,
     viewModel: ExerciseLibraryViewModel = viewModel(),
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        ExerciseLibraryContent(
+            onBack = onBack,
+            onCreateRoutine = onCreateRoutine,
+            onOpenExercise = onOpenExercise,
+            initialMuscle = initialMuscle,
+            viewModel = viewModel,
+            landscape = maxWidth > maxHeight,
+        )
+    }
+}
+
+@Composable
+private fun ExerciseLibraryContent(
+    onBack: () -> Unit,
+    onCreateRoutine: (String) -> Unit,
+    onOpenExercise: (String) -> Unit,
+    initialMuscle: CanonicalMuscle?,
+    viewModel: ExerciseLibraryViewModel,
+    landscape: Boolean,
+) {
+    val state = viewModel.uiState.collectAsStateWithLifecycle().value
     // Held as an id rather than the row's own boolean so the sheet survives a rotation, and
     // so it closes by itself if the lift underneath it is deleted.
     var overflowExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         viewModel.seedMuscleFromRoute(initialMuscle)
+    }
+    val headerActions: @Composable RowScope.() -> Unit = {
+        if (landscape && state.visibleExercises.isNotEmpty()) {
+            IconButton(
+                onClick = viewModel::openCreate,
+                modifier = Modifier.size(Metrics.touchMin).testTag(LibraryTags.FAB)
+                    .semantics { contentDescription = "Create lift" },
+            ) {
+                Icon(Icons.Outlined.Add, contentDescription = null, tint = Volt)
+            }
+        }
     }
 
     Scaffold(
@@ -97,11 +143,12 @@ fun ExerciseLibraryScreen(
                 title = "Library",
                 onBack = onBack,
                 backTag = LibraryTags.BACK,
-                titleStyle = InstrumentType.display,
+                kickerTitle = true,
+                trailing = headerActions,
             )
         },
         floatingActionButton = {
-            if (state.visibleExercises.isNotEmpty()) {
+            if (!landscape && state.visibleExercises.isNotEmpty()) {
                 FloatingActionButton(
                     onClick = viewModel::openCreate,
                     modifier = Modifier.testTag(LibraryTags.FAB),
@@ -169,24 +216,38 @@ fun ExerciseLibraryScreen(
                             )
                         }
                     }
-                    LazyRow(
+                    Row(
                         modifier = Modifier.padding(top = Metrics.space2, bottom = Metrics.space4),
-                        contentPadding = PaddingValues(horizontal = Metrics.gutter),
-                        horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        item(key = "equipment-all") {
-                            InstrumentChip(
-                                label = "Any kit",
-                                selected = state.selectedEquipment == null,
-                                onClick = { viewModel.onEquipmentSelected(null) },
-                            )
+                        LazyRow(
+                            modifier = Modifier.weight(1f).testTag(LibraryTags.EQUIPMENT_FILTERS),
+                            contentPadding = PaddingValues(horizontal = Metrics.gutter),
+                            horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                        ) {
+                            item(key = "equipment-all") {
+                                InstrumentChip(
+                                    label = "Any kit",
+                                    selected = state.selectedEquipment == null,
+                                    onClick = { viewModel.onEquipmentSelected(null) },
+                                )
+                            }
+                            items(state.equipmentFilters, key = { it.name }) { equipment ->
+                                InstrumentChip(
+                                    label = equipment.label,
+                                    selected = state.selectedEquipment == equipment,
+                                    onClick = { viewModel.onEquipmentSelected(equipment) },
+                                )
+                            }
                         }
-                        items(state.equipmentFilters, key = { it.name }) { equipment ->
-                            InstrumentChip(
-                                label = equipment.label,
-                                selected = state.selectedEquipment == equipment,
-                                onClick = { viewModel.onEquipmentSelected(equipment) },
-                            )
+                        if (state.selectedMuscle != null || state.selectedEquipment != null) {
+                            TextButton(
+                                onClick = viewModel::clearFilters,
+                                modifier = Modifier.testTag(LibraryTags.CLEAR_FILTERS)
+                                    .padding(end = Metrics.gutter),
+                            ) {
+                                Text("Clear filters", style = InstrumentType.caption, color = TextSecondary)
+                            }
                         }
                     }
                     state.message?.let { note ->
@@ -224,9 +285,11 @@ fun ExerciseLibraryScreen(
                     } else {
                         HairlineDivider(startIndent = 0.dp)
                         LazyColumn(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).testTag(LibraryTags.LIST),
                             // Rows run edge to edge; the screen margin lives inside them.
-                            contentPadding = PaddingValues(bottom = Metrics.fabClearance),
+                            contentPadding = PaddingValues(
+                                bottom = if (landscape) Metrics.space4 else Metrics.fabClearance,
+                            ),
                         ) {
                             if (state.needsAttention.isNotEmpty()) {
                                 item(key = "attention-header") {
@@ -455,37 +518,82 @@ private fun CollisionRow(
  * behind an overflow.
  */
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun LibraryRow(
     exercise: Exercise,
     onOpen: () -> Unit,
     onAddToRoutine: () -> Unit,
     onOverflow: () -> Unit,
 ) {
-    ExerciseRow(
-        exercise = exercise,
-        onClick = onOpen,
-        // Equipment is the thing that distinguishes eight bench presses from each other.
-        // Load sits next to it when the kit does not already say plates-versus-stack
-        // (E-12). "Custom" still wins on the user's own lifts, with the load named when it
-        // is not the plates default.
-        tag = LoadTypeCopy.libraryTag(exercise),
-    ) {
-        IconButton(onClick = onAddToRoutine) {
+    val largeText = LocalDensity.current.fontScale >= 1.6f
+    val identity: @Composable (Modifier) -> Unit = { modifier ->
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
+            Text(exercise.name, style = InstrumentType.bodyStrong, color = TextPrimary)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+            ) {
+                Text(exercise.muscleGroup, style = InstrumentType.caption, color = TextSecondary)
+                Box(
+                    modifier = Modifier
+                        .border(Metrics.hairline, Hairline, RoundedCornerShape(Radius.xs))
+                        .padding(horizontal = Metrics.space2, vertical = Metrics.space1),
+                ) {
+                    Text(
+                        LoadTypeCopy.libraryTag(exercise).uppercase(),
+                        style = InstrumentType.kicker,
+                        color = TextTertiary,
+                    )
+                }
+            }
+        }
+    }
+    val actions: @Composable () -> Unit = {
+        IconButton(
+            onClick = onAddToRoutine,
+            modifier = Modifier.size(Metrics.touchMin).testTag(LibraryTags.add(exercise.id)).semantics {
+                contentDescription = "Add ${exercise.name} to a routine"
+            },
+        ) {
             Icon(
                 OutlinedMarks.PlaylistAdd,
-                contentDescription = "Add ${exercise.name} to a routine",
+                contentDescription = null,
                 tint = TextSecondary,
             )
         }
         if (exercise.isCustom) {
-            IconButton(onClick = onOverflow) {
+            IconButton(
+                onClick = onOverflow,
+                modifier = Modifier.size(Metrics.touchMin).testTag(LibraryTags.options(exercise.id)).semantics {
+                    contentDescription = "More for ${exercise.name}"
+                },
+            ) {
                 Icon(
                     OutlinedMarks.MoreVert,
-                    contentDescription = "More for ${exercise.name}",
+                    contentDescription = null,
                     tint = TextTertiary,
                 )
             }
         }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = Metrics.rowMin)
+            .testTag(LibraryTags.lift(exercise.id))
+            .clickable(role = Role.Button, onClickLabel = "Open exercise", onClick = onOpen)
+            .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
+        verticalArrangement = Arrangement.spacedBy(Metrics.space2),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Metrics.space3),
+        ) {
+            ExerciseThumb(exercise = exercise)
+            if (largeText) Box(modifier = Modifier.weight(1f)) else identity(Modifier.weight(1f))
+            actions()
+        }
+        if (largeText) identity(Modifier.fillMaxWidth())
     }
 }
 
@@ -503,10 +611,14 @@ private fun LiftOverflowSheet(
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(bottom = Metrics.space7),
             verticalArrangement = Arrangement.spacedBy(Metrics.space4),
         ) {
@@ -532,7 +644,7 @@ private fun SheetActionRow(label: String, color: Color, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = Metrics.gutter, vertical = Metrics.space3),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -544,5 +656,11 @@ object LibraryTags {
     const val BACK = "library-back"
     const val SEARCH = "library-search"
     const val FAB = "library-create"
+    const val CLEAR_FILTERS = "library-clear-filters"
+    const val EQUIPMENT_FILTERS = "library-equipment-filters"
+    const val LIST = "library-list"
+    fun lift(id: String) = "library-lift-$id"
+    fun add(id: String) = "library-add-$id"
+    fun options(id: String) = "library-options-$id"
     const val SEARCH_SPOKEN = "Search lifts by name or muscle"
 }
