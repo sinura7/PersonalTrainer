@@ -15,6 +15,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -116,7 +117,7 @@ class SummaryCorrectionNavigationTest {
 
         awaitTag(tag = LiveSessionBarTestTags.ROOT)
         compose.onNodeWithTag(testTag = LiveSessionBarTestTags.ROOT).performClick()
-        awaitTag(tag = WorkoutTestTags.FINISH)
+        awaitTag(tag = WorkoutTestTags.FINISH, enabled = true)
         compose.onNodeWithTag(testTag = WorkoutTestTags.FINISH).assertIsEnabled().performClick()
         val endDialog = hasText(text = "End workout?") and hasAnyAncestor(matcher = isDialog())
         compose.waitUntil(timeoutMillis = WAIT_MS, condition = {
@@ -246,9 +247,10 @@ class SummaryCorrectionNavigationTest {
         compose.onNode(matcher = readout).assertContentDescriptionEquals(spoken).assertIsDisplayed()
     }
 
-    private fun awaitTag(tag: String) {
+    private fun awaitTag(tag: String, enabled: Boolean = false) {
+        val matcher = if (enabled) hasTestTag(testTag = tag) and isEnabled() else hasTestTag(testTag = tag)
         compose.waitUntil(timeoutMillis = WAIT_MS, condition = {
-            compose.onAllNodes(matcher = hasTestTag(testTag = tag)).fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodes(matcher = matcher).fetchSemanticsNodes().isNotEmpty()
         })
     }
 

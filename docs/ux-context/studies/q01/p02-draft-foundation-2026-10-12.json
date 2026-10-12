@@ -25,9 +25,15 @@
       "deviceRunId": "20261012-170414348"
     },
     "originalFailure": "target01 static required_args_mixed grew181 versus180 plus nullable-parent warning. Both corrected; tests had not executed, no checker baseline weakened.",
-    "interruptedFull01": "Standalone1707 passed; full app run interrupted before accepting any complete result to fix strict UTF8 decoding. Original outputs retained. Final changed inputs require fresh complete gate."
+    "interruptedFull01": "Standalone1707 passed; full app run interrupted before accepting any complete result to fix strict UTF8 decoding. Original outputs retained. Final changed inputs require fresh complete gate.",
+    "full02": "4350 fresh app tests: 1 initial Finish readiness assertion failure, zero errors/skips; draft17/17 passed. Preflight1707 passed; build/lint tasks did not complete after Test failure. Source/ref stable. Original XML/logs retained."
   },
   "acceptanceBoundary": "Infrastructure only. P03-P18 adopt form codecs, perform repository ownership/uncertain-write inspection and wire accepted restore. This does not close UI, actual process termination, all UX07/UX23 criteria or physical acceptance.",
   "visibleChange": "None. Connected custom-editor concept and actual native states belong to P03.",
-  "next": "P03 custom-editor typed reconstruction and stable-ID Save recovery after P02 gate/reviews/integration."
+  "next": "P03 custom-editor typed reconstruction and stable-ID Save recovery after P02 gate/reviews/integration.",
+  "verificationRepair": "SummaryCorrectionNavigationTest waits up to existing20s for Finish enabled, then retains its original assert/click and all exact saved-session, correction and receipt checks. Production canFinish requires FOUND/nonempty sets/unlocked; the previous presence-only wait did not await that readiness. No product guard or checker weakened.",
+  "integrationPrerequisites": {
+    "P03": "Before first form adoption ships, wire restore and destructive-change invalidation into existing business-write coordination. Repository inspection must distinguish an uncommitted command from one subsequently changed/deleted; row absence alone is not proof. No automatic business replay on reopen.",
+    "P09-P18": "Each area supplies immutable typed codecs, owner reconciliation, exact business inspection and its own write-through/partial-save contract. P18 completes the restore UI, not permission to delay P03 safety wiring."
+  }
 }
