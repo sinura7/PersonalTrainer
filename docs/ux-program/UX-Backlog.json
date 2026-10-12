@@ -1986,7 +1986,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P05"
+        ],
+        "closurePacket": "P05"
       }
     },
     {
@@ -2009,7 +2013,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P05"
+        ],
+        "closurePacket": "P05"
       }
     },
     {
@@ -2032,7 +2040,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P05"
+        ],
+        "closurePacket": "P05"
       }
     },
     {
@@ -2051,11 +2063,17 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX02",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P05",
+          "P13",
+          "P14"
+        ],
+        "closurePacket": "P14"
       }
     },
     {
@@ -2070,15 +2088,20 @@
       "status": "Not executed",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
-        "owner": "P05",
+        "owner": "P14",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX02",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P05",
+          "P14"
+        ],
+        "closurePacket": "P14"
       }
     },
     {
@@ -2097,11 +2120,17 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX02",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P05",
+          "P13",
+          "P14"
+        ],
+        "closurePacket": "P14"
       }
     },
     {
@@ -2125,7 +2154,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -2149,7 +2182,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -2173,7 +2210,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -2197,7 +2238,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -2222,7 +2267,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09"
       }
     },
     {
@@ -2247,7 +2296,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09"
       }
     },
     {
@@ -2272,7 +2325,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09"
       }
     },
     {
@@ -2297,7 +2354,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09"
       }
     },
     {
@@ -2322,7 +2383,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07"
       }
     },
     {
@@ -2347,7 +2412,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07"
       }
     },
     {
@@ -2372,7 +2441,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07"
       }
     },
     {
@@ -2397,7 +2470,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07"
       }
     },
     {
@@ -2421,7 +2498,11 @@
         "automated": "Baseline NumericEntryTest explicitly asserts these parser inputs; all UI callers remain separately open in UX06-AC04.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence"
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -2445,7 +2526,11 @@
         "automated": "Baseline NumericEntryTest explicitly asserts these parser inputs; all UI callers remain separately open in UX06-AC04.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Bounded automated evidence"
+        "state": "Bounded automated evidence",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -2469,7 +2554,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -2485,15 +2574,23 @@
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
       "completion": {
-        "owner": "P04",
+        "owner": "P19",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX06",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P04",
+          "P09",
+          "P13",
+          "P14",
+          "P17"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -2510,15 +2607,20 @@
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
       "completion": {
-        "owner": "P02",
+        "owner": "P14",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P14"
+        ],
+        "closurePacket": "P14"
       }
     },
     {
@@ -2535,15 +2637,24 @@
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
       "completion": {
-        "owner": "P02",
+        "owner": "P14",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P09",
+          "P13",
+          "P14",
+          "P16"
+        ],
+        "closurePacket": "P16"
       }
     },
     {
@@ -2560,15 +2671,25 @@
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
       "completion": {
-        "owner": "P02",
+        "owner": "P03",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P09",
+          "P13",
+          "P14",
+          "P15",
+          "P16"
+        ],
+        "closurePacket": "P16"
       }
     },
     {
@@ -2585,15 +2706,21 @@
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
       "completion": {
-        "owner": "P02",
+        "owner": "P15",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX07",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P15",
+          "P16"
+        ],
+        "closurePacket": "P16"
       }
     },
     {
@@ -2616,7 +2743,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P15"
+        ],
+        "closurePacket": "P15"
       }
     },
     {
@@ -2639,7 +2770,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P15"
+        ],
+        "closurePacket": "P15"
       }
     },
     {
@@ -2662,7 +2797,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P15"
+        ],
+        "closurePacket": "P15"
       }
     },
     {
@@ -2677,15 +2816,21 @@
       "status": "Not executed",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
-        "owner": "P15",
+        "owner": "P16",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX08",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P15",
+          "P16"
+        ],
+        "closurePacket": "P16"
       }
     },
     {
@@ -2708,7 +2853,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09"
       }
     },
     {
@@ -2731,7 +2880,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09"
       }
     },
     {
@@ -2754,7 +2907,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P09"
+        ],
+        "closurePacket": "P09"
       }
     },
     {
@@ -2777,7 +2934,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P03"
+        ],
+        "closurePacket": "P03"
       }
     },
     {
@@ -2800,7 +2961,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P03"
+        ],
+        "closurePacket": "P03"
       }
     },
     {
@@ -2823,7 +2988,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P03"
+        ],
+        "closurePacket": "P03"
       }
     },
     {
@@ -2838,15 +3007,20 @@
       "status": "Existing ordered write-through contract retained with synchronous pending ownership and exact-ID Retry. Targeted picker write/routine checks executed; final source changes await the complete gate.",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
-        "owner": "P03",
+        "owner": "P10",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX10",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P09",
+          "P10"
+        ],
+        "closurePacket": "P10"
       }
     },
     {
@@ -2869,7 +3043,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -2892,7 +3070,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -2915,7 +3097,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -2935,11 +3121,17 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX12",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P05",
+          "P06",
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -2959,11 +3151,17 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX12",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P05",
+          "P06",
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -2983,11 +3181,17 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX12",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P05",
+          "P06",
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -3010,7 +3214,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -3033,7 +3241,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -3056,7 +3268,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -3080,7 +3296,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -3104,7 +3324,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -3128,7 +3352,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P08"
+        ],
+        "closurePacket": "P08"
       }
     },
     {
@@ -3150,7 +3378,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P06"
+        ],
+        "closurePacket": "P06"
       }
     },
     {
@@ -3172,7 +3404,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P06"
+        ],
+        "closurePacket": "P06"
       }
     },
     {
@@ -3194,7 +3430,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P06"
+        ],
+        "closurePacket": "P06"
       }
     },
     {
@@ -3217,7 +3457,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07"
       }
     },
     {
@@ -3240,7 +3484,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07"
       }
     },
     {
@@ -3263,7 +3511,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07"
       }
     },
     {
@@ -3286,7 +3538,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P11"
+        ],
+        "closurePacket": "P11"
       }
     },
     {
@@ -3309,7 +3565,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P11"
+        ],
+        "closurePacket": "P11"
       }
     },
     {
@@ -3332,7 +3592,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P11"
+        ],
+        "closurePacket": "P11"
       }
     },
     {
@@ -3355,7 +3619,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
       }
     },
     {
@@ -3378,7 +3646,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
       }
     },
     {
@@ -3401,7 +3673,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
       }
     },
     {
@@ -3424,7 +3700,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P12"
+        ],
+        "closurePacket": "P12"
       }
     },
     {
@@ -3447,7 +3727,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P12"
+        ],
+        "closurePacket": "P12"
       }
     },
     {
@@ -3470,7 +3754,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P12"
+        ],
+        "closurePacket": "P12"
       }
     },
     {
@@ -3493,7 +3781,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
       }
     },
     {
@@ -3516,7 +3808,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
       }
     },
     {
@@ -3539,7 +3835,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P17"
+        ],
+        "closurePacket": "P17"
       }
     },
     {
@@ -3562,7 +3862,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P18"
+        ],
+        "closurePacket": "P18"
       }
     },
     {
@@ -3585,7 +3889,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P18"
+        ],
+        "closurePacket": "P18"
       }
     },
     {
@@ -3608,7 +3916,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P18"
+        ],
+        "closurePacket": "P18"
       }
     },
     {
@@ -3631,7 +3943,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -3654,7 +3970,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -3677,7 +3997,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P04"
+        ],
+        "closurePacket": "P04"
       }
     },
     {
@@ -3694,15 +4018,35 @@
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
       "completion": {
-        "owner": "P02",
+        "owner": "P19",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX23",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P04",
+          "P05",
+          "P06",
+          "P07",
+          "P08",
+          "P09",
+          "P10",
+          "P11",
+          "P12",
+          "P13",
+          "P14",
+          "P15",
+          "P16",
+          "P17",
+          "P18"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3719,15 +4063,35 @@
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
       "completion": {
-        "owner": "P02",
+        "owner": "P19",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX23",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P04",
+          "P05",
+          "P06",
+          "P07",
+          "P08",
+          "P09",
+          "P10",
+          "P11",
+          "P12",
+          "P13",
+          "P14",
+          "P15",
+          "P16",
+          "P17",
+          "P18"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3744,15 +4108,35 @@
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
       "completion": {
-        "owner": "P02",
+        "owner": "P19",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX23",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P02",
+          "P03",
+          "P04",
+          "P05",
+          "P06",
+          "P07",
+          "P08",
+          "P09",
+          "P10",
+          "P11",
+          "P12",
+          "P13",
+          "P14",
+          "P15",
+          "P16",
+          "P17",
+          "P18"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3775,7 +4159,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3798,7 +4186,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3821,7 +4213,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3843,7 +4239,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": false,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3865,7 +4265,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3887,7 +4291,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3911,7 +4319,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3935,7 +4347,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3959,7 +4375,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P19"
+        ],
+        "closurePacket": "P19"
       }
     },
     {
@@ -3982,7 +4402,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P10"
+        ],
+        "closurePacket": "P10"
       }
     },
     {
@@ -4005,7 +4429,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P10"
+        ],
+        "closurePacket": "P10"
       }
     },
     {
@@ -4028,7 +4456,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P10"
+        ],
+        "closurePacket": "P10"
       }
     },
     {
@@ -4050,7 +4482,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P16"
+        ],
+        "closurePacket": "P16"
       }
     },
     {
@@ -4072,7 +4508,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P16"
+        ],
+        "closurePacket": "P16"
       }
     },
     {
@@ -4094,7 +4534,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P16"
+        ],
+        "closurePacket": "P16"
       }
     },
     {
@@ -4114,11 +4558,17 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX29",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07",
+          "P13",
+          "P14"
+        ],
+        "closurePacket": "P14"
       }
     },
     {
@@ -4142,7 +4592,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07"
+        ],
+        "closurePacket": "P07"
       }
     },
     {
@@ -4162,11 +4616,17 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX29",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P07",
+          "P13",
+          "P14"
+        ],
+        "closurePacket": "P14"
       }
     },
     {
@@ -4193,7 +4653,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P01"
+        ],
+        "closurePacket": "P01"
       }
     },
     {
@@ -4220,7 +4684,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P01"
+        ],
+        "closurePacket": "P01"
       }
     },
     {
@@ -4247,7 +4715,11 @@
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open"
+        "state": "Open",
+        "implementationPackets": [
+          "P01"
+        ],
+        "closurePacket": "P01"
       }
     }
   ],
