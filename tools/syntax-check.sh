@@ -73,15 +73,15 @@ trap 'rm -rf "$OUT" "$ERR"' EXIT
 # Room and Gson reference is unresolved. Capture the status instead of `|| true` so a
 # compiler that never started cannot print NO SYNTAX ERRORS.
 set +e
-java -cp "$CP" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-  -nowarn -no-stdlib -no-reflect -d "$OUT" "$ROOT" 2>"$ERR" >/dev/null
+java -Xms32m -Xmx512m -cp "$CP" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
+  -nowarn -no-stdlib -no-reflect -d "$OUT" "$ROOT" >"$ERR" 2>&1
 status=$?
 set -e
 
 # The compiler failing to START is not a clean parse. Without this the script printed
 # NO SYNTAX ERRORS for a NoClassDefFoundError, a missing main class or an OOM — none of
 # which match the parse-diagnostic grep below — and preflight accepted that as a pass.
-if grep -qE "^(Error: |Exception in thread |Could not find or load main class)" "$ERR"; then
+if grep -qE "^(Error: |Exception in thread |Could not find or load main class)|OutOfMemoryError|insufficient memory|Native memory allocation|A fatal error has been detected" "$ERR"; then
   echo "SYNTAX CHECK DID NOT RUN — the Kotlin compiler failed to start:"
   sed -n 1,5p "$ERR"
   exit 1
@@ -91,6 +91,15 @@ fi
 # 127 = java not found. Anything else is a failed start, not a clean parse.
 if [ "$status" -eq 127 ] || [ "$status" -ge 2 ]; then
   echo "SYNTAX CHECK DID NOT RUN — compiler exited $status"
+  sed -n 1,8p "$ERR"
+  exit 1
+fi
+
+# A native JVM startup failure can also exit 1. Admit that exit only when the
+# compiler actually emitted a source diagnostic; an empty/fatal launch is not
+# evidence that Kotlin parsed. Keep stdout too: HotSpot fatal reports use it.
+if [ "$status" -eq 1 ] && ! grep -qE '\.kt:[0-9]+:[0-9]+: error:' "$ERR"; then
+  echo "SYNTAX CHECK DID NOT RUN — compiler failed without source diagnostics"
   sed -n 1,8p "$ERR"
   exit 1
 fi

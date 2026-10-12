@@ -36,6 +36,8 @@ cat >"$SCRATCH/bin/java" <<'JAVA'
 set -eu
 case "$TEST_MODE" in
   syntax-*)
+    [ "$1" = '-Xms32m' ] && [ "$2" = '-Xmx512m' ] || exit 42
+    shift 2
     [ "$1" = -cp ] && [ "$2" = "$TEST_EXPECTED_SYNTAX_CP" ] && \
       [ "$3" = org.jetbrains.kotlin.cli.jvm.K2JVMCompiler ] || {
         echo 'Error: fixture received wrong syntax compiler classpath' >&2; exit 41;

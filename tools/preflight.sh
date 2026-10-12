@@ -186,6 +186,7 @@ for c in "check-internal-imports.py" \
          "test_cancellation.py" \
          "test_debug_drop.py" \
          "test_kotlin_source.py" \
+         "test_syntax_check.py" \
          "test_version_ratchet.py" \
          "test_release_lane.py"; do
     step "$c"

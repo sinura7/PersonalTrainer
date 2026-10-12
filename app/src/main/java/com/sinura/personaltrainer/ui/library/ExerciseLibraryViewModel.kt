@@ -5,9 +5,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppDependencies
+import com.sinura.personaltrainer.AppContainer
 import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
+import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
 import com.sinura.personaltrainer.data.repository.DeleteExerciseResult
 import com.sinura.personaltrainer.data.repository.combineHealth
 import com.sinura.personaltrainer.domain.AddDefaults
@@ -126,6 +128,17 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     private val addToRoutine = MutableStateFlow<Exercise?>(null)
     private val error = ErrorSlot()
     private val message = MutableStateFlow<String?>(null)
+    internal var editorDrafts: CustomExerciseDrafts? = (container as? AppContainer)?.customExerciseDrafts
+    private val durableEditor: LiftEditorRecovery? by lazy {
+        editorDrafts?.let { service -> LiftEditorRecovery(
+            scope = viewModelScope, drafts = service, onFields = { editor.value = it },
+            onSaved = { name -> message.value = "Saved $name."; error.clearFrom(source = ERR_EDITOR, before = error.mark()) },
+            currentWriteGeneration = { readGeneration.value }, canWrite = { generation -> canChangeLibrary(generation) },
+        ) }
+    }
+    internal val editorStatus: StateFlow<LiftEditorStatus>
+        get() = durableEditor?.status ?: legacyEditorStatus
+    private val legacyEditorStatus = MutableStateFlow(LiftEditorStatus())
     private val readGeneration = MutableStateFlow(0L)
     private val board = MutableStateFlow(LibraryReadBoard())
     // Read authority belongs to this owner, even while its composition is absent.
@@ -346,6 +359,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
 
     fun openCreate() {
         if (refuseUnreadChanges()) return
+        durableEditor?.let { it.open(ExerciseEditorDraft(muscleGroup = MuscleGroups.forNewDraft(selectedMuscle.value))); return }
         editor.value = ExerciseEditorDraft(muscleGroup = MuscleGroups.forNewDraft(selectedMuscle.value))
         error.dismiss()
     }
@@ -360,6 +374,10 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
             error.fail(source = ERR_EDITOR, message = "Built-in lifts can’t be edited.")
             return
         }
+        durableEditor?.let {
+            it.open(ExerciseEditorDraft(id = exercise.id, name = exercise.name, muscleGroup = exercise.muscleGroup, notes = exercise.notes, loadType = exercise.loadType))
+            return
+        }
         editor.value = ExerciseEditorDraft(
             id = exercise.id,
             name = exercise.name,
@@ -371,10 +389,12 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun updateEditor(draft: ExerciseEditorDraft) {
+        durableEditor?.let { it.update(draft); return }
         editor.value = draft
     }
 
     fun dismissEditor() {
+        durableEditor?.let { it.close(); return }
         editor.value = null
     }
 
@@ -391,6 +411,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
             error.fail(source = ERR_EDITOR, message = MuscleGroups.MISSING_MESSAGE)
             return
         }
+        durableEditor?.let { it.save(); return }
         val generation = readGeneration.value
         viewModelScope.launch {
             try {
@@ -439,6 +460,10 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
             }
         }
     }
+
+    internal fun checkEditorDraft() { durableEditor?.check() }
+    internal fun editUncommittedDraft() { durableEditor?.editInstead() }
+    internal fun discardEditorDraft() { durableEditor?.discard() }
 
     fun requestDelete(exercise: Exercise) {
         if (refuseUnreadChanges()) return

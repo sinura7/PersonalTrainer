@@ -60,6 +60,8 @@ class BackupService(
     private val plannerRepository: PlannerRepository? = null,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
+    /** Private drafts are fenced before Room can change; replay uses the journal's stable event. */
+    internal var invalidatePrivateDrafts: suspend (String) -> Unit = {}
     /**
      * Main-safe. Authorization itself is Task-based and thread-agnostic, but
      * [rememberAuthorizedSession] then reads Drive About over the network, and Settings
@@ -307,6 +309,7 @@ class BackupService(
                 // never started — and left the STAGED journal open, which refuses every
                 // workout start until the next launch runs recovery.
                 try {
+                    invalidatePrivateDrafts("restore:${record.snapshotId}")
                     restoreJournal.mark(RestoreJournal.WIPING)
                 } catch (thrown: CancellationException) {
                     throw thrown
@@ -376,6 +379,7 @@ class BackupService(
 
     private suspend fun recoverInterruptedRestoreLocked(): RestoreRecovery {
         val record = restoreJournal.read() ?: return RestoreRecovery.None
+        invalidatePrivateDrafts("restore:${record.snapshotId}")
         if (record.phase == RestoreJournal.DONE) {
             // Everything required is already on the phone; only the deletes were cut short.
             restoreJournal.clear()
@@ -483,6 +487,7 @@ class BackupService(
         record: RestoreJournalRecord,
         document: BackupDocument?,
     ): Completion {
+        invalidatePrivateDrafts("restore:${record.snapshotId}")
         if (record.phase == RestoreJournal.ROOM) {
             if (document == null) {
                 // Only a journal written by the old cleanup order, or an externally deleted

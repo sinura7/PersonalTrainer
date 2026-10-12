@@ -1,7 +1,7 @@
 {
   "packet": "P02",
   "baseCommit": "a4829bfdc0c1cabe444ce0f23bf0e1b071fd1cea",
-  "status": "Implementation and executed verification complete; pinned reviews and integration closeout follow.",
+  "status": "Closed: PR494 merged; candidate tree and execution inputs verified on trunk; both post-merge Android fixtures passed.",
   "authority": "ADR-033 and accepted P01-P20 completion train",
   "problem": "SavedState alone does not preserve deliberate close/reopen. A frozen Save command must precede business writes and survive uncertain acknowledgement.",
   "implementation": [
@@ -82,5 +82,28 @@
   "integrationPrerequisites": {
     "P03": "Before first form adoption ships, wire restore and destructive-change invalidation into existing business-write coordination. Repository inspection must distinguish an uncommitted command from one subsequently changed/deleted; row absence alone is not proof. No automatic business replay on reopen.",
     "P09-P18": "Each area supplies immutable typed codecs, owner reconciliation, exact business inspection and its own write-through/partial-save contract. P18 completes the restore UI, not permission to delay P03 safety wiring."
+  },
+  "integration": {
+    "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/494",
+    "candidate": "2cc0bd7796198598dfe2c978f945aca35a2085bd",
+    "merge": "630f58f253db6dd899957be4d59ce1daa07a8ea5",
+    "tree": "7e91e58f5f6163e42f074767376db7abb1c37099",
+    "finalCandidateGateSummarySha256": "8584C71354F3B26B6D05068FDDCA84E12AB9C7306AAA2FA4C0DB3BFB6B60BB6B",
+    "reusedAppTests": 4353,
+    "reusedStandaloneTests": 1707,
+    "freshAppTestsAtCloseout": 0,
+    "freshStaticBuildInvocation": true,
+    "independent": "PASS final candidate",
+    "adversarial": "PASS final candidate",
+    "postMergeFreshAndroidTests": 2,
+    "postMergeFailures": 0,
+    "postMergeErrors": 0,
+    "postMergeSkipped": 0,
+    "postMergeXmlSha256": "D883D14BE85433E667B479996371B56726443F454AA5646D95F00D03F47EE5CD",
+    "executionInputsIdenticalToFreshGate": 1581,
+    "featureBundleVerified": true,
+    "featureBranchRetired": true,
+    "signedDelivery": "Debug125 remains source587e9577. DropA follows P10.",
+    "hostedChecks": "Both deterministic Tests/lint/debug-build jobs and both non-blocking emulator jobs completed successfully for PR494."
   }
 }
