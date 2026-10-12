@@ -232,8 +232,23 @@ executed no Plan case; the next command uses the actual method name. The earlier
 successful gate cannot accept this changed source. `targeted08` then passed
 **five fresh cases / three suites**, including exact Room preservation after
 editing, loaded/hold previews, shared Custom Week draft behavior and the actual
-Plan/editor/history journey. Fresh final verification, native review and
-integration remain pending.
+Plan/editor/history journey. The fresh complete `full02` gate at `31cf341e`
+passed **4,291 fresh app tests / 592 suites and 1,707 fresh standalone tests /
+256 classes**, all four Windows tasks and dependent release assembly, with no
+failures, errors or skips. All 1,572 runtime/test/tool inputs and refs stayed
+unchanged. Its sealed archive contains **88 native frames and matching
+diagnostics**, including the bodyweight retained-column case. Pixel review
+checked actual catalog pictures, full names, large text, landscape and RTL
+targets. [The actual native routine editor](studies/q01/assets/routine-flat-editor-2026-10-12.png)
+uses synthetic data; its routine-name input keeps the existing horizontal
+editing behavior. Final pinned reviews and integration remain pending.
+
+Both hosted build checks passed on the repair. One supplemental emulator run
+passed and the other initially failed waiting for the keyboard in an unchanged
+History notes test, before that test attempted its correction write. Original
+log/report evidence is preserved. A repeat of that failed job passed, with no
+source, assertion or timeout change; the first failure remains a failure.
+Physical keyboard, phone and broader F11 acceptance remain separate.
 
 The hosted PR and trunk checks for #488 exposed one existing Home RTL fixture
 failure: on Monday it selected week start, which was today, then incorrectly
