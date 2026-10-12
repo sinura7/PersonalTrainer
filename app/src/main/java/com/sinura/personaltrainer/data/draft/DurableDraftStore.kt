@@ -6,6 +6,8 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import java.io.File
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
@@ -205,7 +207,11 @@ internal class DurableDraftStore(
 
     private fun objectFrom(bytes: ByteArray): JsonObject {
         try {
-            val value = JsonParser.parseString(bytes.toString(Charsets.UTF_8))
+            val text = Charsets.UTF_8.newDecoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .decode(ByteBuffer.wrap(bytes)).toString()
+            val value = JsonParser.parseString(text)
             if (!value.isJsonObject) corrupt()
             return value.asJsonObject
         } catch (failed: DraftFormatFailure) {

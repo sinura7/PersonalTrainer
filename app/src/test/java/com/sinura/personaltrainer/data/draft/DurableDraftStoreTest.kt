@@ -10,6 +10,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -240,6 +241,30 @@ class DurableDraftStoreTest {
         file.outputStream().use { output -> repeat(MAX_DRAFT_BYTES / 1024 + 1) { output.write(ByteArray(1024)) } }
         assertEquals(DraftRead.Unavailable(DraftReadProblem.TOO_LARGE), form.read())
         assertEquals(MAX_DRAFT_BYTES.toLong() + 1024, file.length())
+    }
+
+    @Test fun malformedUtf8CannotSilentlyChangeAuthoredFields() = runTest {
+        val root = temporary.newFolder()
+        val form = binding(root)
+        val saved = written(form.checkpoint(read(form).version, fields))
+        val file = ownerFile(root)
+        val bytes = file.readBytes()
+        val index = bytes.indexOf('B'.code.toByte())
+        assertTrue(index >= 0)
+        bytes[index] = 0xff.toByte()
+        file.writeBytes(bytes)
+        assertEquals(DraftRead.Unavailable(DraftReadProblem.CORRUPT), form.read())
+        assertEquals(DraftChange.Unavailable(DraftReadProblem.CORRUPT), form.checkpoint(saved.version, fields))
+        assertArrayEquals(bytes, file.readBytes())
+    }
+
+    @Test fun validUnicodeNamesAndMultilineNotesSurviveExactly() = runTest {
+        val root = temporary.newFolder()
+        val form = binding(root)
+        val authored = listOf("Élévation 🏋️", "中文", "Notes\nQuoted: \"100%\"\t", "العربية")
+        val saved = written(form.beginSave(read(form).version, authored, "command", "Élévation · stable-id"))
+        assertEquals(saved, read(binding(root)))
+        assertEquals(authored, saved.draft)
     }
 
     @Test fun missingGenerationDoesNotInventAReplacementForExistingCheckpoints() = runTest {
