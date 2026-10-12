@@ -346,7 +346,20 @@ checked after transaction acquisition and destination/order reads, immediately
 before insertion. A refused action changes neither rows nor routine timestamps.
 Earlier failed attempts remain archived, including an unexplained held Retry
 assertion in the first executed run; the current passing run does not establish
-its cause. The complete gate and final acceptance reviews remain pending.
+its cause. The complete gate subsequently passed **4,333 fresh app tests / 596
+suites and 1,707 fresh standalone tests / 256 classes**, all four required
+Windows tasks and dependent release assembly, without failures, errors or skips.
+All 1,576 runtime/test/tool/build inputs and refs stayed unchanged. The held
+Retry regression passed again; its earlier failure remains preserved with cause
+unproven. The exact runtime commit's hosted unit/build and supplemental emulator
+jobs also passed. The fresh full-gate native matrix has **117 frames and matching
+diagnostics across 13 profiles**. The
+[actual native editor recovery state](studies/q01/assets/library-read-recovery-2026-10-12.png)
+is copied unchanged from that verified run. This establishes same-owner manual
+field continuity, not reconstruction or OS process-death draft recovery. Final
+pinned acceptance reviews and clean-trunk integration are the remaining packet
+steps; the following F8 packet addresses reconstructed drafts and interrupted
+or unknown Save outcomes.
 
 The hosted PR and trunk checks for #488 exposed one existing Home RTL fixture
 failure: on Monday it selected week start, which was today, then incorrectly
