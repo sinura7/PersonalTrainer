@@ -71,8 +71,8 @@
     },
     "archives": "build/ux-context/runs/custom-exercise-recovery; source snapshots, original failures, XML, renders and independent/adversarial reports.",
     "fullGate": {
-      "source": "3cee02fb8dbd3620072302aa42d728b334a5251f",
-      "summarySha256": "5b0cf32d03c9159c1ea6f0cc0b87ce19650b0e9dc85d4a317deb3ec0bc9e0766",
+      "source": "b5e25c35145dea70056e8940e8d08b989841cfa7",
+      "summarySha256": "ed8c70616a38958e7435da2669f1692977513975161375a5654d9e5138d9d2bd",
       "freshAppTests": 4393,
       "freshAppXml": 600,
       "freshStandaloneTests": 1707,
@@ -82,16 +82,16 @@
         "errors": 0,
         "skipped": 0
       },
-      "sourceInputs": 1589,
+      "sourceInputs": 1590,
       "sourceAndRefsStable": true,
       "commands": [
         "tools/preflight.sh",
         "tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest"
       ],
-      "result": "PASS complete local gate; includes release build dependency and lint. No skipped checks or weakened baselines."
+      "result": "PASS fresh complete local gate with fail-closed syntax launcher. App4393 and standalone1707 executed freshly; original false-green closeout explicitly rejected. Build, lint and Android-test APK passed without weakened checks."
     },
     "nativeAppNav": "native01 plus native03 passed; archived source inventories describe uncommitted executed inputs. Final pinned gate and merge affected journey remain pending.",
-    "reviews": "Pinned independent and adversarial source/native reviews clear at3cee02fb; final verdict to be recorded against documentation closeout candidate with identical execution inputs.",
+    "reviews": "Source/native obligations clear; exact final documentation candidate review verdicts pending. No accepted gate relies on full02 syntax output.",
     "native01": {
       "freshTests": 1,
       "sourceStable": true,
@@ -131,9 +131,30 @@
         }
       ],
       "scope": "Two same-owner stage/force-stop/resume pairs: authored fields and admitted uncommitted command. Real normal app PID present before each force-stop, absent afterwards; new AppNav graph restores fields or inspects frozen command before exact Retry. Same stable saved ID, later notes-clear/load-type correction and unchanged History. Completed checkpoints covered; arbitrary in-flight IO termination and owner phone excluded."
-    }
+    },
+    "full01": {
+      "source": "3cee02fb8dbd3620072302aa42d728b334a5251f",
+      "summarySha256": "5b0cf32d03c9159c1ea6f0cc0b87ce19650b0e9dc85d4a317deb3ec0bc9e0766",
+      "freshAppTests": 4393,
+      "freshAppXml": 600,
+      "freshStandaloneTests": 1707,
+      "counts": {
+        "tests": 4393,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "sourceInputs": 1589,
+      "sourceAndRefsStable": true,
+      "commands": [
+        "tools/preflight.sh",
+        "tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest"
+      ],
+      "result": "PASS complete local gate; includes release build dependency and lint. No skipped checks or weakened baselines."
+    },
+    "syntaxRegressions": "Eight real-launcher startup/diagnostic cases plus the existing domain-lane classpath/parse/startup fixtures passed freshly in complete preflight. The actual bounded compiler emitted source diagnostics, completed parsing and reported no syntax findings."
   },
   "integration": "Pending",
   "next": "Close exact-candidate reviews, merge and run shortest affected AppNav journey, then P04 workout continuity.",
-  "remainingBlockingFindings": "Final reviews held for the syntax-launcher false-green finding until fresh complete verification of the corrected launcher. No demonstrated critical/high application defect; merge/integration remain pending."
+  "remainingBlockingFindings": "No demonstrated unresolved critical/high source finding; exact final reviews and integration remain pending."
 }
