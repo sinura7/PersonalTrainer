@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Current implementation, 11 October 2026 UTC:** Home start recovery is
+**Current implementation, 12 October 2026 UTC:** Home start recovery is
 integrated through [PR #482](https://github.com/sinura7/PersonalTrainer/pull/482)
 as `9d148ea5`. Both pinned reviews and updated feature/PR hosted checks passed. Clean-trunk
 verification proved unchanged inputs and reused the preserved successful 4,265
@@ -310,7 +310,19 @@ change was made. The final constructor passed local lint and both source
 reviews. Existing selection tests now exercise legacy callers without a handle;
 restoration tests still supply one. The unchanged rerun was interrupted during
 preflight to fix the demonstrated lint finding before further test execution.
-The repaired complete gate, final pinned reviews and integration remain pending.
+The repaired `full04` gate at `6eb6b989` passed **4,308 fresh app tests / 594
+suites and 1,707 fresh standalone tests / 256 classes**, all four required
+Windows tasks and dependent release assembly, with no failures, errors or
+skips. All 1,574 inputs and refs stayed unchanged. The original setup failure
+did not repeat in this complete execution; its cause is still unproven rather
+than classified as Windows-only. Both repaired hosted unit/build jobs and
+supplemental emulator smoke passed. The sealed native matrix contains **92
+frames and matching diagnostics** across 13 profiles. The
+[actual native Library preview](studies/q01/assets/library-flat-names-2026-10-12.png)
+is copied unchanged from its normal-size catalog frame, with synthetic Room
+data, matching built-in artwork and honest custom fallback artwork. This
+Library/Room callback host is not full AppNav or phone evidence. Final pinned
+acceptance reviews and clean-trunk integration remain pending.
 Manual custom-editor draft recovery, required-read recovery, full
 pickers/onboarding and broader F8 acceptance remain separately open.
 
