@@ -170,7 +170,23 @@ existing geometry, inventory, cancellation, Save or history assertions. The
 `targeted06` run passed **nine fresh cases / two suites**, including normal and
 font-2 phone/landscape journeys and the cardio-art boundary. Both source reviews
 cleared the production repair; their original finding reports remain preserved.
-The complete local gate and final native/review acceptance remain pending.
+The complete `full01` gate at `97906299` passed **4,288 fresh app tests / 592
+suites and 1,707 fresh standalone tests / 256 classes**, all four required
+Windows tasks and dependent release assembly, with no failures, errors or skips.
+All 1,572 runtime/test/tool inputs and refs stayed unchanged. The native archive
+contains **146 fresh frames and matching diagnostics**: eleven stages across
+thirteen display profiles, two cardio-reference guard branches and one separate
+past-day read-only case. The first archive helper incorrectly expected that
+past-day frame in every profile; validation stopped before copying. Its original
+source and diagnosis are preserved, and the corrected inventory includes the
+existing routine-list stage in the matrix and the standalone past-day capture.
+[The actual native Plan preview](studies/q01/assets/plan-flat-workshop-2026-10-12.png)
+is an unmodified capture with synthetic Room data, including two identically
+named routines used to prove exact-ID routing. It shows flat dates/day rows,
+direct routine access, complete names and three distinct catalog illustrations.
+These are screen-host/callback and saved-data checks, distinct from full AppNav,
+physical-phone or process-death acceptance. Final pinned reviews and integration
+for [PR #488](https://github.com/sinura7/PersonalTrainer/pull/488) remain pending.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
 
