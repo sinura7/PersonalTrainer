@@ -8,6 +8,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.click
@@ -27,9 +35,14 @@ import com.sinura.personaltrainer.data.local.entity.RoutineExerciseEntity
 import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
+import com.sinura.personaltrainer.domain.HoldWork
+import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.insertTestExercise
 import com.sinura.personaltrainer.ui.theme.LocalReducedMotion
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
+import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.awaitThat
 import com.sinura.personaltrainer.ui.workout.settle
 import com.sinura.personaltrainer.ui.workout.textLayout
@@ -102,10 +115,16 @@ class RoutineEditorInitialExerciseRenderTest {
     @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
     fun rtl20() = journey("360x640-font20-rtl", rtl = true)
 
+    @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
+    fun loadedAndHoldPreviewsKg() = targetPreviews("target-preview-360x640-font20-kg", WeightUnit.KG)
+
+    @Test @Config(qualifiers = "w640dp-h360dp-land-xhdpi", fontScale = 2f)
+    fun loadedAndHoldPreviewsLb() = targetPreviews("target-preview-640x360-font20-lb", WeightUnit.LBS)
+
     private fun journey(name: String, rtl: Boolean = false) {
         profile = name
         deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
-        val exercise = runBlocking { insertTestExercise(deps, "selected-row", "Chest-supported row") }
+        val exercise = runBlocking { insertTestExercise(deps, "selected-row", "Chest-supported seated cable row with deliberate control throughout a complete movement") }
         val faultDao = object : RoutineDao by deps.database.routineDao() {
             override suspend fun upsertRoutineExercise(item: RoutineExerciseEntity) {
                 if (rejectAdd) error("synthetic selected-lift add failure")
@@ -117,18 +136,7 @@ class RoutineEditorInitialExerciseRenderTest {
         }
         val vm = editor(exercise.id, faultDeps)
         current.value = vm
-        compose.setContent {
-            CompositionLocalProvider(
-                LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
-                LocalReducedMotion provides rtl,
-            ) {
-                PersonalTrainerTheme(reduceMotion = rtl) {
-                    key(current.value) {
-                        RoutineEditorScreen(onBack = { exits += 1 }, viewModel = checkNotNull(current.value))
-                    }
-                }
-            }
-        }
+        mount(rtl = rtl)
         compose.awaitThat("failed selected-lift preparation", vm.uiState::value) { vm.uiState.value.failed }
         words(RoutineSaveCopy.PREPARE_FAILED_TITLE)
         words(RoutineSaveCopy.PREPARE_FAILED_BODY)
@@ -145,7 +153,25 @@ class RoutineEditorInitialExerciseRenderTest {
         assertEquals(stub.id, vm.uiState.value.routine?.id)
         assertEquals(exercise.id, vm.uiState.value.routine?.exercises?.single()?.exercise?.id)
         compose.onNodeWithTag(RoutineEditorTags.SAVE).assertIsDisplayed().assertIsEnabled()
+        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollToIndex), useUnmergedTree = true)
+            .performScrollToNode(hasText(exercise.name))
+        words(exercise.name)
+        val item = checkNotNull(vm.uiState.value.routine).exercises.single()
+        val identity = compose.onNodeWithTag(SessionLiftTags.card(item.id)).performScrollTo().assertIsDisplayed()
+        assertEquals(Role.Button, identity.fetchSemanticsNode().config[SemanticsProperties.Role])
+        assertEquals("Edit targets", identity.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+        val savedTargets = runBlocking { deps.database.routineDao().getAllRoutineExercises() }
         capture("selected-lift-ready")
+        identity.performTouchInput { click(center) }
+        compose.settle()
+        assertTrue(compose.onNodeWithTag(SessionLiftTags.card(item.id)).fetchSemanticsNode().config[SemanticsProperties.Selected])
+        assertEquals("Close targets", compose.onNodeWithTag(SessionLiftTags.card(item.id))
+            .fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+        compose.onNodeWithTag(SessionLiftTags.EDITOR).assertExists()
+        assertEquals("opening targets does not change stored targets", savedTargets,
+            runBlocking { deps.database.routineDao().getAllRoutineExercises() })
+        compose.onNodeWithTag("Type a target weight").performScrollTo().assertIsDisplayed()
+        capture("selected-lift-targets")
 
         val missingVm = editor("no-longer-available", deps)
         compose.runOnIdle { current.value = missingVm }
@@ -160,15 +186,85 @@ class RoutineEditorInitialExerciseRenderTest {
         assertEquals(listOf(stub.id), runBlocking { deps.routineRepository.observeAll().first().map { it.id } })
     }
 
+    private fun targetPreviews(name: String, unit: WeightUnit) {
+        profile = name
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val routine = runBlocking {
+            val created = deps.routineRepository.create("Strength and controlled holds")
+            val loaded = insertTestExercise(deps, "loaded-preview", "Bench press")
+            val hold = insertTestExercise(deps, "hold-preview", "Weighted plank")
+            deps.routineRepository.addExercise(created.id, loaded, 13, 101, 102.5, 150)
+            deps.routineRepository.addExercise(created.id, hold, 3, 1, 27.5, 75, 20, 40)
+            checkNotNull(deps.routineRepository.getById(created.id))
+        }
+        val vm = RoutineEditorViewModel(
+            ApplicationProvider.getApplicationContext<Application>(),
+            SavedStateHandle(mapOf("routineId" to routine.id)), deps,
+        ).also { viewModels += it }
+        current.value = vm
+        mount(unit = unit)
+        compose.awaitThat("the exact loaded and hold targets are ready", vm.uiState::value) {
+            !vm.uiState.value.isLoading && vm.uiState.value.routine?.exercises?.size == 2
+        }
+        val stored = runBlocking { deps.database.routineDao().getAllRoutineExercises() }
+        routine.exercises.forEachIndexed { index, item ->
+            compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollToIndex), useUnmergedTree = true)
+                .performScrollToNode(hasTestTag(SessionLiftTags.card(item.id)))
+            words(item.exercise.name)
+            val scope = SessionLiftTags.preview(item.id)
+            words(if (index == 0) "13 × 101" else HoldWork.workLine(3, 20, 40), scope)
+            words(if (index == 0) "2:30" else "1:15", scope)
+            words(WeightConverter.formatLabel(if (index == 0) 102.5 else 27.5, unit), scope)
+            listOf(SessionOrderCopy.WORK, SessionOrderCopy.REST, SessionOrderCopy.LOAD)
+                .forEach { words(it.uppercase(), scope) }
+            capture(if (index == 0) "loaded-preview" else "hold-preview")
+        }
+        val hold = routine.exercises.last()
+        compose.onNodeWithTag(SessionLiftTags.card(hold.id)).performScrollTo()
+            .performTouchInput { click(center) }
+        compose.settle()
+        compose.onNodeWithTag("Type hold seconds").performScrollTo().assertIsDisplayed()
+        capture("targets-open")
+        val close = compose.onNodeWithTag(SessionLiftTags.card(hold.id)).performScrollTo().assertIsDisplayed()
+        assertEquals("Close targets", close.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+        close.performTouchInput { click(center) }
+        compose.settle()
+        compose.onNodeWithTag(SessionLiftTags.EDITOR).assertDoesNotExist()
+        assertFalse(compose.onNodeWithTag(SessionLiftTags.card(hold.id))
+            .fetchSemanticsNode().config[SemanticsProperties.Selected])
+        assertEquals("Edit targets", compose.onNodeWithTag(SessionLiftTags.card(hold.id))
+            .fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+        assertEquals("opening and closing targets preserves exact stored values", stored,
+            runBlocking { deps.database.routineDao().getAllRoutineExercises() })
+        capture("targets-closed")
+    }
+
+    private fun mount(rtl: Boolean = false, unit: WeightUnit = WeightUnit.KG) {
+        compose.setContent {
+            CompositionLocalProvider(
+                LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr,
+                LocalReducedMotion provides rtl,
+                LocalWeightUnit provides unit,
+            ) {
+                PersonalTrainerTheme(reduceMotion = rtl) {
+                    key(current.value) {
+                        RoutineEditorScreen(onBack = { exits += 1 }, viewModel = checkNotNull(current.value))
+                    }
+                }
+            }
+        }
+    }
+
     private fun editor(exerciseId: String, container: AppDependencies) = RoutineEditorViewModel(
         ApplicationProvider.getApplicationContext<Application>(),
         SavedStateHandle(mapOf("routineId" to "new", "initialExerciseId" to exerciseId)),
         container,
     ).also { viewModels += it }
 
-    private fun words(text: String) {
+    private fun words(text: String, scope: String? = null) {
         compose.settle()
-        val node = compose.onNodeWithText(text, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        val matcher = if (scope == null) hasText(text) else hasText(text) and hasAnyAncestor(hasTestTag(scope))
+        val node = compose.onNode(matcher, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         val layout = node.textLayout()
         val semantics = node.fetchSemanticsNode()
         for (line in 0 until layout.lineCount) assertFalse(layout.isLineEllipsized(line))
@@ -197,6 +293,12 @@ class RoutineEditorInitialExerciseRenderTest {
             val file = File("build/screen-renders/library-routine-handoff/$runId/$profile/$stage.png")
             check(file.parentFile.isDirectory || file.parentFile.mkdirs())
             file.outputStream().use { check(frame.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            file.resolveSibling("$stage.txt").writeText(
+                compose.onAllNodes(SemanticsMatcher("all mounted native nodes") { true }, useUnmergedTree = true)
+                    .fetchSemanticsNodes().joinToString("\n") { node ->
+                        "id=${node.id} bounds=${node.boundsInWindow} size=${node.size} config=${node.config}"
+                    },
+            )
         } finally { frame.recycle() }
     }
 }

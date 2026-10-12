@@ -144,7 +144,7 @@ suites**, with no failures, errors or skips. The feature is retired with a
 verified recovery bundle. Hosted feature, PR and integrated-trunk unit/build and
 supplemental emulator jobs all passed; original pending receipts are preserved.
 
-The active Plan packet makes routines directly visible, replaces enclosing
+The integrated Plan packet makes routines directly visible, replaces enclosing
 routine/day panels with flat rows, shows complete names and ordered exercise
 previews, and resolves matching illustrations by exact exercise identity. A
 direct routine tap opens its editor; the separate options, long-press shortcut,
@@ -185,16 +185,51 @@ is an unmodified capture with synthetic Room data, including two identically
 named routines used to prove exact-ID routing. It shows flat dates/day rows,
 direct routine access, complete names and three distinct catalog illustrations.
 These are screen-host/callback and saved-data checks, distinct from full AppNav,
-physical-phone or process-death acceptance. Final pinned reviews and integration
-for [PR #488](https://github.com/sinura7/PersonalTrainer/pull/488) remain pending.
+physical-phone or process-death acceptance. Both final pinned reviews passed and
+[PR #488](https://github.com/sinura7/PersonalTrainer/pull/488) merged at `788f1b02`.
+The clean-trunk complete gate passed with proven unchanged code/build inputs,
+exact archived JVM XML and standalone evidence reuse; it did not repeat those
+test executions. The shortest affected journey then passed **three fresh cases
+/ two suites**, including Plan management/editor Save and preserved history,
+both cardio artwork guards and a complete connected workout. The feature is
+retired with a verified complete recovery bundle. Hosted checks retain their
+actual separately recorded status.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
+
+The current routine-editor packet replaces enclosing lift panels with flat,
+illustrated rows. Complete exercise names and work/rest/load facts wrap; large
+text uses the full row width beneath the image/order line. Selected state has a
+structural rule, and the button action distinguishes Edit targets from Close
+targets. Exact IDs, canonical units, target staging/commit, validation, ordering,
+Swap/Remove and Save remain. Custom Week shares the presentation and retains its
+draft-until-Confirm behavior; full custom-week screen acceptance is separate.
+
+The original source review exposed a one-line metric clamp; local wrapping facts
+repair it without changing global MetricCluster. Two initial commands failed on
+an invalid test import and enum spelling; a third stopped at the named-argument
+ratchet. Those causes were fixed without weakening checks. `targeted04` passed
+**36 fresh cases / four suites**, including real native editor/Open/Close,
+loaded/ranged-hold kg/lb previews, scroll policy and Custom Week draft regression.
+After further large-text identity reflow, `targeted05` passed **four fresh native
+cases / one suite** at phone font 1.6/2, landscape font 2 and RTL/reduced motion.
+Full final gate, sealed native review and integration remain pending.
+
+The hosted PR and trunk checks for #488 exposed one existing Home RTL fixture
+failure: on Monday it selected week start, which was today, then incorrectly
+required Back to today. Original hosted log/XML and diagnosis are preserved.
+This editor packet includes the prerequisite test-only repair: explicitly
+provide Monday, prove absence on today, select Tuesday, await the actual return
+route and return. The original stale Start/Free/Extra assertions remain; Home
+production is unchanged. The repaired case passed freshly in `targeted04`.
+These original hosted failures are not described as passes.
 
 **Visual direction clarification, 11 October 2026 UTC:** The owner questioned
 why recent images still resemble the earlier layout. Compact Focus is the
 prior implemented workout composition. Home is now flat and illustrated; the new
 workout rows, Summary's flat receipt and History's flat ledger are implemented
-and integrated. The compact Plan workshop is the current candidate. The whole-app visual
+and integrated. The compact Plan workshop is integrated; flat routine-editor
+lift rows are the current packet. The whole-app visual
 redesign is unfinished. The connected native composition follows the
 [new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
 agenda, two flat editable workout rows, reachable saved-work actions and an
