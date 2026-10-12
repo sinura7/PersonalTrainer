@@ -7,6 +7,8 @@ import com.sinura.personaltrainer.data.local.dao.ExerciseDao
 import com.sinura.personaltrainer.data.local.dao.RoutineDao
 import com.sinura.personaltrainer.data.local.dao.WorkoutDao
 import com.sinura.personaltrainer.data.local.entity.ExerciseMuscleEntity
+import com.sinura.personaltrainer.data.draft.CustomLiftCommand
+import com.sinura.personaltrainer.data.draft.CustomLiftRecord
 import com.sinura.personaltrainer.data.sync.SyncAuthoring
 import com.sinura.personaltrainer.data.mapper.toDomain
 import com.sinura.personaltrainer.data.mapper.toEntity
@@ -25,6 +27,8 @@ import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * The result of naming an exercise.
@@ -57,6 +61,9 @@ class ExerciseRepository(
     private val syncAuthoring: SyncAuthoring? = null,
     private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) {
+    internal var customWriteCoordinator: DbMaintenance? = null
+    internal var customWriteBlocked: () -> Boolean = { false }
+    internal var beforeCustomDestruction: suspend (String) -> Unit = {}
     /**
      * The catalog, with each lift's junction credits attached.
      *
@@ -152,7 +159,7 @@ class ExerciseRepository(
         val nameKey = MuscleNormalizer.nameKeyOf(trimmedName)
         val group = MuscleGroups.resolved(muscleGroup)
             ?: return SaveExerciseResult.MissingMuscle
-        return writeExercise {
+        return coordinatedCustomWrite { writeExercise {
             exerciseDao.getByNameKey(nameKey)?.let { clash ->
                 return@writeExercise SaveExerciseResult.DuplicateName(clash.toDomain())
             }
@@ -173,7 +180,7 @@ class ExerciseRepository(
             catalogDao.replaceCreditsFor(exercise.id, muscleRows)
             syncAuthoring?.onCustomExerciseCommitted(entity, muscleRows)
             SaveExerciseResult.Saved(exercise)
-        }
+        } }
     }
 
     suspend fun updateCustom(
@@ -185,7 +192,7 @@ class ExerciseRepository(
     ): SaveExerciseResult? {
         val trimmedName = name.trim()
         val nameKey = MuscleNormalizer.nameKeyOf(trimmedName)
-        return writeExercise {
+        return coordinatedCustomWrite { writeExercise {
             val existing = exerciseDao.getById(id) ?: return@writeExercise null
             if (!existing.isCustom) return@writeExercise null
             exerciseDao.getByNameKey(nameKey)?.takeIf { it.id != id }?.let { clash ->
@@ -203,13 +210,14 @@ class ExerciseRepository(
                 equipment = nextEquipment.name,
                 updatedAtMs = nowMillis(),
             )
+            beforeCustomDestruction("custom-edit:${UUID.randomUUID()}")
             exerciseDao.update(updated)
             val credits = MuscleNormalizer.deriveCredits(group)
             val muscleRows = credits.toRows(id)
             catalogDao.replaceCreditsFor(id, muscleRows)
             syncAuthoring?.onCustomExerciseCommitted(updated, muscleRows)
             SaveExerciseResult.Saved(updated.toDomain(credits))
-        }
+        } }
     }
 
     suspend fun usageFor(exerciseId: String): ExerciseUsage = ExerciseUsage(
@@ -218,15 +226,45 @@ class ExerciseRepository(
         sessionCount = workoutDao.countSessionExercisesFor(exerciseId),
     )
 
-    suspend fun deleteCustom(id: String): DeleteExerciseResult {
-        val existing = exerciseDao.getById(id) ?: return DeleteExerciseResult.Missing
-        if (!existing.isCustom) return DeleteExerciseResult.NotCustom
+    suspend fun deleteCustom(id: String): DeleteExerciseResult = coordinatedCustomWrite { writeExercise {
+        val existing = exerciseDao.getById(id) ?: return@writeExercise DeleteExerciseResult.Missing
+        if (!existing.isCustom) return@writeExercise DeleteExerciseResult.NotCustom
         val usage = usageFor(id)
-        if (usage.isReferenced) return DeleteExerciseResult.InUse(usage)
+        if (usage.isReferenced) return@writeExercise DeleteExerciseResult.InUse(usage)
+        beforeCustomDestruction("custom-delete:${UUID.randomUUID()}")
         val muscles = catalogDao.creditsFor(id)
         syncAuthoring?.onCustomExerciseDeleted(existing, muscles)
         exerciseDao.deleteCustom(id)
-        return DeleteExerciseResult.Deleted
+        DeleteExerciseResult.Deleted
+    } }
+
+    /** Read exact persisted fields, including the revision stamp and credits; never a fallback flow. */
+    internal suspend fun customDraftRecord(id: String): CustomLiftRecord? = exerciseDao.getById(id)?.let {
+        CustomLiftRecord(it, catalogDao.creditsFor(id).sortedBy { credit -> credit.muscleKey })
+    }
+
+    /** Caller holds the maintenance lock and has checked durable command/version/generation admission. */
+    internal suspend fun commitCustomDraft(command: CustomLiftCommand, canCommit: () -> Boolean): SaveExerciseResult? = writeExercise {
+        val intended = command.intended
+        val actual = customDraftRecord(intended.row.id)
+        if (actual == intended) return@writeExercise SaveExerciseResult.Saved(intended.row.toDomain(intended.credits.toCredits()))
+        if (actual != command.before) return@writeExercise null
+        exerciseDao.getByNameKey(intended.row.nameKey)?.takeIf { it.id != intended.row.id }?.let {
+            return@writeExercise SaveExerciseResult.DuplicateName(it.toDomain())
+        }
+        check(canCommit())
+        if (command.before == null) exerciseDao.insert(intended.row) else exerciseDao.update(intended.row)
+        catalogDao.replaceCreditsFor(intended.row.id, intended.credits)
+        syncAuthoring?.onCustomExerciseCommitted(intended.row, intended.credits)
+        SaveExerciseResult.Saved(intended.row.toDomain(intended.credits.toCredits()))
+    }
+
+    private suspend fun <T> coordinatedCustomWrite(block: suspend () -> T): T {
+        val coordinator = customWriteCoordinator ?: return block()
+        return withContext(Dispatchers.IO) { coordinator.withMaintenanceLock {
+            check(!customWriteBlocked()) { "Custom changes are unavailable during restore" }
+            block()
+        } }
     }
 
     private suspend fun <T> writeExercise(block: suspend () -> T): T {

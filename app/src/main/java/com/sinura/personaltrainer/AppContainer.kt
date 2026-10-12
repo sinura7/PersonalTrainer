@@ -3,6 +3,7 @@ package com.sinura.personaltrainer
 import android.content.Context
 import com.sinura.personaltrainer.data.repository.AfterWorkoutBackup
 import com.sinura.personaltrainer.data.repository.AfterWorkoutUpload
+import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -82,6 +83,16 @@ class AppContainer(context: Context) : AppDependencies {
             java.io.File(context.applicationContext.noBackupFilesDir, "draft-checkpoints"),
             ioDispatcher,
         )
+    }
+    internal val customExerciseDrafts: CustomExerciseDrafts by lazy {
+        CustomExerciseDrafts(
+            store = durableDrafts, repository = exerciseRepository, maintenance = dbMaintenance,
+            restoreOpen = { backupService.restoreInProgress() }, dispatcher = ioDispatcher,
+        )
+    }
+
+    private suspend fun invalidatePrivateDrafts(event: String) {
+        check(durableDrafts.invalidateOnce(event) is com.sinura.personaltrainer.data.draft.DraftGenerationChange.Changed)
     }
     override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime
     override val phoneCapabilities: PhoneCapabilityPort = AndroidPhoneCapabilities(context)
@@ -213,7 +224,11 @@ class AppContainer(context: Context) : AppDependencies {
         catalogDao = database.catalogDao(),
         database = database,
         syncAuthoring = syncAuthoring,
-    )
+    ).also {
+        it.customWriteCoordinator = dbMaintenance
+        it.customWriteBlocked = { backupService.restoreInProgress() }
+        it.beforeCustomDestruction = ::invalidatePrivateDrafts
+    }
     override val plannerRepository: PlannerRepository = PlannerRepository(
         database = database,
         scheduler = WorkManagerReminderScheduler(context),
@@ -368,7 +383,7 @@ class AppContainer(context: Context) : AppDependencies {
         restoreJournal = RestoreJournalStore(java.io.File(context.filesDir, "restore-journal")),
         plannerRepository = plannerRepository,
         ioDispatcher = ioDispatcher,
-    )
+    ).also { it.invalidatePrivateDrafts = ::invalidatePrivateDrafts }
     override val afterWorkoutBackup: AfterWorkoutBackup = AfterWorkoutBackup(
         prefs = preferencesRepository,
         sealer = backupPassphraseSealer,

@@ -54,6 +54,29 @@ internal class DurableDraftStore(
         }
     }
 
+    /** Called under the business maintenance lock before destructive work; event replay is idempotent. */
+    suspend fun invalidateOnce(event: String): DraftGenerationChange = ordered {
+        try {
+            require(event.isNotBlank() && event.length <= 256 && wellFormedDraftText(event))
+            val current = generation()
+            val record = files.read(File(directory, GENERATION_FILE))?.let(::objectFrom)
+            val priorEvent = record?.get("event")?.let {
+                if (!it.isJsonPrimitive || !it.asJsonPrimitive.isString) corrupt()
+                it.asString
+            }
+            if (priorEvent == event) return@ordered DraftGenerationChange.Changed(current)
+            val next = UUID.randomUUID().toString()
+            writeGeneration(next, event)
+            DraftGenerationChange.Changed(next)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failed: DraftFormatFailure) {
+            DraftGenerationChange.Unavailable(failed.problem)
+        } catch (_: Exception) {
+            DraftGenerationChange.Unavailable(DraftReadProblem.STORAGE)
+        }
+    }
+
     internal suspend fun <D, C> read(owner: DraftOwner, codec: DraftCodec<D, C>): DraftRead<D, C> = ordered {
         try {
             DraftRead.Available(load(owner, codec, generation()))
@@ -134,13 +157,14 @@ internal class DurableDraftStore(
             val entries = directory.listFiles() ?: throw IOException()
             if (entries.any { it.name.endsWith(".json") }) corrupt()
         }
-        return UUID.randomUUID().toString().also(::writeGeneration)
+        return UUID.randomUUID().toString().also { writeGeneration(it) }
     }
 
-    private fun writeGeneration(value: String) {
+    private fun writeGeneration(value: String, event: String? = null) {
         val record = JsonObject().apply {
             addProperty("storageVersion", STORAGE_VERSION)
             addProperty("generation", value)
+            event?.let { addProperty("event", it) }
         }
         files.replace(File(directory, GENERATION_FILE), record.toString().toByteArray(Charsets.UTF_8))
     }
@@ -332,6 +356,13 @@ internal class DraftBinding<D, C> internal constructor(
         rejectUnless(it.pending?.phase != DraftCommandPhase.PENDING, DraftRejection.INSPECTION_REQUIRED)
         it.copy(draft = null, pending = null)
     }
+
+    /** Explicit user abandonment only, under the owning write coordinator. Does not undo business work. */
+    suspend fun discard(expected: DraftVersion, currentGeneration: String): DraftChange<D, C> =
+        store.change(owner = owner, codec = codec, expected = expected,
+            reconcileGeneration = currentGeneration.takeIf { it != expected.generation }) {
+            it.copy(draft = null, pending = null)
+        }
 
     /** Called only after the area verifies restored ownership. Unaccepted commands need fresh inspection. */
     suspend fun reconcileOwner(expected: DraftVersion, currentGeneration: String): DraftChange<D, C> =

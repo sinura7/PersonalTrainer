@@ -116,6 +116,7 @@ private fun ExerciseLibraryContent(
     landscape: Boolean,
 ) {
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
+    val editorStatus = viewModel.editorStatus.collectAsStateWithLifecycle().value
     // Held as an id rather than the row's own boolean so the sheet survives a rotation, and
     // so it closes by itself if the lift underneath it is deleted.
     var overflowExerciseId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -409,6 +410,17 @@ private fun ExerciseLibraryContent(
     }
 
     state.editor?.let { draft ->
+        if (editorStatus.phase != LiftEditorPhase.CLOSED) {
+            RecoverableLiftEditorSheet(
+                draft = draft, muscleOptions = MuscleGroups.editorOptions(state.exercises), status = editorStatus,
+                error = if (state.readState == LibraryReadState.CURRENT) state.error else LibraryReadCopy.BODY,
+                libraryReady = state.readState == LibraryReadState.CURRENT && !state.retryPending,
+                onDraftChange = viewModel::updateEditor, onSave = viewModel::saveEditor,
+                onCheck = viewModel::checkEditorDraft, onEditInstead = viewModel::editUncommittedDraft,
+                onDiscard = viewModel::discardEditorDraft, onDismiss = viewModel::dismissEditor,
+                onLibraryRetry = if (state.readState == LibraryReadState.UNAVAILABLE || state.readState == LibraryReadState.STALE) ({ viewModel.retryRead(); Unit }) else null,
+            )
+        } else {
         ExerciseEditorSheet(
             draft = draft,
             muscleOptions = MuscleGroups.editorOptions(state.exercises),
@@ -422,6 +434,7 @@ private fun ExerciseLibraryContent(
             onSave = viewModel::saveEditor,
             onDismiss = viewModel::dismissEditor,
         )
+        }
     }
 
     state.pendingDelete?.takeIf { state.readState == LibraryReadState.CURRENT }?.let { exercise ->

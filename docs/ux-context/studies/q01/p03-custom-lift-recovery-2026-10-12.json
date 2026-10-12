@@ -1,0 +1,112 @@
+{
+  "packet": "P03 — Custom-exercise reconstruction and Save recovery",
+  "state": "In progress",
+  "base": "630f58f253db6dd899957be4d59ce1daa07a8ea5",
+  "architecture": "ADR-033",
+  "problem": "The custom editor did not durably reconstruct authored fields or reserve and inspect an uncertain Save.",
+  "concept": {
+    "source": "custom-lift-recovery-concept.html",
+    "image": "assets/custom-lift-recovery-concept-2026-10-12.png",
+    "shownBeforeNativeChanges": true,
+    "scope": "Connected synthetic browser concept; no Android durability, touch or performance claim.",
+    "nativeExamples": [
+      "Native small 360x640 checked-uncommitted state shown in chat.",
+      "Owned API29 actual keyboard capture proves primary visible while IME is shown; source snapshots/APK hashes in native01."
+    ],
+    "nativeImage": "assets/custom-lift-recovery-native-ime-2026-10-12.png"
+  },
+  "behavior": [
+    "Resume the owning Create/Edit form with exact raw name, muscle, notes, load type and stable identity.",
+    "Close awaits latest durable fields; failed preservation keeps the editor actionable. Explicit Discard removes staged fields, never saved lifts.",
+    "Reserve Save synchronously, persist immutable intent, commit one stable ID, then inspect exact records before Retry.",
+    "Exact saved intent settles without another business write. Conflicting or unavailable data remains frozen and retained.",
+    "Fence restore and legacy custom edit/delete through existing maintenance coordination before destructive writes; exported backup format remains unchanged.",
+    "Check a lost Discard acknowledgement separately, without emitting a Saved receipt.",
+    "Pinned dominant action, wrapping readonly name, selectable load types, scrollable fields, reduced motion and non-colour recovery feedback.",
+    "Conflict action truthfully returns to Library to review the saved lift; it does not discard or imply an automatic overwrite."
+  ],
+  "scopeBoundaries": [
+    "No Room schema, public signature or backup-format changes.",
+    "Broader Library persistence is P10. Other form adoption remains with its named packet.",
+    "No owner data or physical acceptance. Latest signed delivery remains Debug125."
+  ],
+  "acceptanceTasks": [
+    "Raw Create/Edit Close/reopen and process restart.",
+    "Duplicate Save and Close while admitted, exact stable retry, lost admission/acceptance/cleanup acknowledgements.",
+    "Changed/deleted owner and accepted restore reject stale writes.",
+    "Coupled controller effects, latest fields, failed Close and Discard recovery.",
+    "Native layout/roles and actual AppNav create/edit/correction with exact records."
+  ],
+  "evidence": {
+    "target01": "Static declined-lambda count47 exceeded46 before any fresh tests; fixed qualified new constructor call by importing it. Original outputs retained; no baseline weakened.",
+    "target02": {
+      "freshTests": 48,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStable": true,
+      "scope": "Custom drafts15, durable foundation20 and existing repository13 at archived uncommitted inputs."
+    },
+    "inner03": "Controller5 and native small/state2 passed; overall attempted run failed one actual restore equality assertion because portable backup omits local revision. Original XML retained. Synthetic before revision now0, matching restored projection, to prove epoch fencing with exact equality.",
+    "target03": "Static mixed-argument calls184 exceeded180 before any fresh tests. Converted four new test calls to named arguments; no baseline change.",
+    "target04": {
+      "freshTests": 84,
+      "counts": {
+        "tests": 84,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "sourceStable": true,
+      "scope": "Custom adapter18; private foundation20; coupled controller5; native matrix/state17; repository13; restore recovery11. Archived source inputs and original failures retained.",
+      "summarySha256": "df4486af664616732f16e5d30d13a670acf82fbe6493ce77fdf015233aae63a5"
+    },
+    "archives": "build/ux-context/runs/custom-exercise-recovery; source snapshots, original failures, XML, renders and independent/adversarial reports.",
+    "fullGate": "Not yet executed on final candidate.",
+    "nativeAppNav": "native01 plus native03 passed; archived source inventories describe uncommitted executed inputs. Final pinned gate and merge affected journey remain pending.",
+    "reviews": "Both reviewers report original source findings resolved; final PASS awaits pinned complete gate and native evidence.",
+    "native01": {
+      "freshTests": 1,
+      "sourceStable": true,
+      "scope": "Actual AppNav Plan → Library → Create → Close/recreate/reopen → exact Save → Edit notes-clear/load-type → Close/reopen → exact correction; real IME shown with reachable primary. Isolated owned API29, not owner phone."
+    },
+    "inner05": "One new native state test failed an assumed raw callback count. Material may ask during both transition confirmation and dismissal; the synchronous controller admission ignores repeated requests. Original failure retained. The assertion now verifies requested preservation and retained reachable fields/primary, rather than a framework callback count.",
+    "inner06": "Fresh native state test passed1 after that fixture correction, including non-busy failed-preservation Back retaining the form. Inner loop skipped static checks; not the complete gate.",
+    "native02": "Stage passed, force-stop proved absent process, resume restored fields but Save remained disabled because fixture had resumed a blank muscle and never selected it. App correctly refused incomplete input. Original failure/screenshot retained; fixture now explicitly chooses Back and asserts raw muscle and saved row.",
+    "native03": {
+      "summarySha256": "72a4bf50140490b011c2be02b79981608a5ed85124bbd5b05a94d2c53916bbe3",
+      "freshTests": 4,
+      "sourceStable": true,
+      "phases": [
+        {
+          "exit": 0,
+          "tests": 1,
+          "phase": "stage",
+          "passed": true
+        },
+        {
+          "exit": 0,
+          "tests": 1,
+          "phase": "resume",
+          "passed": true
+        },
+        {
+          "exit": 0,
+          "tests": 1,
+          "phase": "stage-pending",
+          "passed": true
+        },
+        {
+          "exit": 0,
+          "tests": 1,
+          "phase": "resume-pending",
+          "passed": true
+        }
+      ],
+      "scope": "Two same-owner stage/force-stop/resume pairs: authored fields and admitted uncommitted command. Real normal app PID present before each force-stop, absent afterwards; new AppNav graph restores fields or inspects frozen command before exact Retry. Same stable saved ID, later notes-clear/load-type correction and unchanged History. Completed checkpoints covered; arbitrary in-flight IO termination and owner phone excluded."
+    }
+  },
+  "integration": "Pending",
+  "next": "Complete native and failure/recovery checks, pin candidate, run full gate and both required final reviews, merge and rerun affected journey.",
+  "remainingBlockingFindings": "No remaining demonstrated source finding; final gate, candidate reviews and integration pending."
+}

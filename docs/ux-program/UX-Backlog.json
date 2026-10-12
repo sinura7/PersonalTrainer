@@ -2654,7 +2654,10 @@
           "P14",
           "P16"
         ],
-        "closurePacket": "P16"
+        "closurePacket": "P16",
+        "packetEvidence": {
+          "P03": "Custom-lift module/native adoption: q01/p03-custom-lift-recovery-2026-10-12.json. Pinned gate/reviews/integration pending; other named forms and final criterion remain open."
+        }
       }
     },
     {
@@ -2689,7 +2692,10 @@
           "P15",
           "P16"
         ],
-        "closurePacket": "P16"
+        "closurePacket": "P16",
+        "packetEvidence": {
+          "P03": "Custom-lift module/native adoption: q01/p03-custom-lift-recovery-2026-10-12.json. Pinned gate/reviews/integration pending; other named forms and final criterion remain open."
+        }
       }
     },
     {
@@ -2938,7 +2944,10 @@
         "implementationPackets": [
           "P03"
         ],
-        "closurePacket": "P03"
+        "closurePacket": "P03",
+        "packetEvidence": {
+          "P03": "Custom-lift module/native adoption: q01/p03-custom-lift-recovery-2026-10-12.json. Pinned gate/reviews/integration pending; other named forms and final criterion remain open."
+        }
       }
     },
     {
@@ -2965,7 +2974,10 @@
         "implementationPackets": [
           "P03"
         ],
-        "closurePacket": "P03"
+        "closurePacket": "P03",
+        "packetEvidence": {
+          "P03": "Custom-lift module/native adoption: q01/p03-custom-lift-recovery-2026-10-12.json. Pinned gate/reviews/integration pending; other named forms and final criterion remain open."
+        }
       }
     },
     {
@@ -2992,7 +3004,10 @@
         "implementationPackets": [
           "P03"
         ],
-        "closurePacket": "P03"
+        "closurePacket": "P03",
+        "packetEvidence": {
+          "P03": "Custom-lift module/native adoption: q01/p03-custom-lift-recovery-2026-10-12.json. Pinned gate/reviews/integration pending; other named forms and final criterion remain open."
+        }
       }
     },
     {
@@ -4046,7 +4061,10 @@
           "P17",
           "P18"
         ],
-        "closurePacket": "P19"
+        "closurePacket": "P19",
+        "packetEvidence": {
+          "P03": "Custom-lift module/native adoption: q01/p03-custom-lift-recovery-2026-10-12.json. Pinned gate/reviews/integration pending; other named forms and final criterion remain open."
+        }
       }
     },
     {
@@ -4091,7 +4109,10 @@
           "P17",
           "P18"
         ],
-        "closurePacket": "P19"
+        "closurePacket": "P19",
+        "packetEvidence": {
+          "P03": "Custom-lift module/native adoption: q01/p03-custom-lift-recovery-2026-10-12.json. Pinned gate/reviews/integration pending; other named forms and final criterion remain open."
+        }
       }
     },
     {
@@ -4136,7 +4157,10 @@
           "P17",
           "P18"
         ],
-        "closurePacket": "P19"
+        "closurePacket": "P19",
+        "packetEvidence": {
+          "P03": "Custom-lift module/native adoption: q01/p03-custom-lift-recovery-2026-10-12.json. Pinned gate/reviews/integration pending; other named forms and final criterion remain open."
+        }
       }
     },
     {
@@ -4745,12 +4769,12 @@
       {
         "id": "P02",
         "title": "Persistent draft infrastructure",
-        "state": "In progress"
+        "state": "Closed"
       },
       {
         "id": "P03",
         "title": "Custom-exercise reconstruction and Save recovery",
-        "state": "Open"
+        "state": "In progress"
       },
       {
         "id": "P04",
