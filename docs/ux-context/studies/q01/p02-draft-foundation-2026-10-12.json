@@ -1,7 +1,7 @@
 {
   "packet": "P02",
   "baseCommit": "a4829bfdc0c1cabe444ce0f23bf0e1b071fd1cea",
-  "status": "Implementation candidate; complete gate and pinned reviews pending.",
+  "status": "Implementation and executed verification complete; pinned reviews and integration closeout follow.",
   "authority": "ADR-033 and accepted P01-P20 completion train",
   "problem": "SavedState alone does not preserve deliberate close/reopen. A frozen Save command must precede business writes and survive uncertain acknowledgement.",
   "implementation": [
@@ -29,7 +29,51 @@
     "interruptedFull01": "Standalone1707 passed; full app run interrupted before accepting any complete result to fix strict UTF8 decoding. Original outputs retained. Final changed inputs require fresh complete gate.",
     "full02": "4350 fresh app tests: 1 initial Finish readiness assertion failure, zero errors/skips; draft17/17 passed. Preflight1707 passed; build/lint tasks did not complete after Test failure. Source/ref stable. Original XML/logs retained.",
     "target03": "19 fresh tests passed (draft17 and actual AppNav Summary2); Finish readiness repair retains exact saved-data assertions. Final surrogate correction adds three cases.",
-    "reviewCorrection": "Independent review identified UTF16 encoder substitution and escaped lone-surrogate JSON. Reject invalid strings/keys and owner/command identities; strict encoding and decoding preserve valid Unicode, reject/retain malformed input."
+    "reviewCorrection": "Independent review identified UTF16 encoder substitution and escaped lone-surrogate JSON. Reject invalid strings/keys and owner/command identities; strict encoding and decoding preserve valid Unicode, reject/retain malformed input.",
+    "target04": "Static import-name collision failed before fresh tests. Preserve original receipt; qualified only the new Java traversal type without changing older Kotlin uses or checkers.",
+    "target05": {
+      "source": "71e5bf7f3cfa654c7eac8d0755290d2a707f286f",
+      "tests": 22,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "scope": "20 fresh private-draft contracts plus both existing AppNav Summary correction journeys; source/ref stable."
+    },
+    "full03": {
+      "source": "71e5bf7f3cfa654c7eac8d0755290d2a707f286f",
+      "summarySha256": "5CE34B16791B1866B32E5E466AF4EDC97E12F22BED088AEC442A622A40D46968",
+      "freshAppTests": 4353,
+      "freshAppXml": 597,
+      "freshStandaloneTests": 1707,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceInputs": 1581,
+      "sourceAndRefsStable": true,
+      "commands": [
+        "tools/preflight.sh",
+        "tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest"
+      ],
+      "result": "PASS complete local gate, including release build dependency; no test filters or weakened checks."
+    },
+    "platform02": {
+      "source": "71e5bf7f3cfa654c7eac8d0755290d2a707f286f",
+      "summarySha256": "E48088CC4BAE812A5BD758E6297346BA1C9EFA040C3B61A9110E5E934420EBA7",
+      "xmlSha256": "F9CD0E85C651F98EB4F6EBF2A27CF6595C077BCEEE54CA5DF74C1AF23DAFB280",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceAndRefsStable": true,
+      "device": "Owned temper-tests-api29, emulator-5554, API29; sole connected device guarded before invocation.",
+      "classes": [
+        "DurableDraftPlatformTest",
+        "ConnectedWorkoutJourneyInstrumentedTest"
+      ],
+      "result": "PASS fresh final-source private noBackup atomic/off-main storage and actual AppNav workout. No owner data, arbitrary process termination or physical acceptance inferred."
+    },
+    "originalArchives": "build/ux-context/runs/durable-draft-checkpoints contains unchanged original attempts, source inventories, XML, transcripts and pinned review reports.",
+    "platform01Limit": "Earlier platform01 proves its archived pre-Unicode-repair candidate only. platform02 executes the final production source."
   },
   "acceptanceBoundary": "Infrastructure only. P03-P18 adopt form codecs, perform repository ownership/uncertain-write inspection and wire accepted restore. This does not close UI, actual process termination, all UX07/UX23 criteria or physical acceptance.",
   "visibleChange": "None. Connected custom-editor concept and actual native states belong to P03.",
