@@ -1,6 +1,6 @@
 {
   "packet": "P03 — Custom-exercise reconstruction and Save recovery",
-  "state": "In progress",
+  "state": "Verified candidate; final reviews and integration pending",
   "base": "630f58f253db6dd899957be4d59ce1daa07a8ea5",
   "architecture": "ADR-033",
   "problem": "The custom editor did not durably reconstruct authored fields or reserve and inspect an uncertain Save.",
@@ -62,9 +62,28 @@
       "summarySha256": "df4486af664616732f16e5d30d13a670acf82fbe6493ce77fdf015233aae63a5"
     },
     "archives": "build/ux-context/runs/custom-exercise-recovery; source snapshots, original failures, XML, renders and independent/adversarial reports.",
-    "fullGate": "Not yet executed on final candidate.",
+    "fullGate": {
+      "source": "3cee02fb8dbd3620072302aa42d728b334a5251f",
+      "summarySha256": "5b0cf32d03c9159c1ea6f0cc0b87ce19650b0e9dc85d4a317deb3ec0bc9e0766",
+      "freshAppTests": 4393,
+      "freshAppXml": 600,
+      "freshStandaloneTests": 1707,
+      "counts": {
+        "tests": 4393,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "sourceInputs": 1589,
+      "sourceAndRefsStable": true,
+      "commands": [
+        "tools/preflight.sh",
+        "tools/dev-windows.ps1 testDebugUnitTest assembleDebug lintDebug assembleDebugAndroidTest"
+      ],
+      "result": "PASS complete local gate; includes release build dependency and lint. No skipped checks or weakened baselines."
+    },
     "nativeAppNav": "native01 plus native03 passed; archived source inventories describe uncommitted executed inputs. Final pinned gate and merge affected journey remain pending.",
-    "reviews": "Both reviewers report original source findings resolved; final PASS awaits pinned complete gate and native evidence.",
+    "reviews": "Pinned independent and adversarial source/native reviews clear at3cee02fb; final verdict to be recorded against documentation closeout candidate with identical execution inputs.",
     "native01": {
       "freshTests": 1,
       "sourceStable": true,
@@ -107,6 +126,6 @@
     }
   },
   "integration": "Pending",
-  "next": "Complete native and failure/recovery checks, pin candidate, run full gate and both required final reviews, merge and rerun affected journey.",
-  "remainingBlockingFindings": "No remaining demonstrated source finding; final gate, candidate reviews and integration pending."
+  "next": "Close exact-candidate reviews, merge and run shortest affected AppNav journey, then P04 workout continuity.",
+  "remainingBlockingFindings": "No demonstrated critical/high defect. Final review verdicts and merge/integration receipts pending."
 }
