@@ -51,6 +51,7 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TargetStepper
 import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
@@ -217,7 +218,9 @@ private fun SessionLiftCard(
 ) {
     val unit = LocalWeightUnit.current
     val restClock = RestTimer.formatClock(item.restSeconds)
-    val loadKg = item.targetWeightKg?.takeIf { it > 0.0 }
+    val loadKg = item.targetWeightKg?.takeIf {
+        it > 0.0 && LoadClass.of(item.exercise.loadType).weightMeaning != WeightMeaning.NONE
+    }
     val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
     val loadTag = LoadTypeCopy.rowTag(item.exercise)
     val subtitle = listOf(
@@ -546,7 +549,7 @@ internal fun CompactTargetFields(
                 nextSets,
                 if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else nextReps,
                 nextRest,
-                TargetStepper.weightToStage(nextKg),
+                if (showWeight) TargetStepper.weightToStage(nextKg) else targetWeightKg,
                 null,
                 if (hold) nextSeconds else null,
                 if (hold) nextSecondsMax else null,
@@ -558,7 +561,7 @@ internal fun CompactTargetFields(
         (!hold && repsValue != reps) ||
         restValue != restSeconds ||
         (hold && (secondsValue != storedHold || secondsMaxValue != targetSecondsMax)) ||
-        TargetStepper.weightToStage(stagedWeight) != targetWeightKg
+        (if (showWeight) TargetStepper.weightToStage(stagedWeight) else targetWeightKg) != targetWeightKg
     LaunchedEffect(rowKey, differsFromStored) {
         if (differsFromStored) {
             persist(setsValue, repsValue, restValue, stagedWeight, secondsValue, secondsMaxValue)

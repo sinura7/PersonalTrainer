@@ -213,7 +213,27 @@ ratchet. Those causes were fixed without weakening checks. `targeted04` passed
 loaded/ranged-hold kg/lb previews, scroll policy and Custom Week draft regression.
 After further large-text identity reflow, `targeted05` passed **four fresh native
 cases / one suite** at phone font 1.6/2, landscape font 2 and RTL/reduced motion.
-Full final gate, sealed native review and integration remain pending.
+The complete `full01` gate at `92b90f70` passed **4,290 fresh app tests / 592
+suites and 1,707 fresh standalone tests / 256 classes**, all four Windows tasks
+and dependent release assembly. Its 86 native frames and matching diagnostics
+remain preserved. Pixel review then found an inherited bodyweight preview
+showing a retained load despite having no weight field. A new actual-Room case
+in `targeted06` reproduced a more consequential defect: opening those targets
+cleared the retained column. That run failed **one of four fresh cases**; both
+reviews independently confirmed the destructive staging path.
+
+The repair omits irrelevant visible/spoken load and preserves the exact hidden
+column through opening, closing and every other target edit. The regression now
+changes reps through the real number dialog and awaits the exact committed Room
+row. `targeted07` stopped at the documented Robolectric keypad cursor/idling
+condition; the test now uses the existing held-clock keypad helper. The original
+failure and thread diagnostic remain preserved. Its mistyped Plan method filter
+executed no Plan case; the next command uses the actual method name. The earlier
+successful gate cannot accept this changed source. `targeted08` then passed
+**five fresh cases / three suites**, including exact Room preservation after
+editing, loaded/hold previews, shared Custom Week draft behavior and the actual
+Plan/editor/history journey. Fresh final verification, native review and
+integration remain pending.
 
 The hosted PR and trunk checks for #488 exposed one existing Home RTL fixture
 failure: on Monday it selected week start, which was today, then incorrectly

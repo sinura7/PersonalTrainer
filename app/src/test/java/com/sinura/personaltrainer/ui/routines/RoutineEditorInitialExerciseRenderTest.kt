@@ -36,6 +36,7 @@ import com.sinura.personaltrainer.data.repository.RoutineRepository
 import com.sinura.personaltrainer.domain.DataHealthCopy
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
 import com.sinura.personaltrainer.domain.HoldWork
+import com.sinura.personaltrainer.domain.LoadType
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightUnit
@@ -46,6 +47,7 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.ui.workout.awaitThat
 import com.sinura.personaltrainer.ui.workout.settle
 import com.sinura.personaltrainer.ui.workout.textLayout
+import com.sinura.personaltrainer.ui.workout.withKeypad
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -120,6 +122,70 @@ class RoutineEditorInitialExerciseRenderTest {
 
     @Test @Config(qualifiers = "w640dp-h360dp-land-xhdpi", fontScale = 2f)
     fun loadedAndHoldPreviewsLb() = targetPreviews("target-preview-640x360-font20-lb", WeightUnit.LBS)
+
+    @Test @Config(qualifiers = "w412dp-h840dp-xhdpi", fontScale = 1f)
+    fun bodyweightPreviewDoesNotExposeAnIrrelevantStoredLoad() {
+        profile = "bodyweight-412x840-font10"
+        deps = FakeAppDependencies(ApplicationProvider.getApplicationContext())
+        val routine = runBlocking {
+            val created = deps.routineRepository.create("Bodyweight strength")
+            val saved = deps.exerciseRepository.createCustom(
+                name = "Controlled push-up", muscleGroup = "Chest", loadType = LoadType.BODYWEIGHT,
+            ) as com.sinura.personaltrainer.data.repository.SaveExerciseResult.Saved
+            // A legacy or reclassified routine can retain this column. Showing it
+            // as a bodyweight load would contradict the editor's no-weight field.
+            deps.routineRepository.addExercise(created.id, saved.exercise, 3, 8, 72.5, 90)
+            checkNotNull(deps.routineRepository.getById(created.id))
+        }
+        val vm = RoutineEditorViewModel(
+            ApplicationProvider.getApplicationContext<Application>(),
+            SavedStateHandle(mapOf("routineId" to routine.id)), deps,
+        ).also { viewModels += it }
+        current.value = vm
+        mount()
+        compose.awaitThat("the exact bodyweight routine is ready", vm.uiState::value) {
+            !vm.uiState.value.isLoading && vm.uiState.value.routine?.exercises?.size == 1
+        }
+        val item = routine.exercises.single()
+        val stored = runBlocking { deps.database.routineDao().getAllRoutineExercises() }
+        val scope = SessionLiftTags.preview(item.id)
+        words("3 × 8", scope)
+        words("1:30", scope)
+        compose.onNode(hasText("LOAD") and hasAnyAncestor(hasTestTag(scope)), useUnmergedTree = true)
+            .assertDoesNotExist()
+        val identity = compose.onNodeWithTag(SessionLiftTags.card(item.id)).performScrollTo().assertIsDisplayed()
+        assertFalse(identity.fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+            .joinToString().contains(WeightConverter.formatLabel(72.5, WeightUnit.KG)))
+        capture("bodyweight-no-load")
+        identity.performTouchInput { click(center) }
+        compose.settle()
+        compose.onNodeWithTag(SessionLiftTags.EDITOR).assertExists()
+        compose.onNodeWithTag(CompactLiftTags.TARGET_WEIGHT, useUnmergedTree = true).assertDoesNotExist()
+        assertEquals("the irrelevant stored value is preserved, not erased", stored,
+            runBlocking { deps.database.routineDao().getAllRoutineExercises() })
+        capture("bodyweight-targets")
+        compose.onNodeWithTag(SessionLiftTags.card(item.id)).performScrollTo()
+            .performTouchInput { click(center) }
+        compose.settle()
+        compose.onNodeWithTag(SessionLiftTags.EDITOR).assertDoesNotExist()
+        assertEquals("closing untouched targets preserves every stored column", stored,
+            runBlocking { deps.database.routineDao().getAllRoutineExercises() })
+
+        compose.onNodeWithTag(SessionLiftTags.card(item.id)).performScrollTo()
+            .performTouchInput { click(center) }
+        compose.withKeypad(compose.onNodeWithTag("Type a rep count").performScrollTo(), "9")
+        val expected = stored.map { it.copy(targetReps = 9) }
+        compose.awaitThat("the rep edit lands in Room without clearing the hidden load", vm.uiState::value) {
+            vm.uiState.value.routine?.exercises?.singleOrNull()?.targetReps == 9 &&
+                runBlocking { deps.database.routineDao().getAllRoutineExercises() } == expected
+        }
+        compose.onNodeWithTag(SessionLiftTags.card(item.id)).performScrollTo()
+            .performTouchInput { click(center) }
+        compose.settle()
+        compose.onNodeWithTag(SessionLiftTags.EDITOR).assertDoesNotExist()
+        assertEquals("closing edited targets preserves the exact committed row", expected,
+            runBlocking { deps.database.routineDao().getAllRoutineExercises() })
+    }
 
     private fun journey(name: String, rtl: Boolean = false) {
         profile = name
