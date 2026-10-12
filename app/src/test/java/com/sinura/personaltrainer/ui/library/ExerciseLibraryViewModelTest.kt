@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.library
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ApplicationProvider
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
@@ -323,10 +324,90 @@ class ExerciseLibraryViewModelTest {
         )
     }
 
-    private fun createViewModel(): ExerciseLibraryViewModel =
+    @Test
+    fun recreatedLibraryRetainsQueryAndCombinedFacetsWithoutChangingCatalog() = runBlocking {
+        insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        insertTestExercise(deps, "row", "Chest-supported row", muscleGroup = "Back")
+        val handle = SavedStateHandle()
+        val vm = createViewModel(handle)
+        vm.uiState.awaitFirst { it.exercises.size == 2 }
+        vm.onQueryChange("  squat  ")
+        vm.onMuscleSelected(CanonicalMuscle.QUADRICEPS)
+        vm.onEquipmentSelected(EquipmentType.OTHER)
+        val before = vm.uiState.awaitFirst {
+            it.query == "  squat  " && it.selectedMuscle == CanonicalMuscle.QUADRICEPS &&
+                it.selectedEquipment == EquipmentType.OTHER
+        }
+        assertEquals(listOf("squat"), before.visibleExercises.map { it.id })
+        val catalog = deps.exerciseRepository.observeAll().first()
+        val restored = recreate(handle).uiState.awaitFirst { !it.isLoading && it.exercises.size == 2 }
+        assertEquals(before.query, restored.query)
+        assertEquals(before.selectedMuscle, restored.selectedMuscle)
+        assertEquals(before.selectedEquipment, restored.selectedEquipment)
+        assertEquals(before.visibleExercises.map { it.id }, restored.visibleExercises.map { it.id })
+        assertEquals(catalog, deps.exerciseRepository.observeAll().first())
+    }
+
+    @Test
+    fun clearBothFacetsRetainsAuthoredQueryAndItsResultsAfterRecreation() = runBlocking {
+        insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        insertTestExercise(deps, "row", "Chest-supported row", muscleGroup = "Back")
+        val handle = SavedStateHandle()
+        val vm = createViewModel(handle)
+        vm.uiState.awaitFirst { it.exercises.size == 2 }
+        vm.onQueryChange("  ROW  ")
+        vm.onMuscleSelected(CanonicalMuscle.QUADRICEPS)
+        vm.onEquipmentSelected(EquipmentType.OTHER)
+        assertTrue(vm.uiState.awaitFirst {
+            it.query == "  ROW  " && it.selectedMuscle == CanonicalMuscle.QUADRICEPS &&
+                it.selectedEquipment == EquipmentType.OTHER
+        }.visibleExercises.isEmpty())
+        val catalog = deps.exerciseRepository.observeAll().first()
+        vm.clearFilters()
+        val cleared = vm.uiState.awaitFirst { it.selectedMuscle == null && it.selectedEquipment == null }
+        assertEquals("  ROW  ", cleared.query)
+        assertEquals(listOf("row"), cleared.visibleExercises.map { it.id })
+        val restored = recreate(handle).uiState.awaitFirst { !it.isLoading }
+        assertEquals("  ROW  ", restored.query)
+        assertNull(restored.selectedMuscle)
+        assertNull(restored.selectedEquipment)
+        assertEquals(listOf("row"), restored.visibleExercises.map { it.id })
+        assertEquals(catalog, deps.exerciseRepository.observeAll().first())
+    }
+
+    @Test
+    fun restoredFamilyAndClearedBodyFilterDoNotReseedOnReturn() = runBlocking {
+        insertTestExercise(deps, "squat", "Squat", muscleGroup = "Quads")
+        val handle = SavedStateHandle()
+        val vm = createViewModel(handle)
+        val family = vm.uiState.awaitFirst { it.families.isNotEmpty() }.families.single()
+        vm.toggleFamily(family.movementKey)
+        vm.seedMuscleFromRoute(CanonicalMuscle.QUADRICEPS)
+        vm.uiState.awaitFirst { it.selectedMuscle == CanonicalMuscle.QUADRICEPS }
+        vm.clearFilters()
+        vm.uiState.awaitFirst { it.grouped && it.selectedMuscle == null }
+        val restored = recreate(handle)
+        restored.uiState.awaitFirst { !it.isLoading }
+        restored.seedMuscleFromRoute(CanonicalMuscle.QUADRICEPS)
+        assertNull(restored.uiState.value.selectedMuscle)
+        assertEquals(setOf(family.movementKey), restored.uiState.value.expandedFamilies)
+        assertEquals(listOf("squat"), restored.uiState.value.visibleExercises.map { it.id })
+    }
+
+    private suspend fun recreate(handle: SavedStateHandle): ExerciseLibraryViewModel {
+        val snapshot = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        keepAlive?.cancel()
+        keepAlive = null
+        viewModel?.clearAndJoinForTest()
+        viewModel = null
+        return createViewModel(snapshot)
+    }
+
+    private fun createViewModel(handle: SavedStateHandle? = null): ExerciseLibraryViewModel =
         ExerciseLibraryViewModel(
-            ApplicationProvider.getApplicationContext<Application>(),
-            deps,
+            application = ApplicationProvider.getApplicationContext<Application>(),
+            container = deps,
+            savedState = handle,
         ).also { vm ->
             viewModel = vm
             keepAlive = CoroutineScope(dispatcher).launch { vm.uiState.collect { } }

@@ -1,6 +1,7 @@
 package com.sinura.personaltrainer.ui.library
 
 import android.app.Application
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sinura.personaltrainer.logging.AppLog
 import com.sinura.personaltrainer.AppDependencies
@@ -84,11 +85,20 @@ data class ExerciseLibraryUiState(
 class ExerciseLibraryViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
+    private val savedState: SavedStateHandle? = null,
 ) : AppViewModel(application, container) {
-    private val query = MutableStateFlow("")
-    private val selectedMuscle = MutableStateFlow<CanonicalMuscle?>(null)
-    private val selectedEquipment = MutableStateFlow<EquipmentType?>(null)
-    private val expandedFamilies = MutableStateFlow<Set<String>>(emptySet())
+    constructor(application: Application, savedState: SavedStateHandle) :
+        this(application = application, container = application.appContainer(), savedState = savedState)
+
+    // The framework supplies persistence. Legacy callers retain their selection in the local flows.
+    private val query = MutableStateFlow(savedState?.get<String>(KEY_QUERY).orEmpty())
+    private val selectedMuscle = MutableStateFlow(
+        CanonicalMuscle.entries.firstOrNull { it.name == savedState?.get<String>(KEY_MUSCLE) },
+    )
+    private val selectedEquipment = MutableStateFlow(
+        EquipmentType.entries.firstOrNull { it.name == savedState?.get<String>(KEY_EQUIPMENT) },
+    )
+    private val expandedFamilies = MutableStateFlow(savedState?.get<List<String>>(KEY_FAMILIES).orEmpty().toSet())
     private val editor = MutableStateFlow<ExerciseEditorDraft?>(null)
     private val pendingDelete = MutableStateFlow<Exercise?>(null)
     private val blockedDelete = MutableStateFlow<Pair<Exercise, ExerciseUsage>?>(null)
@@ -169,15 +179,26 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
 
     fun onQueryChange(value: String) {
         query.value = value
+        savedState?.set(KEY_QUERY, value)
     }
 
     /** Tapping the selected chip clears it, so a filter is never a one-way door. */
     fun onMuscleSelected(muscle: CanonicalMuscle?) {
         selectedMuscle.value = if (selectedMuscle.value == muscle) null else muscle
+        savedState?.set(KEY_MUSCLE, selectedMuscle.value?.name)
     }
 
     fun onEquipmentSelected(equipment: EquipmentType?) {
         selectedEquipment.value = if (selectedEquipment.value == equipment) null else equipment
+        savedState?.set(KEY_EQUIPMENT, selectedEquipment.value?.name)
+    }
+
+    /** Clear both facets deliberately, retaining the text the user typed. */
+    fun clearFilters() {
+        selectedMuscle.value = null
+        selectedEquipment.value = null
+        savedState?.set<String?>(KEY_MUSCLE, null)
+        savedState?.set<String?>(KEY_EQUIPMENT, null)
     }
 
     /**
@@ -189,18 +210,23 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
      * no muscle, then Body → Library with one) is a new back-stack entry and a new
      * ViewModel, so it seeds cleanly.
      */
-    private var routeMuscleSeeded = false
+    private var routeMuscleSeeded = savedState?.get<Boolean>(KEY_SEEDED) ?: false
 
     fun seedMuscleFromRoute(muscle: CanonicalMuscle?) {
         if (routeMuscleSeeded) return
         routeMuscleSeeded = true
-        if (muscle != null) selectedMuscle.value = muscle
+        savedState?.set(KEY_SEEDED, true)
+        if (muscle != null) {
+            selectedMuscle.value = muscle
+            savedState?.set(KEY_MUSCLE, muscle.name)
+        }
     }
 
     fun toggleFamily(movementKey: String) {
         expandedFamilies.value = expandedFamilies.value.let { open ->
             if (movementKey in open) open - movementKey else open + movementKey
         }
+        savedState?.set(KEY_FAMILIES, ArrayList(expandedFamilies.value))
     }
 
     /**
@@ -426,6 +452,14 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                 )
             }
         }
+    }
+
+    private companion object {
+        const val KEY_QUERY = "library.query"
+        const val KEY_MUSCLE = "library.muscle"
+        const val KEY_EQUIPMENT = "library.equipment"
+        const val KEY_FAMILIES = "library.families"
+        const val KEY_SEEDED = "library.routeSeeded"
     }
 
     private data class LibraryCore(

@@ -2,7 +2,7 @@
 
 **Created:** 8 October 2026
 
-**Current implementation, 11 October 2026 UTC:** Home start recovery is
+**Current implementation, 12 October 2026 UTC:** Home start recovery is
 integrated through [PR #482](https://github.com/sinura7/PersonalTrainer/pull/482)
 as `9d148ea5`. Both pinned reviews and updated feature/PR hosted checks passed. Clean-trunk
 verification proved unchanged inputs and reused the preserved successful 4,265
@@ -241,7 +241,17 @@ diagnostics**, including the bodyweight retained-column case. Pixel review
 checked actual catalog pictures, full names, large text, landscape and RTL
 targets. [The actual native routine editor](studies/q01/assets/routine-flat-editor-2026-10-12.png)
 uses synthetic data; its routine-name input keeps the existing horizontal
-editing behavior. Final pinned reviews and integration remain pending.
+editing behavior. Both final pinned reviews passed and
+[PR #489](https://github.com/sinura7/PersonalTrainer/pull/489) merged at `e5a00abd`,
+with the exact reviewed tree. The clean-trunk complete gate passed with fresh
+static checks and proven reuse of unchanged code/test/tool inputs, archived XML
+and standalone evidence; it executed no new app or standalone tests. The
+shortest affected journey then passed **six fresh cases / five suites**,
+including the connected workout and exact bodyweight-column preservation.
+The feature branch is retired with a verified complete recovery bundle.
+Some inherited Plan return captures show the transitional Saving editor;
+callback and exact Room Save return are verified, while the rendered return
+matrix and full AppNav remain F11 acceptance.
 
 Both hosted build checks passed on the repair. One supplemental emulator run
 passed and the other initially failed waiting for the keyboard in an unchanged
@@ -249,6 +259,72 @@ History notes test, before that test attempted its correction write. Original
 log/report evidence is preserved. A repeat of that failed job passed, with no
 source, assertion or timeout change; the first failure remains a failure.
 Physical keyboard, phone and broader F11 acceptance remain separate.
+
+The current Library packet carries the flat illustrated layout into complete
+exercise names and wrapping metadata, with full-width identity below the image
+and actions at large text. A direct Clear filters action stays visible beside
+the scrolling equipment choices and clears both facets while retaining the
+typed query. Query, facets, family expansion and the route's initial-muscle
+ownership use the existing Android SavedState mechanism so a cleared Body filter
+is not reapplied after reconstruction. A temporary native baseline at normal
+and font-2 phone sizes confirmed the old one-line name truncation; its two cases,
+frames and diagnostics are preserved, and the observation-only probe is removed
+from shipping tests. Source review identified custom bodyweight metadata
+truncation; its local tag now wraps. Add and Options expose their own spoken
+48 dp buttons. The options sheet opens fully and scrolls. Actual native
+landscape failures found hidden Delete and a Create button covering Options;
+Create now moves into the header when the parent is landscape. Original
+compilation, harness, static and reachability failures are preserved under
+`build/ux-context/runs/library-return`, including the interrupted main-loop
+fixture diagnostic and the covered-control screenshot. No baseline was raised.
+
+`targeted10` passed **31 fresh cases / three suites**, with no failures, errors
+or skips and all 1,574 source inputs and refs unchanged. It produced **79 native
+frames and matching diagnostics** across 13 profiles, including the real sheet
+window. The framework test uses a genuinely new Activity/ViewModel, mounts the
+same Body argument, proves the initial BACK/CABLE facets before clearing, and
+verifies cleared facets/raw query after restoration with exact catalog equality.
+Native journeys check complete name/load glyphs, pinned facet clearing, exact
+Add/options cancellation and exact-ID return without catalog/routine writes.
+The first complete gate failed two source assertions: its new spoken label used
+"exercise" rather than the established "lift", and the inventory still required
+the superseded global row call. It was stopped after those demonstrated failures;
+console partial results are preserved, but there is no fresh complete app XML
+total and no build acceptance. The label is now Open lift; inventory coverage
+retains shared thumbnail and canonical load-wording ownership, while the native
+matrix protects actual adaptive-row behavior. Pixel review also found the old
+non-scrolling empty branch hid its explanation/Create action in large-text
+landscape. That branch now scrolls. `targeted11` passed **nine fresh cases / four
+suites**, covering both source assertions and phone/landscape no-match copy,
+actual Create opening/cancellation and exact unchanged catalog/routine snapshots.
+The second full gate completed **4,308 fresh app tests / 594 suites**, with one
+Summary correction setup failure while renaming its preferences file. The
+unchanged targeted rerun passed both Summary correction journeys and the new
+Library framework-owner test (three cases). The setup I/O cause remains
+unproven; the original failed receipt stays preserved. Hosted tests passed but
+lint found the new public default handle constructor used a test-only API.
+The Library now accepts the owner-provided handle and keeps legacy callers'
+selection in local flows, following History's existing pattern. A private-field
+fallback attempt also failed lint and is preserved; no suppression or baseline
+change was made. The final constructor passed local lint and both source
+reviews. Existing selection tests now exercise legacy callers without a handle;
+restoration tests still supply one. The unchanged rerun was interrupted during
+preflight to fix the demonstrated lint finding before further test execution.
+The repaired `full04` gate at `6eb6b989` passed **4,308 fresh app tests / 594
+suites and 1,707 fresh standalone tests / 256 classes**, all four required
+Windows tasks and dependent release assembly, with no failures, errors or
+skips. All 1,574 inputs and refs stayed unchanged. The original setup failure
+did not repeat in this complete execution; its cause is still unproven rather
+than classified as Windows-only. Both repaired hosted unit/build jobs and
+supplemental emulator smoke passed. The sealed native matrix contains **92
+frames and matching diagnostics** across 13 profiles. The
+[actual native Library preview](studies/q01/assets/library-flat-names-2026-10-12.png)
+is copied unchanged from its normal-size catalog frame, with synthetic Room
+data, matching built-in artwork and honest custom fallback artwork. This
+Library/Room callback host is not full AppNav or phone evidence. Final pinned
+acceptance reviews and clean-trunk integration remain pending.
+Manual custom-editor draft recovery, required-read recovery, full
+pickers/onboarding and broader F8 acceptance remain separately open.
 
 The hosted PR and trunk checks for #488 exposed one existing Home RTL fixture
 failure: on Monday it selected week start, which was today, then incorrectly

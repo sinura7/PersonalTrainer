@@ -172,3 +172,37 @@ Preserve Plan's editor Save/scope/history journey and the shared
 custom-week ordering, validation and draft regression cases. Full custom-week
 screen layout, import and broader editor architecture remain separately scoped
 F7/onboarding work; component checks do not establish their complete acceptance.
+
+## Amendment — 12 October 2026, Library names and return context
+
+Carry the approved flat illustrated direction into the pushed Library route.
+Keep exact exercise pictures and identities, complete names and wrapping
+metadata. At font 1.6 and above, give the name full width below the image/action
+line. Keep Add as the direct nested action and custom management behind options;
+both expose explicit 48 dp buttons and their own spoken labels. The options
+sheet opens fully and scrolls when long names or larger text require it.
+In landscape, move the existing Create action into the header, using the actual
+parent dimensions, so the floating button cannot cover a row's Options action.
+Portrait retains its existing Create placement.
+Empty/no-match content scrolls within its remaining viewport so its explanation
+and Create action remain reachable; opening and cancelling Create saves no row.
+
+Clear filters resets muscle and equipment together while retaining the raw
+typed query. It remains visible beside the horizontal equipment strip, so
+scrolling the choices does not hide this action. Preserve the separate Clear
+search control, AND filtering, grouping rules, exact-ID callbacks, create/edit
+validation, cancellation and reference-aware deletion. The header becomes
+quieter within the existing Instrument type system and five-tab architecture.
+
+Save query, canonical facet names, expanded families and the once-per-route
+initial-muscle marker in the existing SavedStateHandle mechanism. Reconstructing
+that owner must not reapply a Body filter that the user deliberately cleared.
+Unknown saved facet names degrade to no facet. This does not create a global
+saved-search feature or establish custom-editor draft recovery.
+
+Use actual Library/Room native journeys and the framework SavedState factory,
+with a genuinely new Activity/ViewModel owner, to verify these contracts. A
+saved Bundle test does not prove OS process death. Keep required-read recovery,
+manual editor-draft continuity, full AppNav, picker/onboarding and physical
+acceptance separately scoped; no schema, backup, recording, algorithm or
+distribution change is included.
