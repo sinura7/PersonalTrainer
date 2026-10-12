@@ -14,7 +14,8 @@
     "Accepted command remains fenced when cleanup fails. Clear refuses uncertain pending work.",
     "Generation advance requires existing restore write coordination; old owners require area reconciliation and fresh pending inspection.",
     "Strict version/owner/revision/codec checks; bounded reads and redacted result descriptions. Unreadable checkpoints retained without automatic erase or replay.",
-    "Strict UTF8 decoding rejects malformed bytes; valid Unicode/multiline input remains exact."
+    "Strict UTF8 decoding rejects malformed bytes; valid Unicode/multiline input remains exact.",
+    "Validate JSON strings/keys and identity UTF16 before acceptance; strict encoder prevents character substitution in a frozen draft or command."
   ],
   "evidence": {
     "targeted": "target02: 15 fresh tests, zero failure/error/skip; source unchanged during run. Later security-error classification and platform fixture included in final full gate.",
@@ -26,7 +27,9 @@
     },
     "originalFailure": "target01 static required_args_mixed grew181 versus180 plus nullable-parent warning. Both corrected; tests had not executed, no checker baseline weakened.",
     "interruptedFull01": "Standalone1707 passed; full app run interrupted before accepting any complete result to fix strict UTF8 decoding. Original outputs retained. Final changed inputs require fresh complete gate.",
-    "full02": "4350 fresh app tests: 1 initial Finish readiness assertion failure, zero errors/skips; draft17/17 passed. Preflight1707 passed; build/lint tasks did not complete after Test failure. Source/ref stable. Original XML/logs retained."
+    "full02": "4350 fresh app tests: 1 initial Finish readiness assertion failure, zero errors/skips; draft17/17 passed. Preflight1707 passed; build/lint tasks did not complete after Test failure. Source/ref stable. Original XML/logs retained.",
+    "target03": "19 fresh tests passed (draft17 and actual AppNav Summary2); Finish readiness repair retains exact saved-data assertions. Final surrogate correction adds three cases.",
+    "reviewCorrection": "Independent review identified UTF16 encoder substitution and escaped lone-surrogate JSON. Reject invalid strings/keys and owner/command identities; strict encoding and decoding preserve valid Unicode, reject/retain malformed input."
   },
   "acceptanceBoundary": "Infrastructure only. P03-P18 adopt form codecs, perform repository ownership/uncertain-write inspection and wire accepted restore. This does not close UI, actual process termination, all UX07/UX23 criteria or physical acceptance.",
   "visibleChange": "None. Connected custom-editor concept and actual native states belong to P03.",

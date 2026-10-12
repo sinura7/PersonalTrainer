@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -265,6 +266,44 @@ class DurableDraftStoreTest {
         val saved = written(form.beginSave(read(form).version, authored, "command", "Élévation · stable-id"))
         assertEquals(saved, read(binding(root)))
         assertEquals(authored, saved.draft)
+    }
+
+    @Test fun malformedDraftAndCommandCharactersAreRejectedWithoutSubstitution() = runTest {
+        val root = temporary.newFolder()
+        val form = binding(root)
+        val saved = written(form.checkpoint(read(form).version, fields))
+        for (bad in listOf("\uD800", "\uDC00", "ok\uD800x", "a\uDC00b")) {
+            rejected(DraftRejection.INVALID_DATA, form.beginSave(saved.version, listOf(bad), "command", "stable-id"))
+            rejected(DraftRejection.INVALID_DATA, form.beginSave(saved.version, fields, "command", bad))
+            rejected(DraftRejection.INVALID_DATA, form.beginSave(saved.version, fields, bad, "stable-id"))
+            assertEquals(saved, read(form))
+        }
+    }
+
+    @Test fun escapedMalformedJsonStringsAndKeysRemainUnreadableWithoutErasure() = runTest {
+        for (mutation in listOf<(String) -> String>(
+            { it.replace("Bench variation", "\\ud800") },
+            { it.replace("stable-id", "\\udc00") },
+            { it.replaceFirst("{", "{\"\\ud800\":0,") },
+        )) {
+            val root = temporary.newFolder()
+            val form = binding(root)
+            val pending = written(form.beginSave(read(form).version, fields, "command", "stable-id"))
+            val file = ownerFile(root)
+            val malformed = mutation(file.readText())
+            file.writeText(malformed)
+            assertEquals(DraftRead.Unavailable(DraftReadProblem.CORRUPT), form.read())
+            assertEquals(DraftChange.Unavailable(DraftReadProblem.CORRUPT), form.inspect(pending.version, "command", DraftRecoveryOutcome.EXACT_SAVED))
+            assertEquals(malformed, file.readText())
+        }
+    }
+
+    @Test fun malformedOwnerIdentitiesCannotAliasAValidOwner() = runTest {
+        val root = temporary.newFolder()
+        val form = binding(root, key = DraftOwner(DraftForm.CUSTOM_EXERCISE, "?"))
+        val saved = written(form.checkpoint(read(form).version, fields))
+        assertThrows(IllegalArgumentException::class.java) { DraftOwner(DraftForm.CUSTOM_EXERCISE, "\uD800") }
+        assertEquals(saved, read(form))
     }
 
     @Test fun missingGenerationDoesNotInventAReplacementForExistingCheckpoints() = runTest {

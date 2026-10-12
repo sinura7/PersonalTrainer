@@ -8,7 +8,23 @@ internal enum class DraftForm {
 }
 
 internal data class DraftOwner(val form: DraftForm, val identity: String) {
-    init { require(identity.isNotBlank() && identity.length <= 256) }
+    init { require(identity.isNotBlank() && identity.length <= 256 && wellFormedDraftText(identity)) }
+}
+
+/** Reject malformed UTF16 rather than replacing an authored character or aliasing an owner. */
+internal fun wellFormedDraftText(value: String): Boolean {
+    var index = 0
+    while (index < value.length) {
+        val character = value[index]
+        if (Character.isHighSurrogate(character)) {
+            if (index + 1 >= value.length || !Character.isLowSurrogate(value[index + 1])) return false
+            index += 2
+        } else {
+            if (Character.isLowSurrogate(character)) return false
+            index++
+        }
+    }
+    return true
 }
 
 internal data class DraftVersion(val owner: DraftOwner, val generation: String, val revision: Long)

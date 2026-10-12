@@ -7,9 +7,12 @@ import com.google.gson.JsonParser
 import java.io.File
 import java.io.IOException
 import java.nio.ByteBuffer
+import java.nio.CharBuffer
+import java.nio.charset.CharacterCodingException
 import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
 import java.util.UUID
+import java.util.ArrayDeque
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -174,8 +177,22 @@ internal class DurableDraftStore(
                 }
             } ?: JsonNull.INSTANCE)
         }
-        return record.toString().toByteArray(Charsets.UTF_8).also {
-            if (it.size > MAX_DRAFT_BYTES) throw DraftTooLarge()
+        try {
+            validateUnicode(record)
+            val text = record.toString()
+            if (text.length > MAX_DRAFT_BYTES) throw DraftTooLarge()
+            val buffer = Charsets.UTF_8.newEncoder()
+                .onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT)
+                .encode(CharBuffer.wrap(text))
+            return ByteArray(buffer.remaining()).also {
+                buffer.get(it)
+                if (it.size > MAX_DRAFT_BYTES) throw DraftTooLarge()
+            }
+        } catch (_: CharacterCodingException) {
+            throw DraftWriteRefused(DraftRejection.INVALID_DATA)
+        } catch (_: DraftFormatFailure) {
+            throw DraftWriteRefused(DraftRejection.INVALID_DATA)
         }
     }
 
@@ -213,11 +230,30 @@ internal class DurableDraftStore(
                 .decode(ByteBuffer.wrap(bytes)).toString()
             val value = JsonParser.parseString(text)
             if (!value.isJsonObject) corrupt()
+            validateUnicode(value)
             return value.asJsonObject
         } catch (failed: DraftFormatFailure) {
             throw failed
         } catch (_: Exception) {
             corrupt()
+        }
+    }
+
+    /** Escaped lone surrogates are ASCII bytes, so strict UTF8 decoding alone cannot reject them. */
+    private fun validateUnicode(root: JsonElement) {
+        val remaining = ArrayDeque<JsonElement>()
+        remaining.addLast(root)
+        while (remaining.isNotEmpty()) {
+            val value = remaining.removeLast()
+            when {
+                value.isJsonObject -> value.asJsonObject.entrySet().forEach { item ->
+                    if (!wellFormedDraftText(item.key)) corrupt()
+                    remaining.addLast(item.value)
+                }
+                value.isJsonArray -> value.asJsonArray.forEach { remaining.addLast(it) }
+                value.isJsonPrimitive && value.asJsonPrimitive.isString ->
+                    if (!wellFormedDraftText(value.asString)) corrupt()
+            }
         }
     }
 
@@ -259,7 +295,7 @@ internal class DraftBinding<D, C> internal constructor(
 
     suspend fun beginSave(expected: DraftVersion, draft: D, commandIdentity: String, command: C): DraftChange<D, C> = store.change(owner, codec, expected) {
         rejectUnless(it.pending == null, DraftRejection.PENDING_COMMAND)
-        rejectUnless(commandIdentity.isNotBlank() && commandIdentity.length <= 256, DraftRejection.INVALID_DATA)
+        rejectUnless(commandIdentity.isNotBlank() && commandIdentity.length <= 256 && wellFormedDraftText(commandIdentity), DraftRejection.INVALID_DATA)
         it.copy(draft = draft, pending = PendingDraftCommand(commandIdentity, command, DraftCommandPhase.PENDING))
     }
 
