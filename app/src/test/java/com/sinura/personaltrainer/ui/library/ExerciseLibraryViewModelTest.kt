@@ -403,7 +403,7 @@ class ExerciseLibraryViewModelTest {
         return createViewModel(snapshot)
     }
 
-    private fun createViewModel(handle: SavedStateHandle = SavedStateHandle()): ExerciseLibraryViewModel =
+    private fun createViewModel(handle: SavedStateHandle? = null): ExerciseLibraryViewModel =
         ExerciseLibraryViewModel(
             application = ApplicationProvider.getApplicationContext<Application>(),
             container = deps,

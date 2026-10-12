@@ -297,7 +297,20 @@ non-scrolling empty branch hid its explanation/Create action in large-text
 landscape. That branch now scrolls. `targeted11` passed **nine fresh cases / four
 suites**, covering both source assertions and phone/landscape no-match copy,
 actual Create opening/cancellation and exact unchanged catalog/routine snapshots.
-The fresh repaired complete gate, final pinned reviews and integration remain pending.
+The second full gate completed **4,308 fresh app tests / 594 suites**, with one
+Summary correction setup failure while renaming its preferences file. The
+unchanged targeted rerun passed both Summary correction journeys and the new
+Library framework-owner test (three cases). The setup I/O cause remains
+unproven; the original failed receipt stays preserved. Hosted tests passed but
+lint found the new public default handle constructor used a test-only API.
+The Library now accepts the owner-provided handle and keeps legacy callers'
+selection in local flows, following History's existing pattern. A private-field
+fallback attempt also failed lint and is preserved; no suppression or baseline
+change was made. The final constructor passed local lint and both source
+reviews. Existing selection tests now exercise legacy callers without a handle;
+restoration tests still supply one. The unchanged rerun was interrupted during
+preflight to fix the demonstrated lint finding before further test execution.
+The repaired complete gate, final pinned reviews and integration remain pending.
 Manual custom-editor draft recovery, required-read recovery, full
 pickers/onboarding and broader F8 acceptance remain separately open.
 

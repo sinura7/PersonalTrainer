@@ -85,19 +85,20 @@ data class ExerciseLibraryUiState(
 class ExerciseLibraryViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
-    private val savedState: SavedStateHandle = SavedStateHandle(),
+    private val savedState: SavedStateHandle? = null,
 ) : AppViewModel(application, container) {
     constructor(application: Application, savedState: SavedStateHandle) :
         this(application = application, container = application.appContainer(), savedState = savedState)
 
-    private val query = MutableStateFlow(savedState.get<String>(KEY_QUERY).orEmpty())
+    // The framework supplies persistence. Legacy callers retain their selection in the local flows.
+    private val query = MutableStateFlow(savedState?.get<String>(KEY_QUERY).orEmpty())
     private val selectedMuscle = MutableStateFlow(
-        CanonicalMuscle.entries.firstOrNull { it.name == savedState.get<String>(KEY_MUSCLE) },
+        CanonicalMuscle.entries.firstOrNull { it.name == savedState?.get<String>(KEY_MUSCLE) },
     )
     private val selectedEquipment = MutableStateFlow(
-        EquipmentType.entries.firstOrNull { it.name == savedState.get<String>(KEY_EQUIPMENT) },
+        EquipmentType.entries.firstOrNull { it.name == savedState?.get<String>(KEY_EQUIPMENT) },
     )
-    private val expandedFamilies = MutableStateFlow(savedState.get<List<String>>(KEY_FAMILIES).orEmpty().toSet())
+    private val expandedFamilies = MutableStateFlow(savedState?.get<List<String>>(KEY_FAMILIES).orEmpty().toSet())
     private val editor = MutableStateFlow<ExerciseEditorDraft?>(null)
     private val pendingDelete = MutableStateFlow<Exercise?>(null)
     private val blockedDelete = MutableStateFlow<Pair<Exercise, ExerciseUsage>?>(null)
@@ -178,26 +179,26 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
 
     fun onQueryChange(value: String) {
         query.value = value
-        savedState[KEY_QUERY] = value
+        savedState?.set(KEY_QUERY, value)
     }
 
     /** Tapping the selected chip clears it, so a filter is never a one-way door. */
     fun onMuscleSelected(muscle: CanonicalMuscle?) {
         selectedMuscle.value = if (selectedMuscle.value == muscle) null else muscle
-        savedState[KEY_MUSCLE] = selectedMuscle.value?.name
+        savedState?.set(KEY_MUSCLE, selectedMuscle.value?.name)
     }
 
     fun onEquipmentSelected(equipment: EquipmentType?) {
         selectedEquipment.value = if (selectedEquipment.value == equipment) null else equipment
-        savedState[KEY_EQUIPMENT] = selectedEquipment.value?.name
+        savedState?.set(KEY_EQUIPMENT, selectedEquipment.value?.name)
     }
 
     /** Clear both facets deliberately, retaining the text the user typed. */
     fun clearFilters() {
         selectedMuscle.value = null
         selectedEquipment.value = null
-        savedState[KEY_MUSCLE] = null
-        savedState[KEY_EQUIPMENT] = null
+        savedState?.set<String?>(KEY_MUSCLE, null)
+        savedState?.set<String?>(KEY_EQUIPMENT, null)
     }
 
     /**
@@ -209,15 +210,15 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
      * no muscle, then Body → Library with one) is a new back-stack entry and a new
      * ViewModel, so it seeds cleanly.
      */
-    private var routeMuscleSeeded = savedState.get<Boolean>(KEY_SEEDED) ?: false
+    private var routeMuscleSeeded = savedState?.get<Boolean>(KEY_SEEDED) ?: false
 
     fun seedMuscleFromRoute(muscle: CanonicalMuscle?) {
         if (routeMuscleSeeded) return
         routeMuscleSeeded = true
-        savedState[KEY_SEEDED] = true
+        savedState?.set(KEY_SEEDED, true)
         if (muscle != null) {
             selectedMuscle.value = muscle
-            savedState[KEY_MUSCLE] = muscle.name
+            savedState?.set(KEY_MUSCLE, muscle.name)
         }
     }
 
@@ -225,7 +226,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         expandedFamilies.value = expandedFamilies.value.let { open ->
             if (movementKey in open) open - movementKey else open + movementKey
         }
-        savedState[KEY_FAMILIES] = ArrayList(expandedFamilies.value)
+        savedState?.set(KEY_FAMILIES, ArrayList(expandedFamilies.value))
     }
 
     /**
