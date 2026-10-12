@@ -44,7 +44,7 @@ assertions alone still do not complete a packet.*
 | F4 | Truthful Home dates, day picker, planned/completed/live/empty states | Pending |
 | F5 | Registered Body heat geometry, viewport, selection and list equivalence | Pending |
 | F6 | Unified History periods, calendar, readable duration and lifetime views | Core period/read coherence integrated through #465/#466/#485; compact ledger through #487. Remaining calendar/detail criteria and physical acceptance stay open. |
-| F7 | Plan/routines, ordering, editing, import and failed-save recovery | Direct illustrated routines and flat day/week composition are the active native packet. Existing routine management, deletion and weekly-edit scopes are retained; broader editor/order/import criteria remain open. |
+| F7 | Plan/routines, ordering, editing, import and failed-save recovery | Direct illustrated routines and flat day/week composition are reviewed, merged and reverified through #488. Flat shared editor lift rows are the current packet. Existing routine management, deletion and weekly-edit scopes are retained; broader editor/order/import criteria remain open. |
 | F8 | Library/pickers, filters, custom exercises, onboarding and plan preview | Pending |
 | F9 | Live/past cardio, summary, session/exercise details and correction | Pending |
 | F10 | Settings labels/status, backup/restore, diagnostics and About | Pending |
@@ -125,7 +125,7 @@ features are not cancelled, and sync activation retains its separate owner gate.
 | 20 | S2b | Client: composite cursor (Room v8 + migration tests); RPC push; Delete account back; the v8 bump also carries the local `REPLACE`-path hardening and the missing indices | V | Pending |
 | 21–23 | F10a–c | Settings "Saving & sync" row with live status · named groups, icons, one regenerate path · split `SettingsScreen` / `BackupCoordinator`; plus pane titles on sub-pages (UI-2 B10b), the typed path for the reminder wheel (AX-15), the Account card that clips (UI-23), audit X6 decision 1 | V, V, Q | Pending |
 | 24–25 | S3a–b | Room v9 revision/tombstone columns on live strength tables · strength history syncs; first-sync rule for settings; S3a's schema also stores the captured zone on strength sessions (DM-2) | Q, V | Pending |
-| 26–27 | F7a–b | Plan: routines visible with a menu, one word (routine), dead UI removed · split `RoutineEditorViewModel`; plus planning a past weekday (UI-1 B9b), the wider dead-UI list, audit X6 decision 5 | V, Q | The direct-routine/flat-workshop packet is active. Existing menu/delete and past-day/weekly scopes retain their native journeys; editor architecture, wider dead-UI and physical criteria are not claimed closed. |
+| 26–27 | F7a–b | Plan: routines visible with a menu, one word (routine), dead UI removed · split `RoutineEditorViewModel`; plus planning a past weekday (UI-1 B9b), the wider dead-UI list, audit X6 decision 5 | V, Q | Direct routines/flat workshop are integrated through #488. Flat shared editor lift rows are active. Existing menu/delete and past-day/weekly scopes retain their native journeys; editor architecture, wider dead-UI and physical criteria are not claimed closed. |
 | 28 | S4 | WorkManager hygiene, encrypted tokens, `WorkerFactory` (the timeouts moved into S1) | Q | Pending |
 | 29–31 | F5a–c | Body sizing from the measured area · vector anatomy (one geometry for art, heat, taps) · polish and render matrix; the legend and title at large text | V | Pending |
 | 32 | F8b | Library: Clear filters; saved search | V | Pending |

@@ -829,12 +829,21 @@ class HomeReadRecoveryRenderTest {
         reducedMotion = true
         profile = "360x640-rtl-font20-reduced-motion"
         graph()
+        // Reproduce the hosted Monday case on every host. Week start is then
+        // today, so selecting it must not create a Back to today action.
+        localToday = CivilDate.fromEpochDay(todayEpochDay()).previousOrSame(Weekday.MONDAY).epochDay
         show()
         await(HomeReadState.CURRENT)
         failRead()
         proveRecovery("stale-rtl")
-        scrollTo(WeekStripTags.cell(vm.uiState.value.weekStartEpochDay)).performClick()
+        compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertDoesNotExist()
+        val otherDay = localToday + 1
+        scrollTo(WeekStripTags.cell(otherDay)).performClick()
+        compose.awaitThat("browsing another day exposes the read-only return route", vm.uiState::value) {
+            compose.onAllNodesWithTag(HomeTags.BACK_TO_TODAY).fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertIsEnabled().performClick()
+        compose.onNodeWithTag(HomeTags.BACK_TO_TODAY).assertDoesNotExist()
         scrollTo(HomeTags.START).assertIsEnabled().performClick()
         compose.onNodeWithTag(HomeStartTags.FREE).assertIsNotEnabled()
         reachable(compose.onNodeWithTag(HomeStartTags.EXTRA)).assertIsEnabled().performClick()

@@ -138,3 +138,37 @@ routine performs no write; deleting it preserves captured workout results.
 No scheduling, calculation, schema, backup, public API or distribution change is
 included. Native full-name/preview/target evidence, exact-ID actions and the
 existing weekly-add, cancellation, Save and saved-history journeys must pass.
+
+## Amendment — 12 October 2026, compact routine lift rows
+
+Carry the approved flat illustrated composition into the reusable routine
+editor and its shared lift strip in custom week setup. Replace each enclosing
+lift panel with a plain row and a dividing rule. Keep its exact exercise image,
+order, complete name, full work/rest/load preview and existing target controls.
+Long names and previews wrap instead of truncating. A selected row has a thicker
+rule and selected semantics. At font scale 1.6 and above, identity text uses the
+full row width beneath its image/order line; normal text keeps the image beside
+the name. This reduces squeezing without reducing the requested text size.
+Work/rest/load facts use a local wrapping layout;
+weight and its canonical display unit stay together without a one-line clamp.
+Bodyweight-only rows omit a load fact and spoken load even when a legacy or
+reclassified routine retains a positive weight column. The existing no-weight
+editor rule governs its preview as well; this does not erase that stored value.
+Its action says Close targets while expanded and
+Edit targets while closed. Both states expose a button role.
+
+Keep exact-ID selection, target staging/commit, validation, folding cleanup,
+reorder, Remove, Swap, Save/cancel and the custom week's draft-until-Confirm
+contract. Opening targets and editing unrelated fields must preserve an absent
+weight field's exact stored column, including a retained legacy target. Existing scrolling and
+bring-into-view ownership remain unchanged. This packet changes presentation,
+with no ViewModel write, schema, backup, public API or distribution change.
+
+Verify real Routine Editor/Room preparation failure, exact Retry, complete long
+names, reachable target editing and stale-selection return across the native
+display matrix, with loaded and ranged-hold previews in kilograms and pounds
+and a bodyweight-only routine retaining an irrelevant positive weight column.
+Preserve Plan's editor Save/scope/history journey and the shared
+custom-week ordering, validation and draft regression cases. Full custom-week
+screen layout, import and broader editor architecture remain separately scoped
+F7/onboarding work; component checks do not establish their complete acceptance.

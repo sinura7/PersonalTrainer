@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,6 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -47,9 +51,9 @@ import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.domain.SetCopy
 import com.sinura.personaltrainer.domain.TargetStepper
 import com.sinura.personaltrainer.domain.WeightConverter
+import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.ui.components.ExerciseThumb
 import com.sinura.personaltrainer.ui.components.Kicker
-import com.sinura.personaltrainer.ui.components.MetricCluster
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
 import com.sinura.personaltrainer.ui.components.NumeralWell
 import com.sinura.personaltrainer.ui.components.ThumbSize
@@ -61,12 +65,10 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.Pit
 import com.sinura.personaltrainer.ui.theme.Radius
 import com.sinura.personaltrainer.ui.theme.Surface1
-import com.sinura.personaltrainer.ui.theme.Surface2
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
 import com.sinura.personaltrainer.ui.theme.Volt
-import com.sinura.personaltrainer.ui.theme.VoltDim
 import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 
 data class SessionLiftItem(
@@ -85,6 +87,7 @@ object SessionLiftTags {
     const val EDITOR = "session-lift-editor"
     const val HINT = "session-lift-hint"
     fun card(id: String) = "session-lift-card-$id"
+    fun preview(id: String) = "session-lift-preview-$id"
 }
 
 object SessionLiftCopy {
@@ -106,10 +109,10 @@ object CompactLiftTags {
 }
 
 /**
- * The session as a vertical stack of full-width cards.
+ * The session as a flat vertical ledger of full-width lift rows.
  *
  * Each lift occupies one horizontal row. The next sits under it. Tap expands
- * that card for sets, reps, rest and load — not a sideways strip you have to
+ * that row for sets, reps, rest and load — not a sideways strip you have to
  * hunt through.
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -194,6 +197,7 @@ fun SessionLiftStrip(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun SessionLiftCard(
     item: SessionLiftItem,
     number: Int,
@@ -214,7 +218,9 @@ private fun SessionLiftCard(
 ) {
     val unit = LocalWeightUnit.current
     val restClock = RestTimer.formatClock(item.restSeconds)
-    val loadKg = item.targetWeightKg?.takeIf { it > 0.0 }
+    val loadKg = item.targetWeightKg?.takeIf {
+        it > 0.0 && LoadClass.of(item.exercise.loadType).weightMeaning != WeightMeaning.NONE
+    }
     val loadDisplay = loadKg?.let { kg -> WeightConverter.formatLabel(kg, unit) }
     val loadTag = LoadTypeCopy.rowTag(item.exercise)
     val subtitle = listOf(
@@ -234,24 +240,30 @@ private fun SessionLiftCard(
         },
         holdSecondsMax = item.targetSecondsMax,
     )
-    val shape = RoundedCornerShape(Radius.sm)
     Column(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = Metrics.rowMin)
-            .clip(shape)
-            .background(if (selected) VoltDim else Surface2)
-            .border(
-                if (selected) Metrics.emphasisBorder else Metrics.hairline,
-                if (selected) Volt else Hairline,
-                shape,
-            ),
+            .drawBehind {
+                val stroke = if (selected) Metrics.emphasisBorder.toPx() else Metrics.hairline.toPx()
+                val y = size.height - stroke / 2f
+                drawLine(
+                    color = if (selected) Volt else Hairline,
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = stroke,
+                )
+            },
         verticalArrangement = Arrangement.spacedBy(Metrics.space2),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = if (selected) "Close targets" else "Edit targets",
+                    onClick = onClick,
+                )
                 .testTag(SessionLiftTags.card(item.id))
                 .semantics(mergeDescendants = true) {
                     contentDescription = spoken
@@ -260,39 +272,30 @@ private fun SessionLiftCard(
                 .padding(Metrics.space3),
             verticalArrangement = Arrangement.spacedBy(Metrics.space2),
         ) {
+            val stackIdentity = LocalDensity.current.fontScale >= 1.6f
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
                 CartBadge(number = number, selected = selected)
-                ExerciseThumb(
-                    exercise = item.exercise,
-                    size = ThumbSize.header,
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        item.exercise.name,
-                        style = InstrumentType.title,
-                        color = TextPrimary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                ExerciseThumb(exercise = item.exercise, size = ThumbSize.header)
+                if (!stackIdentity) {
+                    LiftIdentityText(
+                        name = item.exercise.name,
+                        subtitle = subtitle,
+                        modifier = Modifier.weight(1f),
                     )
-                    if (subtitle.isNotBlank()) {
-                        Text(
-                            subtitle,
-                            style = InstrumentType.caption,
-                            color = TextSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Metrics.space2),
+            if (stackIdentity) {
+                LiftIdentityText(name = item.exercise.name, subtitle = subtitle, modifier = Modifier.fillMaxWidth())
+            }
+            FlowRow(
+                modifier = Modifier.fillMaxWidth().testTag(SessionLiftTags.preview(item.id)),
+                horizontalArrangement = Arrangement.spacedBy(Metrics.space4),
+                verticalArrangement = Arrangement.spacedBy(Metrics.space2),
             ) {
-                MetricCluster(
+                LiftTargetPreview(
                     value = if (item.targetSeconds != null || HoldWork.isHold(item.exercise)) {
                         HoldWork.workLine(
                             item.sets,
@@ -303,24 +306,15 @@ private fun SessionLiftCard(
                         "${item.sets} × ${item.reps}"
                     },
                     label = SessionOrderCopy.WORK,
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
                 )
-                MetricCluster(
+                LiftTargetPreview(
                     value = restClock,
                     label = SessionOrderCopy.REST,
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.Start,
                 )
-                if (loadKg != null) {
-                    MetricCluster(
-                        value = WeightConverter.formatDisplayNumber(
-                            WeightConverter.toDisplayValue(loadKg, unit),
-                        ),
+                if (loadDisplay != null) {
+                    LiftTargetPreview(
+                        value = loadDisplay,
                         label = SessionOrderCopy.LOAD,
-                        unit = unit.suffix,
-                        modifier = Modifier.weight(1f),
-                        horizontalAlignment = Alignment.Start,
                     )
                 }
             }
@@ -342,6 +336,42 @@ private fun SessionLiftCard(
                 onForgetTargetRule = onForgetTargetRule,
             )
         }
+    }
+}
+
+@Composable
+private fun LiftIdentityText(name: String, subtitle: String, modifier: Modifier) {
+    Column(modifier = modifier) {
+        Text(
+            name,
+            style = InstrumentType.title,
+            color = TextPrimary,
+            maxLines = Int.MAX_VALUE,
+            overflow = TextOverflow.Clip,
+        )
+        if (subtitle.isNotBlank()) {
+            Text(
+                subtitle,
+                style = InstrumentType.caption,
+                color = TextSecondary,
+                maxLines = Int.MAX_VALUE,
+                overflow = TextOverflow.Clip,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LiftTargetPreview(value: String, label: String) {
+    Column {
+        Text(
+            value,
+            style = InstrumentType.bodyStrong,
+            color = TextPrimary,
+            maxLines = Int.MAX_VALUE,
+            overflow = TextOverflow.Clip,
+        )
+        Kicker(text = label, color = TextTertiary, asHeading = false)
     }
 }
 
@@ -519,7 +549,7 @@ internal fun CompactTargetFields(
                 nextSets,
                 if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else nextReps,
                 nextRest,
-                TargetStepper.weightToStage(nextKg),
+                if (showWeight) TargetStepper.weightToStage(nextKg) else targetWeightKg,
                 null,
                 if (hold) nextSeconds else null,
                 if (hold) nextSecondsMax else null,
@@ -531,7 +561,7 @@ internal fun CompactTargetFields(
         (!hold && repsValue != reps) ||
         restValue != restSeconds ||
         (hold && (secondsValue != storedHold || secondsMaxValue != targetSecondsMax)) ||
-        TargetStepper.weightToStage(stagedWeight) != targetWeightKg
+        (if (showWeight) TargetStepper.weightToStage(stagedWeight) else targetWeightKg) != targetWeightKg
     LaunchedEffect(rowKey, differsFromStored) {
         if (differsFromStored) {
             persist(setsValue, repsValue, restValue, stagedWeight, secondsValue, secondsMaxValue)

@@ -144,7 +144,7 @@ suites**, with no failures, errors or skips. The feature is retired with a
 verified recovery bundle. Hosted feature, PR and integrated-trunk unit/build and
 supplemental emulator jobs all passed; original pending receipts are preserved.
 
-The active Plan packet makes routines directly visible, replaces enclosing
+The integrated Plan packet makes routines directly visible, replaces enclosing
 routine/day panels with flat rows, shows complete names and ordered exercise
 previews, and resolves matching illustrations by exact exercise identity. A
 direct routine tap opens its editor; the separate options, long-press shortcut,
@@ -185,16 +185,86 @@ is an unmodified capture with synthetic Room data, including two identically
 named routines used to prove exact-ID routing. It shows flat dates/day rows,
 direct routine access, complete names and three distinct catalog illustrations.
 These are screen-host/callback and saved-data checks, distinct from full AppNav,
-physical-phone or process-death acceptance. Final pinned reviews and integration
-for [PR #488](https://github.com/sinura7/PersonalTrainer/pull/488) remain pending.
+physical-phone or process-death acceptance. Both final pinned reviews passed and
+[PR #488](https://github.com/sinura7/PersonalTrainer/pull/488) merged at `788f1b02`.
+The clean-trunk complete gate passed with proven unchanged code/build inputs,
+exact archived JVM XML and standalone evidence reuse; it did not repeat those
+test executions. The shortest affected journey then passed **three fresh cases
+/ two suites**, including Plan management/editor Save and preserved history,
+both cardio artwork guards and a complete connected workout. The feature is
+retired with a verified complete recovery bundle. Hosted checks retain their
+actual separately recorded status.
 Older dated entries below retain their historical scope. Physical-phone
 acceptance and the wider roadmap remain open; no new Debug drop is published.
+
+The current routine-editor packet replaces enclosing lift panels with flat,
+illustrated rows. Complete exercise names and work/rest/load facts wrap; large
+text uses the full row width beneath the image/order line. Selected state has a
+structural rule, and the button action distinguishes Edit targets from Close
+targets. Exact IDs, canonical units, target staging/commit, validation, ordering,
+Swap/Remove and Save remain. Custom Week shares the presentation and retains its
+draft-until-Confirm behavior; full custom-week screen acceptance is separate.
+
+The original source review exposed a one-line metric clamp; local wrapping facts
+repair it without changing global MetricCluster. Two initial commands failed on
+an invalid test import and enum spelling; a third stopped at the named-argument
+ratchet. Those causes were fixed without weakening checks. `targeted04` passed
+**36 fresh cases / four suites**, including real native editor/Open/Close,
+loaded/ranged-hold kg/lb previews, scroll policy and Custom Week draft regression.
+After further large-text identity reflow, `targeted05` passed **four fresh native
+cases / one suite** at phone font 1.6/2, landscape font 2 and RTL/reduced motion.
+The complete `full01` gate at `92b90f70` passed **4,290 fresh app tests / 592
+suites and 1,707 fresh standalone tests / 256 classes**, all four Windows tasks
+and dependent release assembly. Its 86 native frames and matching diagnostics
+remain preserved. Pixel review then found an inherited bodyweight preview
+showing a retained load despite having no weight field. A new actual-Room case
+in `targeted06` reproduced a more consequential defect: opening those targets
+cleared the retained column. That run failed **one of four fresh cases**; both
+reviews independently confirmed the destructive staging path.
+
+The repair omits irrelevant visible/spoken load and preserves the exact hidden
+column through opening, closing and every other target edit. The regression now
+changes reps through the real number dialog and awaits the exact committed Room
+row. `targeted07` stopped at the documented Robolectric keypad cursor/idling
+condition; the test now uses the existing held-clock keypad helper. The original
+failure and thread diagnostic remain preserved. Its mistyped Plan method filter
+executed no Plan case; the next command uses the actual method name. The earlier
+successful gate cannot accept this changed source. `targeted08` then passed
+**five fresh cases / three suites**, including exact Room preservation after
+editing, loaded/hold previews, shared Custom Week draft behavior and the actual
+Plan/editor/history journey. The fresh complete `full02` gate at `31cf341e`
+passed **4,291 fresh app tests / 592 suites and 1,707 fresh standalone tests /
+256 classes**, all four Windows tasks and dependent release assembly, with no
+failures, errors or skips. All 1,572 runtime/test/tool inputs and refs stayed
+unchanged. Its sealed archive contains **88 native frames and matching
+diagnostics**, including the bodyweight retained-column case. Pixel review
+checked actual catalog pictures, full names, large text, landscape and RTL
+targets. [The actual native routine editor](studies/q01/assets/routine-flat-editor-2026-10-12.png)
+uses synthetic data; its routine-name input keeps the existing horizontal
+editing behavior. Final pinned reviews and integration remain pending.
+
+Both hosted build checks passed on the repair. One supplemental emulator run
+passed and the other initially failed waiting for the keyboard in an unchanged
+History notes test, before that test attempted its correction write. Original
+log/report evidence is preserved. A repeat of that failed job passed, with no
+source, assertion or timeout change; the first failure remains a failure.
+Physical keyboard, phone and broader F11 acceptance remain separate.
+
+The hosted PR and trunk checks for #488 exposed one existing Home RTL fixture
+failure: on Monday it selected week start, which was today, then incorrectly
+required Back to today. Original hosted log/XML and diagnosis are preserved.
+This editor packet includes the prerequisite test-only repair: explicitly
+provide Monday, prove absence on today, select Tuesday, await the actual return
+route and return. The original stale Start/Free/Extra assertions remain; Home
+production is unchanged. The repaired case passed freshly in `targeted04`.
+These original hosted failures are not described as passes.
 
 **Visual direction clarification, 11 October 2026 UTC:** The owner questioned
 why recent images still resemble the earlier layout. Compact Focus is the
 prior implemented workout composition. Home is now flat and illustrated; the new
 workout rows, Summary's flat receipt and History's flat ledger are implemented
-and integrated. The compact Plan workshop is the current candidate. The whole-app visual
+and integrated. The compact Plan workshop is integrated; flat routine-editor
+lift rows are the current packet. The whole-app visual
 redesign is unfinished. The connected native composition follows the
 [new connected flow concept](studies/q01/temper-flow-concept.html): a flat Home
 agenda, two flat editable workout rows, reachable saved-work actions and an
