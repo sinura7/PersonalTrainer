@@ -123,7 +123,7 @@ private fun ExerciseLibraryContent(
         viewModel.seedMuscleFromRoute(initialMuscle)
     }
     val headerActions: @Composable RowScope.() -> Unit = {
-        if (landscape && state.visibleExercises.isNotEmpty()) {
+        if (landscape && state.readState == LibraryReadState.CURRENT && state.visibleExercises.isNotEmpty()) {
             IconButton(
                 onClick = viewModel::openCreate,
                 modifier = Modifier.size(Metrics.touchMin).testTag(LibraryTags.FAB)
@@ -148,7 +148,7 @@ private fun ExerciseLibraryContent(
             )
         },
         floatingActionButton = {
-            if (!landscape && state.visibleExercises.isNotEmpty()) {
+            if (!landscape && state.readState == LibraryReadState.CURRENT && state.visibleExercises.isNotEmpty()) {
                 FloatingActionButton(
                     onClick = viewModel::openCreate,
                     modifier = Modifier.testTag(LibraryTags.FAB),
@@ -171,6 +171,21 @@ private fun ExerciseLibraryContent(
         when {
             state.isLoading -> {
                 ScreenLoading(modifier = Modifier.padding(padding))
+            }
+            state.readState != LibraryReadState.CURRENT -> {
+                EmptyState(
+                    title = LibraryReadCopy.TITLE,
+                    body = LibraryReadCopy.BODY,
+                    scene = EmptyScene.CATALOG,
+                    actionLabel = if (state.retryPending) "Retrying…" else "Retry",
+                    onAction = { viewModel.retryRead() },
+                    actionEnabled = !state.retryPending,
+                    actionTag = LibraryTags.READ_RETRY,
+                    modifier = Modifier.fillMaxSize().padding(padding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = Metrics.gutter, vertical = Metrics.space4)
+                        .testTag(LibraryTags.READ_PROBLEM),
+                )
             }
             else -> {
                 Column(
@@ -377,7 +392,8 @@ private fun ExerciseLibraryContent(
         }
     }
 
-    state.exercises.firstOrNull { it.id == overflowExerciseId }?.let { exercise ->
+    state.exercises.firstOrNull { it.id == overflowExerciseId }
+        ?.takeIf { state.readState == LibraryReadState.CURRENT }?.let { exercise ->
         LiftOverflowSheet(
             exercise = exercise,
             onEdit = {
@@ -396,14 +412,19 @@ private fun ExerciseLibraryContent(
         ExerciseEditorSheet(
             draft = draft,
             muscleOptions = MuscleGroups.editorOptions(state.exercises),
-            error = state.error,
+            error = if (state.readState == LibraryReadState.CURRENT) state.error else LibraryReadCopy.BODY,
+            saveEnabled = state.readState == LibraryReadState.CURRENT && !state.retryPending,
+            onReadRetry = if (state.readState == LibraryReadState.UNAVAILABLE || state.readState == LibraryReadState.STALE) {
+                { viewModel.retryRead() }
+            } else null,
+            readRetryPending = state.retryPending,
             onDraftChange = viewModel::updateEditor,
             onSave = viewModel::saveEditor,
             onDismiss = viewModel::dismissEditor,
         )
     }
 
-    state.pendingDelete?.let { exercise ->
+    state.pendingDelete?.takeIf { state.readState == LibraryReadState.CURRENT }?.let { exercise ->
         ConfirmActionDialog(
             title = "Delete ${exercise.name}?",
             body = "This removes it from your library. Lifts used in routines or history can’t be deleted.",
@@ -414,7 +435,7 @@ private fun ExerciseLibraryContent(
         )
     }
 
-    state.blockedDelete?.let { (exercise, usage) ->
+    state.blockedDelete?.takeIf { state.readState == LibraryReadState.CURRENT }?.let { (exercise, usage) ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDelete,
             title = { Text("Can’t delete ${exercise.name}", style = InstrumentType.title) },
@@ -433,7 +454,7 @@ private fun ExerciseLibraryContent(
         )
     }
 
-    state.addToRoutine?.let { exercise ->
+    state.addToRoutine?.takeIf { state.readState == LibraryReadState.CURRENT }?.let { exercise ->
         AddToRoutineSheet(
             exercise = exercise,
             destinations = AddToRoutineCopy.destinations(state.routines, exercise.id),
@@ -662,6 +683,9 @@ object LibraryTags {
     const val CLEAR_FILTERS = "library-clear-filters"
     const val EQUIPMENT_FILTERS = "library-equipment-filters"
     const val LIST = "library-list"
+    const val READ_PROBLEM = "library-read-problem"
+    const val READ_RETRY = "library-read-retry"
+    const val EDITOR_READ_RETRY = "library-editor-read-retry"
     fun lift(id: String) = "library-lift-$id"
     fun add(id: String) = "library-add-$id"
     fun options(id: String) = "library-options-$id"

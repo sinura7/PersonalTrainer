@@ -206,3 +206,35 @@ saved Bundle test does not prove OS process death. Keep required-read recovery,
 manual editor-draft continuity, full AppNav, picker/onboarding and physical
 acceptance separately scoped; no schema, backup, recording, algorithm or
 distribution change is included.
+
+## Amendment — 12 October 2026, Library required-read recovery
+
+Distinguish loading, a successful empty Library, unavailable first reads and
+stale data after a prior complete read. Catalog, routines, name collisions and
+raw collision preferences are required sources. A failed preferences read must
+not become a healthy empty dismissal list through defensive defaults.
+
+Retry explicitly creates a fresh generation of all required reads. Until that
+generation succeeds, refuse new Library changes and keep the recovery action
+visible. The owner keeps tracking read health while its composable is absent;
+a replayed UI value cannot authorize a write. Actions suspended before a retry
+must not resume using the previous generation's lift details.
+Library Add admission is checked again after the repository acquires its write
+transaction and reads the destination/order, immediately before inserting the
+row. Refusal skips the insert, routine timestamp and sync notification. The
+existing public Add signature and its target/hold rules stay intact.
+
+Retain raw search and chosen facets. When a read fails with a custom editor
+already open, keep the same owner's manual fields, disable Save and provide
+Retry inside that modal. Page Retry behind a scrim is not a reachable recovery
+path. A confirmed failed Add lookup, Delete or collision choice reports failure
+without claiming success; cancellation still propagates.
+An Add refusal closes its chooser so the existing page error is reachable.
+
+Verify all required fault sources, absent-composition admission, held/repeated
+Retry and suspended Add across reclassification with real private Room and
+DataStore fixtures. Render the actual error, pending, recovered and open-editor
+states in ADR-032's matrix. This packet does not establish reconstructed custom
+drafts, interrupted/unknown Save recovery, full AppNav or physical-device
+acceptance. Those remain separately named F8/F11 work. No schema, backup,
+recording, coaching, platform or distribution change is included.

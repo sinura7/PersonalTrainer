@@ -321,10 +321,45 @@ frames and matching diagnostics** across 13 profiles. The
 [actual native Library preview](studies/q01/assets/library-flat-names-2026-10-12.png)
 is copied unchanged from its normal-size catalog frame, with synthetic Room
 data, matching built-in artwork and honest custom fallback artwork. This
-Library/Room callback host is not full AppNav or phone evidence. Final pinned
-acceptance reviews and clean-trunk integration remain pending.
+Library/Room callback host is not full AppNav or phone evidence. Both final
+pinned reviews passed and [#490](https://github.com/sinura7/PersonalTrainer/pull/490)
+was integrated into `trunk` at `9ac97eaa`. The clean-trunk gate proved unchanged
+inputs and exact prior JVM results (no new unfiltered JVM execution), followed
+by eight fresh Library return, framework-owner and connected workout checks.
+The feature branch was retired with a verified recovery bundle.
 Manual custom-editor draft recovery, required-read recovery, full
 pickers/onboarding and broader F8 acceptance remain separately open.
+
+The next F8 packet addresses demonstrated required-read failures in Library.
+The two observation checks established that a failed first catalog read remained
+loading indefinitely and that reconstructed editor owners lose unsaved drafts.
+Required-read recovery proceeds first: explicit unavailable/stale state and Retry,
+all-source freshness, owner-lifetime write admission and same-owner editor Retry
+without discarding manual fields. Queued Add actions must not use details from a
+previous read generation. The reconstructed draft and interrupted/unknown Save
+protocol remains the following F8 packet; this packet does not claim it solved.
+The focused repaired run passed 25 fresh checks (12 fault/ownership cases and
+13 native profiles), with 117 sealed frames and matching semantics diagnostics.
+Retry inside the open editor is reachable without discarding its manual fields;
+failed destination reads expose the existing page error. Add admission is also
+checked after transaction acquisition and destination/order reads, immediately
+before insertion. A refused action changes neither rows nor routine timestamps.
+Earlier failed attempts remain archived, including an unexplained held Retry
+assertion in the first executed run; the current passing run does not establish
+its cause. The complete gate subsequently passed **4,333 fresh app tests / 596
+suites and 1,707 fresh standalone tests / 256 classes**, all four required
+Windows tasks and dependent release assembly, without failures, errors or skips.
+All 1,576 runtime/test/tool/build inputs and refs stayed unchanged. The held
+Retry regression passed again; its earlier failure remains preserved with cause
+unproven. The exact runtime commit's hosted unit/build and supplemental emulator
+jobs also passed. The fresh full-gate native matrix has **117 frames and matching
+diagnostics across 13 profiles**. The
+[actual native editor recovery state](studies/q01/assets/library-read-recovery-2026-10-12.png)
+is copied unchanged from that verified run. This establishes same-owner manual
+field continuity, not reconstruction or OS process-death draft recovery. Final
+pinned acceptance reviews and clean-trunk integration are the remaining packet
+steps; the following F8 packet addresses reconstructed drafts and interrupted
+or unknown Save outcomes.
 
 The hosted PR and trunk checks for #488 exposed one existing Home RTL fixture
 failure: on Monday it selected week start, which was today, then incorrectly

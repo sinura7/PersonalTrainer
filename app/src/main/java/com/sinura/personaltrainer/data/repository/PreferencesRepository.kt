@@ -425,6 +425,11 @@ class PreferencesRepository(
     val dismissedCollisionIds: Flow<Set<String>> =
         pref { prefs -> prefs[DISMISSED_COLLISIONS].orEmpty() }
 
+    /** Library must distinguish an unread settings file from a successful empty dismissal set. */
+    internal fun observeDismissedCollisionIdsHealth(): Flow<DataHealth<Set<String>>> =
+        dataStore.data.map { prefs -> prefs[DISMISSED_COLLISIONS].orEmpty() }
+            .observeHealth("library preferences").distinctUntilChanged()
+
     suspend fun dismissCollision(exerciseId: String) {
         dataStore.edit { prefs ->
             prefs[DISMISSED_COLLISIONS] = prefs[DISMISSED_COLLISIONS].orEmpty() + exerciseId

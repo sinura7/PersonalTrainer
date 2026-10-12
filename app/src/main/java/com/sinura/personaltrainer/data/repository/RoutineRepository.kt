@@ -13,6 +13,7 @@ import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.Exercise
 import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.Routine
+import com.sinura.personaltrainer.domain.TargetDefaults
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -150,33 +151,62 @@ class RoutineRepository(
         targetSeconds: Int? = null,
         targetSecondsMax: Int? = null,
     ) {
-        writeRoutine {
-            val existing = routineDao.getById(routineId)
-            if (existing?.items?.any { it.exercise.id == exercise.id } == true) return@writeRoutine
-            val nextOrder = routineDao.maxSortOrder(routineId) + 1
-            val hold = HoldWork.isHold(exercise)
-            routineDao.upsertRoutineExercise(
-                RoutineExerciseEntity(
-                    id = UUID.randomUUID().toString(),
-                    routineId = routineId,
-                    exerciseId = exercise.id,
-                    sortOrder = nextOrder,
-                    targetSets = targetSets.coerceAtLeast(1),
-                    targetReps = if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else targetReps.coerceAtLeast(1),
-                    targetWeightKg = targetWeightKg?.takeIf { it > 0.0 },
-                    restSeconds = restSeconds.coerceAtLeast(0),
-                    targetSeconds = if (hold) {
-                        HoldWork.countdownSeconds(targetSeconds)
-                    } else {
-                        null
-                    },
-                    targetSecondsMax = if (hold) targetSecondsMax else null,
-                ),
-            )
-            touch(routineId)
-            notifyRoutinesSync()
-        }
+        addExerciseAdmitted(
+            routineId = routineId, exercise = exercise,
+            targets = AddTargets(
+                sets = targetSets, reps = targetReps, weightKg = targetWeightKg, restSeconds = restSeconds,
+                seconds = targetSeconds, secondsMax = targetSecondsMax,
+            ),
+            admit = { true },
+        )
     }
+
+    /** Library read ownership is checked after transaction acquisition and destination reads. */
+    internal suspend fun addLibraryExercise(
+        routineId: String,
+        exercise: Exercise,
+        defaults: TargetDefaults,
+        admit: () -> Boolean,
+    ): Boolean = addExerciseAdmitted(
+        routineId = routineId, exercise = exercise,
+        targets = AddTargets(sets = defaults.sets, reps = defaults.reps, weightKg = null, restSeconds = defaults.restSeconds),
+        admit = admit,
+    )
+
+    private suspend fun addExerciseAdmitted(
+        routineId: String,
+        exercise: Exercise,
+        targets: AddTargets,
+        admit: () -> Boolean,
+    ): Boolean = writeRoutine {
+        val existing = routineDao.getById(routineId)
+        if (existing?.items?.any { it.exercise.id == exercise.id } == true) return@writeRoutine admit()
+        val nextOrder = routineDao.maxSortOrder(routineId) + 1
+        if (!admit()) return@writeRoutine false
+        val hold = HoldWork.isHold(exercise)
+        routineDao.upsertRoutineExercise(
+            RoutineExerciseEntity(
+                id = UUID.randomUUID().toString(), routineId = routineId, exerciseId = exercise.id, sortOrder = nextOrder,
+                targetSets = targets.sets.coerceAtLeast(1),
+                targetReps = if (hold) HoldWork.HOLD_REPS_PLACEHOLDER else targets.reps.coerceAtLeast(1),
+                targetWeightKg = targets.weightKg?.takeIf { it > 0.0 }, restSeconds = targets.restSeconds.coerceAtLeast(0),
+                targetSeconds = if (hold) HoldWork.countdownSeconds(targets.seconds) else null,
+                targetSecondsMax = if (hold) targets.secondsMax else null,
+            ),
+        )
+        touch(routineId)
+        notifyRoutinesSync()
+        true
+    }
+
+    private data class AddTargets(
+        val sets: Int,
+        val reps: Int,
+        val weightKg: Double?,
+        val restSeconds: Int,
+        val seconds: Int? = null,
+        val secondsMax: Int? = null,
+    )
 
     /**
      * Replaces one lift in a routine with another, keeping everything about its place.

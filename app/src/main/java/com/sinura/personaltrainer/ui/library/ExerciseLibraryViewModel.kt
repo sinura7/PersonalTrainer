@@ -9,8 +9,10 @@ import com.sinura.personaltrainer.AppViewModel
 import com.sinura.personaltrainer.appContainer
 import com.sinura.personaltrainer.data.repository.SaveExerciseResult
 import com.sinura.personaltrainer.data.repository.DeleteExerciseResult
+import com.sinura.personaltrainer.data.repository.combineHealth
 import com.sinura.personaltrainer.domain.AddDefaults
 import com.sinura.personaltrainer.domain.CanonicalMuscle
+import com.sinura.personaltrainer.domain.DataHealth
 import com.sinura.personaltrainer.domain.CatalogMeta
 import com.sinura.personaltrainer.domain.EquipmentType
 import com.sinura.personaltrainer.domain.Exercise
@@ -25,11 +27,17 @@ import com.sinura.personaltrainer.domain.Routine
 import com.sinura.personaltrainer.domain.SessionOrderCopy
 import com.sinura.personaltrainer.util.ErrorSlot
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -39,6 +47,16 @@ private const val TAG = "PT/LibraryVM"
 private const val ERR_EDITOR = "editor"
 private const val ERR_DELETE = "delete"
 private const val ERR_ADD_TO_ROUTINE = "addToRoutine"
+private const val ERR_READ = "read"
+private const val ERR_COLLISION = "collision"
+
+enum class LibraryReadState { LOADING, CURRENT, UNAVAILABLE, STALE }
+
+internal object LibraryReadCopy {
+    const val TITLE = "Library unavailable"
+    const val BODY = "Library could not be read. Nothing was changed. Retry, or go back."
+    const val REFRESHED = "Library refreshed. Review this lift and try again."
+}
 
 data class ExerciseEditorDraft(
     val id: String? = null,
@@ -50,6 +68,8 @@ data class ExerciseEditorDraft(
 
 data class ExerciseLibraryUiState(
     val isLoading: Boolean = true,
+    val readState: LibraryReadState = LibraryReadState.LOADING,
+    val retryPending: Boolean = false,
     val exercises: List<Exercise> = emptyList(),
     /** The flat list, used whenever a query or a filter is active. */
     val visibleExercises: List<Exercise> = emptyList(),
@@ -82,6 +102,7 @@ data class ExerciseLibraryUiState(
         get() = query.isBlank() && selectedMuscle == null && selectedEquipment == null
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ExerciseLibraryViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
@@ -105,29 +126,28 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     private val addToRoutine = MutableStateFlow<Exercise?>(null)
     private val error = ErrorSlot()
     private val message = MutableStateFlow<String?>(null)
+    private val readGeneration = MutableStateFlow(0L)
+    private val board = MutableStateFlow(LibraryReadBoard())
+    // Read authority belongs to this owner, even while its composition is absent.
+    private var authoritativeReadState = LibraryReadState.LOADING
+    private var hasCompleteRead = false
 
     val uiState: StateFlow<ExerciseLibraryUiState> = combine(
         combine(
-            container.exerciseRepository.observeAll(),
-            container.routineRepository.observeAll(),
+            board,
             query,
             selectedMuscle,
             selectedEquipment,
-        ) { exercises, routines, currentQuery, muscle, equipment ->
-            LibraryCore(exercises, routines, currentQuery, muscle, equipment)
+        ) { data, currentQuery, muscle, equipment ->
+            LibraryCore(data.inputs.exercises, data.inputs.routines, currentQuery, muscle, equipment,
+                data.inputs.collisions, data.inputs.dismissed, data.status)
         },
         combine(editor, pendingDelete, blockedDelete, addToRoutine) { draft, delete, blocked, add ->
             LibraryDialogs(draft, delete, blocked, add)
         },
-        combine(
-            container.exerciseRepository.observeNameCollisions(),
-            container.preferencesRepository.dismissedCollisionIds,
-            expandedFamilies,
-        ) { collisions, dismissed, expanded ->
-            LibraryAside(collisions.filterNot { it.id in dismissed }, expanded)
-        },
+        expandedFamilies,
         combine(error.messages, message) { err, note -> err to note },
-    ) { core, dialogs, aside, notices ->
+    ) { core, dialogs, expanded, notices ->
         val needle = core.query.trim()
         // Muscle first, because it is the filter that reorders as well as narrows: a lift where
         // the muscle is a secondary credit belongs in the list, below the ones where it is the
@@ -150,18 +170,20 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
 
         val grouped = needle.isEmpty() && core.muscle == null && core.equipment == null
         ExerciseLibraryUiState(
-            isLoading = false,
+            isLoading = core.status.state == LibraryReadState.LOADING,
+            readState = core.status.state,
+            retryPending = core.status.retryPending,
             exercises = core.exercises,
             visibleExercises = visible,
             families = if (grouped) LibraryGrouping.group(core.exercises) else emptyList(),
-            expandedFamilies = aside.expandedFamilies,
+            expandedFamilies = expanded,
             muscleFilters = LibraryFilter.musclesPresentIn(core.exercises),
             selectedMuscle = core.muscle,
             equipmentFilters = EquipmentType.entries.filter { type ->
                 core.exercises.any { it.equipment == type }
             },
             selectedEquipment = core.equipment,
-            needsAttention = aside.collisions,
+            needsAttention = core.collisions.filterNot { it.id in core.dismissed },
             query = core.query,
             routines = core.routines,
             editor = dialogs.editor,
@@ -176,6 +198,75 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = ExerciseLibraryUiState(),
     )
+
+    init {
+        viewModelScope.launch {
+            readGeneration.flatMapLatest { generation ->
+                requiredReads().catch { thrown ->
+                    if (thrown is CancellationException) throw thrown
+                    AppLog.w(TAG, "Reading Library failed", thrown)
+                    emit(DataHealth.Unavailable("Library"))
+                }.map { health -> generation to (health as DataHealth<LibraryInputs>?) }
+                    .onStart { emit(generation to null) }
+            }.collect { (generation, health) ->
+                if (generation != readGeneration.value) return@collect
+                when (health) {
+                    null -> Unit
+                    is DataHealth.Available -> acceptRead(health.value)
+                    is DataHealth.Degraded, is DataHealth.Unavailable -> {
+                        authoritativeReadState = if (hasCompleteRead) LibraryReadState.STALE else LibraryReadState.UNAVAILABLE
+                        board.value = board.value.copy(status = LibraryReadStatus(authoritativeReadState))
+                    }
+                }
+            }
+        }
+    }
+
+    private fun acceptRead(inputs: LibraryInputs) {
+        hasCompleteRead = true
+        authoritativeReadState = LibraryReadState.CURRENT
+        board.value = LibraryReadBoard(inputs, LibraryReadStatus(LibraryReadState.CURRENT))
+        pendingDelete.value = pendingDelete.value?.let { held -> inputs.exercises.firstOrNull { it.id == held.id } }
+        addToRoutine.value = addToRoutine.value?.let { held -> inputs.exercises.firstOrNull { it.id == held.id } }
+        error.clearFrom(source = ERR_READ, before = error.mark())
+    }
+
+    /** Restart all required sources; neither old replay nor defaults can finish this retry. */
+    fun retryRead(): Boolean {
+        if (board.value.status.retryPending || authoritativeReadState == LibraryReadState.CURRENT ||
+            authoritativeReadState == LibraryReadState.LOADING
+        ) return false
+        board.value = board.value.copy(status = LibraryReadStatus(state = authoritativeReadState, retryPending = true))
+        readGeneration.value += 1L
+        return true
+    }
+
+    private fun requiredReads(): Flow<DataHealth<LibraryInputs>> = combineHealth(
+        combineHealth(
+            container.exerciseRepository.observeAllHealth(),
+            container.routineRepository.observeAllHealth(),
+        ) { exercises, routines -> exercises to routines },
+        combineHealth(
+            container.exerciseRepository.observeNameCollisionsHealth(),
+            container.preferencesRepository.observeDismissedCollisionIdsHealth(),
+        ) { collisions, dismissed -> collisions to dismissed },
+    ) { core, aside -> LibraryInputs(core.first, core.second, aside.first, aside.second) }
+
+    private fun refuseUnreadChanges(expectedGeneration: Long? = null): Boolean {
+        if (expectedGeneration != null && expectedGeneration != readGeneration.value) {
+            error.fail(source = ERR_READ, message = LibraryReadCopy.REFRESHED)
+            return true
+        }
+        if (canChangeLibrary(expectedGeneration)) return false
+        error.fail(source = ERR_READ, message = LibraryReadCopy.BODY)
+        return true
+    }
+
+    private fun canChangeLibrary(expectedGeneration: Long?): Boolean {
+        val status = board.value.status
+        return (expectedGeneration == null || expectedGeneration == readGeneration.value) &&
+            status.state == LibraryReadState.CURRENT && !status.retryPending
+    }
 
     fun onQueryChange(value: String) {
         query.value = value
@@ -236,12 +327,25 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
      * thing that changes is that the app stops asking.
      */
     fun keepBothNames(exercise: Exercise) {
+        if (refuseUnreadChanges()) return
+        val generation = readGeneration.value
+        val started = error.mark()
         viewModelScope.launch {
-            container.preferencesRepository.dismissCollision(exercise.id)
+            try {
+                if (refuseUnreadChanges(generation)) return@launch
+                container.preferencesRepository.dismissCollision(exercise.id)
+                error.clearFrom(source = ERR_COLLISION, before = started)
+            } catch (thrown: CancellationException) {
+                throw thrown
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "Saving library name choice failed", thrown)
+                error.fail(source = ERR_COLLISION, message = "Could not confirm that choice. Try again.")
+            }
         }
     }
 
     fun openCreate() {
+        if (refuseUnreadChanges()) return
         editor.value = ExerciseEditorDraft(muscleGroup = MuscleGroups.forNewDraft(selectedMuscle.value))
         error.dismiss()
     }
@@ -251,6 +355,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun openEdit(exercise: Exercise) {
+        if (refuseUnreadChanges()) return
         if (!exercise.isCustom) {
             error.fail(source = ERR_EDITOR, message = "Built-in lifts can’t be edited.")
             return
@@ -274,6 +379,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun saveEditor() {
+        if (refuseUnreadChanges()) return
         val started = error.mark()
         val draft = editor.value ?: return
         val name = draft.name.trim()
@@ -285,8 +391,10 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
             error.fail(source = ERR_EDITOR, message = MuscleGroups.MISSING_MESSAGE)
             return
         }
+        val generation = readGeneration.value
         viewModelScope.launch {
             try {
+                if (refuseUnreadChanges(generation)) return@launch
                 val result = if (draft.id == null) {
                     container.exerciseRepository.createCustom(
                         name,
@@ -333,14 +441,17 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun requestDelete(exercise: Exercise) {
+        if (refuseUnreadChanges()) return
         val started = error.mark()
         if (!exercise.isCustom) {
             error.fail(source = ERR_DELETE, message = "Built-in lifts can’t be deleted.")
             return
         }
+        val generation = readGeneration.value
         viewModelScope.launch {
             try {
                 val usage = container.exerciseRepository.usageFor(exercise.id)
+                if (refuseUnreadChanges(generation)) return@launch
                 if (usage.isReferenced) {
                     blockedDelete.value = exercise to usage
                 } else {
@@ -360,27 +471,38 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun confirmDelete() {
+        if (refuseUnreadChanges()) return
         val started = error.mark()
         val exercise = pendingDelete.value ?: return
+        val generation = readGeneration.value
         viewModelScope.launch {
-            when (val result = container.exerciseRepository.deleteCustom(exercise.id)) {
-                DeleteExerciseResult.Deleted -> {
-                    message.value = "Deleted ${exercise.name}."
-                    pendingDelete.value = null
-                    error.clearFrom(source = ERR_DELETE, before = started)
+            try {
+                if (refuseUnreadChanges(generation)) return@launch
+                when (val result = container.exerciseRepository.deleteCustom(exercise.id)) {
+                    DeleteExerciseResult.Deleted -> {
+                        message.value = "Deleted ${exercise.name}."
+                        pendingDelete.value = null
+                        error.clearFrom(source = ERR_DELETE, before = started)
+                    }
+                    is DeleteExerciseResult.InUse -> {
+                        pendingDelete.value = null
+                        blockedDelete.value = exercise to result.usage
+                    }
+                    DeleteExerciseResult.NotCustom -> {
+                        pendingDelete.value = null
+                        error.fail(source = ERR_DELETE, message = "Built-in lifts can’t be deleted.")
+                    }
+                    DeleteExerciseResult.Missing -> {
+                        pendingDelete.value = null
+                        error.fail(source = ERR_DELETE, message = "That lift is already gone.")
+                    }
                 }
-                is DeleteExerciseResult.InUse -> {
-                    pendingDelete.value = null
-                    blockedDelete.value = exercise to result.usage
-                }
-                DeleteExerciseResult.NotCustom -> {
-                    pendingDelete.value = null
-                    error.fail(source = ERR_DELETE, message = "Built-in lifts can’t be deleted.")
-                }
-                DeleteExerciseResult.Missing -> {
-                    pendingDelete.value = null
-                    error.fail(source = ERR_DELETE, message = "That lift is already gone.")
-                }
+            } catch (thrown: CancellationException) {
+                throw thrown
+            } catch (thrown: Exception) {
+                AppLog.w(TAG, "Deleting library lift failed", thrown)
+                pendingDelete.value = null
+                error.fail(source = ERR_DELETE, message = "Delete could not be confirmed. Check the library before trying again.")
             }
         }
     }
@@ -400,7 +522,13 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun openAddToRoutine(exercise: Exercise) {
-        addToRoutine.value = exercise
+        if (refuseUnreadChanges()) return
+        val current = board.value.inputs.exercises.firstOrNull { it.id == exercise.id }
+        if (current == null) {
+            error.fail(source = ERR_ADD_TO_ROUTINE, message = "That lift is no longer available.")
+            return
+        }
+        addToRoutine.value = current
         message.value = null
         error.dismiss()
     }
@@ -410,35 +538,49 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
     }
 
     fun addToRoutine(routineId: String) {
+        if (refuseUnreadChanges()) return
         val started = error.mark()
         val exercise = addToRoutine.value ?: return
+        val generation = readGeneration.value
         viewModelScope.launch {
-            val routine = container.routineRepository.getById(routineId)
-            if (routine == null) {
-                error.fail(
-                    source = ERR_ADD_TO_ROUTINE,
-                    message = "That routine is no longer available.",
-                )
-                return@launch
-            }
-            if (routine.exercises.any { it.exercise.id == exercise.id }) {
-                message.value = "${exercise.name} is already in ${routine.name}."
-                addToRoutine.value = null
-                return@launch
-            }
+            if (refuseUnreadChanges(generation)) return@launch
             try {
+                val routine = container.routineRepository.getById(routineId)
+                if (refuseUnreadChanges(generation)) {
+                    addToRoutine.value = null
+                    return@launch
+                }
+                if (routine == null) {
+                    addToRoutine.value = null
+                    error.fail(
+                        source = ERR_ADD_TO_ROUTINE,
+                        message = "That routine is no longer available.",
+                    )
+                    return@launch
+                }
+                if (routine.exercises.any { it.exercise.id == exercise.id }) {
+                    message.value = "${exercise.name} is already in ${routine.name}."
+                    addToRoutine.value = null
+                    return@launch
+                }
                 val defaults = AddDefaults.forExercise(
                     exercise,
                     goal = container.preferencesRepository.coachPreferences.first().goal,
                 )
-                container.routineRepository.addExercise(
-                    routineId = routine.id,
-                    exercise = exercise,
-                    targetSets = defaults.sets,
-                    targetReps = defaults.reps,
-                    targetWeightKg = null,
-                    restSeconds = defaults.restSeconds,
+                if (refuseUnreadChanges(generation)) {
+                    addToRoutine.value = null
+                    return@launch
+                }
+                val admission: () -> Boolean = { canChangeLibrary(generation) }
+                val added = container.routineRepository.addLibraryExercise(
+                    routineId = routine.id, exercise = exercise, defaults = defaults,
+                    admit = admission,
                 )
+                if (!added) {
+                    refuseUnreadChanges(generation)
+                    addToRoutine.value = null
+                    return@launch
+                }
                 message.value = "Added ${exercise.name} to ${routine.name}."
                 addToRoutine.value = null
                 error.clearFrom(source = ERR_ADD_TO_ROUTINE, before = started)
@@ -446,6 +588,7 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
                 throw thrown
             } catch (thrown: Exception) {
                 AppLog.w(TAG, "addToRoutine failed", thrown)
+                addToRoutine.value = null
                 error.fail(
                     source = ERR_ADD_TO_ROUTINE,
                     message = "Could not add that lift to the routine.",
@@ -468,11 +611,26 @@ class ExerciseLibraryViewModel @JvmOverloads constructor(
         val query: String,
         val muscle: CanonicalMuscle?,
         val equipment: EquipmentType?,
+        val collisions: List<Exercise>,
+        val dismissed: Set<String>,
+        val status: LibraryReadStatus,
     )
 
-    private data class LibraryAside(
-        val collisions: List<Exercise>,
-        val expandedFamilies: Set<String>,
+    private data class LibraryInputs(
+        val exercises: List<Exercise> = emptyList(),
+        val routines: List<Routine> = emptyList(),
+        val collisions: List<Exercise> = emptyList(),
+        val dismissed: Set<String> = emptySet(),
+    )
+
+    private data class LibraryReadStatus(
+        val state: LibraryReadState = LibraryReadState.LOADING,
+        val retryPending: Boolean = false,
+    )
+
+    private data class LibraryReadBoard(
+        val inputs: LibraryInputs = LibraryInputs(),
+        val status: LibraryReadStatus = LibraryReadStatus(),
     )
 
     private data class LibraryDialogs(
