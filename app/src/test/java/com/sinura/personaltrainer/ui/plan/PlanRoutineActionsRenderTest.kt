@@ -9,12 +9,17 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -22,6 +27,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.unit.LayoutDirection
@@ -29,6 +35,10 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.SavedStateHandle
 import com.sinura.personaltrainer.FakeAppDependencies
 import com.sinura.personaltrainer.clearAndJoinForTest
+import com.sinura.personaltrainer.data.local.entity.ExerciseEntity
+import com.sinura.personaltrainer.domain.DefaultExercises
+import com.sinura.personaltrainer.domain.SessionOrderCopy
+import com.sinura.personaltrainer.domain.ScheduleModality
 import com.sinura.personaltrainer.domain.TrainingInsights
 import com.sinura.personaltrainer.domain.PlanDayCopy
 import com.sinura.personaltrainer.domain.RoutineSaveCopy
@@ -89,6 +99,7 @@ class PlanRoutineActionsRenderTest {
     private lateinit var fixture: TestWorkoutFixture
     private lateinit var otherId: String
     private val opened = mutableListOf<String>()
+    private val openedDays = mutableListOf<Pair<Long, Boolean>>()
     private val runId = UUID.randomUUID().toString()
     private val today = LocalDate.of(2026, 12, 31).toEpochDay()
     private var profile = "interaction"
@@ -125,10 +136,51 @@ class PlanRoutineActionsRenderTest {
     fun landscapeFont20() = journey("640x360-font20")
     @Test @Config(qualifiers = "w600dp-h960dp-xhdpi", fontScale = 1f)
     fun tabletFont10() = journey("600x960-font10")
+    @Test @Config(qualifiers = "w600dp-h960dp-xhdpi", fontScale = 1.6f)
+    fun tabletFont16() = journey("600x960-font16")
     @Test @Config(qualifiers = "w600dp-h960dp-xhdpi", fontScale = 2f)
     fun tabletFont20() = journey("600x960-font20")
     @Test @Config(qualifiers = "w360dp-h640dp-xhdpi", fontScale = 2f)
     fun rtlReducedMotion() = journey("360x640-font20-rtl", rtl = true)
+
+    @Test
+    fun cardioMetadataCannotBorrowRoutineLiftArtwork() {
+        profile = "cardio-art-identity"
+        show()
+        val unusualRules = runBlocking {
+            val rules = listOf(
+                deps.plannerRepository.addTimedRule(
+                    weekday = Weekday.THURSDAY, hour = 7, minute = 0,
+                    modality = ScheduleModality.CARDIO, routineId = fixture.routine.id,
+                ),
+                deps.plannerRepository.addTimedRule(
+                    weekday = Weekday.THURSDAY, hour = 9, minute = 0,
+                    modality = ScheduleModality.STRENGTH, routineId = fixture.routine.id, templateId = "cardio:RUN",
+                ),
+            )
+            deps.plannerRepository.publishPinnedWeek(Weekday.MONDAY, today)
+            rules
+        }
+        compose.awaitThat("actual unusual cardio rules have dated rows", vm.uiState::value) {
+            vm.uiState.value.occurrences.count { occurrence ->
+                occurrence.localEpochDay == today && unusualRules.any { it.id == occurrence.ruleId }
+            } == 2
+        }
+        val before = inventory()
+        for ((index, rule) in unusualRules.withIndex()) {
+            val occurrence = vm.uiState.value.occurrences.single { it.ruleId == rule.id && it.localEpochDay == today }
+            val row = reach(PlanTags.agenda(occurrence.id)).assertTextContains(if (index == 0) "Cardio" else "Run")
+            target(row)
+            compose.onNodeWithTag(PlanTags.agendaThumb(occurrence.id), useUnmergedTree = true).assertDoesNotExist()
+            tap(row)
+            capture(if (index == 0) "cardio-modality-art" else "cardio-template-art")
+        }
+        assertEquals(listOf(today to false, today to false), openedDays)
+        val importedRule = vm.uiState.value.rules.single { it.routineId == fixture.routine.id && it.id !in unusualRules.map { row -> row.id } }
+        val workout = vm.uiState.value.occurrences.single { it.ruleId == importedRule.id && it.localEpochDay == today }
+        reach(PlanTags.agendaThumb(workout.id), unmerged = true).assertIsDisplayed()
+        assertEquals("read-only cardio projection and navigation preserve every stored row", before, inventory())
+    }
 
     private fun show(rtl: Boolean = false) {
         val insights = flow {
@@ -139,9 +191,32 @@ class PlanRoutineActionsRenderTest {
             time = FrozenTime(Instant.parse("2026-12-31T12:00:00Z").toEpochMilli(), "UTC"),
         )
         runBlocking {
+            val known = DefaultExercises.catalog().first { it.name == "Barbell Back Squat" }
             fixture = seedTestWorkout(
-                deps, routineName = NAME, loggedSets = listOf(TestSetInput(72.5, 9, 8)),
+                deps, exerciseName = known.name, routineName = NAME, loggedSets = listOf(TestSetInput(72.5, 9, 8)),
                 finish = true, notes = "Preserve this finished result",
+            )
+            val stored = checkNotNull(deps.database.exerciseDao().getById(fixture.exercise.id))
+            deps.database.exerciseDao().update(stored.copy(
+                equipment = known.equipment.name, movementKey = known.movementKey, imageKey = known.imageKey,
+            ))
+            val additional = listOf("ex-barbell-bench-press", "ex-seated-cable-row", "ex-ab-wheel-rollout").map { id ->
+                DefaultExercises.catalog().single { it.id == id }
+            }
+            deps.database.exerciseDao().insertAll(additional.map { lift ->
+                ExerciseEntity(
+                    id = lift.id, name = lift.name, muscleGroup = lift.muscleGroup, notes = "", isCustom = false,
+                    equipment = lift.equipment.name, loadType = lift.loadType.name, movementKey = lift.movementKey,
+                    imageKey = lift.imageKey, nameKey = lift.name.lowercase(),
+                )
+            })
+            for (lift in additional) {
+                deps.routineRepository.addExercise(fixture.routine.id,
+                    checkNotNull(deps.exerciseRepository.getById(lift.id)), 3, 8, 72.5, 90)
+            }
+            fixture = fixture.copy(
+                exercise = checkNotNull(deps.exerciseRepository.getById(fixture.exercise.id)),
+                routine = checkNotNull(deps.routineRepository.getById(fixture.routine.id)),
             )
             otherId = deps.routineRepository.create(NAME).id
             deps.scheduleRepository.pin(fixture.routine.id, null, Weekday.THURSDAY)
@@ -174,7 +249,8 @@ class PlanRoutineActionsRenderTest {
                             onBack = { route.value = "day" }, viewModel = editorVm,
                         )
                         else -> PlanScreen(
-                            onOpenRoutine = { opened += it }, onOpenLibrary = {}, onOpenDay = { _, _ -> },
+                            onOpenRoutine = { opened += it }, onOpenLibrary = {},
+                            onOpenDay = { epochDay, add -> openedDays += epochDay to add },
                             viewModel = vm,
                         )
                     }
@@ -182,7 +258,11 @@ class PlanRoutineActionsRenderTest {
             }
         }
         compose.awaitThat("actual Plan loaded", vm.uiState::value) { !vm.uiState.value.isLoading }
-        reach(PlanTags.ROUTINES).performClick()
+        compose.onNodeWithText("Show routines").assertDoesNotExist()
+        compose.onNodeWithText("Hide routines").assertDoesNotExist()
+        val heading = reach(PlanTags.ROUTINES).fetchSemanticsNode()
+        assertTrue("routines are a visible section, not a disclosure action", !heading.config.contains(SemanticsActions.OnClick))
+        reach(PlanTags.routine(fixture.routine.id)).assertIsDisplayed()
         compose.settle()
     }
 
@@ -191,6 +271,51 @@ class PlanRoutineActionsRenderTest {
         show(rtl)
         val before = inventory()
         val id = fixture.routine.id
+        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToIndex(0)
+        compose.settle()
+        capture("plan-overview")
+        val rule = vm.uiState.value.rules.single { it.routineId == id }
+        val plannedOccurrence = vm.uiState.value.occurrences.single { it.ruleId == rule.id && it.localEpochDay == today }
+        val dayRow = reach(PlanTags.agenda(plannedOccurrence.id))
+        target(dayRow)
+        assertEquals(Role.Button, dayRow.fetchSemanticsNode().config[SemanticsProperties.Role])
+        words(text = NAME, insideTag = PlanTags.agenda(plannedOccurrence.id))
+        reach(PlanTags.agendaThumb(plannedOccurrence.id), unmerged = true).assertIsDisplayed()
+        tap(dayRow)
+        assertEquals("the scheduled row edits the exact selected day", listOf(today to false), openedDays)
+        val add = reach(PlanTags.ADD_SESSION)
+        target(add)
+        tap(add)
+        assertEquals("Add opens the selected day with its picker", listOf(today to false, today to true), openedDays)
+        assertEquals("day navigation and Add callbacks do not create saved changes", before, inventory())
+        capture("plan-selected-day")
+        val row = reach(PlanTags.routine(id))
+        target(row)
+        assertEquals(Role.Button, row.fetchSemanticsNode().config[SemanticsProperties.Role])
+        reach(PlanTags.routineName(id), unmerged = true).assertIsDisplayed()
+        words(text = NAME, insideTag = PlanTags.routine(id))
+        val preview = SessionOrderCopy.numberedPreview(vm.uiState.value.routines.single { it.id == id }.exercises.map { it.exercise.name })
+        words(text = preview, insideTag = PlanTags.routine(id))
+        val expectedLifts = fixture.routine.exercises.map { it.exercise }
+        assertEquals(4, expectedLifts.size)
+        val renderedLifts = vm.uiState.value.routines.single { it.id == id }.exercises.map { it.exercise }
+        assertEquals("the ordered preview retains all exact exercise IDs and catalog keys",
+            expectedLifts.map { it.id to it.imageKey }, renderedLifts.map { it.id to it.imageKey })
+        val thumbnails = expectedLifts.take(3).map { lift ->
+            reach(PlanTags.routineThumb(id, lift.id), unmerged = true).assertIsDisplayed().fetchSemanticsNode()
+        }
+        thumbnails.zipWithNext().forEach { (beforeThumb, afterThumb) ->
+            assertTrue("$profile native thumbnails follow the exercise order",
+                if (rtl) beforeThumb.boundsInWindow.left > afterThumb.boundsInWindow.left
+                else beforeThumb.boundsInWindow.left < afterThumb.boundsInWindow.left)
+        }
+        compose.onNodeWithTag(PlanTags.routineThumb(id, expectedLifts[3].id), useUnmergedTree = true).assertDoesNotExist()
+        row.performTouchInput { click(center) }
+        compose.settle()
+        assertEquals("one direct tap edits the exact routine", listOf(id), opened)
+        assertEquals("opening a reusable routine creates no saved changes", before, inventory())
+        capture("direct-routine")
+        opened.clear()
         val options = reach(PlanTags.routineOptions(id))
         target(options)
         assertEquals(listOf("Options for $NAME"), options.fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
@@ -232,8 +357,8 @@ class PlanRoutineActionsRenderTest {
         capture("weekly-add-scope")
         compose.onNodeWithTag(PickerHeaderTags.CANCEL).performScrollTo().performClick()
         compose.settle()
-        val rule = dayVm.uiState.value.rules.single { it.routineId == fixture.routine.id }
-        tap(compose.onNodeWithTag(PlanDayTags.remove(rule.id)).performScrollTo())
+        val dayRule = dayVm.uiState.value.rules.single { it.routineId == fixture.routine.id }
+        tap(compose.onNodeWithTag(PlanDayTags.remove(dayRule.id)).performScrollTo())
         words(PlanDayCopy.removeBody(Weekday.THURSDAY, recurring = true))
         val confirm = compose.onNodeWithTag(ConfirmActionTags.CONFIRM).assertIsDisplayed().fetchSemanticsNode()
         val minTouch = Metrics.touchMin.value * confirm.layoutInfo.density.density
@@ -243,7 +368,7 @@ class PlanRoutineActionsRenderTest {
         compose.onNodeWithText("Cancel").performClick()
         assertEquals("weekly remove cancellation preserves exact data", before, inventory())
         val occurrence = dayVm.uiState.value.occurrences.single {
-            it.ruleId == rule.id && it.localEpochDay == today
+            it.ruleId == dayRule.id && it.localEpochDay == today
         }
         tap(compose.onNodeWithTag(PlanDayTags.block(occurrence.id)).performScrollTo())
         compose.awaitThat("routine editor loaded", editorVm.uiState::value) { !editorVm.uiState.value.isLoading }
@@ -251,7 +376,9 @@ class PlanRoutineActionsRenderTest {
         compose.onNodeWithTag(RoutineEditorTags.SAVE).assertIsDisplayed()
         capture("routine-editor-scope")
         val beforeSwap = inventory()
-        editorVm.requestSwap(editorVm.uiState.value.routine!!.exercises.single().id)
+        editorVm.requestSwap(editorVm.uiState.value.routine!!.exercises.single {
+            it.exercise.id == fixture.exercise.id
+        }.id)
         compose.settle()
         words(RoutineSaveCopy.SWAP_SCOPE)
         capture("routine-swap-scope")
@@ -260,7 +387,9 @@ class PlanRoutineActionsRenderTest {
         assertEquals("opening and dismissing swap does not write", beforeSwap, inventory())
         val savedBefore = history()
         val slotsBefore = runBlocking { deps.scheduleRepository.slots() }
-        compose.onNode(hasSetTextAction() and hasText(NAME)).performTextReplacement("$NAME revised")
+        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.ScrollToIndex)).performScrollToIndex(0)
+        compose.settle()
+        compose.onNode(hasSetTextAction() and hasText(NAME)).performScrollTo().performTextReplacement("$NAME revised")
         compose.onNodeWithTag(RoutineEditorTags.SAVE).performClick()
         compose.settle()
         compose.awaitThat("returned to weekly day after Save", { route.value }) { route.value == "day" }
@@ -372,8 +501,9 @@ class PlanRoutineActionsRenderTest {
         compose.settle()
     }
 
-    private fun words(text: String) {
-        val interaction = compose.onNodeWithText(text, useUnmergedTree = true)
+    private fun words(text: String, insideTag: String? = null) {
+        val interaction = if (insideTag == null) compose.onNodeWithText(text, useUnmergedTree = true)
+        else compose.onNode(hasText(text) and hasAnyAncestor(hasTestTag(insideTag)), useUnmergedTree = true)
         val node = interaction.fetchSemanticsNode()
         val layout = interaction.textLayout()
         assertEquals(text, layout.layoutInput.text.text)
@@ -386,9 +516,9 @@ class PlanRoutineActionsRenderTest {
         }
     }
 
-    private fun reach(tag: String): SemanticsNodeInteraction {
-        compose.onNodeWithTag(PlanTags.CONTENT).performScrollToNode(hasTestTag(tag))
-        return compose.onNodeWithTag(tag).performScrollTo()
+    private fun reach(tag: String, unmerged: Boolean = false): SemanticsNodeInteraction {
+        compose.onNodeWithTag(PlanTags.CONTENT, useUnmergedTree = unmerged).performScrollToNode(hasTestTag(tag))
+        return compose.onNodeWithTag(tag, useUnmergedTree = unmerged).performScrollTo()
     }
 
     private fun history(): List<Any?> = runBlocking {
@@ -425,6 +555,12 @@ class PlanRoutineActionsRenderTest {
             val file = File("build/screen-renders/plan-routine-actions/$runId/$profile/$stage.png")
             check(file.parentFile.isDirectory || file.parentFile.mkdirs())
             file.outputStream().use { check(frame.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            file.resolveSibling("$stage.txt").writeText(
+                compose.onAllNodes(SemanticsMatcher("all mounted native nodes") { true }, useUnmergedTree = true)
+                    .fetchSemanticsNodes().joinToString("\n") { node ->
+                        "id=${node.id} bounds=${node.boundsInWindow} size=${node.size} config=${node.config}"
+                    },
+            )
         } finally { frame.recycle() }
     }
 
