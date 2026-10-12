@@ -38,6 +38,7 @@ import com.sinura.personaltrainer.ui.theme.Metrics
 import com.sinura.personaltrainer.ui.theme.TextPrimary
 import com.sinura.personaltrainer.ui.theme.TextSecondary
 import com.sinura.personaltrainer.ui.theme.TextTertiary
+import com.sinura.personaltrainer.workout.WorkoutNumberField
 
 /** The clocks the dock can show. One of them at a time; [FloorTimerSurface.mode] decides. */
 internal data class WorkoutDockTimer(
@@ -87,6 +88,8 @@ internal data class WorkoutDockState(
     val undoKey: String?,
     val undoDwellMs: Long,
     val timer: WorkoutDockTimer,
+    val keepEntry: Boolean = false,
+    val keepingEntry: Boolean = false,
 )
 
 internal data class WorkoutDockEvents(
@@ -109,6 +112,7 @@ internal data class WorkoutDockEvents(
     val onDismissRestBatteryHint: () -> Unit,
     val onOpenRest: () -> Unit,
     val onOpenNotifications: () -> Unit,
+    val onKeepEntry: () -> Boolean = { false },
 )
 
 /**
@@ -128,6 +132,8 @@ internal fun WorkoutDock(
     var saveDetails by rememberSaveable { mutableStateOf(false) }
     var durationSheet by rememberSaveable { mutableStateOf(false) }
     var timingDetails by rememberSaveable { mutableStateOf(false) }
+    val retainedRest = retainedNumber(WorkoutNumberField.REST_SECONDS)
+    LaunchedEffect(retainedRest?.open) { if (retainedRest?.open == true) durationSheet = true }
     val timer = state.timer
     val action = state.primaryAction
     LaunchedEffect(timer.show, timer.restRunning) {
@@ -229,10 +235,7 @@ internal fun WorkoutDock(
             modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(WorkoutTestTags.COMPANION_CLOCK),
         ) { Text(clockLabel, style = InstrumentType.caption, color = TextPrimary) }
     }
-    PinnedDock(
-        hairline = false,
-        verticalPadding = Metrics.space2,
-        prelude = {
+    val companion: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -312,20 +315,26 @@ internal fun WorkoutDock(
                     else -> timerSurface()
                 }
             }
-        },
+    }
+    PinnedDock(
+        hairline = false,
+        verticalPadding = Metrics.space2,
+        prelude = companion,
         volt = {
             key(action.identity) {
-                val spokenAction = listOfNotNull(state.verb, state.spokenPayload ?: state.payload).joinToString(" · ")
+                val verb = if (state.keepEntry) "Keep entry" else state.verb
+                val payload = state.payload.takeUnless { state.keepEntry }
+                val spokenAction = listOfNotNull(verb, (state.spokenPayload ?: payload).takeUnless { state.keepEntry }).joinToString(" · ")
                 PrimaryGymButton(
-                    text = state.verb,
-                    supporting = state.payload,
+                    text = verb,
+                    supporting = payload,
                     textStyle = InstrumentType.commit,
                     onClick = {
-                        val accepted = events.onPrimary(action)
+                        val accepted = if (state.keepEntry) events.onKeepEntry() else events.onPrimary(action)
                         if (accepted && action.kind == WorkoutPrimaryKind.REVIEW_SAVE) saveDetails = true
                     },
-                    enabled = action.enabled,
-                    disabledReason = LogCommitCopy.disabledReason(
+                    enabled = if (state.keepEntry) !state.keepingEntry else action.enabled,
+                    disabledReason = if (state.keepEntry) "Keeping entry…" else LogCommitCopy.disabledReason(
                         logging = state.logging,
                         liftReady = state.canLog || state.logging,
                         effortMissing = state.effortMissingForCommit && !state.logging,
@@ -333,6 +342,7 @@ internal fun WorkoutDock(
                     modifier = Modifier
                         .testTag(
                             when {
+                                state.keepEntry -> "workout-keep-entry"
                                 nextAct -> WorkoutTestTags.NEXT
                                 finishAct -> WorkoutTestTags.DOCK_FINISH
                                 else -> WorkoutTestTags.LOG_SET
@@ -372,6 +382,7 @@ internal fun WorkoutDock(
         )
     }
     if (durationSheet) {
+        WorkoutNumberEntry(field = WorkoutNumberField.REST_SECONDS) {
         RestDurationSheet(
             selectedSeconds = timer.restTotalSeconds,
             onSelect = { seconds ->
@@ -391,5 +402,6 @@ internal fun WorkoutDock(
                 events.onStartSetClock()
             },
         )
+        }
     }
 }

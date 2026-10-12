@@ -11,7 +11,7 @@ import com.sinura.personaltrainer.ui.theme.TextSecondary
 
 /** Explains the existing action beside the draft, without creating another action or write. */
 @Composable
-internal fun WorkoutReadiness(action: WorkoutPrimaryAction, effortMissing: Boolean) {
+internal fun WorkoutReadiness(action: WorkoutPrimaryAction, effortMissing: Boolean, resumed: Boolean = false, keepEntry: Boolean = false) {
     val text = when (action.kind) {
         WorkoutPrimaryKind.CHECKING -> "Checking whether your set saved…"
         WorkoutPrimaryKind.SAVING -> "Saving your entry…"
@@ -40,7 +40,12 @@ internal fun WorkoutReadiness(action: WorkoutPrimaryAction, effortMissing: Boole
         WorkoutPrimaryKind.ADD_EXERCISE -> "Add an exercise to begin."
     }
     Text(
-        text = text,
+        text = when {
+            keepEntry -> "Keep this entry before logging. Your saved sets are unchanged."
+            resumed && action.kind in setOf(WorkoutPrimaryKind.LOG_SET, WorkoutPrimaryKind.LOG_WARMUP,
+                WorkoutPrimaryKind.START_HOLD, WorkoutPrimaryKind.LOG_HOLD, WorkoutPrimaryKind.SAVE_CHANGES) -> "Draft resumed. " + text
+            else -> text
+        },
         style = InstrumentType.caption,
         color = TextSecondary,
         modifier = Modifier

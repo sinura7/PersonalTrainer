@@ -42,7 +42,7 @@ class DurableDraftStoreTest {
     private fun binding(root: File, io: DraftFileIO = AtomicDraftFiles, key: DraftOwner = owner) =
         DurableDraftStore(directory = root, files = io).bind(key, Codec)
     private suspend fun read(form: DraftBinding<List<String>, String>): DraftCheckpoint<List<String>, String> =
-        (form.read() as DraftRead.Available).checkpoint
+        (form.read() as DraftRead.PresentCheckpoint).checkpoint
     private fun written(change: DraftChange<List<String>, String>): DraftCheckpoint<List<String>, String> {
         assertTrue("Expected a written checkpoint: $change", change is DraftChange.Written)
         return (change as DraftChange.Written).checkpoint
@@ -228,7 +228,7 @@ class DurableDraftStoreTest {
             val file = ownerFile(root)
             val corrupted = mutation(file.readText())
             file.writeText(corrupted)
-            assertTrue(form.read() is DraftRead.Unavailable)
+            assertTrue(form.read() is DraftRead.UnreadableCheckpoint)
             assertTrue(form.checkpoint(saved.version, listOf("erase old data")) is DraftChange.Unavailable)
             assertEquals(corrupted, file.readText())
         }
@@ -240,7 +240,7 @@ class DurableDraftStoreTest {
         written(form.checkpoint(read(form).version, fields))
         val file = ownerFile(root)
         file.outputStream().use { output -> repeat(MAX_DRAFT_BYTES / 1024 + 1) { output.write(ByteArray(1024)) } }
-        assertEquals(DraftRead.Unavailable(DraftReadProblem.TOO_LARGE), form.read())
+        assertEquals(DraftRead.UnreadableCheckpoint(DraftReadProblem.TOO_LARGE), form.read())
         assertEquals(MAX_DRAFT_BYTES.toLong() + 1024, file.length())
     }
 
@@ -254,7 +254,7 @@ class DurableDraftStoreTest {
         assertTrue(index >= 0)
         bytes[index] = 0xff.toByte()
         file.writeBytes(bytes)
-        assertEquals(DraftRead.Unavailable(DraftReadProblem.CORRUPT), form.read())
+        assertEquals(DraftRead.UnreadableCheckpoint(DraftReadProblem.CORRUPT), form.read())
         assertEquals(DraftChange.Unavailable(DraftReadProblem.CORRUPT), form.checkpoint(saved.version, fields))
         assertArrayEquals(bytes, file.readBytes())
     }
@@ -292,7 +292,7 @@ class DurableDraftStoreTest {
             val file = ownerFile(root)
             val malformed = mutation(file.readText())
             file.writeText(malformed)
-            assertEquals(DraftRead.Unavailable(DraftReadProblem.CORRUPT), form.read())
+            assertEquals(DraftRead.UnreadableCheckpoint(DraftReadProblem.CORRUPT), form.read())
             assertEquals(DraftChange.Unavailable(DraftReadProblem.CORRUPT), form.inspect(pending.version, "command", DraftRecoveryOutcome.EXACT_SAVED))
             assertEquals(malformed, file.readText())
         }
@@ -311,7 +311,7 @@ class DurableDraftStoreTest {
         val form = binding(root)
         val saved = written(form.checkpoint(read(form).version, fields))
         assertTrue(File(root, "generation.json").delete())
-        assertEquals(DraftRead.Unavailable(DraftReadProblem.CORRUPT), form.read())
+        assertEquals(DraftRead.UnreadableCheckpoint(DraftReadProblem.CORRUPT), form.read())
         assertFalse(File(root, "generation.json").exists())
         assertEquals(DraftChange.Unavailable(DraftReadProblem.CORRUPT), form.clear(saved.version))
     }

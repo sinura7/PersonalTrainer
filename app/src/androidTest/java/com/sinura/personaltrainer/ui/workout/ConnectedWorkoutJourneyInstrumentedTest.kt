@@ -263,6 +263,48 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         awaitEntryWithoutEffort()
         assertReadiness("Choose effort to log this set.")
 
+        // Eight actual logs share one AppNav session. Continue beyond the second lift's
+        // prescription explicitly, including logs while its rest timer is still running.
+        switchTo(fixture.second)
+        val intended = mutableListOf(corrected)
+        for (number in 1..7) {
+            if (number > TARGET_SETS) {
+                compose.onNodeWithTag(WorkoutTestTags.ANOTHER_SET).assertIsDisplayed().performClick()
+            }
+            enterNumbers(10.0 + number, 2)
+            chooseEffort(8)
+            awaitEnabledLog()
+            compose.onNodeWithTag(WorkoutTestTags.LOG_SET).performClick()
+            awaitCondition("successive log $number saved once") { session().sets.size == number + 1 }
+            val result = session().setsFor(fixture.second.id).last()
+            assertSet(set = result, setId = result.id, weightKg = 10.0 + number, reps = 2, effort = 8, exerciseId = fixture.second.id)
+            intended += result
+        }
+        assertEquals(8, intended.map { it.id }.distinct().size)
+        assertEquals(451.0, session().work().volumeKg, EPSILON)
+        compose.waitForIdle()
+        val latest = intended.last()
+        compose.waitUntil(30000) {
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.setChip(latest.id))).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.revealFloorControlAboveTempo(WorkoutTestTags.setChip(latest.id))
+        val receipt = compose.onNodeWithTag(WorkoutTestTags.setChip(latest.id)).fetchSemanticsNode()
+            .config[SemanticsProperties.ContentDescription].joinToString()
+        assertTrue(receipt, receipt.startsWith("7 saved. Edit latest saved set:"))
+        captureWindow("eight-results-during-rest")
+
+        // Delete and Undo through the same actual navigation preserve the exact receipt.
+        compose.onNodeWithTag(WorkoutTestTags.VIEW_SETS).performClick()
+        awaitTag(WorkoutTestTags.SAVED_SETS_SHEET)
+        compose.onNodeWithTag("workout-saved-sets-list")
+            .performScrollToNode(hasTestTag(WorkoutTestTags.setOptions(latest.id)))
+        compose.onNodeWithTag(WorkoutTestTags.setOptions(latest.id)).performClick()
+        compose.onNodeWithText("Delete set").performClick()
+        awaitCondition("latest result deleted") { session().sets.size == 7 }
+        compose.onNodeWithText("Undo").assertIsDisplayed().performClick()
+        awaitCondition("Undo restores the exact latest result") { session().sets.firstOrNull { it.id == latest.id } == latest }
+        assertEquals(intended.sortedBy { it.id }, session().sets.sortedBy { it.id })
+
         compose.onNodeWithTag(WorkoutTestTags.FINISH).assertIsEnabled().performClick()
         compose.onNodeWithText("End workout?").assertIsDisplayed()
         compose.onNodeWithText("Save as is").performClick()
@@ -272,12 +314,12 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(WorkoutTestTags.LOG_READINESS).assertDoesNotExist()
         compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertDoesNotExist()
         compose.onNodeWithText(fixture.routineName).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Total volume 255 kg").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Total volume 451 kg").assertIsDisplayed()
         captureWindow("summary")
         val finished = session()
         assertNotNull(finished.finishedAt)
-        assertEquals(corrected, finished.sets.single())
-        assertEquals(255.0, finished.work().volumeKg, EPSILON)
+        assertEquals(intended.sortedBy { it.id }, finished.sets.sortedBy { it.id })
+        assertEquals(451.0, finished.work().volumeKg, EPSILON)
         assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
         assertFalse(container.restTimerStore.current().running)
         val setLine = SetCopy.setLine(85.0, 3, LoadClass.LOADED, WeightUnit.KG)
@@ -301,7 +343,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(com.sinura.personaltrainer.ui.history.HistoryTags.LIST).performScrollToNode(historyRow)
         val row = compose.onNode(historyRow).assertIsDisplayed()
         val spoken = row.fetchSemanticsNode().config[SemanticsProperties.ContentDescription].joinToString()
-        assertTrue(spoken, spoken.contains("1 sets, 255 kg"))
+        assertTrue(spoken, spoken.contains("8 sets, 451 kg"))
         val historical = runBlocking(Dispatchers.IO) {
             container.workoutRepository.observeHistory().first().single { it.id == sessionId }
         }
@@ -309,7 +351,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         row.performClick()
         awaitTag(SessionDetailTestTags.CONTENT)
         compose.onNodeWithText(fixture.routineName).assertIsDisplayed()
-        compose.onNodeWithText("255").assertIsDisplayed()
+        compose.onNodeWithText("451").assertIsDisplayed()
         compose.onNodeWithText("Working volume", ignoreCase = true).assertIsDisplayed()
         val tableRow = SetTableLine.fromLog(corrected, LoadClass.LOADED, WeightUnit.KG)
         val rowDescription = "Recorded working ${tableRow.extras}, ${tableRow.line}"
@@ -318,7 +360,7 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         compose.onNodeWithTag(SessionDetailTestTags.CONTENT)
             .performScrollToNode(recordedRow)
         compose.onNode(recordedRow).assertIsDisplayed()
-        assertEquals(corrected, session().sets.single())
+        assertEquals(intended.sortedBy { it.id }, session().sets.sortedBy { it.id })
         captureWindow("history-detail")
         compose.onNodeWithTag(SessionDetailTestTags.BACK).performClick()
         compose.onNodeWithTag("navigation-history").assertIsSelected()
@@ -413,10 +455,10 @@ class ConnectedWorkoutJourneyInstrumentedTest {
         checkNotNull(container.workoutRepository.getSession(checkNotNull(sessionId)))
     }
 
-    private fun assertSet(set: SetLog, setId: String, weightKg: Double, reps: Int, effort: Int) {
+    private fun assertSet(set: SetLog, setId: String, weightKg: Double, reps: Int, effort: Int, exerciseId: String = fixture.first.id) {
         assertEquals(sessionId, set.sessionId)
         assertEquals(setId, set.id)
-        assertEquals(fixture.first.id, set.exerciseId)
+        assertEquals(exerciseId, set.exerciseId)
         assertEquals(weightKg, set.weightKg, EPSILON)
         assertEquals(reps, set.reps)
         assertEquals(effort, set.rpe)

@@ -32,6 +32,17 @@ data class WorkoutDraft(
  * restore reads [sessionNotes], never a lift's copy (N1).
  */
 class WorkoutDraftCache {
+    /** Private production persistence; fake graphs keep the established memory lane by default. */
+    internal var persistence: WorkoutDraftPersistence? = null
+    internal fun authoredRevision(sessionId: String): Long = synchronized(lock) {
+        sessions[sessionId]?.authoredRevision ?: 0L
+    }
+    internal fun rememberAuthoredRevision(sessionId: String, revision: Long) {
+        synchronized(lock) {
+            val session = sessions.getOrPut(sessionId) { SessionDrafts() }
+            session.authoredRevision = maxOf(session.authoredRevision, revision)
+        }
+    }
     private val lock = Any()
     private val sessions = mutableMapOf<String, SessionDrafts>()
     // These locks outlive cleared drafts: an older writer must never acquire a different
@@ -155,6 +166,11 @@ class WorkoutDraftCache {
         sessions[sessionId]?.notesOwners?.isNotEmpty() == true
     }
 
+    /** A revoked editor can release only its own barrier, never the current editor's. */
+    internal fun releaseNotesOwner(sessionId: String, owner: Any) {
+        synchronized(lock) { sessions[sessionId]?.notesOwners?.remove(owner) }
+    }
+
     /** Stages a lift's entry, selects it, and takes its notes as the session's. */
     fun put(value: WorkoutDraft) {
         synchronized(lock) {
@@ -175,6 +191,7 @@ class WorkoutDraftCache {
         synchronized(lock) {
             if (sessionId in completedSessions) return
             val session = SessionDrafts()
+            session.authoredRevision = sessions[sessionId]?.authoredRevision ?: 0L
             session.pendingSave = sessions[sessionId]?.pendingSave
             session.editingOriginal = sessions[sessionId]?.editingOriginal
             session.notes = sessions[sessionId]?.notes
@@ -231,6 +248,7 @@ class WorkoutDraftCache {
         }
 
     private class SessionDrafts {
+        var authoredRevision: Long = 0L
         var pendingSave: WorkoutSetSave? = null
         var editingOriginal: WorkoutSetSave? = null
         var notes: String? = null

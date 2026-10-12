@@ -9,6 +9,13 @@ import com.sinura.personaltrainer.workout.FloorUndo
 import com.sinura.personaltrainer.workout.SavedStateFloorUndo
 import com.sinura.personaltrainer.workout.UndoEntry
 import com.sinura.personaltrainer.workout.toOffer
+import com.sinura.personaltrainer.workout.WorkoutUndoCheckpoint
+import com.sinura.personaltrainer.workout.WorkoutUndoToken
+import com.sinura.personaltrainer.workout.UndoOffer
+import com.sinura.personaltrainer.domain.UndoKind
+import com.sinura.personaltrainer.domain.WorkoutSetValues
+import com.sinura.personaltrainer.data.local.entity.SessionExerciseEntity
+import com.sinura.personaltrainer.data.repository.WorkoutRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +45,7 @@ internal class FloorUndoOffers(
     private val undoTimeout: UndoTimeoutProvider,
     private val unit: () -> WeightUnit,
     private val loadTypeOf: (String) -> LoadType?,
+    private val onCheckpoint: () -> Unit = {},
 ) {
     private val _entries = MutableStateFlow<List<UndoEntry>>(emptyList())
     private var sequence = 0L
@@ -103,6 +111,44 @@ internal class FloorUndoOffers(
     }
 
     private fun persist() {
+        saved.write(_entries.value, _dwellMs.value)
+        onCheckpoint()
+    }
+
+    fun checkpoint(): List<WorkoutUndoCheckpoint> = _entries.value.map { entry ->
+        val token = when (val current = entry.token) {
+            is FloorUndo.DeletedSet -> current.deleted.let { row -> WorkoutUndoToken.SetReceipt(
+                id = row.setId, exerciseId = row.exerciseId, number = row.setNumber, completedAt = row.completedAt,
+                values = WorkoutSetValues(weightKg = row.weightKg, reps = row.reps, rpe = row.rpe, isWarmup = row.isWarmup, durationSeconds = row.durationSeconds),
+            ) }
+            is FloorUndo.RemovedLift -> current.removed.let { row -> WorkoutUndoToken.LiftReceipt(
+                id = row.item.id, exerciseId = row.item.exerciseId, name = row.name, order = row.item.sortOrder,
+                sets = row.item.targetSets, reps = row.item.targetReps, weightKg = row.item.targetWeightKg,
+                rest = row.item.restSeconds, seconds = row.item.targetSeconds, secondsMax = row.item.targetSecondsMax,
+            ) }
+        }
+        WorkoutUndoCheckpoint(token = token, key = entry.offer.key, message = entry.offer.message)
+    }
+
+    fun restoreCheckpoint(sessionId: String, values: List<WorkoutUndoCheckpoint>, dwell: Long) {
+        _entries.value = values.map { value ->
+            val token = when (val current = value.token) {
+                is WorkoutUndoToken.SetReceipt -> FloorUndo.DeletedSet(WorkoutRepository.DeletedSet(
+                    setId = current.id, sessionId = sessionId, exerciseId = current.exerciseId, setNumber = current.number,
+                    weightKg = current.values.weightKg, reps = current.values.reps, rpe = current.values.rpe,
+                    isWarmup = current.values.isWarmup, completedAt = current.completedAt, durationSeconds = current.values.durationSeconds,
+                ))
+                is WorkoutUndoToken.LiftReceipt -> FloorUndo.RemovedLift(WorkoutRepository.RemovedLift(
+                    item = SessionExerciseEntity(id = current.id, sessionId = sessionId, exerciseId = current.exerciseId, sortOrder = current.order,
+                        targetSets = current.sets, targetReps = current.reps, targetWeightKg = current.weightKg, restSeconds = current.rest,
+                        targetSeconds = current.seconds, targetSecondsMax = current.secondsMax), name = current.name,
+                ))
+            }
+            UndoEntry(token = token, offer = UndoOffer(key = value.key, message = value.message,
+                kind = if (token is FloorUndo.DeletedSet) UndoKind.DELETED_SET else UndoKind.REMOVED_LIFT))
+        }
+        sequence = _entries.value.size.toLong()
+        if (dwell > 0) _dwellMs.value = dwell else refreshDwell()
         saved.write(_entries.value, _dwellMs.value)
     }
 

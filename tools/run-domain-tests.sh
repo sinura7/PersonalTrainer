@@ -179,7 +179,7 @@ TESTS=app/src/test/java/com/sinura/personaltrainer
 # Named one by one rather than by directory because each package they live in also holds files
 # that do not — RestTimerService, StartTrainingDay, and so on. Adding a file here is what makes
 # its test directory below runnable; the two lists move together.
-EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.kt \
+EXTRA_MAIN="$SRC/workout/WorkoutDraftCache.kt $SRC/workout/WorkoutDraftRecovery.kt $SRC/workout/WorkoutDraftPersistence.kt \
             $SRC/timer/RestTimerStore.kt $SRC/timer/RestTimerStatePersistence.kt \
             $SRC/timer/RestAlarmPlan.kt $SRC/timer/CardioTimerPersistence.kt \
             $SRC/timer/BootSession.kt \

@@ -50,6 +50,9 @@ internal class FloorSetSaves(
     private val onReleased: (command: WorkoutSetSave, conflict: Boolean) -> Unit,
     /** A write was refused. */
     private val onRejected: () -> Unit,
+    private val beforeRelease: suspend (WorkoutSetSave) -> Unit = {},
+    private val afterSaved: suspend (WorkoutSetSave) -> Unit = {},
+    private val onSettlementUnavailable: () -> Unit = {},
 ) {
     /** The frozen set this ViewModel was built with, from the cache or else the saved state. */
     val restored: WorkoutSetSave? = cache.pendingSave(sessionId) ?: saved.read(sessionId)
@@ -79,6 +82,15 @@ internal class FloorSetSaves(
         cache.putPendingSave(command)
         saved.write(command)
         return command
+    }
+
+    /** Durable hydration happens before entry unlocks; two different commands need review. */
+    fun restorePrivate(command: WorkoutSetSave) {
+        val old = _state.value.command
+        if (old != null && old != command) throw WorkoutRepository.SetSaveConflict()
+        cache.putPendingSave(command)
+        saved.write(command)
+        _state.value = WorkoutSaveState(WorkoutSavePhase.CHECKING, command)
     }
 
     /** Freezes [command] in both copies and marks it being written. The caller launches [persist]. */
@@ -143,9 +155,10 @@ internal class FloorSetSaves(
     ) {
         try {
             when (inspect(command)) {
-                WorkoutSetSaveResolution.SAVED -> onSaved(command, null, true)
+                WorkoutSetSaveResolution.SAVED -> settleKnownSave(command, null, true)
                 WorkoutSetSaveResolution.UNSAVED -> {
                     if (releaseUnwritten) {
+                        beforeRelease(command)
                         clear(command)
                         onReleased(command, false)
                     } else if (retryWrite && sessionFound()) {
@@ -160,6 +173,7 @@ internal class FloorSetSaves(
                 }
                 WorkoutSetSaveResolution.CONFLICT -> {
                     if (releaseUnwritten) {
+                        beforeRelease(command)
                         // Inspection proved this command is not the stored row. Never replay it.
                         clear(command)
                         onReleased(command, true)
@@ -202,8 +216,20 @@ internal class FloorSetSaves(
             return
         }
         // A receipt, timer, or feedback failure after this point cannot create Retry save.
-        onSaved(command, result, result.alreadySaved)
+        settleKnownSave(command, result, result.alreadySaved)
         _inFlight.value = false
+    }
+
+    private suspend fun settleKnownSave(command: WorkoutSetSave, result: WorkoutRepository.SavedWorkoutSet?, recovered: Boolean) {
+        onSaved(command, result, recovered)
+        try {
+            afterSaved(command)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // A known durable row never becomes a failed Save or authorizes a replay.
+            onSettlementUnavailable()
+        }
     }
 
     private companion object {

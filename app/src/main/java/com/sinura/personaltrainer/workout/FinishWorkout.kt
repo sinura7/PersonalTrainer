@@ -85,19 +85,33 @@ class FinishWorkout(
 
         if (session.isFinished) {
             draftCache.finishConfirmed(sessionId)
+            retirePrivateDraft(sessionId)
             return FinishOutcome.Finished(sessionId)
         }
         if (session.sets.isEmpty()) return FinishOutcome.NothingLogged
+        if (draftCache.pendingSave(sessionId) != null) return FinishOutcome.Failed("Return to the workout to resolve its pending set before finishing.")
         if (notes == null && draftCache.hasPendingNotes(sessionId)) return FinishOutcome.NotesPending
 
         return runCatchingCancellable {
-            restTimer.stop()
-            workoutRepository.finishSession(sessionId, notes ?: session.notes)
-            draftCache.finishConfirmed(sessionId)
+            val port = draftCache.persistence
+            val finish: suspend (String) -> Unit = { intendedNotes ->
+                restTimer.stop()
+                workoutRepository.finishSession(sessionId, intendedNotes)
+                draftCache.finishConfirmed(sessionId)
+            }
+            if (port == null) { finish(notes ?: session.notes); retirePrivateDraft(sessionId) }
+            else port.finishAtomically(sessionId, notes, finish)
             FinishOutcome.Finished(sessionId)
         }.getOrElse { thrown ->
+            if (thrown is WorkoutFinishRefused) return@getOrElse FinishOutcome.Failed(thrown.reason)
             AppLog.w(TAG, "Finishing the workout failed", thrown)
             FinishOutcome.Failed("Could not finish this workout. Try again.")
         }
+    }
+
+    private suspend fun retirePrivateDraft(sessionId: String) {
+        try { draftCache.persistence?.retire(sessionId) }
+        catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+        catch (_: Exception) { AppLog.w(TAG, "Workout finished; private draft cleanup remains unavailable") }
     }
 }

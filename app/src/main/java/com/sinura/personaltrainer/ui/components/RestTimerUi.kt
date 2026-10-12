@@ -403,7 +403,8 @@ fun RestDurationSheet(
     onTimeSet: () -> Unit = {},
     onStartRest: (() -> Unit)? = null,
 ) {
-    var showCustom by rememberSaveable { mutableStateOf(false) }
+    val retainedCustom = LocalNumberEntryRetention.current?.initial
+    var showCustom by rememberSaveable { mutableStateOf(retainedCustom != null) }
     val reduceMotion = LocalReducedMotion.current
     // Under reduced motion the sheet opens already in place, with no slide up.
     val sheetState = rememberFullSheetState(reduced = reduceMotion)
@@ -820,16 +821,18 @@ fun CustomRestDialog(
     onConfirm: (String) -> Boolean,
     onDismiss: () -> Unit,
 ) {
-    var input by rememberSaveable { mutableStateOf("") }
+    val retention = LocalNumberEntryRetention.current
+    var input by rememberSaveable { mutableStateOf(retention?.initial?.text.orEmpty()) }
     var invalid by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
     val submit = {
         val ok = onConfirm(input)
         invalid = !ok
+        if (ok) retention?.discarded()
         if (!ok) Haptics.reject(view)
     }
     Dialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { retention?.closed(); onDismiss() },
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         BoxWithConstraints(
@@ -853,6 +856,7 @@ fun CustomRestDialog(
                     // from "1.5" used to hand that parser 15 and set a 15-second rest.
                     onValueChange = {
                         input = it
+                        retention?.changed(androidx.compose.ui.text.input.TextFieldValue(it))
                         invalid = false
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -873,7 +877,7 @@ fun CustomRestDialog(
                     Text("Use 90 or 1:30.", style = InstrumentType.caption, color = Danger)
                 }
                 FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = onDismiss, modifier = Modifier.heightIn(min = Metrics.touchMin)) {
+                    TextButton(onClick = { retention?.discarded(); onDismiss() }, modifier = Modifier.heightIn(min = Metrics.touchMin)) {
                         Text("Cancel", style = InstrumentType.bodyStrong, color = TextSecondary)
                     }
                     TextButton(onClick = submit, modifier = Modifier.heightIn(min = Metrics.touchMin)) {

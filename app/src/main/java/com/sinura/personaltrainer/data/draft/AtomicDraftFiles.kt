@@ -13,6 +13,11 @@ internal const val MAX_DRAFT_BYTES = 8 * 1024 * 1024
 internal interface DraftFileIO {
     fun read(file: File): ByteArray?
     fun replace(file: File, bytes: ByteArray)
+    /** Explicit abandonment preserves the unreadable original privately, outside every backup. */
+    fun quarantine(file: File, destination: File) {
+        try { Files.move(file.toPath(), destination.toPath(), StandardCopyOption.ATOMIC_MOVE) }
+        catch (_: NoSuchFileException) { }
+    }
 }
 
 /** API26+; failed atomic replacement preserves the previous checkpoint. No overwrite fallback. */

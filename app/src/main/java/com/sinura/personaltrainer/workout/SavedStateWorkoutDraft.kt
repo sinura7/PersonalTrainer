@@ -39,6 +39,7 @@ class SavedStateWorkoutDraft(private val handle: SavedStateHandle) : DraftStore<
      * [sessionNotes] reads the same as nothing saved (N2).
      */
     fun sessionNotesIfSaved(): String? = handle.get<String>(KEY_NOTES)
+    internal fun forgetUnhydratedNotes() { handle.remove<Any>(KEY_NOTES) }
 
     fun readAll(sessionId: String): Map<String, WorkoutDraft> {
         if (sessionId.isBlank()) return emptyMap()

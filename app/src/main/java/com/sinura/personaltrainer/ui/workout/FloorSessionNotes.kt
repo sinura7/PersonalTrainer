@@ -28,6 +28,7 @@ internal class FloorSessionNotes(
 ) {
     private val _text = MutableStateFlow("")
     val text: StateFlow<String> = _text.asStateFlow()
+    internal val textKnown: Boolean get() = hydrated || hasUserDraft
     private val _saveState = MutableStateFlow(NotesSaveState())
     val saveState: StateFlow<NotesSaveState> = _saveState.asStateFlow()
     private val writeLock = Mutex()
@@ -54,10 +55,14 @@ internal class FloorSessionNotes(
         publish()
     }
 
-    fun restore(value: String) {
+    fun restore(value: String, needsInspection: Boolean = false) {
         revision += 1
         hasUserDraft = true
         hydrated = true
+        if (needsInspection) {
+            pausedDiscardRevision = revision
+            failedRevision = revision
+        }
         _text.value = value
         writeRequest.value += 1
         publish()
@@ -75,6 +80,18 @@ internal class FloorSessionNotes(
         // A restored draft's pause may have ended before the first row arrived. Reading that
         // row schedules its ordinary pause again; unrelated row updates do not restart it.
         if (wasUnknown) writeRequest.value += 1
+        publish()
+    }
+
+    internal fun resetUnhydrated() {
+        revision += 1
+        hydrated = false
+        hasUserDraft = false
+        lastPersisted = null
+        failedRevision = null
+        pausedDiscardRevision = null
+        _text.value = ""
+        writeRequest.value += 1
         publish()
     }
 

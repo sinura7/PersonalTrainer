@@ -55,18 +55,18 @@ class DurableDraftPlatformTest {
             withContext(Dispatchers.Main) {
                 val store = DurableDraftStore(directory = root, files = io)
                 val form = store.bind(owner, codec)
-                val empty = (form.read() as DraftRead.Available).checkpoint
+                val empty = (form.read() as DraftRead.PresentCheckpoint).checkpoint
                 val first = (form.checkpoint(empty.version, "62,5 lb · raw authored fields") as DraftChange.Written).checkpoint
                 val pending = (form.beginSave(first.version, "62,5 lb · raw authored fields", "command", "stable-id") as DraftChange.Written).checkpoint
                 val reopened = DurableDraftStore(root).bind(owner, codec)
-                val restored = (reopened.read() as DraftRead.Available).checkpoint
+                val restored = (reopened.read() as DraftRead.PresentCheckpoint).checkpoint
                 assertEquals(pending, restored)
                 val accepted = (form.inspect(restored.version, "command", DraftRecoveryOutcome.EXACT_SAVED) as DraftChange.Written).checkpoint
                 val cleared = (form.clear(accepted.version) as DraftChange.Written).checkpoint
                 assertNull(cleared.draft)
                 assertEquals(DraftChange.Rejected(DraftRejection.STALE_VERSION), form.checkpoint(first.version, "queued old input"))
                 val next = store.advanceGeneration(cleared.currentGeneration) as DraftGenerationChange.Changed
-                val stale = (reopened.read() as DraftRead.Available).checkpoint
+                val stale = (reopened.read() as DraftRead.PresentCheckpoint).checkpoint
                 assertTrue(stale.needsReconciliation)
                 val reconciled = (form.reconcileOwner(stale.version, next.generation) as DraftChange.Written).checkpoint
                 assertFalse(reconciled.needsReconciliation)

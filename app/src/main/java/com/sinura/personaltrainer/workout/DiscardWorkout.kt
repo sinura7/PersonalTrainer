@@ -31,6 +31,9 @@ class DiscardWorkout(
         return runCatchingCancellable {
             workoutRepository.discardSession(sessionId)
             draftCache.clear(sessionId)
+            try { draftCache.persistence?.retire(sessionId) }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { AppLog.w(TAG, "Workout discarded; private draft cleanup remains unavailable") }
             DiscardOutcome.Discarded
         }.getOrElse { thrown ->
             AppLog.w(TAG, "Discarding the workout failed", thrown)

@@ -73,9 +73,10 @@ fun <T> NumberEntryDialog(
     /** Consults the current owner when input arrives from a previously editable frame. */
     onInputAllowed: () -> Boolean = { true },
 ) {
+    val retention = LocalNumberEntryRetention.current
     var text by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(
-            TextFieldValue(initial, selection = TextRange(0, initial.length)),
+            retention?.initial ?: TextFieldValue(initial, selection = TextRange(0, initial.length)),
         )
     }
     val parsed = parse(text.text)
@@ -92,6 +93,7 @@ fun <T> NumberEntryDialog(
                     true
                 }
                 if (accepted) {
+                    retention?.discarded()
                     if (haptic) Haptics.tick(view)
                     onDismiss()
                 }
@@ -99,6 +101,7 @@ fun <T> NumberEntryDialog(
         }
     }
     LaunchedEffect(Unit) {
+        retention?.changed(text)
         // The dialog's window attaches a frame after this composes, and requesting focus
         // before the node exists throws. Wait one frame, and treat it as best effort even
         // then: the keyboard opening by itself is a convenience, and losing that race must
@@ -108,7 +111,7 @@ fun <T> NumberEntryDialog(
     }
 
     AlertDialog(
-        onDismissRequest = { if (dismissEnabled) onDismiss() },
+        onDismissRequest = { if (dismissEnabled) { retention?.closed(); onDismiss() } },
         title = { Text(title, style = InstrumentType.title) },
         text = {
             Column(
@@ -117,7 +120,7 @@ fun <T> NumberEntryDialog(
             ) {
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { if (inputEnabled && onInputAllowed()) text = it },
+                    onValueChange = { if (inputEnabled && onInputAllowed()) { text = it; retention?.changed(it) } },
                     readOnly = !inputEnabled,
                     singleLine = true,
                     isError = text.text.isNotBlank() && parsed == null,
@@ -156,7 +159,7 @@ fun <T> NumberEntryDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onDismiss,
+                onClick = { retention?.discarded(); onDismiss() },
                 enabled = dismissEnabled,
                 modifier = Modifier.heightIn(min = Metrics.touchMin).widthIn(min = Metrics.touchMin),
             ) {

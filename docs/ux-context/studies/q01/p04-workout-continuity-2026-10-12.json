@@ -1,0 +1,55 @@
+{
+  "packet": "P04 — Complete workout continuity",
+  "state": "In progress — final native, full gate and review evidence pending",
+  "base": "f7a403892e9028066b88819e9b2031a869d6d9e4",
+  "architecture": "ADR-033",
+  "problem": "Workout entry, raw keypads, timed work and Delete/Undo relied on process or framework restoration. Reopening and uncertain writes require durable, owner-scoped recovery without changing saved records.",
+  "concept": {
+    "source": "workout-recovery-concept.html",
+    "image": "assets/workout-recovery-concept-2026-10-12.png",
+    "shownBeforeNativeChanges": true,
+    "scope": "Connected synthetic concept; Android continuity is established separately. Retain Debug125 compact illustrated layout."
+  },
+  "decision": {
+    "chosen": "Adopt P02 private checkpoints and frozen commands in the existing workout. Show resumed state, Keep entry on preservation failure, and Check again with explicit private-entry discard for unreadable/conflicting drafts.",
+    "alternative": "Retain framework-only restoration or add a second recovery navigation destination.",
+    "tradeoff": "Local atomic IO and owner fencing add internal complexity; controls stay in the existing workout, with no new tab, schema or portable backup format.",
+    "rules": "Manual values remain authored; effort is required for working repetitions; Apply does not log; progression remains explicit; rest does not block Log. Undo restores exact identities and timed values without restarting rest."
+  },
+  "behavior": [
+    "Close waits for the latest durable checkpoint; failed preservation remains actionable.",
+    "Reopen only the owning live workout. Preserve partial text, selection and original units, per-lift values, explicit notes clearing, clocks and completed Delete/Undo checkpoints.",
+    "Freeze Save before business writes; inspect exact identities and values before Retry. Known accepted saves settle without replay.",
+    "A newer owning editor revokes stale callbacks and queued mutations. Restore and legacy destructive writes share existing maintenance coordination.",
+    "Finish inspects and commits under one coordinator; Home Finish refuses a retained correction or unresolved command.",
+    "Unreadable private owners can be explicitly quarantined and discarded without changing saved sets. Private payloads remain outside backups, diagnostics and logs."
+  ],
+  "acceptanceTasks": [
+    "One AppNav Start/manual entry/effort/eight logs/rest/switch/correction/Delete/Undo/Finish/Summary/History session with exact records.",
+    "Completed checkpoint and admitted command followed by actual force-stop and fresh AppNav reopening.",
+    "Duplicate activation, lost acknowledgement, exact Retry, changed ownership, explicit notes clear and recovery from unreadable private files.",
+    "Changed native entry/recovery screens across required sizes, font scales and applicable RTL/keyboard cases."
+  ],
+  "evidence": {
+    "archives": "build/ux-context/runs/workout-continuity; original failures, exact input hashes, XML, instrumentation, process proofs and native captures retained.",
+    "nativeConnected02": "One fresh eight-log AppNav journey passed at its archived inputs; correction, Summary and History showed the same eight records and 451 kg. Later assertion failed because it searched a deliberately cleared child text node; final updated journey remains pending.",
+    "nativePrivate02": "One fresh actual AppNav Close/reopen test passed with partial 82. and running set clock. This does not establish process termination recovery.",
+    "initialReviews": "Two independent-review and five adversarial high findings retained in original reports. Corrections implemented; final exact-candidate review is pending.",
+    "failurePolicy": "Rejected static attempts, compile failures, quarantined revision-zero failure and fixture assertions remain archived. Inner-loop passes are not a complete gate.",
+    "finalFixesInner01": "Static gate rejected ambiguous when type growth58 vs48 before app tests. The generic launcher called it a crash; direct diagnosis established ratchet growth. New internal variants were renamed; direct checker passes48/48, with no ratchet or storage-format change.",
+    "finalFixesInner02": {
+      "freshAppTests": 52,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStable": true,
+      "scope": "Fresh full static gate, focused data/controller/notes-cache/timer regressions and app/test APK assembly. Before the final stale-discard fix; not the complete unfiltered gate."
+    },
+    "candidateReviews": "Both reviewers closed their original findings in code and identified the same stale-editor Discard high. Permit-at-open and owned Discard are implemented and independently reconfirmed in code, including failed-clear Retry. Final executed evidence and review seals remain pending."
+  },
+  "boundaries": [
+    "Physical touch, system timing, sound/haptics and performance remain P20.",
+    "Cross-app acceptance criteria remain owned by their named packets and P19.",
+    "Latest signed delivery remains Debug125; next milestone publication follows P10."
+  ]
+}

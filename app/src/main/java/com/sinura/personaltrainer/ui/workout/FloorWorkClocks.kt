@@ -6,6 +6,7 @@ import com.sinura.personaltrainer.domain.HoldWork
 import com.sinura.personaltrainer.domain.SetStopwatchUiState
 import com.sinura.personaltrainer.domain.SetStopwatchWork
 import com.sinura.personaltrainer.workout.SavedStateFloorTimer
+import com.sinura.personaltrainer.workout.WorkoutClockCheckpoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -51,6 +52,7 @@ internal class FloorWorkClocks(
     private val holdSoundEnabled: suspend () -> Boolean,
     /** Cancels the rest a logged set is waiting to start; the last thing every [bump] does. */
     private val cancelPendingRest: () -> Unit,
+    private val onCheckpoint: () -> Unit = {},
 ) {
     private val _hold = MutableStateFlow(HoldTimerUiState())
 
@@ -109,6 +111,7 @@ internal class FloorWorkClocks(
             leadInRemainingSeconds = leadIn,
         )
         persistHold()
+        onCheckpoint()
         _cues.tryEmit(FloorTimerCue.HoldStarted)
         holdJob = scope.launch { runHoldTicker(gen) }
     }
@@ -176,6 +179,7 @@ internal class FloorWorkClocks(
         bumpHoldJob()
         _hold.value = HoldTimerUiState()
         saved.clearHold()
+        onCheckpoint()
     }
 
     /**
@@ -199,6 +203,7 @@ internal class FloorWorkClocks(
         saveStopwatchFor(exerciseId)
         _cues.tryEmit(FloorTimerCue.StopwatchStarted)
         stopwatchJob = scope.launch { runStopwatchTicker(gen) }
+        onCheckpoint()
     }
 
     private suspend fun runStopwatchTicker(generation: Int) {
@@ -246,6 +251,7 @@ internal class FloorWorkClocks(
             startElapsedRealtime = 0L,
         )
         saveStopwatchFor(selectedLift())
+        onCheckpoint()
         if (current.running) {
             _cues.tryEmit(FloorTimerCue.StopwatchStopped)
         }
@@ -257,6 +263,7 @@ internal class FloorWorkClocks(
         val id = _stopwatch.value.exerciseId ?: selectedLift()
         _stopwatch.value = SetStopwatchUiState()
         id?.let { saved.clearStopwatch(it) }
+        onCheckpoint()
     }
 
     /**
@@ -294,6 +301,17 @@ internal class FloorWorkClocks(
     private fun persistHold() {
         saved.writeHold(selectedLift(), _hold.value)
     }
+
+    fun checkpoint(boot: Long): WorkoutClockCheckpoint {
+        val now = elapsedNow()
+        val watch = _stopwatch.value
+        if (watch.used && watch.exerciseId != null) saved.writeStopwatch(watch.exerciseId, watch.copy(
+            elapsedSeconds = if (watch.running) SetStopwatchWork.elapsedFromRealtime(watch.startElapsedRealtime, watch.frozenElapsedSeconds, now) else watch.elapsedSeconds,
+        ))
+        return saved.checkpoint(boot, selectedLift(), _hold.value, now)
+    }
+    fun seed(value: WorkoutClockCheckpoint, boot: Long) = saved.restoreCheckpoint(value, boot)
+    fun forgetStopwatch(exerciseId: String) { saved.clearStopwatch(exerciseId) }
 
     /** Saves the set clock under [exerciseId], or forgets that lift's copy when the clock was never used. */
     fun saveStopwatchFor(exerciseId: String?) {

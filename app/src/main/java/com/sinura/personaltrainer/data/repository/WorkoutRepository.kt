@@ -106,6 +106,12 @@ class WorkoutRepository(
     private val time: TimePort = JvmTime,
     private val ids: IdPort = IdFactory.Uuid,
 ) {
+    /** Private draft fences precede destructive changes; no portable/schema contract changes. */
+    internal var beforeWorkoutDestruction: suspend (String) -> Unit = {}
+    private suspend fun fenceWorkoutDrafts() {
+        kotlin.coroutines.coroutineContext[com.sinura.personaltrainer.workout.WorkoutMutationPermit]?.requireAllowed()
+        beforeWorkoutDestruction("workout-change:${java.util.UUID.randomUUID()}")
+    }
     private suspend fun <T> serialized(block: suspend () -> T): T =
         dbMaintenance?.withMaintenanceLock(block) ?: block()
 
@@ -557,8 +563,10 @@ class WorkoutRepository(
      * guards are in [SessionEditRules], and the check and the delete run in
      * one transaction so a set cannot land between them.
      */
-    suspend fun removeExerciseFromSession(sessionId: String, itemId: String): RemovedLift {
-        return database.withTransaction {
+    suspend fun removeExerciseFromSession(sessionId: String, itemId: String): RemovedLift = serialized {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        fenceWorkoutDrafts()
+        return@serialized database.withTransaction {
             val current = workoutDao.getSession(sessionId) ?: error(SessionEditRules.ITEM_MISSING)
             val row = current.exercises.firstOrNull { it.item.id == itemId }
             val refusal = SessionEditRules.refusalForRemove(
@@ -581,7 +589,9 @@ class WorkoutRepository(
      * already there, or if that lift is already on the session under a
      * new row (the lifter added it again during the undo window).
      */
-    suspend fun restoreExerciseToSession(removed: RemovedLift) {
+    suspend fun restoreExerciseToSession(removed: RemovedLift) = serialized {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        fenceWorkoutDrafts()
         database.withTransaction {
             val current = workoutDao.getSession(removed.item.sessionId) ?: return@withTransaction
             if (current.session.finishedAt != null) return@withTransaction
@@ -601,7 +611,9 @@ class WorkoutRepository(
      * weight chosen for a different lift is meaningless on this one — the progression prefill
      * will suggest a real number instead.
      */
-    suspend fun swapExerciseInSession(sessionId: String, itemId: String, replacement: Exercise) {
+    suspend fun swapExerciseInSession(sessionId: String, itemId: String, replacement: Exercise) = serialized {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        fenceWorkoutDrafts()
         database.withTransaction {
             val current = workoutDao.getSession(sessionId) ?: error(SessionEditRules.ITEM_MISSING)
             val item = current.exercises.firstOrNull { it.item.id == itemId }
@@ -789,6 +801,14 @@ class WorkoutRepository(
         }
     }
 
+    /** Read-only acknowledgement. A known accepted command can never recreate a deleted row. */
+    internal suspend fun acknowledgeSavedSet(command: WorkoutSetSave): SavedWorkoutSet = database.withTransaction {
+        val current = workoutDao.getSession(command.sessionId) ?: throw SetSaveConflict()
+        val row = workoutDao.getSet(command.setId) ?: throw SetSaveConflict()
+        if (!matchesSavedCommand(row, command, current)) throw SetSaveConflict()
+        savedResult(row, current, alreadySaved = true)
+    }
+
     private fun matchesSavedCommand(row: SetLogEntity, command: WorkoutSetSave, current: SessionWithDetails?): Boolean {
         val hold = current?.exercises?.any {
             it.exercise.id == command.exerciseId &&
@@ -841,7 +861,10 @@ class WorkoutRepository(
     class SetSaveConflict : IllegalStateException("This set changed or was removed. Review your saved sets before continuing.")
 
     /** History retries use the same identity and original values as their first Save tap. */
-    internal suspend fun saveFinishedSet(command: WorkoutSetSave): SavedWorkoutSet = database.withTransaction {
+    internal suspend fun saveFinishedSet(command: WorkoutSetSave): SavedWorkoutSet = serialized {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        fenceWorkoutDrafts()
+        database.withTransaction {
         val current = workoutDao.getSession(command.sessionId) ?: throw SetSaveConflict()
         if (current.session.finishedAt == null) throw SetSaveConflict()
         val existing = workoutDao.getSet(command.setId)
@@ -857,7 +880,7 @@ class WorkoutRepository(
             SetLogRules.validateEffort(values.rpe, values.isWarmup,
                 existing.reps < 1 && (existing.durationSeconds ?: 0) > 0 || values.reps == 0,
             )?.let { error(it) }
-            updateSet(existing.id, values.weightKg, values.reps, values.rpe, values.isWarmup, values.durationSeconds)
+            updateSetWithPermit(existing.id, values.weightKg, values.reps, values.rpe, values.isWarmup, values.durationSeconds)
         } else {
             if (existing != null || !hasFinishedLift(current, command.exerciseId)) throw SetSaveConflict()
             if (command.completedAt !in current.session.startedAt..checkNotNull(current.session.finishedAt)) {
@@ -867,6 +890,7 @@ class WorkoutRepository(
             insertFinishedSet(current, command.exerciseId, values, command.setId, command.completedAt)
         }
         savedResult(checkNotNull(workoutDao.getSet(command.setId)), current, alreadySaved = false)
+        }
     }
 
     /** A failed read leaves the outcome unknown; it never authorizes another insertion. */
@@ -939,6 +963,19 @@ class WorkoutRepository(
         rpe: Int?,
         isWarmup: Boolean,
         durationSeconds: Int? = null,
+    ) = serialized {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        fenceWorkoutDrafts()
+        updateSetWithPermit(setId, weightKg, reps, rpe, isWarmup, durationSeconds)
+    }
+
+    private suspend fun updateSetWithPermit(
+        setId: String,
+        weightKg: Double,
+        reps: Int,
+        rpe: Int?,
+        isWarmup: Boolean,
+        durationSeconds: Int? = null,
     ) {
         val current = workoutDao.getSet(setId) ?: error("That set is no longer available.")
         // Deliberately no finished-guard: correcting a mistyped weight in last week's
@@ -991,10 +1028,12 @@ class WorkoutRepository(
      * confirm on every delete taxes the common case to prevent the rare one, and an undo
      * costs nothing until it is needed.
      */
-    suspend fun deleteSet(setId: String): DeletedSet? {
+    suspend fun deleteSet(setId: String): DeletedSet? = serialized {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        fenceWorkoutDrafts()
         // Delete and renumber are one write. A committed delete with a half-applied
         // renumber left a gap that the next logSet would then share a number with.
-        return database.withTransaction {
+        return@serialized database.withTransaction {
             val deleted = workoutDao.getSet(setId) ?: return@withTransaction null
             workoutDao.deleteSet(setId)
             renumber(deleted.sessionId, deleted.exerciseId)
@@ -1020,9 +1059,16 @@ class WorkoutRepository(
      * re-inserted with a fresh timestamp would land on today's body map and could re-date a
      * record. No-ops if the session has since gone.
      */
-    suspend fun restoreSet(set: DeletedSet) {
+    suspend fun restoreSet(set: DeletedSet) = serialized {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        fenceWorkoutDrafts()
         database.withTransaction {
-            if (workoutDao.getSessionRow(set.sessionId) == null) return@withTransaction
+            if (workoutDao.getSessionRow(set.sessionId) == null) throw SetSaveConflict()
+            workoutDao.getSet(set.setId)?.let { row ->
+                if (row.sessionId != set.sessionId || row.exerciseId != set.exerciseId || row.completedAt != set.completedAt ||
+                    row.weightKg != set.weightKg || row.reps != set.reps || row.rpe != set.rpe || row.isWarmup != set.isWarmup || row.durationSeconds != set.durationSeconds) throw SetSaveConflict()
+                return@withTransaction
+            }
             workoutDao.insertSet(
                 SetLogEntity(
                     id = set.setId,
@@ -1130,6 +1176,13 @@ class WorkoutRepository(
         workoutDao.updateSessionNotes(id = sessionId, notes = notes.trim())
     }
 
+    /** An admitted live-note command compares the row again inside the write transaction. */
+    internal suspend fun updateLiveNotesIfUnchanged(sessionId: String, before: String, intended: String) = database.withTransaction {
+        val row = workoutDao.getSessionRow(sessionId) ?: throw SetSaveConflict()
+        if (row.finishedAt != null || row.notes.trim() != before) throw SetSaveConflict()
+        workoutDao.updateSessionNotes(id = sessionId, notes = intended)
+    }
+
     suspend fun finishSession(sessionId: String, notes: String) {
         // One targeted UPDATE, for the reason WorkoutDao.updateSessionNotes gives: reading the
         // whole row and writing it all back makes every column a hostage to whatever wrote in
@@ -1222,7 +1275,9 @@ class WorkoutRepository(
      * screen must not delete logged work. [deleteFinishedSession] is the
      * deliberate act on history, behind its own confirm.
      */
-    suspend fun discardSession(sessionId: String) {
+    suspend fun discardSession(sessionId: String) = serialized {
+        check(!restoreBlocksStart()) { RestoreJournal.INTERRUPTED }
+        fenceWorkoutDrafts()
         workoutDao.deleteInProgressSession(sessionId)
     }
 

@@ -9,6 +9,26 @@ import com.sinura.personaltrainer.domain.SetStopwatchUiState
  * No Room table. Rest deadlines stay on the existing rest store.
  */
 class SavedStateFloorTimer(private val handle: SavedStateHandle) {
+    internal fun checkpoint(boot: Long, exerciseId: String?, hold: HoldTimerUiState, now: Long): WorkoutClockCheckpoint =
+        WorkoutClockCheckpoint(
+            boot = boot, holdExerciseId = exerciseId.takeIf { hold.totalSeconds > 0 },
+            hold = hold.takeIf { it.totalSeconds > 0 },
+            stopwatches = stopwatchIds().mapNotNull { id -> readStopwatch(id, now)?.let { id to it } }.toMap(),
+        )
+
+    internal fun restoreCheckpoint(value: WorkoutClockCheckpoint, boot: Long) {
+        clearAll()
+        // Legacy/unknown counters retain the existing monotonic-clock checks in read*.
+        val sameBoot = value.boot == null || value.boot < 0 || boot < 0 || value.boot == boot
+        if (sameBoot) value.hold?.let { writeHold(value.holdExerciseId, it) }
+        value.stopwatches.forEach { (id, watch) ->
+            writeStopwatch(id, if (sameBoot) watch else watch.copy(
+                running = false, startElapsedRealtime = 0,
+                frozenElapsedSeconds = maxOf(watch.elapsedSeconds, watch.frozenElapsedSeconds),
+                elapsedSeconds = maxOf(watch.elapsedSeconds, watch.frozenElapsedSeconds),
+            ))
+        }
+    }
     fun writeHold(exerciseId: String?, hold: HoldTimerUiState) {
         if (exerciseId.isNullOrBlank() || (!hold.running && hold.totalSeconds <= 0)) {
             clearHold()

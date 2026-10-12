@@ -4,6 +4,7 @@ import android.content.Context
 import com.sinura.personaltrainer.data.repository.AfterWorkoutBackup
 import com.sinura.personaltrainer.data.repository.AfterWorkoutUpload
 import com.sinura.personaltrainer.data.draft.CustomExerciseDrafts
+import com.sinura.personaltrainer.data.draft.DurableWorkoutDrafts
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -90,9 +91,17 @@ class AppContainer(context: Context) : AppDependencies {
             restoreOpen = { backupService.restoreInProgress() }, dispatcher = ioDispatcher,
         )
     }
+    private var openedWorkoutDrafts: DurableWorkoutDrafts? = null
+    internal val durableWorkoutDrafts: DurableWorkoutDrafts by lazy {
+        DurableWorkoutDrafts(
+            store = durableDrafts, repository = workoutRepository, maintenance = dbMaintenance,
+            restoreOpen = { backupService.restoreInProgress() }, dispatcher = ioDispatcher,
+        ).also { openedWorkoutDrafts = it }
+    }
 
     private suspend fun invalidatePrivateDrafts(event: String) {
         check(durableDrafts.invalidateOnce(event) is com.sinura.personaltrainer.data.draft.DraftGenerationChange.Changed)
+        if (!event.startsWith("workout-change:")) openedWorkoutDrafts?.invalidateEntries()
     }
     override val time: com.sinura.personaltrainer.domain.TimePort = JvmTime
     override val phoneCapabilities: PhoneCapabilityPort = AndroidPhoneCapabilities(context)
@@ -254,7 +263,7 @@ class AppContainer(context: Context) : AppDependencies {
         database.workoutDao(),
         dbMaintenance,
         restoreBlocksStart = { backupService.restoreBlocksStart() },
-    )
+    ).also { it.beforeWorkoutDestruction = ::invalidatePrivateDrafts }
     override val completedTrainingRepository: CompletedTrainingRepository =
         CompletedTrainingRepository(workoutRepository, activityRepository, time)
     /**
@@ -280,7 +289,9 @@ class AppContainer(context: Context) : AppDependencies {
             restTimerStatePersistence,
             ioDispatcher = ioDispatcher,
         )
-    override val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache()
+    override val workoutDraftCache: WorkoutDraftCache = WorkoutDraftCache().also {
+        it.persistence = durableWorkoutDrafts
+    }
 
     // Every finish and every discard in the app routes through these two, so no surface can
     // end a workout while leaving a rest timer running or a draft pointing at a dead session.

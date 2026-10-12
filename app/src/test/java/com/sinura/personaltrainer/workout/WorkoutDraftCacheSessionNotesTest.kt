@@ -154,6 +154,19 @@ class WorkoutDraftCacheSessionNotesTest {
         assertEquals("squat", cache.selectedExerciseId("s1"))
     }
 
+    @Test
+    fun revokedOwnerReleaseCannotRetireTheCurrentUnconfirmedNotes() {
+        val cache = WorkoutDraftCache()
+        val older = Any(); val current = Any()
+        cache.putSessionNotes("s1", "newer")
+        cache.markNotesPending("s1", older, pending = true, busy = false, notes = "older")
+        cache.markNotesPending("s1", current, pending = true, busy = false, notes = "newer")
+        cache.releaseNotesOwner("s1", older)
+        assertTrue(cache.hasPendingNotes("s1"))
+        cache.markNotesPending("s1", current, pending = false, busy = false, notes = "newer")
+        assertFalse(cache.hasPendingNotes("s1"))
+    }
+
     private fun entry(exerciseId: String, notes: String, sessionId: String = "s1") = WorkoutDraft(
         sessionId = sessionId,
         exerciseId = exerciseId,

@@ -79,19 +79,19 @@ internal class DurableDraftStore(
 
     internal suspend fun <D, C> read(owner: DraftOwner, codec: DraftCodec<D, C>): DraftRead<D, C> = ordered {
         try {
-            DraftRead.Available(load(owner, codec, generation()))
+            DraftRead.PresentCheckpoint(load(owner, codec, generation()))
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failed: DraftFormatFailure) {
-            DraftRead.Unavailable(failed.problem)
+            DraftRead.UnreadableCheckpoint(failed.problem)
         } catch (_: DraftTooLarge) {
-            DraftRead.Unavailable(DraftReadProblem.TOO_LARGE)
+            DraftRead.UnreadableCheckpoint(DraftReadProblem.TOO_LARGE)
         } catch (_: IOException) {
-            DraftRead.Unavailable(DraftReadProblem.STORAGE)
+            DraftRead.UnreadableCheckpoint(DraftReadProblem.STORAGE)
         } catch (_: SecurityException) {
-            DraftRead.Unavailable(DraftReadProblem.STORAGE)
+            DraftRead.UnreadableCheckpoint(DraftReadProblem.STORAGE)
         } catch (_: Exception) {
-            DraftRead.Unavailable(DraftReadProblem.CORRUPT)
+            DraftRead.UnreadableCheckpoint(DraftReadProblem.CORRUPT)
         }
     }
 
@@ -135,6 +135,23 @@ internal class DurableDraftStore(
         } catch (_: Exception) {
             DraftChange.Rejected(DraftRejection.INVALID_DATA)
         }
+    }
+
+    /** Explicit user discard only; fences old writers and keeps opaque originals private. */
+    internal suspend fun <D, C> discardUnreadable(owner: DraftOwner, codec: DraftCodec<D, C>): DraftChange<D, C> = ordered {
+        try {
+            val fresh = UUID.randomUUID().toString()
+            generation() // A broken global coordinator is not silently rebuilt from an owner.
+            writeGeneration(fresh)
+            val source = ownerFile(owner)
+            files.quarantine(source, File(directory, source.name + ".quarantine-" + UUID.randomUUID()))
+            val empty = DraftCheckpoint<D, C>(DraftVersion(owner, fresh, 1), fresh, null, null)
+            val encoded = encode(empty, codec)
+            val frozen = decode(encoded, owner, codec, fresh)
+            files.replace(source, encoded)
+            DraftChange.Written(frozen)
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { DraftChange.Unavailable(DraftReadProblem.STORAGE) }
     }
 
     private suspend fun <T> ordered(action: () -> T): T = withContext(dispatcher) {
@@ -311,6 +328,7 @@ internal class DraftBinding<D, C> internal constructor(
     private val codec: DraftCodec<D, C>,
 ) {
     suspend fun read(): DraftRead<D, C> = store.read(owner, codec)
+    suspend fun discardUnreadable(): DraftChange<D, C> = store.discardUnreadable(owner, codec)
 
     suspend fun checkpoint(expected: DraftVersion, draft: D): DraftChange<D, C> = store.change(owner, codec, expected) {
         rejectUnless(it.pending == null, DraftRejection.PENDING_COMMAND)
