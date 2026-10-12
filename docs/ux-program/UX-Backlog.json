@@ -1976,7 +1976,18 @@
       ],
       "requirement": "Given both a planned workout and freestyle control, a participant can correctly explain which follows the routine and which starts empty.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX01",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX01-AC02",
@@ -1988,7 +1999,18 @@
       ],
       "requirement": "Given another selected day, starting/logging behavior matches explicit copy and existing date rules; no silent backdating.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX01",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX01-AC03",
@@ -2000,7 +2022,18 @@
       ],
       "requirement": "At 360 dp and large text, the planned row's start action is discoverable without an unrelated statistics detour; measure rather than assert this has improved.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX01",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX02-AC01",
@@ -2012,7 +2045,18 @@
       ],
       "requirement": "With 0, 3 and 50 routines, participants can find past strength, manual cardio, mixed entry and live cardio.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX02",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX02-AC02",
@@ -2024,7 +2068,18 @@
       ],
       "requirement": "Selecting a manual entry does not start a timer; dismissing the sheet makes no training-data write.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX02",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX02-AC03",
@@ -2036,7 +2091,18 @@
       ],
       "requirement": "Opening the sheet while a session runs produces one clear answer and no duplicate session.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P05",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX02",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX03-AC01",
@@ -2049,7 +2115,18 @@
       ],
       "requirement": "Rapid repeated activation while a write is pending commits one set.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX03",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX03-AC02",
@@ -2062,7 +2139,18 @@
       ],
       "requirement": "Warmup, bodyweight, added-weight and assisted movements show the correct labels and units; no universal '0 kg' assumption.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX03",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX03-AC03",
@@ -2075,7 +2163,18 @@
       ],
       "requirement": "Keyboard open at 360 dp and landscape leaves the active field and commit action reachable.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX03",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX03-AC04",
@@ -2088,7 +2187,18 @@
       ],
       "requirement": "Undo/edit/next transitions preserve exercise identity and announce accepted results once.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX03",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX04-AC01",
@@ -2102,7 +2212,18 @@
       "status": "Written, not executed (Robolectric: RoutineEditorViewModelTest)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX04",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX04-AC02",
@@ -2116,7 +2237,18 @@
       "status": "Written, not executed (Robolectric: RoutineEditorViewModelTest)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX04",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX04-AC03",
@@ -2130,7 +2262,18 @@
       "status": "Written, not executed (Robolectric: RoutineEditorViewModelTest, existing + new)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX04",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX04-AC04",
@@ -2144,7 +2287,18 @@
       "status": "Implemented (SavedStateHandle keeps name/notes); Robolectric processDeathKeepsNameAndDoesNotMintASecondRoutine written, not executed; device check pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX04",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX05-AC01",
@@ -2158,7 +2312,18 @@
       "status": "Written, not executed (Robolectric: WorkoutSummaryViewModelTest — missing id, missing row, read fault, summary fault, no-work); device render pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX05",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX05-AC02",
@@ -2172,7 +2337,18 @@
       "status": "Written, not executed (Robolectric: aSummaryThatWillNotComputeIsSavedButUnavailableNotMissing asserts one row, same finish stamp, no live session)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX05",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX05-AC03",
@@ -2186,7 +2362,18 @@
       "status": "Executed (JVM lane: WorkoutSummaryBuilderTest.aBodyweightOnlySessionHeadlinesItsRepsNotZeroKilograms); Robolectric written; device render pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX05",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX05-AC04",
@@ -2200,7 +2387,18 @@
       "status": "Not executed — navigation unchanged (popUpTo Home on finish; Back is Done); emulator check pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX05",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX06-AC01",
@@ -2213,7 +2411,18 @@
       "status": "Executed (JVM lane: NumericEntryTest, ComposerCopyTest, TargetEntryTest); production-screen paste/keyboard pass pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX06",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Baseline NumericEntryTest explicitly asserts these parser inputs; all UI callers remain separately open in UX06-AC04.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence"
+      }
     },
     {
       "id": "UX06-AC02",
@@ -2226,7 +2435,18 @@
       "status": "Executed (JVM lane: NumericEntryTest.ambiguousTextNeverBecomesADifferentAcceptedValue, blank/62,5 == 62.5)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX06",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Baseline NumericEntryTest explicitly asserts these parser inputs; all UI callers remain separately open in UX06-AC04.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Bounded automated evidence"
+      }
     },
     {
       "id": "UX06-AC03",
@@ -2239,7 +2459,18 @@
       "status": "Executed (JVM lane: storedWeightsSurviveADisplayRoundTripWithinDisplayPrecision — ±0.05 kg / ±0.25 lb)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX06",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX06-AC04",
@@ -2252,7 +2483,18 @@
       "status": "Executed for the domain rules; caller wiring changed in composer, live cardio, custom rest, routine card — Compose-level check pending (no SDK here)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX06",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX07-AC01",
@@ -2266,7 +2508,18 @@
       "status": "Already covered at HEAD by R09 (SavedStateComposerDraft); Robolectric processRecreationRestoresTheTypedDraft written, not executed",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P02",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX07",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX07-AC02",
@@ -2280,7 +2533,18 @@
       "status": "Written, not executed (Robolectric: cancelWhileSavingIsRefusedAndTheSaveStillLandsOnce)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P02",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX07",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX07-AC03",
@@ -2294,7 +2558,18 @@
       "status": "Written, not executed (Robolectric: anAcceptedSaveClearsTheDraft, save() keeps draft on Rejected/thrown)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P02",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX07",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX07-AC04",
@@ -2308,7 +2583,18 @@
       "status": "Written, not executed (Robolectric: processRecreationRestoresTheStepAndAnswersWithoutWritingAPlan)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P02",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX07",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX08-AC01",
@@ -2320,7 +2606,18 @@
       ],
       "requirement": "Every question and Continue/Skip action is reachable at 360×640 dp, font 2.0, and the smaller supported window configuration.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P15",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX08",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX08-AC02",
@@ -2332,7 +2629,18 @@
       ],
       "requirement": "Typed bodyweight, wheel, unit switch and Skip produce consistent optional values.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P15",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX08",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX08-AC03",
@@ -2344,7 +2652,18 @@
       ],
       "requirement": "Screen-reader focus lands on the new question and Back keeps the selected answer.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P15",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX08",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX08-AC04",
@@ -2356,7 +2675,18 @@
       ],
       "requirement": "Accepting a plan once creates the intended program; reopening setup does not silently apply a draft.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P15",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX08",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX09-AC01",
@@ -2368,7 +2698,18 @@
       ],
       "requirement": "From an empty routine catalogue, choose a lift → Create routine → save: exactly one routine contains that lift, without another search.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX09",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX09-AC02",
@@ -2380,7 +2721,18 @@
       ],
       "requirement": "Cancel returns to the original context and leaves no empty stub.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX09",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX09-AC03",
@@ -2392,7 +2744,18 @@
       ],
       "requirement": "Rotation/process recreation retains the pending exercise ID according to the draft contract.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P09",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX09",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX10-AC01",
@@ -2404,7 +2767,18 @@
       ],
       "requirement": "Searching 'bench' with existing matching variants prioritizes choosing them over creating 'bench'.",
       "status": "Executed: ExercisePickerRenderTest retains matching illustrated results before secondary Create across the layout/font matrix.",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P03",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX10",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX10-AC02",
@@ -2416,7 +2790,18 @@
       ],
       "requirement": "Duplicate/disk/create errors are visible within the active sheet in single and multi modes.",
       "status": "Executed targeted UI recovery and exact-identity ownership checks. Final complete-gate verification remains pending; native-graphics hosts are synthetic, not phone acceptance.",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P03",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX10",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX10-AC03",
@@ -2428,7 +2813,18 @@
       ],
       "requirement": "Create then cancel activity follows the disclosed catalogue persistence rule.",
       "status": "Implemented disclosure and Room cancellation regression in ActivityComposerViewModelTest; the final added regression awaits the complete gate.",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P03",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX10",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX10-AC04",
@@ -2440,7 +2836,18 @@
       ],
       "requirement": "Double confirmation adds the selected IDs once and preserves order.",
       "status": "Existing ordered write-through contract retained with synchronous pending ownership and exact-ID Retry. Targeted picker write/routine checks executed; final source changes await the complete gate.",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P03",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX10",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX11-AC01",
@@ -2452,7 +2859,18 @@
       ],
       "requirement": "A participant can state the scope before saving a swap or schedule edit.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX11",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX11-AC02",
@@ -2464,7 +2882,18 @@
       ],
       "requirement": "Routine management is reachable without relying solely on long press, or documented usability evidence supports retaining the existing affordance.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX11",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX11-AC03",
@@ -2476,7 +2905,18 @@
       ],
       "requirement": "Deleting a routine preserves history and accurately explains its impact on scheduled days.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX11",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX12-AC01",
@@ -2489,7 +2929,18 @@
       ],
       "requirement": "At 320/360/412 dp, date targets are measurable and usable without overlapping ambiguous activation regions, or an equivalent accessible selector is supplied.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX12",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX12-AC02",
@@ -2502,7 +2953,18 @@
       ],
       "requirement": "A week containing done, skipped, missed, future and rest days has unambiguous spoken and visible detail.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX12",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX12-AC03",
@@ -2515,7 +2977,18 @@
       ],
       "requirement": "Selecting a neighboring-month date opens the correct civil date; today remains distinguishable from selection.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX12",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX13-AC01",
@@ -2527,7 +3000,18 @@
       ],
       "requirement": "Add the same type once and recurring in separate scenarios; next week contains only the recurring case.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX13",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX13-AC02",
@@ -2539,7 +3023,18 @@
       ],
       "requirement": "Reordering states exactly which future/reminder behavior changes and preserves completed history.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX13",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX13-AC03",
@@ -2551,7 +3046,18 @@
       ],
       "requirement": "Home and Plan show the same dated occurrences after changes.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX13",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX14-AC01",
@@ -2564,7 +3070,18 @@
       ],
       "requirement": "Preview and committed outcome match for missed work crossing week boundaries.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX14",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX14-AC02",
@@ -2577,7 +3094,18 @@
       ],
       "requirement": "Completed sessions remain unchanged and are explicitly separated from future schedule adjustments.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX14",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX14-AC03",
@@ -2590,7 +3118,18 @@
       ],
       "requirement": "Commit failure preserves the proposal and offers retry; repeated taps do not apply it twice.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P08",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX14",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX15-AC01",
@@ -2601,7 +3140,18 @@
       ],
       "requirement": "With years of synthetic history, a participant can reach lifetime records and the newest activity without an unbounded scroll.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX15",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX15-AC02",
@@ -2612,7 +3162,18 @@
       ],
       "requirement": "Changing a horizon produces exactly the documented scope across totals/list/records.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX15",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX15-AC03",
@@ -2623,7 +3184,18 @@
       ],
       "requirement": "Editing a prior best refreshes visible results and record drill-down identifies the supporting session.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P06",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX15",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX16-AC01",
@@ -2635,7 +3207,18 @@
       ],
       "requirement": "Jan 1, Jan 2 and Apr 1 samples do not imply equal elapsed intervals without an explicit session-axis label.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX16",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX16-AC02",
@@ -2647,7 +3230,18 @@
       ],
       "requirement": "Screen-reader/data-list users can recover values and dates without relying on the plotted line.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX16",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX16-AC03",
@@ -2659,7 +3253,18 @@
       ],
       "requirement": "Bodyweight-rep series use reps, loaded series use the selected physical unit, and empty/flat series are truthful.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX16",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX17-AC01",
@@ -2671,7 +3276,18 @@
       ],
       "requirement": "Participants can explain that an uncolored muscle means no mapped work in the selected period, not a recovery guarantee.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P11",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX17",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX17-AC02",
@@ -2683,7 +3299,18 @@
       ],
       "requirement": "All muscles remain reachable via full-size text rows with equivalent detail/actions.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P11",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX17",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX17-AC03",
@@ -2695,7 +3322,18 @@
       ],
       "requirement": "The selected window and contributor data agree; caption remains readable at font 2.0.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P11",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX17",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX18-AC01",
@@ -2707,7 +3345,18 @@
       ],
       "requirement": "All four kg/lb × km/mi combinations render consistent input, summary, history and export behavior.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX18",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX18-AC02",
@@ -2719,7 +3368,18 @@
       ],
       "requirement": "Changing preference does not change stored distance or weight.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX18",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX18-AC03",
@@ -2731,7 +3391,18 @@
       ],
       "requirement": "Old backups lacking distance preference restore to the documented default and drafts do not reinterpret numbers.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX18",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX19-AC01",
@@ -2743,7 +3414,18 @@
       ],
       "requirement": "Correcting an older synthetic measurement changes that date and refreshes the affected review.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P12",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX19",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX19-AC02",
@@ -2755,7 +3437,18 @@
       ],
       "requirement": "Clear/delete copy identifies the exact affected data; cancelling leaves it unchanged.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P12",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX19",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX19-AC03",
@@ -2767,7 +3460,18 @@
       ],
       "requirement": "No bodyweight entry is required to record a workout or complete setup.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P12",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX19",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX20-AC01",
@@ -2779,7 +3483,18 @@
       ],
       "requirement": "A participant can change units/rest preferences and find export/restore with no worse success than the baseline.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX20",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX20-AC02",
@@ -2791,7 +3506,18 @@
       ],
       "requirement": "Reopening Settings restores useful context without hiding an unresolved save error.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX20",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX20-AC03",
@@ -2803,7 +3529,18 @@
       ],
       "requirement": "Production and debug build screenshots are evaluated separately.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P17",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX20",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX21-AC01",
@@ -2815,7 +3552,18 @@
       ],
       "requirement": "Wrong password, oversized input, unsupported version, offline Drive, live workout, partial preferences failure and completed restore each have a distinct actionable screen.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P18",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX21",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX21-AC02",
@@ -2827,7 +3575,18 @@
       ],
       "requirement": "Displayed success follows the actual accepted operation; no UI-only fix masks R01–R04.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P18",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX21",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX21-AC03",
@@ -2839,7 +3598,18 @@
       ],
       "requirement": "Back/rotation/permission return retains the operation's correct stage and never repeats a destructive commit.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P18",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX21",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX22-AC01",
@@ -2851,7 +3621,18 @@
       ],
       "requirement": "Repeated delivery/recreation of the same reminder intent does not stack duplicate live screens or start twice.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX22",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX22-AC02",
@@ -2863,7 +3644,18 @@
       ],
       "requirement": "Returning from system settings keeps the active session/draft and reflects the real permission result.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX22",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX22-AC03",
@@ -2875,7 +3667,18 @@
       ],
       "requirement": "Back from a completed summary cannot reopen the finished workout as live.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P04",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX22",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX23-AC01",
@@ -2889,7 +3692,18 @@
       "status": "Partially: summary read/compute faults, composer save faults, finish outcomes distinguished; injected load faults on other screens remain open (see UX23 residue)",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P02",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX23",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX23-AC02",
@@ -2903,7 +3717,18 @@
       "status": "Implemented for the composer (error above Save, field errors inline); device/IME check pending",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P02",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX23",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX23-AC03",
@@ -2917,7 +3742,18 @@
       "status": "Implemented for summary, finish and History stale wording; remaining conflations listed in UX23 residue",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
-      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device"
+      "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
+      "completion": {
+        "owner": "P02",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX23",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX24-AC01",
@@ -2929,7 +3765,18 @@
       ],
       "requirement": "Two long similarly named variants can be distinguished before selection.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX24",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX24-AC02",
@@ -2941,7 +3788,18 @@
       ],
       "requirement": "At font 2.0, primary actions and full values/units are readable and not clipped.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX24",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX24-AC03",
@@ -2953,7 +3811,18 @@
       ],
       "requirement": "Shared component changes preserve all callers and do not reduce touch targets.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX24",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX25-AC01",
@@ -2964,7 +3833,18 @@
       ],
       "requirement": "Physical TalkBack can complete planned start, set log/edit, cardio finish, routine create, history correction and export review.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX25",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": false,
+        "state": "Open"
+      }
     },
     {
       "id": "UX25-AC02",
@@ -2975,7 +3855,18 @@
       ],
       "requirement": "Search and routine-name fields announce their purpose when empty and populated.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX25",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX25-AC03",
@@ -2986,7 +3877,18 @@
       ],
       "requirement": "Large text/IME does not hide essential actions; measured issues have production-screen regression coverage.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX25",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX26-AC01",
@@ -2999,7 +3901,18 @@
       ],
       "requirement": "With reduced motion enabled, all data and records appear immediately and remain accessible.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX26",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX26-AC02",
@@ -3012,7 +3925,18 @@
       ],
       "requirement": "An extended accessibility timeout is honored for relevant messages or equivalent persistent access exists.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX26",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX26-AC03",
@@ -3025,7 +3949,18 @@
       ],
       "requirement": "Save failure remains actionable after any transient banner disappears.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P19",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX26",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX27-AC01",
@@ -3037,7 +3972,18 @@
       ],
       "requirement": "A participant finds a specified muscle+equipment variant and clears a restrictive filter without losing orientation.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P10",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX27",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX27-AC02",
@@ -3049,7 +3995,18 @@
       ],
       "requirement": "Returning from detail restores the original results position.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P10",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX27",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX27-AC03",
@@ -3061,7 +4018,18 @@
       ],
       "requirement": "Load failure does not invite creating a duplicate exercise because the catalogue appeared empty.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P10",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX27",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX28-AC01",
@@ -3072,7 +4040,18 @@
       ],
       "requirement": "A user can inspect the proposed week, change equipment/days and return to an updated preview with other answers preserved.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P16",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX28",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX28-AC02",
@@ -3083,7 +4062,18 @@
       ],
       "requirement": "An existing user can explain the acceptance impact before tapping Use this plan.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P16",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX28",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX28-AC03",
@@ -3094,7 +4084,18 @@
       ],
       "requirement": "Dismissed/failed setup does not create a partial unexpected program.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P16",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX28",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX29-AC01",
@@ -3107,7 +4108,18 @@
       ],
       "requirement": "Each supported type has an accurate receipt and correct units with clear action capabilities.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX29",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX29-AC02",
@@ -3120,7 +4132,18 @@
       ],
       "requirement": "Opening history detail does not replay a misleading new-save confirmation.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX29",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX29-AC03",
@@ -3133,7 +4156,18 @@
       ],
       "requirement": "Repeat/edit where supported preserves correct IDs, chronology and plan linkage and cannot silently convert one type to another.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P07",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX29",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX30-AC01",
@@ -3149,7 +4183,18 @@
       ],
       "requirement": "Each implemented UX item has acceptance evidence, source/commit links and limitations.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P01",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX30",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX30-AC02",
@@ -3165,7 +4210,18 @@
       ],
       "requirement": "Global-navigation changes follow the repository's current comparative task gate; no extra tab appears from taste alone.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P01",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX30",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     },
     {
       "id": "UX30-AC03",
@@ -3181,9 +4237,487 @@
       ],
       "requirement": "Required device/accessibility gaps remain visibly open until actually tested.",
       "status": "Not executed",
-      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone."
+      "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
+      "completion": {
+        "owner": "P01",
+        "integrationOwner": "P19",
+        "physicalOwner": "P20",
+        "evidenceRef": "completionPlan.groupEvidence.UX30",
+        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "physical": "Unobserved",
+        "required": true,
+        "state": "Open"
+      }
     }
   ],
   "updatedOn": "2026-09-07",
-  "updatedAgainst": "156cc400a0bc7974209e494e4e4cf0525b29bb7d (branch claude/file-visibility-check-jraqc2; trunk 28f485f carries R01–R19)"
+  "updatedAgainst": "156cc400a0bc7974209e494e4e4cf0525b29bb7d (branch claude/file-visibility-check-jraqc2; trunk 28f485f carries R01–R19)",
+  "completionPlan": {
+    "approvedOn": "2026-10-12",
+    "baselineCommit": "587e9577ee30f1962fa0a6db1a6acd2aad0b642c",
+    "debugVersionCode": 125,
+    "release": "https://github.com/sinura7/PersonalTrainer/releases/tag/debug-live-2026-10-12",
+    "decisions": {
+      "persistentDrafts": "Resume after reopening; private noBackupFilesDir checkpoints and pending commands.",
+      "designVisibility": "Connected previews per area; no routine approval or development phone-testing pauses.",
+      "delivery": "Signed Debug milestones after P10, P14 and P19; corrective final drop only if required.",
+      "scope": "Complete UX and necessary maintenance; other dependency upgrades and deferred feature projects separate."
+    },
+    "packets": [
+      {
+        "id": "P01",
+        "title": "Reconcile completion checklist",
+        "state": "In progress"
+      },
+      {
+        "id": "P02",
+        "title": "Persistent draft infrastructure",
+        "state": "Open"
+      },
+      {
+        "id": "P03",
+        "title": "Custom-exercise reconstruction and Save recovery",
+        "state": "Open"
+      },
+      {
+        "id": "P04",
+        "title": "Complete workout continuity",
+        "state": "Open"
+      },
+      {
+        "id": "P05",
+        "title": "Complete Home states and return paths",
+        "state": "Open"
+      },
+      {
+        "id": "P06",
+        "title": "History calendar and period navigation",
+        "state": "Open"
+      },
+      {
+        "id": "P07",
+        "title": "Details, receipts and charts",
+        "state": "Open"
+      },
+      {
+        "id": "P08",
+        "title": "Scheduling, ordering and missed work",
+        "state": "Open"
+      },
+      {
+        "id": "P09",
+        "title": "Routine editor recovery and import",
+        "state": "Open"
+      },
+      {
+        "id": "P10",
+        "title": "Complete Library and picker workflows",
+        "state": "Open"
+      },
+      {
+        "id": "P11",
+        "title": "Body geometry and interaction",
+        "state": "Open"
+      },
+      {
+        "id": "P12",
+        "title": "Body measurements and interpretation",
+        "state": "Open"
+      },
+      {
+        "id": "P13",
+        "title": "Live cardio",
+        "state": "Open"
+      },
+      {
+        "id": "P14",
+        "title": "Backdated and mixed activities",
+        "state": "Open"
+      },
+      {
+        "id": "P15",
+        "title": "Onboarding questions and recovery",
+        "state": "Open"
+      },
+      {
+        "id": "P16",
+        "title": "Plan preview and acceptance",
+        "state": "Open"
+      },
+      {
+        "id": "P17",
+        "title": "Settings organization and capability status",
+        "state": "Open"
+      },
+      {
+        "id": "P18",
+        "title": "Backup and restore experience",
+        "state": "Open"
+      },
+      {
+        "id": "P19",
+        "title": "Whole-app integration and accessibility",
+        "state": "Open"
+      },
+      {
+        "id": "P20",
+        "title": "Physical acceptance and final closeout",
+        "state": "Open"
+      }
+    ],
+    "legacyStatusPolicy": "Earlier statuses and dated narratives retain their original scope. This completion inventory governs ownership; a pending row cannot authorize rebuilding integrated behavior.",
+    "baselineEvidence": {
+      "fullAppFresh": 4333,
+      "standaloneFresh": 1707,
+      "fullSummarySha256": "51BC3268AD2C1626FD60848D9578767146888533C821E3B5CA7E1E2049A9A08D",
+      "originalFailure": "Two first-run rest prompt timeouts; unchanged isolated/full/postmerge runs passed. Cause unproven.",
+      "nativeAppNav": "native01 passed one fresh MainActivity/AppNav workout on owned API29 emulator at baseline587e9577; same saved session and correction read through Summary/History/detail. Lock-screen, phone timing and arbitrary process death excluded.",
+      "phoneAcceptance": "Unobserved; P20. Manual physical TalkBack is optional under the existing Debug policy."
+    },
+    "groupEvidence": {
+      "UX01": {
+        "primaryPacket": "P05",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/home/HomeViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/home/HomeStartCommandOwnershipTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.home.HomeStartCommandOwnershipTest.xml",
+        "baselineExecutedTests": 9,
+        "scope": "Integrated Home agenda/start recovery; remaining day-state and real-navigation criteria.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX02": {
+        "primaryPacket": "P05",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/activity/ActivityComposerViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/activity/ActivityComposerViewModelTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.activity.ActivityComposerViewModelTest.xml",
+        "baselineExecutedTests": 14,
+        "scope": "Existing manual composer and Home chooser; complete type discovery, live conflicts and AppNav branches.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX03": {
+        "primaryPacket": "P04",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/workout/ActiveWorkoutViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/workout/WorkoutSaveRecoveryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.workout.WorkoutSaveRecoveryTest.xml",
+        "baselineExecutedTests": 15,
+        "scope": "Integrated compact entry, saved correction and exact logging; remaining continuity and platform branches.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX04": {
+        "primaryPacket": "P09",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModelTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.routines.RoutineEditorViewModelTest.xml",
+        "baselineExecutedTests": 73,
+        "scope": "Existing write-through Save/Back recovery; durable reopening and full import/partial-save closure remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX05": {
+        "primaryPacket": "P07",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/summary/WorkoutSummaryViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/history/SessionDetailSavedDurationCorrectionTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.history.SessionDetailSavedDurationCorrectionTest.xml",
+        "baselineExecutedTests": 8,
+        "scope": "Integrated receipt, exact duration correction and Summary refresh; full missing/read-fault/type coverage remains.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX06": {
+        "primaryPacket": "P04",
+        "source": "app/src/main/java/com/sinura/personaltrainer/domain/NumericEntry.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/domain/NumericEntryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.domain.NumericEntryTest.xml",
+        "baselineExecutedTests": 21,
+        "scope": "Typed parsing exists and baseline parser checks ran; all UI callers, units and readback remain owned here and by P14/P17.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX07": {
+        "primaryPacket": "P02",
+        "source": "app/src/main/java/com/sinura/personaltrainer/domain/DraftStore.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/domain/DraftStoreTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.domain.DraftStoreTest.xml",
+        "baselineExecutedTests": 5,
+        "scope": "SavedState recovery exists; durable local checkpoints and pending-command reconciliation are not implemented.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX08": {
+        "primaryPacket": "P15",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/onboarding/OnboardingViewModelTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.onboarding.OnboardingViewModelTest.xml",
+        "baselineExecutedTests": 7,
+        "scope": "Existing saved-state steps/answers; complete responsive, durable and focus acceptance remains.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX09": {
+        "primaryPacket": "P09",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/routines/RoutineEditorViewModelTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.routines.RoutineEditorViewModelTest.xml",
+        "baselineExecutedTests": 73,
+        "scope": "Selected-lift creation/handoff is integrated; complete restored-owner and cancellation routes remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX10": {
+        "primaryPacket": "P03",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryReadRecoveryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.library.ExerciseLibraryReadRecoveryTest.xml",
+        "baselineExecutedTests": 12,
+        "scope": "Integrated names, picker errors and read Retry; durable custom drafts and uncertain Save remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX11": {
+        "primaryPacket": "P08",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanDayViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/plan/PlanDayWriteRecoveryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.plan.PlanDayWriteRecoveryTest.xml",
+        "baselineExecutedTests": 20,
+        "scope": "Scope/menu/save recovery integrated; full ordering, recurrence and user interpretation remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX12": {
+        "primaryPacket": "P06",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/history/HistoryCalendarBoundaryRenderTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.history.HistoryCalendarBoundaryRenderTest.xml",
+        "baselineExecutedTests": 2,
+        "scope": "Home/Plan date geometry and captured History repaired; full calendar/AppNav status acceptance remains.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX13": {
+        "primaryPacket": "P08",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanDayViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/plan/PlanDayWriteRecoveryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.plan.PlanDayWriteRecoveryTest.xml",
+        "baselineExecutedTests": 20,
+        "scope": "Existing dated planning and recurrence model; complete next-week/order/reminder consequences remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX14": {
+        "primaryPacket": "P08",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/plan/PlanViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/data/repository/PlannerRepositoryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.data.repository.PlannerRepositoryTest.xml",
+        "baselineExecutedTests": 20,
+        "scope": "Existing missed-work choices; exact proposal preview, retry and cross-week inventories require closure.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX15": {
+        "primaryPacket": "P06",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/history/HistoryViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/history/HistoryPeriodViewModelTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.history.HistoryPeriodViewModelTest.xml",
+        "baselineExecutedTests": 23,
+        "scope": "One period/lifetime reads and flat ledger integrated; calendar, multi-year and supporting-record journeys remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX16": {
+        "primaryPacket": "P07",
+        "source": "app/src/main/java/com/sinura/personaltrainer/domain/ExerciseHistory.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/domain/ExerciseHistoryBuilderTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.domain.ExerciseHistoryBuilderTest.xml",
+        "baselineExecutedTests": 14,
+        "scope": "Exercise readouts/correction integrated; complete chart axes, sparse values and equivalent list acceptance remains.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX17": {
+        "primaryPacket": "P11",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/progress/BodyMap.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/progress/BodyViewportTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.progress.BodyViewportTest.xml",
+        "baselineExecutedTests": 3,
+        "scope": "Existing map/list; registered geometry, measured full-page heat/tap and workload interpretation remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX18": {
+        "primaryPacket": "P17",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/domain/NumericEntryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.domain.NumericEntryTest.xml",
+        "baselineExecutedTests": 21,
+        "scope": "Canonical unit conversion exists; four preference combinations, restored defaults and staged inputs require closure.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX19": {
+        "primaryPacket": "P12",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/progress/ProgressViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/domain/BodyweightRecordsTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.domain.BodyweightRecordsTest.xml",
+        "baselineExecutedTests": 14,
+        "scope": "Existing measurements; full correction/delete and optional-entry journeys remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX20": {
+        "primaryPacket": "P17",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/settings/SettingsScreen.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/onboarding/OnboardingGateViewModelTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.onboarding.OnboardingGateViewModelTest.xml",
+        "baselineExecutedTests": 5,
+        "scope": "Existing Settings functionality; groups, summaries, return state and recovery discovery remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX21": {
+        "primaryPacket": "P18",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/settings/BackupCoordinator.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/data/local/RestoreRecoveryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.data.local.RestoreRecoveryTest.xml",
+        "baselineExecutedTests": 11,
+        "scope": "Existing encrypted backup, safety snapshot and restore journal; complete truthful failure-stage UI and reconciliation remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX22": {
+        "primaryPacket": "P04",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ReminderStartOverAScreenTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ReminderStartOverAScreenTest.xml",
+        "baselineExecutedTests": 3,
+        "scope": "Existing reminder/live routing; all repeated-intent, finished-stack and permission-return branches remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX23": {
+        "primaryPacket": "P02",
+        "source": "app/src/main/java/com/sinura/personaltrainer/data/repository/FlowGuards.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/data/repository/FlowGuardsTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.data.repository.FlowGuardsTest.xml",
+        "baselineExecutedTests": 14,
+        "scope": "Integrated Home/History/Library read health and errors; remaining all-surface residue is owned by its area packet.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX24": {
+        "primaryPacket": "P19",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryScreen.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryReadRenderTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.library.ExerciseLibraryReadRenderTest.xml",
+        "baselineExecutedTests": 13,
+        "scope": "Integrated compact large-text layouts in bounded native matrices; remaining full-screen values and shared callers remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX25": {
+        "primaryPacket": "P19",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/home/HomeAgendaCompositionRenderTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.home.HomeAgendaCompositionRenderTest.xml",
+        "baselineExecutedTests": 13,
+        "scope": "Automated semantic/target checks exist; full AppNav IME/focus and optional manual TalkBack remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX26": {
+        "primaryPacket": "P19",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/workout/WorkoutSaveRecoveryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.workout.WorkoutSaveRecoveryTest.xml",
+        "baselineExecutedTests": 15,
+        "scope": "Existing reduced-motion and persistent save recovery; complete timing, announcements and timeout access remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX27": {
+        "primaryPacket": "P10",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/library/ExerciseLibraryViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/library/ExerciseLibrarySavedStateFactoryTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.library.ExerciseLibrarySavedStateFactoryTest.xml",
+        "baselineExecutedTests": 1,
+        "scope": "Integrated filter clearing, names and saved route state; persistent scroll/context and discovery acceptance remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX28": {
+        "primaryPacket": "P16",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/onboarding/OnboardingViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/onboarding/OnboardingFocusTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.onboarding.OnboardingFocusTest.xml",
+        "baselineExecutedTests": 5,
+        "scope": "Existing plan preview/application; durable acceptance, equipment/day changes and existing-user impact remain.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX29": {
+        "primaryPacket": "P07",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/history/SessionDetailViewModel.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/history/SessionDetailSavedDurationCorrectionTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.history.SessionDetailSavedDurationCorrectionTest.xml",
+        "baselineExecutedTests": 8,
+        "scope": "Exact strength/hold correction and compact receipt integrated; complete cardio/mixed capabilities remain with P13/P14.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      },
+      "UX30": {
+        "primaryPacket": "P01",
+        "source": "app/src/main/java/com/sinura/personaltrainer/ui/navigation/AppNav.kt",
+        "test": "app/src/test/java/com/sinura/personaltrainer/ui/workout/ConnectedWorkoutJourneyTest.kt",
+        "baselineSuite": "TEST-com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyTest.xml",
+        "baselineExecutedTests": 1,
+        "scope": "Existing evidence train retained; this packet assigns every criterion without treating module tests as usability acceptance.",
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+      }
+    },
+    "frontendRequirements": {
+      "F4": {
+        "owners": [
+          "P05"
+        ],
+        "existing": "Home read/start recovery, date geometry and illustrated agenda integrated through #483.",
+        "remaining": "Complete dated states, completed links and actual return branches."
+      },
+      "F5": {
+        "owners": [
+          "P11",
+          "P12"
+        ],
+        "existing": "Body map/list and measurement functionality exist.",
+        "remaining": "Registered anatomy/heat/tap, measured viewport, list equivalence and measurement acceptance."
+      },
+      "F6": {
+        "owners": [
+          "P06",
+          "P07"
+        ],
+        "existing": "Period/read/captured-date coherence and compact History ledger integrated through #487.",
+        "remaining": "Calendar, charts, lifetime drill-down and complete correction/read-error journeys."
+      },
+      "F7": {
+        "owners": [
+          "P08",
+          "P09"
+        ],
+        "existing": "Direct routines, scopes, flat Plan/editor rows and retained bodyweight targets integrated through #489.",
+        "remaining": "Ordering, missed-work preview, import, persistent staged fields and partial writes."
+      },
+      "F8": {
+        "owners": [
+          "P02",
+          "P03",
+          "P10",
+          "P15",
+          "P16"
+        ],
+        "existing": "Full Library names/facets/route state and required-read Retry integrated through #491.",
+        "remaining": "Durable drafts, uncertain Save, picker position, onboarding and full preview/apply."
+      },
+      "F9": {
+        "owners": [
+          "P07",
+          "P13",
+          "P14"
+        ],
+        "existing": "Exact saved correction, timed readback and compact finish receipt integrated.",
+        "remaining": "Live/past cardio, mixed entry, typed details, continuity and all receipts."
+      },
+      "F10": {
+        "owners": [
+          "P17",
+          "P18"
+        ],
+        "existing": "Settings, backup and restore functionality exist.",
+        "remaining": "Complete grouping/status/capabilities and truthful recovery operation stages."
+      },
+      "F11": {
+        "owners": [
+          "P19",
+          "P20"
+        ],
+        "existing": "Bounded native matrices and reviewed packet evidence exist.",
+        "remaining": "Full actual AppNav matrix, upgrade/restore, accessibility and physical performance."
+      }
+    },
+    "progressPolicy": "Report reconciled criteria, bounded automated evidence and required acceptance closure separately. The historical 55% is an estimate, not derived from test counts.",
+    "reconciledCriteria": 97,
+    "requiredCriteria": 96
+  }
 }

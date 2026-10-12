@@ -1,5 +1,22 @@
 # Temper UX decision register — updated 7 September 2026
 
+## Completion decisions accepted 12 October 2026
+
+The owner approved the complete P01–P20 plan from Debug125, with these explicit
+choices: finish UX plus necessary maintenance; signed Debug is the delivery;
+unfinished forms resume after reopening; show connected concepts per area while
+routine implementation continues; publish milestones after P10/P14/P19; defer
+owner testing until development is complete. Existing core-screen composition,
+public interfaces, schema and backup contracts remain the starting point.
+
+[ADR-033](../architecture/ADR-033-local-draft-recovery.md) records the local-draft
+decision before product implementation. Routine write-through remains: clearing
+unfinished fields cannot undo already saved edits. The canonical criterion
+ownership is `completionPlan` plus each check's `completion` in UX-Backlog.json.
+Older entries below are dated evidence, not current assertions that integrated
+packets await review. Independent/adversarial review and clean-trunk verification
+continue per packet; necessary data-safety fixes take priority.
+
 **Home start recovery refinement, 11 October 2026 UTC (UX01/UX02/UX23):**
 At the #481 baseline, Home closed a start at command admission, before the result;
 repeat callbacks could launch more work, and retry of a relocated leftover could

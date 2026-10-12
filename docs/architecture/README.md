@@ -67,6 +67,7 @@ No ADR may leave a schema, scheduling, privacy, or entitlement choice as TBD.
 | [ADR-030](ADR-030-live-workout-set-copy-prepare-stats.md) | Live workout clarity: set copy and prepare-phase stats | One set line on the floor; Last only until a working set is logged, and always at font 1.6 and above, with Best and Volume in Details; amended 23 Sep 2026 — the lone Last cell keeps the full row's height side by side (W1c), and stats values shrink to fit one line where they can (W1d) |
 | [ADR-031](ADR-031-trusted-server-sync-lane.md) | Temper Account is a trusted-server sync lane | Amends ADR-009 §14–15 for Temper Account: not E2EE; paused until S1 meets its bar; server-ordered change time |
 | [ADR-032](ADR-032-jvm-evidence-lanes.md) | JVM renders and JVM migration tests are the evidence lanes | Amends ADR-026 §8 and ADR-027 §8 (emulator goldens retired) and ADR-010 §7 (JVM migration test gates); Consequences amended 23 Sep 2026 — the goldens and `GoldenPageCatalog` left in X3, ahead of W3 |
+| [ADR-033](ADR-033-local-draft-recovery.md) | Local drafts after reopening | Private checkpoints, pending-command inspection and owner/revision fencing; write-through and backup contracts retained |
 
 ## Supporting records
 

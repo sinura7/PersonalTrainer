@@ -1,0 +1,114 @@
+{
+  "packet": "P01",
+  "sourceCommit": "587e9577ee30f1962fa0a6db1a6acd2aad0b642c",
+  "debugVersionCode": 125,
+  "test": "com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyInstrumentedTest",
+  "command": "./tools/dev-windows.ps1 connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.sinura.personaltrainer.ui.workout.ConnectedWorkoutJourneyInstrumentedTest",
+  "environment": {
+    "profile": "temper-tests-api29",
+    "serial": "emulator-5554",
+    "systemImage": "system-images;android-29;default;x86_64",
+    "imageRevision": "8",
+    "fingerprint": "Android/sdk_phone_x86_64/generic_x86_64:10/QSR1.210820.001/7663313:userdebug/test-keys",
+    "density": "Physical density: 420",
+    "size": "Physical size: 1080x1920",
+    "emulator": "Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)",
+    "renderer": "swiftshader_indirect",
+    "fontScale": 1.0,
+    "animations": 0,
+    "locale": "en-US",
+    "timeZone": "America/Toronto",
+    "clockPolicy": "Real civil clock for route observations; transient floor/rest pixel fixtures use immutable clock values",
+    "goldenProfile": "windows-swiftshader37",
+    "startupCheck": "Repository launcher owns a focused window after boot and display configuration",
+    "capturedUtc": "2026-10-12T16:16:34.5506451Z"
+  },
+  "counts": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "summarySha256": "480332ACFB12950BFF1264E91E29CE2FE8620F2172FC97EB1F7B40E5649FDF5B",
+  "frames": [
+    {
+      "file": "20261012-161634556-connected-workout-history-detail-api29.png",
+      "sha256": "2f317a9e23fd4e1bc1d79976f20e5efd2eacaa2e895c05412d31af5046696c66",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-home-routine-api29.png",
+      "sha256": "5f79a761cacda5270ac56bbfad38902f3cd0bb8c547cff12f5625860b48760ed",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-manual-ready-api29.png",
+      "sha256": "2e041a1c8c2e1a37f35d99047104cf6ee7eb5e7ae325df3e8443cdf92e5adf17",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-quiet-catalog-identity-api29.png",
+      "sha256": "153365a833f4247c35c5d73cf1ebb76a8244e386ff4ce90fb3ec91769b001810",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-quiet-correction-ready-api29.png",
+      "sha256": "8332cfbc34389cacdb2e37cad916b8ba77afb3cd6283877c4882b82abf786da1",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-saved-rest-running-api29.png",
+      "sha256": "9f09c0d3c1b30459eb540baf41624288880e4395aedbad60f703f1b9ece66314",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-saved-set-after-scroll-api29.png",
+      "sha256": "b4a1f22a372979b6cb451f359630e1532b819a5a9bab34a61abe0ae523e26d4b",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-saved-set-before-scroll-api29.png",
+      "sha256": "b4a1f22a372979b6cb451f359630e1532b819a5a9bab34a61abe0ae523e26d4b",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-summary-api29.png",
+      "sha256": "60301e884f2a2b0d7fd08d4c0bd0fd0fc7c1a05aa0e457795baf3aef1a6af419",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-weight-after-scroll-api29.png",
+      "sha256": "80104b44c67d89f1451b7e9dff21be929515d3103f0370f4a5d93d0371d7d327",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-weight-after-tap-api29.png",
+      "sha256": "4427f237d7e91840d0c18c7acedbbe9335fc250824a6def38570f1e830a74d44",
+      "deviceMatched": true
+    },
+    {
+      "file": "20261012-161634556-connected-workout-weight-before-tap-api29.png",
+      "sha256": "80104b44c67d89f1451b7e9dff21be929515d3103f0370f4a5d93d0371d7d327",
+      "deviceMatched": true
+    }
+  ],
+  "portableCaptures": [
+    "assets/debug125-connected-workout-2026-10-12.png",
+    "assets/debug125-connected-summary-2026-10-12.png"
+  ],
+  "limitations": [
+    "One synthetic actual AppNav journey; no physical-phone or comprehension acceptance.",
+    "Rest running/Skip is observed; expiry, lock screen and off-screen delivery excluded.",
+    "No arbitrary process termination or physical performance measured.",
+    "First host collector failed on single-line string indexing; corrected collector verified all12 device/host hashes."
+  ],
+  "inventory": {
+    "requiredCriteria": 96,
+    "optionalPhysicalTalkBack": "UX25-AC01",
+    "fullyValidatedFromThisReconciliation": 0,
+    "frontendRequirements": "F4-F11",
+    "fixtures": 12,
+    "acceptanceChecks": 97,
+    "uxItems": 30
+  }
+}

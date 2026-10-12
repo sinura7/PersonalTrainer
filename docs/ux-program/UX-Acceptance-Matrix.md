@@ -1,5 +1,27 @@
 # Temper UX acceptance matrix — updated 7 September 2026
 
+## Current completion inventory — 12 October 2026
+
+The owner-approved P01–P20 sequence is recorded in `FRONTEND_REDESIGN.md`.
+All **97 criteria / 30 UX items / 12 fixtures** have explicit current source,
+passing baseline-suite references, remaining scope and packet ownership in
+`UX-Backlog.json`: `completionPlan.groupEvidence`, `frontendRequirements` and
+each criterion's `completion` object. Baseline is signed Debug 125 at `587e9577`.
+Source paths and baseline XML references were checked; a suite pass is bounded
+evidence, not a blanket closure of its criterion or an owner interpretation.
+
+P01 freshly executed the existing real MainActivity/AppNav workout on the
+owned API 29 AVD: **one test, zero failures/errors/skips**, including Home,
+manual values/effort, rest, switching, correction, Finish, Summary, History and
+exact saved-session detail. Native results are distinct from the screen-host
+JVM test. The original Debug125 two prompt timeouts and subsequent unchanged
+passes remain preserved with cause unproven. Physical evidence remains P20.
+Manual physical TalkBack is optional under the current Debug policy.
+
+Earlier dated snapshots below retain their original source/evidence limits.
+Their stale Pending/Written statuses cannot override current integrated work.
+No full criterion acceptance or new phone pass is inferred from reconciliation.
+
 **Current Home packet, 11 October 2026 UTC (UX01/UX02/UX23):** Summary/History
 is integrated through [PR #481](https://github.com/sinura7/PersonalTrainer/pull/481).
 Home now retains its authored start surface until an actual open/conflict result,

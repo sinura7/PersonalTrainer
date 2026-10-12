@@ -24,6 +24,60 @@ are approved. A beautiful normal state alone does not close a screen.
   amendment: no obsolete Add control is restored. Plan remains the recurring
   author. Planned Home rows still confirm before starting.
 
+## Completion execution — accepted 12 October 2026
+
+Continue from signed Temper Debug 125, `trunk` at `587e9577`, preserving the
+compact illustrated native direction. The owner approved persistent local drafts
+after reopening, connected previews per area without routine approval pauses,
+and Debug milestones after P10/P14/P19. Phone testing starts after development.
+Necessary maintenance is included; unrelated upgrades and deferred feature
+projects remain separate. No public release, schema or backup-format change is
+authorized by this completion train.
+
+The canonical ownership inventory is `completionPlan` and each check's
+`completion` field in [UX-Backlog.json](ux-program/UX-Backlog.json). It maps all
+97 existing criteria, 30 UX items, 12 fixtures and F4–F11 to current source,
+passing baseline suites, bounded implementation and remaining acceptance.
+Earlier dated statuses retain their original scope; they are not permission to
+rebuild already integrated behavior. Module test passes are not participant or
+physical acceptance. Manual physical TalkBack remains optional for Debug.
+
+| Packet | Completion outcome |
+|---|---|
+| P01 | Reconciled criteria, preserved failure evidence and actual AppNav baseline |
+| P02 | Private typed persistent checkpoints, pending commands and ownership fencing |
+| P03 | Custom-editor reconstruction and inspected, stable-ID Save recovery |
+| P04 | Complete workout continuity and exact saved-work recovery |
+| P05 | Complete Home day states and live/completed return paths |
+| P06 | History calendar, one period and restored navigation |
+| P07 | Typed details, receipts, correction, charts and equivalent data lists |
+| P08 | Scheduling/order consequences and missed-work preview/retry |
+| P09 | Routine partial-save recovery, durable staged fields and import preview |
+| P10 | Complete Library/picker selection and persistent return context; Drop A |
+| P11 | Registered Body anatomy, heat, selection and hit geometry |
+| P12 | Measurements, correction, units and workload interpretation |
+| P13 | Live cardio entry, Finish/Leave/Discard and continuity |
+| P14 | Backdated/mixed entries, dated typed receipts and exact Save; Drop B |
+| P15 | Responsive onboarding questions, retained answers and focus |
+| P16 | Actual plan preview and accepted-once application/recovery |
+| P17 | Settings grouping, capabilities, summaries and truthful account language |
+| P18 | Backup preview/progress/restore and exact reconciliation |
+| P19 | Complete AppNav, native layout and automated accessibility; Drop C |
+| P20 | Physical/owner acceptance and verified corrective drop if needed |
+
+One implementation packet is open at a time. Each closes its affected criteria,
+required gate, pinned independent/adversarial reviews and integrated journey.
+Existing behavior that passes is retained. Wrong writes or lost work move ahead
+of visual refinement. Each visible area receives a connected concept before
+implementation and actual native results afterward. Delivery uses the existing
+planner, increasing codes, stable signer and downloaded-APK identity checks.
+
+The former 55% figure is a dated planning estimate. Report ownership coverage,
+bounded automated evidence and acceptance closure separately; test/PR counts
+are not a usability percentage. Development closes at P19 plus verified Drop C;
+full UX acceptance closes after required P20 evidence. Optional evidence remains
+explicit. Persistent draft policy is [ADR-033](architecture/ADR-033-local-draft-recovery.md).
+
 ## Implementation packets
 
 Only one implementation packet is open at a time. Each has targeted checks,
@@ -40,13 +94,13 @@ assertions alone still do not complete a packet.*
 | F1 | Typed controls, component gallery, headers, navigation, insets and live bar | Complete — PR #349; integrated unit/native gates passed |
 | F2 | Compact workout identity, entry, warm-ups/RPE, latest sets and dock geometry | Complete — PR #350; integrated unit/native gates passed |
 | F3 | Primary-action state, completion, timing, switcher, retry, undo and resume | Implementation complete — PR #351; integrated checks passed; Milestone A phone acceptance pending |
-| F3.1 | Workout logging screen redesign to the owner's reference ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)): header progress, image-led identity, stats row, hero numerals, RPE track, next-set card, set-history chips, rest card, two-line commit | Implementation complete on `claude/workout-logging-redesign-77hml8`; JVM gate and JVM renders; floor goldens retired ([ADR-032](architecture/ADR-032-jvm-evidence-lanes.md)) and removed in X3; Milestone A phone acceptance pending |
-| F4 | Truthful Home dates, day picker, planned/completed/live/empty states | Pending |
+| F3.1 | Workout logging screen redesign and accepted compact refinements ([ADR-027](architecture/ADR-027-workout-logging-redesign.md)) | Integrated through Quiet/Focus and #484, delivered in Debug 125; complete continuity/P20 acceptance remains open. The older claude branch is historical, not an unmerged dependency. |
+| F4 | Truthful Home dates, day picker, planned/completed/live/empty states | Read/start/date recovery and flat illustrated agenda integrated through #483; remaining states/return criteria owned by P05/P19/P20. |
 | F5 | Registered Body heat geometry, viewport, selection and list equivalence | Pending |
 | F6 | Unified History periods, calendar, readable duration and lifetime views | Core period/read coherence integrated through #465/#466/#485; compact ledger through #487. Remaining calendar/detail criteria and physical acceptance stay open. |
 | F7 | Plan/routines, ordering, editing, import and failed-save recovery | Direct routines/flat day-week composition through #488 and compact illustrated editor rows through #489 are reviewed, merged and reverified. The editor packet also fixes retained bodyweight target erasure. Broader editor/order/import and full screen/phone criteria remain open. |
 | F8 | Library/pickers, filters, custom exercises, onboarding and plan preview | Library complete names, direct facet clearing and saved route context are integrated through #490; required-read recovery through #491. Both final reviews and integrated checks passed. Reconstructed custom drafts and interrupted Save are next; full picker/onboarding and physical criteria remain open. |
-| F9 | Live/past cardio, summary, session/exercise details and correction | Pending |
+| F9 | Live/past cardio, summary, session/exercise details and correction | Exact saved correction/timed results and compact receipt are integrated; remaining typed detail/cardio/mixed journeys owned by P07/P13/P14. |
 | F10 | Settings labels/status, backup/restore, diagnostics and About | Pending |
 | F11 | Integrated visual, accessibility, performance and upgrade acceptance | Pending |
 

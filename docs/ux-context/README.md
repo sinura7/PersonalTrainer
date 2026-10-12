@@ -2,6 +2,23 @@
 
 **Created:** 8 October 2026
 
+**Completion train accepted, 12 October 2026:** The owner approved P01–P20
+in [the executable completion sequence](../FRONTEND_REDESIGN.md#completion-execution--accepted-12-october-2026).
+Continue Debug 125's compact illustrated native design. Drafts persist locally
+after reopening; each major area has connected previews without routine approval
+pauses. Signed Debug milestones follow P10/P14/P19, with phone testing after
+development. The reconciled criterion ownership lives in the existing
+[UX backlog](../ux-program/UX-Backlog.json), not a second tracking system.
+
+P01's fresh existing MainActivity/AppNav test passed on the repository-owned
+API 29 emulator at `587e9577`: Home starts one routine, manual numbers and effort
+save one set, rest belongs to that session, switching and correction retain the
+same row, and Finish/Done/History/detail agree. This is actual navigation,
+separate from the JVM screen host. It does not establish phone comprehension,
+lock-screen delivery, arbitrary process death or physical performance. Its
+original command, fresh XML and environment are retained under
+`build/ux-context/runs/ux-completion-baseline/native01`.
+
 **Delivery scope, 12 October 2026 UTC:** The owner authorized a signed Debug 125
 Obtainium drop from integrated `trunk`. It includes the completed core-screen
 work below, including #491. Release publication, APK identity, increasing
