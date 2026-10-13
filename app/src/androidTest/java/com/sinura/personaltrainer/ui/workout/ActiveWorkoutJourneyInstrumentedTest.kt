@@ -7,6 +7,7 @@ import android.os.SystemClock
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasTestTag
@@ -287,6 +288,17 @@ class ActiveWorkoutJourneyInstrumentedTest {
                     .any { it.id == fixture.sessionId }
             },
         )
+        compose.onNodeWithText("Done").performClick()
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag("navigation-home")).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("navigation-home").assertIsSelected()
+        compose.onNodeWithText("WORKOUT COMPLETE").assertDoesNotExist()
+        compose.onNodeWithTag(LiveSessionBarTestTags.ROOT).assertDoesNotExist()
+        assertNull(runBlocking(Dispatchers.IO) { container.workoutRepository.getInProgress() })
+        assertEquals(finished, runBlocking(Dispatchers.IO) { container.workoutRepository.getSession(fixture.sessionId) })
+        captureWindow("done-return-home")
+
     }
 
     @Test

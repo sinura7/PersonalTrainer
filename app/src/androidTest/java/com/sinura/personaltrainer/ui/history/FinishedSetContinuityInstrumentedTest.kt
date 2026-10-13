@@ -3,7 +3,9 @@ package com.sinura.personaltrainer.ui.history
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -27,6 +29,10 @@ import com.sinura.personaltrainer.domain.HistoryKind
 import com.sinura.personaltrainer.domain.NumericEntry
 import com.sinura.personaltrainer.domain.SavePosture
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.domain.LoadClass
+import com.sinura.personaltrainer.domain.toWeightLabel
+import com.sinura.personaltrainer.ui.exercise.ExerciseDetailTags
+import com.sinura.personaltrainer.ui.components.SetTableLine
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.testutil.NativeArtifacts
@@ -143,6 +149,19 @@ class FinishedSetContinuityInstrumentedTest {
             capture("clean-editor-after-private-discard")
             return
         }
+        if (phase == "connected") {
+            awaitTag(SessionDetailTestTags.CONTENT)
+            compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(hasText("Barbell Back Squat"))
+            compose.onNodeWithText("Barbell Back Squat").performClick()
+            awaitTag(ExerciseDetailTags.BACK)
+            val recordMatcher = hasTestTag("record-source-WEIGHT") and
+                hasText("Heaviest ${100.0.toWeightLabel(WeightUnit.LBS)} × 5", substring = true)
+            compose.waitUntil(30_000) { compose.onAllNodes(recordMatcher).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNode(recordMatcher).assertIsDisplayed()
+            capture("record-before-correction")
+            compose.onNodeWithTag("record-source-WEIGHT").performClick()
+            awaitTag(SessionDetailTestTags.CONTENT)
+        }
         if (phase != "resume") {
             awaitTag(SessionDetailTestTags.CONTENT)
             compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(hasTestTag(SessionDetailTestTags.EDIT_SET))
@@ -190,6 +209,30 @@ class FinishedSetContinuityInstrumentedTest {
         assertEquals(9, corrected.rpe)
         assertNull(privateDraft())
         capture("confirmed-same-set")
+        if (phase == "connected") {
+            compose.onNodeWithTag(SessionDetailTestTags.BACK).performClick()
+            awaitTag(ExerciseDetailTags.BACK)
+            val recordMatcher = hasTestTag("record-source-WEIGHT") and
+                hasText("Heaviest ${expected.toWeightLabel(WeightUnit.LBS)} × 6", substring = true)
+            compose.waitUntil(30_000) { compose.onAllNodes(recordMatcher).fetchSemanticsNodes().isNotEmpty() }
+            compose.onNode(recordMatcher).assertIsDisplayed()
+            capture("record-refreshed-after-correction")
+            compose.onNodeWithTag("record-source-WEIGHT").performClick()
+            awaitTag(SessionDetailTestTags.CONTENT)
+            compose.onNodeWithText(checkNotNull(read { container.workoutRepository.getSession(sessionId) }).routineName.orEmpty()).assertIsDisplayed()
+            compose.onNodeWithText("WORKOUT COMPLETE").assertDoesNotExist()
+            assertEquals(corrected, read { checkNotNull(container.workoutRepository.getSession(sessionId)).sets.single() })
+            val displayed = SetTableLine.fromLog(corrected, LoadClass.LOADED, WeightUnit.LBS)
+            val recordedRow = hasContentDescription("Recorded working ${displayed.extras}, ${displayed.line}") and
+                hasAnyAncestor(hasTestTag(FilledLiftCardTags.setRow(corrected.id)))
+            compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(recordedRow)
+            compose.onNode(recordedRow).assertIsDisplayed()
+            capture("exact-supporting-session-after-correction")
+            compose.onNodeWithTag(SessionDetailTestTags.BACK).performClick()
+            awaitTag(ExerciseDetailTags.BACK)
+            compose.onNodeWithTag(ExerciseDetailTags.BACK).performClick()
+            awaitTag(SessionDetailTestTags.CONTENT)
+        }
         compose.onNodeWithTag(SessionDetailTestTags.BACK).performClick()
         awaitTag(HistoryTags.LIST)
     }
