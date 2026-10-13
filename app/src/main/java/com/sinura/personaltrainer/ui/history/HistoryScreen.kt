@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -22,6 +23,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,8 +39,10 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -98,6 +102,11 @@ fun HistoryScreen(
 ) {
     // Deferred list content must use the same emission as its captured read-health flags.
     val state = viewModel.uiState.collectAsStateWithLifecycle().value
+    val memory by viewModel.periodMemory.snapshot.collectAsStateWithLifecycle()
+    val requestedPeriod by viewModel.requestedPeriod.collectAsStateWithLifecycle()
+    val navigationReady by viewModel.periodNavigationReady.collectAsStateWithLifecycle()
+    val resumedPeriod by viewModel.resumedPeriod.collectAsStateWithLifecycle()
+    var resetPeriodConfirm by rememberSaveable { mutableStateOf(false) }
     val navigateToSession by viewModel.navigateToSession.collectAsStateWithLifecycle()
     val blockedRepeat by viewModel.blockedRepeat.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -138,8 +147,39 @@ fun HistoryScreen(
                         modifier = Modifier.testTag(HistoryTags.START_SHEET))
                 }
             }
+            if (memory.saving || memory.error != null || resumedPeriod == state.selection) {
+                item(key = "period-memory") {
+                    Column(
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        verticalArrangement = Arrangement.spacedBy(Metrics.space1),
+                    ) {
+                        if (memory.saving) Text("Keeping your period…", style = InstrumentType.caption,
+                            color = TextSecondary, modifier = Modifier.testTag(HistoryPeriodMemoryTags.KEEPING))
+                        if (resumedPeriod != null && resumedPeriod == state.selection) {
+                            Text("Selected period restored.", style = InstrumentType.caption, color = TextSecondary,
+                                modifier = Modifier.testTag(HistoryPeriodMemoryTags.RESUMED))
+                        }
+                        memory.error?.let { message ->
+                            Text(message, style = InstrumentType.caption, color = TextSecondary,
+                                modifier = Modifier.testTag(HistoryPeriodMemoryTags.ERROR))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                                TextButton(onClick = viewModel.periodMemory::retry, enabled = !memory.saving,
+                                    modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(HistoryPeriodMemoryTags.RETRY)) {
+                                    Text("Try again", style = InstrumentType.bodyStrong, color = TextSecondary)
+                                }
+                                if (memory.needsReset) TextButton(onClick = { resetPeriodConfirm = true },
+                                    enabled = !memory.saving,
+                                    modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(HistoryPeriodMemoryTags.RESET)) {
+                                    Text("Reset remembered period", style = InstrumentType.bodyStrong, color = TextSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             when {
-                state.isLoading -> item(key = "loading") { ScreenLoading() }
+                state.isLoading || !navigationReady || state.selection != requestedPeriod ->
+                    item(key = "loading") { ScreenLoading() }
                 state.unavailable -> item(key = "unavailable") {
                     EmptyState(
                         scene = EmptyScene.RETRY,
@@ -272,6 +312,15 @@ fun HistoryScreen(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(Metrics.gutter))
         }
     }
+    if (resetPeriodConfirm) ConfirmActionDialog(
+        title = "Reset the remembered period?",
+        body = "History will open on the current month. Your recorded activities stay saved.",
+        confirmLabel = "Reset period",
+        onConfirm = { resetPeriodConfirm = false; viewModel.periodMemory.reset() },
+        onDismiss = { resetPeriodConfirm = false },
+        confirmEnabled = !memory.saving,
+        canConfirm = { !viewModel.periodMemory.snapshot.value.saving },
+    )
     secondary?.let { selected ->
         val loading = if (selected == RECORDS) state.recordsLoading else state.blocksLoading
         val unavailable = if (selected == RECORDS) state.recordsUnavailable else state.blocksUnavailable
@@ -345,10 +394,11 @@ internal fun HorizonPicker(
         Text(HistoryCopy.HORIZON_CAPTION, style = InstrumentType.caption, color = TextTertiary)
         totals?.let { numbers ->
             val title = range?.let(DateCopy::periodRange) ?: HistoryCopy.windowTitle(horizon)
+            val dayLabel = if (numbers.trainedDays == 1) "day" else "days"
             val spoken = buildList {
                 add(title)
                 add("${numbers.sessionCount} ${HistoryCopy.sessionsLabel(numbers.sessionCount)}")
-                add("${numbers.trainedDays} days")
+                add("${numbers.trainedDays} $dayLabel")
                 add("${numbers.workingSets} sets")
                 add(HistoryCopy.activeDuration(numbers.activeMinutes))
                 if (!progressLoading && !progressFailed && progress != null) add("${progress.recordsBroken} PRs")
@@ -369,7 +419,7 @@ internal fun HorizonPicker(
                 ) {
                     HistoryMetric(value = numbers.sessionCount.toString(), label = HistoryCopy.sessionsLabel(numbers.sessionCount),
                         modifier = Modifier.testTag(HistoryTags.SESSION_COUNT), prominent = true)
-                    HistoryMetric(value = numbers.trainedDays.toString(), label = "days",
+                    HistoryMetric(value = numbers.trainedDays.toString(), label = dayLabel,
                         modifier = Modifier.testTag(HistoryTags.TRAINED_DAYS), prominent = true)
                     HistoryMetric(value = numbers.workingSets.toString(), label = "sets",
                         modifier = Modifier.testTag(HistoryTags.WORKING_SETS), prominent = true)
@@ -435,11 +485,20 @@ private fun HistoryPeriodChoice(entry: AnalyticsHorizon, selected: Boolean, onSe
 
 @Composable
 private fun HistoryMetric(value: String, label: String, modifier: Modifier = Modifier, prominent: Boolean = false) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Metrics.space1)) {
-        Text(value, style = if (prominent) InstrumentType.numeralMd else InstrumentType.numeralSm,
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(Metrics.space1),
+        verticalAlignment = Alignment.CenterVertically) {
+        Text(value, style = if (prominent) InstrumentType.bodyStrong else InstrumentType.caption,
             color = if (prominent) TextPrimary else TextSecondary)
-        Text(label, style = InstrumentType.caption, color = TextTertiary)
+        Text(label, style = InstrumentType.caption, color = TextSecondary)
     }
+}
+
+internal object HistoryPeriodMemoryTags {
+    const val KEEPING = "history-period-keeping"
+    const val RESUMED = "history-period-resumed"
+    const val ERROR = "history-period-memory-error"
+    const val RETRY = "history-period-memory-retry"
+    const val RESET = "history-period-memory-reset"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

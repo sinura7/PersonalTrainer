@@ -94,6 +94,9 @@ class AppContainer(context: Context) : AppDependencies {
     internal val homeDayDrafts: com.sinura.personaltrainer.data.draft.HomeDayDrafts by lazy {
         com.sinura.personaltrainer.data.draft.HomeDayDrafts(durableDrafts)
     }
+    internal val historyPeriodDrafts: com.sinura.personaltrainer.data.draft.HistoryPeriodDrafts by lazy {
+        com.sinura.personaltrainer.data.draft.HistoryPeriodDrafts(durableDrafts)
+    }
     private var openedWorkoutDrafts: DurableWorkoutDrafts? = null
     internal val durableWorkoutDrafts: DurableWorkoutDrafts by lazy {
         DurableWorkoutDrafts(

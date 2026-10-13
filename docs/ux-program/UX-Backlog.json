@@ -1982,15 +1982,16 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX01",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P05 Home implementation integrated in PR498 at eb3a5797; retains start contracts, exact completed/live return and durable civil selection.",
+        "automated": "p05-home-continuity-2026-10-13.json: fresh complete app4449/standalone1707, native18/process2/small-font2 Home1, matching source/APKs, two pinned reviews, fresh exact merged Home journey1.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P05"
         ],
-        "closurePacket": "P05"
+        "closurePacket": "P05",
+        "p05Boundary": "Participant understanding, broader capture modes and complete integration remain with P13/P14/P19/P20; this is not final criterion acceptance."
       }
     },
     {
@@ -2009,15 +2010,16 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX01",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P05 Home implementation integrated in PR498 at eb3a5797; retains start contracts, exact completed/live return and durable civil selection.",
+        "automated": "p05-home-continuity-2026-10-13.json: fresh complete app4449/standalone1707, native18/process2/small-font2 Home1, matching source/APKs, two pinned reviews, fresh exact merged Home journey1.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P05"
         ],
-        "closurePacket": "P05"
+        "closurePacket": "P05",
+        "p05Boundary": "Participant understanding, broader capture modes and complete integration remain with P13/P14/P19/P20; this is not final criterion acceptance."
       }
     },
     {
@@ -2036,15 +2038,16 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX01",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P05 Home implementation integrated in PR498 at eb3a5797; retains start contracts, exact completed/live return and durable civil selection.",
+        "automated": "p05-home-continuity-2026-10-13.json: fresh complete app4449/standalone1707, native18/process2/small-font2 Home1, matching source/APKs, two pinned reviews, fresh exact merged Home journey1.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P05"
         ],
-        "closurePacket": "P05"
+        "closurePacket": "P05",
+        "p05Boundary": "Participant understanding, broader capture modes and complete integration remain with P13/P14/P19/P20; this is not final criterion acceptance."
       }
     },
     {
@@ -2120,17 +2123,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX02",
-        "implementation": "Each listed packet owns its area adoption; final criterion closure waits for the closurePacket, then P19 integration. Foundation/module evidence alone cannot close this criterion.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "implementation": "P05 Home implementation integrated in PR498 at eb3a5797; retains start contracts, exact completed/live return and durable civil selection.",
+        "automated": "p05-home-continuity-2026-10-13.json: fresh complete app4449/standalone1707, native18/process2/small-font2 Home1, matching source/APKs, two pinned reviews, fresh exact merged Home journey1.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P05",
           "P13",
           "P14"
         ],
-        "closurePacket": "P14"
+        "closurePacket": "P14",
+        "p05Boundary": "Participant understanding, broader capture modes and complete integration remain with P13/P14/P19/P20; this is not final criterion acceptance."
       }
     },
     {
@@ -3414,14 +3418,17 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX15",
         "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "P06 fresh full04 app4467/standalone1707 gate; final candidate reused only verified identical JVM/standalone execution inputs with fresh statics/build/lint/native assembly. Fresh19 native checks,2 real process-reopening phases and1 large-text AppNav journey passed. Participant/whole-app closure remains P19/P20.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P06"
         ],
-        "closurePacket": "P06"
+        "closurePacket": "P06",
+        "packetEvidence": {
+          "P06": "q01/p06-history-continuity-2026-10-13.json; verified candidate, integration pending."
+        }
       }
     },
     {
@@ -3440,14 +3447,17 @@
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX15",
         "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
+        "automated": "P06 fresh full04 app4467/standalone1707 gate; final candidate reused only verified identical JVM/standalone execution inputs with fresh statics/build/lint/native assembly. Fresh19 native checks,2 real process-reopening phases and1 large-text AppNav journey passed. Participant/whole-app closure remains P19/P20.",
         "physical": "Unobserved",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P06"
         ],
-        "closurePacket": "P06"
+        "closurePacket": "P06",
+        "packetEvidence": {
+          "P06": "q01/p06-history-continuity-2026-10-13.json; verified candidate, integration pending."
+        }
       }
     },
     {
@@ -3461,19 +3471,20 @@
       "status": "Not executed",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
-        "owner": "P06",
+        "owner": "P07",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX15",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
+        "implementation": "Shared scope/date mechanics verified in P06; direct supporting-session provenance and correction acceptance remain in P07 details/receipts/charts.",
         "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
         "physical": "Unobserved",
         "required": true,
         "state": "Open",
         "implementationPackets": [
-          "P06"
+          "P06",
+          "P07"
         ],
-        "closurePacket": "P06"
+        "closurePacket": "P07"
       }
     },
     {
@@ -4820,12 +4831,12 @@
       {
         "id": "P05",
         "title": "Complete Home states and return paths",
-        "state": "Verified; integration pending"
+        "state": "Closed"
       },
       {
         "id": "P06",
         "title": "History calendar and period navigation",
-        "state": "Open"
+        "state": "Verified; integration pending"
       },
       {
         "id": "P07",

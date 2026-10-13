@@ -1,0 +1,231 @@
+{
+  "packet": "P06",
+  "state": "Verified candidate; integration pending. Physical and whole-programme acceptance remain P19/P20.",
+  "base": "eb3a57976803268e81abb4847e0c30e7839f2cbc",
+  "candidate": "814ae9398d986a8c8f18be7b58dd5e5a45ab6f0d",
+  "architecture": [
+    "ADR-017",
+    "ADR-021",
+    "ADR-026",
+    "ADR-033"
+  ],
+  "problem": "The selected History period survived owner-state recreation but returned to the current month after actual process reopening. The stacked readout consumed space above the calendar.",
+  "baseline": "baseline03: stage passed; resume established actual current month, captured it, then failed the intended previous-month assertion. Original attempts and failures retained.",
+  "concept": "Connected compact readout, five horizons, adjacent/current ranges, calendar/recorded-day selection, return and private Keep/Retry/Reset states. Shown in history-preparation/history-continuity-concept.html before coding; browser simulation is not Android evidence.",
+  "decision": "Keep the existing single-period calculations/calendar/lifetime separation. Retain the last owning selection privately and compact the labeled totals; avoid startup redirection or a saved-search product.",
+  "alternatives": [
+    "Framework-only selection cannot cover deliberate closing/reopening.",
+    "A startup redirect would interfere with the correct live-session return.",
+    "A new parallel calendar/scope controller could diverge from totals and rows."
+  ],
+  "tradeoff": "Keeping a view is asynchronous. The active choice remains usable while a failed Keep is retryable; explicit private-only Reset returns to the current month and never changes saved training.",
+  "behavior": [
+    "Strict typed horizon/anchor/follow-today checkpoints under noBackupFilesDir; shared ownership, ordered IO, version/generation checks and lost-acknowledgement inspection.",
+    "Framework state complements durable state. Provisional or failed-read fallbacks do not become authoritative during recreation. Explicit choices win over a late private read.",
+    "Coalesce to the latest choice; exact Keep/Reset Retry, new-choice retirement of reset cues and monotonically consumed reset serials.",
+    "Hide old results under a changed pending selection. Retain existing captured-date travel, week-start, calendar, empty-period and lifetime rules.",
+    "Inline complete values/labels, correct singular day label, polite status feedback and explicit 48 dp Retry/Reset controls."
+  ],
+  "acceptanceEvidence": {
+    "focused": "target05:32 fresh checks including all eight travel renders, period renders and three VM/file restoration regressions; zero failures/errors/skips.",
+    "fullGate": {
+      "startedAtUtc": "2026-10-13T12:48:56.3024959Z",
+      "endedAtUtc": "2026-10-13T12:58:51.0542395Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "814ae9398d986a8c8f18be7b58dd5e5a45ab6f0d",
+      "sourceFilesBefore": 1615,
+      "sourceFilesAfter": 1615,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 4467,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 607,
+      "freshXmlFiles": 0,
+      "allXmlFresh": false,
+      "allXmlReused": true,
+      "freshExecutedJvmTests": 0,
+      "reusedExecutedJvmTests": 4467,
+      "reusedEvidence": "build/ux-context/runs/history-continuity/full04",
+      "result": "PASS complete gate; unchanged JVM inputs and exact preserved executed XML proven; JVM task UP-TO-DATE or FROM-CACHE, not a new test execution",
+      "standaloneEvidenceReused": true,
+      "freshStandaloneExecution": false,
+      "standaloneEvidenceReference": "build/ux-context/runs/history-continuity/full04"
+    },
+    "freshFullGateReference": {
+      "startedAtUtc": "2026-10-13T11:50:08.5327987Z",
+      "endedAtUtc": "2026-10-13T12:25:05.4254933Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": 0,
+      "fullGate": true,
+      "head": "c47061c12af8474d03e9c678fcdf933a7d7cae4d",
+      "sourceFilesBefore": 1615,
+      "sourceFilesAfter": 1615,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 4467,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 607,
+      "freshXmlFiles": 607,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 4467,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": true
+    },
+    "executionInputReuse": "Final candidate ran fresh static checks and changed native-test lint analysis, with complete build/lint/test-assembly invocations; unchanged tasks were up to date, not new compilation. It reused the intact full04 app4467/standalone1707 results after proving unchanged JVM/production/tool inputs and identical environment. Only the native fixture import differs; all19 native checks were freshly executed. Native02 ran before the import commit, with the exact final candidate input manifest verified.",
+    "native": {
+      "result": "PASS",
+      "class": "com.sinura.personaltrainer.ui.history.HistoryPeriodRecoveryInstrumentedTest,com.sinura.personaltrainer.ui.history.HistoryPeriodContinuityInstrumentedTest,com.sinura.personaltrainer.ui.history.HistoryPassInstrumentedTest",
+      "scope": "Mixed native scopes: Recovery uses screen/VM/private adapter/native dialogs; Continuity uses shipping MainActivity/AppNav; Pass uses components. Exact class list/raw method results govern. No phone acceptance",
+      "apkStable": true,
+      "sourceStable": true,
+      "exit": 0,
+      "finishedUtc": "2026-10-13T12:48:31.3978341Z",
+      "changedInputs": [],
+      "sourceFiles": 1615,
+      "apks": {
+        "tests": "4D034C70E41009F7CC87A0A260AAC53095F1F5DC130B3A5E6F8976C67843451A",
+        "app": "80878B3BC794A4CE39503C83F9140133FA47E53007C0EB3AC62F2DAD98077FB4"
+      },
+      "head": "c47061c12af8474d03e9c678fcdf933a7d7cae4d",
+      "phase": "",
+      "recoveryPhase": "connected-dense",
+      "startedUtc": "2026-10-13T12:46:57.3126386Z",
+      "freshTests": 19
+    },
+    "nativeScope": "16 real Android system size/font/RTL recovery profiles in a native History screen host; one shipping AppNav journey with 250 mixed completed events across years; two existing History component checks. Raw class/method logs separate these scopes.",
+    "process": {
+      "endedAtUtc": "2026-10-13T13:00:14.1708076Z",
+      "sourceStable": true,
+      "startedAtUtc": "2026-10-13T12:59:50.5338775Z",
+      "result": "PASS",
+      "sourceStatus": "See source-status and exact source snapshots",
+      "sourceFiles": 1615,
+      "phases": [
+        {
+          "phase": "stage",
+          "passed": true,
+          "exit": 0,
+          "tests": 1
+        },
+        {
+          "phase": "resume",
+          "passed": true,
+          "exit": 0,
+          "tests": 1
+        }
+      ],
+      "head": "814ae9398d986a8c8f18be7b58dd5e5a45ab6f0d",
+      "changedInputs": [],
+      "scope": "Fresh actual AppNav on owned API29; no owner data or physical acceptance"
+    },
+    "largeAppNav": {
+      "changedInputs": [],
+      "freshTests": 1,
+      "result": "PASS",
+      "apks": {
+        "app": "80878B3BC794A4CE39503C83F9140133FA47E53007C0EB3AC62F2DAD98077FB4",
+        "tests": "4D034C70E41009F7CC87A0A260AAC53095F1F5DC130B3A5E6F8976C67843451A"
+      },
+      "exit": 0,
+      "class": "com.sinura.personaltrainer.ui.history.HistoryPeriodContinuityInstrumentedTest",
+      "apkStable": true,
+      "head": "814ae9398d986a8c8f18be7b58dd5e5a45ab6f0d",
+      "scope": "Requested native test class; continuity class uses shipping MainActivity/AppNav; isolated API29, no owner data or physical acceptance",
+      "startedUtc": "2026-10-13T13:00:42.7447087Z",
+      "phase": "",
+      "recoveryPhase": "",
+      "finishedUtc": "2026-10-13T13:01:11.3537758Z",
+      "sourceStable": true,
+      "sourceFiles": 1615
+    },
+    "finalIdentityProof": {
+      "result": "PASS",
+      "packet": "P06",
+      "candidate": "814ae9398d986a8c8f18be7b58dd5e5a45ab6f0d",
+      "candidateTree": "14bac0e39c555271af009c42938ebebfe669b758",
+      "sourceFiles": 1615,
+      "freshFullReference": "c47061c12af8474d03e9c678fcdf933a7d7cae4d",
+      "freshAppTests": 4467,
+      "freshStandaloneTests": 1707,
+      "freshXmlFiles": 607,
+      "finalGate": "final-native-gate01",
+      "finalGateJvmExecution": "Reused4467 only with identical JVM/production/tool inputs and intact original outputs; zero new JVM tests",
+      "finalNativeTests": 19,
+      "freshProcessPhases": 2,
+      "freshLargeAppNavTests": 1,
+      "nativeExecutedHead": "c47061c12af8474d03e9c678fcdf933a7d7cae4d",
+      "nativeSourceIdentity": "Exact final candidate1615 source hashes; native run preceded one-import commit",
+      "apks": {
+        "tests": "4D034C70E41009F7CC87A0A260AAC53095F1F5DC130B3A5E6F8976C67843451A",
+        "app": "80878B3BC794A4CE39503C83F9140133FA47E53007C0EB3AC62F2DAD98077FB4"
+      },
+      "reviews": {
+        "independent": {
+          "path": "native-gate-final-seal-814ae939-20261013.md",
+          "sha256": "026B690C05080D7215219A279CF5BE79023B392ED4BB2774C9803F3A527BE155"
+        },
+        "adversarial": {
+          "path": "p06-adversarial-final-receipt-source-seal.md",
+          "sha256": "469FB4E5F22521828D6A6EC5DAE90190733AD6B392304DC71A4D6112454383BE"
+        }
+      },
+      "criticalHighPacketFindings": 0,
+      "limitations": "Original native threading cause unclassified; prior P04 hosted and native03 observations remain P19. Physical acceptance remains P20. Local APKs are not distribution drops."
+    },
+    "recoveryGuarantee": "Completed durable preference stage followed by actual force-stop/PID absence and a fresh MainActivity. No claim for an IO write killed before completion.",
+    "fixtureSafety": "Reserve UUID IDs before submission; setup/normal cleanup inspect only those IDs and reconcile the original activity inventory. Guards precede seeding; OS settings verified restored.",
+    "physical": "Unobserved; P20 after development. No usability or performance percentage inferred."
+  },
+  "originalFailures": [
+    "baseline compilation and readiness errors, baseline01/02/03 original outputs/captures preserved; baseline03 demonstrates the missing durable preference.",
+    "target02: named-argument ratchet grew by one; no test pass. Fixed the test call without changing the baseline.",
+    "target03: interrupted test-dispatcher cancellation deadlock; thread dump retained. Narrow retirement scheduling fix; target04 three fresh regressions passed.",
+    "native-compile01: invalid import; compilation failure preserved and corrected.",
+    "native03:19 executed/10 failed, nine visible Retry height failures and one 600 dp/font1 Compose measure/layout reentry. Height fixed; corrected native04 passed19. Reentry remains unclassified for P19.",
+    "full01: incomplete stopped gate; standalone1707 passed, eight travel assertions failed on a hardcoded plural label. Original log and all eight unique failure-render cases archived. Exact-count label assertion repaired; no failed gate presented as a pass.",
+    "full02: completed failed app suite4465/one held-notes timeout,607 fresh XML; standalone1707 passed. Original raw state/inputs retained. notes-target06 passed24 unchanged cases but did not classify the failure.",
+    "notes-thread-proof07: real Room confirmation violated the original unconfined Main ownership, thread28 to35. Narrow fixture repair keeps real IO, assertions and debounce boundaries; notes-confined08 passed25. Historical full02 exact interleaving remains unobserved; no host-only or production-loss conclusion.",
+    "P05 post-merge hosted38372659969 at83639aa:4449/one duplicate-Retry failure in Library; raw original log retained. library-thread-proof09 independently demonstrated the original fixture Main violation, thread28 to37. Corrected Main preserves held reads, subscribed waits,10-second probes and5001ms absent composition; library-confined11 passed13 with denied-write jobs drained before inventory checks.",
+    "full03: intentionally cancelled before app tests when the later hosted Library failure was discovered. Fresh standalone1707 passed; original command/environment/source/ref/log receipts retained. Not a complete gate or app test pass.",
+    "native-final01:19 executed/18 passed/one SnapshotStateObserver multithreaded-access failure at412×840/font2. Original log/APKs/captures and explicit raw counts retained. Pinned Compose1.11.4 inspection justified switching this fixture to its standard-dispatcher v2 rule. Original thread1212 identity/observer-entry stack are absent, so its historical cause remains unclassified; not dismissed as host-only. Native-final02 freshly passed19 against the unchanged app APK and all original assertions/profiles."
+  ],
+  "remainingLimits": [
+    "UX15-AC03 supporting-session links and correction freshness belong to P07; not closed by period navigation.",
+    "F05 chart zero/one/flat/outlier and supporting-best acceptance remain P07; the250-event run proves dense scope/reachability, not chart or participant acceptance.",
+    "Prior P04 hosted Close/Another set observations and the isolated 600 dp reentry remain explicit P19 evidence gaps.",
+    "Participant experience, physical timing/system behavior and suitable-hardware performance remain P20."
+  ],
+  "unchangedContracts": "No Room schema, public signature, backup-format, distribution version/signer or business-calculation change. Preserve the compact illustrated workout and the existing five destinations.",
+  "latestSignedDrop": {
+    "version": 125,
+    "source": "587e9577ee30f1962fa0a6db1a6acd2aad0b642c",
+    "nextMilestone": "Drop A after P10"
+  },
+  "nextPacket": "P07",
+  "nativePreviews": [
+    "assets/p06-history-current-2026-10-13.png",
+    "assets/p06-history-reset-font20-2026-10-13.png"
+  ]
+}
