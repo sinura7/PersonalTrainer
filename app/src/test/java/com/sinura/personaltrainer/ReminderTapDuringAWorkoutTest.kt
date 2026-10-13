@@ -6,6 +6,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.PowerManager
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
@@ -240,6 +242,21 @@ class ReminderTapDuringAWorkoutTest {
         assertEquals(opened.id, runBlocking { app.container.workoutRepository.getInProgress() }?.id)
         assertNeverShown(ReminderCopy.LIVE_TITLE)
         compose.onNodeWithText(HOME_IN_PROGRESS).assertDoesNotExist()
+
+        // Android can deliver the same occurrence/delivery again after reconstruction.
+        // The production envelope must reuse this live session and leave only one floor.
+        repeat(2) {
+            controller!!.newIntent(ReminderNotifications.startLaunchIntent(app, planned.id, DELIVERY))
+            awaitTag(WorkoutTestTags.CONTENT)
+            compose.onAllNodes(hasTestTag(WorkoutTestTags.CONTENT)).assertCountEquals(1)
+            assertEquals(opened.id, runBlocking { app.container.workoutRepository.getInProgress() }?.id)
+            assertNeverShown(ReminderCopy.LIVE_TITLE)
+        }
+        compose.runOnIdle { controller!!.get().onBackPressedDispatcher.onBackPressed() }
+        awaitTag("navigation-${Route.Home.path}")
+        compose.onNodeWithTag("navigation-${Route.Home.path}").assertIsSelected()
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).assertDoesNotExist()
+        assertEquals(opened.id, runBlocking { app.container.workoutRepository.getInProgress() }?.id)
     }
 
     @Test

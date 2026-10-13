@@ -1,0 +1,194 @@
+{
+  "packet": "P04 — Complete workout continuity",
+  "state": "Verified candidate — integration pending; physical acceptance remains P20",
+  "base": "f7a403892e9028066b88819e9b2031a869d6d9e4",
+  "architecture": "ADR-033",
+  "problem": "Workout entry, raw keypads, timed work and Delete/Undo relied on process or framework restoration. Reopening and uncertain writes require durable, owner-scoped recovery without changing saved records.",
+  "concept": {
+    "source": "workout-recovery-concept.html",
+    "image": "assets/workout-recovery-concept-2026-10-12.png",
+    "shownBeforeNativeChanges": true,
+    "scope": "Connected synthetic concept; Android continuity is established separately. Retain Debug125 compact illustrated layout.",
+    "nativeImage": "assets/workout-recovery-unavailable-native-2026-10-12.png",
+    "nativeResumedImage": "assets/workout-resumed-native-2026-10-12.png"
+  },
+  "decision": {
+    "chosen": "Adopt P02 private checkpoints and frozen commands in the existing workout. Show resumed state, Keep entry on preservation failure, and Check again with explicit private-entry discard for unreadable/conflicting drafts.",
+    "alternative": "Retain framework-only restoration or add a second recovery navigation destination.",
+    "tradeoff": "Local atomic IO and owner fencing add internal complexity; controls stay in the existing workout, with no new tab, schema or portable backup format.",
+    "rules": "Manual values remain authored; effort is required for working repetitions; Apply does not log; progression remains explicit; rest does not block Log. Undo restores exact identities and timed values without restarting rest."
+  },
+  "behavior": [
+    "Close waits for the latest durable checkpoint; failed preservation remains actionable.",
+    "Reopen only the owning live workout. Preserve partial text, selection and original units, per-lift values, explicit notes clearing, clocks and completed Delete/Undo checkpoints.",
+    "Freeze Save before business writes; inspect exact identities and values before Retry. Known accepted saves settle without replay.",
+    "A newer owning editor revokes stale callbacks and queued mutations. Restore and legacy destructive writes share existing maintenance coordination.",
+    "Finish inspects and commits under one coordinator; Home Finish refuses a retained correction or unresolved command.",
+    "Unreadable private owners can be explicitly quarantined and discarded without changing saved sets. Private payloads remain outside backups, diagnostics and logs."
+  ],
+  "acceptanceTasks": [
+    "One AppNav Start/manual entry/effort/eight logs/rest/switch/correction/Delete/Undo/Finish/Summary/History session with exact records.",
+    "Completed checkpoint and admitted command followed by actual force-stop and fresh AppNav reopening.",
+    "Duplicate activation, lost acknowledgement, exact Retry, changed ownership, explicit notes clear and recovery from unreadable private files.",
+    "Changed native entry/recovery screens across required sizes, font scales and applicable RTL/keyboard cases."
+  ],
+  "evidence": {
+    "archives": "build/ux-context/runs/workout-continuity; original failures, exact input hashes, XML, instrumentation, process proofs and native captures retained.",
+    "nativeConnected02": "One fresh eight-log AppNav journey passed at its archived inputs; correction, Summary and History showed the same eight records and 451 kg. Later assertion failed because it searched a deliberately cleared child text node; final updated journey remains pending.",
+    "nativePrivate02": "One fresh actual AppNav Close/reopen test passed with partial 82. and running set clock. This does not establish process termination recovery.",
+    "initialReviews": "Two independent-review and five adversarial high findings retained in original reports. Corrections implemented; final exact-candidate review is pending.",
+    "failurePolicy": "Rejected static attempts, compile failures, quarantined revision-zero failure and fixture assertions remain archived. Inner-loop passes are not a complete gate.",
+    "finalFixesInner01": "Static gate rejected ambiguous when type growth58 vs48 before app tests. The generic launcher called it a crash; direct diagnosis established ratchet growth. New internal variants were renamed; direct checker passes48/48, with no ratchet or storage-format change.",
+    "finalFixesInner02": {
+      "freshAppTests": 52,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStable": true,
+      "scope": "Fresh full static gate, focused data/controller/notes-cache/timer regressions and app/test APK assembly. Before the final stale-discard fix; not the complete unfiltered gate."
+    },
+    "candidateReviews": "Both reviewers closed their original findings in code and identified the same stale-editor Discard high. Permit-at-open and owned Discard are implemented and independently reconfirmed in code, including failed-clear Retry. Final executed evidence and review seals remain pending.",
+    "ownerDiscardFinal01": {
+      "freshAppTests": 54,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStable": true,
+      "scope": "Fresh static gate, focused actor/controller/data/timer regressions and app/test APK assembly at captured inputs; not unfiltered full gate."
+    },
+    "nativeConnected04": "PASS one fresh actual AppNav journey, eight exact records/451 kg, correction and Delete/Undo before Finish/Summary/History. Stable source/APKs; no phone acceptance.",
+    "nativeProcess01": "Stage passed; force-stop proved the real app process absent. Resume failed a test querying ContentDescription on the clock parent, while the spoken value belongs to its child. Original output retained; corrected native run pending.",
+    "nativeRecoveryLayout01": "26 profiles executed, five assertion failures retained. Four minimum-target checks did not use native integer-pixel rounding; landscape preservation copy exceeded the readout space and the swipe helper demanded extra border space. Caption shortened; new test asserts complete caption within scrolling bounds and rounded 48/72 dp targets. Final run pending.",
+    "nativeEntryLayout01": "PASS38 fresh profiles at captured inputs: required sizes/fonts plus warmup, load types, hold, saved/Undo, long/large/zero/error values and RTL. Source/APK stable; the subsequent caption correction requires a final run.",
+    "nativeIme01": "PASS2 fresh actual Android keyboard tasks at system font2: numeric invalid/Cancel/decimal application and long-name landscape custom rest with one overlay.",
+    "full01": "Cancelled before unfiltered app tests because the native recovery finding required changed production copy. Standalone1707 passed freshly at original inputs; complete gate remains unaccepted. All logs and cancellation assessment retained.",
+    "nativeCorrectionsBuild01": {
+      "freshAppTests": 54,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStable": true,
+      "scope": "Fresh static checks, focused regressions and app/test APK assembly with shorter preservation copy. Subsequent Android-only fixture corrections require final native execution and full gate."
+    },
+    "nativeRecoveryLayout02": "PASS26 fresh recovery profiles: whole captions within viewport, native-rounded48/72dp targets, required sizes/fonts, unreadable/conflicting/resumed states and RTL. Captured app APK036D99E4; final APK/source verification follows.",
+    "nativeProcess02": "Resume failed because fixture tried to confirm partial82.; parser correctly disabled Set. Original output retained; complete82.0 before confirmed Set.",
+    "nativeProcess03": "Resume confirmed82kg but fixture incorrectly expected180.8lb. Existing half-pound presentation correctly shows181lb. Original output retained; no calculation changed.",
+    "nativeProcess04": {
+      "freshTests": 4,
+      "result": "PASS",
+      "sourceStable": true,
+      "phases": [
+        "stage",
+        "force-stop/resume",
+        "stage-pending",
+        "force-stop/resume-pending"
+      ],
+      "scope": "Actual AppNav, real process termination proof, original partial kg text despite lb settings, completed82.0 confirmed then Cancel preserves durable82kg with no record, restored running clock, exact frozen47.5kg/11/RPE8/23sec accepted once. Completed checkpoints/admissions only; no instantaneous in-flight IO guarantee or phone claim."
+    },
+    "nativeFinal01": "67 checks passed as executed at908de79c with stable sources/APKs. Subsequent visual review rejected recovery-panel closure because a late duplicate snackbar covered its actions. Preserve the pass and overriding limitation; final corrected native rerun required.",
+    "full02": "Standalone1707 passed; unfiltered app task reported GymChromeTest inline-prelude literal and missing-session Undo no-op assertions. Cancelled after visual duplicate-panel discovery to change execution inputs. Original logs/assessment retained; no complete app count or full-gate pass claimed.",
+    "recoveryOverlayBuild01": "Android test compilation rejected an invalid assertDoesNotExist import; removed it because the assertion is a framework member. Original failed build retained.",
+    "overlayContractTarget01": {
+      "freshAppTests": 51,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStable": true,
+      "scope": "Fresh static checks, GymChrome shared-component assertion, SessionRepair no-recreated-data/explicit conflict, durable actor/controller regressions and both APKs. Not the complete unfiltered gate."
+    },
+    "nativeRecoveryLayout03": "PASS26 fresh settled-state profiles. Await FOUND/error before inspecting UI, reject duplicate banner, touch Check again and prove another read. Required viewport/font/RTL and native-rounded targets preserved; actual font2 unavailable preview reviewed.",
+    "nativeFinal02": {
+      "candidate": "ccee3c06d1d02ee30f2275e6c859b121da1b9db9",
+      "freshChecks": 67,
+      "result": "PASS",
+      "scope": "One real MainActivity/AppNav eight-log journey, 38 native entry profiles, 26 settled recovery profiles with touched Check again and two actual IME tasks. Same eight set IDs and 451 kg through correction/Delete/Undo/Finish/Summary/History; not physical acceptance.",
+      "appApkSha256": "B513398DE8C5CA84892EE22B6CD498B5F0D4A8ADF7B8E563F81AF29A1C833AB9",
+      "testApkSha256": "8BF30A312520D7E2251D2CFBE1EC71F51A47BB4A6378EA075B30F19FD5C7867C",
+      "sourceStable": true
+    },
+    "nativeProcess05": {
+      "freshPhases": 4,
+      "result": "PASS",
+      "scope": "Actual process termination and fresh AppNav reopening after completed checkpoints/admission. Partial original-unit text, clock, accepted numeric entry and exact frozen timed set restored. Same source/APKs as nativeFinal02; no guarantee for unfinished IO or physical timing."
+    },
+    "reminderRepeatTarget01": {
+      "freshAppTests": 9,
+      "result": "PASS",
+      "scope": "Real MainActivity/AppNav planned-reminder reconstruction followed by repeated identical occurrence/delivery envelopes, one floor, one Back to Home and the same live session. Complete static checks passed; this is targeted execution, not the complete gate."
+    },
+    "nativePermissionContract03": {
+      "freshTests": 1,
+      "result": "PASS",
+      "scope": "Expanded same-session native walkthrough: actual production rest-notification PendingIntent twice, observed Android delivery, one hardware Back to Home, actual notification Settings off/on with foreground/resume proof, accepted permission guard, retained92.5kg/6/RPE7, eight exact logs/correction/Delete/Undo, hardware Back from Summary and identical History rows/451kg. Original Done coverage remains separately archived; physical acceptance is excluded.",
+      "appApkSha256": "B513398DE8C5CA84892EE22B6CD498B5F0D4A8ADF7B8E563F81AF29A1C833AB9",
+      "testApkSha256": "14B5CFC99A995BB34D1A03628BC5062A5B1C7933EC17B21466D527E8600F7C80",
+      "sourceStable": true
+    },
+    "acceptanceFollowup": {
+      "reviewMap": "reviews/independent-p04-acceptance-map.md",
+      "assignedAutomatedTasks": 10,
+      "exercisedAssignedTasks": 10,
+      "scope": "All ten assigned automated tasks have direct bounded evidence at the frozen candidate. Full gate and final source reviews passed. Integration and P20 physical acceptance remain pending."
+    },
+    "full04": "Cancelled before app-unit execution to close three narrowly identified UX22 evidence gaps. Standalone compilation was incomplete; no complete standalone/app/gate pass claimed. Original logs and cancellation receipt retained.",
+    "nativeAcceptanceFailures": "Original native-acceptance01–09, number-diagnosis/correction/foreground and permission-contract01–02 attempts retained. Corrected reconstructed notification flags to the production PendingIntent, awaited actual delivery and numeric-dialog closure, used system Back for the external Settings package, and proved foreground/resumed return. Overbroad 'no dialog' treated the accepted missing-permission guard as a numeric-Cancel failure; global screenshot and successful clear trace resolved that misinterpretation. Speculative production effects and all probes were reverted. One probe attempt compiled main but did not package it; its provenance rejection is explicit. Dedicated expected-guard capture preserves normal prompt checks, and exact readiness assertions now include the implemented resumed cue. These failures are not evidence of a numeric production defect or a Windows-only issue.",
+    "full03RepairsTarget01": {
+      "freshAppTests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "result": "PASS",
+      "scope": "Both Summary correction journeys and all eight mid-prefill/reopening regressions passed after the narrow scheduling and fixture repairs. Every exact saved-row/navigation/notes assertion retained; final unfiltered gate remains pending. Adversarial review found no weakened coverage."
+    },
+    "full03": {
+      "freshAppTests": 4433,
+      "failures": 3,
+      "errors": 0,
+      "skipped": 0,
+      "freshStandaloneTests": 1707,
+      "result": "FAIL",
+      "sourceStable": true,
+      "scope": "Complete unfiltered test execution retained in 602 fresh XML files. Two Summary correction tests blocked paused Main before the writer could resume from IO; one orphan-copy test assumed swap left the replaced draft cached, contradicting the new cleanup contract. Narrow test repairs retain exact records/navigation assertions and explicitly inject the legacy orphan hazard; their execution and final gate remain pending. Not a Windows-only classification or a build pass."
+    },
+    "full05": {
+      "candidate": "7d1d4d5186c3cec478dff129b729ac3192025d5d",
+      "freshAppTests": 4433,
+      "freshStandaloneTests": 1707,
+      "result": "PASS",
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "freshXmlFiles": 602,
+      "scope": "Fresh complete standalone preflight and unfiltered app tests, Debug/release assembly, lint and Android-test APK assembly. All 1600 execution inputs and candidate refs remained unchanged. Earlier failed/cancelled runs remain archived."
+    },
+    "nativeFinal03": {
+      "candidate": "7d1d4d5186c3cec478dff129b729ac3192025d5d",
+      "freshChecks": 67,
+      "result": "PASS",
+      "scope": "Expanded actual AppNav eight-log journey, repeated production PendingIntent, real notification Settings off/on, completed-Summary hardware Back, exact correction/Delete/Undo/History records; 38 entry and 26 recovery profiles plus two actual IME tasks. Isolated API29, not physical acceptance.",
+      "apks": {
+        "tests": "14B5CFC99A995BB34D1A03628BC5062A5B1C7933EC17B21466D527E8600F7C80",
+        "app": "B513398DE8C5CA84892EE22B6CD498B5F0D4A8ADF7B8E563F81AF29A1C833AB9"
+      },
+      "sourceStable": true
+    },
+    "nativeProcess06": {
+      "candidate": "7d1d4d5186c3cec478dff129b729ac3192025d5d",
+      "freshPhases": 4,
+      "result": "PASS",
+      "scope": "Actual force-stop proved prior PID absent; fresh AppNav restored raw original-unit text, clock and exact admitted timed command once. Completed checkpoints/admissions only; no instantaneous in-flight IO guarantee.",
+      "apks": {
+        "app": "B513398DE8C5CA84892EE22B6CD498B5F0D4A8ADF7B8E563F81AF29A1C833AB9",
+        "tests": "14B5CFC99A995BB34D1A03628BC5062A5B1C7933EC17B21466D527E8600F7C80"
+      },
+      "sourceStable": true
+    },
+    "finalIdentityProof": "final-native-identity-proof-v3.json: complete gate/native67/process4 share identical1600 inputs and identical app/test APKs; archived gate artifacts and fresh XML hashes intact.",
+    "finalReviews": "Both final merge seals APPROVED at clean7d1d4d5. Independently reconciled1600 inputs,617 gate artifacts,602 fresh XML, native67/process4 and exact app/test APKs. All demonstrated critical/high findings closed. reviews/independent-final-seal.md and reviews/adversarial-final-seal.md; scope is local automated evidence, not physical acceptance."
+  },
+  "boundaries": [
+    "Physical touch, system timing, sound/haptics and performance remain P20.",
+    "Cross-app acceptance criteria remain owned by their named packets and P19.",
+    "Latest signed delivery remains Debug125; next milestone publication follows P10."
+  ]
+}

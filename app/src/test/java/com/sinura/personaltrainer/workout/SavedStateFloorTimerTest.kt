@@ -11,6 +11,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SavedStateFloorTimerTest {
+    @Test fun durableBootCounterPreventsOldRunningClocksResumingAfterReboot() {
+        val first = SavedStateFloorTimer(SavedStateHandle())
+        val hold = HoldTimerUiState(running = true, totalSeconds = 30, startElapsedRealtime = 1000, deadlineElapsedRealtime = 31000)
+        first.writeHold("plank", hold)
+        first.writeStopwatch("squat", SetStopwatchUiState(running = true, used = true, elapsedSeconds = 9,
+            frozenElapsedSeconds = 3, startElapsedRealtime = 1000, exerciseId = "squat"))
+        val raw = first.checkpoint(8, "plank", hold, 10000)
+        val same = SavedStateFloorTimer(SavedStateHandle())
+        same.restoreCheckpoint(raw, 8)
+        assertTrue(same.readHold("plank", 10000)!!.running)
+        assertTrue(same.readStopwatch("squat", 10000)!!.running)
+        val rebooted = SavedStateFloorTimer(SavedStateHandle())
+        rebooted.restoreCheckpoint(raw, 9)
+        assertNull(rebooted.readHold("plank", 20000))
+        val watch = rebooted.readStopwatch("squat", 20000)!!
+        assertFalse(watch.running)
+        assertEquals(9, watch.elapsedSeconds)
+    }
     @Test
     fun holdRoundTripKeepsTimestamps() {
         val handle = SavedStateHandle()

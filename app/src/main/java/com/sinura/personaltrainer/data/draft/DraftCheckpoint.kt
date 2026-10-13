@@ -66,8 +66,8 @@ internal enum class DraftRejection {
 }
 
 internal sealed interface DraftRead<out D, out C> {
-    data class Available<D, C>(val checkpoint: DraftCheckpoint<D, C>) : DraftRead<D, C>
-    data class Unavailable(val problem: DraftReadProblem) : DraftRead<Nothing, Nothing>
+    data class PresentCheckpoint<D, C>(val checkpoint: DraftCheckpoint<D, C>) : DraftRead<D, C>
+    data class UnreadableCheckpoint(val problem: DraftReadProblem) : DraftRead<Nothing, Nothing>
 }
 
 internal sealed interface DraftChange<out D, out C> {

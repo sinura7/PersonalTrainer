@@ -10,6 +10,8 @@ import com.sinura.personaltrainer.util.IdFactory
 import com.sinura.personaltrainer.domain.WorkoutSetSave
 import com.sinura.personaltrainer.domain.WorkoutSetValues
 import com.sinura.personaltrainer.workout.SavedStateWorkoutSave
+import com.sinura.personaltrainer.workout.WorkoutDraftRestore
+import com.sinura.personaltrainer.workout.WorkoutEntryCheckpoint
 import com.sinura.personaltrainer.domain.ExercisePickerProgress
 import com.sinura.personaltrainer.util.PickerWrites
 import com.sinura.personaltrainer.util.ErrorSlot
@@ -261,6 +263,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 ) : AppViewModel(application, container) {
     private val sessionId: String = savedStateHandle.get<String>("sessionId").orEmpty()
     private val draftCache = container.workoutDraftCache
+    private val durability = draftCache.persistence?.forEntry()
+    private val privateSavedState = savedStateHandle
+    private var authoredRevision = maxOf(draftCache.authoredRevision(sessionId), savedStateHandle.get<Long>("workout.private.authorship.v1") ?: 0L)
     private val savedDraft = SavedStateWorkoutDraft(savedStateHandle)
     private val savedEdit = SavedStateWorkoutSave(handle = savedStateHandle, storageKey = "workout.editOriginal.v1")
     private var editingOriginal = draftCache.editingOriginal(sessionId) ?: savedEdit.read(sessionId)
@@ -274,12 +279,29 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         sessionId = sessionId,
         cache = draftCache,
         saved = SavedStateWorkoutSave(savedStateHandle),
-        write = { command -> container.workoutRepository.saveSet(command) },
-        inspect = { command -> container.workoutRepository.inspectSetSave(command) },
+        write = { command ->
+            val port = durability
+            if (port == null) container.workoutRepository.saveSet(command)
+            else {
+                val commit: suspend () -> com.sinura.personaltrainer.data.repository.WorkoutRepository.SavedWorkoutSet = { container.workoutRepository.saveSet(command) }
+                val inspectAccepted: suspend () -> com.sinura.personaltrainer.data.repository.WorkoutRepository.SavedWorkoutSet = { container.workoutRepository.acknowledgeSavedSet(command) }
+                port.writeSet(command = command, write = commit, acknowledge = inspectAccepted)
+            }
+        },
+        inspect = { command ->
+            durability?.inspectSet(command) { container.workoutRepository.inspectSetSave(command) }
+                ?: container.workoutRepository.inspectSetSave(command)
+        },
         sessionFound = { sessionReader.observations.value.loadState == SessionLoadState.FOUND },
-        onSaved = { command, result, recovered -> acknowledgeSave(command, result, recovered) },
+        onSaved = { command, result, recovered ->
+            if (durability?.ownsEntry(sessionId) == false) privateDrafts.ownershipLost()
+            else acknowledgeSave(command, result, recovered)
+        },
         onReleased = { _, conflict -> releaseSave(conflict) },
         onRejected = { _logFeedback.tryEmit(LogCommitFeedback.REJECT) },
+        beforeRelease = { command -> durability?.releaseSet(command) },
+        afterSaved = { command -> privateCheckpoint()?.let { durability?.settleSet(command, it) } },
+        onSettlementUnavailable = { privateDrafts.preservationFailed() },
     )
 
     private val selectedExerciseId = MutableStateFlow<String?>(null)
@@ -322,16 +344,23 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val sessionNotes = FloorSessionNotes(
         sessionId = sessionId,
         write = { notes ->
+            val noteEntry = if (durability == null) null else (privateCheckpoint()?.takeIf { it.notes == notes }
+                ?: throw com.sinura.personaltrainer.workout.WorkoutCheckpointConflict())
             draftCache.withNotesWrite(sessionId) {
                 check(container.workoutRepository.getSession(sessionId)?.isFinished == false) {
                     "This workout is no longer live."
                 }
-                container.workoutRepository.updateSessionNotes(sessionId, notes)
+                val port = durability
+                if (port == null) container.workoutRepository.updateSessionNotes(sessionId, notes)
+                else port.writeNotes(sessionId, notes, checkNotNull(noteEntry)) { before, intended ->
+                    container.workoutRepository.updateLiveNotesIfUnchanged(sessionId, before, intended)
+                }
             }
         },
         readStored = { container.workoutRepository.getSession(sessionId)?.notes },
         onUnconfirmed = { pending, busy, notes ->
-            draftCache.markNotesPending(sessionId = sessionId, owner = notesOwner, pending = pending, busy = busy, notes = notes)
+            if (durability?.ownsEntry(sessionId) == false) draftCache.releaseNotesOwner(sessionId, notesOwner)
+            else draftCache.markNotesPending(sessionId = sessionId, owner = notesOwner, pending = pending, busy = busy, notes = notes)
         },
     )
     private val pickerWrites = PickerWrites()
@@ -376,6 +405,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         undoTimeout = undoTimeout,
         unit = { weightUnit.value },
         loadTypeOf = ::liftLoadType,
+        onCheckpoint = ::stagePrivateEntry,
     )
 
     /** Every live undo offer, oldest first. The banner shows the last one. */
@@ -416,6 +446,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         selectedLift = { selectedExerciseId.value },
         holdSoundEnabled = { container.preferencesRepository.restTimerPreferences.first().soundEnabled },
         cancelPendingRest = ::cancelPendingRest,
+        onCheckpoint = ::stagePrivateEntry,
     )
     /** The rest preferences as they are now: the hold's GET READY length is read at the tap (P2b). */
     private val restPrefsNow: StateFlow<RestTimerPreferences> = container.preferencesRepository.restTimerPreferences
@@ -453,6 +484,29 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private val session: StateFlow<WorkoutSession?> =
         sessionReader.observations.map { it.session }
             .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    private val privateDrafts = FloorPrivateDrafts(
+        persistence = durability, sessionId = sessionId, scope = viewModelScope, onRestored = ::applyPrivateRecovery,
+    )
+    internal val privateRecovery: StateFlow<WorkoutPrivateState> = privateDrafts.recovery
+    private val workoutBoot = com.sinura.personaltrainer.timer.BootSession.count(application)
+    private val numberEntries = MutableStateFlow<List<com.sinura.personaltrainer.workout.WorkoutNumberDraft>>(emptyList())
+    internal val numberEntry = object : WorkoutNumberEntries {
+        override val entries: StateFlow<List<com.sinura.personaltrainer.workout.WorkoutNumberDraft>> = numberEntries.asStateFlow()
+        override val exerciseId: String? get() = selectedExerciseId.value
+        override fun put(value: com.sinura.personaltrainer.workout.WorkoutNumberDraft) {
+            if (!canChangeEntry() || value.exerciseId != exerciseId) return
+            numberEntries.value = numberEntries.value.filterNot { it.exerciseId == value.exerciseId && it.field == value.field }
+                .map { if (value.open) it.copy(open = false) else it } + value
+            stagePrivateEntry()
+        }
+        override fun clear(field: com.sinura.personaltrainer.workout.WorkoutNumberField) {
+            if (!canChangeEntry()) return
+            numberEntries.value = numberEntries.value.filterNot { it.exerciseId == exerciseId && it.field == field }
+            stagePrivateEntry()
+        }
+    }
+    private var clocksRestored = false
 
     init {
         if (sessionId.isBlank()) {
@@ -521,18 +575,21 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             draftCache.putEditingOriginal(sessionId, original)
         }
         saves.keepRestored()?.let { command -> restoreSaveDraft(command) }
-        clocks.restore(selectedExerciseId.value)
-        // A clock that comes back running ends a rest started while the app was stopped.
-        if (clocks.timing) {
-            restTimer.stop()
-        }
+        privateDrafts.open()
         viewModelScope.launch {
             // The flow is guarded at the repository, but the body below is not — a failure
             // here would otherwise kill the collector and freeze the screen silently.
             runCatchingCancellable {
-                sessionReader.observations.collect { read ->
+                combine(sessionReader.observations, privateDrafts.recovery) { read, recovery -> read to recovery }.collect { (read, recovery) ->
+                    if (!recovery.canEnter) return@collect
+                    if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return@collect }
                     if (read.loadState == SessionLoadState.MISSING) sessionNotes.sessionMissing()
                     val current = read.session ?: return@collect
+                    if (!clocksRestored && !current.isFinished) {
+                        clocksRestored = true
+                        clocks.restore(selectedExerciseId.value)
+                        if (clocks.timing && container.restTimerStore.snapshot.value.sessionId == sessionId) restTimer.stop()
+                    }
                     // Read before a selection saves the notes. applySelection writes the field to
                     // saved state, and on a workout finished elsewhere the save below returns early,
                     // so an unfilled field saved there would come back after a process death as a
@@ -567,8 +624,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // dropped the second, which left it loading for good with Log off (N2). None cancels the
         // lift's read still running, which isCurrentPrefill would have dropped anyway.
         viewModelScope.launch {
-            selectedExerciseId.collectLatest { exerciseId ->
-                if (exerciseId == null) return@collectLatest
+            combine(selectedExerciseId, privateDrafts.recovery.map { it.canEnter }.distinctUntilChanged()) { id, ready -> id to ready }.collectLatest { (exerciseId, ready) ->
+                if (!ready || exerciseId == null) return@collectLatest
                 runCatchingCancellable { prefill(exerciseId) }
                     .onFailure { AppLog.w(TAG, "Prefilling the next set failed", it) }
             }
@@ -589,7 +646,11 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         }
         // The typing-pause writer (FloorSessionNotes.writeOnTypingPause), launched after the
         // notes are restored above, so the first words it sees are the restored ones.
-        viewModelScope.launch { sessionNotes.writeOnTypingPause() }
+        viewModelScope.launch {
+            privateDrafts.recovery.map { it.canEnter }.distinctUntilChanged().collectLatest { ready ->
+                if (ready) sessionNotes.writeOnTypingPause()
+            }
+        }
         viewModelScope.launch {
             restCommands.presetEchoes.collect { last ->
                 // A pick on the dock comes back here as an echo, and it can land after the
@@ -877,6 +938,12 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         state.copy(draftDirty = dirty)
     }.combine(pickerWrites.state) { state, progress ->
         state.copy(pickerProgress = progress)
+    }.combine(privateDrafts.recovery) { state, recovery ->
+        state.copy(
+            loadState = if (recovery.phase == WorkoutPrivatePhase.OPENING) SessionLoadState.LOADING else state.loadState,
+            mutating = state.mutating || !recovery.canEnter,
+            error = recovery.message.takeIf { recovery.phase != WorkoutPrivatePhase.READY } ?: state.error,
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -1077,6 +1144,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     private fun applySelection(exerciseId: String) {
         if (selectedExerciseId.value == exerciseId) return
+        numberEntries.value = numberEntries.value.map { it.copy(open = false) }
         persistDraft()
         editingSetId.value = null
         clearEditingOriginal()
@@ -1319,7 +1387,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun setNotes(value: String) {
-        if (terminalExit || _exitRequested.value != null || mutating.value || finished.value ||
+        if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return }
+        if (!privateDrafts.recovery.value.canEnter || terminalExit || _exitRequested.value != null || mutating.value || finished.value ||
             sessionReader.observations.value.session?.isFinished == true
         ) return
         draftCache.editLiveNotes(sessionId) {
@@ -1436,6 +1505,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 }
                 _deleteFeedback.tryEmit(DeleteFeedback.REMOVED)
                 draftCache.removeLift(sessionId, selectedId)
+                numberEntries.value = numberEntries.value.filterNot { it.exerciseId == selectedId }
                 savedDraft.removeLift(selectedId)
                 // Room can select and prefill a survivor before this mutation resumes.
                 // Clear only the removed selection; keep that newer entry ready.
@@ -1480,6 +1550,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     private suspend fun addExerciseInternal(exercise: Exercise, swapTarget: String?) {
         val started = error.mark()
         check(sessionId.isNotBlank()) { "This workout is no longer available." }
+        val replaced = swapTarget?.let { target -> container.workoutRepository.getSession(sessionId)?.exercises?.firstOrNull { it.id == target }?.exercise?.id }
         if (swapTarget != null) {
             container.workoutRepository.swapExerciseInSession(sessionId, swapTarget, exercise)
             if (swapTargetItemId.value == swapTarget) swapTargetItemId.value = null
@@ -1496,6 +1567,13 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             }
         }
         selectExerciseInternal(exercise.id)
+        if (replaced != null) {
+            draftCache.removeLift(sessionId, replaced)
+            savedDraft.removeLift(replaced)
+            numberEntries.value = numberEntries.value.filterNot { it.exerciseId == replaced }
+            clocks.forgetStopwatch(replaced)
+            persistDraft()
+        }
         showPicker.value = false
         searchQuery.value = ""
         error.clearFrom(source = ERR_ADD_LIFT, before = started)
@@ -1532,25 +1610,31 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     init {
-        saves.restored?.let { command ->
-            viewModelScope.launch {
-                sessionReader.observations.first { it.loadState != SessionLoadState.LOADING }
-                saves.reconcile(command, retryWrite = false)
+        viewModelScope.launch {
+            combine(sessionReader.observations, privateDrafts.recovery) { read, recovery -> read to recovery }.collect { (read, recovery) ->
+                if (!recovery.canEnter || read.loadState == SessionLoadState.LOADING) return@collect
+                val operation = saves.operation.value
+                if (operation.phase == WorkoutSavePhase.CHECKING && !saves.inFlight.value) {
+                    operation.command?.let { saves.reconcile(it, retryWrite = false) }
+                }
             }
         }
     }
 
-    private fun canChangeEntry(): Boolean =
-        !terminalExit && !draftCache.liveEntryLocked(sessionId) && _exitRequested.value == null && !saves.inFlight.value && !mutating.value && !saves.pending &&
+    private fun canChangeEntry(): Boolean {
+        if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return false }
+        return privateDrafts.recovery.value.canEnter && !terminalExit && !draftCache.liveEntryLocked(sessionId) && _exitRequested.value == null && !saves.inFlight.value && !mutating.value && !saves.pending &&
             sessionReader.observations.value.loadState == SessionLoadState.FOUND &&
             sessionReader.observations.value.session?.isFinished == false
+    }
 
     private fun launchEntryMutation(source: String, block: suspend () -> Unit) {
         if (!canChangeEntry()) return
+        val permit = durability?.mutationPermit(sessionId)
         mutating.value = true
         viewModelScope.launch {
             try {
-                block()
+                if (permit == null) block() else kotlinx.coroutines.withContext(permit) { block() }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
@@ -1576,7 +1660,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         },
         primaryActivation,
     ) { state, extra, timing, activation ->
-        WorkoutPrimaryActions.derive(state, extra, timing.first, timing.second, timing.third, activation)
+        WorkoutPrimaryActions.derive(state.copy(mutating = state.mutating || !privateDrafts.recovery.value.canCommit && !state.save.pending), extra, timing.first, timing.second, timing.third, activation)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, currentPrimaryAction())
 
     private fun currentPrimaryAction(): WorkoutPrimaryAction {
@@ -1586,7 +1670,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 loadState = read.loadState, session = read.session,
                 selectedExerciseId = selectedExerciseId.value, draft = draft.value,
                 editingSetId = editingSetId.value, logging = saves.inFlight.value,
-                mutating = mutating.value, save = saves.operation.value,
+                mutating = mutating.value || !privateDrafts.recovery.value.canCommit && !saves.pending, save = saves.operation.value,
                 liftReadiness = liftReadiness.value, draftDirty = draftDirty.value,
             ),
             extraSet = wantAnotherSet.value, hold = clocks.hold.value, stopwatch = clocks.stopwatch.value,
@@ -1596,6 +1680,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
 
     /** Validate the rendered action; a second Log tap cannot become Next after the save. */
     fun performPrimary(action: WorkoutPrimaryAction): Boolean {
+        if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return false }
         val current = currentPrimaryAction()
         if (!current.enabled || action.identity != current.identity) return false
         val now = elapsedNow()
@@ -1623,6 +1708,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     internal fun logSet() = logSetWithDuration(displayedDurationSeconds = null, freezeDisplayedDuration = false)
 
     private fun logSetWithDuration(displayedDurationSeconds: Int?, freezeDisplayedDuration: Boolean) {
+        if (!privateDrafts.recovery.value.canCommit) return
         if (!canChangeEntry()) return
         val exerciseId = selectedExerciseId.value ?: return
         if (!(liftReadiness.value.allowsCommit() || draftDirty.value)) return
@@ -1801,7 +1887,9 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     }
 
     fun retrySession() {
+        if (mutating.value || notesExitPending || saves.inFlight.value) return
         sessionReader.retry()
+        privateDrafts.open()
     }
 
     /**
@@ -2267,19 +2355,24 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
             return
         }
         if (leaveWithDraft && sessionNotes.saveState.value.busy) return
-        persistDraft()
         _notesExitBlocked.value = false
-        if (leaveWithDraft) {
-            _exitRequested.value = WorkoutExit.Kept
-            return
-        }
         notesExitPending = true
         // One exit intent owns the controls until its write settles. A later Finish/discard
         // cannot race the Kept navigation and cancel a queued terminal operation.
         mutating.value = true
         viewModelScope.launch {
             try {
-                if (sessionNotes.writeNow()) _exitRequested.value = WorkoutExit.Kept
+                val recovery = privateDrafts.awaitOpened()
+                if (!recovery.canEnter) {
+                    // No fields were unlocked. Leave the unread checkpoint intact for a later attempt.
+                    _exitRequested.value = WorkoutExit.Kept
+                    return@launch
+                }
+                sessionReader.observations.value.session?.let { sessionNotes.sessionRead(it.notes) }
+                persistDraft()
+                val checkpoint = privateCheckpoint()
+                val preserved = durability == null || checkpoint != null && privateDrafts.flush(checkpoint)
+                if (preserved && (leaveWithDraft || sessionNotes.writeNow())) _exitRequested.value = WorkoutExit.Kept
                 else _notesExitBlocked.value = true
             } finally {
                 notesExitPending = false
@@ -2292,8 +2385,122 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         _notesExitBlocked.value = false
     }
 
+    private fun applyPrivateRecovery(restored: WorkoutDraftRestore.ReadyEntry) {
+        if (restored.replaceLocal) primaryActivation.value = primaryActivation.value + 1
+        val checkpoint = restored.entry
+        if (restored.replaceLocal && checkpoint == null) {
+            draftCache.clear(sessionId); savedDraft.clear(); savedEdit.clear()
+            editingOriginal = null; editingSetId.value = null; selectedExerciseId.value = null
+            numberEntries.value = emptyList(); sessionNotes.resetUnhydrated(); authoredRevision = 0
+            saves.operation.value.command?.let(saves::clear)
+        }
+        if (checkpoint != null && (restored.replaceLocal || checkpoint.authoredRevision >= authoredRevision)) {
+            authoredRevision = checkpoint.authoredRevision
+            privateSavedState["workout.private.authorship.v1"] = authoredRevision
+            draftCache.replaceAll(sessionId, checkpoint.lifts, checkpoint.selectedExerciseId)
+            draftCache.rememberAuthoredRevision(sessionId, authoredRevision)
+            savedDraft.clear()
+            checkpoint.lifts.values.forEach { savedDraft.write(it, checkpoint.editingOriginal?.setId) }
+            savedDraft.writeSelection(
+                sessionId = sessionId, exerciseId = checkpoint.selectedExerciseId,
+                notes = checkpoint.notes.orEmpty(), editingSetId = checkpoint.editingOriginal?.setId,
+            )
+            if (checkpoint.notes == null) {
+                savedDraft.forgetUnhydratedNotes()
+                sessionNotes.resetUnhydrated()
+            } else {
+                draftCache.putSessionNotes(sessionId, checkpoint.notes)
+                sessionNotes.restore(value = checkpoint.notes, needsInspection = restored.notesNeedReview)
+            }
+            selectedExerciseId.value = checkpoint.selectedExerciseId
+            checkpoint.selectedExerciseId?.let { checkpoint.lifts[it] }?.let { value ->
+                pendingResumeDraft = value
+                applyRecoveredDraft(value)
+                liftReadiness.value = LiftEntryReadiness.READY
+            }
+            editingOriginal = checkpoint.editingOriginal
+            checkpoint.clocks?.let { clocks.seed(it, workoutBoot) }
+            numberEntries.value = checkpoint.numbers
+            undo.restoreCheckpoint(sessionId, checkpoint.undo, checkpoint.undoDwellMs)
+            draftCache.putEditingOriginal(sessionId, editingOriginal)
+            editingSetId.value = editingOriginal?.setId
+            editingOriginal?.let(savedEdit::write) ?: savedEdit.clear()
+            val memoryPending = saves.operation.value.command
+            if (memoryPending != null && checkpoint.acknowledgedCommand == durability?.commandIdentity(memoryPending)) {
+                saves.clear(memoryPending)
+            }
+        } else if (restored.notesNeedReview && sessionNotes.textKnown) {
+            sessionNotes.restore(value = sessionNotes.text.value, needsInspection = true)
+        }
+        restored.pending?.let { command ->
+            saves.restorePrivate(command)
+            if (command.editing && editingOriginal == null) {
+                val original = command.copy(values = checkNotNull(command.original))
+                editingOriginal = original
+                draftCache.putEditingOriginal(sessionId, original)
+                savedEdit.write(original)
+            }
+            restoreSaveDraft(command)
+        }
+    }
+
+    private fun privateCheckpoint(): WorkoutEntryCheckpoint? {
+        val current = sessionReader.observations.value.session ?: return null
+        if (terminalExit || current.isFinished) return null
+        return WorkoutEntryCheckpoint(
+            sessionId = sessionId, startedAt = current.startedAt, authoredRevision = authoredRevision,
+            lifts = draftCache.all(sessionId), selectedExerciseId = selectedExerciseId.value,
+            notes = sessionNotes.text.value.takeIf { sessionNotes.textKnown }, notesBase = current.notes.trim(),
+            editingOriginal = editingOriginal,
+            clocks = clocks.checkpoint(workoutBoot).let { value -> value.copy(
+                stopwatches = value.stopwatches.filterKeys { id -> current.exercises.any { it.exercise.id == id } },
+            ) },
+            numbers = numberEntries.value,
+            undo = undo.checkpoint(), undoDwellMs = undo.dwellMs.value,
+        )
+    }
+
+    private fun stagePrivateEntry() {
+        if (durability == null || !privateDrafts.recovery.value.canEnter) return
+        authoredRevision = Math.addExact(authoredRevision, 1L)
+        privateSavedState["workout.private.authorship.v1"] = authoredRevision
+        draftCache.rememberAuthoredRevision(sessionId, authoredRevision)
+        privateCheckpoint()?.let(privateDrafts::stage)
+    }
+
+    internal fun keepPrivateEntry(): Boolean {
+        if (privateDrafts.recovery.value.phase != WorkoutPrivatePhase.PRESERVATION_FAILED || !canChangeEntry()) return false
+        val checkpoint = privateCheckpoint() ?: return false
+        mutating.value = true
+        viewModelScope.launch {
+            try { privateDrafts.flush(checkpoint) }
+            finally { mutating.value = false }
+        }
+        return true
+    }
+
+    internal fun discardConflictingEntry() {
+        if (privateDrafts.recovery.value.phase !in setOf(WorkoutPrivatePhase.CONFLICT, WorkoutPrivatePhase.READ_FAILED) || mutating.value || saves.inFlight.value) return
+        mutating.value = true
+        viewModelScope.launch {
+            try {
+                durability?.discardEntry(sessionId)
+                saves.operation.value.command?.let(saves::clear)
+                draftCache.clear(sessionId)
+                savedDraft.clear(); savedEdit.clear(); editingOriginal = null; editingSetId.value = null
+                sessionNotes.resetUnhydrated(); selectedExerciseId.value = null; pendingResumeDraft = null
+                numberEntries.value = emptyList(); clocks.stopHold(); clocks.discardStopwatch()
+                authoredRevision = 0; draftDirty.value = false; liftReadiness.value = LiftEntryReadiness.NONE
+                privateDrafts.reopenAfterDiscard()
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (_: Exception) { privateDrafts.discardFailed() }
+            finally { mutating.value = false }
+        }
+    }
+
     private fun persistDraft() {
         if (sessionId.isBlank() || terminalExit || finished.value || session.value?.isFinished == true) return
+        if (durability?.ownsEntry(sessionId) == false) { privateDrafts.ownershipLost(); return }
         val exerciseId = selectedExerciseId.value
         val canSeed = draftDirty.value ||
             liftReadiness.value.allowsCommit() ||
@@ -2311,6 +2518,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
                 notes = sessionNotes.text.value,
                 editingSetId = editingSetId.value,
             )
+            stagePrivateEntry()
             return
         }
         val current = WorkoutDraft(
@@ -2331,6 +2539,7 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
         // process being killed while the phone sits in a pocket. Packet C upserts this
         // lift without dropping the others.
         savedDraft.write(current, editingSetId.value)
+        stagePrivateEntry()
     }
 
     private data class WorkoutCore(

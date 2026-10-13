@@ -1,6 +1,6 @@
 {
   "packet": "P03 — Custom-exercise reconstruction and Save recovery",
-  "state": "Verified candidate; final reviews and integration pending",
+  "state": "Closed — development, reviews and exact post-merge verification complete; physical acceptance P20",
   "base": "630f58f253db6dd899957be4d59ce1daa07a8ea5",
   "architecture": "ADR-033",
   "problem": "The custom editor did not durably reconstruct authored fields or reserve and inspect an uncertain Save.",
@@ -90,8 +90,8 @@
       ],
       "result": "PASS fresh complete local gate with fail-closed syntax launcher. App4393 and standalone1707 executed freshly; original false-green closeout explicitly rejected. Build, lint and Android-test APK passed without weakened checks."
     },
-    "nativeAppNav": "native01 plus native03 passed; archived source inventories describe uncommitted executed inputs. Final pinned gate and merge affected journey remain pending.",
-    "reviews": "Source/native obligations clear; exact final documentation candidate review verdicts pending. No accepted gate relies on full02 syntax output.",
+    "nativeAppNav": "native01/native03 and one fresh post-merge AppNav journey PASS. Scope and source identity archived; owner physical acceptance remains P20.",
+    "reviews": "Independent and adversarial exact-candidate PASS; no remaining critical/high/medium findings.",
     "native01": {
       "freshTests": 1,
       "sourceStable": true,
@@ -154,7 +154,21 @@
     },
     "syntaxRegressions": "Eight real-launcher startup/diagnostic cases plus the existing domain-lane classpath/parse/startup fixtures passed freshly in complete preflight. The actual bounded compiler emitted source diagnostics, completed parsing and reported no syntax findings."
   },
-  "integration": "Pending",
-  "next": "Close exact-candidate reviews, merge and run shortest affected AppNav journey, then P04 workout continuity.",
-  "remainingBlockingFindings": "No demonstrated unresolved critical/high source finding; exact final reviews and integration remain pending."
+  "integration": {
+    "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/495",
+    "candidate": "f07b42011a903240ae6ae5cfec9f6547769a046f",
+    "merge": "f7a403892e9028066b88819e9b2031a869d6d9e4",
+    "treeIdentical": true,
+    "normalMerge": true,
+    "postmergeGate": "Fresh static/build/lint invocation PASS; exact4393 app/1707 standalone executed evidence reused from full04. All1590inputs identical; no fresh tests claimed in this gate.",
+    "postmergeNative": "One fresh actual AppNav create/edit/correction with real IME PASS on owned API29, source1590stable.",
+    "gateSummarySha256": "30bd40a54d13d54116937dd2ab8996fed1a5a0645cc8787e5a68ac22ea00f9d4",
+    "nativeSummarySha256": "1cc6dda80e8f573f1719b3111189d5080c217c862806ff857f4b84ba8457a711",
+    "independent": "PASS exact candidate; archived reviews/independent.md",
+    "adversarial": "PASS exact candidate; archived reviews/adversarial.md",
+    "featureBranch": "Local retired after verified complete-history recovery bundle. Remote deletion was already performed by repository merge cleanup; absence verified.",
+    "hosted": "Jobs running at integration; no configured required checks. No hosted pass inferred."
+  },
+  "next": "P04 workout continuity; signed milestone A follows P10.",
+  "remainingBlockingFindings": "None within P03 development and integration scope."
 }

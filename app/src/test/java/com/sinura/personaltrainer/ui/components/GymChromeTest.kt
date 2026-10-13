@@ -44,7 +44,10 @@ class GymChromeTest {
         assertTrue(pinned.contains("fun PinnedDock("))
         assertTrue(pinned.contains("prelude"))
         val dock = readUi("workout/WorkoutDock.kt")
-        assertTrue(dock.contains("prelude = {"))
+        val inlinePrelude = dock.contains("prelude = {")
+        val typedPrelude = dock.contains("prelude = companion") &&
+            dock.contains("val companion: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit =")
+        assertTrue("the timer/feedback prelude remains on shared chrome", inlinePrelude || typedPrelude)
         assertTrue(dock.contains("WorkoutTestTags.TIMER_ROW"))
         assertTrue(dock.contains("volt = {"))
         assertTrue(dock.contains("PrimaryGymButton("))

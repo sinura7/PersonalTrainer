@@ -56,6 +56,7 @@ import com.sinura.personaltrainer.domain.WarmupSet
 import com.sinura.personaltrainer.domain.WeightConverter
 import com.sinura.personaltrainer.domain.WeightMeaning
 import com.sinura.personaltrainer.domain.WeightUnit
+import com.sinura.personaltrainer.workout.WorkoutNumberField
 import com.sinura.personaltrainer.domain.toWeightLabel
 import com.sinura.personaltrainer.ui.components.HairlineDivider
 import com.sinura.personaltrainer.ui.components.InstrumentPreset
@@ -117,6 +118,18 @@ internal fun WeightRepsEditor(
     var typingWeight by rememberSaveable { mutableStateOf(false) }
     var typingReps by rememberSaveable { mutableStateOf(false) }
     var typingHold by rememberSaveable { mutableStateOf(false) }
+    val numberOwner = LocalWorkoutNumbers.current?.exerciseId
+    val numberRetention = LocalWorkoutNumbers.current != null
+    val retainedWeight = retainedNumber(WorkoutNumberField.WEIGHT)
+    val retainedReps = retainedNumber(WorkoutNumberField.REPS)
+    val retainedHold = retainedNumber(WorkoutNumberField.HOLD_SECONDS)
+    LaunchedEffect(numberOwner, enabled, retainedWeight?.open, retainedReps?.open, retainedHold?.open) {
+        if (numberRetention) {
+            typingWeight = enabled && retainedWeight?.open == true
+            typingReps = enabled && retainedReps?.open == true
+            typingHold = enabled && retainedHold?.open == true
+        }
+    }
     LaunchedEffect(enabled) {
         if (!enabled) {
             typingWeight = false
@@ -286,14 +299,15 @@ internal fun WeightRepsEditor(
         }
     }
     if (typingWeight) {
+        val entryUnit = retainedWeight?.weightUnit ?: unit
         val keypadClass = when (meaning) {
             WeightMeaning.ADDED -> LoadClass.BODYWEIGHT_ADDED
             WeightMeaning.ASSISTANCE -> LoadClass.BODYWEIGHT_ASSISTED
             WeightMeaning.LIFTED, WeightMeaning.NONE -> LoadClass.LOADED
         }
-        NumberEntryDialog(
+        WorkoutNumberEntry(field = WorkoutNumberField.WEIGHT, unit = entryUnit) { NumberEntryDialog(
             title = meaning.fieldLabel,
-            unitLabel = unit.suffix,
+            unitLabel = entryUnit.suffix,
             // Seeded at display precision: what the parser reads and what Set would write.
             initial = WeightConverter.formatDisplayNumber(WeightConverter.toDisplayValue(weightKg, unit)),
             decimal = true,
@@ -301,14 +315,14 @@ internal fun WeightRepsEditor(
                 keypadClass,
                 UnloadedLoad.allowsZeroWorkingWeight(loadType, equipment, movementKey),
             ),
-            parse = { NumericEntry.parseWeightKg(it, unit) },
-            appliedValueLabel = { WeightConverter.formatLabel(it, unit) },
+            parse = { NumericEntry.parseWeightKg(it, entryUnit) },
+            appliedValueLabel = { WeightConverter.formatLabel(it, entryUnit) },
             onConfirm = { onWeightKgChange(it) },
             onDismiss = { typingWeight = false },
-        )
+        ) }
     }
     if (typingReps) {
-        NumberEntryDialog(
+        WorkoutNumberEntry(field = WorkoutNumberField.REPS) { NumberEntryDialog(
             title = "Reps",
             unitLabel = null,
             initial = reps.toString(),
@@ -317,10 +331,10 @@ internal fun WeightRepsEditor(
             parse = { NumericEntry.parseReps(it) },
             onConfirm = { onRepsChange(it) },
             onDismiss = { typingReps = false },
-        )
+        ) }
     }
     if (typingHold) {
-        NumberEntryDialog(
+        WorkoutNumberEntry(field = WorkoutNumberField.HOLD_SECONDS) { NumberEntryDialog(
             title = "Time",
             unitLabel = "s",
             initial = holdShown.coerceAtLeast(0).toString(),
@@ -329,7 +343,7 @@ internal fun WeightRepsEditor(
             parse = { NumericEntry.parseHoldSeconds(it) },
             onConfirm = { onSecondsChange(it) },
             onDismiss = { typingHold = false },
-        )
+        ) }
     }
 }
 

@@ -154,6 +154,9 @@ class SummaryCorrectionNavigationTest {
             .assertContentDescriptionEquals("reps 6")
         compose.onNode(matcher = hasText(text = "Save") and sheet)
             .performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+        // Pump the paused Main looper until the writer has acknowledged its IO fence and save.
+        // A blocking Room read here would otherwise prevent that Main continuation from running.
+        awaitAbsent(tag = SetEditTestTags.CONTENT)
 
         val expectedSet = originalSet.copy(reps = 6)
         val corrected = runBlocking(context = Dispatchers.IO) {
@@ -166,7 +169,6 @@ class SummaryCorrectionNavigationTest {
             expectedSet, corrected.sets.single())
         assertEquals("correction preserves the finished session and its planned work",
             finished.copy(sets = listOf(expectedSet)), corrected)
-        awaitAbsent(tag = SetEditTestTags.CONTENT)
 
         if (reconstructDetail) {
             val oldActivity = controller!!.get()

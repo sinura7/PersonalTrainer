@@ -26,11 +26,9 @@ version code and the stable distribution certificate must be verified before
 calling the drop available. This is an intermediate Debug delivery; the whole
 UX roadmap and physical acceptance are unfinished.
 
-**Progress estimate:** approximately **55% of the full UX roadmap**, with about
-45% remaining. This is an engineering planning estimate based on completed
-workout and core-screen packets and remaining journey/acceptance scope, not a
-measured percentage of app functionality. The app already contains the other
-areas; their redesign and complete acceptance remain open.
+**Earlier planning estimate, retained for history:** the approximately **55%** figure predates the accepted P01–P20 completion train. It is not a current measured usability percentage. Current progress follows the reconciled 97 criteria (96 required), with implementation, bounded automated evidence, whole-app integration and physical acceptance recorded separately in the existing backlog.
+
+P04’s verified candidate supplies durable workout entry, exact interrupted-save recovery and a complete same-session native journey. Ten assigned criteria have scoped automated evidence; integration is pending and physical acceptance remains P20. The original failures are retained alongside the final fresh app4433/standalone1707 and native67/process4 receipts. Latest signed delivery remains Debug125; Drop A follows P10.
 
 | Area | Implemented in the current integrated work | Remaining roadmap work |
 |---|---|---|

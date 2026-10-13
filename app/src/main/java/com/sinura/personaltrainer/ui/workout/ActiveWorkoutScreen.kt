@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -230,10 +231,12 @@ private fun ActiveWorkoutContent(
     val undoEntries by viewModel.undoEntries.collectAsStateWithLifecycle()
     val undoDwellMs by viewModel.undoDwellMs.collectAsStateWithLifecycle()
     val primaryState = viewModel.primaryAction.collectAsStateWithLifecycle()
+    val privateRecovery by viewModel.privateRecovery.collectAsStateWithLifecycle()
     val logReceipt by viewModel.logReceipt.collectAsStateWithLifecycle()
     val pendingLiftSwitch by viewModel.pendingLiftSwitch.collectAsStateWithLifecycle()
     var confirmEnd by rememberSaveable { mutableStateOf(false) }
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    var confirmEntryDiscard by rememberSaveable { mutableStateOf(false) }
     var liftSwitcherOpen by rememberSaveable { mutableStateOf(false) }
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var sessionSummaryOpen by rememberSaveable { mutableStateOf(false) }
@@ -337,7 +340,7 @@ private fun ActiveWorkoutContent(
     // Always composed, unlike the bottom bar. An error raised while no lift is selected —
     // a failed create from the picker in an empty free workout — previously had no reader at
     // all: it was written to state and rendered nowhere.
-    val logBarVisible = state.loadState == SessionLoadState.FOUND && session != null &&
+    val logBarVisible = privateRecovery.canEnter && state.loadState == SessionLoadState.FOUND && session != null &&
         (selected != null || state.save.pending)
 
     // The record's haptics and its acknowledgement live here rather than inside the banner:
@@ -448,10 +451,12 @@ private fun ActiveWorkoutContent(
     // before hoisting; a transient null tip must not reset restored saveable inputs.
     val floorTempoCardState = floorTempoTip?.let { rememberTempoCoachCardState(it.tipShort) }
 
+    CompositionLocalProvider(LocalWorkoutNumbers provides viewModel.numberEntry) {
     Scaffold(
         snackbarHost = {
-            val errorBanner = state.error != null && !logBarVisible
-            val undoTop = undoEntries.lastOrNull()?.offer.takeIf { !logBarVisible }
+            // Private recovery owns its message and actions, including while Check again loads.
+            val errorBanner = state.error != null && !logBarVisible && privateRecovery.canEnter
+            val undoTop = undoEntries.lastOrNull()?.offer.takeIf { !logBarVisible && privateRecovery.canEnter }
             if (errorBanner || undoTop != null) {
                 Column(
                     modifier = Modifier
@@ -572,6 +577,8 @@ private fun ActiveWorkoutContent(
                                 canLog = state.canLog,
                                 effortMissingForCommit = state.effortMissingForCommit,
                                 savePending = state.save.pending,
+                                keepEntry = privateRecovery.phase == WorkoutPrivatePhase.PRESERVATION_FAILED && !state.save.pending,
+                                keepingEntry = state.mutating || state.logging,
                                 error = state.error,
                                 suggestionUnavailable = state.suggestionUnavailable,
                                 showAnother = showAnother,
@@ -602,6 +609,7 @@ private fun ActiveWorkoutContent(
                                 ),
                             ),
                             events = WorkoutDockEvents(
+                                onKeepEntry = viewModel::keepPrivateEntry,
                                 onPrimary = { action ->
                                     val accepted = viewModel.performPrimary(action)
                                     if (accepted && action.kind == WorkoutPrimaryKind.FINISH) confirmEnd = true
@@ -636,6 +644,22 @@ private fun ActiveWorkoutContent(
         },
     ) { padding ->
         when {
+            privateRecovery.phase == WorkoutPrivatePhase.READ_FAILED || privateRecovery.phase == WorkoutPrivatePhase.CONFLICT -> {
+                Column(Modifier.padding(padding).verticalScroll(rememberScrollState()).padding(Metrics.gutter)) {
+                EmptyState(
+                    scene = EmptyScene.GONE,
+                    title = if (privateRecovery.phase == WorkoutPrivatePhase.CONFLICT) "Entry needs review" else "Entry unavailable",
+                    body = checkNotNull(privateRecovery.message),
+                    actionLabel = "Check again",
+                    onAction = viewModel::retrySession,
+                    compact = true,
+                )
+                TextButton(
+                    onClick = { confirmEntryDiscard = true },
+                    modifier = Modifier.heightIn(min = Metrics.touchMin),
+                ) { Text("Discard unfinished entry", style = InstrumentType.bodyStrong) }
+                }
+            }
             state.loadState == SessionLoadState.FAILED -> {
                 EmptyState(
                     scene = EmptyScene.GONE,
@@ -798,6 +822,8 @@ private fun ActiveWorkoutContent(
                                         WorkoutReadiness(
                                             action = primaryState.value,
                                             effortMissing = state.effortMissingForCommit,
+                                            resumed = privateRecovery.resumed,
+                                            keepEntry = privateRecovery.phase == WorkoutPrivatePhase.PRESERVATION_FAILED && !state.save.pending,
                                         )
                                     }
                                 }
@@ -1093,6 +1119,13 @@ private fun ActiveWorkoutContent(
         )
     }
 
+    if (confirmEntryDiscard) ConfirmActionDialog(
+        title = "Discard unfinished entry?",
+        body = "This clears the unfinished fields and pending save for this workout. Already saved sets stay saved.",
+        confirmLabel = "Discard entry", destructive = true,
+        onConfirm = { confirmEntryDiscard = false; viewModel.discardConflictingEntry() },
+        onDismiss = { confirmEntryDiscard = false },
+    )
     if (confirmDiscard) {
         val loggedSets = session?.sets?.size ?: 0
         ConfirmActionDialog(
@@ -1111,6 +1144,7 @@ private fun ActiveWorkoutContent(
             },
             onDismiss = { confirmDiscard = false },
         )
+    }
     }
 }
 

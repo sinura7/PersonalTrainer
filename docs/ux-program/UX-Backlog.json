@@ -2143,22 +2143,25 @@
         "F11"
       ],
       "requirement": "Rapid repeated activation while a write is pending commits one set.",
-      "status": "Not executed",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P04",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX03",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -2171,22 +2174,25 @@
         "F11"
       ],
       "requirement": "Warmup, bodyweight, added-weight and assisted movements show the correct labels and units; no universal '0 kg' assumption.",
-      "status": "Not executed",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P04",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX03",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -2199,22 +2205,25 @@
         "F11"
       ],
       "requirement": "Keyboard open at 360 dp and landscape leaves the active field and commit action reachable.",
-      "status": "Not executed",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P04",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX03",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -2227,22 +2236,25 @@
         "F11"
       ],
       "requirement": "Undo/edit/next transitions preserve exercise identity and announce accepted results once.",
-      "status": "Not executed",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P04",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX03",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -2485,7 +2497,7 @@
         "F10"
       ],
       "requirement": "8.5 reps is rejected rather than saved as 85; -50 kg is rejected rather than saved as 50.",
-      "status": "Executed (JVM lane: NumericEntryTest, ComposerCopyTest, TargetEntryTest); production-screen paste/keyboard pass pending",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
@@ -2494,15 +2506,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX06",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Baseline NumericEntryTest explicitly asserts these parser inputs; all UI callers remain separately open in UX06-AC04.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
         "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -2513,7 +2528,7 @@
         "F10"
       ],
       "requirement": "1.2.3 and 8e2 do not become different accepted values; 62,5 and 62.5 behave equivalently under the supported decimal policy.",
-      "status": "Executed (JVM lane: NumericEntryTest.ambiguousTextNeverBecomesADifferentAcceptedValue, blank/62,5 == 62.5)",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
@@ -2522,15 +2537,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX06",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Baseline NumericEntryTest explicitly asserts these parser inputs; all UI callers remain separately open in UX06-AC04.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
         "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -2541,7 +2559,7 @@
         "F10"
       ],
       "requirement": "Existing valid values survive unit conversion/round trips without drift beyond specified display precision.",
-      "status": "Executed (JVM lane: storedWeightsSurviveADisplayRoundTripWithinDisplayPrecision — ±0.05 kg / ±0.25 lb)",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "candidateCommit": "f528299 (branch claude/file-visibility-check-jraqc2, merged with trunk d77ca8c at 76ef74f). Earlier records named 8967888, which does not compile — see docs/archive/handoffs/HANDOFF-2026-09-07-UX.md §6.1.",
       "environment": "Linux x86_64, OpenJDK 21, Kotlin 2.0.21 JVM lane (tools/run-domain-tests.sh); no Android SDK, Gradle, Robolectric, emulator or device",
@@ -2550,15 +2568,18 @@
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX06",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -2590,7 +2611,10 @@
           "P14",
           "P17"
         ],
-        "closurePacket": "P19"
+        "closurePacket": "P19",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -2656,7 +2680,7 @@
         ],
         "closurePacket": "P16",
         "packetEvidence": {
-          "P03": "Custom-lift adoption verified at3cee02fb: full gate4393 fresh app/1707 fresh standalone; native16profile matrix, IME and two real force-stop/reopen pairs. Final reviews/integration pending; other named form packets and final criterion remain open. q01/p03-custom-lift-recovery-2026-10-12.json."
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
         }
       }
     },
@@ -2694,7 +2718,7 @@
         ],
         "closurePacket": "P16",
         "packetEvidence": {
-          "P03": "Custom-lift adoption verified at3cee02fb: full gate4393 fresh app/1707 fresh standalone; native16profile matrix, IME and two real force-stop/reopen pairs. Final reviews/integration pending; other named form packets and final criterion remain open. q01/p03-custom-lift-recovery-2026-10-12.json."
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
         }
       }
     },
@@ -2946,7 +2970,7 @@
         ],
         "closurePacket": "P03",
         "packetEvidence": {
-          "P03": "Custom-lift adoption verified at3cee02fb: full gate4393 fresh app/1707 fresh standalone; native16profile matrix, IME and two real force-stop/reopen pairs. Final reviews/integration pending; other named form packets and final criterion remain open. q01/p03-custom-lift-recovery-2026-10-12.json."
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
         }
       }
     },
@@ -2976,7 +3000,7 @@
         ],
         "closurePacket": "P03",
         "packetEvidence": {
-          "P03": "Custom-lift adoption verified at3cee02fb: full gate4393 fresh app/1707 fresh standalone; native16profile matrix, IME and two real force-stop/reopen pairs. Final reviews/integration pending; other named form packets and final criterion remain open. q01/p03-custom-lift-recovery-2026-10-12.json."
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
         }
       }
     },
@@ -3006,7 +3030,7 @@
         ],
         "closurePacket": "P03",
         "packetEvidence": {
-          "P03": "Custom-lift adoption verified at3cee02fb: full gate4393 fresh app/1707 fresh standalone; native16profile matrix, IME and two real force-stop/reopen pairs. Final reviews/integration pending; other named form packets and final criterion remain open. q01/p03-custom-lift-recovery-2026-10-12.json."
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json."
         }
       }
     },
@@ -3947,22 +3971,25 @@
         "F09"
       ],
       "requirement": "Repeated delivery/recreation of the same reminder intent does not stack duplicate live screens or start twice.",
-      "status": "Not executed",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P04",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX22",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -3974,22 +4001,25 @@
         "F09"
       ],
       "requirement": "Returning from system settings keeps the active session/draft and reflects the real permission result.",
-      "status": "Not executed",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P04",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX22",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -4001,22 +4031,25 @@
         "F09"
       ],
       "requirement": "Back from a completed summary cannot reopen the finished workout as live.",
-      "status": "Not executed",
+      "status": "P04 scoped automated evidence verified; P19 whole-app integration and P20 physical acceptance remain open",
       "evidenceRequired": "Record exact candidate commit, environment, steps, actual result and artifact/log. Do not mark passed from source reasoning alone.",
       "completion": {
         "owner": "P04",
         "integrationOwner": "P19",
         "physicalOwner": "P20",
         "evidenceRef": "completionPlan.groupEvidence.UX22",
-        "implementation": "Current bounded scope and remaining work in group evidence; no new behavior inferred.",
-        "automated": "Passing baseline suite cited; complete criterion-specific closure remains open.",
-        "physical": "Unobserved",
+        "implementation": "Workout recording/continuity implemented in P04 at 7d1d4d5186c3cec478dff129b729ac3192025d5d; exact behavior/evidence map in p04-workout-continuity-2026-10-12.json and independent-p04-acceptance-map.md.",
+        "automated": "Direct criterion-specific executed receipts mapped by independent review; fresh full05 app4433/standalone1707 and native-final03/process06 inputs reconciled. This is bounded workout evidence, not every cross-app caller or participant acceptance.",
+        "physical": "Unobserved — P20",
         "required": true,
-        "state": "Open",
+        "state": "Bounded automated evidence",
         "implementationPackets": [
           "P04"
         ],
-        "closurePacket": "P04"
+        "closurePacket": "P04",
+        "packetEvidence": {
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
+        }
       }
     },
     {
@@ -4063,7 +4096,8 @@
         ],
         "closurePacket": "P19",
         "packetEvidence": {
-          "P03": "Custom-lift adoption verified at3cee02fb: full gate4393 fresh app/1707 fresh standalone; native16profile matrix, IME and two real force-stop/reopen pairs. Final reviews/integration pending; other named form packets and final criterion remain open. q01/p03-custom-lift-recovery-2026-10-12.json."
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json.",
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
         }
       }
     },
@@ -4111,7 +4145,8 @@
         ],
         "closurePacket": "P19",
         "packetEvidence": {
-          "P03": "Custom-lift adoption verified at3cee02fb: full gate4393 fresh app/1707 fresh standalone; native16profile matrix, IME and two real force-stop/reopen pairs. Final reviews/integration pending; other named form packets and final criterion remain open. q01/p03-custom-lift-recovery-2026-10-12.json."
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json.",
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
         }
       }
     },
@@ -4159,7 +4194,8 @@
         ],
         "closurePacket": "P19",
         "packetEvidence": {
-          "P03": "Custom-lift adoption verified at3cee02fb: full gate4393 fresh app/1707 fresh standalone; native16profile matrix, IME and two real force-stop/reopen pairs. Final reviews/integration pending; other named form packets and final criterion remain open. q01/p03-custom-lift-recovery-2026-10-12.json."
+          "P03": "Custom-lift adoption integrated through PR495 atf7a40389. Fresh complete gate4393app/1707standalone; corrected syntax launcher/regressions; reviewed native16profile matrix, IME and two real force-stop/reopen pairs; both final reviews and exact post-merge gate+onefreshAppNav PASS. Cross-area/physical closure remains open. q01/p03-custom-lift-recovery-2026-10-12.json.",
+          "P04": "Workout adoption verified at 7d1d4d5186c3cec478dff129b729ac3192025d5d: fresh full05 app4433/standalone1707, actual AppNav/native67/process4, reviewed ownership/Retry/notes/Finish/Undo. Exact input/APK proof retained. Broader area, P19 integration and P20 physical closure remain open; q01/p04-workout-continuity-2026-10-12.json."
         }
       }
     },
@@ -4774,12 +4810,12 @@
       {
         "id": "P03",
         "title": "Custom-exercise reconstruction and Save recovery",
-        "state": "In progress"
+        "state": "Closed"
       },
       {
         "id": "P04",
         "title": "Complete workout continuity",
-        "state": "Open"
+        "state": "In progress"
       },
       {
         "id": "P05",

@@ -175,7 +175,9 @@ class ReopenMidPrefillTest {
         vm.awaitSettledOn(SQUAT, SQUAT_KG)
         vm.setNotes(OLDER_NOTES)
 
-        // Swap the squat for the press. The squat's entry, with the older words, stays behind.
+        val oldSquatDraft = checkNotNull(deps.workoutDraftCache.getLift(sessionId, SQUAT))
+        assertEquals(OLDER_NOTES, oldSquatDraft.notes)
+        // Swap now retires the replaced lift's entry rather than leaving an orphan behind.
         vm.requestSwap()
         vm.addExercise(press)
         deps.workoutRepository.awaitSession(sessionId) {
@@ -188,10 +190,9 @@ class ReopenMidPrefillTest {
         vm.setNotes(NEWER_NOTES)
         pauseTyping()
         deps.workoutRepository.awaitSession(sessionId) { it.notes == NEWER_NOTES }
-        assertEquals(
-            "precondition: the swapped-out squat's entry is still cached with the older notes",
-            OLDER_NOTES,
-            deps.workoutDraftCache.getLift(sessionId, SQUAT)?.notes,
+        assertNull(
+            "the swapped-out squat's entry is retired",
+            deps.workoutDraftCache.getLift(sessionId, SQUAT),
         )
 
         // Remove the press: the workout has no lifts, so nothing is selected when Back is pressed.
@@ -201,6 +202,12 @@ class ReopenMidPrefillTest {
             it.session?.exercises?.isEmpty() == true && it.selectedExerciseId == null && !it.entryLocked
         }
         leave(vm)
+
+        // Reconstruct the legacy orphan condition without changing the authoritative session
+        // notes. A stale cache copy must remain harmless even though normal swaps now remove it.
+        deps.workoutDraftCache.replaceAll(sessionId, mapOf(SQUAT to oldSquatDraft), null)
+        assertEquals(OLDER_NOTES, deps.workoutDraftCache.getLift(sessionId, SQUAT)?.notes)
+        assertEquals(NEWER_NOTES, deps.workoutDraftCache.sessionNotes(sessionId))
 
         val mark = notesWrites.size
         val state = viewModel(sessionId).awaitState {

@@ -213,7 +213,7 @@ internal class CustomExerciseDrafts(
     }
 
     private fun <D, C> available(value: DraftRead<D, C>): DraftCheckpoint<D, C> =
-        (value as? DraftRead.Available)?.checkpoint ?: error("Private draft unavailable")
+        (value as? DraftRead.PresentCheckpoint)?.checkpoint ?: error("Private draft unavailable")
     private fun <D, C> written(value: DraftChange<D, C>): DraftCheckpoint<D, C> =
         (value as? DraftChange.Written)?.checkpoint ?: error("Private checkpoint not confirmed")
 

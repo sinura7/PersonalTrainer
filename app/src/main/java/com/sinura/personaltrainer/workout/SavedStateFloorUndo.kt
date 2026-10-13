@@ -9,8 +9,9 @@ import com.sinura.personaltrainer.domain.UndoKind
  * Packet G: the undo queue survives process death.
  *
  * Mirrors the [UndoEntry] stack into [SavedStateHandle] as primitives — operation type, ids
- * and columns, plus the captured receipt line — so a force-stop during the undo window still
- * offers the reversal on return. No database schema: logged sets are already in Room and
+ * and columns, plus the captured receipt line — for Android-provided state restoration.
+ * Completed private workout checkpoints complement this after ordinary task closure.
+ * No database schema: logged sets are already in Room and
  * remain the source of truth; this only re-holds the tokens that name them.
  *
  * The dwell in force when the process died is restored alongside, so the offer does not come
