@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -29,6 +31,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import com.sinura.personaltrainer.data.draft.RememberedHomeDay
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sinura.personaltrainer.domain.DailyAgenda
@@ -57,6 +60,7 @@ import com.sinura.personaltrainer.ui.components.GymErrorBanner
 import com.sinura.personaltrainer.ui.components.GymUndoHost
 import com.sinura.personaltrainer.ui.components.Kicker
 import com.sinura.personaltrainer.ui.components.NumberEntryDialog
+import com.sinura.personaltrainer.ui.components.OutlinedMarks
 import com.sinura.personaltrainer.ui.components.ResumeOrDiscardDialog
 import com.sinura.personaltrainer.ui.components.ScreenLoading
 import com.sinura.personaltrainer.ui.components.WeekStrip
@@ -94,6 +98,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val dayMemory by viewModel.rememberedDay.snapshot.collectAsStateWithLifecycle()
     val starting by viewModel.startState.collectAsStateWithLifecycle()
     // Capture the action that this frame actually presents. A delegated State read
     // inside an old callback would otherwise turn its Start into a later Retry.
@@ -141,6 +146,21 @@ fun HomeScreen(
     }
     val today = LocalTodayEpochDay.current
     var selectedEpochDay by rememberSaveable { mutableLongStateOf(today) }
+    var selectedByUser by rememberSaveable { mutableStateOf(selectedEpochDay != today) }
+    var dayMemoryApplied by rememberSaveable { mutableStateOf(false) }
+    var dayResumed by rememberSaveable { mutableStateOf(false) }
+    var dayPicker by remember { mutableStateOf(false) }
+    var resetDayConfirm by remember { mutableStateOf(false) }
+    val selectDay: (Long) -> Unit = { day ->
+        if (viewModel.canEditStartChoice() &&
+            viewModel.rememberedDay.choose(RememberedHomeDay(day, today))
+        ) {
+            selectedEpochDay = day
+            selectedByUser = true
+            dayResumed = false
+            dayPicker = false
+        }
+    }
     val weekStripState = rememberWeekStripState()
     var lastToday by rememberSaveable { mutableLongStateOf(today) }
     var startSheet by rememberSaveable { mutableStateOf(false) }
@@ -195,19 +215,51 @@ fun HomeScreen(
     // Saveable selection and modal state stay mounted even before a usable board exists.
     // Temporary unread/default week values never clamp a chosen day.
     LaunchedEffect(today) {
-        if (selectedEpochDay == lastToday) selectedEpochDay = today
+        if (selectedEpochDay == lastToday) {
+            selectedEpochDay = today
+            if (dayMemoryApplied && today != lastToday) {
+                viewModel.rememberedDay.choose(RememberedHomeDay(today, today))
+            }
+        }
         lastToday = today
+    }
+    LaunchedEffect(dayMemory.loaded, dayMemory.restored, dayMemory.error, state.readState, state.weekStartEpochDay) {
+        if (dayMemoryApplied || !dayMemory.loaded || dayMemory.error != null ||
+            state.readState != HomeReadState.CURRENT
+        ) return@LaunchedEffect
+        val remembered = dayMemory.restored
+        if (!selectedByUser && remembered != null) {
+            val restored = if (remembered.selectedEpochDay == remembered.todayEpochDay) today else remembered.selectedEpochDay
+            selectedEpochDay = restored.takeIf { it in state.weekStartEpochDay..(state.weekStartEpochDay + 6) }
+                ?: today.coerceIn(state.weekStartEpochDay, state.weekStartEpochDay + 6)
+            dayResumed = restored == selectedEpochDay
+        }
+        dayMemoryApplied = true
+    }
+    LaunchedEffect(dayMemory.resetSerial) {
+        if (viewModel.rememberedDay.consumeReset(dayMemory.resetSerial)) {
+            selectedEpochDay = today
+            selectedByUser = false
+            dayResumed = false
+        }
     }
     LaunchedEffect(state.readState, state.weekStartEpochDay, today) {
         if (state.readState != HomeReadState.CURRENT) return@LaunchedEffect
         val start = state.weekStartEpochDay
         val end = start + 6
-        if (selectedEpochDay !in start..end) selectedEpochDay = today.coerceIn(start, end)
+        if (selectedEpochDay !in start..end) {
+            selectedEpochDay = today.coerceIn(start, end)
+            dayResumed = false
+            if (dayMemoryApplied) viewModel.rememberedDay.choose(RememberedHomeDay(selectedEpochDay, today))
+        }
     }
     LaunchedEffect(focusEpochDay, starting.pending) {
         if (starting.pending) return@LaunchedEffect
         val day = focusEpochDay ?: return@LaunchedEffect
         selectedEpochDay = day
+        selectedByUser = true
+        dayResumed = false
+        viewModel.rememberedDay.choose(RememberedHomeDay(day, today))
         viewModel.onFocusEpochDayHandled()
     }
 
@@ -363,6 +415,32 @@ fun HomeScreen(
     )
     val weekCells = remember(weekStart, state.occurrences, state.rules, names) {
         WeekBoard.forWeek(weekStart, state.occurrences, state.rules, names)
+    }
+    if (dayPicker && !startSheet && plannedStartPending == null && fallbackStartPending == null &&
+        blockedOwner == null && !weighingIn && !starting.pending && !resetDayConfirm
+    ) {
+        HomeDayPicker(
+            cells = weekCells, selected = selectedEpochDay, today = today,
+            enabled = state.mutationEnabled && !dayMemory.resetting,
+            canSelect = { viewModel.canEditStartChoice() && !viewModel.rememberedDay.snapshot.value.resetting },
+            onSelect = selectDay, onDismiss = { dayPicker = false },
+            recovery = recoveryContent,
+        )
+    }
+    if (resetDayConfirm) {
+        ConfirmActionDialog(
+            title = "Reset the remembered day?",
+            body = "Home will open on today. Your workouts and schedule stay saved.",
+            confirmLabel = "Reset day",
+            onConfirm = {
+                resetDayConfirm = false
+                dayPicker = false
+                viewModel.rememberedDay.reset()
+            },
+            onDismiss = { resetDayConfirm = false },
+            confirmEnabled = !dayMemory.saving,
+            canConfirm = { !viewModel.rememberedDay.snapshot.value.saving },
+        )
     }
     val dayKicker = if (selectedEpochDay == today) {
         "Today"
@@ -644,16 +722,40 @@ fun HomeScreen(
                         selectedEpochDay = selectedEpochDay,
                         todayEpochDay = today,
                         weekStartEpochDay = weekStart,
-                    )?.let { target -> { selectedEpochDay = target } },
+                    )?.let { target -> { selectDay(target) } },
+                    onChooseDay = { if (viewModel.canEditStartChoice() && !dayMemory.resetting) dayPicker = true },
+                    dateSelectionEnabled = state.mutationEnabled && !dayMemory.resetting,
                 )
                 WeekStrip(
                     cells = weekCells,
                     today = today,
                     selected = selectedEpochDay,
-                    onSelectDay = { if (viewModel.canEditStartChoice()) selectedEpochDay = it },
+                    onSelectDay = selectDay,
                     stripState = weekStripState,
                     flat = true,
                 )
+                if (dayResumed) Text("Selected day restored.", style = InstrumentType.caption, color = TextSecondary)
+                if (dayMemory.saving) {
+                    Text("Keeping your day…", style = InstrumentType.caption, color = TextSecondary,
+                        modifier = Modifier.testTag(HomeDayTags.SAVING))
+                }
+                dayMemory.error?.let { message ->
+                    Column(modifier = Modifier.testTag(HomeDayTags.ERROR)) {
+                        Text(message, style = InstrumentType.caption, color = TextSecondary)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
+                            TextButton(onClick = viewModel.rememberedDay::retry, enabled = !dayMemory.saving,
+                                modifier = Modifier.testTag(HomeDayTags.RETRY)) {
+                                Text("Try again", style = InstrumentType.bodyStrong, color = TextSecondary)
+                            }
+                            if (dayMemory.needsReset) {
+                                TextButton(onClick = { resetDayConfirm = true }, enabled = !dayMemory.saving,
+                                    modifier = Modifier.testTag(HomeDayTags.RESET)) {
+                                    Text("Reset remembered day", style = InstrumentType.bodyStrong, color = TextSecondary)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         state.error?.let { message ->
@@ -1015,6 +1117,8 @@ internal fun HomeMasthead(
     epochDay: Long,
     headline: String,
     onBackToToday: (() -> Unit)? = null,
+    onChooseDay: (() -> Unit)? = null,
+    dateSelectionEnabled: Boolean = true,
 ) {
     val dateLine = remember(epochDay) {
         DateCopy.weekdayFullDate(LocalDate.ofEpochDay(epochDay))
@@ -1030,18 +1134,28 @@ internal fun HomeMasthead(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(
+            val dateText: @Composable (Modifier) -> Unit = { textModifier -> Text(
                 text = dateLine.uppercase(Locale.ENGLISH),
                 style = InstrumentType.kicker,
                 color = TextSecondary,
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
+                modifier = textModifier
                     .testTag(HomeTags.DATE)
                     .semantics {
                         heading()
                         contentDescription = dateLine
                     },
-            )
+            ) }
+            if (onChooseDay == null) dateText(Modifier.align(Alignment.CenterVertically)) else {
+                TextButton(
+                    onClick = onChooseDay, enabled = dateSelectionEnabled,
+                    modifier = Modifier.heightIn(min = Metrics.touchMin).testTag(HomeDayTags.CHOOSE)
+                        .semantics { contentDescription = "Choose a day in this week" },
+                ) {
+                    dateText(Modifier.weight(1f, fill = false))
+                    Icon(OutlinedMarks.ExpandMore, contentDescription = null, tint = TextSecondary,
+                        modifier = Modifier.padding(start = Metrics.space1).size(Metrics.chevron))
+                }
+            }
             if (onBackToToday != null) {
                 TextButton(
                     onClick = onBackToToday,
