@@ -231,7 +231,7 @@ fun SetEditSheet(
                 enabled = !saveState.pending && allowEntry,
                 onClick = { updateValues { it.copy(isWarmup = !it.isWarmup) } },
             )
-            (saveState.message ?: validationMessage ?: privateState?.message)?.let { message ->
+            (saveState.message ?: validationMessage ?: privateState?.message?.takeIf { allowEntry || submitted != null })?.let { message ->
                 Text(message, style = InstrumentType.body, color = Danger,
                     modifier = Modifier.testTag("set-edit-save-error").semantics { liveRegion = LiveRegionMode.Polite })
             }
@@ -258,14 +258,14 @@ fun SetEditSheet(
                     Text(if (saveState.phase == WorkoutSavePhase.CONFLICT) "Review saved sets" else "Edit values", style = InstrumentType.bodyStrong, color = TextPrimary)
                 }
             }
-            if (privateForm != null) {
+            if (privateForm != null && (allowEntry || submitted != null)) {
                 if (privateState?.resumed == true) Text("Resumed unfinished set", style = InstrumentType.caption, color = TextPrimary)
                 if (privateState?.message != null) TextButton(onClick = { readPrivate?.invoke() ?: privateForm.readAgain() },
                     enabled = !saveState.busy && !privateForm.isClosing, modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin)) {
                     Text("Read again", style = InstrumentType.bodyStrong, color = TextPrimary)
                 }
             }
-            if (privateForm != null) {
+            if (privateForm != null && (allowEntry || submitted != null)) {
                 TextButton(onClick = { discardPrivate?.invoke() ?: privateForm.discard {} }, enabled = !saveState.busy && !privateForm.isClosing,
                     modifier = Modifier.fillMaxWidth().heightIn(min = Metrics.touchMin).testTag("set-edit-discard-draft")) {
                     Text("Discard unfinished edit", style = InstrumentType.bodyStrong, color = TextPrimary)

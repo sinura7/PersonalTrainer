@@ -60,12 +60,12 @@ internal fun HistoricalSetRecovery(
             }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Metrics.space2)) {
-            if (formState.draft != null) TextButton(onClick = onResume, enabled = enabled,
-                modifier = Modifier.heightIn(min = Metrics.touchMin)) { Text("Resume edit") }
+            if (formState.draft != null && !formState.visible) TextButton(onClick = onResume, enabled = enabled,
+                modifier = Modifier.heightIn(min = Metrics.touchMin)) { Text("Resume edit", color = TextPrimary) }
             TextButton(onClick = onRead, enabled = enabled, modifier = Modifier.heightIn(min = Metrics.touchMin)
-                .testTag("historical-set-read-again")) { Text("Read again") }
+                .testTag("historical-set-read-again")) { Text("Read again", color = TextPrimary) }
             TextButton(onClick = onDiscard, enabled = enabled, modifier = Modifier.heightIn(min = Metrics.touchMin)
-                .testTag("historical-set-discard")) { Text("Discard unfinished edit") }
+                .testTag("historical-set-discard")) { Text("Discard unfinished edit", color = TextSecondary) }
         }
     }
 }

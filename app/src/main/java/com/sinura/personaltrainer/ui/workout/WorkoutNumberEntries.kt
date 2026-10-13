@@ -20,7 +20,7 @@ internal interface WorkoutNumberEntries {
     val exerciseId: String?
     fun put(value: WorkoutNumberDraft)
     fun clear(field: WorkoutNumberField)
-    fun allowsInput(): Boolean = true
+    fun allowsInput(): Boolean
 }
 internal val LocalWorkoutNumbers = staticCompositionLocalOf<WorkoutNumberEntries?> { null }
 

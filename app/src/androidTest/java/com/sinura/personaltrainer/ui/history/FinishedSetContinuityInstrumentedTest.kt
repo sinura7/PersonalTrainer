@@ -1,7 +1,7 @@
 package com.sinura.personaltrainer.ui.history
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -148,9 +148,9 @@ class FinishedSetContinuityInstrumentedTest {
             compose.onNodeWithTag(SessionDetailTestTags.CONTENT).performScrollToNode(hasTestTag(SessionDetailTestTags.EDIT_SET))
             compose.onNodeWithTag(SessionDetailTestTags.EDIT_SET).performClick()
             awaitTag(SetEditTestTags.CONTENT)
-            compose.onNodeWithText("9").performClick()
+            compose.onNodeWithText("9").performScrollTo().performClick()
             awaitTag("Type a weight")
-            compose.onNodeWithTag("Type a weight").performClick()
+            compose.onNodeWithTag("Type a weight").performScrollTo().performClick()
             awaitTag(NumberEntryTags.FIELD)
             compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement(raw)
             compose.waitUntil(30_000) { privateDraft()?.numbers?.singleOrNull()?.text == raw }
@@ -163,7 +163,7 @@ class FinishedSetContinuityInstrumentedTest {
             }
         } else {
             awaitTag(NumberEntryTags.FIELD)
-            compose.onNodeWithTag(NumberEntryTags.FIELD).assertTextEquals(raw)
+            assertEquals(raw, compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
             compose.onNodeWithText("lb").assertIsDisplayed()
             assertEquals(WeightUnit.LBS, privateDraft()?.numbers?.single()?.weightUnit)
             capture("raw-after-reopen-with-kg-preference")
@@ -173,7 +173,7 @@ class FinishedSetContinuityInstrumentedTest {
         compose.onNodeWithTag(NumberEntryTags.CONFIRM).performClick()
         compose.waitUntil(30_000) { compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD)).fetchSemanticsNodes().isEmpty() }
         awaitTag(SetEditTestTags.CONTENT)
-        compose.onNodeWithTag("Type a rep count").performClick()
+        compose.onNodeWithTag("Type a rep count").performScrollTo().performClick()
         awaitTag(NumberEntryTags.FIELD)
         compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement("6")
         compose.onNodeWithTag(NumberEntryTags.CONFIRM).performClick()

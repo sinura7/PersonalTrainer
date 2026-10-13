@@ -18,6 +18,10 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.performScrollToNode
 import com.sinura.personaltrainer.domain.ExerciseSessionSummary
 import com.sinura.personaltrainer.domain.ExerciseSetRecord
 import com.sinura.personaltrainer.domain.HistoryKind
@@ -26,6 +30,7 @@ import com.sinura.personaltrainer.domain.PersonalRecordKind
 import com.sinura.personaltrainer.domain.WeightUnit
 import com.sinura.personaltrainer.testutil.NativeArtifacts
 import com.sinura.personaltrainer.ui.exercise.RecordsCard
+import com.sinura.personaltrainer.ui.exercise.ExerciseTrendCard
 import com.sinura.personaltrainer.ui.theme.PersonalTrainerTheme
 import com.sinura.personaltrainer.ui.theme.Pit
 import java.time.LocalDate
@@ -74,6 +79,33 @@ class RecordSourceInstrumentedTest {
         compose.onNodeWithText("Supporting session unavailable").assertIsDisplayed()
         compose.onNodeWithTag("record-source-REPS").assertDoesNotExist()
         capture("record-source-bodyweight-missing")
+    }
+
+    @Test fun irregularSessionDatesDiscloseEqualSpacingAndHaveExactEquivalentValues() {
+        val tag = "p07-irregular-session-trend"
+        val dates = listOf(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 2), LocalDate.of(2026, 4, 1))
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                PersonalTrainerTheme {
+                    Column(Modifier.fillMaxSize().background(Pit).verticalScroll(rememberScrollState())) {
+                        ExerciseTrendCard(title = "Estimated 1RM", values = listOf(60.0, 65.0, 70.0),
+                            epochDays = dates.map { it.toEpochDay() }, pointNoun = "session", hint = "Recorded estimates",
+                            measure = "kg", line = true, grouped = false, tag = tag)
+                    }
+                }
+            }
+        }
+        compose.onNodeWithText("Recorded sessions · equal spacing · focused scale").performScrollTo().assertIsDisplayed()
+        capture("irregular-session-spacing")
+        compose.onNodeWithTag("$tag-values").performScrollTo().performClick()
+        for ((date, value) in listOf("1 January 2026" to "60 kg", "2 January 2026" to "65 kg", "1 April 2026" to "70 kg")) {
+            compose.onNodeWithTag("$tag-data-list").performScrollToNode(hasText(date))
+            compose.onNode(hasText(date) and hasAnyAncestor(hasTestTag("$tag-data"))).assertIsDisplayed()
+            compose.onNode(hasText(value) and hasAnyAncestor(hasTestTag("$tag-data"))).assertIsDisplayed()
+        }
+        NativeArtifacts.write("notes-irregular-session-exact-values", compose.onNodeWithTag("$tag-data").captureToImage().asAndroidBitmap())
+        compose.onNodeWithTag("$tag-close").performClick()
     }
 
     private fun capture(name: String) {

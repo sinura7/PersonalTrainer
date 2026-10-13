@@ -502,6 +502,8 @@ class ActiveWorkoutViewModel @JvmOverloads constructor(
     internal val numberEntry = object : WorkoutNumberEntries {
         override val entries: StateFlow<List<com.sinura.personaltrainer.workout.WorkoutNumberDraft>> = numberEntries.asStateFlow()
         override val exerciseId: String? get() = selectedExerciseId.value
+        // Live input keeps its existing per-operation guards; every implementation owns this contract.
+        override fun allowsInput(): Boolean = true
         override fun put(value: com.sinura.personaltrainer.workout.WorkoutNumberDraft) {
             if (!canChangeEntry() || value.exerciseId != exerciseId) return
             numberEntries.value = numberEntries.value.filterNot { it.exerciseId == value.exerciseId && it.field == value.field }
