@@ -4815,7 +4815,7 @@
       {
         "id": "P04",
         "title": "Complete workout continuity",
-        "state": "In progress"
+        "state": "Closed"
       },
       {
         "id": "P05",
@@ -5104,7 +5104,8 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.ReminderStartOverAScreenTest.xml",
         "baselineExecutedTests": 3,
         "scope": "Existing reminder/live routing; all repeated-intent, finished-stack and permission-return branches remain.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "correctiveEvidence": "P04 PR497 d770ea76a99c656804edcb77a88e20e9a8a09aaf: fresh complete app4437/standalone1707, native20/process4, exact identities and pinned reviews. One hosted custom Close observation remains explicitly unresolved for P19; physical acceptance remains P20."
       },
       "UX23": {
         "primaryPacket": "P02",
