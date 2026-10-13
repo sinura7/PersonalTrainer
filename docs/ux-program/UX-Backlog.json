@@ -4820,7 +4820,7 @@
       {
         "id": "P05",
         "title": "Complete Home states and return paths",
-        "state": "In progress"
+        "state": "Verified; integration pending"
       },
       {
         "id": "P06",
@@ -4915,7 +4915,8 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.home.HomeStartCommandOwnershipTest.xml",
         "baselineExecutedTests": 9,
         "scope": "Integrated Home agenda/start recovery; remaining day-state and real-navigation criteria.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "p05Contribution": "P05 2b956ad4a8b55e9492d15c424bc7994bfb47f052: fresh full app 4449 / standalone 1707, native 18, process 2 and one 360×640/font-2 Home journey with identical execution inputs/APKs and two pinned reviews. Completed strength/cardio return, private Retry/Reset, current-day Start and same-live-id mechanically verified. Scope is limited to this Home contribution; participant interpretation, wider capture modes and whole-app closure remain with their assigned P13/P14/P19/P20 owners."
       },
       "UX02": {
         "primaryPacket": "P05",
@@ -4924,7 +4925,8 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.activity.ActivityComposerViewModelTest.xml",
         "baselineExecutedTests": 14,
         "scope": "Existing manual composer and Home chooser; complete type discovery, live conflicts and AppNav branches.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "p05Contribution": "P05 2b956ad4a8b55e9492d15c424bc7994bfb47f052: fresh full app 4449 / standalone 1707, native 18, process 2 and one 360×640/font-2 Home journey with identical execution inputs/APKs and two pinned reviews. Completed strength/cardio return, private Retry/Reset, current-day Start and same-live-id mechanically verified. Scope is limited to this Home contribution; participant interpretation, wider capture modes and whole-app closure remain with their assigned P13/P14/P19/P20 owners."
       },
       "UX03": {
         "primaryPacket": "P04",
@@ -5014,7 +5016,8 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.ui.history.HistoryCalendarBoundaryRenderTest.xml",
         "baselineExecutedTests": 2,
         "scope": "Home/Plan date geometry and captured History repaired; full calendar/AppNav status acceptance remains.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "p05Contribution": "P05 2b956ad4a8b55e9492d15c424bc7994bfb47f052: fresh full app 4449 / standalone 1707, native 18, process 2 and one 360×640/font-2 Home journey with identical execution inputs/APKs and two pinned reviews. Completed strength/cardio return, private Retry/Reset, current-day Start and same-live-id mechanically verified. Scope is limited to this Home contribution; participant interpretation, wider capture modes and whole-app closure remain with their assigned P13/P14/P19/P20 owners."
       },
       "UX13": {
         "primaryPacket": "P08",
@@ -5114,7 +5117,8 @@
         "baselineSuite": "TEST-com.sinura.personaltrainer.data.repository.FlowGuardsTest.xml",
         "baselineExecutedTests": 14,
         "scope": "Integrated Home/History/Library read health and errors; remaining all-surface residue is owned by its area packet.",
-        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation."
+        "limitation": "The passing suite is bounded module evidence; it does not close every acceptance criterion or participant interpretation.",
+        "p05Contribution": "P05 2b956ad4a8b55e9492d15c424bc7994bfb47f052: fresh full app 4449 / standalone 1707, native 18, process 2 and one 360×640/font-2 Home journey with identical execution inputs/APKs and two pinned reviews. Completed strength/cardio return, private Retry/Reset, current-day Start and same-live-id mechanically verified. Scope is limited to this Home contribution; participant interpretation, wider capture modes and whole-app closure remain with their assigned P13/P14/P19/P20 owners."
       },
       "UX24": {
         "primaryPacket": "P19",

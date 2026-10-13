@@ -1,6 +1,6 @@
 {
   "packet": "P05",
-  "state": "Implementation and bounded native recovery verified; final full gate, review seals and integration pending",
+  "state": "Verified for integration; actual trunk journey remains required before P06",
   "base": "830f82a8d9640994053186001a11fa4e04365398",
   "architecture": [
     "ADR-017",
@@ -26,7 +26,19 @@
       "app": "137D0BC14C07E48434E3AA06DD50C08A358C3EDEDF8AD7A998D5D5D15B15D3FE",
       "tests": "E8B1B18B7C14F6D3284DCE415FBBC349D654A6677F2932E654AF947CE3CB7E44"
     },
-    "physical": "Unobserved; P20 after development. No usability percentage or physical performance inferred."
+    "physical": "Unobserved; P20 after development. No usability percentage or physical performance inferred.",
+    "fullGate": {
+      "archive": "build/ux-context/runs/home-continuity/full01",
+      "freshAppTests": 4449,
+      "freshXml": 604,
+      "freshStandaloneTests": 1707,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "tasks": "Complete tools/preflight.sh and unfiltered testDebugUnitTest --rerun, assembleDebug (including release), lintDebug, assembleDebugAndroidTest.",
+      "identity": "All1608 execution inputs, original XML/log hashes and current/archived native APKs verified identical."
+    },
+    "reviews": "Unique independent and adversarial final seals pin the candidate/evidence; zero remaining critical/high findings."
   },
   "criterionScope": {
     "UX01-AC01": "Existing planned/free copy, confirmations and distinct callbacks retained; native connected planned routine and free starts. Participant interpretation remains P20.",
@@ -46,5 +58,33 @@
     "target04: static design-token ratchet rejected before tests; use existing Metrics.chevron, no baseline increase.",
     "large-home01:one failed display assertion after Reset retained agenda scroll; reveal the date before inspection. Direct Retry/Reset/Date reachability remains asserted."
   ],
-  "boundaries": "No Room schema, public API, backup format, version code or distribution signer change. Latest signed Debug125; Drop A after P10. Full UX programme and physical acceptance remain open."
+  "boundaries": "No Room schema, public API, backup format, version code or distribution signer change. Latest signed Debug125; Drop A after P10. Full UX programme and physical acceptance remain open.",
+  "candidate": "2b956ad4a8b55e9492d15c424bc7994bfb47f052",
+  "nativePreviews": [
+    "assets/p05-home-current-2026-10-13.png",
+    "assets/p05-day-picker-font20-2026-10-13.png"
+  ],
+  "next": "Merge exact candidate and rerun the shortest affected actual Home AppNav journey; then P06. Drop A after P10; whole-app integration P19 and physical acceptance P20 remain open.",
+  "followupFindings": [
+    {
+      "owner": "P07",
+      "priority": "Low",
+      "observation": "Current native Home completed cardio row repeats equivalent duration copy (10 min \u00b7 10 min) for this synthetic Walk fixture.",
+      "evidence": "assets/p05-home-current-2026-10-13.png",
+      "scope": "Existing readout copy; no changed values or failed writes demonstrated. Reconcile typed detail/receipt formatting in P07 rather than expand P05."
+    }
+  ],
+  "supplementalNativeLimitations": [
+    {
+      "owner": "P19",
+      "priority": "Medium",
+      "run": 38357557391,
+      "source": "9aea8b87bb72fc4a3002eab2f3b6b970ea445d7d",
+      "result": "262 executed; one ConnectedWorkoutJourneyInstrumentedTest pre-touch Add another set visibility assertion failed. Original log and source/job metadata archived.",
+      "classification": "No persistent production critical/high defect demonstrated. The fixture waits for durable set count but immediately asserts the rendered dock action; publication race is plausible, not established without the failure frame.",
+      "followup": "Record failure-frame dock state, semantics and geometry; wait for the public rendered-ready extra-set state while retaining actual click/visibility and exact saved-row checks.",
+      "counterevidence": "Peer hosted run38357561656 and current native05 passed; those do not erase this failure or establish a host-only cause.",
+      "review": "reviews/p05-hosted-another-set-supplement.md"
+    }
+  ]
 }
