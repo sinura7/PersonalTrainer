@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsActions
@@ -39,6 +41,7 @@ import com.sinura.personaltrainer.ui.units.LocalWeightUnit
 import com.sinura.personaltrainer.workout.SavedStateWorkoutSave
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -56,12 +59,17 @@ class WorkoutCompletionLayoutInstrumentedTest(
     @get:Rule val compose = createComposeRule()
     private val fixture = WorkoutEntryFixture()
     private var effortSelection = 0
+    private val exits = AtomicInteger()
+    private val modelGeneration = mutableStateOf(0)
     @After fun cleanup() = fixture.close()
 
     @Test fun primaryActionAndRecoveryRemainReachable() {
         // Edit-denied plans two sets so one is still to come after the edit stands down: a
         // complete dock (Next or Finish) deliberately gives the honesty row no room.
-        fixture.seed(targetSets = if (scenario == "edit-denied") 2 else 1)
+        // Removed-command recovery starts without a raw private checkpoint. A checkpoint
+        // whose owner changed has a separate conflict/discard contract, not Review save.
+        fixture.seed(targetSets = if (scenario == "edit-denied") 2 else 1,
+            startViewModel = !scenario.startsWith("removed"))
         if (scenario == "next" || scenario == "removed-owner") fixture.addNextExercise(longName = true, targetSets = 3)
         val repo = fixture.container.workoutRepository
         val sessionId = fixture.sessionId
@@ -88,8 +96,10 @@ class WorkoutCompletionLayoutInstrumentedTest(
             CompositionLocalProvider(LocalWeightUnit provides WeightUnit.KG) {
                 Scaffold(bottomBar = { Column {} }) { padding ->
                     Box(Modifier.padding(padding).consumeWindowInsets(padding)) {
-                        ActiveWorkoutScreen(onExit = {}, onFinished = {}, viewModel = fixture.vm,
-                            restNotificationsEnabledOverride = scenario != "edit-denied")
+                        key(modelGeneration.value) {
+                            ActiveWorkoutScreen(onExit = { exits.incrementAndGet() }, onFinished = {}, viewModel = fixture.vm,
+                                restNotificationsEnabledOverride = scenario != "edit-denied")
+                        }
                     }
                 }
             }
@@ -216,7 +226,29 @@ class WorkoutCompletionLayoutInstrumentedTest(
                 chooseEffort()
             }
             compose.waitUntil(15_000) { fixture.vm.primaryAction.value.kind == expected && fixture.vm.primaryAction.value.enabled }
+            compose.waitUntil(15_000) { fixture.vm.privateRecovery.value.phase == WorkoutPrivatePhase.READY }
+            val current = runBlocking(Dispatchers.IO) { checkNotNull(repo.getSession(sessionId)) }
+            assertTrue(fixture.container.workoutDraftCache.all(sessionId).keys.all { id -> current.exercises.any { it.exercise.id == id } })
+            assertTrue(fixture.vm.numberEntry.entries.value.all { entry -> current.exercises.any { it.exercise.id == entry.exerciseId } })
             assertTrue(runBlocking(Dispatchers.IO) { repo.getSession(sessionId)!!.sets.isEmpty() })
+            compose.runOnIdle { fixture.vm.requestNotesExit() }
+            // The real route consumes exitRequested before invoking navigation. Observe
+            // that callback rather than racing a transient event which may already be handled.
+            compose.waitUntil(15_000) { exits.get() == 1 }
+            fixture.recreate(SavedStateHandle(mapOf("sessionId" to sessionId)))
+            compose.runOnIdle { modelGeneration.value++ }
+            compose.waitUntil(15_000) {
+                fixture.vm.privateRecovery.value.phase == WorkoutPrivatePhase.READY &&
+                    fixture.vm.primaryAction.value.kind == expected && fixture.vm.primaryAction.value.enabled
+            }
+            assertTrue(fixture.vm.privateRecovery.value.resumed)
+            assertEquals(current.exercises.firstOrNull()?.exercise?.id, fixture.vm.uiState.value.selectedExerciseId)
+            assertTrue(fixture.vm.numberEntry.entries.value.isEmpty())
+            assertFalse(fixture.vm.setStopwatch.value.running)
+            assertTrue(runBlocking(Dispatchers.IO) { repo.getSession(sessionId)!!.sets.isEmpty() })
+            val reopened = GoldenCapture.capture(compose).asAndroidBitmap()
+            try { NativeArtifacts.write("completion-$width-$height-font${(font * 10).toInt()}-$scenario-reopened", reopened) }
+            finally { reopened.recycle() }
         }
     }
 

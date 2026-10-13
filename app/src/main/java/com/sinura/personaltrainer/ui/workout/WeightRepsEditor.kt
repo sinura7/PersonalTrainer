@@ -115,19 +115,22 @@ internal fun WeightRepsEditor(
     val meaning = loadClass.weightMeaning
     val showWeight = meaning != WeightMeaning.NONE
     val stack = LogLoopScale.stackEntryWells(LocalDensity.current.fontScale)
-    var typingWeight by rememberSaveable { mutableStateOf(false) }
-    var typingReps by rememberSaveable { mutableStateOf(false) }
-    var typingHold by rememberSaveable { mutableStateOf(false) }
-    val numberOwner = LocalWorkoutNumbers.current?.exerciseId
-    val numberRetention = LocalWorkoutNumbers.current != null
+    val numberPort = LocalWorkoutNumbers.current
+    val numberOwner = numberPort?.exerciseId
+    var typingWeight by rememberSaveable(numberOwner) { mutableStateOf(false) }
+    var typingReps by rememberSaveable(numberOwner) { mutableStateOf(false) }
+    var typingHold by rememberSaveable(numberOwner) { mutableStateOf(false) }
     val retainedWeight = retainedNumber(WorkoutNumberField.WEIGHT)
     val retainedReps = retainedNumber(WorkoutNumberField.REPS)
     val retainedHold = retainedNumber(WorkoutNumberField.HOLD_SECONDS)
-    LaunchedEffect(numberOwner, enabled, retainedWeight?.open, retainedReps?.open, retainedHold?.open) {
-        if (numberRetention) {
-            typingWeight = enabled && retainedWeight?.open == true
-            typingReps = enabled && retainedReps?.open == true
-            typingHold = enabled && retainedHold?.open == true
+    LaunchedEffect(numberPort, numberOwner, enabled, retainedWeight?.open, retainedReps?.open, retainedHold?.open) {
+        if (numberPort != null) {
+            // Cancel can clear retention before an effect from the preceding frame runs.
+            // Consult the current record so that stale open state cannot reopen the keypad.
+            val current = numberPort.entries.value.filter { it.exerciseId == numberPort.exerciseId }
+            typingWeight = enabled && current.any { it.field == WorkoutNumberField.WEIGHT && it.open }
+            typingReps = enabled && current.any { it.field == WorkoutNumberField.REPS && it.open }
+            typingHold = enabled && current.any { it.field == WorkoutNumberField.HOLD_SECONDS && it.open }
         }
     }
     LaunchedEffect(enabled) {

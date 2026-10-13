@@ -1,6 +1,6 @@
 {
-  "packet": "P04 — Complete workout continuity",
-  "state": "Verified candidate — integration pending; physical acceptance remains P20",
+  "packet": "P04 \u2014 Complete workout continuity",
+  "state": "P04 integrated at e21ee990; corrective PR497 verified for integration; physical acceptance remains P20",
   "base": "f7a403892e9028066b88819e9b2031a869d6d9e4",
   "architecture": "ADR-033",
   "problem": "Workout entry, raw keypads, timed work and Delete/Undo relied on process or framework restoration. Reopening and uncertain writes require durable, owner-scoped recovery without changing saved records.",
@@ -131,7 +131,7 @@
       "scope": "All ten assigned automated tasks have direct bounded evidence at the frozen candidate. Full gate and final source reviews passed. Integration and P20 physical acceptance remain pending."
     },
     "full04": "Cancelled before app-unit execution to close three narrowly identified UX22 evidence gaps. Standalone compilation was incomplete; no complete standalone/app/gate pass claimed. Original logs and cancellation receipt retained.",
-    "nativeAcceptanceFailures": "Original native-acceptance01–09, number-diagnosis/correction/foreground and permission-contract01–02 attempts retained. Corrected reconstructed notification flags to the production PendingIntent, awaited actual delivery and numeric-dialog closure, used system Back for the external Settings package, and proved foreground/resumed return. Overbroad 'no dialog' treated the accepted missing-permission guard as a numeric-Cancel failure; global screenshot and successful clear trace resolved that misinterpretation. Speculative production effects and all probes were reverted. One probe attempt compiled main but did not package it; its provenance rejection is explicit. Dedicated expected-guard capture preserves normal prompt checks, and exact readiness assertions now include the implemented resumed cue. These failures are not evidence of a numeric production defect or a Windows-only issue.",
+    "nativeAcceptanceFailures": "Original native-acceptance01\u201309, number-diagnosis/correction/foreground and permission-contract01\u201302 attempts retained. Corrected reconstructed notification flags to the production PendingIntent, awaited actual delivery and numeric-dialog closure, used system Back for the external Settings package, and proved foreground/resumed return. Overbroad 'no dialog' treated the accepted missing-permission guard as a numeric-Cancel failure; global screenshot and successful clear trace resolved that misinterpretation. Speculative production effects and all probes were reverted. One probe attempt compiled main but did not package it; its provenance rejection is explicit. Dedicated expected-guard capture preserves normal prompt checks, and exact readiness assertions now include the implemented resumed cue. These failures are not evidence of a numeric production defect or a Windows-only issue.",
     "full03RepairsTarget01": {
       "freshAppTests": 10,
       "failures": 0,
@@ -190,5 +190,50 @@
     "Physical touch, system timing, sound/haptics and performance remain P20.",
     "Cross-app acceptance criteria remain owned by their named packets and P19.",
     "Latest signed delivery remains Debug125; next milestone publication follows P10."
-  ]
+  ],
+  "correctiveNativeContracts": {
+    "base": "e21ee990b073cb0ce8697b6b90bd018f250fde5e",
+    "originalHostedRuns": [
+      38344380459,
+      38344374417
+    ],
+    "baseline": "completion-baseline01: 15 executed, four failed; numeric-red01: two executed, two failed. Original reports retained.",
+    "problem": "Released removed-owner commands leave orphaned staged fields; retired numeric callbacks can republish/confirm input after dismissal.",
+    "change": "Prune only owners proven absent by successful session reads; preserve survivor values/notes. Retire numeric input/confirmation/focus callbacks and read live retention before reopening. Pin unadmitted-command and incompatible-raw-checkpoint fixtures separately.",
+    "acceptance": "Return/Close/reopen with exact surviving values and no removed command write; explicit raw-owner conflict discard preserves saved rows; canceled/accepted old callbacks cannot mutate or reopen; fresh dialog input remains accepted; affected actual AppNav and layout cases pass.",
+    "verification": {
+      "freshFullGate": "corrective-full02: app4437 / standalone1707, zero failures/errors/skips; static checks, Debug build, lint and AndroidTest assembly passed.",
+      "freshNative": "corrective-native03 PASS20: four numeric-lifetime cases, 15 completion/layout cases and one actual eight-log AppNav workout/correction/Finish/Summary/History journey.",
+      "freshProcess": "corrective-process01 PASS4 after actual force-stop: completed checkpoint and admitted command, exact fresh AppNav reconstruction.",
+      "freshCustomSupplement": "custom-close-supplement01 PASS1 against identical source/APKs; original hosted failure remains unresolved evidence.",
+      "identity": "corrective-final-identity-proof.json: all1601 execution inputs unchanged, fresh XML/log hashes intact, native/process/current APKs identical.",
+      "reviews": "Pinned independent and adversarial final seals under reviews; zero outstanding critical/high findings in this correction.",
+      "physical": "Unobserved; P20 remains required after development."
+    },
+    "deployment": "No version/drop in this correction; milestone A remains after P10.",
+    "findings": {
+      "C1": "Revoked release callback: check current ownership after suspended private release and before shared-cache cleanup. Held-release regression protects newer pending command and exact Close/reopen fields.",
+      "C2": "Numeric owner transition: captured-owner input/dismissal admission and owner/field lifetime keys prevent previous-exercise callbacks editing or clearing the new owner.",
+      "C3": "Async refused dismissal: consult current input admission before retiring Cancel/system dismissal, so pending Save failure remains retryable."
+    },
+    "originalFailures": [
+      "completion-baseline01: 15 executed, four failed.",
+      "numeric-red01: two executed, two failed.",
+      "corrective-native01: 18 executed, one new transient-exit assertion failed; actual navigation observation corrected.",
+      "corrective-target06: 17 executed, one raw-owner fixture precondition failed; owning selection now explicitly pinned.",
+      "corrective-full01: fresh standalone1707 passed; app3330/11failed/1interruptedskip before stopping only the verified failed test worker; complete gate rejected/incomplete, original logs/assessment retained."
+    ],
+    "focusedEvidence": "corrective-target07: exact existing Home DAO failure/retry case PASS1 and private workout recovery PASS17; Debug/release/AndroidTest APK assembly passed. Bounded evidence only.",
+    "candidate": "d770ea76a99c656804edcb77a88e20e9a8a09aaf",
+    "pullRequest": "https://github.com/sinura7/PersonalTrainer/pull/497",
+    "hostedSupplement": {
+      "deterministic": "Both current d770 jobs passed Tests, lint, debug build.",
+      "nativePassed": "Run38353592146: 262 passed.",
+      "nativeFailed": "Run38353587823: 262 executed, one custom-editor Close assertion failed before touch. Original completed-job log preserved.",
+      "classification": "Unresolved evidence with a demonstrated keyboard/Back fixture synchronization gap; no critical/high production defect established. Not described as host-only or a pass.",
+      "followupPacket": "P19",
+      "followup": "Capture IME visibility, surviving sheet, Close/root geometry and failure screenshot around keyboard dismissal. Retain direct reachable Close and exact reopen/save checks; do not weaken the assertion.",
+      "diagnosis": "reviews/hosted-custom-close-diagnosis.md"
+    }
+  }
 }

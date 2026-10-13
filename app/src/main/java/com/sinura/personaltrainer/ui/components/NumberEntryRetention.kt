@@ -6,6 +6,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 /** Private form ownership; ordinary shared dialogs retain their existing contract. */
 internal interface NumberEntryRetention {
     val initial: TextFieldValue?
+    fun allowsInput(): Boolean = true
     fun changed(value: TextFieldValue)
     fun closed()
     fun discarded()
