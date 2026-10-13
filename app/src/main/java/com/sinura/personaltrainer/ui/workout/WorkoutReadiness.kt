@@ -41,7 +41,7 @@ internal fun WorkoutReadiness(action: WorkoutPrimaryAction, effortMissing: Boole
     }
     Text(
         text = when {
-            keepEntry -> "Keep this entry before logging. Your saved sets are unchanged."
+            keepEntry -> "Keep this entry before logging."
             resumed && action.kind in setOf(WorkoutPrimaryKind.LOG_SET, WorkoutPrimaryKind.LOG_WARMUP,
                 WorkoutPrimaryKind.START_HOLD, WorkoutPrimaryKind.LOG_HOLD, WorkoutPrimaryKind.SAVE_CHANGES) -> "Draft resumed. " + text
             else -> text

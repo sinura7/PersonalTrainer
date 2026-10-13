@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
@@ -79,10 +80,9 @@ class WorkoutRecoveryLayoutInstrumentedTest(private val width: Int, private val 
         compose.waitUntil(30000) { fixture.vm.privateRecovery.value.phase == phase }
         GoldenCapture.awaitViewport(compose, width, height)
         val root = compose.onNodeWithTag(GoldenCapture.DefaultTag).fetchSemanticsNode()
-        val density = root.layoutInfo.density.density
         val action = if (scenario.startsWith("keep")) compose.onNodeWithTag("workout-keep-entry").assertIsDisplayed().assertIsEnabled()
         else if (scenario.startsWith("resumed")) {
-            compose.revealFloorControlAboveTempo(WorkoutTestTags.LOG_READINESS)
+            scrollReadiness()
             compose.onNodeWithText("Draft resumed. Choose effort to log this set.").assertIsDisplayed()
             compose.onNodeWithTag(WorkoutTestTags.LOG_SET).assertIsDisplayed()
         } else {
@@ -91,13 +91,24 @@ class WorkoutRecoveryLayoutInstrumentedTest(private val width: Int, private val 
         }
         val bounds = action.fetchSemanticsNode().boundsInRoot
         assertTrue("recovery action remains within the viewport", bounds.top >= root.boundsInRoot.top && bounds.bottom <= root.boundsInRoot.bottom + 1)
-        assertTrue("target has its applicable minimum", bounds.height / density >= if (scenario.startsWith("keep") || scenario.startsWith("resumed")) 72 else 48)
+        val minimum = if (scenario.startsWith("keep") || scenario.startsWith("resumed")) 72 else 48
+        val minimumPixels = with(root.layoutInfo.density) { minimum.dp.roundToPx() }
+        assertTrue("target height=${bounds.height}, required=$minimumPixels px", bounds.height >= minimumPixels)
         if (scenario.startsWith("keep")) {
-            compose.revealFloorControlAboveTempo(WorkoutTestTags.LOG_READINESS)
-            compose.onNodeWithText("Keep this entry before logging. Your saved sets are unchanged.").assertIsDisplayed()
+            scrollReadiness()
+            compose.onNodeWithText("Keep this entry before logging.").assertIsDisplayed()
         }
         val bitmap = compose.onNodeWithTag(GoldenCapture.DefaultTag).captureToImage().asAndroidBitmap()
         NativeArtifacts.write("workout-recovery-$scenario-${width}x$height-font${(font*10).toInt()}", bitmap)
+    }
+    private fun scrollReadiness() {
+        compose.onNodeWithTag(WorkoutTestTags.CONTENT).performScrollToNode(hasTestTag(WorkoutTestTags.LOG_READINESS))
+        val node = compose.onNodeWithTag(WorkoutTestTags.LOG_READINESS).assertIsDisplayed().fetchSemanticsNode()
+        val bounds = node.boundsInRoot
+        val content = compose.onNodeWithTag(WorkoutTestTags.CONTENT).fetchSemanticsNode().boundsInRoot
+        assertTrue("whole caption fits its scrolling viewport: $bounds in $content, size=${node.size}",
+            bounds.width + 1 >= node.size.width && bounds.height + 1 >= node.size.height &&
+                bounds.top >= content.top - 1 && bounds.bottom <= content.bottom + 1)
     }
     companion object {
         @JvmStatic @Parameterized.Parameters(name = "{0}x{1}-font{2}-{3}") fun profiles(): List<Array<Any>> = buildList {

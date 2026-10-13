@@ -45,7 +45,44 @@
       "sourceStable": true,
       "scope": "Fresh full static gate, focused data/controller/notes-cache/timer regressions and app/test APK assembly. Before the final stale-discard fix; not the complete unfiltered gate."
     },
-    "candidateReviews": "Both reviewers closed their original findings in code and identified the same stale-editor Discard high. Permit-at-open and owned Discard are implemented and independently reconfirmed in code, including failed-clear Retry. Final executed evidence and review seals remain pending."
+    "candidateReviews": "Both reviewers closed their original findings in code and identified the same stale-editor Discard high. Permit-at-open and owned Discard are implemented and independently reconfirmed in code, including failed-clear Retry. Final executed evidence and review seals remain pending.",
+    "ownerDiscardFinal01": {
+      "freshAppTests": 54,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStable": true,
+      "scope": "Fresh static gate, focused actor/controller/data/timer regressions and app/test APK assembly at captured inputs; not unfiltered full gate."
+    },
+    "nativeConnected04": "PASS one fresh actual AppNav journey, eight exact records/451 kg, correction and Delete/Undo before Finish/Summary/History. Stable source/APKs; no phone acceptance.",
+    "nativeProcess01": "Stage passed; force-stop proved the real app process absent. Resume failed a test querying ContentDescription on the clock parent, while the spoken value belongs to its child. Original output retained; corrected native run pending.",
+    "nativeRecoveryLayout01": "26 profiles executed, five assertion failures retained. Four minimum-target checks did not use native integer-pixel rounding; landscape preservation copy exceeded the readout space and the swipe helper demanded extra border space. Caption shortened; new test asserts complete caption within scrolling bounds and rounded 48/72 dp targets. Final run pending.",
+    "nativeEntryLayout01": "PASS38 fresh profiles at captured inputs: required sizes/fonts plus warmup, load types, hold, saved/Undo, long/large/zero/error values and RTL. Source/APK stable; the subsequent caption correction requires a final run.",
+    "nativeIme01": "PASS2 fresh actual Android keyboard tasks at system font2: numeric invalid/Cancel/decimal application and long-name landscape custom rest with one overlay.",
+    "full01": "Cancelled before unfiltered app tests because the native recovery finding required changed production copy. Standalone1707 passed freshly at original inputs; complete gate remains unaccepted. All logs and cancellation assessment retained.",
+    "nativeCorrectionsBuild01": {
+      "freshAppTests": 54,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceStable": true,
+      "scope": "Fresh static checks, focused regressions and app/test APK assembly with shorter preservation copy. Subsequent Android-only fixture corrections require final native execution and full gate."
+    },
+    "nativeRecoveryLayout02": "PASS26 fresh recovery profiles: whole captions within viewport, native-rounded48/72dp targets, required sizes/fonts, unreadable/conflicting/resumed states and RTL. Captured app APK036D99E4; final APK/source verification follows.",
+    "nativeProcess02": "Resume failed because fixture tried to confirm partial82.; parser correctly disabled Set. Original output retained; complete82.0 before confirmed Set.",
+    "nativeProcess03": "Resume confirmed82kg but fixture incorrectly expected180.8lb. Existing half-pound presentation correctly shows181lb. Original output retained; no calculation changed.",
+    "nativeProcess04": {
+      "freshTests": 4,
+      "result": "PASS",
+      "sourceStable": true,
+      "phases": [
+        "stage",
+        "force-stop/resume",
+        "stage-pending",
+        "force-stop/resume-pending"
+      ],
+      "scope": "Actual AppNav, real process termination proof, original partial kg text despite lb settings, completed82.0 confirmed then Cancel preserves durable82kg with no record, restored running clock, exact frozen47.5kg/11/RPE8/23sec accepted once. Completed checkpoints/admissions only; no instantaneous in-flight IO guarantee or phone claim."
+    }
   },
   "boundaries": [
     "Physical touch, system timing, sound/haptics and performance remain P20.",

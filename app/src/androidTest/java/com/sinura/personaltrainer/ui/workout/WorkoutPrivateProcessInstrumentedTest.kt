@@ -6,7 +6,10 @@ import android.accessibilityservice.AccessibilityService
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -109,22 +112,37 @@ class WorkoutPrivateProcessInstrumentedTest {
         }
         if (phase.startsWith("resume")) {
             compose.onNodeWithTag(WorkoutTestTags.HOLD_CLOCK).assertIsDisplayed()
-            val clock = compose.onNodeWithTag(WorkoutTestTags.HOLD_CLOCK).fetchSemanticsNode().config[SemanticsProperties.ContentDescription].joinToString()
-            assertTrue(clock, clock.startsWith("Set time "))
+            val elapsedClock = hasAnyAncestor(hasTestTag(WorkoutTestTags.HOLD_CLOCK)) and hasContentDescription("elapsed", substring = true)
+            compose.waitUntil(30000) { compose.onAllNodes(elapsedClock).fetchSemanticsNodes().isNotEmpty() }
+            val clock = compose.onNode(elapsedClock).assertIsDisplayed().fetchSemanticsNode()
+                .config[SemanticsProperties.ContentDescription].joinToString()
+            assertTrue(clock, clock.endsWith(" elapsed"))
             compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
             tap(WorkoutTestTags.WEIGHT_STEPPER)
             awaitTag(NumberEntryTags.FIELD)
             assertEquals("82.", compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
             compose.onNodeWithText("kg").assertIsDisplayed()
             capture("resume-partial-original-unit")
+            compose.onNodeWithTag(NumberEntryTags.CONFIRM).assertIsNotEnabled()
+            compose.onNodeWithTag(NumberEntryTags.FIELD).performTextReplacement("82.0")
+            compose.onNodeWithTag(NumberEntryTags.CONFIRM).assertIsEnabled()
             tap(NumberEntryTags.CONFIRM)
+            compose.waitUntil(30000) { compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD)).fetchSemanticsNodes().isEmpty() }
             compose.revealFloorControlAboveTempo(WorkoutTestTags.WEIGHT_STEPPER)
             tap(WorkoutTestTags.WEIGHT_STEPPER)
-            assertEquals("180.8", compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+            awaitTag(NumberEntryTags.FIELD)
+            // Existing lb presentation rounds to half-pound increments; 82 kg shows 181.
+            assertEquals("181", compose.onNodeWithTag(NumberEntryTags.FIELD).fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
             compose.onNodeWithText("Cancel").performClick()
+            compose.waitUntil(30000) { compose.onAllNodes(hasTestTag(NumberEntryTags.FIELD)).fetchSemanticsNodes().isEmpty() }
             assertTrue(read { container.workoutRepository.getSession(sessionId)!!.sets.isEmpty() })
             assertEquals("Synthetic notes retained", read { container.workoutRepository.getSession(sessionId)!!.notes })
             capture("resume-clock-and-entry")
+            compose.onNodeWithContentDescription("Exit workout").performClick()
+            awaitTag(LiveSessionBarTestTags.ROOT)
+            val entry = read { (container.workoutDraftCache.persistence!!.open(sessionId) as com.sinura.personaltrainer.workout.WorkoutDraftRestore.ReadyEntry).entry!! }
+            assertEquals(82.0, entry.lifts.getValue(EXERCISE).weightKg, 0.0)
+            assertTrue(entry.numbers.isEmpty())
             return
         }
         awaitTag(WorkoutTestTags.START_SET_CLOCK)
