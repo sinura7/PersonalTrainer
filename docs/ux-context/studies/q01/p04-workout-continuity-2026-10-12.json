@@ -1,6 +1,6 @@
 {
   "packet": "P04 — Complete workout continuity",
-  "state": "In progress — final native, full gate and review evidence pending",
+  "state": "In progress — final native checks passed; complete gate and review seals pending",
   "base": "f7a403892e9028066b88819e9b2031a869d6d9e4",
   "architecture": "ADR-033",
   "problem": "Workout entry, raw keypads, timed work and Delete/Undo relied on process or framework restoration. Reopening and uncertain writes require durable, owner-scoped recovery without changing saved records.",
@@ -95,7 +95,39 @@
       "sourceStable": true,
       "scope": "Fresh static checks, GymChrome shared-component assertion, SessionRepair no-recreated-data/explicit conflict, durable actor/controller regressions and both APKs. Not the complete unfiltered gate."
     },
-    "nativeRecoveryLayout03": "PASS26 fresh settled-state profiles. Await FOUND/error before inspecting UI, reject duplicate banner, touch Check again and prove another read. Required viewport/font/RTL and native-rounded targets preserved; actual font2 unavailable preview reviewed. Final full/native exact-candidate gate pending."
+    "nativeRecoveryLayout03": "PASS26 fresh settled-state profiles. Await FOUND/error before inspecting UI, reject duplicate banner, touch Check again and prove another read. Required viewport/font/RTL and native-rounded targets preserved; actual font2 unavailable preview reviewed.",
+    "nativeFinal02": {
+      "candidate": "ccee3c06d1d02ee30f2275e6c859b121da1b9db9",
+      "freshChecks": 67,
+      "result": "PASS",
+      "scope": "One real MainActivity/AppNav eight-log journey, 38 native entry profiles, 26 settled recovery profiles with touched Check again and two actual IME tasks. Same eight set IDs and 451 kg through correction/Delete/Undo/Finish/Summary/History; not physical acceptance.",
+      "appApkSha256": "B513398DE8C5CA84892EE22B6CD498B5F0D4A8ADF7B8E563F81AF29A1C833AB9",
+      "testApkSha256": "8BF30A312520D7E2251D2CFBE1EC71F51A47BB4A6378EA075B30F19FD5C7867C",
+      "sourceStable": true
+    },
+    "nativeProcess05": {
+      "freshPhases": 4,
+      "result": "PASS",
+      "scope": "Actual process termination and fresh AppNav reopening after completed checkpoints/admission. Partial original-unit text, clock, accepted numeric entry and exact frozen timed set restored. Same source/APKs as nativeFinal02; no guarantee for unfinished IO or physical timing."
+    },
+    "full03RepairsTarget01": {
+      "freshAppTests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "result": "PASS",
+      "scope": "Both Summary correction journeys and all eight mid-prefill/reopening regressions passed after the narrow scheduling and fixture repairs. Every exact saved-row/navigation/notes assertion retained; final unfiltered gate remains pending. Adversarial review found no weakened coverage."
+    },
+    "full03": {
+      "freshAppTests": 4433,
+      "failures": 3,
+      "errors": 0,
+      "skipped": 0,
+      "freshStandaloneTests": 1707,
+      "result": "FAIL",
+      "sourceStable": true,
+      "scope": "Complete unfiltered test execution retained in 602 fresh XML files. Two Summary correction tests blocked paused Main before the writer could resume from IO; one orphan-copy test assumed swap left the replaced draft cached, contradicting the new cleanup contract. Narrow test repairs retain exact records/navigation assertions and explicitly inject the legacy orphan hazard; their execution and final gate remain pending. Not a Windows-only classification or a build pass."
+    }
   },
   "boundaries": [
     "Physical touch, system timing, sound/haptics and performance remain P20.",
