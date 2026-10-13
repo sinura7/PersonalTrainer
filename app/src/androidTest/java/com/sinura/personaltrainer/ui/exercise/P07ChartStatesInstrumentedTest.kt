@@ -92,18 +92,18 @@ class P07ChartStatesInstrumentedTest {
                 }
             }
         }
-        for (selected in listOf(WeightUnit.KG, WeightUnit.LBS)) {
-            compose.runOnIdle { unit = selected }
-            val value = if (selected == WeightUnit.KG) "100 kg" else "220.5 lb"
+        for (displayUnit in listOf(WeightUnit.KG, WeightUnit.LBS)) {
+            compose.runOnIdle { unit = displayUnit }
+            val value = if (displayUnit == WeightUnit.KG) "100 kg" else "220.5 lb"
             compose.onNodeWithContentDescription("Estimated 1RM, 2 sessions, latest $value, best $value").assertIsDisplayed()
-            compose.onNodeWithText("+0 ${selected.suffix}").assertDoesNotExist()
+            compose.onNodeWithText("+0 ${displayUnit.suffix}").assertDoesNotExist()
             compose.onNodeWithTag("$tag-values").performScrollTo().performClick()
             for ((index, date) in listOf("5 January 2026", "12 January 2026").withIndex()) {
                 compose.onNodeWithTag("$tag-data-list").performScrollToNode(hasText(date))
                 compose.onNode(hasText(date) and hasAnyAncestor(hasTestTag("$tag-point-$index"))).assertIsDisplayed()
                 compose.onNode(hasText(value) and hasAnyAncestor(hasTestTag("$tag-point-$index"))).assertIsDisplayed()
             }
-            captureData(name = "flat-loaded-${selected.suffix}-data", tag = tag)
+            captureData(name = "flat-loaded-${displayUnit.suffix}-data", tag = tag)
             compose.onNodeWithTag("$tag-close").performClick()
         }
     }
