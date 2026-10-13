@@ -36,7 +36,7 @@ internal object WorkoutCheckpointCodec : DraftCodec<WorkoutEntryCheckpoint, Unit
                 addProperty("dirty", draft.dirty); addProperty("extra", draft.extraSetRequested)
             }) }
         })
-        add("numbers", JsonArray().apply { value.numbers.forEach { add(encodeNumber(it)) } })
+        add("numbers", JsonArray().apply { value.numbers.forEach { add(encodeWorkoutNumber(it)) } })
         add("clocks", value.clocks?.let(::encodeClocks) ?: JsonNull.INSTANCE)
         add("undo", JsonArray().apply { value.undo.forEach { add(encodeUndo(it)) } })
         addProperty("undoDwellMs", value.undoDwellMs)
@@ -60,7 +60,7 @@ internal object WorkoutCheckpointCodec : DraftCodec<WorkoutEntryCheckpoint, Unit
         require(entries.map { it.first }.distinct().size == entries.size)
         val editing = item.get("editing").notNull()?.let(WorkoutSetCheckpointCodec::decodeDraft)
         require(editing == null || editing.sessionId == session)
-        val numbers = item.getAsJsonArray("numbers").map(::decodeNumber)
+        val numbers = item.getAsJsonArray("numbers").map(::decodeWorkoutNumber)
         require(numbers.map { it.exerciseId to it.field }.distinct().size == numbers.size && numbers.count { it.open } <= 1)
         return WorkoutEntryCheckpoint(
             sessionId = session, startedAt = item.integer("start").also { require(it >= 0) },
@@ -87,14 +87,16 @@ internal object WorkoutSetCheckpointCodec : DraftCodec<WorkoutSetSave, WorkoutSe
         add("values", encodeValues(value.values))
         add("original", value.original?.let(::encodeValues) ?: JsonNull.INSTANCE)
     }
-    override fun decodeDraft(value: JsonElement): WorkoutSetSave {
+    override fun decodeDraft(value: JsonElement): WorkoutSetSave = decode(value, historicalValues = false)
+    internal fun decodeFinishedDraft(value: JsonElement): WorkoutSetSave = decode(value, historicalValues = true)
+    private fun decode(value: JsonElement, historicalValues: Boolean): WorkoutSetSave {
         val item = value.asJsonObject
         return WorkoutSetSave(
             sessionId = item.text("session").also { require(it.isNotBlank()) },
             exerciseId = item.text("exercise").also { require(it.isNotBlank()) },
             setId = item.text("set").also { require(it.isNotBlank()) },
             completedAt = item.integer("completed").also { require(it >= 0) },
-            values = decodeValues(item.get("values")),
+            values = decodeValues(value = item.get("values"), original = historicalValues),
             original = item.get("original").notNull()?.let { decodeValues(it, original = true) },
         )
     }
@@ -141,13 +143,13 @@ private fun decodeValues(value: JsonElement, original: Boolean = false): Workout
     )
 }
 
-private fun encodeNumber(value: WorkoutNumberDraft): JsonObject = JsonObject().apply {
+internal fun encodeWorkoutNumber(value: WorkoutNumberDraft): JsonObject = JsonObject().apply {
     addNullable("exercise", value.exerciseId); addProperty("field", value.field.name)
     addProperty("text", value.text); addNullable("unit", value.weightUnit?.name)
     addProperty("selectionStart", value.selectionStart); addProperty("selectionEnd", value.selectionEnd)
     addProperty("open", value.open)
 }
-private fun decodeNumber(value: JsonElement): WorkoutNumberDraft {
+internal fun decodeWorkoutNumber(value: JsonElement): WorkoutNumberDraft {
     val item = value.asJsonObject
     val field = WorkoutNumberField.valueOf(item.text("field"))
     val unit = item.nullableText("unit")?.let(WeightUnit::valueOf)

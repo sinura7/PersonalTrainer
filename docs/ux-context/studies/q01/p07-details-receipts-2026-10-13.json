@@ -1,6 +1,6 @@
 {
   "packet": "P07",
-  "state": "In progress; completed-note recovery and receipt/source changes implemented and bounded verified. Historical set-editor durability and whole-packet gate/reviews/integration remain.",
+  "state": "In progress; completed-note recovery/receipt/source changes checkpointed. Historical set persistence/admission foundation passes 20 fresh focused checks but editor wiring and whole-packet gate/reviews/integration remain.",
   "base": "074f9c5057caa033eca1c530dd98812cb76e77e1",
   "architecture": [
     "ADR-026",
@@ -18,7 +18,8 @@
     "Latest raw fields survive older accepted writes; confirmed cleanup never replays a completed Save. Close/Back retain, Discard clears only unfinished work.",
     "Completed strength and typed activity notes preserve their original stores/IDs. Activity snapshot set repair and repeat remain refused under the accepted capability contract.",
     "Receipt shows captured activity date, exact seconds/hours and recorded distance without changing stored values or minute calculations.",
-    "Best-record links require exact set/session/values/time and unambiguous store. Full names/dates wrap; bodyweight repetitions do not invent zero-kilogram records."
+    "Best-record links require exact set/session/values/time and unambiguous store. Full names/dates wrap; bodyweight repetitions do not invent zero-kilogram records.",
+    "Historical set checkpoint/admission foundation retains original identity/time/values, raw numeric text and captured units; real repository CAS and exact-readback reconciliation preserve corrections. Production private-generation fencing stays enabled, and unreadable private checkpoints permit explicit private-only Discard."
   ],
   "verification": {
     "notes-sources-target09": {
@@ -215,7 +216,39 @@
       },
       "changedInputs": []
     },
-    "record-capture-target13": "Statics and native test compilation/assembly succeeded at unchanged 1625 inputs. Targeted JVM task was UP-TO-DATE, so zero fresh tests; the strict wrapper returned incomplete (exit1), preserved. This is assembly evidence, not a passed local gate. The two component native checks then freshly passed with the matching rebuilt test APK."
+    "record-capture-target13": "Statics and native test compilation/assembly succeeded at unchanged 1625 inputs. Targeted JVM task was UP-TO-DATE, so zero fresh tests; the strict wrapper returned incomplete (exit1), preserved. This is assembly evidence, not a passed local gate. The two component native checks then freshly passed with the matching rebuilt test APK.",
+    "finished-set-target16": {
+      "startedAtUtc": "2026-10-13T16:07:56.2742909Z",
+      "endedAtUtc": "2026-10-13T16:12:19.2755547Z",
+      "exit": 0,
+      "gradleExit": 0,
+      "completeStandalonePreflightExit": null,
+      "fullGate": false,
+      "head": "f231c8fc43a8ce72c0598546efcd4fca51f3fb4f",
+      "sourceFilesBefore": 1627,
+      "sourceFilesAfter": 1627,
+      "sourceStable": true,
+      "changedInputs": [],
+      "addedInputs": [],
+      "refsStable": true,
+      "buildSuccessful": true,
+      "counts": {
+        "tests": 20,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "xmlFiles": 3,
+      "freshXmlFiles": 3,
+      "allXmlFresh": true,
+      "allXmlReused": false,
+      "freshExecutedJvmTests": 20,
+      "reusedExecutedJvmTests": 0,
+      "reusedEvidence": "",
+      "result": "PASS executed checks at archived unchanged source; scope defined by command",
+      "standaloneEvidenceReused": false,
+      "freshStandaloneExecution": false
+    }
   },
   "originalFailures": [
     "baseline-notes01 collector fixture timeout; repaired with subscribed suspending pump and the same bounded deadline.",
@@ -224,7 +257,10 @@
     "notes-target03, notes-sources-target05/06: mixed-required-argument and unused-import statics failed. Named new arguments and removed the unused import; no ceilings/assertions weakened.",
     "native-connected01/02 stayed on History. Captured failure and semantics establish the fixture tapped the noninteractive row footer; exact owned row identity button is now tapped. native-connected03 passed.",
     "record-sources-native01 mechanical pass still exposed M6 rounded-button clipping under visual inspection. Full-width text-row fix is in record-layout-target12.",
-    "record-sources-native02 mechanical pass captured a blank component frame. It is retained and not accepted as a preview; native capture repair is pending. Compose-root capture in native03 is valid; both fresh checks passed and pixels inspected."
+    "record-sources-native02 mechanical pass captured a blank component frame. It is retained and not accepted as a preview; native capture repair is pending. Compose-root capture in native03 is valid; both fresh checks passed and pixels inspected.",
+    "finished-set-target14 statics refused two newly mixed named/positional calls; named arguments repaired without weakening checks. Zero executed tests.",
+    "finished-set-target15 statics refused a newly fully qualified lambda call; imported the internal adapter normally. Zero executed tests.",
+    "Foundation adversarial review found production correction fencing changed its own private generation. Exact saved readback now reconciles only that admitted handle; a production-hook regression passes. Unreadable owner/discard gap was also fixed with a claimed problem handle and explicit private discard."
   ],
   "reviews": "Two clean-context bounded notes/receipt reviews identified H1/H2 and M1-M5; fixed and reviewed through receipt11. No remaining critical/high finding in that reviewed scope. M6 clipping fix and final whole-packet review remain pending. M6 full-width source-row delta independently reviewed with no C/H/M; record-sources-native03 provides inspected full native pixels, closing this bounded clipping finding.",
   "assets": [
@@ -254,7 +290,7 @@
     }
   ],
   "remaining": [
-    "Durable historical set editor, raw numeric entry and interrupted correction/add Save recovery.",
+    "Wire the verified historical set checkpoint/admission foundation to the editor, including raw numeric retention and framework/durable reconciliation; run connected correction/reopen journeys.",
     "Connected historical correction and refreshed receipt/source/chart journey.",
     "Fresh complete preflight/local gate against final P07 candidate, relevant native layouts, final independent/adversarial reviews.",
     "P07 PR, merge, exact-input integration journey and branch retirement.",

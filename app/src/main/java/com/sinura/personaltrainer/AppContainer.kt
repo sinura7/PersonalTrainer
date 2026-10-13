@@ -1,5 +1,6 @@
 package com.sinura.personaltrainer
 
+import com.sinura.personaltrainer.data.draft.FinishedSetDrafts
 import android.content.Context
 import com.sinura.personaltrainer.data.repository.AfterWorkoutBackup
 import com.sinura.personaltrainer.data.repository.AfterWorkoutUpload
@@ -96,6 +97,16 @@ class AppContainer(context: Context) : AppDependencies {
     }
     internal val historyPeriodDrafts: com.sinura.personaltrainer.data.draft.HistoryPeriodDrafts by lazy {
         com.sinura.personaltrainer.data.draft.HistoryPeriodDrafts(durableDrafts)
+    }
+    internal val finishedSetDrafts: FinishedSetDrafts by lazy {
+        FinishedSetDrafts(
+            store = durableDrafts, maintenance = dbMaintenance,
+            restoreOpen = { backupService.restoreInProgress() }, dispatcher = ioDispatcher,
+            readSession = workoutRepository::getSession,
+            inspectSaved = workoutRepository::inspectFinishedSetSave,
+            readSaved = workoutRepository::readFinishedSetSaveResult,
+            writeLocked = workoutRepository::saveFinishedSetLocked,
+        )
     }
     internal val completedNotesDrafts: com.sinura.personaltrainer.data.draft.CompletedNotesDrafts by lazy {
         com.sinura.personaltrainer.data.draft.completedNotesDrafts(durableDrafts, this) { backupService.restoreInProgress() }
