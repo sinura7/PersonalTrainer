@@ -1,0 +1,50 @@
+{
+  "packet": "P05",
+  "state": "Implementation and bounded native recovery verified; final full gate, review seals and integration pending",
+  "base": "830f82a8d9640994053186001a11fa4e04365398",
+  "architecture": [
+    "ADR-017",
+    "ADR-021",
+    "ADR-033"
+  ],
+  "problem": "Framework-only Home day selection did not survive a fresh process. Narrow date targets needed equivalent full-size choices and an evident route back to today.",
+  "concept": "Connected current-week selection, loaded/empty/read-error/private-keep-error states; build/ux-context/runs/home-preparation/home-continuity-concept.html. Retain Debug125 compact illustrated agenda and Start contracts.",
+  "decision": "Add one quiet dated chooser with the established chevron, seven full civil dates/statuses and radio selection. Keep current-week scope; History calendar belongs to P06.",
+  "behavior": [
+    "Keep only a civil navigation preference in typed app-private noBackup checkpoints, with shared ownership, ordered IO, version/generation fencing and lost-acknowledgement inspection.",
+    "Restore a kept alternate day only in Home, clamp outside the current week, and follow today when the prior preference represented today. No startup redirection or backdating.",
+    "A failed Keep remains retryable. Unreadable private state offers Retry and a consequential explicit Reset; neither changes training records or schedules.",
+    "Retry a failed confirmed Reset as the same action. New choices retire reset cues; monotonically increasing live serial consumption prevents queued reset effects overwriting a later choice.",
+    "Retain planned confirmations, exact Start Retry, generic Start sheet and one-live-activity return. Completed strength/cardio rows return to the same Home context."
+  ],
+  "acceptanceEvidence": {
+    "focused": "target05:23 fresh checks, no failures/errors/skips, static checks and app/test APK assembly. Final full unfiltered suite remains pending.",
+    "native": "native05:18 fresh checks,16 actual-window size/font/RTL profiles with actual OS font and row-density assertions, one expanded Home AppNav journey and the existing eight-log connected workout.",
+    "largeHome": "large-home02:one fresh actual360x640/systemfont2 AppNav journey including private Retry/Reset, both completed detail return paths, alternate day, History return, recreation, Starts now and exact live identity. Original device settings verified restored.",
+    "process": "process02:two fresh phases around actual force-stop with PID\u2192absent proof. Completed kept day reconstructs in a fresh MainActivity; does not claim unfinished IO durability.",
+    "apks": {
+      "app": "137D0BC14C07E48434E3AA06DD50C08A358C3EDEDF8AD7A998D5D5D15B15D3FE",
+      "tests": "E8B1B18B7C14F6D3284DCE415FBBC349D654A6677F2932E654AF947CE3CB7E44"
+    },
+    "physical": "Unobserved; P20 after development. No usability percentage or physical performance inferred."
+  },
+  "criterionScope": {
+    "UX01-AC01": "Existing planned/free copy, confirmations and distinct callbacks retained; native connected planned routine and free starts. Participant interpretation remains P20.",
+    "UX01-AC02": "Real alternate-day Start states Starts now/current civil date and records current startedAt. Existing yesterday/tomorrow planned-copy module cases run in the final gate. Wider manual entry is P14.",
+    "UX01-AC03": "Existing native Home planned-action reachability plus current small/large-text date and actual Home journey. Participant discoverability remains unobserved.",
+    "UX02-AC01": "Retain entry routes; 0/3/50-routine participant discovery and live/manual/mixed area closure remain P13/P14/P19/P20, not claimed from Home alone.",
+    "UX02-AC03": "Existing nine Start ownership checks and real same-live-session return; final required suite will re-execute broader admission cases.",
+    "UX12": "Full-size equivalent date actions/status/spoken selection; existing320 geometry suite retained for fresh final gate."
+  },
+  "originalFailures": [
+    "workout-continuity/home-target01: static mixed-call ratchet rejected before tests; fully named call fixed without changing baseline.",
+    "workout-continuity/home-target02:23 executed/one failed corruption-file fixture match; exact owner metadata now pinned, other-owner preservation assertion retained.",
+    "native01:18 executed/15 failed;13 paragraph-allocation assertions, hold-valued repetition seed and ensuing known synthetic orphan guard. All originals retained.",
+    "date-diagnosis01/02:each one failed; paragraph reports304px allocation versus216px ink. Actual lines/glyphs/no-ellipsis/no-height-overflow now verified with1px rounding.",
+    "native02:18 executed/one failed merged date-child query;17 passed. Test now reads unmerged Text and explicitly reveals the retained-scroll masthead.",
+    "native03:18 passed/process01:two passed; subsequent dialog-font01 failure proved popupfont1 instead of requested2. Original passes retain this overriding font-coverage limitation.",
+    "target04: static design-token ratchet rejected before tests; use existing Metrics.chevron, no baseline increase.",
+    "large-home01:one failed display assertion after Reset retained agenda scroll; reveal the date before inspection. Direct Retry/Reset/Date reachability remains asserted."
+  ],
+  "boundaries": "No Room schema, public API, backup format, version code or distribution signer change. Latest signed Debug125; Drop A after P10. Full UX programme and physical acceptance remain open."
+}

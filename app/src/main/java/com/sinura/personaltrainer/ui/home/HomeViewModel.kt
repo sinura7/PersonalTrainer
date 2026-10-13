@@ -138,6 +138,10 @@ class HomeViewModel @JvmOverloads constructor(
     application: Application,
     container: AppDependencies = application.appContainer(),
 ) : AppViewModel(application, container) {
+    internal val rememberedDay = HomeDayMemory(
+        (container as? com.sinura.personaltrainer.AppContainer)?.homeDayDrafts,
+        viewModelScope,
+    )
     private val actionError = MutableStateFlow<String?>(null)
     private val bodyweightSave = MutableStateFlow(BodyweightSave())
     private val _startState = MutableStateFlow(HomeStartState())
