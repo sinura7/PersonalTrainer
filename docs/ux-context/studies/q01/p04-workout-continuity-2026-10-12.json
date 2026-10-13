@@ -1,6 +1,6 @@
 {
   "packet": "P04 — Complete workout continuity",
-  "state": "In progress — ten assigned automated tasks exercised; complete gate, review seals and integration pending",
+  "state": "Verified candidate — integration pending; physical acceptance remains P20",
   "base": "f7a403892e9028066b88819e9b2031a869d6d9e4",
   "architecture": "ADR-033",
   "problem": "Workout entry, raw keypads, timed work and Delete/Undo relied on process or framework restoration. Reopening and uncertain writes require durable, owner-scoped recovery without changing saved records.",
@@ -9,7 +9,8 @@
     "image": "assets/workout-recovery-concept-2026-10-12.png",
     "shownBeforeNativeChanges": true,
     "scope": "Connected synthetic concept; Android continuity is established separately. Retain Debug125 compact illustrated layout.",
-    "nativeImage": "assets/workout-recovery-unavailable-native-2026-10-12.png"
+    "nativeImage": "assets/workout-recovery-unavailable-native-2026-10-12.png",
+    "nativeResumedImage": "assets/workout-resumed-native-2026-10-12.png"
   },
   "decision": {
     "chosen": "Adopt P02 private checkpoints and frozen commands in the existing workout. Show resumed state, Keep entry on preservation failure, and Check again with explicit private-entry discard for unreadable/conflicting drafts.",
@@ -127,7 +128,7 @@
       "reviewMap": "reviews/independent-p04-acceptance-map.md",
       "assignedAutomatedTasks": 10,
       "exercisedAssignedTasks": 10,
-      "scope": "Seven existing direct proofs plus repeated planned reminder/recreation/Back, actual changed-permission return and hardware Back from completed Summary. Complete gate, exact-source review seals, integration and P20 physical acceptance remain pending."
+      "scope": "All ten assigned automated tasks have direct bounded evidence at the frozen candidate. Full gate and final source reviews passed. Integration and P20 physical acceptance remain pending."
     },
     "full04": "Cancelled before app-unit execution to close three narrowly identified UX22 evidence gaps. Standalone compilation was incomplete; no complete standalone/app/gate pass claimed. Original logs and cancellation receipt retained.",
     "nativeAcceptanceFailures": "Original native-acceptance01–09, number-diagnosis/correction/foreground and permission-contract01–02 attempts retained. Corrected reconstructed notification flags to the production PendingIntent, awaited actual delivery and numeric-dialog closure, used system Back for the external Settings package, and proved foreground/resumed return. Overbroad 'no dialog' treated the accepted missing-permission guard as a numeric-Cancel failure; global screenshot and successful clear trace resolved that misinterpretation. Speculative production effects and all probes were reverted. One probe attempt compiled main but did not package it; its provenance rejection is explicit. Dedicated expected-guard capture preserves normal prompt checks, and exact readiness assertions now include the implemented resumed cue. These failures are not evidence of a numeric production defect or a Windows-only issue.",
@@ -148,7 +149,42 @@
       "result": "FAIL",
       "sourceStable": true,
       "scope": "Complete unfiltered test execution retained in 602 fresh XML files. Two Summary correction tests blocked paused Main before the writer could resume from IO; one orphan-copy test assumed swap left the replaced draft cached, contradicting the new cleanup contract. Narrow test repairs retain exact records/navigation assertions and explicitly inject the legacy orphan hazard; their execution and final gate remain pending. Not a Windows-only classification or a build pass."
-    }
+    },
+    "full05": {
+      "candidate": "7d1d4d5186c3cec478dff129b729ac3192025d5d",
+      "freshAppTests": 4433,
+      "freshStandaloneTests": 1707,
+      "result": "PASS",
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "freshXmlFiles": 602,
+      "scope": "Fresh complete standalone preflight and unfiltered app tests, Debug/release assembly, lint and Android-test APK assembly. All 1600 execution inputs and candidate refs remained unchanged. Earlier failed/cancelled runs remain archived."
+    },
+    "nativeFinal03": {
+      "candidate": "7d1d4d5186c3cec478dff129b729ac3192025d5d",
+      "freshChecks": 67,
+      "result": "PASS",
+      "scope": "Expanded actual AppNav eight-log journey, repeated production PendingIntent, real notification Settings off/on, completed-Summary hardware Back, exact correction/Delete/Undo/History records; 38 entry and 26 recovery profiles plus two actual IME tasks. Isolated API29, not physical acceptance.",
+      "apks": {
+        "tests": "14B5CFC99A995BB34D1A03628BC5062A5B1C7933EC17B21466D527E8600F7C80",
+        "app": "B513398DE8C5CA84892EE22B6CD498B5F0D4A8ADF7B8E563F81AF29A1C833AB9"
+      },
+      "sourceStable": true
+    },
+    "nativeProcess06": {
+      "candidate": "7d1d4d5186c3cec478dff129b729ac3192025d5d",
+      "freshPhases": 4,
+      "result": "PASS",
+      "scope": "Actual force-stop proved prior PID absent; fresh AppNav restored raw original-unit text, clock and exact admitted timed command once. Completed checkpoints/admissions only; no instantaneous in-flight IO guarantee.",
+      "apks": {
+        "app": "B513398DE8C5CA84892EE22B6CD498B5F0D4A8ADF7B8E563F81AF29A1C833AB9",
+        "tests": "14B5CFC99A995BB34D1A03628BC5062A5B1C7933EC17B21466D527E8600F7C80"
+      },
+      "sourceStable": true
+    },
+    "finalIdentityProof": "final-native-identity-proof-v3.json: complete gate/native67/process4 share identical1600 inputs and identical app/test APKs; archived gate artifacts and fresh XML hashes intact.",
+    "finalReviews": "Both final merge seals APPROVED at clean7d1d4d5. Independently reconciled1600 inputs,617 gate artifacts,602 fresh XML, native67/process4 and exact app/test APKs. All demonstrated critical/high findings closed. reviews/independent-final-seal.md and reviews/adversarial-final-seal.md; scope is local automated evidence, not physical acceptance."
   },
   "boundaries": [
     "Physical touch, system timing, sound/haptics and performance remain P20.",
